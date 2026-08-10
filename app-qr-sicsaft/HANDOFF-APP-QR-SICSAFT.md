@@ -97,7 +97,7 @@ Hasta que estas se respondan, TASK-006/TASK-007 pueden avanzar con un **stub/moc
 
 ## 7. Backlog completo y cadena de dependencias
 
-Tablero Trello SICSAFT — 13 tarjetas: **4 en Hecho** (TASK-001, TASK-002, DOC-001, DOC-002), **9 en Lista de tareas** (ADR-001, TASK-003 — ambas completas en la práctica pero la tarjeta no se movió todavía —, TASK-004 a TASK-010).
+Tablero Trello SICSAFT — 13 tarjetas (verificado y sincronizado el 2026-08-10 contra el código real): **6 en Hecho** (TASK-001, TASK-002, DOC-001, DOC-002, ADR-001, TASK-003), **1 en En proceso** (TASK-010 — existe una vista de resumen en `ScanPage.tsx` pero le falta "esperados/faltantes/externos/incidencias" y la pantalla de confirmación de envío), **6 en Lista de tareas** (TASK-004 a TASK-009, sin empezar — cero código de sesiones, categorías de escaneo, cliente API, sincronización, cola offline o auditoría en `src/`).
 
 ```
 TASK-004 (sesiones de inventario — SIN dependencia de CORE, se puede empezar ya)

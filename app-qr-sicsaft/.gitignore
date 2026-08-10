@@ -5,3 +5,12 @@ playwright-report/
 test-results/
 dist/
 *.tsbuildinfo
+coverage/
+
+# Secretos locales de este paquete
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel/

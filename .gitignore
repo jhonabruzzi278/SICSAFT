@@ -1,7 +1,54 @@
+# Herramientas / IA
 .claude/
+.codex/
+*.local.md
+
+# Dependencias
 node_modules/
-.DS_Store
+vendor/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Builds
+dist/
+build/
+out/
+*.tsbuildinfo
+coverage/
+
+# Tests
 playwright-report/
 test-results/
-dist/
-*.tsbuildinfo
+
+# Secretos y configuración local — NUNCA commitear
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+id_rsa*
+*secret*
+*credential*
+*service-account*.json
+appsettings.*.json
+!appsettings.json
+!appsettings.example.json
+
+# Vercel / despliegues
+.vercel/
+
+# Editores / SO
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
+npm-debug.log*
+
