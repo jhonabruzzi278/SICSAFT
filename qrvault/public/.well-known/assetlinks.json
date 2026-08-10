@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.qr_vault_nu.twa",
+        "sha256_cert_fingerprints": ["60:3A:4B:0D:F7:3B:0F:93:E2:57:7F:AC:87:C6:C6:84:60:CD:78:FC:A6:7B:DA:59:05:31:25:3B:48:3B:53:49"]
+      }
+    }]
