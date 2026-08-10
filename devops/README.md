@@ -12,7 +12,7 @@ ecosistema (APP QR, CIS, CORE, WEB, CIP, RFID, Integraciones).
 - Estrategia de logs/trazas/métricas compartida (correlationId de extremo a extremo — ver
   DOC-002 del Conector QR para el diseño ya definido a nivel de APP QR/CIS).
 - Gestión de secretos y variables de entorno por ambiente.
-- Estrategia de despliegue (APP QR ya usa Vercel para el front — ver `../qrvault/vercel.json`).
+- Estrategia de despliegue (APP QR ya usa Vercel para el front — ver `../app-qr-sicsaft/vercel.json`).
 
 ## Depende de
 Decisiones de stack de cada sistema (CIS, CORE, etc.) para poder definir pipelines concretos.

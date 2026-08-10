@@ -21,7 +21,7 @@ Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
 
 | Código | Carpeta | Sistema | Estado |
 |---|---|---|---|
-| SYS-01 | [`qrvault/`](qrvault) | APP QR SICSAFT (captura vía QR) | 🟢 En desarrollo activo — ver `qrvault/HANDOFF-APP-QR-SICSAFT.md` |
+| SYS-01 | [`app-qr-sicsaft/`](app-qr-sicsaft) | APP QR SICSAFT (captura vía QR) | 🟢 En desarrollo activo — ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` |
 | SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🔲 No iniciado |
 | SYS-03 | [`core/`](core) | SICSAFT CORE | 🔲 No iniciado |
 | SYS-04 | [`base-patrimonial/`](base-patrimonial) | Base Patrimonial Central | 🔲 No iniciado |
@@ -36,11 +36,11 @@ Cada carpeta tiene su propio `README.md` con objetivo, estado, dependencias y pr
 
 ## Dónde está el trabajo activo hoy
 
-El único sistema con código real es **APP QR SICSAFT** (`qrvault/`). Su identificador técnico
-interno (`package.json` → `name`) es `qrvault`; el nombre visible del producto sigue siendo
-"APP QR SICSAFT" (ver `qrvault/aidlc-docs/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md`).
+El único sistema con código real es **APP QR SICSAFT** (`app-qr-sicsaft/`). Su identificador técnico
+interno (`package.json` → `name`) es `app-qr-sicsaft`; el nombre visible del producto sigue siendo
+"APP QR SICSAFT" (ver `app-qr-sicsaft/aidlc-docs/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md`).
 
-Backlog completo y contexto de negocio: `qrvault/HANDOFF-APP-QR-SICSAFT.md`.
+Backlog completo y contexto de negocio: `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md`.
 
 ## Orden de trabajo recomendado
 

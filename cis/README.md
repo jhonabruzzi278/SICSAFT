@@ -11,7 +11,7 @@ Base Patrimonial Central ni al CORE — todo pasa por acá.
 
 ## Primer conector a construir
 **Conector QR** — contrato ya definido en
-[`../qrvault/aidlc-docs/design-artifacts/DOC-002-conector-qr.md`](../qrvault/aidlc-docs/design-artifacts/DOC-002-conector-qr.md):
+[`../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md`](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md):
 
 ```
 POST /auth/session
