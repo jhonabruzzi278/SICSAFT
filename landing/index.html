@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SICSAFT — Ecosistema patrimonial</title>
+    <meta
+      name="description"
+      content="SICSAFT es el ecosistema patrimonial que conecta fuentes de captura (QR, WEB, RFID, ERP) con un núcleo de reglas e inteligencia, sin que ninguna fuente toque la base central directamente."
+    />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+
+    <header class="nav" id="nav">
+      <div class="nav__inner">
+        <a class="nav__brand" href="#top">
+          <span class="nav__mark">SIC</span><span class="nav__mark nav__mark--accent">SAFT</span>
+        </a>
+        <nav class="nav__links" aria-label="Navegación principal">
+          <a href="#flujo">Flujo</a>
+          <a href="#sistemas">Sistemas</a>
+          <a href="#principio">Principio</a>
+          <a href="#roadmap">Roadmap</a>
+        </nav>
+        <a class="nav__cta" href="https://github.com/jhonabruzzi278/SICSAFT" target="_blank" rel="noopener">
+          Repositorio ↗
+        </a>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero__grid" aria-hidden="true"></div>
+        <div class="hero__content reveal">
+          <p class="eyebrow">Ecosistema patrimonial · 8 sistemas, un mismo dato</p>
+          <h1 class="hero__title">
+            Cada activo, <span class="hero__title--accent">un solo dato</span>,
+            trazable de punta a punta.
+          </h1>
+          <p class="hero__subtitle">
+            SICSAFT conecta fuentes de captura físicas y digitales — QR, RFID, WEB, ERP — con un
+            núcleo de reglas patrimoniales y una base central única. Ninguna fuente escribe
+            directo sobre la base: todo pasa por interoperabilidad y validación primero.
+          </p>
+          <div class="hero__actions">
+            <a class="btn btn--primary" href="#flujo">Ver cómo fluye el dato</a>
+            <a
+              class="btn btn--ghost"
+              href="https://github.com/jhonabruzzi278/SICSAFT/tree/main/app-qr-sicsaft"
+              target="_blank"
+              rel="noopener"
+            >
+              APP QR SICSAFT (en desarrollo)
+            </a>
+          </div>
+        </div>
+        <div class="hero__stat-strip reveal">
+          <div class="stat">
+            <span class="stat__value">01</span>
+            <span class="stat__label">sistema en desarrollo activo</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value">10</span>
+            <span class="stat__label">sistemas y capacidades mapeadas</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value">0</span>
+            <span class="stat__label">fuentes con acceso directo a la base</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="flujo">
+        <div class="section__head reveal">
+          <p class="eyebrow">Flujo de datos</p>
+          <h2>De la captura a la decisión, en un solo sentido</h2>
+          <p class="section__lead">
+            Toda fuente pasa por interoperabilidad antes de llegar al núcleo. El núcleo es el
+            único autorizado a escribir en la base central. La inteligencia se alimenta de la
+            base, nunca la modifica.
+          </p>
+        </div>
+
+        <div class="pipeline reveal">
+          <ol class="pipeline__list">
+            <li class="pipeline__node" data-node="fuentes">
+              <span class="pipeline__code">01</span>
+              <h3>Fuentes de captura</h3>
+              <p>APP QR, Portal WEB, RFID, ERP y futuras integraciones.</p>
+            </li>
+            <li class="pipeline__node" data-node="cis">
+              <span class="pipeline__code">02</span>
+              <h3>CIS</h3>
+              <p>Interoperabilidad, autenticación, validación y correlación.</p>
+            </li>
+            <li class="pipeline__node pipeline__node--core" data-node="core">
+              <span class="pipeline__code">03</span>
+              <h3>SICSAFT CORE</h3>
+              <p>Orquestador, reglas patrimoniales, eventos y auditoría.</p>
+            </li>
+            <li class="pipeline__node" data-node="base">
+              <span class="pipeline__code">04</span>
+              <h3>Base Patrimonial</h3>
+              <p>Fuente única de verdad. Historial que nunca se reinicia.</p>
+            </li>
+            <li class="pipeline__node" data-node="cip">
+              <span class="pipeline__code">05</span>
+              <h3>CIP</h3>
+              <p>Dashboards, KPI e inteligencia patrimonial.</p>
+            </li>
+          </ol>
+          <svg class="pipeline__line" viewBox="0 0 1000 4" preserveAspectRatio="none" aria-hidden="true">
+            <line x1="0" y1="2" x2="1000" y2="2" />
+          </svg>
+        </div>
+      </section>
+
+      <section class="section section--tight" id="principio">
+        <blockquote class="pullquote reveal">
+          <p>
+            “Ninguna fuente de captura modifica la Base Patrimonial Central directamente. Todo
+            pasa por CIS → CORE, siempre.”
+          </p>
+          <cite>Regla de gobierno del ecosistema SICSAFT</cite>
+        </blockquote>
+      </section>
+
+      <section class="section" id="sistemas">
+        <div class="section__head reveal">
+          <p class="eyebrow">Los sistemas</p>
+          <h2>Un programa, ocho sistemas y dos capacidades transversales</h2>
+          <p class="section__lead">
+            Cada sistema tiene su propio README con objetivo, estado, dependencias y próximo
+            paso dentro del repositorio.
+          </p>
+        </div>
+
+        <div class="bento reveal">
+          <article class="card card--featured">
+            <div class="card__top">
+              <span class="tag tag--live">🟢 en desarrollo</span>
+              <span class="pipeline__code">SYS-01</span>
+            </div>
+            <h3>APP QR SICSAFT</h3>
+            <p>Captura de activos vía QR, resolución de resultados y envío al Conector QR.</p>
+            <a
+              class="card__link"
+              href="https://github.com/jhonabruzzi278/SICSAFT/tree/main/app-qr-sicsaft"
+              target="_blank"
+              rel="noopener"
+              >Ver código ↗</a
+            >
+          </article>
+
+          <article class="card">
+            <div class="card__top">
+              <span class="tag">🔲 planificado</span>
+              <span class="pipeline__code">SYS-02</span>
+            </div>
+            <h3>CIS</h3>
+            <p>Centro de interoperabilidad: gateway, auth, conectores y validación.</p>
+          </article>
+
+          <article class="card">
+            <div class="card__top">
+              <span class="tag">🔲 planificado</span>
+              <span class="pipeline__code">SYS-03</span>
+            </div>
+            <h3>SICSAFT CORE</h3>
+            <p>Orquestador y motores: patrimonial, reglas, eventos, auditoría, alertas.</p>
+          </article>
+
+          <article class="card">
+            <div class="card__top">
+              <span class="tag">🔲 planificado</span>
+              <span class="pipeline__code">SYS-04</span>
+            </div>
+            <h3>Base Patrimonial Central</h3>
+            <p>Fuente única de verdad: activos, áreas, responsables, historial, auditoría.</p>
+          </article>
+
+          <article class="card">
+            <div class="card__top">
+              <span class="tag">🔲 planificado</span>
+              <span class="pipeline__code">SYS-05</span>
+            </div>
+            <h3>Portal WEB</h3>
+            <p>Administración y operación patrimonial para 6 roles distintos.</p>
+          </article>
+
+          <article class="card">
+            <div class="card__top">
+              <span class="tag">🔲 planificado</span>
+              <span class="pipeline__code">SYS-06</span>
+            </div>
+            <h3>CIP</h3>
+            <p>Inteligencia patrimonial: dashboards, KPI y análisis con drill-down.</p>
+          </article>
+
+          <article class="card">
+            <div class="card__top">
+              <span class="tag">🔲 fase tardía</span>
+              <span class="pipeline__code">SYS-07</span>
+            </div>
+            <h3>RFID</h3>
+            <p>Captura automática por zonificación para activos extraordinarios.</p>
+          </article>
+
+          <article class="card">
+            <div class="card__top">
+              <span class="tag">🔲 fase tardía</span>
+              <span class="pipeline__code">SYS-08</span>
+            </div>
+            <h3>Integraciones</h3>
+            <p>ERP, contabilidad, RRHH, correo, Power BI y APIs externas.</p>
+          </article>
+
+          <article class="card card--muted">
+            <div class="card__top">
+              <span class="tag">🔲 planificado</span>
+              <span class="pipeline__code">SEC</span>
+            </div>
+            <h3>Seguridad</h3>
+            <p>Identidad, RBAC y permisos — transversal a todos los sistemas.</p>
+          </article>
+
+          <article class="card card--muted">
+            <div class="card__top">
+              <span class="tag">🔲 planificado</span>
+              <span class="pipeline__code">OPS</span>
+            </div>
+            <h3>DevOps</h3>
+            <p>CI/CD, observabilidad e infraestructura — transversal a todos los sistemas.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="roadmap">
+        <div class="section__head reveal">
+          <p class="eyebrow">Orden de trabajo</p>
+          <h2>Qué avanza ahora, qué espera su turno</h2>
+        </div>
+        <ol class="timeline reveal">
+          <li class="timeline__item timeline__item--active">
+            <span class="timeline__marker"></span>
+            <div>
+              <h3>Ahora</h3>
+              <p>APP QR SICSAFT avanza en paralelo con un mock del Conector QR.</p>
+            </div>
+          </li>
+          <li class="timeline__item">
+            <span class="timeline__marker"></span>
+            <div>
+              <h3>Próximo</h3>
+              <p>Modelo de dominio compartido entre CORE y Base Patrimonial; CIS con el conector mockeado.</p>
+            </div>
+          </li>
+          <li class="timeline__item">
+            <span class="timeline__marker"></span>
+            <div>
+              <h3>Después</h3>
+              <p>Seguridad real, Portal WEB y CIP una vez CORE tenga un MVP de inventarios.</p>
+            </div>
+          </li>
+          <li class="timeline__item">
+            <span class="timeline__marker"></span>
+            <div>
+              <h3>Fase tardía</h3>
+              <p>RFID e integraciones externas, cuando el núcleo esté estable.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>SICSAFT — ecosistema patrimonial. Documentación completa en el repositorio.</p>
+        <a href="https://github.com/jhonabruzzi278/SICSAFT" target="_blank" rel="noopener">github.com/jhonabruzzi278/SICSAFT ↗</a>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
