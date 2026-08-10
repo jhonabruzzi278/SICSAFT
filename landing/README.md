@@ -1,9 +1,19 @@
-# Landing pública — Ecosistema SICSAFT
+# Landing pública — SICSAFT
 
 ## Objetivo
-Página pública de presentación del programa completo (los 8 sistemas + capacidades
-transversales), no de un producto puntual. Explica el flujo de datos, el principio de
-gobierno ("ninguna fuente escribe directo en la base") y el estado de cada sistema.
+Landing **comercial** dirigida al cliente final. Presenta el producto SICSAFT (Modelo
+Inteligente de Gestión Patrimonial) usando el mensaje y la identidad de marca oficiales:
+el desafío que resuelve, la propuesta de valor, los 3 niveles de adopción (QR / QR+WEB /
+QR+WEB+RFID), funcionalidades, beneficios y sectores a los que aplica.
+
+No expone ninguna información interna de desarrollo (nombres de sistemas técnicos, estado de
+avance, arquitectura, repos). Esa información vive en el `README.md` raíz del monorepo, que es
+para uso interno del equipo.
+
+## Fuente de contenido
+El copy y la identidad visual (paleta azul marino + celeste, logotipo, mensajes clave) están
+tomados de la presentación oficial de marketing del cliente
+(`Presentación1. OFICIAL. PUBLICIDAD.ppt`, 7 diapositivas).
 
 ## Estado
 🟢 Construida — Vite + TypeScript, sin framework de UI, contenido estático.
@@ -25,14 +35,17 @@ Genera `dist/` listo para deploy estático (Vercel, Netlify, GitHub Pages, etc.)
 landing/
 ├── index.html       # contenido y secciones
 ├── src/style.css     # tokens de diseño, layout, animaciones
-└── src/main.ts       # scroll reveal + estado del nav al hacer scroll
+├── src/icons.ts       # sprite de iconos SVG inline (sin dependencias externas)
+└── src/main.ts        # inyecta el sprite + scroll reveal + estado del nav
 ```
 
 ## Notas de diseño
-Dirección visual deliberada: dark/técnico ("torre de control patrimonial"), acento cian para
-datos/flujo, tipografía display de alto contraste + mono para códigos de sistema (SYS-01, etc.).
-No usa modo claro — es una elección de identidad, no un default sin decidir.
+Paleta azul marino + celeste eléctrico, tomada directamente de la marca SICSAFT. Motivo visual:
+red de nodos conectados (representa activos monitoreados) e íconos circulares de línea. No usa
+modo claro — es la identidad de marca, no un default sin decidir.
 
-## Próximo paso sugerido
-Actualizar los estados de cada card (`#sistemas`) a medida que los sistemas avancen, en
-paralelo con los README de cada carpeta.
+## Pendiente antes de publicar
+- El botón "Solicitar una demo" usa `mailto:contacto@sicsaft.com` como **placeholder** — reemplazar
+  por el correo, teléfono o formulario real de contacto antes de publicar.
+- Reemplazar el logotipo CSS (wordmark + marca triangular) por el archivo de marca oficial
+  (SVG/PNG) si el cliente lo provee, para fidelidad exacta.

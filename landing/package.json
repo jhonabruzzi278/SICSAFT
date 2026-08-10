@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Landing publica del ecosistema SICSAFT.",
+  "description": "Landing comercial de SICSAFT - Modelo Inteligente de Gestion Patrimonial.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

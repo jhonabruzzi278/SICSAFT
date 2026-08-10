@@ -31,7 +31,7 @@ Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
 | SYS-08 | [`integraciones/`](integraciones) | Integraciones externas (ERP, RRHH, BI...) | 🔲 No iniciado (fase tardía) |
 | SEC | [`seguridad/`](seguridad) | Identidad / RBAC (transversal) | 🔲 No iniciado |
 | OPS | [`devops/`](devops) | Infraestructura / CI-CD / Observabilidad (transversal) | 🔲 No iniciado |
-| — | [`landing/`](landing) | Landing pública del ecosistema | 🟢 Construida — `npm install && npm run dev` |
+| — | [`landing/`](landing) | Landing comercial (cara al cliente) | 🟢 Construida — `npm install && npm run dev`. Sin datos internos de desarrollo. |
 
 Cada carpeta tiene su propio `README.md` con objetivo, estado, dependencias y próximo paso.
 

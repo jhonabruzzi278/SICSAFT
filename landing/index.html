@@ -3,283 +3,439 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SICSAFT — Ecosistema patrimonial</title>
+    <title>SICSAFT — Modelo Inteligente de Gestión Patrimonial</title>
     <meta
       name="description"
-      content="SICSAFT es el ecosistema patrimonial que conecta fuentes de captura (QR, WEB, RFID, ERP) con un núcleo de reglas e inteligencia, sin que ninguna fuente toque la base central directamente."
+      content="SICSAFT integra QR, plataforma web y RFID en un modelo escalable de gestión patrimonial: control, trazabilidad y visibilidad total de sus activos."
     />
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
+    <div id="icon-sprite-root"></div>
     <div class="noise" aria-hidden="true"></div>
 
     <header class="nav" id="nav">
       <div class="nav__inner">
         <a class="nav__brand" href="#top">
-          <span class="nav__mark">SIC</span><span class="nav__mark nav__mark--accent">SAFT</span>
+          <span class="nav__logo">SICS<span class="nav__logo-mark" aria-hidden="true"></span>FT</span>
+          <span class="nav__tagline">Gestión Patrimonial Inteligente</span>
         </a>
         <nav class="nav__links" aria-label="Navegación principal">
-          <a href="#flujo">Flujo</a>
-          <a href="#sistemas">Sistemas</a>
-          <a href="#principio">Principio</a>
-          <a href="#roadmap">Roadmap</a>
+          <a href="#desafio">El desafío</a>
+          <a href="#solucion">La solución</a>
+          <a href="#niveles">Niveles</a>
+          <a href="#funcionalidades">Funcionalidades</a>
+          <a href="#beneficios">Beneficios</a>
         </nav>
-        <a class="nav__cta" href="https://github.com/jhonabruzzi278/SICSAFT" target="_blank" rel="noopener">
-          Repositorio ↗
-        </a>
+        <a class="nav__cta" href="#contacto">Solicitar demo</a>
       </div>
     </header>
 
     <main id="top">
+      <!-- HERO -->
       <section class="hero">
-        <div class="hero__grid" aria-hidden="true"></div>
-        <div class="hero__content reveal">
-          <p class="eyebrow">Ecosistema patrimonial · 8 sistemas, un mismo dato</p>
-          <h1 class="hero__title">
-            Cada activo, <span class="hero__title--accent">un solo dato</span>,
-            trazable de punta a punta.
-          </h1>
-          <p class="hero__subtitle">
-            SICSAFT conecta fuentes de captura físicas y digitales — QR, RFID, WEB, ERP — con un
-            núcleo de reglas patrimoniales y una base central única. Ninguna fuente escribe
-            directo sobre la base: todo pasa por interoperabilidad y validación primero.
-          </p>
-          <div class="hero__actions">
-            <a class="btn btn--primary" href="#flujo">Ver cómo fluye el dato</a>
-            <a
-              class="btn btn--ghost"
-              href="https://github.com/jhonabruzzi278/SICSAFT/tree/main/app-qr-sicsaft"
-              target="_blank"
-              rel="noopener"
-            >
-              APP QR SICSAFT (en desarrollo)
-            </a>
-          </div>
-        </div>
-        <div class="hero__stat-strip reveal">
-          <div class="stat">
-            <span class="stat__value">01</span>
-            <span class="stat__label">sistema en desarrollo activo</span>
-          </div>
-          <div class="stat">
-            <span class="stat__value">10</span>
-            <span class="stat__label">sistemas y capacidades mapeadas</span>
-          </div>
-          <div class="stat">
-            <span class="stat__value">0</span>
-            <span class="stat__label">fuentes con acceso directo a la base</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="section" id="flujo">
-        <div class="section__head reveal">
-          <p class="eyebrow">Flujo de datos</p>
-          <h2>De la captura a la decisión, en un solo sentido</h2>
-          <p class="section__lead">
-            Toda fuente pasa por interoperabilidad antes de llegar al núcleo. El núcleo es el
-            único autorizado a escribir en la base central. La inteligencia se alimenta de la
-            base, nunca la modifica.
-          </p>
-        </div>
-
-        <div class="pipeline reveal">
-          <ol class="pipeline__list">
-            <li class="pipeline__node" data-node="fuentes">
-              <span class="pipeline__code">01</span>
-              <h3>Fuentes de captura</h3>
-              <p>APP QR, Portal WEB, RFID, ERP y futuras integraciones.</p>
-            </li>
-            <li class="pipeline__node" data-node="cis">
-              <span class="pipeline__code">02</span>
-              <h3>CIS</h3>
-              <p>Interoperabilidad, autenticación, validación y correlación.</p>
-            </li>
-            <li class="pipeline__node pipeline__node--core" data-node="core">
-              <span class="pipeline__code">03</span>
-              <h3>SICSAFT CORE</h3>
-              <p>Orquestador, reglas patrimoniales, eventos y auditoría.</p>
-            </li>
-            <li class="pipeline__node" data-node="base">
-              <span class="pipeline__code">04</span>
-              <h3>Base Patrimonial</h3>
-              <p>Fuente única de verdad. Historial que nunca se reinicia.</p>
-            </li>
-            <li class="pipeline__node" data-node="cip">
-              <span class="pipeline__code">05</span>
-              <h3>CIP</h3>
-              <p>Dashboards, KPI e inteligencia patrimonial.</p>
-            </li>
-          </ol>
-          <svg class="pipeline__line" viewBox="0 0 1000 4" preserveAspectRatio="none" aria-hidden="true">
-            <line x1="0" y1="2" x2="1000" y2="2" />
+        <div class="hero__net" aria-hidden="true">
+          <svg viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+            <g class="hero__net-lines" stroke="currentColor" stroke-width="1">
+              <line x1="80" y1="120" x2="260" y2="220" />
+              <line x1="260" y1="220" x2="420" y2="140" />
+              <line x1="420" y1="140" x2="600" y2="200" />
+              <line x1="260" y1="220" x2="240" y2="380" />
+              <line x1="240" y1="380" x2="420" y2="440" />
+              <line x1="420" y1="440" x2="620" y2="400" />
+              <line x1="420" y1="140" x2="420" y2="440" />
+              <line x1="600" y1="200" x2="620" y2="400" />
+              <line x1="80" y1="120" x2="240" y2="380" />
+            </g>
+            <g class="hero__net-dots" fill="currentColor">
+              <circle cx="80" cy="120" r="4" />
+              <circle cx="260" cy="220" r="4" />
+              <circle cx="420" cy="140" r="5" />
+              <circle cx="600" cy="200" r="4" />
+              <circle cx="240" cy="380" r="4" />
+              <circle cx="420" cy="440" r="5" />
+              <circle cx="620" cy="400" r="4" />
+            </g>
           </svg>
         </div>
-      </section>
 
-      <section class="section section--tight" id="principio">
-        <blockquote class="pullquote reveal">
-          <p>
-            “Ninguna fuente de captura modifica la Base Patrimonial Central directamente. Todo
-            pasa por CIS → CORE, siempre.”
+        <div class="hero__content reveal">
+          <p class="eyebrow">Modelo Inteligente de Gestión Patrimonial</p>
+          <h1 class="hero__title">
+            ¿Su organización conoce realmente<br />
+            el estado de <span class="hero__title--accent">todo su patrimonio</span>?
+          </h1>
+          <p class="hero__subtitle">
+            Cada activo representa una inversión. Gestionarlo inteligentemente representa una
+            <strong>ventaja estratégica</strong>.
           </p>
-          <cite>Regla de gobierno del ecosistema SICSAFT</cite>
-        </blockquote>
+          <div class="hero__actions">
+            <a class="btn btn--primary" href="#contacto">Solicitar una demo</a>
+            <a class="btn btn--ghost" href="#solucion">Conocer la plataforma</a>
+          </div>
+        </div>
+
+        <ul class="pillars reveal">
+          <li class="pillar"><svg class="icon"><use href="#icon-shield" /></svg><span>Control</span></li>
+          <li class="pillar"><svg class="icon"><use href="#icon-bar-chart" /></svg><span>Eficiencia</span></li>
+          <li class="pillar"><svg class="icon"><use href="#icon-search" /></svg><span>Visibilidad</span></li>
+          <li class="pillar"><svg class="icon"><use href="#icon-pin" /></svg><span>Trazabilidad</span></li>
+          <li class="pillar"><svg class="icon"><use href="#icon-badge" /></svg><span>Confianza</span></li>
+        </ul>
       </section>
 
-      <section class="section" id="sistemas">
+      <!-- EL DESAFÍO -->
+      <section class="section" id="desafio">
+        <div class="challenge reveal">
+          <div class="challenge__copy">
+            <p class="eyebrow">El desafío que enfrentan hoy las organizaciones</p>
+            <p class="challenge__line">Todas las organizaciones <strong>poseen patrimonio</strong>.</p>
+            <p class="challenge__line">Pocas lo <strong class="text-accent">conocen realmente</strong>.</p>
+            <p class="challenge__line">
+              Sin información confiable, es imposible <strong>decidir</strong> y
+              <strong>gestionarlo estratégicamente</strong>.
+            </p>
+          </div>
+          <div class="challenge__grid">
+            <div class="pain">
+              <svg class="icon"><use href="#icon-clipboard-x" /></svg>
+              <span>Inventarios manuales</span>
+            </div>
+            <div class="pain">
+              <svg class="icon"><use href="#icon-scatter" /></svg>
+              <span>Información dispersa</span>
+            </div>
+            <div class="pain">
+              <svg class="icon"><use href="#icon-barcode" /></svg>
+              <span>Activos sin trazabilidad</span>
+            </div>
+            <div class="pain">
+              <svg class="icon"><use href="#icon-help" /></svg>
+              <span>Decisiones con incertidumbre</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LA SOLUCIÓN -->
+      <section class="section section--accent" id="solucion">
         <div class="section__head reveal">
-          <p class="eyebrow">Los sistemas</p>
-          <h2>Un programa, ocho sistemas y dos capacidades transversales</h2>
+          <p class="eyebrow">La respuesta a un nuevo desafío</p>
+          <h2>
+            No es solo un sistema.<br />
+            <span class="text-accent">Es una nueva forma de gestionar su patrimonio.</span>
+          </h2>
           <p class="section__lead">
-            Cada sistema tiene su propio README con objetivo, estado, dependencias y próximo
-            paso dentro del repositorio.
+            Integra tecnología, procesos y gestión en un modelo escalable, flexible y preparado
+            para el futuro.
           </p>
+        </div>
+
+        <div class="feature-strip reveal">
+          <div class="feature-pill">
+            <svg class="icon"><use href="#icon-qr" /></svg>
+            <div>
+              <h3>QR + WEB + RFID</h3>
+              <p>Identificación inteligente y flexible.</p>
+            </div>
+          </div>
+          <div class="feature-pill">
+            <svg class="icon"><use href="#icon-cloud" /></svg>
+            <div>
+              <h3>Información centralizada</h3>
+              <p>En tiempo real, siempre disponible.</p>
+            </div>
+          </div>
+          <div class="feature-pill">
+            <svg class="icon"><use href="#icon-lock" /></svg>
+            <div>
+              <h3>Seguridad y confianza</h3>
+              <p>Datos protegidos, trazables e íntegros.</p>
+            </div>
+          </div>
+          <div class="feature-pill">
+            <svg class="icon"><use href="#icon-trending" /></svg>
+            <div>
+              <h3>Escalable y modular</h3>
+              <p>Desde hoy, para crecer mañana.</p>
+            </div>
+          </div>
+        </div>
+
+        <p class="closing-line reveal">
+          SICSAFT transforma la información en <strong>control</strong>, y el control en
+          <strong class="text-accent">valor para su organización</strong>.
+        </p>
+      </section>
+
+      <!-- NIVELES -->
+      <section class="section" id="niveles">
+        <div class="section__head reveal">
+          <p class="eyebrow">Tres niveles, una misma visión</p>
+          <h2>Controlar hoy, gestionar estratégicamente mañana</h2>
+        </div>
+
+        <div class="levels reveal">
+          <article class="level">
+            <span class="level__badge">Nivel 1</span>
+            <h3>QR</h3>
+            <p class="level__subtitle">Comience hoy</p>
+            <ul class="level__list">
+              <li>Identificación única con código QR</li>
+              <li>Registro rápido y fácil desde su móvil</li>
+              <li>Información inmediata y accesible</li>
+            </ul>
+            <span class="level__tag">Rápido · Simple · Efectivo</span>
+          </article>
+
+          <article class="level level--highlight">
+            <span class="level__badge">Nivel 2</span>
+            <h3>QR + Plataforma Web</h3>
+            <p class="level__subtitle">Centralice toda la información</p>
+            <ul class="level__list">
+              <li>Centralización de datos en tiempo real</li>
+              <li>Reportes, estadísticas y tableros de control</li>
+              <li>Acceso seguro desde cualquier lugar</li>
+            </ul>
+            <span class="level__tag">Centralice · Visualice · Decida</span>
+          </article>
+
+          <article class="level">
+            <span class="level__badge">Nivel 3</span>
+            <h3>QR + WEB + RFID</h3>
+            <p class="level__subtitle">Gestión inteligente</p>
+            <ul class="level__list">
+              <li>Identificación masiva y sin contacto</li>
+              <li>Inventarios en minutos, mayor precisión</li>
+              <li>Trazabilidad automática y en tiempo real</li>
+            </ul>
+            <span class="level__tag">Inteligente · Preciso · Automático</span>
+          </article>
+        </div>
+
+        <p class="closing-line reveal">
+          Elija el nivel que su organización necesita hoy.
+          <strong class="text-accent">SICSAFT crece con usted.</strong>
+        </p>
+
+        <ul class="sectors reveal">
+          <li><svg class="icon"><use href="#icon-briefcase" /></svg><span>Empresas</span></li>
+          <li><svg class="icon"><use href="#icon-building" /></svg><span>Entidades públicas</span></li>
+          <li><svg class="icon"><use href="#icon-cap" /></svg><span>Educación</span></li>
+          <li><svg class="icon"><use href="#icon-heart" /></svg><span>Salud</span></li>
+          <li><svg class="icon"><use href="#icon-factory" /></svg><span>Industria</span></li>
+        </ul>
+      </section>
+
+      <!-- FUNCIONALIDADES -->
+      <section class="section" id="funcionalidades">
+        <div class="section__head reveal">
+          <p class="eyebrow">Funcionalidades clave</p>
+          <h2>Funcionalidades que generan control, eficiencia y valor</h2>
         </div>
 
         <div class="bento reveal">
-          <article class="card card--featured">
-            <div class="card__top">
-              <span class="tag tag--live">🟢 en desarrollo</span>
-              <span class="pipeline__code">SYS-01</span>
-            </div>
-            <h3>APP QR SICSAFT</h3>
-            <p>Captura de activos vía QR, resolución de resultados y envío al Conector QR.</p>
-            <a
-              class="card__link"
-              href="https://github.com/jhonabruzzi278/SICSAFT/tree/main/app-qr-sicsaft"
-              target="_blank"
-              rel="noopener"
-              >Ver código ↗</a
-            >
-          </article>
-
           <article class="card">
-            <div class="card__top">
-              <span class="tag">🔲 planificado</span>
-              <span class="pipeline__code">SYS-02</span>
-            </div>
-            <h3>CIS</h3>
-            <p>Centro de interoperabilidad: gateway, auth, conectores y validación.</p>
+            <svg class="icon icon--lg"><use href="#icon-qr" /></svg>
+            <h3>Identificación inteligente</h3>
+            <p>Registro único con código QR y/o RFID para cada activo.</p>
           </article>
-
           <article class="card">
-            <div class="card__top">
-              <span class="tag">🔲 planificado</span>
-              <span class="pipeline__code">SYS-03</span>
-            </div>
-            <h3>SICSAFT CORE</h3>
-            <p>Orquestador y motores: patrimonial, reglas, eventos, auditoría, alertas.</p>
+            <svg class="icon icon--lg"><use href="#icon-barcode" /></svg>
+            <h3>Inventarios ágiles y precisos</h3>
+            <p>Levantamientos rápidos desde dispositivos móviles con alta precisión.</p>
           </article>
-
           <article class="card">
-            <div class="card__top">
-              <span class="tag">🔲 planificado</span>
-              <span class="pipeline__code">SYS-04</span>
-            </div>
-            <h3>Base Patrimonial Central</h3>
-            <p>Fuente única de verdad: activos, áreas, responsables, historial, auditoría.</p>
+            <svg class="icon icon--lg"><use href="#icon-monitor" /></svg>
+            <h3>Información en tiempo real</h3>
+            <p>Datos actualizados al instante para decisiones oportunas y acertadas.</p>
           </article>
-
           <article class="card">
-            <div class="card__top">
-              <span class="tag">🔲 planificado</span>
-              <span class="pipeline__code">SYS-05</span>
-            </div>
-            <h3>Portal WEB</h3>
-            <p>Administración y operación patrimonial para 6 roles distintos.</p>
+            <svg class="icon icon--lg"><use href="#icon-pin" /></svg>
+            <h3>Ubicación y trazabilidad total</h3>
+            <p>Conozca dónde están sus activos en todo momento.</p>
           </article>
-
           <article class="card">
-            <div class="card__top">
-              <span class="tag">🔲 planificado</span>
-              <span class="pipeline__code">SYS-06</span>
-            </div>
-            <h3>CIP</h3>
-            <p>Inteligencia patrimonial: dashboards, KPI y análisis con drill-down.</p>
+            <svg class="icon icon--lg"><use href="#icon-shield" /></svg>
+            <h3>Control y seguridad avanzada</h3>
+            <p>Reglas, permisos y alertas para proteger su patrimonio y prevenir riesgos.</p>
           </article>
-
           <article class="card">
-            <div class="card__top">
-              <span class="tag">🔲 fase tardía</span>
-              <span class="pipeline__code">SYS-07</span>
-            </div>
-            <h3>RFID</h3>
-            <p>Captura automática por zonificación para activos extraordinarios.</p>
+            <svg class="icon icon--lg"><use href="#icon-bar-chart" /></svg>
+            <h3>Reportes y analítica inteligente</h3>
+            <p>Indicadores y tableros que transforman datos en información estratégica.</p>
           </article>
-
           <article class="card">
-            <div class="card__top">
-              <span class="tag">🔲 fase tardía</span>
-              <span class="pipeline__code">SYS-08</span>
-            </div>
-            <h3>Integraciones</h3>
-            <p>ERP, contabilidad, RRHH, correo, Power BI y APIs externas.</p>
+            <svg class="icon icon--lg"><use href="#icon-wrench" /></svg>
+            <h3>Gestión de mantenimientos</h3>
+            <p>Planifique, ejecute y controle mantenimientos preventivos y correctivos.</p>
           </article>
-
-          <article class="card card--muted">
-            <div class="card__top">
-              <span class="tag">🔲 planificado</span>
-              <span class="pipeline__code">SEC</span>
-            </div>
-            <h3>Seguridad</h3>
-            <p>Identidad, RBAC y permisos — transversal a todos los sistemas.</p>
+          <article class="card">
+            <svg class="icon icon--lg"><use href="#icon-bell" /></svg>
+            <h3>Alertas y notificaciones</h3>
+            <p>Reciba avisos automáticos ante vencimientos, traslados, incidencias y más.</p>
           </article>
-
-          <article class="card card--muted">
-            <div class="card__top">
-              <span class="tag">🔲 planificado</span>
-              <span class="pipeline__code">OPS</span>
-            </div>
-            <h3>DevOps</h3>
-            <p>CI/CD, observabilidad e infraestructura — transversal a todos los sistemas.</p>
+          <article class="card">
+            <svg class="icon icon--lg"><use href="#icon-cloud" /></svg>
+            <h3>Respaldo y disponibilidad segura</h3>
+            <p>Información protegida en la nube con alta disponibilidad y respaldo.</p>
+          </article>
+          <article class="card">
+            <svg class="icon icon--lg"><use href="#icon-puzzle" /></svg>
+            <h3>Integración y escalabilidad</h3>
+            <p>Se integra con sus sistemas actuales y crece junto con su organización.</p>
           </article>
         </div>
+
+        <ul class="tag-row reveal">
+          <li><svg class="icon"><use href="#icon-shield" /></svg>Mayor control</li>
+          <li><svg class="icon"><use href="#icon-gauge" /></svg>Más eficiencia</li>
+          <li><svg class="icon"><use href="#icon-coin" /></svg>Menos costos</li>
+          <li><svg class="icon"><use href="#icon-trending" /></svg>Mayor valor</li>
+        </ul>
       </section>
 
-      <section class="section" id="roadmap">
+      <!-- BENEFICIOS -->
+      <section class="section section--accent" id="beneficios">
         <div class="section__head reveal">
-          <p class="eyebrow">Orden de trabajo</p>
-          <h2>Qué avanza ahora, qué espera su turno</h2>
+          <p class="eyebrow">Beneficios que se traducen en resultados</p>
+          <h2>SICSAFT transforma la gestión del patrimonio en control, eficiencia y valor</h2>
         </div>
-        <ol class="timeline reveal">
-          <li class="timeline__item timeline__item--active">
-            <span class="timeline__marker"></span>
-            <div>
-              <h3>Ahora</h3>
-              <p>APP QR SICSAFT avanza en paralelo con un mock del Conector QR.</p>
+
+        <div class="orbit reveal">
+          <div class="orbit__center">
+            <span>Un patrimonio</span>
+            <strong>bajo control</strong>
+          </div>
+          <div class="orbit__grid">
+            <div class="benefit">
+              <svg class="icon"><use href="#icon-search" /></svg>
+              <div>
+                <h3>Visibilidad total</h3>
+                <p>Conozca el estado real de cada activo, en todo momento y desde cualquier lugar.</p>
+              </div>
             </div>
-          </li>
-          <li class="timeline__item">
-            <span class="timeline__marker"></span>
-            <div>
-              <h3>Próximo</h3>
-              <p>Modelo de dominio compartido entre CORE y Base Patrimonial; CIS con el conector mockeado.</p>
+            <div class="benefit">
+              <svg class="icon"><use href="#icon-shield" /></svg>
+              <div>
+                <h3>Seguridad y cumplimiento</h3>
+                <p>Proteja su patrimonio y cumpla con normativas y políticas internas.</p>
+              </div>
             </div>
-          </li>
-          <li class="timeline__item">
-            <span class="timeline__marker"></span>
-            <div>
-              <h3>Después</h3>
-              <p>Seguridad real, Portal WEB y CIP una vez CORE tenga un MVP de inventarios.</p>
+            <div class="benefit">
+              <svg class="icon"><use href="#icon-target" /></svg>
+              <div>
+                <h3>Decisiones inteligentes</h3>
+                <p>Datos precisos y análisis en tiempo real para planificar y priorizar recursos.</p>
+              </div>
             </div>
-          </li>
-          <li class="timeline__item">
-            <span class="timeline__marker"></span>
-            <div>
-              <h3>Fase tardía</h3>
-              <p>RFID e integraciones externas, cuando el núcleo esté estable.</p>
+            <div class="benefit">
+              <svg class="icon"><use href="#icon-coin" /></svg>
+              <div>
+                <h3>Reducción de costos</h3>
+                <p>Menos pérdidas, mejor uso de los activos y mantenimiento oportuno.</p>
+              </div>
             </div>
-          </li>
-        </ol>
+            <div class="benefit">
+              <svg class="icon"><use href="#icon-gauge" /></svg>
+              <div>
+                <h3>Eficiencia operacional</h3>
+                <p>Automatice procesos, reduzca tareas manuales y elimine reprocesos.</p>
+              </div>
+            </div>
+            <div class="benefit">
+              <svg class="icon"><use href="#icon-rocket" /></svg>
+              <div>
+                <h3>Escalable y preparado para el futuro</h3>
+                <p>Crece con su organización e integra nuevas tecnologías.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="closing-line reveal">
+          Un patrimonio bien gestionado no es un gasto: es una ventaja competitiva.
+          <strong class="text-accent">SICSAFT le ayuda a convertirlo en resultados.</strong>
+        </p>
+      </section>
+
+      <!-- PLATAFORMA -->
+      <section class="section" id="plataforma">
+        <div class="section__head reveal">
+          <p class="eyebrow">Una plataforma diseñada para su realidad</p>
+          <h2>Flexible, intuitiva y potente</h2>
+          <p class="section__lead">SICSAFT se adapta a su organización, sin importar su tamaño o sector.</p>
+        </div>
+
+        <div class="platform reveal">
+          <div class="platform__col">
+            <h3 class="platform__col-title">Adaptado a su organización</h3>
+            <ul class="platform__list">
+              <li><svg class="icon"><use href="#icon-building" /></svg><div><strong>Entidades públicas</strong><span>Gobiernos, alcaldías, ministerios, hospitales, universidades y más.</span></div></li>
+              <li><svg class="icon"><use href="#icon-briefcase" /></svg><div><strong>Empresas</strong><span>Gestione sus activos de forma eficiente y alineada a sus procesos.</span></div></li>
+              <li><svg class="icon"><use href="#icon-cap" /></svg><div><strong>Educación</strong><span>Colegios, universidades e institutos con control total de sus activos.</span></div></li>
+              <li><svg class="icon"><use href="#icon-heart" /></svg><div><strong>Salud</strong><span>Hospitales, clínicas y centros de salud con trazabilidad y seguridad.</span></div></li>
+              <li><svg class="icon"><use href="#icon-factory" /></svg><div><strong>Industria</strong><span>Control robusto para activos críticos y operación en campo.</span></div></li>
+            </ul>
+          </div>
+
+          <div class="platform__mock" aria-hidden="true">
+            <div class="mock-window">
+              <div class="mock-window__bar"><span></span><span></span><span></span></div>
+              <div class="mock-window__body">
+                <div class="mock-stat"><strong>Activos</strong><span class="mock-bar" style="--w:82%"></span></div>
+                <div class="mock-stat"><strong>En servicio</strong><span class="mock-bar" style="--w:70%"></span></div>
+                <div class="mock-stat"><strong>Mantenimiento</strong><span class="mock-bar" style="--w:18%"></span></div>
+                <div class="mock-donut">
+                  <svg viewBox="0 0 42 42">
+                    <circle class="donut-ring" cx="21" cy="21" r="15.9" />
+                    <circle class="donut-seg donut-seg--1" cx="21" cy="21" r="15.9" />
+                    <circle class="donut-seg donut-seg--2" cx="21" cy="21" r="15.9" />
+                  </svg>
+                  <span>Distribución por categoría</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="platform__col">
+            <h3 class="platform__col-title">Acceso desde cualquier lugar</h3>
+            <ul class="platform__list">
+              <li><svg class="icon"><use href="#icon-cloud" /></svg><div><strong>100% Web</strong><span>Acceda desde cualquier dispositivo con conexión a internet.</span></div></li>
+              <li><svg class="icon"><use href="#icon-phone" /></svg><div><strong>Móvil y offline</strong><span>Registre y consulte información en campo, incluso sin conexión.</span></div></li>
+              <li><svg class="icon"><use href="#icon-lock" /></svg><div><strong>Seguro y confiable</strong><span>Infraestructura en la nube con altos estándares de seguridad.</span></div></li>
+              <li><svg class="icon"><use href="#icon-users" /></svg><div><strong>Multiusuario y multirol</strong><span>Defina permisos y roles según las necesidades de su organización.</span></div></li>
+            </ul>
+          </div>
+        </div>
+
+        <ul class="tag-row reveal">
+          <li><svg class="icon"><use href="#icon-target" /></svg>Experiencia intuitiva</li>
+          <li><svg class="icon"><use href="#icon-rocket" /></svg>Más rápido</li>
+          <li><svg class="icon"><use href="#icon-check-circle" /></svg>Más simple</li>
+          <li><svg class="icon"><use href="#icon-trending" /></svg>Más productivo</li>
+        </ul>
+      </section>
+
+      <!-- CONTACTO -->
+      <section class="section section--contact" id="contacto">
+        <div class="contact reveal">
+          <p class="eyebrow">Dé el siguiente paso</p>
+          <h2>Un patrimonio bien gestionado es una ventaja competitiva.</h2>
+          <p class="section__lead">Solicite una demo personalizada y descubra el nivel de SICSAFT ideal para su organización.</p>
+          <a class="btn btn--primary btn--lg" href="mailto:contacto@sicsaft.com">
+            Solicitar una demo
+            <svg class="icon"><use href="#icon-arrow-right" /></svg>
+          </a>
+        </div>
       </section>
     </main>
 
     <footer class="footer">
       <div class="footer__inner">
-        <p>SICSAFT — ecosistema patrimonial. Documentación completa en el repositorio.</p>
-        <a href="https://github.com/jhonabruzzi278/SICSAFT" target="_blank" rel="noopener">github.com/jhonabruzzi278/SICSAFT ↗</a>
+        <span class="nav__logo nav__logo--footer">SICS<span class="nav__logo-mark" aria-hidden="true"></span>FT</span>
+        <p>Modelo Inteligente de Gestión Patrimonial</p>
       </div>
     </footer>
 

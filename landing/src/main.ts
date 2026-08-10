@@ -1,3 +1,10 @@
+import { ICON_SPRITE } from "./icons";
+
+const spriteRoot = document.getElementById("icon-sprite-root");
+if (spriteRoot) {
+  spriteRoot.innerHTML = ICON_SPRITE;
+}
+
 const nav = document.getElementById("nav");
 
 const onScroll = (): void => {
