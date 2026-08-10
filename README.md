@@ -35,6 +35,9 @@ Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
 
 Cada carpeta tiene su propio `README.md` con objetivo, estado, dependencias y próximo paso.
 
+Arquitectura de referencia transversal (escalable, modular, resiliente, marco Well-Architected
+sin atarse a un proveedor de nube): [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md).
+
 ## Dónde está el trabajo activo hoy
 
 El único sistema con código real es **APP QR SICSAFT** (`app-qr-sicsaft/`). Su identificador técnico
@@ -46,9 +49,16 @@ Backlog completo y contexto de negocio: `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.m
 ## Orden de trabajo recomendado
 
 1. **APP QR** sigue avanzando en paralelo (TASK-004 en adelante) con un mock del Conector QR.
-2. Modelo de dominio compartido entre `core/` y `base-patrimonial/`.
-3. `cis/` con el conector QR mockeado primero.
-4. `seguridad/` (auth real) en cuanto SICSAFT CORE responda las preguntas abiertas del handoff.
+2. Modelo de dominio compartido entre `core/` y `base-patrimonial/` — Trello `CORE-ADR-001` /
+   `BASE-DOC-001`.
+3. `cis/` con el conector QR mockeado primero — Trello `CIS-ADR-001`.
+4. `seguridad/` (auth real) en cuanto SICSAFT CORE responda las preguntas abiertas del handoff —
+   decisión abierta rastreada en Trello `DEC-001`.
 5. `web/` y `cip/` una vez CORE tenga un MVP de inventarios.
 6. `rfid/` e `integraciones/` quedan para fases posteriores.
-7. `devops/` se diseña recién cuando cada sistema tenga su ADR de stack.
+7. `devops/` se diseña recién cuando cada sistema tenga su ADR de stack — usa
+   [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md) como marco (Trello `OPS-DOC-001`, ya entregado).
+
+Tablero Trello: [SICSAFT](https://trello.com/b/nCi6W4oB/sicsaft) — las tarjetas de cada sistema
+llevan el prefijo del código (`CORE-`, `BASE-`, `CIS-`, `SEC-`/`DEC-`, `OPS-`) para diferenciarlas
+de las de APP QR (`TASK-`/`DOC-`/`ADR-`, sin prefijo de sistema por ser el primero en marcha).

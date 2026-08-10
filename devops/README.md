@@ -23,6 +23,13 @@ de APP QR.
 
 ## Documentos relacionados
 Pendiente: DOC-018 Observabilidad, DOC-019 Infraestructura.
+Marco de referencia ya definido (aplicable sin importar el proveedor de nube que se elija):
+[ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) — pilar de Excelencia Operacional (§2: IaC, CI/CD
+por sistema, `correlationId` de extremo a extremo, tres señales de observabilidad, despliegues
+progresivos) y pilar de Costos (§6: escalar cada nivel de forma independiente, autoscaling por
+demanda real, apagar lo que no tiene tráfico).
 
 ## Próximo paso sugerido
-Esperar a tener CIS/CORE con un ADR de stack antes de diseñar pipelines — hoy sería prematuro.
+Esperar a tener CIS/CORE con un ADR de stack antes de diseñar pipelines concretos — hoy sería
+prematuro. El marco de [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) ya está disponible como
+entregable: tarjeta Trello `OPS-DOC-001` (Hecho).

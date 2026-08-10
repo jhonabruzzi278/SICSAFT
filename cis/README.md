@@ -33,6 +33,9 @@ este conector debe implementarse primero como **mock** para no bloquear TASK-006
 ## Documentos relacionados
 - DOC-002 (contrato Conector QR) — vive en el repo de APP QR QRVault por ahora.
 - Pendiente: DOC-005 Arquitectura CIS, DOC-006 API CIS↔CORE.
+- Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker + rate limiting hacia el
+  CORE) y §3 (el CIS es el único punto que valida identidad de fuentes de captura).
 
 ## Próximo paso sugerido
 Definir stack tecnológico (ADR) y levantar el mock del Conector QR como primer entregable.
+Tarjeta Trello: `CIS-ADR-001`.

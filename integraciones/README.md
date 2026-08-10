@@ -21,6 +21,8 @@ Nada.
 
 ## Documentos relacionados
 Pendiente: DOC-016 Integraciones.
+Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker por integración externa —
+una caída de ERP/BI nunca bloquea el flujo interno Captura → CIS → CORE → Base Patrimonial).
 
 ## Próximo paso sugerido
 No arrancar todavía — priorizar según qué integración pida primero el negocio (ERP suele ser

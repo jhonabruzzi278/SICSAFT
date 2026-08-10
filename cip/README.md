@@ -25,6 +25,8 @@ Nada.
 
 ## Documentos relacionados
 Pendiente: DOC-014 CIP.
+Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §5 (separar lectura analítica de la Base
+Patrimonial transaccional, alimentada de forma asíncrona por el Motor de Eventos del CORE).
 
 ## Próximo paso sugerido
 Definir qué métricas del MVP 1 de CORE ya están disponibles para armar el primer dashboard.

@@ -27,7 +27,9 @@ CIS (auth), CORE (autorización), WEB (roles/permisos), APP QR (login de operado
 
 ## Documentos relacionados
 Pendiente: DOC-012 Seguridad e identidad.
+Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §3 (cero confianza entre niveles, permisos
+mínimos necesarios, segregación por organización/área validada en el CORE, no solo en el cliente).
 
 ## Próximo paso sugerido
 No definir un mecanismo de auth "de facto" sin que CORE confirme el real — usar un stub mientras
-tanto, igual que con el Conector QR.
+tanto, igual que con el Conector QR. Decisión abierta rastreada en Trello: `DEC-001`.

@@ -22,6 +22,8 @@ Nada crítico — puede arrancar en paralelo con un mock del CORE.
 
 ## Documentos relacionados
 Pendiente: DOC-013 Portal WEB.
+Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §8 (WEB y APP QR son clientes intercambiables
+del mismo contrato de CIS/CORE).
 
 ## Próximo paso sugerido
 Diseño de dashboard administrativo (Fase 7 del plan maestro), después de CORE MVP + CIS real.
