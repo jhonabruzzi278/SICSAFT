@@ -10,6 +10,8 @@ import {
   type ScanSession,
 } from './db';
 import { qrConnector, type InventarioPayload } from './qr-connector';
+import { logAuditEvent } from './audit-log';
+import { getOrCreateDeviceId } from './device-id';
 
 const BACKOFF_SCHEDULE_MS = [5_000, 15_000, 45_000];
 const STEADY_STATE_MS = 5 * 60 * 1000;
@@ -31,6 +33,16 @@ async function attemptSend(db: IDBDatabase, session: ScanSession): Promise<void>
   try {
     await qrConnector.postInventario(payload as InventarioPayload);
     await updateSession(db, { ...session, syncStatus: 'synced', lastAttemptAt: new Date().toISOString() });
+    await logAuditEvent({
+      event: 'sync_status_changed',
+      correlationId: session.correlationId,
+      operatorName: session.operatorName,
+      deviceId: getOrCreateDeviceId(),
+      syncStatus: 'synced',
+      organizationName: session.organizationName,
+      areaName: session.areaName,
+      locationName: session.locationName,
+    });
   } catch {
     const attempts = syncAttempts + 1;
     const nextRetryAt = new Date(Date.now() + nextRetryDelayMs(syncAttempts)).toISOString();
@@ -40,6 +52,16 @@ async function attemptSend(db: IDBDatabase, session: ScanSession): Promise<void>
       syncAttempts: attempts,
       lastAttemptAt: new Date().toISOString(),
       nextRetryAt,
+    });
+    await logAuditEvent({
+      event: 'sync_status_changed',
+      correlationId: session.correlationId,
+      operatorName: session.operatorName,
+      deviceId: getOrCreateDeviceId(),
+      syncStatus: 'pending',
+      organizationName: session.organizationName,
+      areaName: session.areaName,
+      locationName: session.locationName,
     });
   }
 }

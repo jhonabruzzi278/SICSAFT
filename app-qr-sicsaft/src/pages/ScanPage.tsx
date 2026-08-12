@@ -27,6 +27,8 @@ import { resolveScannedProduct } from '@/lib/scan-resolve';
 import { triggerScanFeedback } from '@/lib/scan-feedback';
 import { downloadCsv } from '@/lib/csv-export';
 import { getStoredOperatorName, setStoredOperatorName } from '@/lib/operator';
+import { getOrCreateDeviceId } from '@/lib/device-id';
+import { logAuditEvent } from '@/lib/audit-log';
 import type { Organization, OrgArea, OrgLocation } from '@/lib/organizations-data';
 
 type View = 'operator' | 'organization' | 'area-location' | 'home' | 'scanning' | 'report';
@@ -36,6 +38,8 @@ export function ScanPage() {
   const scannedCodesRef = useRef<Set<string>>(new Set());
   const startedAtRef = useRef<string>('');
   const invalidAttemptsRef = useRef(0);
+  const correlationIdRef = useRef<string>('');
+  const deviceIdRef = useRef(getOrCreateDeviceId());
   const [startingScan, setStartingScan] = useState(false);
   const [operatorName, setOperatorName] = useState<string | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -94,7 +98,7 @@ export function ScanPage() {
   }
 
   function handleDecode(rawText: string) {
-    if (!organization || !area || !location) return;
+    if (!operatorName || !organization || !area || !location) return;
     const code = rawText.trim().toUpperCase();
     if (!code) return;
 
@@ -104,6 +108,18 @@ export function ScanPage() {
       { organizationId: organization.id, areaId: area.id, locationId: location.id },
       scannedCodesRef.current,
     );
+
+    logAuditEvent({
+      event: 'scan',
+      correlationId: correlationIdRef.current,
+      operatorName,
+      deviceId: deviceIdRef.current,
+      code,
+      category: resolution.category,
+      organizationName: organization.name,
+      areaName: area.name,
+      locationName: location.name,
+    });
 
     if (resolution.category === 'invalid') {
       invalidAttemptsRef.current += 1;
@@ -177,17 +193,25 @@ export function ScanPage() {
   }
 
   function handleSaveIncident(note: string) {
-    if (!incidentTarget) return;
+    if (!incidentTarget || !operatorName) return;
     setScanned((prev) => {
       const item = prev.get(incidentTarget);
       if (!item) return prev;
       return new Map(prev).set(incidentTarget, { ...item, incidentNote: note });
     });
     setIncidentTarget(null);
+    logAuditEvent({
+      event: 'incident_added',
+      correlationId: correlationIdRef.current,
+      operatorName,
+      deviceId: deviceIdRef.current,
+      code: incidentTarget,
+      incidentNote: note,
+    });
   }
 
   async function startScanning() {
-    if (!organization || !area || !location) return;
+    if (!operatorName || !organization || !area || !location) return;
     setStartingScan(true);
     try {
       catalogRef.current = await qrConnector.getCatalogo(organization.id, area.id, location.id);
@@ -198,6 +222,18 @@ export function ScanPage() {
     }
     startedAtRef.current = new Date().toISOString();
     invalidAttemptsRef.current = 0;
+    // Generado al iniciar, no al enviar (DOC-002 sección 6) — viaja en cada
+    // operación relacionada con este inventario.
+    correlationIdRef.current = crypto.randomUUID();
+    logAuditEvent({
+      event: 'inventory_started',
+      correlationId: correlationIdRef.current,
+      operatorName,
+      deviceId: deviceIdRef.current,
+      organizationName: organization.name,
+      areaName: area.name,
+      locationName: location.name,
+    });
     setStartingScan(false);
     setView('scanning');
     setCameraActive(true);
@@ -217,6 +253,15 @@ export function ScanPage() {
           externalFind,
         }),
       );
+      logAuditEvent({
+        event: 'inventory_finished',
+        correlationId: correlationIdRef.current,
+        operatorName,
+        deviceId: deviceIdRef.current,
+        organizationName: organization.name,
+        areaName: area.name,
+        locationName: location.name,
+      });
       try {
         await submitInventario({
           operatorName,
@@ -236,6 +281,7 @@ export function ScanPage() {
           invalid: invalidAttemptsRef.current,
           incidents: items.filter((i) => i.incidentNote).length,
           items: sessionItems,
+          correlationId: correlationIdRef.current,
         });
       } catch {
         // submitInventario ya maneja sin conexión internamente (queda en cola

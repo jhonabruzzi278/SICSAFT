@@ -83,12 +83,37 @@ export interface ScanSession {
   syncAttempts: number;
   lastAttemptAt?: string;
   nextRetryAt?: string;
+  // Generado al iniciar el inventario, no al enviarlo (DOC-002 sección 6) —
+  // viaja en cada operación relacionada y en el registro de auditoría.
+  correlationId: string;
+}
+
+// Registro de auditoría local (TASK-009, DOC-002 sección 6): operador,
+// fecha/hora, dispositivo, inventario (correlationId), código leído,
+// resultado, ubicación, incidencia, estado de sincronización.
+export type AuditEvent = 'inventory_started' | 'scan' | 'incident_added' | 'inventory_finished' | 'sync_status_changed';
+
+export interface AuditEntry {
+  id?: number;
+  correlationId: string;
+  timestamp: string;
+  operatorName: string;
+  deviceId: string;
+  event: AuditEvent;
+  organizationName?: string;
+  areaName?: string;
+  locationName?: string;
+  code?: string;
+  category?: ScanCategory;
+  incidentNote?: string;
+  syncStatus?: SyncStatus;
 }
 
 const DB_NAME = 'qrvault-inventory';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_PRODUCTS = 'products';
 const STORE_SESSIONS = 'sessions';
+const STORE_AUDIT = 'auditLog';
 
 function openInventoryDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -101,6 +126,9 @@ function openInventoryDb(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORE_SESSIONS)) {
         db.createObjectStore(STORE_SESSIONS, { keyPath: 'id', autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains(STORE_AUDIT)) {
+        db.createObjectStore(STORE_AUDIT, { keyPath: 'id', autoIncrement: true });
       }
     };
 
@@ -200,6 +228,27 @@ export function getAllSessions(db: IDBDatabase): Promise<ScanSession[]> {
     const tx = db.transaction(STORE_SESSIONS, 'readonly');
     const req = tx.objectStore(STORE_SESSIONS).getAll();
     req.onsuccess = () => resolve(((req.result as ScanSession[]) ?? []).reverse());
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export function addAuditEntry(db: IDBDatabase, entry: AuditEntry): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_AUDIT, 'readwrite');
+    const req = tx.objectStore(STORE_AUDIT).add(entry);
+    req.onsuccess = () => resolve(req.result as number);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export function getAuditEntriesByCorrelationId(db: IDBDatabase, correlationId: string): Promise<AuditEntry[]> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_AUDIT, 'readonly');
+    const req = tx.objectStore(STORE_AUDIT).getAll();
+    req.onsuccess = () => {
+      const all = (req.result as AuditEntry[]) ?? [];
+      resolve(all.filter((entry) => entry.correlationId === correlationId));
+    };
     req.onerror = () => reject(req.error);
   });
 }
