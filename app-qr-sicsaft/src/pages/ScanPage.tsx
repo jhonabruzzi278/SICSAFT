@@ -18,8 +18,9 @@ import { ScannedList, type ScannedItem } from '@/components/ScannedList';
 import { OperatorGate } from '@/components/OperatorGate';
 import { OrganizationPicker } from '@/components/OrganizationPicker';
 import { AreaLocationPicker } from '@/components/AreaLocationPicker';
+import { IncidentDialog } from '@/components/IncidentDialog';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
-import { initInventoryDb, saveSession } from '@/lib/db';
+import { initInventoryDb, saveSession, type ScannedSessionItem } from '@/lib/db';
 import { resolveScannedProduct } from '@/lib/scan-resolve';
 import { triggerScanFeedback } from '@/lib/scan-feedback';
 import { downloadCsv } from '@/lib/csv-export';
@@ -32,6 +33,7 @@ export function ScanPage() {
   const dbRef = useRef<IDBDatabase | null>(null);
   const scannedCodesRef = useRef<Set<string>>(new Set());
   const startedAtRef = useRef<string>('');
+  const invalidAttemptsRef = useRef(0);
   const [dbReady, setDbReady] = useState(false);
   const [operatorName, setOperatorName] = useState<string | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -41,6 +43,7 @@ export function ScanPage() {
   const [cameraActive, setCameraActive] = useState(false);
   const [scanned, setScanned] = useState<Map<string, ScannedItem>>(new Map());
   const [manualCode, setManualCode] = useState('');
+  const [incidentTarget, setIncidentTarget] = useState<string | null>(null);
   const { canInstall, showIosHint, promptInstall } = useInstallPrompt();
 
   useEffect(() => {
@@ -90,23 +93,54 @@ export function ScanPage() {
 
   async function handleDecode(rawText: string) {
     const db = dbRef.current;
-    if (!db) return;
+    if (!db || !organization || !area || !location) return;
     const code = rawText.trim().toUpperCase();
     if (!code) return;
 
-    if (scannedCodesRef.current.has(code)) {
+    const resolution = await resolveScannedProduct(
+      db,
+      code,
+      { organizationId: organization.id, areaId: area.id, locationId: location.id },
+      scannedCodesRef.current,
+    );
+
+    if (resolution.category === 'invalid') {
+      invalidAttemptsRef.current += 1;
+      triggerScanFeedback(false);
+      toast.error(`Código inválido: ${code}`);
+      return;
+    }
+
+    if (resolution.category === 'already-scanned') {
       toast.warning(`Ya escaneado: ${code}`);
       return;
     }
-    scannedCodesRef.current.add(code);
 
-    const { found, name } = await resolveScannedProduct(db, code);
-    setScanned((prev) => new Map(prev).set(code, { code, name, found }));
-    triggerScanFeedback(found);
-    if (found) {
-      toast.success(`✔ ${code} — ${name}`);
-    } else {
-      toast.error(`✖ ${code} — no registrado`);
+    scannedCodesRef.current.add(code);
+    setScanned((prev) =>
+      new Map(prev).set(code, {
+        code,
+        name: resolution.name,
+        category: resolution.category,
+        expectedAreaName: resolution.expectedAreaName,
+        expectedLocationName: resolution.expectedLocationName,
+      }),
+    );
+    triggerScanFeedback(resolution.category === 'correct');
+
+    switch (resolution.category) {
+      case 'correct':
+        toast.success(`✔ ${code} — ${resolution.name}`);
+        break;
+      case 'wrong-area':
+        toast.warning(`⚠ ${code} — otra área (${resolution.expectedAreaName})`);
+        break;
+      case 'wrong-location':
+        toast.warning(`⚠ ${code} — otra ubicación (${resolution.expectedLocationName})`);
+        break;
+      case 'unregistered':
+        toast.error(`✖ ${code} — no registrado`);
+        break;
     }
   }
 
@@ -116,8 +150,44 @@ export function ScanPage() {
     setManualCode('');
   }
 
+  function handleMarkOutOfPlace(code: string) {
+    setScanned((prev) => {
+      const item = prev.get(code);
+      if (!item) return prev;
+      return new Map(prev).set(code, { ...item, outOfPlace: !item.outOfPlace });
+    });
+  }
+
+  function handleExternalFind(code: string) {
+    setScanned((prev) => {
+      const item = prev.get(code);
+      if (!item) return prev;
+      return new Map(prev).set(code, { ...item, externalFind: true });
+    });
+  }
+
+  function handleDiscard(code: string) {
+    scannedCodesRef.current.delete(code);
+    setScanned((prev) => {
+      const next = new Map(prev);
+      next.delete(code);
+      return next;
+    });
+  }
+
+  function handleSaveIncident(note: string) {
+    if (!incidentTarget) return;
+    setScanned((prev) => {
+      const item = prev.get(incidentTarget);
+      if (!item) return prev;
+      return new Map(prev).set(incidentTarget, { ...item, incidentNote: note });
+    });
+    setIncidentTarget(null);
+  }
+
   function startScanning() {
     startedAtRef.current = new Date().toISOString();
+    invalidAttemptsRef.current = 0;
     setView('scanning');
     setCameraActive(true);
   }
@@ -127,6 +197,16 @@ export function ScanPage() {
     const db = dbRef.current;
     const items = Array.from(scanned.values());
     if (db && operatorName && organization && area && location) {
+      const sessionItems: ScannedSessionItem[] = items.map(
+        ({ code, name, category, incidentNote, outOfPlace, externalFind }) => ({
+          code,
+          name,
+          category,
+          incidentNote,
+          outOfPlace,
+          externalFind,
+        }),
+      );
       await saveSession(db, {
         operatorName,
         organizationId: organization.id,
@@ -138,8 +218,13 @@ export function ScanPage() {
         startedAt: startedAtRef.current,
         date: new Date().toISOString(),
         total: items.length,
-        found: items.filter((i) => i.found).length,
-        missing: items.filter((i) => !i.found).map(({ code, name }) => ({ code, name })),
+        correct: items.filter((i) => i.category === 'correct').length,
+        wrongArea: items.filter((i) => i.category === 'wrong-area').length,
+        wrongLocation: items.filter((i) => i.category === 'wrong-location').length,
+        unregistered: items.filter((i) => i.category === 'unregistered').length,
+        invalid: invalidAttemptsRef.current,
+        incidents: items.filter((i) => i.incidentNote).length,
+        items: sessionItems,
         syncStatus: 'local',
       });
     }
@@ -148,21 +233,31 @@ export function ScanPage() {
 
   function resetSession() {
     scannedCodesRef.current.clear();
+    invalidAttemptsRef.current = 0;
     setScanned(new Map());
+    setIncidentTarget(null);
     setView('home');
   }
 
   function exportCsv() {
     const items = Array.from(scanned.values());
-    const rows: (string | number)[][] = [['codigo', 'nombre', 'estado']];
-    items.forEach((item) => rows.push([item.code, item.name, item.found ? 'encontrado' : 'no_registrado']));
+    const rows: (string | number)[][] = [['codigo', 'nombre', 'categoria', 'incidencia', 'fuera_de_lugar']];
+    items.forEach((item) =>
+      rows.push([item.code, item.name, item.category, item.incidentNote ?? '', item.outOfPlace ? 'si' : 'no']),
+    );
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
     downloadCsv(`qrvault-reporte-${timestamp}.csv`, rows);
   }
 
   const items = Array.from(scanned.values());
-  const foundCount = items.filter((i) => i.found).length;
-  const missing = items.filter((i) => !i.found);
+  const correctCount = items.filter((i) => i.category === 'correct').length;
+  const wrongAreaCount = items.filter((i) => i.category === 'wrong-area').length;
+  const wrongLocationCount = items.filter((i) => i.category === 'wrong-location').length;
+  const outOfPlaceCount = wrongAreaCount + wrongLocationCount;
+  const unregisteredCount = items.filter((i) => i.category === 'unregistered').length;
+  const incidentCount = items.filter((i) => i.incidentNote).length;
+  const nonCorrectItems = items.filter((i) => i.category !== 'correct');
+  const incidentItem = incidentTarget ? scanned.get(incidentTarget) : undefined;
 
   if (view === 'operator') {
     return <OperatorGate onContinue={handleOperatorContinue} />;
@@ -274,7 +369,13 @@ export function ScanPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ScannedList items={items} />
+            <ScannedList
+              items={items}
+              onMarkOutOfPlace={handleMarkOutOfPlace}
+              onExternalFind={handleExternalFind}
+              onDiscard={handleDiscard}
+              onAddIncident={setIncidentTarget}
+            />
           </CardContent>
         </Card>
 
@@ -293,12 +394,23 @@ export function ScanPage() {
             Finalizar y ver reporte
           </Button>
         </div>
+
+        <IncidentDialog
+          open={incidentTarget !== null}
+          itemCode={incidentTarget ?? ''}
+          itemName={incidentItem?.name ?? ''}
+          initialNote={incidentItem?.incidentNote}
+          onOpenChange={(open) => {
+            if (!open) setIncidentTarget(null);
+          }}
+          onSave={handleSaveIncident}
+        />
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
       <Card>
         <CardContent className="pt-6 text-center">
           <p className="text-3xl font-bold" data-testid="report-total">
@@ -309,33 +421,50 @@ export function ScanPage() {
       </Card>
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-3xl font-bold text-success" data-testid="report-found">
-            {foundCount}
+          <p className="text-3xl font-bold text-success" data-testid="report-correct">
+            {correctCount}
           </p>
-          <p className="text-sm text-muted-foreground">Encontrados</p>
+          <p className="text-sm text-muted-foreground">Correctos</p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-3xl font-bold text-destructive" data-testid="report-missing">
-            {missing.length}
+          <p className="text-3xl font-bold text-warning" data-testid="report-out-of-place">
+            {outOfPlaceCount}
           </p>
-          <p className="text-sm text-muted-foreground">Fuera de BD</p>
+          <p className="text-sm text-muted-foreground">Fuera de lugar</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <p className="text-3xl font-bold text-destructive" data-testid="report-unregistered">
+            {unregisteredCount}
+          </p>
+          <p className="text-sm text-muted-foreground">No registrados</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <p className="text-3xl font-bold" data-testid="report-incidents">
+            {incidentCount}
+          </p>
+          <p className="text-sm text-muted-foreground">Incidencias</p>
         </CardContent>
       </Card>
 
-      <Card className="md:col-span-3">
+      <Card className="md:col-span-3 lg:col-span-5">
         <CardHeader>
-          <CardTitle className="text-sm">Productos no registrados</CardTitle>
+          <CardTitle className="text-sm">Detalle (todo lo que no fue correcto)</CardTitle>
         </CardHeader>
         <CardContent>
-          {missing.length === 0 ? (
+          {nonCorrectItems.length === 0 ? (
             <p className="text-sm text-muted-foreground">Ninguno</p>
           ) : (
-            <ul className="list-inside list-disc space-y-1 text-sm text-destructive" data-testid="report-missing-list">
-              {missing.map((item) => (
-                <li key={item.code}>
-                  {item.code} – {item.name}
+            <ul className="space-y-1 text-sm" data-testid="report-detail-list">
+              {nonCorrectItems.map((item) => (
+                <li key={item.code} className="text-destructive">
+                  {item.code} – {item.name} · {item.category}
+                  {item.incidentNote ? ` · incidencia: ${item.incidentNote}` : ''}
                 </li>
               ))}
             </ul>
@@ -343,7 +472,7 @@ export function ScanPage() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap gap-2 md:col-span-3">
+      <div className="flex flex-wrap gap-2 md:col-span-3 lg:col-span-5">
         <Button type="button" variant="outline" onClick={exportCsv} data-testid="export-csv-btn">
           <DownloadIcon />
           Exportar CSV

@@ -45,9 +45,13 @@ export function HistoryPage() {
         ) : (
           <ul className="space-y-3" data-testid="history-list">
             {sessions.map((session) => {
-              const missingCodes = session.missing.map((m) => m.code).join(', ') || 'Ninguno';
+              const unregisteredCodes =
+                session.items
+                  ?.filter((i) => i.category === 'unregistered')
+                  .map((i) => i.code)
+                  .join(', ') || 'Ninguno';
               // session.operatorName etc. pueden faltar en sesiones locales de
-              // desarrollo previas a TASK-004 (no hay usuarios reales todavía).
+              // desarrollo previas a TASK-004/TASK-005 (no hay usuarios reales todavía).
               return (
                 <li key={session.id} className="bg-secondary p-3 text-sm" data-testid="history-item">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -62,10 +66,12 @@ export function HistoryPage() {
                   </div>
                   <div className="mt-1 flex flex-wrap gap-3 text-muted-foreground">
                     <span>{session.total} escaneados</span>
-                    <span>{session.found} encontrados</span>
-                    <span>{session.missing.length} fuera de BD</span>
+                    <span>{session.correct ?? 0} correctos</span>
+                    <span>{(session.wrongArea ?? 0) + (session.wrongLocation ?? 0)} fuera de lugar</span>
+                    <span>{session.unregistered ?? 0} no registrados</span>
+                    <span>{session.incidents ?? 0} incidencias</span>
                   </div>
-                  <div className="mt-1 text-destructive">{missingCodes}</div>
+                  <div className="mt-1 text-destructive">{unregisteredCodes}</div>
                 </li>
               );
             })}

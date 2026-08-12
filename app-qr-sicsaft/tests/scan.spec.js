@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { resetApp, scanCode } from './helpers.js';
 
+// Con la ubicación por defecto de los tests (org-001/area-001/loc-001, ver
+// tests/helpers.js) el catálogo demo (catalog-data.ts) se reparte así:
+// P001-P004 = correcto, P005-P007 = otra ubicación, P008-P009 = otra área,
+// P010-P015 = otra organización (clasifica como no registrado),
+// P016-P020 = no están en la DB (no registrado).
 const REGISTERED_CODES = Array.from({ length: 15 }, (_, i) => `P${String(i + 1).padStart(3, '0')}`);
 const UNREGISTERED_CODES = ['P016', 'P017', 'P018', 'P019', 'P020'];
 
@@ -14,7 +19,9 @@ test('home page loads without console errors', async ({ page }) => {
   await expect(page.locator('[data-testid="start-scan-btn"]')).toBeVisible();
 });
 
-test('Prueba 1 del spec: 15 productos registrados -> 15/15/0', async ({ page }) => {
+test('Prueba 1 del spec: 15 productos registrados -> 4 correctos, 5 fuera de lugar, 6 no registrados', async ({
+  page,
+}) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
@@ -24,11 +31,12 @@ test('Prueba 1 del spec: 15 productos registrados -> 15/15/0', async ({ page }) 
   await page.click('[data-testid="finish-btn"]');
 
   await expect(page.locator('[data-testid="report-total"]')).toHaveText('15');
-  await expect(page.locator('[data-testid="report-found"]')).toHaveText('15');
-  await expect(page.locator('[data-testid="report-missing"]')).toHaveText('0');
+  await expect(page.locator('[data-testid="report-correct"]')).toHaveText('4');
+  await expect(page.locator('[data-testid="report-out-of-place"]')).toHaveText('5');
+  await expect(page.locator('[data-testid="report-unregistered"]')).toHaveText('6');
 });
 
-test('Prueba 2 del spec: 16 productos (15 + 1 no registrado) -> 16/15/1 con P016', async ({ page }) => {
+test('Prueba 2 del spec: 15 registrados + P016 -> 7 no registrados, incluye P016', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
@@ -38,12 +46,11 @@ test('Prueba 2 del spec: 16 productos (15 + 1 no registrado) -> 16/15/1 con P016
   await page.click('[data-testid="finish-btn"]');
 
   await expect(page.locator('[data-testid="report-total"]')).toHaveText('16');
-  await expect(page.locator('[data-testid="report-found"]')).toHaveText('15');
-  await expect(page.locator('[data-testid="report-missing"]')).toHaveText('1');
-  await expect(page.locator('[data-testid="report-missing-list"]')).toContainText('P016');
+  await expect(page.locator('[data-testid="report-unregistered"]')).toHaveText('7');
+  await expect(page.locator('[data-testid="report-detail-list"]')).toContainText('P016');
 });
 
-test('Prueba 3 del spec: 20 productos -> 20/15/5 con P016-P020', async ({ page }) => {
+test('Prueba 3 del spec: 15 registrados + P016-P020 -> 11 no registrados', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
@@ -53,10 +60,11 @@ test('Prueba 3 del spec: 20 productos -> 20/15/5 con P016-P020', async ({ page }
   await page.click('[data-testid="finish-btn"]');
 
   await expect(page.locator('[data-testid="report-total"]')).toHaveText('20');
-  await expect(page.locator('[data-testid="report-found"]')).toHaveText('15');
-  await expect(page.locator('[data-testid="report-missing"]')).toHaveText('5');
+  await expect(page.locator('[data-testid="report-correct"]')).toHaveText('4');
+  await expect(page.locator('[data-testid="report-out-of-place"]')).toHaveText('5');
+  await expect(page.locator('[data-testid="report-unregistered"]')).toHaveText('11');
   for (const code of UNREGISTERED_CODES) {
-    await expect(page.locator('[data-testid="report-missing-list"]')).toContainText(code);
+    await expect(page.locator('[data-testid="report-detail-list"]')).toContainText(code);
   }
 });
 

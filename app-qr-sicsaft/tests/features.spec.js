@@ -47,7 +47,7 @@ test('el escáner reconoce un código de variante BASE-VARIANTE', async ({ page 
   await scanCode(page, 'v001-m');
 
   await expect(page.locator('[data-testid="scanned-count"]')).toHaveText('1');
-  await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('✔ Encontrado');
+  await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('✔ Correcto');
 });
 
 test('el toggle de tema cambia la clase dark del html y persiste en localStorage', async ({ page }) => {
@@ -83,7 +83,8 @@ test('finalizar escaneo guarda una sesión y aparece en el historial', async ({ 
 
   await expect(page.locator('[data-testid="history-item"]')).toHaveCount(1);
   await expect(page.locator('[data-testid="history-item"]')).toContainText('20 escaneados');
-  await expect(page.locator('[data-testid="history-item"]')).toContainText('15 encontrados');
+  await expect(page.locator('[data-testid="history-item"]')).toContainText('4 correctos');
+  await expect(page.locator('[data-testid="history-item"]')).toContainText('11 no registrados');
   await expect(page.locator('[data-testid="history-item"]')).toContainText('P016');
 });
 
@@ -113,7 +114,7 @@ test('exportar CSV genera un archivo con los productos escaneados', async ({ pag
     return capturedBlob ? capturedBlob.text() : null;
   });
 
-  expect(csv).toContain('codigo,nombre,estado');
-  expect(csv).toContain('P001,Caramelos Verdes,encontrado');
-  expect(csv).toContain('P999,Producto desconocido,no_registrado');
+  expect(csv).toContain('codigo,nombre,categoria,incidencia,fuera_de_lugar');
+  expect(csv).toContain('P001,Caramelos Verdes,correct,,no');
+  expect(csv).toContain('P999,Producto desconocido,unregistered,,no');
 });

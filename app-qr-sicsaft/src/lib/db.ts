@@ -24,11 +24,33 @@ export interface Product {
   variants?: ProductVariant[];
   image?: string;
   createdAt?: string;
+  // Ubicación patrimonial esperada — sin esto no se puede distinguir "activo
+  // correcto" de "otra área"/"otra ubicación" al escanear (ver scan-resolve.ts).
+  organizationId?: string;
+  areaId?: string;
+  locationId?: string;
 }
 
-export interface ScannedEntry {
+// Clasificación de un escaneo (DOC-001 sección 3). 'duplicate' se reserva pero
+// no es alcanzable client-side: IndexedDB usa `code` como clave única, así que
+// dos registros con el mismo código físico no pueden coexistir en el cliente —
+// esa categoría la detectará el futuro Base Patrimonial Central (backend).
+export type ScanCategory =
+  | 'correct'
+  | 'wrong-area'
+  | 'wrong-location'
+  | 'unregistered'
+  | 'invalid'
+  | 'already-scanned'
+  | 'duplicate';
+
+export interface ScannedSessionItem {
   code: string;
   name: string;
+  category: ScanCategory;
+  incidentNote?: string;
+  outOfPlace?: boolean;
+  externalFind?: boolean;
 }
 
 export type SyncStatus = 'local'; // único valor posible hasta TASK-008 (cola offline)
@@ -45,8 +67,13 @@ export interface ScanSession {
   startedAt: string;
   date: string;
   total: number;
-  found: number;
-  missing: ScannedEntry[];
+  correct: number;
+  wrongArea: number;
+  wrongLocation: number;
+  unregistered: number;
+  invalid: number;
+  incidents: number;
+  items: ScannedSessionItem[];
   syncStatus: SyncStatus;
 }
 
