@@ -51,6 +51,8 @@ export function ScanPage() {
   const [scanned, setScanned] = useState<Map<string, ScannedItem>>(new Map());
   const [manualCode, setManualCode] = useState('');
   const [incidentTarget, setIncidentTarget] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
   const { canInstall, showIosHint, promptInstall } = useInstallPrompt();
 
   useEffect(() => {
@@ -239,20 +241,9 @@ export function ScanPage() {
     setCameraActive(true);
   }
 
-  async function finishScanning() {
+  function finishScanning() {
     setCameraActive(false);
-    const items = Array.from(scanned.values());
     if (operatorName && organization && area && location) {
-      const sessionItems: ScannedSessionItem[] = items.map(
-        ({ code, name, category, incidentNote, outOfPlace, externalFind }) => ({
-          code,
-          name,
-          category,
-          incidentNote,
-          outOfPlace,
-          externalFind,
-        }),
-      );
       logAuditEvent({
         event: 'inventory_finished',
         correlationId: correlationIdRef.current,
@@ -262,35 +253,56 @@ export function ScanPage() {
         areaName: area.name,
         locationName: location.name,
       });
-      try {
-        await submitInventario({
-          operatorName,
-          organizationId: organization.id,
-          organizationName: organization.name,
-          areaId: area.id,
-          areaName: area.name,
-          locationId: location.id,
-          locationName: location.name,
-          startedAt: startedAtRef.current,
-          date: new Date().toISOString(),
-          total: items.length,
-          correct: items.filter((i) => i.category === 'correct').length,
-          wrongArea: items.filter((i) => i.category === 'wrong-area').length,
-          wrongLocation: items.filter((i) => i.category === 'wrong-location').length,
-          unregistered: items.filter((i) => i.category === 'unregistered').length,
-          invalid: invalidAttemptsRef.current,
-          incidents: items.filter((i) => i.incidentNote).length,
-          items: sessionItems,
-          correlationId: correlationIdRef.current,
-        });
-      } catch {
-        // submitInventario ya maneja sin conexión internamente (queda en cola
-        // "pending" y se reintenta solo) — si igual tira, es un fallo real de
-        // guardado local (IndexedDB), no de red.
-        toast.error('No se pudo guardar el inventario.');
-      }
     }
+    // No se envía todavía — DOC-001 pantalla 11 pide un paso explícito de
+    // confirmación (confirmAndSend) antes de tocar el Conector QR.
     setView('report');
+  }
+
+  async function confirmAndSend() {
+    if (!operatorName || !organization || !area || !location || sending || sent) return;
+    setSending(true);
+    const items = Array.from(scanned.values());
+    const sessionItems: ScannedSessionItem[] = items.map(
+      ({ code, name, category, incidentNote, outOfPlace, externalFind }) => ({
+        code,
+        name,
+        category,
+        incidentNote,
+        outOfPlace,
+        externalFind,
+      }),
+    );
+    try {
+      await submitInventario({
+        operatorName,
+        organizationId: organization.id,
+        organizationName: organization.name,
+        areaId: area.id,
+        areaName: area.name,
+        locationId: location.id,
+        locationName: location.name,
+        startedAt: startedAtRef.current,
+        date: new Date().toISOString(),
+        total: items.length,
+        correct: items.filter((i) => i.category === 'correct').length,
+        wrongArea: items.filter((i) => i.category === 'wrong-area').length,
+        wrongLocation: items.filter((i) => i.category === 'wrong-location').length,
+        unregistered: items.filter((i) => i.category === 'unregistered').length,
+        invalid: invalidAttemptsRef.current,
+        incidents: items.filter((i) => i.incidentNote).length,
+        items: sessionItems,
+        correlationId: correlationIdRef.current,
+      });
+      setSent(true);
+    } catch {
+      // submitInventario ya maneja sin conexión internamente (queda en cola
+      // "pending" y se reintenta solo) — si igual tira, es un fallo real de
+      // guardado local (IndexedDB), no de red.
+      toast.error('No se pudo guardar el inventario.');
+    } finally {
+      setSending(false);
+    }
   }
 
   function resetSession() {
@@ -298,6 +310,8 @@ export function ScanPage() {
     invalidAttemptsRef.current = 0;
     setScanned(new Map());
     setIncidentTarget(null);
+    setSending(false);
+    setSent(false);
     setView('home');
   }
 
@@ -320,6 +334,9 @@ export function ScanPage() {
   const incidentCount = items.filter((i) => i.incidentNote).length;
   const nonCorrectItems = items.filter((i) => i.category !== 'correct');
   const incidentItem = incidentTarget ? scanned.get(incidentTarget) : undefined;
+  const expectedAssets = catalogRef.current.filter((a) => a.areaId === area?.id && a.ubicacionId === location?.id);
+  const missingAssets = expectedAssets.filter((a) => !scannedCodesRef.current.has(a.codigoQr));
+  const externalFindCount = items.filter((i) => i.category === 'unregistered' && i.externalFind).length;
 
   if (view === 'operator') {
     return <OperatorGate onContinue={handleOperatorContinue} />;
@@ -472,13 +489,29 @@ export function ScanPage() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
       <Card>
         <CardContent className="pt-6 text-center">
           <p className="text-3xl font-bold" data-testid="report-total">
             {items.length}
           </p>
           <p className="text-sm text-muted-foreground">Escaneados</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <p className="text-3xl font-bold" data-testid="report-expected">
+            {expectedAssets.length}
+          </p>
+          <p className="text-sm text-muted-foreground">Esperados</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <p className="text-3xl font-bold text-warning" data-testid="report-missing">
+            {missingAssets.length}
+          </p>
+          <p className="text-sm text-muted-foreground">Faltantes</p>
         </CardContent>
       </Card>
       <Card>
@@ -507,6 +540,14 @@ export function ScanPage() {
       </Card>
       <Card>
         <CardContent className="pt-6 text-center">
+          <p className="text-3xl font-bold" data-testid="report-external-finds">
+            {externalFindCount}
+          </p>
+          <p className="text-sm text-muted-foreground">Externos</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-6 text-center">
           <p className="text-3xl font-bold" data-testid="report-incidents">
             {incidentCount}
           </p>
@@ -514,7 +555,7 @@ export function ScanPage() {
         </CardContent>
       </Card>
 
-      <Card className="md:col-span-3 lg:col-span-5">
+      <Card className="md:col-span-3 lg:col-span-4">
         <CardHeader>
           <CardTitle className="text-sm">Detalle (todo lo que no fue correcto)</CardTitle>
         </CardHeader>
@@ -534,7 +575,35 @@ export function ScanPage() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap gap-2 md:col-span-3 lg:col-span-5">
+      <Card className="md:col-span-3 lg:col-span-4">
+        <CardHeader>
+          <CardTitle className="text-sm">Activos faltantes (esperados y no escaneados)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {missingAssets.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Ninguno</p>
+          ) : (
+            <ul className="space-y-1 text-sm" data-testid="report-missing-list">
+              {missingAssets.map((asset) => (
+                <li key={asset.codigoQr} className="text-warning">
+                  {asset.codigoQr} – {asset.nombre}
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-wrap gap-2 md:col-span-3 lg:col-span-4">
+        <Button
+          type="button"
+          onClick={confirmAndSend}
+          disabled={sending || sent}
+          data-testid="confirm-send-btn"
+        >
+          <CheckCircle2Icon />
+          {sent ? 'Enviado ✔' : sending ? 'Enviando…' : 'Confirmar y enviar'}
+        </Button>
         <Button type="button" variant="outline" onClick={exportCsv} data-testid="export-csv-btn">
           <DownloadIcon />
           Exportar CSV

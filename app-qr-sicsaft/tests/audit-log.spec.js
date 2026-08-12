@@ -11,6 +11,7 @@ test('el registro de auditoría refleja inicio, escaneo, incidencia, cierre y si
   await page.click('[data-testid="incident-save-btn"]');
 
   await page.click('[data-testid="finish-btn"]');
+  await page.click('[data-testid="confirm-send-btn"]');
   await page.click('[data-testid="reset-btn"]');
 
   await page.click('[data-testid="nav-history"]');

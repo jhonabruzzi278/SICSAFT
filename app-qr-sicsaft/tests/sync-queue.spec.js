@@ -17,6 +17,7 @@ test('sin conexión, el inventario queda en cola y se sincroniza solo al volver'
 
   await page.context().setOffline(true);
   await page.click('[data-testid="finish-btn"]');
+  await page.click('[data-testid="confirm-send-btn"]');
   await page.click('[data-testid="reset-btn"]');
 
   await page.click('[data-testid="nav-history"]');

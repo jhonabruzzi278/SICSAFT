@@ -50,6 +50,7 @@ test('el historial muestra los metadatos de la sesión y el estado de sincroniza
   await page.click('[data-testid="start-scan-btn"]');
   await scanCode(page, 'P001');
   await page.click('[data-testid="finish-btn"]');
+  await page.click('[data-testid="confirm-send-btn"]');
   await page.click('[data-testid="reset-btn"]');
 
   await page.click('[data-testid="nav-history"]');

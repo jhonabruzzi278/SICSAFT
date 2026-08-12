@@ -78,6 +78,8 @@ test('finalizar escaneo guarda una sesión y aparece en el historial', async ({ 
   await page.click('[data-testid="finish-btn"]');
   await expect(page.locator('[data-testid="report-total"]')).toHaveText('20');
 
+  await page.click('[data-testid="confirm-send-btn"]');
+  await expect(page.locator('[data-testid="confirm-send-btn"]')).toHaveText('Enviado ✔');
   await page.click('[data-testid="reset-btn"]');
   await page.click('[data-testid="nav-history"]');
 
