@@ -45,8 +45,10 @@ npm run preview
 1. **Escanear** (`/`): identificarse como operador (una sola vez, persiste), elegir organización →
    área → ubicación, escanear con cámara o código manual — cada lectura se clasifica contra el
    catálogo esperado y muestra su acción disponible (marcar fuera de lugar, registrar hallazgo
-   externo, agregar incidencia). Al finalizar, el inventario se guarda local y se intenta enviar;
-   sin conexión queda en cola con reintentos automáticos.
+   externo, agregar incidencia). Al finalizar se ve el resumen (esperados/faltantes/correctos/fuera
+   de lugar/no registrados/externos/incidencias) sin enviar nada todavía; recién al tocar
+   "Confirmar y enviar" se guarda y se intenta enviar — sin conexión queda en cola con reintentos
+   automáticos.
 2. **Historial** (`/history`): inventarios guardados con operador/organización/área/ubicación,
    estado de sincronización (con intentos si está pendiente) y un detalle "Ver auditoría" por
    sesión (eventos con su `correlationId`).

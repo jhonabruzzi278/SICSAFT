@@ -5,7 +5,7 @@
 ## Instrucciones para la nueva sesión
 
 1. Este documento es autocontenido: no hace falta re-auditar el código para tener el contexto de negocio y las decisiones ya tomadas.
-2. El trabajo pendiente inmediato es **TASK-010** (resumen final del inventario) — ver sección 7. TASK-004 a TASK-006, TASK-008 y TASK-009 ya están hechas; TASK-007 está saltada (bloqueada, ver punto 3).
+2. **TASK-004 a TASK-006 y TASK-008 a TASK-010 ya están hechas** — ver sección 7. Solo queda **TASK-007** (sincronización real con CORE), bloqueada. Con eso, las 12 pantallas de DOC-001 están cubiertas salvo el envío HTTP real. No hay backlog nuevo definido todavía para APP QR SICSAFT más allá de TASK-007 — antes de inventar trabajo nuevo, confirmar con el usuario si corresponde esperar a CORE, sincronizar Trello, o mirar otro sistema del ecosistema (`cis/`, `core/`, etc., ver `README.md` raíz).
 3. **TASK-007 (sincronización real con CORE) sigue bloqueada** — las 4 preguntas de la sección 6 siguen sin respuesta (confirmado con el usuario el 2026-08-12, sin novedades de CORE). Todo el Conector QR (`src/lib/qr-connector.ts`) es un **stub explícito**: implementa el contrato de DOC-002 como interfaz, con una implementación local respaldada por IndexedDB. No asumas respuestas a las preguntas abiertas; si en algún momento las responden, TASK-007 reemplaza esa implementación por HTTP real sin tocar la UI (`ScanPage.tsx` solo conoce la interfaz `QrConnectorClient`, nunca `db.ts` directo).
 4. El backlog vive en Trello: https://trello.com/b/nCi6W4oB/sicsaft (tablero **SICSAFT**, board id `6a79df5317e070b5a23014d0`). Se gestiona con `C:\Proyectos\trello-ai-project-manager\trello_project.py` (`validate-plan` / `sync-plan`, dry-run por defecto, `--apply` para escribir). Requiere `TRELLO_API_KEY`, `TRELLO_TOKEN`, `TRELLO_BOARD_ID` en variables de entorno — **no están guardadas en ningún archivo**; pedíselas al usuario si hace falta escribir en Trello, y si te las pasa por chat, avisale que las rote después (ya se expusieron una vez en una sesión anterior). **El tablero no se sincronizó todavía con el trabajo de TASK-004 a TASK-009** — falta mover esas tarjetas a "Hecho" cuando haya credenciales.
 5. No se hizo `git push` de ningún commit todavía — todo vive local en `main`.
@@ -50,8 +50,8 @@ Rename QR Vault → APP QR SICSAFT en dos fases:
 | Escanear QR | ✅ Existe | `QrScanner.tsx` (`html5-qrcode`) |
 | Validar activos | ✅ Existe | `scan-resolve.ts` — 6 de las 8 categorías de DOC-001 sección 3 (`duplicate` reservada, no alcanzable sin backend real) |
 | Registrar incidencias | ✅ Existe | `IncidentDialog.tsx` |
-| Finalizar inventario | ✅ Existe | `finishScanning()` → `syncQueue.submitInventario()` |
-| Enviar a SICSAFT CORE | ⚠️ Stub | `qr-connector.ts` simula el envío (`postInventario`); si no hay conexión queda en cola local con reintentos (`sync-queue.ts`, TASK-008) — el envío real a CORE sigue bloqueado (TASK-007, sección 6) |
+| Finalizar inventario | ✅ Existe | `finishScanning()` para la cámara y muestra el resumen — **ya no envía** (ver TASK-010) |
+| Enviar a SICSAFT CORE | ⚠️ Stub | Paso explícito del operador: botón "Confirmar y enviar" (`confirmAndSend()`, TASK-010) → `syncQueue.submitInventario()` → `qr-connector.ts` simula el envío (`postInventario`); si no hay conexión queda en cola local con reintentos (`sync-queue.ts`, TASK-008) — el envío real a CORE sigue bloqueado (TASK-007, sección 6) |
 
 **Función que queda fuera de alcance (decisión del usuario, 2026-08-10)**: catálogo de productos + impresión de etiquetas QR (`CatalogPage.tsx`) se conserva tal cual, no forma parte del flujo oficial ni del Conector QR — sigue con acceso directo a `db.ts`.
 
@@ -59,7 +59,7 @@ Rename QR Vault → APP QR SICSAFT en dos fases:
 
 `aidlc-docs/design-artifacts/DOC-001-flujo-oficial.md`
 
-**12 pantallas mínimas** — las 10 del flujo del operador ya existen (ver sección 3; pantalla 10 "resumen del inventario" existe pero le falta el detalle completo, es TASK-010). Pantalla 12 (estado de sincronización) se resolvió como parte de `HistoryPage.tsx` en vez de una ruta propia (badge de `syncStatus` + botón "Ver auditoría", TASK-008/009) — DOC-001 la describe como estado por inventario, no como pantalla de contenido propio.
+**12 pantallas mínimas — las 12 están cubiertas.** Pantalla 10 (resumen del inventario) muestra esperados/faltantes/correctos/fuera de lugar/no registrados/externos/incidencias (TASK-010). Pantalla 11 (confirmación y envío) es el botón "Confirmar y enviar" (`confirmAndSend()` en `ScanPage.tsx`, TASK-010) — separado de "Finalizar", matchea el diagrama de DOC-001 (`Finalizar → Resumen → Confirmar y enviar`). Pantalla 12 (estado de sincronización) se resolvió como parte de `HistoryPage.tsx` en vez de una ruta propia (badge de `syncStatus` + botón "Ver auditoría", TASK-008/009) — DOC-001 la describe como estado por inventario, no como pantalla de contenido propio.
 
 **Clasificación de resultados de escaneo** (8 categorías, `scan-resolve.ts`): correcto, otra área, otra ubicación, no registrado, código inválido, ya escaneado — implementadas y testeadas (TASK-005). "Duplicado" está reservada en el type pero no es alcanzable client-side (IndexedDB usa `code` como clave única) — la detectaría el futuro Base Patrimonial Central. "Con incidencia" se resolvió como una acción disponible sobre cualquier ítem escaneado, no como categoría excluyente.
 
@@ -93,7 +93,7 @@ Rename QR Vault → APP QR SICSAFT en dos fases:
 
 ## 7. Backlog completo y cadena de dependencias
 
-Tablero Trello SICSAFT — última sincronización verificada contra el código real: **2026-08-10**, antes de TASK-004 a TASK-009. El tablero en sí **todavía no refleja** este trabajo (pendiente de credenciales para escribir, ver punto 4 de instrucciones). Estado real según el código:
+Tablero Trello SICSAFT — última sincronización verificada contra el código real: **2026-08-10**, antes de TASK-004 a TASK-010. El tablero en sí **todavía no refleja** este trabajo (pendiente de credenciales para escribir, ver punto 4 de instrucciones). Estado real según el código:
 
 ```
 TASK-004 (sesiones de inventario) ................................ ✅ Hecho
@@ -102,14 +102,19 @@ TASK-004 (sesiones de inventario) ................................ ✅ Hecho
       → TASK-007 (sincronización real con CORE) .................... ⛔ Bloqueada — saltada, ver sección 6
         → TASK-008 (cola sin conexión) .............................. ✅ Hecho (contra el stub)
           → TASK-009 (registro de eventos y auditoría) .............. ✅ Hecho
-            → TASK-010 (resumen final del inventario) .............. 🔲 Próxima — pantalla 10 existe parcial, falta detalle completo (esperados/faltantes/externos/incidencias) y pantalla de confirmación de envío
+            → TASK-010 (resumen final del inventario) .............. ✅ Hecho
 ```
 
-Cada tarjeta tiene en su descripción de Trello: objetivo, alcance, criterios de aceptación verificables, evidencia esperada y dependencias — usar `board-summary`/`export-board` del script para traer el contenido exacto, y `sync-plan --apply` para marcar TASK-004 a TASK-006/008/009 como Hecho cuando haya credenciales.
+Único pendiente de la cadena: **TASK-007**, bloqueada por CORE (sección 6). No hay más tarjetas
+definidas para APP QR SICSAFT en el handoff — confirmar con el usuario antes de proponer alcance
+nuevo.
+
+Cada tarjeta tiene en su descripción de Trello: objetivo, alcance, criterios de aceptación verificables, evidencia esperada y dependencias — usar `board-summary`/`export-board` del script para traer el contenido exacto, y `sync-plan --apply` para marcar TASK-004 a TASK-006 y TASK-008 a TASK-010 como Hecho cuando haya credenciales.
 
 ## 8. Historial de commits relevantes (repo local, sin push)
 
 ```
+fb6f4ad feat(app-qr-sicsaft): TASK-010 - resumen final del inventario y confirmacion de envio
 5e409fd feat(app-qr-sicsaft): TASK-009 - registro de eventos y auditoria con correlationId
 fc547ad feat(app-qr-sicsaft): TASK-008 - cola sin conexion con reintentos automaticos
 ba0486c feat(app-qr-sicsaft): TASK-006 - cliente del Conector QR, saca acceso directo a IndexedDB de la UI

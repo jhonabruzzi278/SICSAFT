@@ -48,9 +48,10 @@ Backlog completo y contexto de negocio: `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.m
 
 ## Orden de trabajo recomendado
 
-1. **APP QR** sigue avanzando en paralelo (TASK-010 en adelante) con un stub del Conector QR —
-   TASK-004 a TASK-006, TASK-008 y TASK-009 ya están hechas; TASK-007 (sincronización real con
-   CORE) está bloqueada y saltada hasta que CORE responda las preguntas abiertas del handoff.
+1. **APP QR** completó su backlog local (TASK-004 a TASK-006, TASK-008 a TASK-010) contra un stub
+   del Conector QR — las 12 pantallas del flujo oficial están cubiertas. Solo queda TASK-007
+   (sincronización real con CORE), bloqueada hasta que CORE responda las preguntas abiertas del
+   handoff.
 2. Modelo de dominio compartido entre `core/` y `base-patrimonial/` — Trello `CORE-ADR-001` /
    `BASE-DOC-001`.
 3. `cis/` con el conector QR mockeado primero — Trello `CIS-ADR-001`.
