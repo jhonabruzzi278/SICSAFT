@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { resetApp, scanCode } from './helpers.js';
+import { resetApp, scanCode, selectOrgAreaLocation } from './helpers.js';
 
 test('entrada manual de código agrega un producto escaneado', async ({ page }) => {
   await resetApp(page);
@@ -42,6 +42,7 @@ test('el escáner reconoce un código de variante BASE-VARIANTE', async ({ page 
   await page.click('[data-testid="label-preview-close-btn"]');
 
   await page.click('[data-testid="nav-scan"]');
+  await selectOrgAreaLocation(page);
   await page.click('[data-testid="start-scan-btn"]');
   await scanCode(page, 'v001-m');
 

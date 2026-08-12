@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getAllSessions, initInventoryDb, type ScanSession } from '@/lib/db';
 
@@ -9,6 +10,10 @@ function formatSessionDate(isoDate: string): string {
     return isoDate;
   }
 }
+
+const SYNC_STATUS_LABEL: Record<ScanSession['syncStatus'], string> = {
+  local: 'Local — pendiente de sincronizar',
+};
 
 export function HistoryPage() {
   const [sessions, setSessions] = useState<ScanSession[] | null>(null);
@@ -41,9 +46,20 @@ export function HistoryPage() {
           <ul className="space-y-3" data-testid="history-list">
             {sessions.map((session) => {
               const missingCodes = session.missing.map((m) => m.code).join(', ') || 'Ninguno';
+              // session.operatorName etc. pueden faltar en sesiones locales de
+              // desarrollo previas a TASK-004 (no hay usuarios reales todavía).
               return (
                 <li key={session.id} className="bg-secondary p-3 text-sm" data-testid="history-item">
-                  <div className="font-semibold">{formatSessionDate(session.date)}</div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-semibold">{formatSessionDate(session.date)}</span>
+                    <Badge variant="secondary" data-testid="history-sync-status">
+                      {SYNC_STATUS_LABEL[session.syncStatus] ?? session.syncStatus}
+                    </Badge>
+                  </div>
+                  <div className="mt-1 text-muted-foreground" data-testid="history-location">
+                    {session.operatorName ?? '—'} · {session.organizationName ?? '—'} ·{' '}
+                    {session.areaName ?? '—'} · {session.locationName ?? '—'}
+                  </div>
                   <div className="mt-1 flex flex-wrap gap-3 text-muted-foreground">
                     <span>{session.total} escaneados</span>
                     <span>{session.found} encontrados</span>

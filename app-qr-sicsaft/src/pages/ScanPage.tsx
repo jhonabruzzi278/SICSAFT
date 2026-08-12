@@ -7,6 +7,7 @@ import {
   PauseIcon,
   CheckCircle2Icon,
   ArrowDownToLineIcon,
+  PencilIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,19 +15,29 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { QrScanner } from '@/components/QrScanner';
 import { ScannedList, type ScannedItem } from '@/components/ScannedList';
+import { OperatorGate } from '@/components/OperatorGate';
+import { OrganizationPicker } from '@/components/OrganizationPicker';
+import { AreaLocationPicker } from '@/components/AreaLocationPicker';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { initInventoryDb, saveSession } from '@/lib/db';
 import { resolveScannedProduct } from '@/lib/scan-resolve';
 import { triggerScanFeedback } from '@/lib/scan-feedback';
 import { downloadCsv } from '@/lib/csv-export';
+import { getStoredOperatorName, setStoredOperatorName } from '@/lib/operator';
+import { ORGANIZATIONS, type Organization, type OrgArea, type OrgLocation } from '@/lib/organizations-data';
 
-type View = 'home' | 'scanning' | 'report';
+type View = 'operator' | 'organization' | 'area-location' | 'home' | 'scanning' | 'report';
 
 export function ScanPage() {
   const dbRef = useRef<IDBDatabase | null>(null);
   const scannedCodesRef = useRef<Set<string>>(new Set());
+  const startedAtRef = useRef<string>('');
   const [dbReady, setDbReady] = useState(false);
-  const [view, setView] = useState<View>('home');
+  const [operatorName, setOperatorName] = useState<string | null>(null);
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [area, setArea] = useState<OrgArea | null>(null);
+  const [location, setLocation] = useState<OrgLocation | null>(null);
+  const [view, setView] = useState<View>('operator');
   const [cameraActive, setCameraActive] = useState(false);
   const [scanned, setScanned] = useState<Map<string, ScannedItem>>(new Map());
   const [manualCode, setManualCode] = useState('');
@@ -39,10 +50,43 @@ export function ScanPage() {
       dbRef.current = db;
       setDbReady(true);
     });
+
+    const storedOperator = getStoredOperatorName();
+    if (storedOperator) {
+      setOperatorName(storedOperator);
+      setView('organization');
+    }
+
     return () => {
       cancelled = true;
     };
   }, []);
+
+  function handleOperatorContinue(name: string) {
+    setStoredOperatorName(name);
+    setOperatorName(name);
+    setView('organization');
+  }
+
+  function handleOrganizationSelect(selected: Organization) {
+    setOrganization(selected);
+    setArea(null);
+    setLocation(null);
+    setView('area-location');
+  }
+
+  function handleAreaLocationContinue(selectedArea: OrgArea, selectedLocation: OrgLocation) {
+    setArea(selectedArea);
+    setLocation(selectedLocation);
+    setView('home');
+  }
+
+  function changeOrganization() {
+    setOrganization(null);
+    setArea(null);
+    setLocation(null);
+    setView('organization');
+  }
 
   async function handleDecode(rawText: string) {
     const db = dbRef.current;
@@ -73,6 +117,7 @@ export function ScanPage() {
   }
 
   function startScanning() {
+    startedAtRef.current = new Date().toISOString();
     setView('scanning');
     setCameraActive(true);
   }
@@ -81,12 +126,21 @@ export function ScanPage() {
     setCameraActive(false);
     const db = dbRef.current;
     const items = Array.from(scanned.values());
-    if (db) {
+    if (db && operatorName && organization && area && location) {
       await saveSession(db, {
+        operatorName,
+        organizationId: organization.id,
+        organizationName: organization.name,
+        areaId: area.id,
+        areaName: area.name,
+        locationId: location.id,
+        locationName: location.name,
+        startedAt: startedAtRef.current,
         date: new Date().toISOString(),
         total: items.length,
         found: items.filter((i) => i.found).length,
         missing: items.filter((i) => !i.found).map(({ code, name }) => ({ code, name })),
+        syncStatus: 'local',
       });
     }
     setView('report');
@@ -110,6 +164,18 @@ export function ScanPage() {
   const foundCount = items.filter((i) => i.found).length;
   const missing = items.filter((i) => !i.found);
 
+  if (view === 'operator') {
+    return <OperatorGate onContinue={handleOperatorContinue} />;
+  }
+
+  if (view === 'organization') {
+    return <OrganizationPicker organizations={ORGANIZATIONS} onSelect={handleOrganizationSelect} />;
+  }
+
+  if (view === 'area-location' && organization) {
+    return <AreaLocationPicker organization={organization} onContinue={handleAreaLocationContinue} />;
+  }
+
   if (view === 'home') {
     return (
       <div className="grid gap-4 md:grid-cols-3">
@@ -119,15 +185,18 @@ export function ScanPage() {
               <ScanLineIcon className="size-5 text-brand" />
               Escanear inventario
             </CardTitle>
-            <CardDescription>
-              Escaneá los códigos QR de los productos para verificar cuáles existen en la base de datos de
-              inventario.
+            <CardDescription data-testid="session-summary">
+              {operatorName} · {organization?.name} · {area?.name} · {location?.name}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-wrap items-center gap-2">
             <Button size="lg" onClick={startScanning} disabled={!dbReady} data-testid="start-scan-btn">
               <ScanLineIcon />
               Escanear código QR
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={changeOrganization} data-testid="change-org-btn">
+              <PencilIcon />
+              Cambiar
             </Button>
           </CardContent>
         </Card>

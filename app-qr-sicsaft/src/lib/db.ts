@@ -31,12 +31,23 @@ export interface ScannedEntry {
   name: string;
 }
 
+export type SyncStatus = 'local'; // único valor posible hasta TASK-008 (cola offline)
+
 export interface ScanSession {
   id?: number;
+  operatorName: string;
+  organizationId: string;
+  organizationName: string;
+  areaId: string;
+  areaName: string;
+  locationId: string;
+  locationName: string;
+  startedAt: string;
   date: string;
   total: number;
   found: number;
   missing: ScannedEntry[];
+  syncStatus: SyncStatus;
 }
 
 const DB_NAME = 'qrvault-inventory';
