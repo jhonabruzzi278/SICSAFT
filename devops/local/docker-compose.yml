@@ -1,0 +1,155 @@
+name: sicsaft-local
+
+networks:
+  sicsaft:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  zitadel_data:
+
+services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+      - --log.level=INFO
+    ports:
+      - "80:80"
+      - "8080:8080" # dashboard de Traefik, solo local — nunca exponer así en produccion
+    volumes:
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic/dynamic.yml:ro
+    networks:
+      - sicsaft
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      POSTGRES_DB: postgres
+      ZITADEL_DB_USER: ${ZITADEL_DB_USER}
+      ZITADEL_DB_PASSWORD: ${ZITADEL_DB_PASSWORD}
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+    ports:
+      # Expuesto al host solo para poder correr `npm run test:e2e`/desarrollo local de `core`
+      # fuera de Docker contra la base real — no es necesario para que cis/core (dentro de la red
+      # `sicsaft`) se conecten entre si.
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - sicsaft
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ADMIN_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - /data # anonimo — cache/colas no necesitan persistir entre reinicios locales
+    networks:
+      - sicsaft
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  zitadel:
+    image: ghcr.io/zitadel/zitadel:v2.65.0
+    command: start-from-init --masterkey "${ZITADEL_MASTERKEY}" --tlsMode disabled
+    environment:
+      ZITADEL_DATABASE_POSTGRES_HOST: postgres
+      ZITADEL_DATABASE_POSTGRES_PORT: 5432
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: ${ZITADEL_DB_USER}
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: ${ZITADEL_DB_PASSWORD}
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: ${POSTGRES_ADMIN_USER}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
+      ZITADEL_EXTERNALDOMAIN: id.sicsaft.localhost
+      ZITADEL_EXTERNALPORT: 80
+      ZITADEL_EXTERNALSECURE: "false"
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD}
+    volumes:
+      - zitadel_data:/zitadel
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  cis:
+    build:
+      context: ../../cis
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3000
+      # `iss` del token lo pone Zitadel via ZITADEL_EXTERNALDOMAIN (arriba) — debe ser el mismo
+      # valor exacto para que jwtVerify() lo acepte.
+      ZITADEL_ISSUER: http://id.sicsaft.localhost
+      # No es == ZITADEL_ISSUER: ese dominio solo resuelve via el hosts file del HOST, no dentro
+      # de la red de contenedores — acá el CIS llega a Zitadel por nombre de servicio Docker.
+      ZITADEL_JWKS_URI: http://zitadel:8080/oauth/v2/keys
+      # Client ID (o Resource ID de proyecto) de la app OIDC creada en Zitadel para el CIS — ver
+      # devops/local/README.md "Qué falta" para cómo crearla. Sin esto el CIS no levanta
+      # (loadZitadelAuthConfig valida al arrancar, ver cis/src/common/auth/zitadel-auth.config.ts).
+      ZITADEL_AUDIENCE: ${CIS_ZITADEL_AUDIENCE}
+      # URL interna de CORE dentro de la red de contenedores (ver servicio `core` abajo) — CIS la
+      # usa para resolver entitlements reales en auth/session (DOC-004 §6), ya no un seed fijo.
+      CORE_URL: http://core:3001
+      # Secreto compartido de auth servicio-a-servicio CIS->CORE — debe ser exactamente el mismo
+      # valor que CORE_SERVICE_TOKEN del servicio `core` (abajo). Generar con
+      # `openssl rand -hex 32`, ver .env.example.
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+    networks:
+      - sicsaft
+    depends_on:
+      - zitadel
+      - core
+    restart: unless-stopped
+
+  core:
+    build:
+      context: ../../core
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3001
+      # Mismo valor que CORE_SERVICE_TOKEN del servicio `cis` (arriba) — CORE valida este header
+      # en cada request (ver core/src/common/auth/service-token.guard.ts), no confia en la red
+      # por si sola.
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      # Base de datos real de Base Patrimonial (modelo de Contrato, DOC-004) — reemplaza el seed
+      # en memoria que usaba antes EntitlementsService. Base/usuario dedicados dentro del mismo
+      # postgres compartido (ver servicio `postgres` arriba y su init/02-core.sh), nunca la base
+      # `zitadel`.
+      CORE_DB_HOST: postgres
+      CORE_DB_PORT: 5432
+      CORE_DB_NAME: core
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    # Sin router en traefik/dynamic.yml a propósito: CORE solo lo consume CIS dentro de la red
+    # de contenedores (ver README raíz — "todo pasa por CIS → CORE"), nunca un navegador
+    # directo. Se agrega un router acá si esa regla cambia alguna vez.

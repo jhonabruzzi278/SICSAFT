@@ -114,6 +114,8 @@ Cada tarjeta tiene en su descripción de Trello: objetivo, alcance, criterios de
 ## 8. Historial de commits relevantes (repo local, sin push)
 
 ```
+e0e9be7 feat: unificar colores de marca SICSAFT (BRAND.md + app-qr-sicsaft)
+c9145e0 docs: sincronizar HANDOFF y READMEs tras TASK-010 - 12 pantallas de DOC-001 cubiertas
 fb6f4ad feat(app-qr-sicsaft): TASK-010 - resumen final del inventario y confirmacion de envio
 5e409fd feat(app-qr-sicsaft): TASK-009 - registro de eventos y auditoria con correlationId
 fc547ad feat(app-qr-sicsaft): TASK-008 - cola sin conexion con reintentos automaticos
@@ -136,3 +138,4 @@ TASK-007 no tiene commit — quedó explícitamente saltada, no implementada a m
 - Categorías/estados no alcanzables sin backend real (`duplicate` en `ScanCategory`, `rejected` en `SyncStatus`, `getInventarioEstado`) se dejan **reservados y documentados en el código**, no se implementan a medias ni se inventan datos para simularlos artificialmente.
 - No hacer `git push` ni aplicar cambios en Trello (`--apply`) sin confirmación explícita del usuario en cada caso.
 - Cada TASK-0XX se planifica con `EnterPlanMode` antes de tocar código (arquitectura/alcance revisados con el usuario primero) y se verifica con `npm run build` + `npm run test:e2e` + recorrido manual en navegador antes de darla por terminada.
+- Colores de marca: `src/index.css` ya no usa el preset "Sera" de fábrica — mapea 1:1 contra la paleta oficial azul-marino de SICSAFT. Fuente de verdad única para cualquier trabajo visual (nuevos componentes, otros sistemas del ecosistema): `../BRAND.md` (commit `e0e9be7`). No reinventar colores a mano sin pasar por ese archivo.

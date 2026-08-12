@@ -1,0 +1,29 @@
+# Config dinamica de Traefik para el entorno LOCAL. Se usa el provider "file" (ruteo estatico
+# por nombre de servicio Docker) en vez del provider "docker" (descubrimiento automatico por
+# labels) porque Docker Desktop en Windows bloquea el acceso de un contenedor al socket del
+# daemon por defecto (Enhanced Container Isolation) — el provider docker fallaba con
+# "Error response from daemon: " (respuesta vacia) al intentar listar contenedores desde dentro
+# de Traefik. En el VPS real (Linux) no aplica esa restriccion, así que production SI puede volver
+# a discovery por labels si conviene — ver devops/README.md.
+http:
+  routers:
+    zitadel:
+      rule: "Host(`id.sicsaft.localhost`)"
+      entryPoints:
+        - web
+      service: zitadel
+    cis:
+      rule: "Host(`api.sicsaft.localhost`)"
+      entryPoints:
+        - web
+      service: cis
+
+  services:
+    zitadel:
+      loadBalancer:
+        servers:
+          - url: "http://zitadel:8080"
+    cis:
+      loadBalancer:
+        servers:
+          - url: "http://cis:3000"

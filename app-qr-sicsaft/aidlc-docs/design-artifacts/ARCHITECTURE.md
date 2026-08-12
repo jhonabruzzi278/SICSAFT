@@ -12,7 +12,7 @@ QRVault/
 ├── src/
 │   ├── main.tsx              # Bootstrap: ThemeProvider, BrowserRouter, PrintLabelsProvider, Toaster
 │   ├── App.tsx                # Rutas (/, /history, /catalog) con lazy loading por página
-│   ├── index.css             # Tailwind v4 + tokens de shadcn (preset Sera) + reglas de impresión
+│   ├── index.css             # Tailwind v4 + tokens de shadcn (colores de marca oficial SICSAFT, ver ../../../BRAND.md) + reglas de impresión
 │   ├── components/
 │   │   ├── ui/                # Primitivos shadcn/ui (Button, Dialog, Form, Sidebar, etc.)
 │   │   ├── AppShell.tsx       # Sidebar persistente (colapsa a Sheet en mobile) + layout dashboard
@@ -40,7 +40,7 @@ QRVault/
 | Layer | Tech | Justificación |
 |---|---|---|
 | Framework | Vite + React 19 + TypeScript | SPA 100% client-side (cámara, IndexedDB, impresión) — sin necesidad de SSR; ver ADR-002 |
-| UI | Tailwind CSS v4 + shadcn/ui (preset **Sera**, base Radix) | Pedido explícito del usuario de usar una librería de componentes; Sera es el preset "editorial", acorde a la dirección visual elegida |
+| UI | Tailwind CSS v4 + shadcn/ui (base Radix, estructura del preset **Sera**) | Pedido explícito del usuario de usar una librería de componentes; Sera es el preset "editorial", acorde a la dirección visual elegida. Los **colores** ya no son los de fábrica de Sera — se reemplazaron por la paleta oficial de marca SICSAFT, ver [`BRAND.md`](../../../BRAND.md) |
 | Formularios | react-hook-form + zod | Validación de esquema + `useFieldArray` para variantes dinámicas |
 | Ruteo | react-router (no `react-router-dom`, ver ADR-002) | Rutas reales `/`, `/history`, `/catalog` con deep-linking |
 | Tema | next-themes | Dark/light con persistencia en `localStorage`, ya era dependencia transitiva del Toaster |

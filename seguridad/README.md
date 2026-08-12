@@ -2,11 +2,26 @@
 
 ## Objetivo
 No es un sistema aislado: es una capa transversal que atraviesa CIS, CORE, WEB y toda fuente de
-captura. Modelo: Usuario → Rol → Permisos → Organización → Área → Acción.
+captura. Modelo: Usuario → Organización → Contrato (vigencia, módulos, sedes cubiertas) → Sede/
+Área → Rol → Permisos → Acción — ver [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md)
+para el porqué de agregar "Contrato" al modelo original.
 
 ## Estado
-🔲 No iniciado. Carpeta creada como placeholder — el diseño de este modelo debería resolverse
-temprano porque APP QR, CIS y WEB lo necesitan todos.
+🟡 Mecanismo de identidad decidido **e implementado en CIS**: Zitadel, self-hosted, OIDC/OAuth2 —
+ver [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md). `cis/src/common/auth/` valida
+tokens Zitadel reales (firma/JWKS, `iss`, `aud`, vencimiento) en los 4 endpoints del Conector QR
+mock — ya no está bloqueado por la pregunta de "qué mecanismo de auth" (una de las 4 preguntas
+abiertas del handoff de APP QR queda respondida a nivel de mecanismo). El modelo de dominio de
+`Contrato` también está documentado **e implementado como mock**:
+[`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md) +
+`core/src/entitlements/` sirviendo `GET /entitlements`, ya consumido por CIS en `auth/session`
+(`cis/src/core-client/`) y protegido con auth servicio-a-servicio (secreto compartido
+`CORE_SERVICE_TOKEN`, `core/src/common/auth/service-token.guard.ts` — comparación en tiempo
+constante, CIS es el único llamador válido). Lo que sigue sin resolver: `sedeId`/vigencia de
+contrato **real** (el mock de CORE no tiene datos reales de Base Patrimonial ni mapeo
+operador→organización — cualquier operador ve el mismo resultado hoy, ver DOC-004 §7). El token
+del operador solo trae `sub`/identidad, no sede — coincide con ADR-002 §"Punto de validación":
+eso se resuelve en CORE, no en el token.
 
 ## Permisos previstos
 Consultar, crear, modificar, eliminar, autorizar, exportar, administrar, configurar — bajo
@@ -18,18 +33,26 @@ por área, auditoría de accesos, rate limiting, TLS, gestión de secretos, pol�
 contraseña, protección de APIs, logs de acceso.
 
 ## Depende de
-Definición de mecanismo real de autenticación por parte de SICSAFT CORE (una de las 4 preguntas
-abiertas pendientes — ver handoff de APP QR: OAuth2 client credentials vs. JWT propio vs.
-certificado de dispositivo).
+Datos reales de Base Patrimonial y mapeo operador→organización (membership real de Zitadel) para
+que el mock de `GET /entitlements` deje de devolver el mismo resultado a cualquier operador — ver
+DOC-004 §7.
 
 ## Bloquea
-CIS (auth), CORE (autorización), WEB (roles/permisos), APP QR (login de operador — TASK futura).
+CIS (validar `sedeId`/contrato vigente en cada request — ver ADR-002), CORE (autorización), WEB
+(roles/permisos), APP QR (login de operador — TASK futura).
 
 ## Documentos relacionados
-Pendiente: DOC-012 Seguridad e identidad.
+[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (mecanismo de identidad, modelo
+Organización→Contrato→Sede, flujo de login).
+[`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md)
+(modelo de `Contrato` — entidades, estados, invariantes, cómo lo consume CIS). Pendiente: DOC-012
+detalle de implementación.
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §3 (cero confianza entre niveles, permisos
-mínimos necesarios, segregación por organización/área validada en el CORE, no solo en el cliente).
+mínimos necesarios, segregación por organización/área validada en el CORE, no solo en el cliente
+— ahora extendida a sede/contrato).
 
 ## Próximo paso sugerido
-No definir un mecanismo de auth "de facto" sin que CORE confirme el real — usar un stub mientras
-tanto, igual que con el Conector QR. Decisión abierta rastreada en Trello: `DEC-001`.
+El círculo mock CIS↔CORE↔`Contrato` ya está cerrado y protegido (DOC-004,
+`core/src/entitlements/`, `cis/src/core-client/`, secreto compartido). El siguiente paso con
+valor real es que CORE tenga datos/motores reales sobre los que aplicar todo esto — hoy sigue
+siendo un mock en memoria.
