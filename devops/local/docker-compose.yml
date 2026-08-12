@@ -87,3 +87,13 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+
+  cis:
+    build:
+      context: ../../cis
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3000
+    networks:
+      - sicsaft
+    restart: unless-stopped

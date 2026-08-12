@@ -18,10 +18,11 @@ secas). Agregar al archivo hosts (`C:\Windows\System32\drivers\etc\hosts`, como 
 
 ```
 127.0.0.1 id.sicsaft.localhost
+127.0.0.1 api.sicsaft.localhost
 127.0.0.1 traefik.sicsaft.localhost
 ```
 
-(Se agregan más líneas acá a medida que sumemos servicios: `api.`, `app.`, `qr.`, `cip.`.)
+(Se agregan más líneas acá a medida que sumemos servicios: `app.`, `qr.`, `cip.`.)
 
 ## 2. Configurar variables de entorno
 ```bash

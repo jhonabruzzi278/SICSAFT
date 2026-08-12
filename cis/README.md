@@ -7,7 +7,36 @@ transacciones y despacho hacia el CORE. Ninguna fuente de captura debe hablarle 
 Base Patrimonial Central ni al CORE — todo pasa por acá.
 
 ## Estado
-🔲 No iniciado. Carpeta creada como placeholder dentro del plan maestro del ecosistema.
+🟡 Esqueleto NestJS levantado y probado (lint, unit, e2e, build) — sin lógica de negocio todavía.
+Endpoints actuales: `GET /` (identidad del servicio) y `GET /health` (para el healthcheck de
+Docker/Traefik, ver `../devops/local/`). El Conector QR real (sección siguiente) es el próximo
+entregable con lógica de negocio.
+
+## Desarrollo local
+```bash
+cd cis
+npm install
+npm run start:dev     # http://localhost:3000 y http://localhost:3000/health
+npm run lint
+npm run test:cov       # unit tests, ver nota de cobertura abajo
+npm run test:e2e
+npm run build
+```
+
+**Nota sobre `coverageThreshold.branches` (70%, no 100%)**: `emitDecoratorMetadata` de TypeScript
+emite un chequeo defensivo (`typeof X === "function" ? X : Object`) para cada tipo referenciado en
+una firma decorada que venga de **otro archivo** — pasa con tipos borrados en runtime (interfaces,
+ej. `ServiceInfo` antes de colocarlo junto al controlador) y también con **cualquier dependencia
+inyectada por constructor desde otro archivo** (ej. `AppService` en `AppController`), aunque sea
+una clase real. Una rama de ese chequeo queda permanentemente inalcanzable — no por falta de
+tests, sino porque es así como TS emite metadata de decoradores en cualquier proyecto NestJS con
+inyección de dependencias entre archivos (que es prácticamente todos). Confirmado inspeccionando
+el JS transpilado de `app.controller.ts` directamente, no es una suposición. `statements`/
+`functions`/`lines` se mantienen en 100% — solo `branches` baja, y solo por esta razón estructural
+documentada. Colocar una interfaz de retorno en el mismo archivo que el método decorado (ver
+`health.controller.ts`) sí evita el problema *para esa interfaz puntual* — se aplicó donde fue
+gratis hacerlo (`ServiceInfo` ahora vive en `app.controller.ts`), pero no existe forma de evitarlo
+para constructores con dependencias de otros archivos sin renunciar a la inyección de dependencias.
 
 ## Primer conector a construir
 **Conector QR** — contrato ya definido en

@@ -12,9 +12,18 @@ http:
       entryPoints:
         - web
       service: zitadel
+    cis:
+      rule: "Host(`api.sicsaft.localhost`)"
+      entryPoints:
+        - web
+      service: cis
 
   services:
     zitadel:
       loadBalancer:
         servers:
           - url: "http://zitadel:8080"
+    cis:
+      loadBalancer:
+        servers:
+          - url: "http://cis:3000"

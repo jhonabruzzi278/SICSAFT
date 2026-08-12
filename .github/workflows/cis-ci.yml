@@ -1,0 +1,45 @@
+name: CIS CI
+
+on:
+  pull_request:
+    paths:
+      - "cis/**"
+      - ".github/workflows/cis-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "cis/**"
+      - ".github/workflows/cis-ci.yml"
+
+defaults:
+  run:
+    working-directory: cis
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: cis/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint:ci
+
+      - name: Unit tests + cobertura
+        run: npm run test:cov
+
+      - name: Tests e2e
+        run: npm run test:e2e
+
+      - name: Build
+        run: npm run build
+
+      - name: Build de imagen Docker
+        run: docker build -t sicsaft-cis:ci .
