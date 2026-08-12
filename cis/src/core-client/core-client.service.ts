@@ -8,6 +8,10 @@ import {
   type EntitlementsResult,
 } from './core-client.types';
 
+// Debe coincidir exactamente con core/src/common/auth/service-token.guard.ts — no hay paquete
+// compartido entre CIS y CORE todavia (mismo caso que Organizacion/Sede en core-client.types.ts).
+const SERVICE_TOKEN_HEADER = 'x-internal-service-token';
+
 @Injectable()
 export class CoreClientService {
   constructor(
@@ -25,6 +29,7 @@ export class CoreClientService {
       const response = await firstValueFrom(
         this.httpService.get(`${this.config.baseUrl}/entitlements`, {
           params: { operadorId },
+          headers: { [SERVICE_TOKEN_HEADER]: this.config.serviceToken },
         }),
       );
       return response.data;

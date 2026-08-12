@@ -107,6 +107,10 @@ services:
       # URL interna de CORE dentro de la red de contenedores (ver servicio `core` abajo) — CIS la
       # usa para resolver entitlements reales en auth/session (DOC-004 §6), ya no un seed fijo.
       CORE_URL: http://core:3001
+      # Secreto compartido de auth servicio-a-servicio CIS->CORE — debe ser exactamente el mismo
+      # valor que CORE_SERVICE_TOKEN del servicio `core` (abajo). Generar con
+      # `openssl rand -hex 32`, ver .env.example.
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
     networks:
       - sicsaft
     depends_on:
@@ -120,6 +124,10 @@ services:
       dockerfile: Dockerfile
     environment:
       PORT: 3001
+      # Mismo valor que CORE_SERVICE_TOKEN del servicio `cis` (arriba) — CORE valida este header
+      # en cada request (ver core/src/common/auth/service-token.guard.ts), no confia en la red
+      # por si sola.
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
     networks:
       - sicsaft
     restart: unless-stopped

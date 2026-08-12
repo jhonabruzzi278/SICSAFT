@@ -3,9 +3,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
 import { EntitlementsModule } from './entitlements/entitlements.module';
+import { ServiceTokenModule } from './common/auth/service-token.module';
 
 @Module({
-  imports: [HealthModule, EntitlementsModule],
+  imports: [ServiceTokenModule, HealthModule, EntitlementsModule],
   controllers: [AppController],
   providers: [AppService],
 })

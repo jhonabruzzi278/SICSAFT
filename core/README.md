@@ -16,12 +16,14 @@ build y `docker build`/`docker run` real — corre como servicio `core` en
 `../devops/local/docker-compose.yml`, sin ruta de Traefik a propósito (solo lo consume CIS dentro
 de la red de contenedores, nunca un navegador directo).
 
-**CIS ya llama a este endpoint**: `auth/session` usa `CoreClientService`
-(`cis/src/core-client/`) para pedir entitlements reales acá en vez de un seed fijo — verificado
-con conectividad real entre contenedores `cis`↔`core` (`docker network` + `docker exec`), no solo
-con mocks. Todavía sin ningún otro motor implementado (Patrimonial, Reglas, Eventos, Auditoría,
-Alertas...), sin persistencia real, y sin auth servicio-a-servicio (CORE no valida que quien lo
-llama sea realmente CIS — ver "Depende de").
+**CIS ya llama a este endpoint, y CORE ya valida quién le habla**: `auth/session` usa
+`CoreClientService` (`cis/src/core-client/`) para pedir entitlements reales acá; `GET
+/entitlements` está detrás de `ServiceTokenGuard` (`src/common/auth/`), que exige el header
+`x-internal-service-token` con un secreto compartido (`CORE_SERVICE_TOKEN`, comparado en tiempo
+constante para evitar timing attacks) — sin el header correcto, 401. Verificado con conectividad
+real entre contenedores `cis`↔`core` (`docker network` + `docker exec`, probando los 3 casos: sin
+header, header correcto, header incorrecto), no solo con mocks. Todavía sin ningún otro motor
+implementado (Patrimonial, Reglas, Eventos, Auditoría, Alertas...) ni persistencia real.
 
 ## Desarrollo local
 ```bash
@@ -95,8 +97,9 @@ registrando el motivo.
 - Decisión de identidad/auth (afecta también a CIS y `../seguridad`) — ya resuelta a nivel de
   mecanismo (Zitadel/OIDC, ver [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md)), CIS
   ya la implementa. CORE no valida tokens de operador directamente (eso ya lo hace CIS antes de
-  reenviar la request) — sí necesitará su propia forma de confiar en que quien le habla es
-  realmente CIS (auth servicio-a-servicio), sin decidir todavía.
+  reenviar la request) — sí valida que quien le habla sea CIS, vía secreto compartido
+  (`ServiceTokenGuard`, ver "Estado"). Deliberadamente no usa Zitadel: CORE nunca necesita
+  identidad de operador, solo confianza de que el llamador es CIS.
 
 ## Bloquea
 - Nada de CIS ya — `auth/session` consume `GET /entitlements` real (ver
@@ -115,8 +118,8 @@ Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) para el marco de escalabilidad
 aplicable a este sistema.
 
 ## Próximo paso sugerido
-`GET /entitlements` ya está hecho y CIS ya lo consume (este documento + `cis/src/core-client/`).
-El siguiente incremento con valor real es decidir y aplicar auth servicio-a-servicio CIS→CORE
-(hoy cualquiera dentro de la red de contenedores puede llamar a `GET /entitlements` sin
-credenciales — aceptable localmente porque no hay ruta de Traefik, pero no aceptable en
-producción). Tarjeta Trello: `CORE-ADR-001`.
+`GET /entitlements` ya está hecho, CIS ya lo consume, y el llamador ya se valida (secreto
+compartido). El siguiente incremento con valor real es el primer motor real (Motor Patrimonial,
+consulta/inventario/cambio de ubicación — ver "Arquitectura interna" arriba) sobre datos reales
+de Base Patrimonial, o rotación/gestión del secreto vía un secret manager en vez de una env var
+plana cuando se pase a producción (ver `../devops/README.md`). Tarjeta Trello: `CORE-ADR-001`.

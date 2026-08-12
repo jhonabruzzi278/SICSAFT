@@ -15,10 +15,13 @@ abiertas del handoff de APP QR queda respondida a nivel de mecanismo). El modelo
 `Contrato` también está documentado **e implementado como mock**:
 [`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md) +
 `core/src/entitlements/` sirviendo `GET /entitlements`, ya consumido por CIS en `auth/session`
-(`cis/src/core-client/`). Lo que sigue sin resolver: `sedeId`/vigencia de contrato **real** (el
-mock de CORE no tiene datos reales de Base Patrimonial ni mapeo operador→organización — cualquier
-operador ve el mismo resultado hoy, ver DOC-004 §7) y auth servicio-a-servicio CIS→CORE (el token
-del operador solo trae `sub`/identidad, no sede — ver ADR-002 §"Punto de validación").
+(`cis/src/core-client/`) y protegido con auth servicio-a-servicio (secreto compartido
+`CORE_SERVICE_TOKEN`, `core/src/common/auth/service-token.guard.ts` — comparación en tiempo
+constante, CIS es el único llamador válido). Lo que sigue sin resolver: `sedeId`/vigencia de
+contrato **real** (el mock de CORE no tiene datos reales de Base Patrimonial ni mapeo
+operador→organización — cualquier operador ve el mismo resultado hoy, ver DOC-004 §7). El token
+del operador solo trae `sub`/identidad, no sede — coincide con ADR-002 §"Punto de validación":
+eso se resuelve en CORE, no en el token.
 
 ## Permisos previstos
 Consultar, crear, modificar, eliminar, autorizar, exportar, administrar, configurar — bajo
@@ -49,6 +52,7 @@ mínimos necesarios, segregación por organización/área validada en el CORE, n
 — ahora extendida a sede/contrato).
 
 ## Próximo paso sugerido
-El círculo mock CIS↔CORE↔`Contrato` ya está cerrado (DOC-004, `core/src/entitlements/`,
-`cis/src/core-client/`). El siguiente paso con valor real es auth servicio-a-servicio CIS→CORE —
-hoy `GET /entitlements` no valida quién lo llama.
+El círculo mock CIS↔CORE↔`Contrato` ya está cerrado y protegido (DOC-004,
+`core/src/entitlements/`, `cis/src/core-client/`, secreto compartido). El siguiente paso con
+valor real es que CORE tenga datos/motores reales sobre los que aplicar todo esto — hoy sigue
+siendo un mock en memoria.

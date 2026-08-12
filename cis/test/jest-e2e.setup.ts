@@ -6,3 +6,4 @@
 process.env.ZITADEL_ISSUER ??= 'http://id.sicsaft.localhost';
 process.env.ZITADEL_AUDIENCE ??= 'cis-api';
 process.env.CORE_URL ??= 'http://core:3001';
+process.env.CORE_SERVICE_TOKEN ??= 'secreto-compartido';

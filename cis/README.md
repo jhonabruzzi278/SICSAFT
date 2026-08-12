@@ -14,10 +14,13 @@ contra el JWKS de Zitadel — el CIS ya no acepta `operadorId`/`credencial` en e
 identidad viene del token. `auth/session` ya no devuelve un seed fijo de `organizaciones`: llama
 a `GET {CORE_URL}/entitlements` vía `CoreClientService` y valida la respuesta en el límite
 (zod) — si CORE no responde o responde algo inesperado, devuelve 502, nunca datos a medias.
+`CoreClientService` también manda el secreto compartido de auth servicio-a-servicio
+(`x-internal-service-token`, ver `../core/README.md`) — CORE ya no acepta llamadas sin él.
 Probado de punta a punta: lint, unit (100% stmts/lines/funcs, 91%+ branches), e2e (incluye el
 caso 502), build, y conectividad real entre contenedores `cis`↔`core` verificada con
-`docker network` + `docker exec`. Todavía sin persistencia real (el mock de inventarios/catálogo
-guarda todo en memoria) ni auth servicio-a-servicio hacia CORE (ver `../core/README.md`).
+`docker network` + `docker exec` (incluidos los 3 casos del secreto: sin header, correcto,
+incorrecto). Todavía sin persistencia real (el mock de inventarios/catálogo guarda todo en
+memoria).
 
 ## Desarrollo local
 ```bash
@@ -47,6 +50,9 @@ arranca sin ellas):
   host, no dentro de la red de contenedores (ver `docker-compose.yml` de `devops/local/`).
 - `CORE_URL`: URL base de SICSAFT CORE (`../core/`), ej. `http://core:3001` dentro de Docker
   Compose. Ver `src/core-client/core-client.config.ts` — el proceso tampoco arranca sin esta.
+- `CORE_SERVICE_TOKEN`: secreto compartido de auth servicio-a-servicio hacia CORE — debe ser
+  exactamente el mismo valor que `CORE_SERVICE_TOKEN` en el proceso de CORE (ver
+  `../core/README.md`). Generar con `openssl rand -hex 32`.
 
 **Nota sobre `coverageThreshold.branches` (85%, no 100%)**: `emitDecoratorMetadata` de TypeScript
 emite un chequeo defensivo (`typeof X === "function" ? X : Object`) para cada tipo **importado
@@ -88,12 +94,12 @@ de validación es el CIS, no el token" (el JWT no lleva `sedeId`, eso se resuelv
 contra CORE, ver `src/core-client/`).
 
 **Entitlements (`src/core-client/`)**: `CoreClientService.getEntitlements(operadorId)` llama a
-`GET {CORE_URL}/entitlements?operadorId=` y valida la respuesta con Zod
-(`core-client.types.ts`) — CORE es un límite de confianza (proceso/red distinto), no se asume su
-forma. Cualquier falla (red, timeout, 5xx, forma inesperada) se propaga como `BadGatewayException`
-(502) — el operador ve un error transitorio, no un 500 genérico ni datos parciales. `deviceId`
-tampoco se enforced todavía (un solo dispositivo por operador, DOC-002 §1) — requiere
-persistencia que hoy no existe.
+`GET {CORE_URL}/entitlements?operadorId=` con el header `x-internal-service-token` (secreto
+compartido, ver arriba) y valida la respuesta con Zod (`core-client.types.ts`) — CORE es un
+límite de confianza (proceso/red distinto), no se asume su forma. Cualquier falla (red, timeout,
+5xx, 401 del secreto, forma inesperada) se propaga como `BadGatewayException` (502) — el operador
+ve un error transitorio, no un 500 genérico ni datos parciales. `deviceId` tampoco se enforced
+todavía (un solo dispositivo por operador, DOC-002 §1) — requiere persistencia que hoy no existe.
 
 Datos semilla en `qr-connector.seed.ts`: `SEED_ORGANIZACIONES` sigue existiendo, pero solo para
 la validación de "¿existe esta organización?" en `postInventario` — `auth/session` ya no la usa
@@ -115,9 +121,6 @@ implementación real.
   y pasándole el token al CIS — hoy `ZitadelAuthGuard` está probado con tokens firmados a mano en
   los tests, no contra un login de verdad de punta a punta (ver `../devops/local/README.md` §
   "Qué falta").
-- Auth servicio-a-servicio CIS→CORE — hoy `CORE_URL` no lleva ninguna credencial, cualquiera
-  dentro de la red de contenedores puede llamar a CORE directo (aceptable porque CORE no está
-  expuesto por Traefik, pero sigue siendo una decisión pendiente, ver `../core/README.md`).
 
 ## Bloquea
 - Nada — TASK-006/TASK-007 de APP QR ya tienen un mock real (con auth real) contra el cual

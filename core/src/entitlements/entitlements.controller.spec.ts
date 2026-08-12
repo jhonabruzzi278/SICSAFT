@@ -3,6 +3,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EntitlementsController } from './entitlements.controller';
 import { EntitlementsService } from './entitlements.service';
+import { ServiceTokenGuard } from '../common/auth/service-token.guard';
 import type { EntitlementsResponse } from './entitlements.types';
 
 describe('EntitlementsController', () => {
@@ -18,7 +19,13 @@ describe('EntitlementsController', () => {
           useValue: { resolve: jest.fn() },
         },
       ],
-    }).compile();
+    })
+      // El controller no ejecuta el guard en estos tests (se llama el metodo directo, sin HTTP)
+      // — se sobreescribe igual porque Nest resuelve las dependencias de ServiceTokenGuard al
+      // armar el modulo aunque nunca corra canActivate.
+      .overrideGuard(ServiceTokenGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(EntitlementsController);
     service = module.get(EntitlementsService);

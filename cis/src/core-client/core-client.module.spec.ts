@@ -6,7 +6,11 @@ describe('CoreClientModule', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    process.env = { ...originalEnv, CORE_URL: 'http://core:3001' };
+    process.env = {
+      ...originalEnv,
+      CORE_URL: 'http://core:3001',
+      CORE_SERVICE_TOKEN: 'secreto-compartido',
+    };
   });
 
   afterEach(() => {

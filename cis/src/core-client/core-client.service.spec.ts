@@ -16,7 +16,10 @@ function buildAxiosResponse(data: unknown): AxiosResponse {
 }
 
 describe('CoreClientService', () => {
-  const config: CoreClientConfig = { baseUrl: 'http://core:3001' };
+  const config: CoreClientConfig = {
+    baseUrl: 'http://core:3001',
+    serviceToken: 'secreto-compartido',
+  };
   let httpService: jest.Mocked<Pick<HttpService, 'get'>>;
   let service: CoreClientService;
 
@@ -25,7 +28,7 @@ describe('CoreClientService', () => {
     service = new CoreClientService(config, httpService as HttpService);
   });
 
-  it('llama a GET {baseUrl}/entitlements con operadorId como query param', async () => {
+  it('llama a GET {baseUrl}/entitlements con operadorId y el header de service token', async () => {
     httpService.get.mockReturnValue(
       of(buildAxiosResponse({ organizaciones: [] })),
     );
@@ -34,7 +37,10 @@ describe('CoreClientService', () => {
 
     expect(httpService.get).toHaveBeenCalledWith(
       'http://core:3001/entitlements',
-      { params: { operadorId: 'op-1' } },
+      {
+        params: { operadorId: 'op-1' },
+        headers: { 'x-internal-service-token': 'secreto-compartido' },
+      },
     );
   });
 

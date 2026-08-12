@@ -30,7 +30,9 @@ cp .env.example .env
 ```
 Completar contraseñas propias. `ZITADEL_MASTERKEY` debe tener exactamente 32 caracteres —
 generarla con `openssl rand -base64 32 | cut -c1-32` (o `openssl rand -hex 16` si no hay acceso a
-`cut`). Nunca commitear `.env` (ya cubierto por el `.gitignore` raíz del repo).
+`cut`). `CORE_SERVICE_TOKEN` (secreto compartido CIS↔CORE, ver `core/README.md`) se genera con
+`openssl rand -hex 32` — mismo valor se usa para ambos servicios, el compose ya lo pasa a los
+dos. Nunca commitear `.env` (ya cubierto por el `.gitignore` raíz del repo).
 
 ## 3. Levantar el stack
 ```bash
@@ -74,8 +76,9 @@ como decisión abierta en `../README.md`.
   4. `docker compose up -d --build cis` para que tome la variable nueva.
   - Sigue sin existir un cliente real (WEB/APP QR) que haga el flujo de login completo
     (authorization code + PKCE) y le pase el token al CIS — eso es TASK-006/007 de APP QR.
-- **`core` ya está en el compose** (esqueleto NestJS, `GET /`/`GET /health`, sin router de
-  Traefik a propósito — solo lo consume `cis` dentro de la red, ver `core/README.md`). Todavía no
-  sirve `GET /entitlements`, así que no reemplaza el seed fijo que usa `cis` hoy.
+- **`core` ya está en el compose** (esqueleto NestJS, `GET /`/`GET /health` + `GET /entitlements`
+  real ya consumido por `cis`, sin router de Traefik a propósito — solo lo consume `cis` dentro
+  de la red, ver `core/README.md`). Protegido con `CORE_SERVICE_TOKEN` (auth
+  servicio-a-servicio) — sin ese secreto en `.env`, ni `cis` ni `core` arrancan.
 - Este compose es la base compartida; WEB se agrega acá como servicio nuevo cuando tenga
   Dockerfile — no antes, para no mantener contenedores vacíos.
