@@ -5,13 +5,7 @@
 // un stub explícito respaldado por el mismo IndexedDB de siempre: mismo
 // contrato que usará la implementación HTTP real de TASK-007, sin la
 // fidelidad exacta del protocolo de red (eso es responsabilidad de esa tarea).
-import {
-  getAllProducts,
-  initInventoryDb,
-  saveSession,
-  type ProductVariant,
-  type ScanSession,
-} from './db';
+import { getAllProducts, initInventoryDb, type ProductVariant, type ScanSession } from './db';
 import { ORGANIZATIONS, type Organization } from './organizations-data';
 
 export interface ConnectorAsset {
@@ -43,10 +37,15 @@ export interface InventarioEstado {
   ultimoIntento: string;
 }
 
+export type InventarioPayload = Omit<
+  ScanSession,
+  'id' | 'syncStatus' | 'syncAttempts' | 'lastAttemptAt' | 'nextRetryAt'
+>;
+
 export interface QrConnectorClient {
   authSession(operatorName: string): Promise<AuthSessionResult>;
   getCatalogo(organizacionId: string, areaId: string, ubicacionId: string): Promise<ConnectorAsset[]>;
-  postInventario(session: Omit<ScanSession, 'id' | 'syncStatus'>): Promise<InventarioResult>;
+  postInventario(session: InventarioPayload): Promise<InventarioResult>;
   getInventarioEstado(inventarioId: string): Promise<InventarioEstado>;
 }
 
@@ -89,15 +88,22 @@ class LocalQrConnectorClient implements QrConnectorClient {
       }));
   }
 
-  async postInventario(session: Omit<ScanSession, 'id' | 'syncStatus'>): Promise<InventarioResult> {
-    const db = await this.getDb();
-    await saveSession(db, { ...session, syncStatus: 'local' });
+  async postInventario(_session: InventarioPayload): Promise<InventarioResult> {
+    // Solo simula el intento de envío — no persiste nada localmente (eso es
+    // responsabilidad de sync-queue.ts, que guarda primero y solo después
+    // intenta enviar, para no perder datos escaneados si falla el envío).
+    // Sin backend real (TASK-007 sigue bloqueada), la única falla que se
+    // puede simular honestamente es la falta de conexión — igual que un
+    // fetch real.
+    if (!navigator.onLine) {
+      throw new Error('Sin conexión');
+    }
     return { inventarioId: crypto.randomUUID(), estado: 'recibido' };
   }
 
   async getInventarioEstado(_inventarioId: string): Promise<InventarioEstado> {
-    // Sin caller todavía — pantalla 12 (estado de sincronización), depende de
-    // la cola offline de TASK-008.
+    // Sin caller todavía — la cola de TASK-008 usa el resultado de
+    // postInventario directamente en vez de sondear este endpoint.
     return { estado: 'recibido', ultimoIntento: new Date().toISOString() };
   }
 }

@@ -2,6 +2,7 @@ import { Suspense, lazy, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from '@/components/AppShell';
 import { useEntrance } from '@/hooks/useEntrance';
+import { useSyncQueue } from '@/hooks/useSyncQueue';
 
 const ScanPage = lazy(() => import('@/pages/ScanPage').then((m) => ({ default: m.ScanPage })));
 const HistoryPage = lazy(() => import('@/pages/HistoryPage').then((m) => ({ default: m.HistoryPage })));
@@ -22,6 +23,7 @@ function RouteTransition({ children }: { children: ReactNode }) {
 
 export default function App() {
   const { pathname } = useLocation();
+  useSyncQueue();
 
   return (
     <AppShell>

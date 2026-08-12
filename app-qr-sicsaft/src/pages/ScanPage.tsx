@@ -22,6 +22,7 @@ import { IncidentDialog } from '@/components/IncidentDialog';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import type { ScannedSessionItem } from '@/lib/db';
 import { qrConnector, type ConnectorAsset } from '@/lib/qr-connector';
+import { submitInventario } from '@/lib/sync-queue';
 import { resolveScannedProduct } from '@/lib/scan-resolve';
 import { triggerScanFeedback } from '@/lib/scan-feedback';
 import { downloadCsv } from '@/lib/csv-export';
@@ -217,7 +218,7 @@ export function ScanPage() {
         }),
       );
       try {
-        await qrConnector.postInventario({
+        await submitInventario({
           operatorName,
           organizationId: organization.id,
           organizationName: organization.name,
@@ -237,7 +238,10 @@ export function ScanPage() {
           items: sessionItems,
         });
       } catch {
-        toast.error('No se pudo enviar el inventario.');
+        // submitInventario ya maneja sin conexión internamente (queda en cola
+        // "pending" y se reintenta solo) — si igual tira, es un fallo real de
+        // guardado local (IndexedDB), no de red.
+        toast.error('No se pudo guardar el inventario.');
       }
     }
     setView('report');

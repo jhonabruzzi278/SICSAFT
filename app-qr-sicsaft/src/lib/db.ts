@@ -53,7 +53,10 @@ export interface ScannedSessionItem {
   externalFind?: boolean;
 }
 
-export type SyncStatus = 'local'; // único valor posible hasta TASK-008 (cola offline)
+// 'rejected' se reserva pero no es alcanzable todavía: el stub del Conector QR
+// (qr-connector.ts) nunca devuelve un 400 real — eso llega recién con
+// TASK-007, cuando haya un backend real que pueda rechazar el payload.
+export type SyncStatus = 'pending' | 'synced' | 'rejected';
 
 export interface ScanSession {
   id?: number;
@@ -75,6 +78,11 @@ export interface ScanSession {
   incidents: number;
   items: ScannedSessionItem[];
   syncStatus: SyncStatus;
+  // Bookkeeping de la cola sin conexión (TASK-008, DOC-002 sección 4) — la
+  // cola de reintentos es simplemente `sessions` filtrada por syncStatus.
+  syncAttempts: number;
+  lastAttemptAt?: string;
+  nextRetryAt?: string;
 }
 
 const DB_NAME = 'qrvault-inventory';
@@ -169,10 +177,19 @@ export function deleteProduct(db: IDBDatabase, code: string): Promise<void> {
   });
 }
 
-export function saveSession(db: IDBDatabase, session: ScanSession): Promise<void> {
+export function saveSession(db: IDBDatabase, session: ScanSession): Promise<number> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_SESSIONS, 'readwrite');
-    tx.objectStore(STORE_SESSIONS).add(session);
+    const req = tx.objectStore(STORE_SESSIONS).add(session);
+    req.onsuccess = () => resolve(req.result as number);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export function updateSession(db: IDBDatabase, session: ScanSession): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_SESSIONS, 'readwrite');
+    tx.objectStore(STORE_SESSIONS).put(session);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });

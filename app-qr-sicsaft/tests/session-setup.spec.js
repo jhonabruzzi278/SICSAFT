@@ -57,5 +57,5 @@ test('el historial muestra los metadatos de la sesión y el estado de sincroniza
   const item = page.locator('[data-testid="history-item"]').first();
   await expect(item.locator('[data-testid="history-location"]')).toContainText('Operador Test');
   await expect(item.locator('[data-testid="history-location"]')).toContainText('Municipalidad Central');
-  await expect(item.locator('[data-testid="history-sync-status"]')).toContainText('Local');
+  await expect(item.locator('[data-testid="history-sync-status"]')).toContainText('Sincronizado');
 });

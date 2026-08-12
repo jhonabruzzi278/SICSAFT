@@ -12,7 +12,15 @@ function formatSessionDate(isoDate: string): string {
 }
 
 const SYNC_STATUS_LABEL: Record<ScanSession['syncStatus'], string> = {
-  local: 'Local — pendiente de sincronizar',
+  pending: 'Pendiente de sincronizar',
+  synced: 'Sincronizado',
+  rejected: 'Rechazado', // reservado — sin caller hoy, ver qr-connector.ts
+};
+
+const SYNC_STATUS_VARIANT: Record<ScanSession['syncStatus'], 'default' | 'outline' | 'destructive'> = {
+  pending: 'outline',
+  synced: 'default',
+  rejected: 'destructive',
 };
 
 export function HistoryPage() {
@@ -20,13 +28,21 @@ export function HistoryPage() {
 
   useEffect(() => {
     let cancelled = false;
-    initInventoryDb()
-      .then((db) => getAllSessions(db))
-      .then((result) => {
-        if (!cancelled) setSessions(result);
-      });
+
+    async function refresh() {
+      const db = await initInventoryDb();
+      const result = await getAllSessions(db);
+      if (!cancelled) setSessions(result);
+    }
+
+    refresh();
+    // La cola sin conexión (sync-queue.ts) actualiza el syncStatus en segundo
+    // plano — se refresca periódicamente para reflejarlo sin que el operador
+    // tenga que recargar la página.
+    const interval = setInterval(refresh, 2_000);
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
   }, []);
 
@@ -56,8 +72,11 @@ export function HistoryPage() {
                 <li key={session.id} className="bg-secondary p-3 text-sm" data-testid="history-item">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-semibold">{formatSessionDate(session.date)}</span>
-                    <Badge variant="secondary" data-testid="history-sync-status">
+                    <Badge variant={SYNC_STATUS_VARIANT[session.syncStatus] ?? 'outline'} data-testid="history-sync-status">
                       {SYNC_STATUS_LABEL[session.syncStatus] ?? session.syncStatus}
+                      {session.syncStatus === 'pending' && (session.syncAttempts ?? 0) > 0
+                        ? ` · intento ${session.syncAttempts}`
+                        : ''}
                     </Badge>
                   </div>
                   <div className="mt-1 text-muted-foreground" data-testid="history-location">
