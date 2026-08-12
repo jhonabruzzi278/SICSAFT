@@ -7,7 +7,27 @@ coordina, controla y supervisa todo el ciclo de vida de los Activos Fijos Tangib
 aplicaciones y sistemas externos interactúan con el patrimonio exclusivamente a través del CORE.
 
 ## Estado
-🔲 No iniciado. Carpeta creada como placeholder dentro del plan maestro del ecosistema.
+🟡 Esqueleto NestJS (mismo patrón que `../cis/`): `GET /` (identidad del servicio) y `GET /health`
+probados con lint, unit, e2e, build y `docker build`/`docker run` real — corre como servicio
+`core` en `../devops/local/docker-compose.yml`, sin ruta de Traefik a propósito (solo lo consume
+CIS dentro de la red de contenedores, nunca un navegador directo). Todavía sin ningún motor
+implementado ni el endpoint `GET /entitlements` que
+[DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §6 propone para servir el modelo de
+`Contrato` — eso es lo próximo, no este esqueleto.
+
+## Desarrollo local
+```bash
+cd core
+npm install
+npm run start:dev     # http://localhost:3001 y http://localhost:3001/health
+npm run lint
+npm run test:cov
+npm run test:e2e
+npm run build
+```
+Puerto por defecto `3001` (no `3000`) para poder correr `cis` y `core` en paralelo fuera de
+Docker sin chocar — dentro de Docker Compose cada uno tiene su propio namespace de puertos, así
+que no sería estrictamente necesario, pero evita sorpresas en desarrollo local sin contenedores.
 
 ## Responsabilidades exclusivas (Tomo IV §2.3)
 Ningún componente externo puede ejecutar estas operaciones directamente: crear/modificar/dar de
@@ -61,22 +81,34 @@ registrando el motivo.
 
 ## Depende de
 - Modelo de dominio y esquema de Base Patrimonial Central (`../base-patrimonial`) — a diseñar en
-  conjunto, no por separado.
-- Decisión de identidad/auth (afecta también a CIS y `../seguridad`).
+  conjunto, no por separado. `Contrato` ya está modelado
+  ([DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md)); el resto de los 11 dominios sigue
+  pendiente (DOC-005).
+- Decisión de identidad/auth (afecta también a CIS y `../seguridad`) — ya resuelta a nivel de
+  mecanismo (Zitadel/OIDC, ver [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md)), CIS
+  ya la implementa. CORE no valida tokens de operador directamente (eso ya lo hace CIS antes de
+  reenviar la request) — sí necesitará su propia forma de confiar en que quien le habla es
+  realmente CIS (auth servicio-a-servicio), sin decidir todavía.
 
 ## Bloquea
-- CIS real (necesita saber qué contrato expone el CORE).
+- CIS real: hoy usa un seed fijo de `organizaciones` en `auth/session`
+  (`cis/src/qr-connector/qr-connector.service.ts`) porque no existe `GET /entitlements` acá — ver
+  [DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §6 para el contrato propuesto.
 - Portal WEB y CIP (consumen datos que produce el CORE).
 
 ## Documentos relacionados
 [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack: NestJS/TypeScript — los 9 motores son
-módulos Nest dentro de un mismo desplegable, ver ADR-001). Pendiente: DOC-003 Modelo de dominio,
-DOC-007 Arquitectura CORE, DOC-008 Motor Patrimonial, DOC-009 Motor de Reglas, DOC-010 Motor
-Eventos, DOC-011 Motor Auditoría — DOC-003 debe incluir el modelo de `Contrato` que introduce
-[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md).
+módulos Nest dentro de un mismo desplegable, ver ADR-001).
+[`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md)
+(modelo de `Contrato` — primer dato real que este esqueleto tendría que servir). Pendiente:
+DOC-003 Modelo de dominio, DOC-005 resto del modelo Base Patrimonial, DOC-006 API CIS↔CORE
+(incluye `GET /entitlements`), DOC-007 Arquitectura CORE, DOC-008 Motor Patrimonial, DOC-009
+Motor de Reglas, DOC-010 Motor Eventos, DOC-011 Motor Auditoría.
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) para el marco de escalabilidad/resiliencia
 aplicable a este sistema.
 
 ## Próximo paso sugerido
-Diseño del modelo de dominio (compartido con Base Patrimonial), incluyendo `Contrato`. Stack ya
-decidido (ADR-001). Tarjeta Trello: `CORE-ADR-001`.
+Esqueleto NestJS ya hecho (este documento). El siguiente incremento con valor real es
+`GET /entitlements` (DOC-004 §6) contra un store en memoria (mismo patrón mock que
+`cis/src/qr-connector/`) — desbloquea reemplazar el seed fijo de CIS sin todavía tener que elegir
+motor de BD ni modelar el resto del dominio patrimonial. Tarjeta Trello: `CORE-ADR-001`.

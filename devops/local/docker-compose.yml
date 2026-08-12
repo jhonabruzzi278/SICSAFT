@@ -109,3 +109,16 @@ services:
     depends_on:
       - zitadel
     restart: unless-stopped
+
+  core:
+    build:
+      context: ../../core
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3001
+    networks:
+      - sicsaft
+    restart: unless-stopped
+    # Sin router en traefik/dynamic.yml a propósito: CORE solo lo consume CIS dentro de la red
+    # de contenedores (ver README raíz — "todo pasa por CIS → CORE"), nunca un navegador
+    # directo. Se agrega un router acá si esa regla cambia alguna vez.

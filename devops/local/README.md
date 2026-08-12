@@ -1,7 +1,7 @@
 # SICSAFT — entorno local (Docker Compose)
 
-Réplica local de la base de infraestructura del VPS (Traefik + Postgres + Redis + Zitadel), para
-probar todo antes de tocar producción. Ver [`../README.md`](../README.md) para el plan completo
+Réplica local de la base de infraestructura del VPS (Traefik + Postgres + Redis + Zitadel + CIS +
+CORE), para probar todo antes de tocar producción. Ver [`../README.md`](../README.md) para el plan completo
 (dominios reales, CI/CD, DevSecOps) y [`../../adr/ADR-002-identidad-zitadel-multi-tenant.md`](../../adr/ADR-002-identidad-zitadel-multi-tenant.md)
 para el porqué de Zitadel.
 
@@ -74,5 +74,8 @@ como decisión abierta en `../README.md`.
   4. `docker compose up -d --build cis` para que tome la variable nueva.
   - Sigue sin existir un cliente real (WEB/APP QR) que haga el flujo de login completo
     (authorization code + PKCE) y le pase el token al CIS — eso es TASK-006/007 de APP QR.
-- Este compose es la base compartida; CORE/WEB se agregan acá como servicios nuevos a medida que
-  tengan Dockerfile — no antes, para no mantener contenedores vacíos.
+- **`core` ya está en el compose** (esqueleto NestJS, `GET /`/`GET /health`, sin router de
+  Traefik a propósito — solo lo consume `cis` dentro de la red, ver `core/README.md`). Todavía no
+  sirve `GET /entitlements`, así que no reemplaza el seed fijo que usa `cis` hoy.
+- Este compose es la base compartida; WEB se agrega acá como servicio nuevo cuando tenga
+  Dockerfile — no antes, para no mantener contenedores vacíos.
