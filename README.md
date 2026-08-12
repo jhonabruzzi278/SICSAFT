@@ -38,6 +38,9 @@ Cada carpeta tiene su propio `README.md` con objetivo, estado, dependencias y pr
 Arquitectura de referencia transversal (escalable, modular, resiliente, marco Well-Architected
 sin atarse a un proveedor de nube): [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md).
 
+Identidad visual / paleta de colores oficial (todo trabajo visual del ecosistema debe salir de
+acá, no reinventar colores por sistema): [BRAND.md](BRAND.md).
+
 ## Dónde está el trabajo activo hoy
 
 El único sistema con código real es **APP QR SICSAFT** (`app-qr-sicsaft/`). Su identificador técnico

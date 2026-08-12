@@ -16,7 +16,7 @@ oficial.
 
 ## Stack
 - [Vite](https://vite.dev/) + React 19 + TypeScript
-- [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) (preset **Sera**, editorial) sobre primitivos Radix
+- [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) sobre primitivos Radix — colores de marca oficiales de SICSAFT (no el preset "Sera" de fábrica), ver [`BRAND.md`](../BRAND.md)
 - [react-hook-form](https://react-hook-form.com/) + [zod](https://zod.dev/) para el formulario de producto
 - [html5-qrcode](https://github.com/mebjas/html5-qrcode) para el escaneo de cámara
 - [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) para generar los QR de etiquetas y catálogo
