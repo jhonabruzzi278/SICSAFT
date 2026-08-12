@@ -7,13 +7,19 @@ coordina, controla y supervisa todo el ciclo de vida de los Activos Fijos Tangib
 aplicaciones y sistemas externos interactúan con el patrimonio exclusivamente a través del CORE.
 
 ## Estado
-🟡 Esqueleto NestJS (mismo patrón que `../cis/`): `GET /` (identidad del servicio) y `GET /health`
-probados con lint, unit, e2e, build y `docker build`/`docker run` real — corre como servicio
-`core` en `../devops/local/docker-compose.yml`, sin ruta de Traefik a propósito (solo lo consume
-CIS dentro de la red de contenedores, nunca un navegador directo). Todavía sin ningún motor
-implementado ni el endpoint `GET /entitlements` que
-[DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §6 propone para servir el modelo de
-`Contrato` — eso es lo próximo, no este esqueleto.
+🟡 Esqueleto NestJS (mismo patrón que `../cis/`) + **mock de `GET /entitlements`**
+([DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §6): resuelve el modelo de `Contrato`
+sobre un seed en memoria (mismo caso DUOC UC/Melipilla que ya usa CIS), con la máquina de estados
+y el invariante "una sede, un contrato vigente" de DOC-004 §3/§4 implementados y testeados. Todo
+probado con lint, unit (100% stmts/lines/funcs, branches sobre el umbral del proyecto), e2e,
+build y `docker build`/`docker run` real — corre como servicio `core` en
+`../devops/local/docker-compose.yml`, sin ruta de Traefik a propósito (solo lo consume CIS dentro
+de la red de contenedores, nunca un navegador directo).
+
+Todavía sin ningún otro motor implementado (Patrimonial, Reglas, Eventos, Auditoría, Alertas...),
+sin persistencia real, y **CIS todavía no llama a este endpoint** — sigue usando su seed fijo de
+`organizaciones` en `auth/session` (`cis/src/qr-connector/qr-connector.service.ts`). Conectar
+ambos lados es el siguiente paso, no algo que este documento ya resuelva.
 
 ## Desarrollo local
 ```bash
@@ -91,9 +97,10 @@ registrando el motivo.
   realmente CIS (auth servicio-a-servicio), sin decidir todavía.
 
 ## Bloquea
-- CIS real: hoy usa un seed fijo de `organizaciones` en `auth/session`
-  (`cis/src/qr-connector/qr-connector.service.ts`) porque no existe `GET /entitlements` acá — ver
-  [DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §6 para el contrato propuesto.
+- CIS real: `GET /entitlements` ya existe acá, pero CIS todavía no lo llama — sigue usando su
+  seed fijo de `organizaciones` en `auth/session`
+  (`cis/src/qr-connector/qr-connector.service.ts`). Falta el cliente HTTP en CIS + wiring de
+  `depends_on`/URL interna en `devops/local/docker-compose.yml`.
 - Portal WEB y CIP (consumen datos que produce el CORE).
 
 ## Documentos relacionados
@@ -108,7 +115,8 @@ Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) para el marco de escalabilidad
 aplicable a este sistema.
 
 ## Próximo paso sugerido
-Esqueleto NestJS ya hecho (este documento). El siguiente incremento con valor real es
-`GET /entitlements` (DOC-004 §6) contra un store en memoria (mismo patrón mock que
-`cis/src/qr-connector/`) — desbloquea reemplazar el seed fijo de CIS sin todavía tener que elegir
-motor de BD ni modelar el resto del dominio patrimonial. Tarjeta Trello: `CORE-ADR-001`.
+`GET /entitlements` ya está hecho (este documento). El siguiente incremento con valor real es
+conectar CIS como cliente real: agregar un `HttpModule`/cliente en
+`cis/src/qr-connector/qr-connector.service.ts` que reemplace `SEED_ORGANIZACIONES` por una
+llamada a `GET http://core:3001/entitlements?operadorId=`, y el `depends_on: core` +
+`CORE_URL` correspondiente en `devops/local/docker-compose.yml`. Tarjeta Trello: `CORE-ADR-001`.
