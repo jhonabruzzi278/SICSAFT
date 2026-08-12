@@ -20,22 +20,24 @@ import { OrganizationPicker } from '@/components/OrganizationPicker';
 import { AreaLocationPicker } from '@/components/AreaLocationPicker';
 import { IncidentDialog } from '@/components/IncidentDialog';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
-import { initInventoryDb, saveSession, type ScannedSessionItem } from '@/lib/db';
+import type { ScannedSessionItem } from '@/lib/db';
+import { qrConnector, type ConnectorAsset } from '@/lib/qr-connector';
 import { resolveScannedProduct } from '@/lib/scan-resolve';
 import { triggerScanFeedback } from '@/lib/scan-feedback';
 import { downloadCsv } from '@/lib/csv-export';
 import { getStoredOperatorName, setStoredOperatorName } from '@/lib/operator';
-import { ORGANIZATIONS, type Organization, type OrgArea, type OrgLocation } from '@/lib/organizations-data';
+import type { Organization, OrgArea, OrgLocation } from '@/lib/organizations-data';
 
 type View = 'operator' | 'organization' | 'area-location' | 'home' | 'scanning' | 'report';
 
 export function ScanPage() {
-  const dbRef = useRef<IDBDatabase | null>(null);
+  const catalogRef = useRef<ConnectorAsset[]>([]);
   const scannedCodesRef = useRef<Set<string>>(new Set());
   const startedAtRef = useRef<string>('');
   const invalidAttemptsRef = useRef(0);
-  const [dbReady, setDbReady] = useState(false);
+  const [startingScan, setStartingScan] = useState(false);
   const [operatorName, setOperatorName] = useState<string | null>(null);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [area, setArea] = useState<OrgArea | null>(null);
   const [location, setLocation] = useState<OrgLocation | null>(null);
@@ -48,26 +50,25 @@ export function ScanPage() {
 
   useEffect(() => {
     let cancelled = false;
-    initInventoryDb().then((db) => {
-      if (cancelled) return;
-      dbRef.current = db;
-      setDbReady(true);
-    });
-
     const storedOperator = getStoredOperatorName();
     if (storedOperator) {
-      setOperatorName(storedOperator);
-      setView('organization');
+      qrConnector.authSession(storedOperator).then((result) => {
+        if (cancelled) return;
+        setOperatorName(storedOperator);
+        setOrganizations(result.organizaciones);
+        setView('organization');
+      });
     }
-
     return () => {
       cancelled = true;
     };
   }, []);
 
-  function handleOperatorContinue(name: string) {
+  async function handleOperatorContinue(name: string) {
     setStoredOperatorName(name);
+    const result = await qrConnector.authSession(name);
     setOperatorName(name);
+    setOrganizations(result.organizaciones);
     setView('organization');
   }
 
@@ -91,14 +92,13 @@ export function ScanPage() {
     setView('organization');
   }
 
-  async function handleDecode(rawText: string) {
-    const db = dbRef.current;
-    if (!db || !organization || !area || !location) return;
+  function handleDecode(rawText: string) {
+    if (!organization || !area || !location) return;
     const code = rawText.trim().toUpperCase();
     if (!code) return;
 
-    const resolution = await resolveScannedProduct(
-      db,
+    const resolution = resolveScannedProduct(
+      catalogRef.current,
       code,
       { organizationId: organization.id, areaId: area.id, locationId: location.id },
       scannedCodesRef.current,
@@ -185,18 +185,27 @@ export function ScanPage() {
     setIncidentTarget(null);
   }
 
-  function startScanning() {
+  async function startScanning() {
+    if (!organization || !area || !location) return;
+    setStartingScan(true);
+    try {
+      catalogRef.current = await qrConnector.getCatalogo(organization.id, area.id, location.id);
+    } catch {
+      toast.error('No se pudo cargar el catálogo. Intentá de nuevo.');
+      setStartingScan(false);
+      return;
+    }
     startedAtRef.current = new Date().toISOString();
     invalidAttemptsRef.current = 0;
+    setStartingScan(false);
     setView('scanning');
     setCameraActive(true);
   }
 
   async function finishScanning() {
     setCameraActive(false);
-    const db = dbRef.current;
     const items = Array.from(scanned.values());
-    if (db && operatorName && organization && area && location) {
+    if (operatorName && organization && area && location) {
       const sessionItems: ScannedSessionItem[] = items.map(
         ({ code, name, category, incidentNote, outOfPlace, externalFind }) => ({
           code,
@@ -207,26 +216,29 @@ export function ScanPage() {
           externalFind,
         }),
       );
-      await saveSession(db, {
-        operatorName,
-        organizationId: organization.id,
-        organizationName: organization.name,
-        areaId: area.id,
-        areaName: area.name,
-        locationId: location.id,
-        locationName: location.name,
-        startedAt: startedAtRef.current,
-        date: new Date().toISOString(),
-        total: items.length,
-        correct: items.filter((i) => i.category === 'correct').length,
-        wrongArea: items.filter((i) => i.category === 'wrong-area').length,
-        wrongLocation: items.filter((i) => i.category === 'wrong-location').length,
-        unregistered: items.filter((i) => i.category === 'unregistered').length,
-        invalid: invalidAttemptsRef.current,
-        incidents: items.filter((i) => i.incidentNote).length,
-        items: sessionItems,
-        syncStatus: 'local',
-      });
+      try {
+        await qrConnector.postInventario({
+          operatorName,
+          organizationId: organization.id,
+          organizationName: organization.name,
+          areaId: area.id,
+          areaName: area.name,
+          locationId: location.id,
+          locationName: location.name,
+          startedAt: startedAtRef.current,
+          date: new Date().toISOString(),
+          total: items.length,
+          correct: items.filter((i) => i.category === 'correct').length,
+          wrongArea: items.filter((i) => i.category === 'wrong-area').length,
+          wrongLocation: items.filter((i) => i.category === 'wrong-location').length,
+          unregistered: items.filter((i) => i.category === 'unregistered').length,
+          invalid: invalidAttemptsRef.current,
+          incidents: items.filter((i) => i.incidentNote).length,
+          items: sessionItems,
+        });
+      } catch {
+        toast.error('No se pudo enviar el inventario.');
+      }
     }
     setView('report');
   }
@@ -264,7 +276,7 @@ export function ScanPage() {
   }
 
   if (view === 'organization') {
-    return <OrganizationPicker organizations={ORGANIZATIONS} onSelect={handleOrganizationSelect} />;
+    return <OrganizationPicker organizations={organizations} onSelect={handleOrganizationSelect} />;
   }
 
   if (view === 'area-location' && organization) {
@@ -285,7 +297,7 @@ export function ScanPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2">
-            <Button size="lg" onClick={startScanning} disabled={!dbReady} data-testid="start-scan-btn">
+            <Button size="lg" onClick={startScanning} disabled={startingScan} data-testid="start-scan-btn">
               <ScanLineIcon />
               Escanear código QR
             </Button>

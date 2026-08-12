@@ -1,10 +1,13 @@
-// Resuelve un código escaneado contra el inventario y lo clasifica en una de
-// las categorías de DOC-001 sección 3. Códigos de variante se imprimen como
-// "BASE-VARIANTE" (ver labels.ts); si el código no matchea un producto
-// directamente, se intenta separar en producto base + variante antes de darlo
-// por no registrado.
-import { lookupProduct, type ScanCategory } from './db';
-import { FULL_CATALOG } from './catalog-data';
+// Resuelve un código escaneado contra el catálogo ya traído del Conector QR
+// (ver qr-connector.ts) y lo clasifica en una de las categorías de DOC-001
+// sección 3. Es una función pura y síncrona: valida "offline" contra el
+// snapshot que ScanPage pidió una sola vez al iniciar el inventario, no contra
+// una consulta en vivo por cada código (matchea la intención de DOC-002).
+// Códigos de variante se imprimen como "BASE-VARIANTE" (ver labels.ts); si el
+// código no matchea un activo directamente, se intenta separar en activo base
+// + variante antes de darlo por no registrado.
+import type { ScanCategory } from './db';
+import type { ConnectorAsset } from './qr-connector';
 import { ORGANIZATIONS } from './organizations-data';
 
 const ASSET_CODE_PATTERN = /^[A-Z0-9]+(-[A-Z0-9]+)?$/;
@@ -33,12 +36,12 @@ export interface SessionLocation {
   locationId: string;
 }
 
-export async function resolveScannedProduct(
-  db: IDBDatabase,
+export function resolveScannedProduct(
+  catalog: ConnectorAsset[],
   rawCode: string,
   session: SessionLocation,
   alreadyScanned: Set<string>,
-): Promise<ScanResolution> {
+): ScanResolution {
   const code = rawCode.trim().toUpperCase();
 
   if (!ASSET_CODE_PATTERN.test(code)) {
@@ -49,49 +52,48 @@ export async function resolveScannedProduct(
     return { category: 'already-scanned', name: code };
   }
 
-  let dbEntry = await lookupProduct(db, code);
-  let matchedName: string | undefined = dbEntry?.name;
+  let asset = catalog.find((a) => a.codigoQr === code);
+  let matchedName: string | undefined = asset?.nombre;
 
-  if (!dbEntry) {
+  if (!asset) {
     const dashIndex = code.lastIndexOf('-');
     if (dashIndex > 0) {
       const baseCode = code.slice(0, dashIndex);
       const variantCode = code.slice(dashIndex + 1);
-      const baseEntry = await lookupProduct(db, baseCode);
-      const variant = baseEntry?.variants?.find((v) => v.code === variantCode);
-      if (baseEntry && variant) {
-        dbEntry = baseEntry;
-        matchedName = `${baseEntry.name} — ${variant.name || variant.code}`;
+      const baseAsset = catalog.find((a) => a.codigoQr === baseCode);
+      const variant = baseAsset?.variants?.find((v) => v.code === variantCode);
+      if (baseAsset && variant) {
+        asset = baseAsset;
+        matchedName = `${baseAsset.nombre} — ${variant.name || variant.code}`;
       }
     }
   }
 
-  if (!dbEntry) {
-    const catalogEntry = FULL_CATALOG.find((p) => p.code === code);
-    return { category: 'unregistered', name: catalogEntry?.name ?? 'Producto desconocido' };
+  if (!asset) {
+    return { category: 'unregistered', name: 'Producto desconocido' };
   }
 
-  const name = matchedName ?? dbEntry.name;
+  const name = matchedName ?? asset.nombre;
 
   // Sin ubicación patrimonial asignada (datos legacy) no hay base para
   // clasificar — no se bloquea el flujo, se cuenta como correcto.
-  if (!dbEntry.organizationId || !dbEntry.areaId || !dbEntry.locationId) {
+  if (!asset.organizacionId || !asset.areaId || !asset.ubicacionId) {
     return { category: 'correct', name };
   }
 
-  if (dbEntry.organizationId !== session.organizationId) {
+  if (asset.organizacionId !== session.organizationId) {
     // Pertenece a otra organización por completo — fuera del alcance de este
     // inventario, se trata igual que un activo no registrado.
     return { category: 'unregistered', name };
   }
 
-  if (dbEntry.areaId !== session.areaId) {
-    const { areaName, locationName } = findAreaLocationNames(dbEntry.organizationId, dbEntry.areaId, dbEntry.locationId);
+  if (asset.areaId !== session.areaId) {
+    const { areaName, locationName } = findAreaLocationNames(asset.organizacionId, asset.areaId, asset.ubicacionId);
     return { category: 'wrong-area', name, expectedAreaName: areaName, expectedLocationName: locationName };
   }
 
-  if (dbEntry.locationId !== session.locationId) {
-    const { areaName, locationName } = findAreaLocationNames(dbEntry.organizationId, dbEntry.areaId, dbEntry.locationId);
+  if (asset.ubicacionId !== session.locationId) {
+    const { areaName, locationName } = findAreaLocationNames(asset.organizacionId, asset.areaId, asset.ubicacionId);
     return { category: 'wrong-location', name, expectedAreaName: areaName, expectedLocationName: locationName };
   }
 
