@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { loadEnvConfig } from '../load-env-config';
 
 // Ver ADR-002 (adr/ADR-002-identidad-zitadel-multi-tenant.md): Zitadel es el IdP OIDC
 // (authorization code + PKCE) para WEB/APP QR. El CIS nunca ve credenciales — solo valida el
@@ -25,15 +26,11 @@ export interface ZitadelAuthConfig {
 export function loadZitadelAuthConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): ZitadelAuthConfig {
-  const parsed = zitadelAuthEnvSchema.safeParse(env);
-  if (!parsed.success) {
-    const detalle = parsed.error.issues
-      .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-      .join('; ');
-    throw new Error(`Configuración de Zitadel inválida: ${detalle}`);
-  }
-
-  const { ZITADEL_ISSUER, ZITADEL_AUDIENCE, ZITADEL_JWKS_URI } = parsed.data;
+  const { ZITADEL_ISSUER, ZITADEL_AUDIENCE, ZITADEL_JWKS_URI } = loadEnvConfig(
+    zitadelAuthEnvSchema,
+    env,
+    'Zitadel',
+  );
   return {
     issuer: ZITADEL_ISSUER,
     audience: ZITADEL_AUDIENCE,

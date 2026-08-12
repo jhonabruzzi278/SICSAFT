@@ -5,5 +5,7 @@
 // proveedores de JWKS/CoreClientService (no hay Zitadel ni CORE reales en CI).
 process.env.ZITADEL_ISSUER ??= 'http://id.sicsaft.localhost';
 process.env.ZITADEL_AUDIENCE ??= 'cis-api';
+// NOSONAR: http a proposito — red interna de Docker Compose sin TLS local (mismo patron que
+// Zitadel arriba, ZITADEL_EXTERNALSECURE=false), y este valor solo se usa en tests.
 process.env.CORE_URL ??= 'http://core:3001';
 process.env.CORE_SERVICE_TOKEN ??= 'secreto-compartido';

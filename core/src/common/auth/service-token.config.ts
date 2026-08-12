@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { loadEnvConfig } from '../load-env-config';
 
 // Auth servicio-a-servicio CIS->CORE — ver core/README.md "Depende de". Deliberadamente NO usa
 // Zitadel: CORE no necesita validar identidad de operador (eso ya lo hizo CIS antes de llamar
@@ -16,13 +17,10 @@ export interface ServiceTokenConfig {
 export function loadServiceTokenConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): ServiceTokenConfig {
-  const parsed = serviceTokenEnvSchema.safeParse(env);
-  if (!parsed.success) {
-    const detalle = parsed.error.issues
-      .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-      .join('; ');
-    throw new Error(`Configuración de CORE_SERVICE_TOKEN inválida: ${detalle}`);
-  }
-
-  return { token: parsed.data.CORE_SERVICE_TOKEN };
+  const parsed = loadEnvConfig(
+    serviceTokenEnvSchema,
+    env,
+    'CORE_SERVICE_TOKEN',
+  );
+  return { token: parsed.CORE_SERVICE_TOKEN };
 }

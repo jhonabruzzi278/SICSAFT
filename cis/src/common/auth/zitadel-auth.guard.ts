@@ -65,7 +65,7 @@ export class ZitadelAuthGuard implements CanActivate {
   }
 
   private extractBearerToken(header: string | undefined): string {
-    if (!header || !header.startsWith(BEARER_PREFIX)) {
+    if (!header?.startsWith(BEARER_PREFIX)) {
       throw new UnauthorizedException(
         'Falta el header Authorization: Bearer <token>',
       );

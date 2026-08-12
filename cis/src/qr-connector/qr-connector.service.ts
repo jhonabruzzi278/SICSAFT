@@ -48,9 +48,8 @@ export class QrConnectorService {
     // ZitadelAuthGuard ya validó el token — el operador viene autenticado por Zitadel, no por
     // este metodo. `accessToken`/`expiresAt` son pass-through del mismo token (ver ADR-002: el
     // CIS valida, no emite uno propio).
-    // `deviceId` no se enforced todavia (un solo dispositivo por operador, DOC-002 §1) —
-    // requiere persistencia que hoy no existe.
-    void request.deviceId;
+    // `request.deviceId` no se enforced todavia (un solo dispositivo por operador, DOC-002 §1)
+    // — requiere persistencia que hoy no existe.
 
     const { organizaciones } = await this.coreClientService.getEntitlements(
       auth.operadorId,

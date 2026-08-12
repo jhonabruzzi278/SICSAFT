@@ -4,7 +4,7 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 COPY . .
 RUN npm run build
 # Reinstala solo dependencias de produccion en un directorio aparte, sin devDependencies,

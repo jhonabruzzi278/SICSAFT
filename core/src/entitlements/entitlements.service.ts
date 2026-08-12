@@ -17,8 +17,6 @@ export class EntitlementsService {
     // tercer argumento, siempre usa SEED_CONTRATOS en producción.
     contratos: readonly Contrato[] = SEED_CONTRATOS,
   ): EntitlementsResponse {
-    void operadorId;
-
     const organizaciones: Organizacion[] = contratos
       .filter((contrato) => this.esVigente(contrato, ahora))
       .filter((contrato) =>
