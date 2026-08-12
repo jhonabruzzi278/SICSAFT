@@ -7,10 +7,11 @@ transacciones y despacho hacia el CORE. Ninguna fuente de captura debe hablarle 
 Base Patrimonial Central ni al CORE — todo pasa por acá.
 
 ## Estado
-🟡 Esqueleto NestJS levantado y probado (lint, unit, e2e, build) — sin lógica de negocio todavía.
-Endpoints actuales: `GET /` (identidad del servicio) y `GET /health` (para el healthcheck de
-Docker/Traefik, ver `../devops/local/`). El Conector QR real (sección siguiente) es el próximo
-entregable con lógica de negocio.
+🟡 Esqueleto NestJS + **mock del Conector QR** (contrato DOC-002 completo) probados de punta a
+punta: lint, unit, e2e, build, `docker build`/`docker run` real contra los 4 endpoints, y
+levantado dentro del stack local completo (`../devops/local/`, Traefik + Zitadel + CIS). Todavía
+sin autenticación real (los 4 endpoints no validan token — eso es OIDC/Zitadel, próximo paso) ni
+persistencia real (el mock guarda todo en memoria, se pierde al reiniciar el proceso).
 
 ## Desarrollo local
 ```bash
@@ -23,41 +24,54 @@ npm run test:e2e
 npm run build
 ```
 
-**Nota sobre `coverageThreshold.branches` (70%, no 100%)**: `emitDecoratorMetadata` de TypeScript
-emite un chequeo defensivo (`typeof X === "function" ? X : Object`) para cada tipo referenciado en
-una firma decorada que venga de **otro archivo** — pasa con tipos borrados en runtime (interfaces,
-ej. `ServiceInfo` antes de colocarlo junto al controlador) y también con **cualquier dependencia
-inyectada por constructor desde otro archivo** (ej. `AppService` en `AppController`), aunque sea
-una clase real. Una rama de ese chequeo queda permanentemente inalcanzable — no por falta de
-tests, sino porque es así como TS emite metadata de decoradores en cualquier proyecto NestJS con
-inyección de dependencias entre archivos (que es prácticamente todos). Confirmado inspeccionando
-el JS transpilado de `app.controller.ts` directamente, no es una suposición. `statements`/
-`functions`/`lines` se mantienen en 100% — solo `branches` baja, y solo por esta razón estructural
-documentada. Colocar una interfaz de retorno en el mismo archivo que el método decorado (ver
-`health.controller.ts`) sí evita el problema *para esa interfaz puntual* — se aplicó donde fue
-gratis hacerlo (`ServiceInfo` ahora vive en `app.controller.ts`), pero no existe forma de evitarlo
-para constructores con dependencias de otros archivos sin renunciar a la inyección de dependencias.
+**Nota sobre `coverageThreshold.branches` (85%, no 100%)**: `emitDecoratorMetadata` de TypeScript
+emite un chequeo defensivo (`typeof X === "function" ? X : Object`) para cada tipo **importado
+como valor** (no `import type`) que se referencia en una firma decorada — una rama de ese chequeo
+queda permanentemente inalcanzable en runtime. Confirmado inspeccionando el JS transpilado
+directamente, no es una suposición. Dos mitigaciones aplicadas, en orden de efectividad:
+1. **`import type` para tipos de solo-firma** (ver `qr-connector.controller.ts`): si el tipo nunca
+   se usa como valor en ese archivo, importarlo con `import type` elimina el chequeo por completo
+   — TS ya sabe en tiempo de compilación que es imposible que sea una clase real. Subió la
+   cobertura de branches del módulo de 53% a 91% con este solo cambio.
+2. **Colocar la interfaz en el mismo archivo** que el método decorado (`health.controller.ts`) —
+   evita el problema cuando `import type` no aplica porque el tipo se define ahí mismo.
+Lo que **no** se puede evitar sin renunciar a la inyección de dependencias: un constructor que
+recibe una dependencia real de otro archivo (ej. `AppService` en `AppController`, `QrConnectorService`
+en `QrConnectorController`) siempre deja una rama de ese chequeo inalcanzable, porque ahí el tipo
+sí debe importarse como valor (se necesita en runtime para inyectarlo). `statements`/`functions`/
+`lines` se mantienen en 100% — solo `branches` baja, y solo por esta razón estructural documentada,
+recalibrada con el número medido real cada vez que se agrega un módulo grande.
 
-## Primer conector a construir
-**Conector QR** — contrato ya definido en
-[`../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md`](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md):
+## Conector QR — mock implementado (`src/qr-connector/`)
+Contrato completo de
+[`../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md`](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md)
+implementado como mock en memoria (`QrConnectorService`), validado con Zod contra el request de
+cada operación (`qr-connector.schemas.ts`):
 
 ```
-POST /auth/session
-GET  /catalogo?organizacionId=&areaId=&ubicacionId=
-POST /inventarios
-GET  /inventarios/{id}/estado
+POST /auth/session                          -> token mock + organizaciones semilla (DUOC UC / sede Melipilla)
+GET  /catalogo?organizacionId=&areaId=&ubicacionId=  -> catálogo semilla filtrado
+POST /inventarios                            -> idempotente por idempotencyKey (DOC-002 §4), 400 si la organización no existe, 409 si la key se reutiliza con payload distinto (DOC-002 §5)
+GET  /inventarios/{id}/estado                -> 404 si no existe
 ```
+
+Datos semilla en `qr-connector.seed.ts`: una organización (`duoc-uc`) con una sola sede
+(`melipilla`) — ejemplo deliberado del caso de negocio de ADR-002 (contrato por sede, no por
+organización completa). Todavía **no** valida token/autenticación (401 de DOC-002 §5 no
+implementado — depende de OIDC/Zitadel) ni aplica Reglas patrimoniales (eso vive en CORE, fuera
+de alcance del conector, ver DOC-002 §1).
 
 Mientras las 4 preguntas abiertas a SICSAFT CORE (auth real, contrato CIS existente,
 correlationId/tracing, semántica de idempotencia — ver handoff de APP QR) no tengan respuesta,
-este conector debe implementarse primero como **mock** para no bloquear TASK-006/007 de APP QR.
+este mock es lo que consume APP QR (TASK-006/007) en vez de la implementación real.
 
 ## Depende de
-- Definiciones de SICSAFT CORE (autenticación, contrato de API, tracing) — bloqueado, ver arriba.
+- Definiciones de SICSAFT CORE (autenticación, contrato de API, tracing) para reemplazar el mock
+  por la implementación real — bloqueado, ver arriba.
+- Wiring de OIDC contra Zitadel (ADR-002) para el `401`/re-autenticación de DOC-002 §5.
 
 ## Bloquea
-- TASK-006/TASK-007 de APP QR (cliente real del Conector QR) — desbloqueable con un mock.
+- Nada — TASK-006/TASK-007 de APP QR ya tienen un mock real contra el cual apuntar.
 
 ## Documentos relacionados
 - DOC-002 (contrato Conector QR) — vive en el repo de APP QR QRVault por ahora.

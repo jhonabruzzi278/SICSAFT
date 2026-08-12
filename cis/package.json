@@ -29,7 +29,8 @@
     "@nestjs/platform-express": "^11.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "tslib": "^2.8.1"
+    "tslib": "^2.8.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -74,7 +75,7 @@
     "coverageDirectory": "../coverage",
     "coverageThreshold": {
       "global": {
-        "branches": 70,
+        "branches": 85,
         "functions": 100,
         "lines": 100,
         "statements": 100
