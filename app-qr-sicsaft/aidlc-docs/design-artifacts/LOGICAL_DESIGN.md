@@ -15,7 +15,7 @@
 | Componente | Tecnología | Fuente |
 |---|---|---|
 | Framework | Vite 8 + React 19 + TypeScript | `package.json`, `vite.config.ts` |
-| UI | Tailwind CSS v4 + shadcn/ui (preset `radix-sera`) | `components.json`, `src/components/ui/` |
+| UI | Tailwind CSS v4 + shadcn/ui (base `radix-sera`, colores de marca oficial SICSAFT — ver [`BRAND.md`](../../../BRAND.md)) | `components.json`, `src/components/ui/`, `src/index.css` |
 | Formularios | react-hook-form + zod + @hookform/resolvers | `src/components/ProductFormDialog.tsx` |
 | Ruteo | react-router 8.x (no `react-router-dom`) | `src/App.tsx`, `src/components/AppShell.tsx` |
 | Tema | next-themes | `src/main.tsx`, `src/components/ThemeToggle.tsx` |
