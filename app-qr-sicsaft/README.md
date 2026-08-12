@@ -1,9 +1,18 @@
-# APP QR SICSAFT — Generador de Etiquetas QR y Lector de Inventario (PWA)
+# APP QR SICSAFT — Captura de inventario patrimonial (PWA)
 
-Aplicación Web Progresiva (PWA) instalable en Android/desktop con dos funcionalidades core:
+Aplicación Web Progresiva (PWA) instalable en Android/desktop, app de **captura** del ecosistema
+patrimonial SICSAFT: identifica al operador, organización/área/ubicación, escanea activos QR,
+clasifica cada escaneo contra el catálogo esperado, registra incidencias y encola el envío a
+SICSAFT CORE (sin conexión inclusive). No escribe directo a la Base Patrimonial Central — todo pasa
+por un Conector QR (hoy un stub local, ver `HANDOFF-APP-QR-SICSAFT.md` sección 5). Conserva además
+el generador de etiquetas QR / catálogo de productos como herramienta aparte, fuera del flujo
+oficial.
 
-1. **Generador de etiquetas**: alta de productos (nombre, código único, descripción, categoría, tipo de unidad, IVA con cálculo de precio, stock con alerta de stock bajo, variantes/talles con stock propio) y generación/impresión de etiquetas QR — una por producto, o una por variante.
-2. **Lector QR**: escanea con la cámara y valida cada código contra el inventario local (IndexedDB), incluyendo códigos de variante (`BASE-VARIANTE`).
+1. **Inventario** (`/`): operador → organización → área/ubicación → escaneo clasificado en 6
+   categorías (correcto, otra área, otra ubicación, no registrado, código inválido, ya escaneado) →
+   incidencias → cierre, con cola de sincronización offline y registro de auditoría.
+2. **Catálogo** (`/catalog`, fuera del flujo oficial): alta de productos y generación/impresión de
+   etiquetas QR, incluyendo variantes/talles (`BASE-VARIANTE`).
 
 ## Stack
 - [Vite](https://vite.dev/) + React 19 + TypeScript
@@ -11,7 +20,8 @@ Aplicación Web Progresiva (PWA) instalable en Android/desktop con dos funcional
 - [react-hook-form](https://react-hook-form.com/) + [zod](https://zod.dev/) para el formulario de producto
 - [html5-qrcode](https://github.com/mebjas/html5-qrcode) para el escaneo de cámara
 - [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) para generar los QR de etiquetas y catálogo
-- IndexedDB como base de datos local de inventario
+- IndexedDB como base de datos local (inventario, sesiones, cola de sincronización, auditoría) —
+  sin backend real todavía, ver el Conector QR en `HANDOFF-APP-QR-SICSAFT.md`
 - [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) (Workbox) para manifest + service worker offline-first
 - Tipografía self-hosted (`@fontsource-variable`) — sin CDNs externos, 100% offline
 
@@ -32,22 +42,38 @@ npm run preview
 ```
 
 ## Uso
-1. **Catálogo** (`/catalog`): crear productos con el formulario completo, imprimir su etiqueta QR (una por variante si aplica), buscar y dar de baja productos.
-2. **Escanear** (`/`): apuntar la cámara a un QR generado en el catálogo — se marca como encontrado o no registrado, con feedback sonoro/háptico.
-3. **Historial** (`/history`): sesiones de escaneo guardadas, con detalle de productos fuera de base de datos.
+1. **Escanear** (`/`): identificarse como operador (una sola vez, persiste), elegir organización →
+   área → ubicación, escanear con cámara o código manual — cada lectura se clasifica contra el
+   catálogo esperado y muestra su acción disponible (marcar fuera de lugar, registrar hallazgo
+   externo, agregar incidencia). Al finalizar, el inventario se guarda local y se intenta enviar;
+   sin conexión queda en cola con reintentos automáticos.
+2. **Historial** (`/history`): inventarios guardados con operador/organización/área/ubicación,
+   estado de sincronización (con intentos si está pendiente) y un detalle "Ver auditoría" por
+   sesión (eventos con su `correlationId`).
+3. **Catálogo** (`/catalog`, fuera del flujo oficial): crear productos con el formulario completo,
+   imprimir su etiqueta QR (una por variante si aplica), buscar y dar de baja productos.
 
 ## Estructura del proyecto
 ```
 src/
-  main.tsx, App.tsx        Bootstrap, router, providers globales
-  components/               UI compartida (AppShell, QrScanner, ProductForm, etiquetas)
+  main.tsx, App.tsx        Bootstrap, router, providers globales (incluye useSyncQueue)
+  components/               UI compartida: AppShell, QrScanner, ScannedList, OperatorGate,
+                             OrganizationPicker, AreaLocationPicker, IncidentDialog,
+                             ProductForm/etiquetas (catálogo, fuera del flujo oficial)
   components/ui/            Primitivos shadcn/ui
-  pages/                     ScanPage, HistoryPage, CatalogPage
-  lib/                       db.ts, catalog-data.ts, labels.ts, scan-resolve.ts (lógica pura)
-  hooks/                     useInstallPrompt
+  pages/                     ScanPage (flujo de inventario), HistoryPage, CatalogPage
+  lib/                       db.ts (IndexedDB), qr-connector.ts (Conector QR, stub del
+                             contrato DOC-002), sync-queue.ts (cola offline con backoff),
+                             audit-log.ts + device-id.ts (auditoría/trazabilidad),
+                             scan-resolve.ts (clasificación, función pura), operator.ts,
+                             organizations-data.ts, catalog-data.ts, labels.ts
+  hooks/                     useInstallPrompt, useSyncQueue
 public/                     Íconos, fuentes, .well-known/assetlinks.json
-tests/                      Specs Playwright (data-testid)
+tests/                      Specs Playwright (data-testid) — helpers.js centraliza el setup
+                             de sesión (operador/organización/área/ubicación)
 ```
+
+Contexto de negocio, decisiones ya tomadas y backlog: [`HANDOFF-APP-QR-SICSAFT.md`](./HANDOFF-APP-QR-SICSAFT.md).
 
 ## 📋 Documentación del Proyecto (AI-DLC)
 
