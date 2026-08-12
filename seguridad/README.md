@@ -7,11 +7,14 @@ captura. Modelo: Usuario → Organización → Contrato (vigencia, módulos, sed
 para el porqué de agregar "Contrato" al modelo original.
 
 ## Estado
-🟡 Mecanismo de identidad decidido: **Zitadel, self-hosted, OIDC/OAuth2** — ver
-[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md). Ya no está bloqueado por la pregunta
-de "qué mecanismo de auth" (una de las 4 preguntas abiertas del handoff de APP QR queda
-respondida a nivel de mecanismo). Lo que sigue sin implementar: el modelo de dominio de
-`Contrato` en Base Patrimonial, y la validación de `sedeId`/vigencia en el CIS.
+🟡 Mecanismo de identidad decidido **e implementado en CIS**: Zitadel, self-hosted, OIDC/OAuth2 —
+ver [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md). `cis/src/common/auth/` valida
+tokens Zitadel reales (firma/JWKS, `iss`, `aud`, vencimiento) en los 4 endpoints del Conector QR
+mock — ya no está bloqueado por la pregunta de "qué mecanismo de auth" (una de las 4 preguntas
+abiertas del handoff de APP QR queda respondida a nivel de mecanismo). Lo que sigue sin
+implementar: el modelo de dominio de `Contrato` en Base Patrimonial, y con él la validación de
+`sedeId`/vigencia de contrato en el CIS (el token solo trae `sub`/identidad, no sede — ver
+ADR-002 §"Punto de validación").
 
 ## Permisos previstos
 Consultar, crear, modificar, eliminar, autorizar, exportar, administrar, configurar — bajo
