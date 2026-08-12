@@ -41,6 +41,12 @@ sin atarse a un proveedor de nube): [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md).
 Identidad visual / paleta de colores oficial (todo trabajo visual del ecosistema debe salir de
 acá, no reinventar colores por sistema): [BRAND.md](BRAND.md).
 
+Decisiones de arquitectura del ecosistema (stack, identidad/SSO, dominios, infraestructura):
+[`adr/`](adr) — [ADR-001](adr/ADR-001-stack-backend-nestjs.md) (NestJS + Vite/React + Postgres +
+Redis), [ADR-002](adr/ADR-002-identidad-zitadel-multi-tenant.md) (Zitadel self-hosted, modelo
+Organización→Contrato→Sede, dominios bajo `sicsaft.cl`). Operación de infraestructura (VPS,
+Docker Compose, CI/CD, DevSecOps): [`devops/README.md`](devops/README.md).
+
 ## Dónde está el trabajo activo hoy
 
 El único sistema con código real es **APP QR SICSAFT** (`app-qr-sicsaft/`). Su identificador técnico

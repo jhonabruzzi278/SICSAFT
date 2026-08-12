@@ -69,11 +69,14 @@ registrando el motivo.
 - Portal WEB y CIP (consumen datos que produce el CORE).
 
 ## Documentos relacionados
-Pendiente: DOC-003 Modelo de dominio, DOC-007 Arquitectura CORE, DOC-008 Motor Patrimonial,
-DOC-009 Motor de Reglas, DOC-010 Motor Eventos, DOC-011 Motor Auditoría.
+[ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack: NestJS/TypeScript — los 9 motores son
+módulos Nest dentro de un mismo desplegable, ver ADR-001). Pendiente: DOC-003 Modelo de dominio,
+DOC-007 Arquitectura CORE, DOC-008 Motor Patrimonial, DOC-009 Motor de Reglas, DOC-010 Motor
+Eventos, DOC-011 Motor Auditoría — DOC-003 debe incluir el modelo de `Contrato` que introduce
+[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md).
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) para el marco de escalabilidad/resiliencia
 aplicable a este sistema.
 
 ## Próximo paso sugerido
-ADR de stack tecnológico + diseño del modelo de dominio (compartido con Base Patrimonial).
-Tarjeta Trello: `CORE-ADR-001`.
+Diseño del modelo de dominio (compartido con Base Patrimonial), incluyendo `Contrato`. Stack ya
+decidido (ADR-001). Tarjeta Trello: `CORE-ADR-001`.

@@ -32,10 +32,13 @@ este conector debe implementarse primero como **mock** para no bloquear TASK-006
 
 ## Documentos relacionados
 - DOC-002 (contrato Conector QR) — vive en el repo de APP QR QRVault por ahora.
+- [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack: NestJS/TypeScript).
+- [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) — el CIS valida `organizacionId`,
+  `sedeId` y vigencia de contrato en cada request, no solo identidad.
 - Pendiente: DOC-005 Arquitectura CIS, DOC-006 API CIS↔CORE.
 - Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker + rate limiting hacia el
   CORE) y §3 (el CIS es el único punto que valida identidad de fuentes de captura).
 
 ## Próximo paso sugerido
-Definir stack tecnológico (ADR) y levantar el mock del Conector QR como primer entregable.
-Tarjeta Trello: `CIS-ADR-001`.
+Levantar el mock del Conector QR como primer entregable sobre NestJS (stack ya decidido, ver
+ADR-001). Tarjeta Trello: `CIS-ADR-001`.
