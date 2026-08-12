@@ -52,13 +52,13 @@ describe('QrConnectorController', () => {
     service = module.get(QrConnectorService);
   });
 
-  it('authSession delega en el service con el contexto de auth del guard', () => {
+  it('authSession delega en el service con el contexto de auth del guard', async () => {
     const expected: AuthSessionResponse = {
       accessToken: 't',
       expiresAt: 'e',
       organizaciones: [],
     };
-    service.authSession.mockReturnValue(expected);
+    service.authSession.mockResolvedValue(expected);
 
     const body = { deviceId: 'd-1' };
     const auth: ZitadelAuthContext = {
@@ -68,7 +68,7 @@ describe('QrConnectorController', () => {
     };
     const request = buildAuthenticatedRequest(auth);
 
-    expect(controller.authSession(body, request)).toBe(expected);
+    await expect(controller.authSession(body, request)).resolves.toBe(expected);
     expect(service.authSession).toHaveBeenCalledWith(body, auth);
   });
 

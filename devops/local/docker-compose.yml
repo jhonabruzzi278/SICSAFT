@@ -104,10 +104,14 @@ services:
       # devops/local/README.md "Qué falta" para cómo crearla. Sin esto el CIS no levanta
       # (loadZitadelAuthConfig valida al arrancar, ver cis/src/common/auth/zitadel-auth.config.ts).
       ZITADEL_AUDIENCE: ${CIS_ZITADEL_AUDIENCE}
+      # URL interna de CORE dentro de la red de contenedores (ver servicio `core` abajo) — CIS la
+      # usa para resolver entitlements reales en auth/session (DOC-004 §6), ya no un seed fijo.
+      CORE_URL: http://core:3001
     networks:
       - sicsaft
     depends_on:
       - zitadel
+      - core
     restart: unless-stopped
 
   core:

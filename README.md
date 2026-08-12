@@ -22,15 +22,15 @@ Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
 | Código | Carpeta | Sistema | Estado |
 |---|---|---|---|
 | SYS-01 | [`app-qr-sicsaft/`](app-qr-sicsaft) | APP QR SICSAFT (captura vía QR) | 🟢 En desarrollo activo — ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` |
-| SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🟡 Esqueleto NestJS + mock del Conector QR (DOC-002) con auth real via Zitadel (ADR-002) |
-| SYS-03 | [`core/`](core) | SICSAFT CORE | 🟡 Esqueleto NestJS + mock `GET /entitlements` (DOC-004) — CIS todavía no lo consume, ningún motor implementado |
+| SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🟡 Esqueleto NestJS + mock del Conector QR (DOC-002), auth real via Zitadel (ADR-002) y entitlements reales desde CORE (DOC-004) |
+| SYS-03 | [`core/`](core) | SICSAFT CORE | 🟡 Esqueleto NestJS + mock `GET /entitlements` (DOC-004), ya consumido por CIS — ningún motor implementado |
 | SYS-04 | [`base-patrimonial/`](base-patrimonial) | Base Patrimonial Central | 🟡 Modelo de `Contrato` documentado (DOC-004) — resto del dominio y motor de BD sin definir |
 | SYS-05 | [`web/`](web) | Portal WEB SICSAFT | 🔲 No iniciado |
 | SYS-06 | [`cip/`](cip) | Centro de Inteligencia Patrimonial | 🔲 No iniciado |
 | SYS-07 | [`rfid/`](rfid) | RFID SICSAFT | 🔲 No iniciado (fase tardía) |
 | SYS-08 | [`integraciones/`](integraciones) | Integraciones externas (ERP, RRHH, BI...) | 🔲 No iniciado (fase tardía) |
-| SEC | [`seguridad/`](seguridad) | Identidad / RBAC (transversal) | 🟡 Mecanismo decidido (Zitadel/OIDC) e implementado en CIS — falta el modelo de Contrato |
-| OPS | [`devops/`](devops) | Infraestructura / CI-CD / Observabilidad (transversal) | 🟡 Stack local (Traefik + Postgres + Redis + Zitadel + CIS) funcionando en Docker Compose |
+| SEC | [`seguridad/`](seguridad) | Identidad / RBAC (transversal) | 🟡 Mecanismo (Zitadel/OIDC) y modelo de `Contrato` (DOC-004) resueltos e implementados en CIS/CORE |
+| OPS | [`devops/`](devops) | Infraestructura / CI-CD / Observabilidad (transversal) | 🟡 Stack local (Traefik + Postgres + Redis + Zitadel + CIS + CORE) funcionando en Docker Compose |
 | — | [`landing/`](landing) | Landing comercial (cara al cliente) | 🟢 Construida — `npm install && npm run dev`. Sin datos internos de desarrollo. |
 
 Cada carpeta tiene su propio `README.md` con objetivo, estado, dependencias y próximo paso.
@@ -59,9 +59,11 @@ usuarios reales en mente. Su identificador técnico interno (`package.json` → 
 `docker build`/`docker run` verificados. **CORE** (`core/`) tiene el mismo esqueleto base (`GET
 /`, `GET /health`) más `GET /entitlements`, que resuelve el modelo de `Contrato`
 ([DOC-004](base-patrimonial/DOC-004-modelo-contrato.md)) sobre un seed en memoria — corre como
-servicio interno en el compose local, sin ruta de Traefik (solo lo consume CIS). Lo que sigue
-faltando: **CIS todavía no llama a ese endpoint** (sigue con su seed fijo de `organizaciones`),
-y un cliente OIDC real (WEB/APP QR) que reemplace los tokens firmados a mano de los tests de CIS.
+servicio interno en el compose local, sin ruta de Traefik (solo lo consume CIS). **El círculo
+CIS↔CORE ya está cerrado**: `auth/session` llama a `GET /entitlements` de verdad
+(`cis/src/core-client/`), con la conectividad entre contenedores verificada de forma real (no
+solo tests). Lo que sigue faltando: auth servicio-a-servicio CIS→CORE, y un cliente OIDC real
+(WEB/APP QR) que reemplace los tokens firmados a mano de los tests de CIS.
 
 Backlog completo y contexto de negocio de APP QR: `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md`.
 
@@ -76,8 +78,8 @@ Backlog completo y contexto de negocio de APP QR: `app-qr-sicsaft/HANDOFF-APP-QR
    el resto de los 11 dominios de Base Patrimonial sigue pendiente.
 3. `cis/` con el conector QR mockeado — Trello `CIS-ADR-001` — **hecho**, incluye auth real
    contra Zitadel (ADR-002). `core/` tiene su esqueleto básico y `GET /entitlements` (DOC-004 §6)
-   — **hecho**. Sigue pendiente conectar ambos: CIS necesita un cliente HTTP que llame a CORE en
-   vez de usar el seed fijo de `organizaciones`.
+   — **hecho**. CIS ya lo consume vía `CoreClientService` — **hecho**. Sigue pendiente auth
+   servicio-a-servicio CIS→CORE (hoy sin credenciales, aceptable local, no en producción).
 4. `seguridad/`: mecanismo de identidad ya resuelto (Zitadel/OIDC, implementado en CIS) y modelo
    de `Contrato` ya documentado (DOC-004, decisión antes rastreada en Trello `DEC-001`). Lo que
    sigue abierto es que CORE lo implemente.

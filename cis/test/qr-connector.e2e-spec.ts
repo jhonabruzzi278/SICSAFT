@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { BadGatewayException, INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { SignJWT, generateKeyPair, type JWTVerifyGetKey } from 'jose';
 import { AppModule } from './../src/app.module';
 import { ZITADEL_JWKS } from './../src/common/auth/zitadel-auth.constants';
+import { CoreClientService } from './../src/core-client/core-client.service';
 import {
   AuthSessionResponse,
   CatalogoResponse,
@@ -15,9 +16,20 @@ import {
 const ISSUER = 'http://id.sicsaft.localhost';
 const AUDIENCE = 'cis-api';
 
-describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002)', () => {
+const ENTITLEMENTS_STUB = {
+  organizaciones: [
+    {
+      id: 'duoc-uc',
+      nombre: 'DUOC UC',
+      sedes: [{ id: 'melipilla', nombre: 'Melipilla' }],
+    },
+  ],
+};
+
+describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements de CORE', () => {
   let app: INestApplication<App>;
   let bearerToken: string;
+  let coreClientService: { getEntitlements: jest.Mock };
 
   beforeAll(() => {
     process.env.ZITADEL_ISSUER = ISSUER;
@@ -39,11 +51,21 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002)', () => {
     // punta vía HTTP real sin depender de que haya un Zitadel corriendo.
     const localJwks: JWTVerifyGetKey = () => Promise.resolve(publicKey);
 
+    // Idem para CORE: se reemplaza el cliente HTTP real por un stub — el e2e prueba
+    // QrConnectorController + guard + servicio de punta a punta vía HTTP real, sin depender de
+    // que haya un CORE corriendo (CoreClientService.getEntitlements ya tiene su propia
+    // cobertura unitaria contra HttpService mockeado, ver core-client.service.spec.ts).
+    coreClientService = {
+      getEntitlements: jest.fn().mockResolvedValue(ENTITLEMENTS_STUB),
+    };
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(ZITADEL_JWKS)
       .useValue(localJwks)
+      .overrideProvider(CoreClientService)
+      .useValue(coreClientService)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -61,7 +83,7 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002)', () => {
       .expect(401);
   });
 
-  it('POST /auth/session con token Zitadel valido devuelve el mismo token y organizaciones', async () => {
+  it('POST /auth/session con token Zitadel valido devuelve el mismo token y las organizaciones de CORE', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/session')
       .set('Authorization', `Bearer ${bearerToken}`)
@@ -70,7 +92,22 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002)', () => {
 
     const body = res.body as AuthSessionResponse;
     expect(body.accessToken).toBe(bearerToken);
-    expect(body.organizaciones[0].id).toBe('duoc-uc');
+    expect(body.organizaciones).toEqual(ENTITLEMENTS_STUB.organizaciones);
+    expect(coreClientService.getEntitlements).toHaveBeenCalledWith('op-1');
+  });
+
+  it('POST /auth/session devuelve 502 si CORE no responde', async () => {
+    coreClientService.getEntitlements.mockRejectedValue(
+      new BadGatewayException({
+        message: 'No se pudo resolver entitlements contra CORE',
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post('/auth/session')
+      .set('Authorization', `Bearer ${bearerToken}`)
+      .send({ deviceId: 'd-1' })
+      .expect(502);
   });
 
   it('POST /auth/session con payload invalido devuelve 400 con errores', async () => {

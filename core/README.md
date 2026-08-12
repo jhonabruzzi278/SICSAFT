@@ -16,10 +16,12 @@ build y `docker build`/`docker run` real — corre como servicio `core` en
 `../devops/local/docker-compose.yml`, sin ruta de Traefik a propósito (solo lo consume CIS dentro
 de la red de contenedores, nunca un navegador directo).
 
-Todavía sin ningún otro motor implementado (Patrimonial, Reglas, Eventos, Auditoría, Alertas...),
-sin persistencia real, y **CIS todavía no llama a este endpoint** — sigue usando su seed fijo de
-`organizaciones` en `auth/session` (`cis/src/qr-connector/qr-connector.service.ts`). Conectar
-ambos lados es el siguiente paso, no algo que este documento ya resuelva.
+**CIS ya llama a este endpoint**: `auth/session` usa `CoreClientService`
+(`cis/src/core-client/`) para pedir entitlements reales acá en vez de un seed fijo — verificado
+con conectividad real entre contenedores `cis`↔`core` (`docker network` + `docker exec`), no solo
+con mocks. Todavía sin ningún otro motor implementado (Patrimonial, Reglas, Eventos, Auditoría,
+Alertas...), sin persistencia real, y sin auth servicio-a-servicio (CORE no valida que quien lo
+llama sea realmente CIS — ver "Depende de").
 
 ## Desarrollo local
 ```bash
@@ -97,11 +99,9 @@ registrando el motivo.
   realmente CIS (auth servicio-a-servicio), sin decidir todavía.
 
 ## Bloquea
-- CIS real: `GET /entitlements` ya existe acá, pero CIS todavía no lo llama — sigue usando su
-  seed fijo de `organizaciones` en `auth/session`
-  (`cis/src/qr-connector/qr-connector.service.ts`). Falta el cliente HTTP en CIS + wiring de
-  `depends_on`/URL interna en `devops/local/docker-compose.yml`.
-- Portal WEB y CIP (consumen datos que produce el CORE).
+- Nada de CIS ya — `auth/session` consume `GET /entitlements` real (ver
+  `cis/src/core-client/`).
+- Portal WEB y CIP (consumen datos que produce el CORE) — todavía sin código.
 
 ## Documentos relacionados
 [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack: NestJS/TypeScript — los 9 motores son
@@ -115,8 +115,8 @@ Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) para el marco de escalabilidad
 aplicable a este sistema.
 
 ## Próximo paso sugerido
-`GET /entitlements` ya está hecho (este documento). El siguiente incremento con valor real es
-conectar CIS como cliente real: agregar un `HttpModule`/cliente en
-`cis/src/qr-connector/qr-connector.service.ts` que reemplace `SEED_ORGANIZACIONES` por una
-llamada a `GET http://core:3001/entitlements?operadorId=`, y el `depends_on: core` +
-`CORE_URL` correspondiente en `devops/local/docker-compose.yml`. Tarjeta Trello: `CORE-ADR-001`.
+`GET /entitlements` ya está hecho y CIS ya lo consume (este documento + `cis/src/core-client/`).
+El siguiente incremento con valor real es decidir y aplicar auth servicio-a-servicio CIS→CORE
+(hoy cualquiera dentro de la red de contenedores puede llamar a `GET /entitlements` sin
+credenciales — aceptable localmente porque no hay ruta de Traefik, pero no aceptable en
+producción). Tarjeta Trello: `CORE-ADR-001`.

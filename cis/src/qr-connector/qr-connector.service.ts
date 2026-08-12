@@ -15,11 +15,11 @@ import {
   AuthSessionResponse,
   CatalogoResponse,
   InventarioEstadoResponse,
-  Organizacion,
   PostInventarioResponse,
 } from './qr-connector.types';
 import { SEED_CATALOGO, SEED_ORGANIZACIONES } from './qr-connector.seed';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
+import { CoreClientService } from '../core-client/core-client.service';
 
 interface InventarioRegistro {
   inventarioId: string;
@@ -30,34 +30,36 @@ interface InventarioRegistro {
 
 @Injectable()
 export class QrConnectorService {
-  // Mock en memoria — se pierde al reiniciar el proceso. No es la implementacion real (esa
-  // vive en CORE/Base Patrimonial), solo desbloquea el desarrollo de APP QR/CIS mientras las
-  // 4 preguntas abiertas a SICSAFT CORE (DOC-002 §3/§6) siguen sin respuesta.
+  constructor(private readonly coreClientService: CoreClientService) {}
+
+  // Mock en memoria — se pierde al reiniciar el proceso. `organizaciones` ya no es mock (viene
+  // de CORE, ver authSession); esto sigue siendo mock para inventarios/catalogo mientras el
+  // resto del dominio patrimonial (DOC-005) no exista.
   private readonly inventariosPorIdempotencyKey = new Map<
     string,
     InventarioRegistro
   >();
   private readonly inventariosPorId = new Map<string, InventarioRegistro>();
 
-  authSession(
+  async authSession(
     request: AuthSessionRequest,
     auth: ZitadelAuthContext,
-  ): AuthSessionResponse {
+  ): Promise<AuthSessionResponse> {
     // ZitadelAuthGuard ya validó el token — el operador viene autenticado por Zitadel, no por
     // este metodo. `accessToken`/`expiresAt` son pass-through del mismo token (ver ADR-002: el
     // CIS valida, no emite uno propio).
-    // TODO(base-patrimonial/DOC-004-modelo-contrato.md §6): `organizaciones` sigue siendo el
-    // seed fijo — falta resolver entitlements reales (Organización -> Contrato -> Sede) por
-    // `auth.operadorId` contra `GET /entitlements` de CORE, que todavia no existe. El modelo ya
-    // esta documentado, lo que falta es el esqueleto de CORE que lo sirva.
-    // `deviceId` tampoco se enforced todavia (un solo dispositivo por operador, DOC-002 §1) —
+    // `deviceId` no se enforced todavia (un solo dispositivo por operador, DOC-002 §1) —
     // requiere persistencia que hoy no existe.
     void request.deviceId;
+
+    const { organizaciones } = await this.coreClientService.getEntitlements(
+      auth.operadorId,
+    );
 
     return {
       accessToken: auth.accessToken,
       expiresAt: auth.expiresAt,
-      organizaciones: SEED_ORGANIZACIONES as Organizacion[],
+      organizaciones,
     };
   }
 

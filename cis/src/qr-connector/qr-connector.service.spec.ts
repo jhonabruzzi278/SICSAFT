@@ -6,6 +6,22 @@ import {
 import { QrConnectorService } from './qr-connector.service';
 import { InventarioRequest } from './qr-connector.schemas';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
+import type { CoreClientService } from '../core-client/core-client.service';
+import type { EntitlementsResult } from '../core-client/core-client.types';
+
+function buildCoreClientService(
+  entitlements: EntitlementsResult = {
+    organizaciones: [
+      {
+        id: 'duoc-uc',
+        nombre: 'DUOC UC',
+        sedes: [{ id: 'melipilla', nombre: 'Melipilla' }],
+      },
+    ],
+  },
+): jest.Mocked<Pick<CoreClientService, 'getEntitlements'>> {
+  return { getEntitlements: jest.fn().mockResolvedValue(entitlements) };
+}
 
 function buildAuthContext(
   overrides: Partial<ZitadelAuthContext> = {},
@@ -38,21 +54,26 @@ function buildInventarioRequest(
 
 describe('QrConnectorService', () => {
   let service: QrConnectorService;
+  let coreClientService: jest.Mocked<
+    Pick<CoreClientService, 'getEntitlements'>
+  >;
 
   beforeEach(() => {
-    service = new QrConnectorService();
+    coreClientService = buildCoreClientService();
+    service = new QrConnectorService(coreClientService as CoreClientService);
   });
 
   describe('authSession', () => {
-    it('devuelve el mismo token del contexto de auth (pass-through) con las organizaciones seed', () => {
+    it('devuelve el mismo token del contexto de auth (pass-through) con las organizaciones de CORE', async () => {
       const auth = buildAuthContext();
-      const result = service.authSession({ deviceId: 'd-1' }, auth);
+      const result = await service.authSession({ deviceId: 'd-1' }, auth);
 
       expect(result.accessToken).toBe(auth.accessToken);
       expect(result.expiresAt).toBe(auth.expiresAt);
       expect(result.organizaciones.some((org) => org.id === 'duoc-uc')).toBe(
         true,
       );
+      expect(coreClientService.getEntitlements).toHaveBeenCalledWith('op-1');
     });
   });
 

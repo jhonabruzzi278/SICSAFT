@@ -36,8 +36,9 @@ import type {
 // Implementa el contrato de DOC-002 (app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md).
 // Autenticacion real via Zitadel (ADR-002): ZitadelAuthGuard valida el access token OIDC en
 // todas las rutas — el operador ya se autenticó contra Zitadel antes de llegar acá, el CIS nunca
-// ve una credencial. Lo que sigue siendo mock: catalogo/inventarios/organizaciones (Base
-// Patrimonial/CORE todavia no existen).
+// ve una credencial. `organizaciones` en auth/session viene de CORE (GET /entitlements, ver
+// DOC-004 §6), ya no es mock. catalogo/inventarios siguen siendo mock — el resto del dominio
+// patrimonial (DOC-005) todavia no existe.
 @Controller()
 @UseGuards(ZitadelAuthGuard)
 export class QrConnectorController {
@@ -48,7 +49,7 @@ export class QrConnectorController {
   authSession(
     @Body() body: AuthSessionRequest,
     @Req() request: AuthenticatedRequest,
-  ): AuthSessionResponse {
+  ): Promise<AuthSessionResponse> {
     return this.qrConnectorService.authSession(
       body,
       requireAuthContext(request),

@@ -1,0 +1,23 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { CoreClientModule } from './core-client.module';
+import { CoreClientService } from './core-client.service';
+
+describe('CoreClientModule', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    process.env = { ...originalEnv, CORE_URL: 'http://core:3001' };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it('wires CoreClientService', async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      imports: [CoreClientModule],
+    }).compile();
+
+    expect(module.get(CoreClientService)).toBeInstanceOf(CoreClientService);
+  });
+});

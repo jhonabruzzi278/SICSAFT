@@ -8,12 +8,16 @@ Base Patrimonial Central ni al CORE — todo pasa por acá.
 
 ## Estado
 🟡 Esqueleto NestJS + **mock del Conector QR** (contrato DOC-002 completo) + **auth real vía
-Zitadel** (ADR-002): los 4 endpoints exigen `Authorization: Bearer <token>` y `ZitadelAuthGuard`
-valida firma/issuer/audience/vencimiento contra el JWKS de Zitadel — el CIS ya no acepta
-`operadorId`/`credencial` en el body, la identidad viene del token. Probado de punta a punta:
-lint, unit (100% stmts/lines/funcs), e2e, build. Todavía sin persistencia real (el mock guarda
-todo en memoria, se pierde al reiniciar el proceso) ni resolución real de entitlements
-(`organizaciones` sigue siendo el seed fijo — falta el dominio de Contrato en Base Patrimonial).
+Zitadel** (ADR-002) + **entitlements reales desde CORE** (DOC-004 §6): los 4 endpoints exigen
+`Authorization: Bearer <token>` y `ZitadelAuthGuard` valida firma/issuer/audience/vencimiento
+contra el JWKS de Zitadel — el CIS ya no acepta `operadorId`/`credencial` en el body, la
+identidad viene del token. `auth/session` ya no devuelve un seed fijo de `organizaciones`: llama
+a `GET {CORE_URL}/entitlements` vía `CoreClientService` y valida la respuesta en el límite
+(zod) — si CORE no responde o responde algo inesperado, devuelve 502, nunca datos a medias.
+Probado de punta a punta: lint, unit (100% stmts/lines/funcs, 91%+ branches), e2e (incluye el
+caso 502), build, y conectividad real entre contenedores `cis`↔`core` verificada con
+`docker network` + `docker exec`. Todavía sin persistencia real (el mock de inventarios/catálogo
+guarda todo en memoria) ni auth servicio-a-servicio hacia CORE (ver `../core/README.md`).
 
 ## Desarrollo local
 ```bash
@@ -41,6 +45,8 @@ arranca sin ellas):
   sobreescribirla cuando la URL para *descargar* las llaves no es la misma que el `iss` — es el
   caso de Docker Compose local, donde `id.sicsaft.localhost` solo resuelve vía el hosts file del
   host, no dentro de la red de contenedores (ver `docker-compose.yml` de `devops/local/`).
+- `CORE_URL`: URL base de SICSAFT CORE (`../core/`), ej. `http://core:3001` dentro de Docker
+  Compose. Ver `src/core-client/core-client.config.ts` — el proceso tampoco arranca sin esta.
 
 **Nota sobre `coverageThreshold.branches` (85%, no 100%)**: `emitDecoratorMetadata` de TypeScript
 emite un chequeo defensivo (`typeof X === "function" ? X : Object`) para cada tipo **importado
@@ -68,7 +74,7 @@ cada operación (`qr-connector.schemas.ts`). Los 4 endpoints están detrás de `
 (`src/common/auth/zitadel-auth.guard.ts`) — sin `Authorization: Bearer <token>` válido, 401:
 
 ```
-POST /auth/session                          -> valida el token, devuelve el mismo token (pass-through) + organizaciones semilla (DUOC UC / sede Melipilla)
+POST /auth/session                          -> valida el token, devuelve el mismo token (pass-through) + organizaciones/sedes reales via GET {CORE_URL}/entitlements
 GET  /catalogo?organizacionId=&areaId=&ubicacionId=  -> catálogo semilla filtrado
 POST /inventarios                            -> idempotente por idempotencyKey (DOC-002 §4), 400 si la organización no existe, 409 si la key se reutiliza con payload distinto (DOC-002 §5)
 GET  /inventarios/{id}/estado                -> 404 si no existe
@@ -79,26 +85,39 @@ autentica al operador (OIDC, fuera del CIS) y el CIS solo valida el access token
 (firma vía JWKS, `iss`, `aud`, vencimiento) y lee `operadorId` de su claim `sub`. El CIS no emite
 un token propio, hace pass-through del mismo token de Zitadel — coincide con ADR-002: "el punto
 de validación es el CIS, no el token" (el JWT no lleva `sedeId`, eso se resuelve en cada request
-contra un caché de entitlements que todavía no existe, ver más abajo).
+contra CORE, ver `src/core-client/`).
 
-Datos semilla en `qr-connector.seed.ts`: una organización (`duoc-uc`) con una sola sede
-(`melipilla`) — ejemplo deliberado del caso de negocio de ADR-002 (contrato por sede, no por
-organización completa). Todavía **no** resuelve entitlements reales (`organizaciones` sigue
-siendo el seed fijo, no depende de qué token llegó) ni aplica Reglas patrimoniales (eso vive en
-CORE, fuera de alcance del conector, ver DOC-002 §1).
+**Entitlements (`src/core-client/`)**: `CoreClientService.getEntitlements(operadorId)` llama a
+`GET {CORE_URL}/entitlements?operadorId=` y valida la respuesta con Zod
+(`core-client.types.ts`) — CORE es un límite de confianza (proceso/red distinto), no se asume su
+forma. Cualquier falla (red, timeout, 5xx, forma inesperada) se propaga como `BadGatewayException`
+(502) — el operador ve un error transitorio, no un 500 genérico ni datos parciales. `deviceId`
+tampoco se enforced todavía (un solo dispositivo por operador, DOC-002 §1) — requiere
+persistencia que hoy no existe.
 
-Mientras las 4 preguntas abiertas a SICSAFT CORE (contrato CIS existente, correlationId/tracing,
-semántica de idempotencia, y ahora solo el modelo de Contrato — auth ya no es una de las 4, ver
-arriba) no tengan respuesta, este mock es lo que consume APP QR (TASK-006/007) en vez de la
+Datos semilla en `qr-connector.seed.ts`: `SEED_ORGANIZACIONES` sigue existiendo, pero solo para
+la validación de "¿existe esta organización?" en `postInventario` — `auth/session` ya no la usa
+en absoluto. Reemplazar ese seed en `postInventario` por CORE también queda pendiente (mismo
+alcance que catálogo/inventarios, ver DOC-002 §1).
+
+Mientras las 3 preguntas abiertas restantes a SICSAFT CORE (contrato CIS existente,
+correlationId/tracing, semántica de idempotencia — auth y el modelo de Contrato ya están
+resueltos) no tengan respuesta, este mock es lo que consume APP QR (TASK-006/007) en vez de la
 implementación real.
 
 ## Depende de
-- Definiciones de SICSAFT CORE (contrato de API, tracing, modelo de Contrato/entitlements) para
-  reemplazar el mock por la implementación real — bloqueado, ver arriba.
+- CORE real sirviendo `GET /entitlements` sobre datos reales de Contrato (hoy es el mock de
+  `../core/`, ver [DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §7 — sin mapeo
+  operador→organización real todavía).
+- Definiciones de SICSAFT CORE (contrato de API para catálogo/inventarios, tracing) para
+  reemplazar el resto del mock — bloqueado, ver arriba.
 - Que exista un cliente OIDC real (WEB/APP QR) haciendo authorization code + PKCE contra Zitadel
   y pasándole el token al CIS — hoy `ZitadelAuthGuard` está probado con tokens firmados a mano en
   los tests, no contra un login de verdad de punta a punta (ver `../devops/local/README.md` §
   "Qué falta").
+- Auth servicio-a-servicio CIS→CORE — hoy `CORE_URL` no lleva ninguna credencial, cualquiera
+  dentro de la red de contenedores puede llamar a CORE directo (aceptable porque CORE no está
+  expuesto por Traefik, pero sigue siendo una decisión pendiente, ver `../core/README.md`).
 
 ## Bloquea
 - Nada — TASK-006/TASK-007 de APP QR ya tienen un mock real (con auth real) contra el cual

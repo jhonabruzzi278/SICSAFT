@@ -12,11 +12,13 @@ ver [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md). `cis/src/common
 tokens Zitadel reales (firma/JWKS, `iss`, `aud`, vencimiento) en los 4 endpoints del Conector QR
 mock — ya no está bloqueado por la pregunta de "qué mecanismo de auth" (una de las 4 preguntas
 abiertas del handoff de APP QR queda respondida a nivel de mecanismo). El modelo de dominio de
-`Contrato` ya está documentado —
-[`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md).
-Lo que sigue sin implementar: CORE (no existe todavía) sirviendo ese modelo, y con eso la
-validación real de `sedeId`/vigencia de contrato en el CIS (el token solo trae `sub`/identidad,
-no sede — ver ADR-002 §"Punto de validación").
+`Contrato` también está documentado **e implementado como mock**:
+[`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md) +
+`core/src/entitlements/` sirviendo `GET /entitlements`, ya consumido por CIS en `auth/session`
+(`cis/src/core-client/`). Lo que sigue sin resolver: `sedeId`/vigencia de contrato **real** (el
+mock de CORE no tiene datos reales de Base Patrimonial ni mapeo operador→organización — cualquier
+operador ve el mismo resultado hoy, ver DOC-004 §7) y auth servicio-a-servicio CIS→CORE (el token
+del operador solo trae `sub`/identidad, no sede — ver ADR-002 §"Punto de validación").
 
 ## Permisos previstos
 Consultar, crear, modificar, eliminar, autorizar, exportar, administrar, configurar — bajo
@@ -28,8 +30,9 @@ por área, auditoría de accesos, rate limiting, TLS, gestión de secretos, pol�
 contraseña, protección de APIs, logs de acceso.
 
 ## Depende de
-Que exista CORE (aunque sea un esqueleto) sirviendo el modelo de `Contrato` ya documentado
-(DOC-004) — sin eso, CIS no tiene de dónde resolver `sedeId`/vigencia real.
+Datos reales de Base Patrimonial y mapeo operador→organización (membership real de Zitadel) para
+que el mock de `GET /entitlements` deje de devolver el mismo resultado a cualquier operador — ver
+DOC-004 §7.
 
 ## Bloquea
 CIS (validar `sedeId`/contrato vigente en cada request — ver ADR-002), CORE (autorización), WEB
@@ -46,6 +49,6 @@ mínimos necesarios, segregación por organización/área validada en el CORE, n
 — ahora extendida a sede/contrato).
 
 ## Próximo paso sugerido
-Modelo de `Contrato` ya documentado (DOC-004) — el siguiente paso es un esqueleto mínimo de CORE
-que lo sirva (`GET /entitlements`, ver DOC-004 §6) para que CIS deje de usar el seed fijo en
-`auth/session`.
+El círculo mock CIS↔CORE↔`Contrato` ya está cerrado (DOC-004, `core/src/entitlements/`,
+`cis/src/core-client/`). El siguiente paso con valor real es auth servicio-a-servicio CIS→CORE —
+hoy `GET /entitlements` no valida quién lo llama.

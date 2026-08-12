@@ -11,6 +11,7 @@ describe('QrConnectorModule', () => {
       ...originalEnv,
       ZITADEL_ISSUER: 'http://id.sicsaft.localhost',
       ZITADEL_AUDIENCE: 'cis-api',
+      CORE_URL: 'http://core:3001',
     };
   });
 
