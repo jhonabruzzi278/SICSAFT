@@ -46,10 +46,12 @@ export class QrConnectorService {
     // ZitadelAuthGuard ya validó el token — el operador viene autenticado por Zitadel, no por
     // este metodo. `accessToken`/`expiresAt` son pass-through del mismo token (ver ADR-002: el
     // CIS valida, no emite uno propio).
-    // TODO(ADR-002/Contrato): `organizaciones` sigue siendo el seed fijo — falta resolver
-    // entitlements reales (Organización -> Contrato -> Sede) por `auth.operadorId` una vez
-    // exista el dominio de Contrato en Base Patrimonial. `deviceId` tampoco se enforced todavia
-    // (un solo dispositivo por operador, DOC-002 §1) — requiere persistencia que hoy no existe.
+    // TODO(base-patrimonial/DOC-004-modelo-contrato.md §6): `organizaciones` sigue siendo el
+    // seed fijo — falta resolver entitlements reales (Organización -> Contrato -> Sede) por
+    // `auth.operadorId` contra `GET /entitlements` de CORE, que todavia no existe. El modelo ya
+    // esta documentado, lo que falta es el esqueleto de CORE que lo sirva.
+    // `deviceId` tampoco se enforced todavia (un solo dispositivo por operador, DOC-002 §1) —
+    // requiere persistencia que hoy no existe.
     void request.deviceId;
 
     return {

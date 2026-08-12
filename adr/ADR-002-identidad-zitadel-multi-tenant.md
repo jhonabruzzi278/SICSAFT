@@ -69,8 +69,10 @@ un IdP SaaS es un cambio acotado porque ambos hablan OIDC estándar.
 - Nuevo servicio en `devops/`: Zitadel + su propia base de datos (Postgres dedicada, no compartida
   con la Base Patrimonial) en el `docker-compose` del VPS.
 - `seguridad/README.md` deja de estar bloqueado por la pregunta de mecanismo de auth — el
-  mecanismo es OIDC vía Zitadel; lo que sigue abierto es el modelo de Contrato en el dominio de
-  Base Patrimonial (a diseñar junto con `core/` y `base-patrimonial/`).
+  mecanismo es OIDC vía Zitadel; el modelo de Contrato en el dominio de Base Patrimonial ya está
+  documentado, ver
+  [`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md)
+  (entidades, estados, invariantes) — lo que sigue abierto es que CORE lo implemente.
 - CIS gana una responsabilidad nueva explícita: validar `sedeId`/contrato vigente en cada request,
   no solo `organizacionId` como decía el documento antes de este ADR.
 - Login flow: `sicsaft.cl` (landing, público, sin auth) → botón "Iniciar sesión" → redirect a
