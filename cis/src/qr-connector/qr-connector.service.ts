@@ -19,8 +19,7 @@ import {
   PostInventarioResponse,
 } from './qr-connector.types';
 import { SEED_CATALOGO, SEED_ORGANIZACIONES } from './qr-connector.seed';
-
-const MOCK_TOKEN_TTL_MS = 15 * 60 * 1000;
+import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
 
 interface InventarioRegistro {
   inventarioId: string;
@@ -40,15 +39,22 @@ export class QrConnectorService {
   >();
   private readonly inventariosPorId = new Map<string, InventarioRegistro>();
 
-  authSession(request: AuthSessionRequest): AuthSessionResponse {
-    // TODO(TASK-007 / ADR-002): reemplazar por validacion real contra Zitadel + vigencia de
-    // contrato por sede — hoy el mock no verifica `credencial` ni `deviceId`, solo los exige
-    // presentes (ver qr-connector.schemas.ts).
-    void request;
+  authSession(
+    request: AuthSessionRequest,
+    auth: ZitadelAuthContext,
+  ): AuthSessionResponse {
+    // ZitadelAuthGuard ya validó el token — el operador viene autenticado por Zitadel, no por
+    // este metodo. `accessToken`/`expiresAt` son pass-through del mismo token (ver ADR-002: el
+    // CIS valida, no emite uno propio).
+    // TODO(ADR-002/Contrato): `organizaciones` sigue siendo el seed fijo — falta resolver
+    // entitlements reales (Organización -> Contrato -> Sede) por `auth.operadorId` una vez
+    // exista el dominio de Contrato en Base Patrimonial. `deviceId` tampoco se enforced todavia
+    // (un solo dispositivo por operador, DOC-002 §1) — requiere persistencia que hoy no existe.
+    void request.deviceId;
 
     return {
-      accessToken: `mock-token-${randomUUID()}`,
-      expiresAt: new Date(Date.now() + MOCK_TOKEN_TTL_MS).toISOString(),
+      accessToken: auth.accessToken,
+      expiresAt: auth.expiresAt,
       organizaciones: SEED_ORGANIZACIONES as Organizacion[],
     };
   }

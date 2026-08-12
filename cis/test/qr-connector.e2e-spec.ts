@@ -2,7 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { SignJWT, generateKeyPair, type JWTVerifyGetKey } from 'jose';
 import { AppModule } from './../src/app.module';
+import { ZITADEL_JWKS } from './../src/common/auth/zitadel-auth.constants';
 import {
   AuthSessionResponse,
   CatalogoResponse,
@@ -10,13 +12,39 @@ import {
   PostInventarioResponse,
 } from './../src/qr-connector/qr-connector.types';
 
-describe('Conector QR mock (e2e) — DOC-002', () => {
+const ISSUER = 'http://id.sicsaft.localhost';
+const AUDIENCE = 'cis-api';
+
+describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002)', () => {
   let app: INestApplication<App>;
+  let bearerToken: string;
+
+  beforeAll(() => {
+    process.env.ZITADEL_ISSUER = ISSUER;
+    process.env.ZITADEL_AUDIENCE = AUDIENCE;
+  });
 
   beforeEach(async () => {
+    const { publicKey, privateKey } = await generateKeyPair('RS256');
+    bearerToken = await new SignJWT({})
+      .setProtectedHeader({ alg: 'RS256' })
+      .setSubject('op-1')
+      .setIssuer(ISSUER)
+      .setAudience(AUDIENCE)
+      .setExpirationTime('15m')
+      .sign(privateKey);
+
+    // Se reemplaza el JWKS remoto (createRemoteJWKSet contra un Zitadel real, ver
+    // zitadel-auth.module.ts) por la llave publica local — el e2e prueba el guard de punta a
+    // punta vía HTTP real sin depender de que haya un Zitadel corriendo.
+    const localJwks: JWTVerifyGetKey = () => Promise.resolve(publicKey);
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(ZITADEL_JWKS)
+      .useValue(localJwks)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
@@ -26,20 +54,29 @@ describe('Conector QR mock (e2e) — DOC-002', () => {
     await app.close();
   });
 
-  it('POST /auth/session devuelve token y organizaciones', async () => {
+  it('POST /auth/session sin Authorization devuelve 401', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/session')
+      .send({ deviceId: 'd-1' })
+      .expect(401);
+  });
+
+  it('POST /auth/session con token Zitadel valido devuelve el mismo token y organizaciones', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/session')
-      .send({ operadorId: 'op-1', credencial: 'x', deviceId: 'd-1' })
+      .set('Authorization', `Bearer ${bearerToken}`)
+      .send({ deviceId: 'd-1' })
       .expect(201);
 
     const body = res.body as AuthSessionResponse;
-    expect(body.accessToken).toContain('mock-token-');
+    expect(body.accessToken).toBe(bearerToken);
     expect(body.organizaciones[0].id).toBe('duoc-uc');
   });
 
   it('POST /auth/session con payload invalido devuelve 400 con errores', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/session')
+      .set('Authorization', `Bearer ${bearerToken}`)
       .send({})
       .expect(400);
 
@@ -47,9 +84,17 @@ describe('Conector QR mock (e2e) — DOC-002', () => {
     expect(body.errores.length).toBeGreaterThan(0);
   });
 
-  it('GET /catalogo filtra por organizacionId', async () => {
+  it('GET /catalogo sin Authorization devuelve 401', async () => {
+    await request(app.getHttpServer())
+      .get('/catalogo')
+      .query({ organizacionId: 'duoc-uc' })
+      .expect(401);
+  });
+
+  it('GET /catalogo filtra por organizacionId con token valido', async () => {
     const res = await request(app.getHttpServer())
       .get('/catalogo')
+      .set('Authorization', `Bearer ${bearerToken}`)
       .query({ organizacionId: 'duoc-uc' })
       .expect(200);
 
@@ -73,6 +118,7 @@ describe('Conector QR mock (e2e) — DOC-002', () => {
 
     const postRes = await request(app.getHttpServer())
       .post('/inventarios')
+      .set('Authorization', `Bearer ${bearerToken}`)
       .send(inventarioReq)
       .expect(201);
 
@@ -81,6 +127,7 @@ describe('Conector QR mock (e2e) — DOC-002', () => {
 
     const estadoRes = await request(app.getHttpServer())
       .get(`/inventarios/${postBody.inventarioId}/estado`)
+      .set('Authorization', `Bearer ${bearerToken}`)
       .expect(200);
 
     const estadoBody = estadoRes.body as InventarioEstadoResponse;
@@ -90,6 +137,7 @@ describe('Conector QR mock (e2e) — DOC-002', () => {
   it('POST /inventarios con organizacion inexistente devuelve 400', async () => {
     await request(app.getHttpServer())
       .post('/inventarios')
+      .set('Authorization', `Bearer ${bearerToken}`)
       .send({
         correlationId: 'c',
         idempotencyKey: 'k-invalida',
@@ -108,6 +156,14 @@ describe('Conector QR mock (e2e) — DOC-002', () => {
   it('GET /inventarios/:id/estado con id inexistente devuelve 404', async () => {
     await request(app.getHttpServer())
       .get('/inventarios/no-existe/estado')
+      .set('Authorization', `Bearer ${bearerToken}`)
       .expect(404);
+  });
+
+  it('GET /inventarios/:id/estado con token invalido devuelve 401', async () => {
+    await request(app.getHttpServer())
+      .get('/inventarios/no-existe/estado')
+      .set('Authorization', 'Bearer token-invalido')
+      .expect(401);
   });
 });

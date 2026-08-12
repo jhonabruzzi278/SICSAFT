@@ -94,6 +94,18 @@ services:
       dockerfile: Dockerfile
     environment:
       PORT: 3000
+      # `iss` del token lo pone Zitadel via ZITADEL_EXTERNALDOMAIN (arriba) — debe ser el mismo
+      # valor exacto para que jwtVerify() lo acepte.
+      ZITADEL_ISSUER: http://id.sicsaft.localhost
+      # No es == ZITADEL_ISSUER: ese dominio solo resuelve via el hosts file del HOST, no dentro
+      # de la red de contenedores — acá el CIS llega a Zitadel por nombre de servicio Docker.
+      ZITADEL_JWKS_URI: http://zitadel:8080/oauth/v2/keys
+      # Client ID (o Resource ID de proyecto) de la app OIDC creada en Zitadel para el CIS — ver
+      # devops/local/README.md "Qué falta" para cómo crearla. Sin esto el CIS no levanta
+      # (loadZitadelAuthConfig valida al arrancar, ver cis/src/common/auth/zitadel-auth.config.ts).
+      ZITADEL_AUDIENCE: ${CIS_ZITADEL_AUDIENCE}
     networks:
       - sicsaft
+    depends_on:
+      - zitadel
     restart: unless-stopped

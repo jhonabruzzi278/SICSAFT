@@ -63,8 +63,16 @@ conviene tener menos archivos que mantener a mano a medida que se agreguen más 
 como decisión abierta en `../README.md`.
 
 ## Qué falta antes de que esto sea útil de punta a punta
-- Configurar en Zitadel una aplicación OIDC de prueba y un cliente que la consuma (todavía no hay
-  código de CIS/WEB/APP QR contra el que probar el login real) — próximo paso una vez exista un
-  esqueleto de CIS en NestJS (ver [ADR-001](../../adr/ADR-001-stack-backend-nestjs.md)).
-- Este compose es la base compartida; CIS/CORE/WEB se agregan acá como servicios nuevos a medida
-  que tengan Dockerfile — no antes, para no mantener contenedores vacíos.
+- **Crear la aplicación OIDC del CIS en Zitadel** (el CIS ya valida tokens reales contra Zitadel,
+  ver `cis/README.md` § Conector QR — falta crear la app en el dashboard, no código):
+  1. Levantar el stack y entrar a `http://id.sicsaft.localhost`, login con
+     `ZITADEL_ADMIN_USERNAME`/`ZITADEL_ADMIN_PASSWORD`.
+  2. Crear una Organización de prueba (ej. "DUOC UC") si no existe — valida el modelo de
+     [ADR-002](../../adr/ADR-002-identidad-zitadel-multi-tenant.md).
+  3. Crear un Proyecto y una Aplicación API (u OIDC) dentro — copiar el Client ID (o el Resource
+     ID del proyecto) a `CIS_ZITADEL_AUDIENCE` en `.env`.
+  4. `docker compose up -d --build cis` para que tome la variable nueva.
+  - Sigue sin existir un cliente real (WEB/APP QR) que haga el flujo de login completo
+    (authorization code + PKCE) y le pase el token al CIS — eso es TASK-006/007 de APP QR.
+- Este compose es la base compartida; CORE/WEB se agregan acá como servicios nuevos a medida que
+  tengan Dockerfile — no antes, para no mantener contenedores vacíos.

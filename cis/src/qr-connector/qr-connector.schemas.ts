@@ -5,9 +5,11 @@ import { z } from 'zod';
 // (DOC-002 §3/§6, HANDOFF-APP-QR-SICSAFT.md §6) siguen sin respuesta; este contrato es el
 // punto de partida de la negociacion, no una API ya acordada con CORE.
 
+// `operadorId`/`credencial` ya no van acá: Zitadel autentica al operador (OIDC, ver ADR-002) y
+// el CIS recibe su identidad ya validada desde el access token (ZitadelAuthGuard), nunca desde
+// el body. `deviceId` se mantiene — es un dato propio del conector (un solo dispositivo por
+// operador, DOC-002 §1), no algo que Zitadel modele.
 export const authSessionRequestSchema = z.object({
-  operadorId: z.string().min(1),
-  credencial: z.string().min(1),
   deviceId: z.string().min(1),
 });
 export type AuthSessionRequest = z.infer<typeof authSessionRequestSchema>;

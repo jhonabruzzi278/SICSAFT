@@ -7,22 +7,40 @@ transacciones y despacho hacia el CORE. Ninguna fuente de captura debe hablarle 
 Base Patrimonial Central ni al CORE — todo pasa por acá.
 
 ## Estado
-🟡 Esqueleto NestJS + **mock del Conector QR** (contrato DOC-002 completo) probados de punta a
-punta: lint, unit, e2e, build, `docker build`/`docker run` real contra los 4 endpoints, y
-levantado dentro del stack local completo (`../devops/local/`, Traefik + Zitadel + CIS). Todavía
-sin autenticación real (los 4 endpoints no validan token — eso es OIDC/Zitadel, próximo paso) ni
-persistencia real (el mock guarda todo en memoria, se pierde al reiniciar el proceso).
+🟡 Esqueleto NestJS + **mock del Conector QR** (contrato DOC-002 completo) + **auth real vía
+Zitadel** (ADR-002): los 4 endpoints exigen `Authorization: Bearer <token>` y `ZitadelAuthGuard`
+valida firma/issuer/audience/vencimiento contra el JWKS de Zitadel — el CIS ya no acepta
+`operadorId`/`credencial` en el body, la identidad viene del token. Probado de punta a punta:
+lint, unit (100% stmts/lines/funcs), e2e, build. Todavía sin persistencia real (el mock guarda
+todo en memoria, se pierde al reiniciar el proceso) ni resolución real de entitlements
+(`organizaciones` sigue siendo el seed fijo — falta el dominio de Contrato en Base Patrimonial).
 
 ## Desarrollo local
 ```bash
 cd cis
 npm install
+export ZITADEL_ISSUER=http://id.sicsaft.localhost   # ver variables requeridas abajo
+export ZITADEL_AUDIENCE=<client-id-de-zitadel>
 npm run start:dev     # http://localhost:3000 y http://localhost:3000/health
 npm run lint
 npm run test:cov       # unit tests, ver nota de cobertura abajo
 npm run test:e2e
 npm run build
 ```
+(No hay un `.env`/dotenv loader todavía — `main.ts` lee `process.env` directo, igual que `PORT`.
+Corriendo dentro de `../devops/local/docker-compose.yml` estas variables ya vienen seteadas por
+el servicio `cis`, no hace falta exportarlas a mano.)
+
+**Variables de entorno requeridas** (ver `src/common/auth/zitadel-auth.config.ts` — el proceso no
+arranca sin ellas):
+- `ZITADEL_ISSUER`: el `iss` que Zitadel pone en el token (`ZITADEL_EXTERNALDOMAIN` del compose,
+  ej. `http://id.sicsaft.localhost`).
+- `ZITADEL_AUDIENCE`: Client ID / Resource ID de la app OIDC del CIS en Zitadel — se crea a mano
+  en el dashboard, ver `../devops/local/README.md` § "Qué falta".
+- `ZITADEL_JWKS_URI` (opcional, default `${ZITADEL_ISSUER}/oauth/v2/keys`): solo hace falta
+  sobreescribirla cuando la URL para *descargar* las llaves no es la misma que el `iss` — es el
+  caso de Docker Compose local, donde `id.sicsaft.localhost` solo resuelve vía el hosts file del
+  host, no dentro de la red de contenedores (ver `docker-compose.yml` de `devops/local/`).
 
 **Nota sobre `coverageThreshold.branches` (85%, no 100%)**: `emitDecoratorMetadata` de TypeScript
 emite un chequeo defensivo (`typeof X === "function" ? X : Object`) para cada tipo **importado
@@ -42,36 +60,49 @@ sí debe importarse como valor (se necesita en runtime para inyectarlo). `statem
 `lines` se mantienen en 100% — solo `branches` baja, y solo por esta razón estructural documentada,
 recalibrada con el número medido real cada vez que se agrega un módulo grande.
 
-## Conector QR — mock implementado (`src/qr-connector/`)
+## Conector QR — mock + auth real (`src/qr-connector/`, `src/common/auth/`)
 Contrato completo de
 [`../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md`](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md)
 implementado como mock en memoria (`QrConnectorService`), validado con Zod contra el request de
-cada operación (`qr-connector.schemas.ts`):
+cada operación (`qr-connector.schemas.ts`). Los 4 endpoints están detrás de `ZitadelAuthGuard`
+(`src/common/auth/zitadel-auth.guard.ts`) — sin `Authorization: Bearer <token>` válido, 401:
 
 ```
-POST /auth/session                          -> token mock + organizaciones semilla (DUOC UC / sede Melipilla)
+POST /auth/session                          -> valida el token, devuelve el mismo token (pass-through) + organizaciones semilla (DUOC UC / sede Melipilla)
 GET  /catalogo?organizacionId=&areaId=&ubicacionId=  -> catálogo semilla filtrado
 POST /inventarios                            -> idempotente por idempotencyKey (DOC-002 §4), 400 si la organización no existe, 409 si la key se reutiliza con payload distinto (DOC-002 §5)
 GET  /inventarios/{id}/estado                -> 404 si no existe
 ```
 
+**Auth (ADR-002)**: `operadorId`/`credencial` ya no van en el body de `auth/session` — Zitadel
+autentica al operador (OIDC, fuera del CIS) y el CIS solo valida el access token resultante
+(firma vía JWKS, `iss`, `aud`, vencimiento) y lee `operadorId` de su claim `sub`. El CIS no emite
+un token propio, hace pass-through del mismo token de Zitadel — coincide con ADR-002: "el punto
+de validación es el CIS, no el token" (el JWT no lleva `sedeId`, eso se resuelve en cada request
+contra un caché de entitlements que todavía no existe, ver más abajo).
+
 Datos semilla en `qr-connector.seed.ts`: una organización (`duoc-uc`) con una sola sede
 (`melipilla`) — ejemplo deliberado del caso de negocio de ADR-002 (contrato por sede, no por
-organización completa). Todavía **no** valida token/autenticación (401 de DOC-002 §5 no
-implementado — depende de OIDC/Zitadel) ni aplica Reglas patrimoniales (eso vive en CORE, fuera
-de alcance del conector, ver DOC-002 §1).
+organización completa). Todavía **no** resuelve entitlements reales (`organizaciones` sigue
+siendo el seed fijo, no depende de qué token llegó) ni aplica Reglas patrimoniales (eso vive en
+CORE, fuera de alcance del conector, ver DOC-002 §1).
 
-Mientras las 4 preguntas abiertas a SICSAFT CORE (auth real, contrato CIS existente,
-correlationId/tracing, semántica de idempotencia — ver handoff de APP QR) no tengan respuesta,
-este mock es lo que consume APP QR (TASK-006/007) en vez de la implementación real.
+Mientras las 4 preguntas abiertas a SICSAFT CORE (contrato CIS existente, correlationId/tracing,
+semántica de idempotencia, y ahora solo el modelo de Contrato — auth ya no es una de las 4, ver
+arriba) no tengan respuesta, este mock es lo que consume APP QR (TASK-006/007) en vez de la
+implementación real.
 
 ## Depende de
-- Definiciones de SICSAFT CORE (autenticación, contrato de API, tracing) para reemplazar el mock
-  por la implementación real — bloqueado, ver arriba.
-- Wiring de OIDC contra Zitadel (ADR-002) para el `401`/re-autenticación de DOC-002 §5.
+- Definiciones de SICSAFT CORE (contrato de API, tracing, modelo de Contrato/entitlements) para
+  reemplazar el mock por la implementación real — bloqueado, ver arriba.
+- Que exista un cliente OIDC real (WEB/APP QR) haciendo authorization code + PKCE contra Zitadel
+  y pasándole el token al CIS — hoy `ZitadelAuthGuard` está probado con tokens firmados a mano en
+  los tests, no contra un login de verdad de punta a punta (ver `../devops/local/README.md` §
+  "Qué falta").
 
 ## Bloquea
-- Nada — TASK-006/TASK-007 de APP QR ya tienen un mock real contra el cual apuntar.
+- Nada — TASK-006/TASK-007 de APP QR ya tienen un mock real (con auth real) contra el cual
+  apuntar.
 
 ## Documentos relacionados
 - DOC-002 (contrato Conector QR) — vive en el repo de APP QR QRVault por ahora.

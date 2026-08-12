@@ -5,6 +5,18 @@ import {
 } from '@nestjs/common';
 import { QrConnectorService } from './qr-connector.service';
 import { InventarioRequest } from './qr-connector.schemas';
+import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
+
+function buildAuthContext(
+  overrides: Partial<ZitadelAuthContext> = {},
+): ZitadelAuthContext {
+  return {
+    operadorId: 'op-1',
+    accessToken: 'zitadel-token',
+    expiresAt: '2026-08-12T10:15:00.000Z',
+    ...overrides,
+  };
+}
 
 function buildInventarioRequest(
   overrides: Partial<InventarioRequest> = {},
@@ -32,18 +44,15 @@ describe('QrConnectorService', () => {
   });
 
   describe('authSession', () => {
-    it('returns a mock token with the seeded organizaciones', () => {
-      const result = service.authSession({
-        operadorId: 'op-1',
-        credencial: 'x',
-        deviceId: 'd-1',
-      });
+    it('devuelve el mismo token del contexto de auth (pass-through) con las organizaciones seed', () => {
+      const auth = buildAuthContext();
+      const result = service.authSession({ deviceId: 'd-1' }, auth);
 
-      expect(result.accessToken).toContain('mock-token-');
+      expect(result.accessToken).toBe(auth.accessToken);
+      expect(result.expiresAt).toBe(auth.expiresAt);
       expect(result.organizaciones.some((org) => org.id === 'duoc-uc')).toBe(
         true,
       );
-      expect(Number.isNaN(Date.parse(result.expiresAt))).toBe(false);
     });
   });
 
