@@ -8,10 +8,12 @@ hace sobre esta base; ningún otro sistema puede reemplazarla. Solo SICSAFT CORE
 acá — ninguna fuente de captura (APP QR, WEB, RFID, ERP) accede directo.
 
 ## Estado
-🟡 Modelo de dominio de `Contrato` documentado (ver
-[DOC-004](DOC-004-modelo-contrato.md)) — desbloquea la resolución real de entitlements en CIS.
-El resto del dominio patrimonial (los 11 dominios de abajo) sigue sin modelar ni implementar, y
-no hay motor de base de datos elegido todavía.
+🟡 Modelo de dominio de `Contrato` documentado e implementado (ver
+[DOC-004](DOC-004-modelo-contrato.md)): tablas reales en Postgres
+(`../devops/local/postgres/init/schema/core.sql`), servidas por `core/` vía `GET /entitlements`
+— desbloquea la resolución real de entitlements en CIS. Motor de base de datos ya resuelto a
+nivel de ecosistema (PostgreSQL, [ADR-001](../adr/ADR-001-stack-backend-nestjs.md)). El resto del
+dominio patrimonial (los 11 dominios de abajo) sigue sin modelar ni implementar — DOC-005.
 
 ## Los 11 dominios oficiales (Tomo III §4.2–4.13)
 La Base Patrimonial Central es el dominio raíz; los otros 10 dominios conviven a su alrededor y

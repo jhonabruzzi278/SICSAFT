@@ -7,10 +7,11 @@
 > dominios de Base Patrimonial (Catálogo de Activos, Inventarios, Eventos, Historial, etc., ver
 > `base-patrimonial/README.md`) — eso queda para un DOC-005 posterior, en conjunto con CORE.
 >
-> **Estado**: propuesta de diseño, no implementada. No hay motor de base de datos elegido
-> todavía (`base-patrimonial/README.md` dice explícitamente "modelar el dominio antes de elegir
-> motor concreto") ni código en `core/` o `base-patrimonial/` — este documento es el paso previo
-> a ambos.
+> **Estado**: implementada. Tablas reales en Postgres
+> (`devops/local/postgres/init/schema/core.sql`, motor ya resuelto a nivel de ecosistema por
+> [ADR-001](../adr/ADR-001-stack-backend-nestjs.md)) servidas por `core/` vía `GET /entitlements`
+> (`core/src/entitlements/contrato.repository.ts`), consumidas por CIS. Sigue sin existir el resto
+> de los 11 dominios de Base Patrimonial.
 
 ## 1. Por qué existe esta entidad
 
@@ -153,18 +154,19 @@ código, ver `core/README.md`):
 ## 7. Lo que este documento NO resuelve (abierto, con dueño)
 
 - **Modelo de datos completo de Base Patrimonial** (los 11 dominios) — DOC-005, junto con CORE.
-- **Motor de base de datos concreto** para persistir `Contrato`/`Sede` — decisión posterior a
-  este modelo, per `base-patrimonial/README.md`.
-- **Contrato de API `GET /entitlements`** (paths, auth service-to-service CIS↔CORE, forma exacta
-  del evento de invalidación de caché) — DOC-006, requiere que CORE tenga aunque sea un
-  esqueleto.
+- **Evento de invalidación de caché de CIS** (`contrato.actualizado`, `contrato.vencido`, etc.) y
+  su mecanismo de entrega (webhook, cola) — DOC-006, no hay endpoint de escritura de `Contrato`
+  todavía que lo dispare.
+- **Contrato de API `GET /entitlements`** formalizado (paths, auth service-to-service CIS↔CORE)
+  — DOC-006, aunque la implementación real ya existe.
 - **Reconciliación formal de `Sede` con el dominio "Ubicaciones"** existente — ver nota §2.
 - **Quién crea/edita un Contrato** (¿un panel admin en WEB? ¿API directa?) — depende de que WEB
-  exista.
+  exista. Hoy la tabla `contratos` solo se lee, no hay ruta de escritura.
 
 ## Depende de
-Nada técnicamente para el diseño (este documento no depende de código existente), pero
-**bloquea** su implementación real: no hay CORE ni motor de BD elegido — ver §7.
+Nada técnicamente para el diseño (este documento no depende de código existente). Ya implementado
+sobre Postgres (`devops/local/postgres/init/schema/core.sql`, `core/src/entitlements/`) — ver §7
+para lo que sigue abierto.
 
 ## Bloquea
 - El `TODO(ADR-002/Contrato)` en `cis/src/qr-connector/qr-connector.service.ts` (resolución real
@@ -182,7 +184,7 @@ Nada técnicamente para el diseño (este documento no depende de código existen
   modelo debe poder producir sin romper el contrato ya construido.
 
 ## Próximo paso sugerido
-Validar este modelo con quien defina CORE (aunque sea informalmente, no requiere código) antes de
-elegir motor de BD. Una vez validado: DOC-005 (resto del dominio patrimonial) y un esqueleto
-mínimo de CORE que sirva `GET /entitlements` — desbloquea reemplazar `SEED_ORGANIZACIONES` en CIS
-por datos reales.
+Ya implementado: `GET /entitlements` sirve `Contrato`/`Sede`/`Organizacion` reales desde Postgres
+(`core/src/entitlements/contrato.repository.ts`) y CIS ya lo consume. Lo que sigue es DOC-005
+(resto del dominio patrimonial) y el primer motor real de CORE (Motor Patrimonial) sobre esas
+tablas.

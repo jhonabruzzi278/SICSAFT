@@ -31,11 +31,13 @@ describe('EntitlementsController', () => {
     service = module.get(EntitlementsService);
   });
 
-  it('getEntitlements delega en el service con operadorId', () => {
+  it('getEntitlements delega en el service con operadorId', async () => {
     const expected: EntitlementsResponse = { organizaciones: [] };
-    service.resolve.mockReturnValue(expected);
+    service.resolve.mockResolvedValue(expected);
 
-    expect(controller.getEntitlements({ operadorId: 'op-1' })).toBe(expected);
+    await expect(
+      controller.getEntitlements({ operadorId: 'op-1' }),
+    ).resolves.toBe(expected);
     expect(service.resolve).toHaveBeenCalledWith('op-1');
   });
 });

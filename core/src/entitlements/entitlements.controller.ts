@@ -17,7 +17,9 @@ export class EntitlementsController {
 
   @Get('entitlements')
   @UsePipes(new ZodValidationPipe(entitlementsQuerySchema))
-  getEntitlements(@Query() query: EntitlementsQuery): EntitlementsResponse {
+  getEntitlements(
+    @Query() query: EntitlementsQuery,
+  ): Promise<EntitlementsResponse> {
     return this.entitlementsService.resolve(query.operadorId);
   }
 }

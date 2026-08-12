@@ -1,22 +1,22 @@
 import { Injectable } from '@nestjs/common';
+import { ContratoRepository } from './contrato.repository';
 import type { Contrato } from './contrato.types';
-import { SEED_CONTRATOS } from './contrato.seed';
 import type { EntitlementsResponse, Organizacion } from './entitlements.types';
 
 @Injectable()
 export class EntitlementsService {
+  constructor(private readonly contratoRepository: ContratoRepository) {}
+
   // TODO(DOC-004 §7): sin mapeo operador->organizacion todavia (requiere membership real de
-  // Zitadel, que este mock no consume) — cualquier operadorId ve las mismas organizaciones con
-  // contrato vigente. `operadorId` se recibe y valida igual porque el contrato de la API ya lo
-  // exige (ver core/README.md); queda listo para filtrar en cuanto exista esa fuente de datos.
-  resolve(
+  // Zitadel) — cualquier operadorId ve las mismas organizaciones con contrato vigente.
+  // `operadorId` se recibe y valida igual porque el contrato de la API ya lo exige (ver
+  // core/README.md), queda listo para filtrar en cuanto exista esa fuente de datos.
+  async resolve(
     operadorId: string,
     ahora: Date = new Date(),
-    // Seam de testabilidad: permite ejercitar esVigente() con datos que el seed real no cubre
-    // (suspendido, cancelado, vencido) sin tocar el DI de Nest — el controller nunca pasa este
-    // tercer argumento, siempre usa SEED_CONTRATOS en producción.
-    contratos: readonly Contrato[] = SEED_CONTRATOS,
-  ): EntitlementsResponse {
+  ): Promise<EntitlementsResponse> {
+    const contratos = await this.contratoRepository.findAll();
+
     const organizaciones: Organizacion[] = contratos
       .filter((contrato) => this.esVigente(contrato, ahora))
       .filter((contrato) =>
@@ -33,8 +33,8 @@ export class EntitlementsService {
 
   private esVigente(contrato: Contrato, ahora: Date): boolean {
     // El campo `estado` manda para suspendido/cancelado/vencido-guardado — pero tambien se
-    // verifica la fecha para el caso "vencido por tiempo" que este mock nunca escribe de vuelta
-    // al campo (no hay cron, ver contrato.types.ts).
+    // verifica la fecha para el caso "vencido por tiempo" que nada escribe de vuelta al campo
+    // (no hay cron, ver contrato.types.ts).
     if (contrato.estado !== 'vigente') {
       return false;
     }

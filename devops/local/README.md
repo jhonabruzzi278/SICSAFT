@@ -80,5 +80,10 @@ como decisión abierta en `../README.md`.
   real ya consumido por `cis`, sin router de Traefik a propósito — solo lo consume `cis` dentro
   de la red, ver `core/README.md`). Protegido con `CORE_SERVICE_TOKEN` (auth
   servicio-a-servicio) — sin ese secreto en `.env`, ni `cis` ni `core` arrancan.
+- **`GET /entitlements` ya lee de Postgres real**, no de un seed en memoria: el servicio
+  `postgres` de este compose crea una base `core` dedicada (`init/02-core.sh` +
+  `init/schema/core.sql`, mismo modelo de `base-patrimonial/DOC-004-modelo-contrato.md`) con el
+  caso DUOC UC/Melipilla precargado. `CORE_DB_USER`/`CORE_DB_PASSWORD` en `.env` — sin ellos,
+  `core` no arranca (ver `core/src/database/database.config.ts`).
 - Este compose es la base compartida; WEB se agrega acá como servicio nuevo cuando tenga
   Dockerfile — no antes, para no mantener contenedores vacíos.

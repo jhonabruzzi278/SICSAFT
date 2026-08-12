@@ -7,12 +7,14 @@ coordina, controla y supervisa todo el ciclo de vida de los Activos Fijos Tangib
 aplicaciones y sistemas externos interactúan con el patrimonio exclusivamente a través del CORE.
 
 ## Estado
-🟡 Esqueleto NestJS (mismo patrón que `../cis/`) + **mock de `GET /entitlements`**
+🟡 Esqueleto NestJS (mismo patrón que `../cis/`) + **`GET /entitlements` real sobre Postgres**
 ([DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §6): resuelve el modelo de `Contrato`
-sobre un seed en memoria (mismo caso DUOC UC/Melipilla que ya usa CIS), con la máquina de estados
-y el invariante "una sede, un contrato vigente" de DOC-004 §3/§4 implementados y testeados. Todo
-probado con lint, unit (100% stmts/lines/funcs, branches sobre el umbral del proyecto), e2e,
-build y `docker build`/`docker run` real — corre como servicio `core` en
+contra una base `core` dedicada (`../devops/local/postgres/init/schema/core.sql`, mismo caso DUOC
+UC/Melipilla que ya usa CIS), con la máquina de estados y el invariante "una sede, un contrato
+vigente" de DOC-004 §3/§4 implementados, validados en `ContratoRepository` al leer (no solo en el
+seed de tests, ver `src/entitlements/contrato.seed.ts`) y testeados. Todo probado con lint, unit
+(100% stmts/lines/funcs, branches sobre el umbral del proyecto), e2e contra Postgres real, build y
+`docker build`/`docker run` real conectado a esa base — corre como servicio `core` en
 `../devops/local/docker-compose.yml`, sin ruta de Traefik a propósito (solo lo consume CIS dentro
 de la red de contenedores, nunca un navegador directo).
 
@@ -23,16 +25,24 @@ de la red de contenedores, nunca un navegador directo).
 constante para evitar timing attacks) — sin el header correcto, 401. Verificado con conectividad
 real entre contenedores `cis`↔`core` (`docker network` + `docker exec`, probando los 3 casos: sin
 header, header correcto, header incorrecto), no solo con mocks. Todavía sin ningún otro motor
-implementado (Patrimonial, Reglas, Eventos, Auditoría, Alertas...) ni persistencia real.
+implementado (Patrimonial, Reglas, Eventos, Auditoría, Alertas...) ni el resto de los 11 dominios
+de Base Patrimonial — solo `Contrato`/`Sede`/`Organizacion` tienen tabla real hoy.
 
 ## Desarrollo local
+Requiere una base `core` real con el esquema de
+[`devops/local/postgres/init/schema/core.sql`](../devops/local/postgres/init/schema/core.sql)
+aplicado — más simple: levantar `docker compose up -d postgres` desde `../devops/local`, que la
+crea sola (ver `devops/local/README.md`). `test:e2e` (y `start:dev`) leen la conexión de
+`CORE_DB_HOST`/`CORE_DB_PORT`/`CORE_DB_NAME`/`CORE_DB_USER`/`CORE_DB_PASSWORD` — ver
+`src/database/database.config.ts` y los defaults de `test/jest-e2e.setup.ts` (apuntan a
+`localhost:5432`, que el compose ya expone al host).
 ```bash
 cd core
 npm install
 npm run start:dev     # http://localhost:3001 y http://localhost:3001/health
 npm run lint
 npm run test:cov
-npm run test:e2e
+npm run test:e2e      # requiere la base `core` real, ver arriba
 npm run build
 ```
 Puerto por defecto `3001` (no `3000`) para poder correr `cis` y `core` en paralelo fuera de

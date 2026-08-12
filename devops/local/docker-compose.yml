@@ -35,6 +35,13 @@ services:
       POSTGRES_DB: postgres
       ZITADEL_DB_USER: ${ZITADEL_DB_USER}
       ZITADEL_DB_PASSWORD: ${ZITADEL_DB_PASSWORD}
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+    ports:
+      # Expuesto al host solo para poder correr `npm run test:e2e`/desarrollo local de `core`
+      # fuera de Docker contra la base real — no es necesario para que cis/core (dentro de la red
+      # `sicsaft`) se conecten entre si.
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
@@ -128,8 +135,20 @@ services:
       # en cada request (ver core/src/common/auth/service-token.guard.ts), no confia en la red
       # por si sola.
       CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      # Base de datos real de Base Patrimonial (modelo de Contrato, DOC-004) — reemplaza el seed
+      # en memoria que usaba antes EntitlementsService. Base/usuario dedicados dentro del mismo
+      # postgres compartido (ver servicio `postgres` arriba y su init/02-core.sh), nunca la base
+      # `zitadel`.
+      CORE_DB_HOST: postgres
+      CORE_DB_PORT: 5432
+      CORE_DB_NAME: core
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
     networks:
       - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     # Sin router en traefik/dynamic.yml a propósito: CORE solo lo consume CIS dentro de la red
     # de contenedores (ver README raíz — "todo pasa por CIS → CORE"), nunca un navegador

@@ -1,12 +1,12 @@
 import type { Sede } from './entitlements.types';
 
-// Modelo de base-patrimonial/DOC-004-modelo-contrato.md §2/§3. Este mock no persiste nada — vive
-// en memoria hasta que exista Base Patrimonial real (ver DOC-004 "Estado").
+// Modelo de base-patrimonial/DOC-004-modelo-contrato.md §2/§3, persistido en Postgres (ver
+// devops/local/postgres/init/schema/core.sql y ContratoRepository).
 
-// `vencido` puede venir guardado en datos reales migrados, pero en este mock nunca se escribe —
-// el vencimiento se deriva en runtime comparando fechas (ver EntitlementsService), porque no hay
-// cron que actualice el campo. Solo `vigente`/`suspendido`/`cancelado` son transiciones manuales
-// reales acá.
+// `vencido` puede venir guardado si algun proceso lo escribe, pero hoy nada lo hace — el
+// vencimiento se deriva en runtime comparando fechas (ver EntitlementsService), porque no hay
+// cron que actualice la columna `estado`. Solo `vigente`/`suspendido`/`cancelado` son
+// transiciones manuales reales acá.
 export type EstadoContrato = 'vigente' | 'suspendido' | 'vencido' | 'cancelado';
 
 // Vocabulario controlado de DOC-004 §5 — hoy solo existe un modulo real.

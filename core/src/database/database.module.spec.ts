@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AppModule } from './app.module';
-import { AppController } from './app.controller';
+import { Pool } from 'pg';
+import { DatabaseModule } from './database.module';
+import { PG_POOL } from './database.constants';
 
-describe('AppModule', () => {
+describe('DatabaseModule', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
     process.env = {
       ...originalEnv,
-      CORE_SERVICE_TOKEN: 'secreto-compartido',
       CORE_DB_HOST: 'postgres',
       CORE_DB_PORT: '5432',
       CORE_DB_NAME: 'core',
@@ -21,12 +21,12 @@ describe('AppModule', () => {
     process.env = originalEnv;
   });
 
-  it('wires AppController with its dependencies', async () => {
+  it('provee un Pool de pg configurado desde el env', async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [DatabaseModule],
     }).compile();
 
-    expect(module.get(AppController)).toBeInstanceOf(AppController);
+    expect(module.get(PG_POOL)).toBeInstanceOf(Pool);
 
     await module.close();
   });

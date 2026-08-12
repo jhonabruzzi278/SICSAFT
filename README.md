@@ -23,8 +23,8 @@ Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
 |---|---|---|---|
 | SYS-01 | [`app-qr-sicsaft/`](app-qr-sicsaft) | APP QR SICSAFT (captura vía QR) | 🟢 En desarrollo activo — ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` |
 | SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🟡 Esqueleto NestJS + mock del Conector QR (DOC-002), auth real via Zitadel (ADR-002) y entitlements reales desde CORE con auth servicio-a-servicio (DOC-004) |
-| SYS-03 | [`core/`](core) | SICSAFT CORE | 🟡 Esqueleto NestJS + mock `GET /entitlements` (DOC-004) protegido por secreto compartido, ya consumido por CIS — ningún motor implementado |
-| SYS-04 | [`base-patrimonial/`](base-patrimonial) | Base Patrimonial Central | 🟡 Modelo de `Contrato` documentado (DOC-004) — resto del dominio y motor de BD sin definir |
+| SYS-03 | [`core/`](core) | SICSAFT CORE | 🟡 Esqueleto NestJS + `GET /entitlements` (DOC-004) real sobre Postgres, protegido por secreto compartido, ya consumido por CIS — ningún motor implementado |
+| SYS-04 | [`base-patrimonial/`](base-patrimonial) | Base Patrimonial Central | 🟡 Modelo de `Contrato` documentado e implementado en Postgres (DOC-004) — resto de los 11 dominios sin definir |
 | SYS-05 | [`web/`](web) | Portal WEB SICSAFT | 🔲 No iniciado |
 | SYS-06 | [`cip/`](cip) | Centro de Inteligencia Patrimonial | 🔲 No iniciado |
 | SYS-07 | [`rfid/`](rfid) | RFID SICSAFT | 🔲 No iniciado (fase tardía) |
@@ -58,13 +58,16 @@ usuarios reales en mente. Su identificador técnico interno (`package.json` → 
 (DOC-002) corriendo detrás de autenticación real vía Zitadel (ADR-002) — lint, unit, e2e, build y
 `docker build`/`docker run` verificados. **CORE** (`core/`) tiene el mismo esqueleto base (`GET
 /`, `GET /health`) más `GET /entitlements`, que resuelve el modelo de `Contrato`
-([DOC-004](base-patrimonial/DOC-004-modelo-contrato.md)) sobre un seed en memoria — corre como
-servicio interno en el compose local, sin ruta de Traefik (solo lo consume CIS). **El círculo
-CIS↔CORE ya está cerrado y protegido**: `auth/session` llama a `GET /entitlements` de verdad
+([DOC-004](base-patrimonial/DOC-004-modelo-contrato.md)) sobre una base Postgres real dedicada
+(`devops/local/postgres/init/schema/core.sql`, ya no un seed en memoria) — corre como servicio
+interno en el compose local, sin ruta de Traefik (solo lo consume CIS). **El círculo CIS↔CORE ya
+está cerrado y protegido**: `auth/session` llama a `GET /entitlements` de verdad
 (`cis/src/core-client/`) con un secreto compartido (`CORE_SERVICE_TOKEN`) que CORE valida en
 tiempo constante — sin ese header, 401. Conectividad entre contenedores verificada de forma real
-(no solo tests), incluidos los 3 casos del secreto. Lo que sigue faltando: un cliente OIDC real
-(WEB/APP QR) que reemplace los tokens firmados a mano de los tests de CIS.
+(no solo tests), incluidos los 3 casos del secreto y una corrida real de `docker build`/`docker
+run` de CORE contra el Postgres del compose. Lo que sigue faltando: un cliente OIDC real (WEB/APP
+QR) que reemplace los tokens firmados a mano de los tests de CIS, y el resto de los 11 dominios de
+Base Patrimonial (hoy solo `Contrato`/`Sede`/`Organizacion` tienen tabla real).
 
 Backlog completo y contexto de negocio de APP QR: `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md`.
 
@@ -75,15 +78,17 @@ Backlog completo y contexto de negocio de APP QR: `app-qr-sicsaft/HANDOFF-APP-QR
    (sincronización real con CORE), bloqueada hasta que CORE responda las preguntas abiertas del
    handoff.
 2. Modelo de dominio compartido entre `core/` y `base-patrimonial/` — Trello `CORE-ADR-001` /
-   `BASE-DOC-001` — **`Contrato` hecho** ([DOC-004](base-patrimonial/DOC-004-modelo-contrato.md)),
-   el resto de los 11 dominios de Base Patrimonial sigue pendiente.
+   `BASE-DOC-001` — **`Contrato` hecho, incluida la tabla real en Postgres**
+   ([DOC-004](base-patrimonial/DOC-004-modelo-contrato.md)), el resto de los 11 dominios de Base
+   Patrimonial sigue pendiente (DOC-005).
 3. `cis/` con el conector QR mockeado — Trello `CIS-ADR-001` — **hecho**, incluye auth real
    contra Zitadel (ADR-002). `core/` tiene su esqueleto básico y `GET /entitlements` (DOC-004 §6)
-   — **hecho**. CIS ya lo consume vía `CoreClientService`, con auth servicio-a-servicio
-   (secreto compartido) — **hecho**.
+   sobre Postgres real — **hecho**. CIS ya lo consume vía `CoreClientService`, con auth
+   servicio-a-servicio (secreto compartido) — **hecho**.
 4. `seguridad/`: mecanismo de identidad (Zitadel/OIDC), modelo de `Contrato` (DOC-004) y auth
    servicio-a-servicio CIS→CORE ya resueltos e implementados. Lo que sigue abierto es que CORE
-   tenga motores reales sobre datos reales de Base Patrimonial.
+   tenga motores reales (Patrimonial, Reglas, Eventos...) sobre el resto del dominio de Base
+   Patrimonial (DOC-005), que todavía no tiene tabla ni modelo.
 5. `web/` y `cip/` una vez CORE tenga un MVP de inventarios.
 6. `rfid/` e `integraciones/` quedan para fases posteriores.
 7. `devops/` se diseña recién cuando cada sistema tenga su ADR de stack — usa
