@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { PackageIcon, HistoryIcon, ScanLineIcon } from 'lucide-react';
+import { PackageIcon, HistoryIcon, ScanLineIcon, LogOutIcon } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { oidcClient } from '@/lib/oidc/oidc-client';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Escanear', icon: ScanLineIcon, end: true },
@@ -25,8 +26,20 @@ const NAV_ITEMS = [
   { to: '/catalog', label: 'Catálogo', icon: PackageIcon, end: true },
 ];
 
+function handleLogout() {
+  oidcClient.logout();
+  // Reload completo (no navigate de react-router) — resetea todo el estado de ScanPage
+  // (organización/área/ubicación/vista elegidas), no solo la ruta, mismo criterio que un logout
+  // real en vez de solo "volver al inicio".
+  window.location.assign('/');
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
+  // useLocation() re-renderiza este componente en cada navegación — incluida la que dispara
+  // AuthCallbackPage al terminar el login — así que isAuthenticated() se re-evalúa en el momento
+  // correcto sin necesitar un context de auth propio.
   const { pathname } = useLocation();
+  const isAuthenticated = oidcClient.isAuthenticated();
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -60,6 +73,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           </SidebarContent>
           <SidebarFooter>
             <SidebarMenu>
+              {isAuthenticated && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={handleLogout} tooltip="Cerrar sesión" data-testid="logout-btn">
+                    <LogOutIcon />
+                    <span>Cerrar sesión</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <ThemeToggle />
               </SidebarMenuItem>

@@ -31,7 +31,7 @@ import { submitInventario } from '@/lib/sync-queue';
 import { resolveScannedProduct } from '@/lib/scan-resolve';
 import { triggerScanFeedback } from '@/lib/scan-feedback';
 import { downloadCsv } from '@/lib/csv-export';
-import { oidcClient } from '@/lib/oidc/oidc-client';
+import { oidcClient, AuthenticationRequiredError } from '@/lib/oidc/oidc-client';
 import { getOrCreateDeviceId } from '@/lib/device-id';
 import { logAuditEvent } from '@/lib/audit-log';
 import type { Organization, OrgArea, OrgLocation } from '@/lib/organizations-data';
@@ -48,6 +48,7 @@ export function ScanPage() {
   const [startingScan, setStartingScan] = useState(false);
   const [operatorName, setOperatorName] = useState<string | null>(null);
   const [organizations, setOrganizations] = useState<OrganizacionSummary[]>([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [area, setArea] = useState<OrgArea | null>(null);
   const [location, setLocation] = useState<OrgLocation | null>(null);
@@ -75,9 +76,13 @@ export function ScanPage() {
         setOrganizations(result.organizaciones);
         setView('organization');
       })
-      .catch(() => {
-        // Token vencido sin refresh posible (AuthenticationRequiredError) u otra falla real —
-        // oidcClient.getValidAccessToken() ya limpió la sesión, se queda en la pantalla de login.
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        // Token vencido sin refresh posible u otra falla real — oidcClient.getValidAccessToken()
+        // ya limpió la sesión, se queda en la pantalla de login (view ya arranca en 'operator').
+        if (!(err instanceof AuthenticationRequiredError)) {
+          toast.error('No se pudo iniciar sesión. Intentá de nuevo.');
+        }
       });
 
     return () => {
@@ -86,6 +91,7 @@ export function ScanPage() {
   }, []);
 
   async function handleOrganizationSelect(summary: OrganizacionSummary) {
+    setLoadingCatalog(true);
     try {
       // CIS no tiene un endpoint propio para listar áreas/ubicaciones (decisión confirmada) — se
       // trae el catálogo completo de la organización una sola vez acá y se deriva el árbol que
@@ -96,8 +102,15 @@ export function ScanPage() {
       setArea(null);
       setLocation(null);
       setView('area-location');
-    } catch {
-      toast.error('No se pudo cargar el catálogo de la organización. Intentá de nuevo.');
+    } catch (err) {
+      if (err instanceof AuthenticationRequiredError) {
+        toast.error('Tu sesión venció. Iniciá sesión de nuevo.');
+        setView('operator');
+      } else {
+        toast.error('No se pudo cargar el catálogo de la organización. Intentá de nuevo.');
+      }
+    } finally {
+      setLoadingCatalog(false);
     }
   }
 
@@ -353,7 +366,13 @@ export function ScanPage() {
   }
 
   if (view === 'organization') {
-    return <OrganizationPicker organizations={organizations} onSelect={handleOrganizationSelect} />;
+    return (
+      <OrganizationPicker
+        organizations={organizations}
+        onSelect={handleOrganizationSelect}
+        disabled={loadingCatalog}
+      />
+    );
   }
 
   if (view === 'area-location' && organization) {

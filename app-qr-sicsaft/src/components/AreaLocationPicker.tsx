@@ -40,7 +40,13 @@ export function AreaLocationPicker({ organization, onContinue }: AreaLocationPic
         <CardDescription>{organization.name}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <Select onValueChange={handleAreaChange}>
+        {organization.areas.length === 0 && (
+          <p className="text-sm text-muted-foreground" data-testid="no-areas-message">
+            Esta organización todavía no tiene catálogo cargado en CORE — no hay áreas para
+            elegir.
+          </p>
+        )}
+        <Select onValueChange={handleAreaChange} disabled={organization.areas.length === 0}>
           <SelectTrigger data-testid="area-select" className="w-full">
             <SelectValue placeholder="Elegí un área" />
           </SelectTrigger>
