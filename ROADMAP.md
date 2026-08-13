@@ -1,0 +1,303 @@
+# Roadmap de implementación — partes faltantes del ecosistema SICSAFT
+
+> Plan de fases para lo que falta construir, ordenado por dependencia real (verificada en
+> código, no solo en READMEs) y no por documento. Complementa [README.md](README.md) (estado
+> actual por sistema) y [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md) (marco de cómo construir cada
+> pieza). Generado a partir de una auditoría del código real de `cis/src/` y `core/src/`, no solo
+> de la documentación — ver "Estado verificado" abajo.
+
+## Estado verificado (código, no solo README)
+
+Lo que **sí** existe hoy:
+- `core/src/entitlements/` — único módulo de negocio de CORE: `GET /entitlements` sobre Postgres
+  real (`contrato.repository.ts`), protegido por `ServiceTokenGuard`.
+- `cis/src/` — `ZitadelAuthGuard` real, `CoreClientService` con validación Zod y manejo de 502, y
+  `QrConnectorService` con **catálogo e inventarios todavía en memoria** (`Map` +
+  `SEED_CATALOGO`/`SEED_ORGANIZACIONES`).
+- `devops/local/postgres/init/schema/core.sql` — solo 4 tablas: `organizaciones`, `sedes`,
+  `contratos`, `contrato_sedes`. Cero tablas patrimoniales.
+- CI: solo `cis-ci.yml` y `core-ci.yml`.
+
+Brechas confirmadas en código, no solo declaradas en docs:
+
+1. **CORE no tiene ningún camino de escritura.** No hay `POST` de nada, ni tabla de activos. Los
+   9 motores de `core/README.md` están en cero.
+2. **La idempotencia vive en el lugar equivocado**: `hashRequest`/`inventariosPorIdempotencyKey`
+   están en CIS (memoria de proceso), cuando DOC-002 §4 dice que es CORE quien no debe duplicar.
+   Con CIS multi-instancia (WAF §4 "multi-instancia sin estado en memoria") esto se rompe hoy.
+3. **No hay herramienta de migraciones.** El esquema es un `init/*.sql` que solo corre en base
+   vacía, y el seed DUOC UC está duplicado a mano en tres lugares (SQL, `contrato.seed.ts`,
+   `qr-connector.seed.ts`) con un comentario que dice "mantener sincronizado a mano".
+4. **`GET /entitlements` ignora la organización del operador**: devuelve lo mismo para cualquier
+   `operadorId` (DOC-004 §7). No hay mapeo operador→organización de Zitadel.
+5. **No existe ningún cliente OIDC real**: la app de Zitadel ni siquiera está creada en el
+   dashboard (`devops/local/README.md` § "Qué falta"). Todo el auth está probado con tokens
+   firmados a mano.
+6. **DOC-006 (API CIS↔CORE) no existe**, y es literalmente lo que bloquea TASK-007 de APP QR.
+7. **Administrador Patrimonial** y **CON-CONTABILIDAD**: sin rol, sin endpoint, sin conector — y
+   son las dos únicas entradas que Tomo III §1.4 autoriza a poblar/modificar la Base Oficial. Hoy
+   no hay *ninguna* forma legítima de meter un activo real al sistema.
+8. WEB, CIP, RFID, Integraciones: carpetas placeholder. DevOps: producción sin arrancar.
+
+## Principio de ordenamiento
+
+El cuello de botella real no es la cantidad de sistemas, es que **la Base Patrimonial está vacía
+y no hay forma de llenarla**. Todo lo demás (motores, WEB, CIP, TASK-007) depende de eso. Las
+fases están ordenadas para que cada una entregue algo verificable de punta a punta, no para
+completar documentos.
+
+## Fase 0 — Fundaciones que hay que pagar antes de crecer el dominio
+
+**Por qué primero**: agregar 10 dominios sobre un `init.sql` sin migraciones y con seeds
+triplicados a mano multiplica la deuda por 10. Es la fase más barata y la que más riesgo saca.
+
+**Qué se construye**
+1. Herramienta de migraciones en `core/` (node-pg-migrate o el runner de TypeORM/Drizzle según lo
+   que decida un ADR corto; ADR-001 fijó Postgres pero no el mecanismo de esquema). El `core.sql`
+   actual se convierte en la migración `0001`.
+2. Fuente única del seed de desarrollo: eliminar la duplicación entre `core.sql`,
+   `contrato.seed.ts` y `qr-connector.seed.ts`.
+3. `correlationId` transversal: middleware en CIS y CORE que acepte/genere `X-Correlation-Id`, lo
+   propague en `CoreClientService` y lo incluya en todo log estructurado (WAF §2).
+4. Cliente OIDC real: crear la app en Zitadel, mapeo operador→organización (`org_id` del token
+   usado de verdad en `GET /entitlements`), flujo authorization code + PKCE probado end-to-end
+   desde APP QR contra el stack local.
+
+**Sigue**: ADR-001, ADR-002, DOC-004 §7, `devops/local/README.md` § "Qué falta", WAF §2/§3.
+
+**Done**: migración corre limpia en compose local y en ambos CI; `GET /entitlements` devuelve
+resultados *distintos* para operadores de organizaciones distintas (test e2e); un login real de
+navegador produce un token que CIS acepta sin tokens firmados a mano; README de `core/`,
+`seguridad/` y `devops/local/` actualizados en el mismo commit.
+
+## Fase 1 — DOC-005: modelo de dominio patrimonial mínimo viable
+
+**Por qué acá**: es la dependencia dura de todo motor, de WEB, de CIP y del rol Administrador
+Patrimonial.
+
+**Qué se construye**
+- **DOC-005** en `base-patrimonial/`, mismo formato que DOC-004 (entidades, estados,
+  invariantes, cómo lo consume CIS/CORE, qué NO resuelve), citando Tomo III §4.2–4.15.
+- Alcance **recortado a lo que el flujo QR necesita**, no los 11 dominios completos: `Área`,
+  `Ubicación` (reconciliando `Sede` con la jerarquía Sede→Edificio→Piso→Oficina, deuda explícita
+  de DOC-004 §2), `Responsable`, `Catálogo de Activos`, `Activo` (Base Patrimonial Central),
+  `Inventario`, `Evento`, `Historial`, `Auditoría`.
+- **Fuera de alcance deliberado**: `Configuración` e `Integraciones` (no hay integraciones aún),
+  Gestión Documental, campos de Zona RFID/coordenadas (Etapa 2+) — se reservan sin implementar,
+  igual que DOC-004 §5 reservó `inventario-rfid`.
+- Migraciones + índices por patrón real de consulta (WAF §5), no "todo indexado".
+
+**Done**: DOC-005 mergeado; migraciones aplicadas; datos de prueba realistas cargados por
+migración de seed; `base-patrimonial/README.md` y `core/README.md` actualizados dejando explícito
+qué dominios quedan sin modelar.
+
+## Fase 2 — CORE MVP: Orquestador + 4 motores de lectura
+
+**Por qué acá**: primer valor real de CORE, ya con dominio detrás.
+
+**Qué se construye** (módulos Nest dentro del mismo desplegable, WAF §1 y §9 — no microservicios)
+1. **Orquestador Central**: punto único de entrada de operación, secuencia de motores, cierre de
+   transacción, estados `Recibida → … → Finalizada` (Tomo IV §2.15–2.16).
+2. **Motor Patrimonial (alcance MVP)**: consulta de activos, catálogo por organización/área/
+   ubicación, inventario, cambio de ubicación/estado, traslado. Alta/baja/reincorporación/cambio
+   de responsable quedan para la Fase 4.
+3. **Motor de Reglas**: las 8 categorías de resultado de escaneo resueltas en CORE, no en la app
+   (hoy están en el cliente — incluida `duplicate`, que solo la Base Patrimonial puede detectar).
+4. **Motor de Eventos** y **Motor de Auditoría**: registro de todo hecho e intento, con
+   `correlationId` de Fase 0 (Tomo IV §2.9).
+5. Endpoints reales `GET /catalogo` y `POST /inventarios` **con la idempotencia implementada en
+   CORE, persistida** (mover lo que hoy está en `QrConnectorService`).
+6. **DOC-006 — API CIS↔CORE**: formaliza `/entitlements`, catálogo, inventarios, convención de
+   `correlationId` y semántica de idempotencia. Responde las preguntas abiertas del handoff §6.
+
+**Qué NO se hace acá**: Motor de Alertas, Motor de Reportes, Gestión Documental, Gestión de
+Usuarios/Permisos como motores completos — sin datos ni consumidor todavía.
+
+**Done**: e2e contra Postgres real cubriendo las 8 categorías de escaneo y el reintento
+idempotente; DOC-006 mergeado y referenciado desde `cis/`, `core/` y el handoff de APP QR;
+paginación obligatoria en todo listado desde el diseño (WAF §5); README de `core/` sin la frase
+"ningún motor implementado".
+
+## Fase 3 — CIS deja de ser mock + APP QR TASK-007
+
+**Por qué acá**: solo ahora existe algo real detrás del mock.
+
+**Qué se construye**
+- `QrConnectorService` pasa de `Map`/seed a proxy hacia CORE: se borran `SEED_CATALOGO`,
+  `SEED_ORGANIZACIONES` y los dos `Map` en memoria.
+- Resiliencia del CIS que WAF §4 pide y hoy no existe: circuit breaker hacia CORE, reintentos con
+  backoff, rate limiting por operador/dispositivo.
+- Caché de entitlements en CIS invalidada por evento (recién tiene sentido con Fase 4 escribiendo
+  contratos; si al llegar acá aún no existe, dejarlo fuera y anotarlo).
+- `deviceId` enforced (un dispositivo por operador, DOC-002 §1) — requiere persistencia real.
+- **APP QR TASK-007**: `qr-connector.ts` reemplaza `LocalQrConnectorClient` por HTTP real, manejo
+  de `400/401/409/5xx` de DOC-002 §5, sin tocar la UI. Se activa `duplicate` y `rejected`.
+
+**Done**: TASK-007 cerrada con build + e2e + recorrido manual; un inventario escaneado en la PWA
+aparece persistido en la Base Patrimonial vía CIS→CORE; handoff y `cis/README.md` actualizados
+quitando "mock".
+
+**Hito de negocio**: primera vez que el ecosistema completo funciona de punta a punta. Todo lo
+anterior a esto es infraestructura.
+
+## Fase 4 — Administrador Patrimonial y camino de escritura oficial (pieza nueva)
+
+**Por qué acá y no antes**: es el rol que Tomo III §1.4 define como único autorizado a modificar
+oficialmente la Base Patrimonial, y hoy no existe en ningún sistema
+(`seguridad/README.md` § "Rol pendiente"). Antes de la Fase 2 no tenía sobre qué escribir;
+después de la Fase 3 es el bloqueador para que la base tenga activos reales en vez de seeds.
+
+**Qué se construye**
+1. Rol `administrador-patrimonial` en Zitadel + claim de rol validado en CIS y **autorizado en
+   CORE** (WAF §3: el CORE no confía en un scope que no validó CIS, pero tampoco delega la
+   autorización de escritura).
+2. Primer alcance real de **Gestión de Permisos** (Tomo IV §2.14): las 8 acciones con mínimo
+   privilegio, y separación explícita de que APP QR/WEB/RFID no pueden escribir la base aunque el
+   usuario sea admin (matriz de WAF §11).
+3. Extensión del Motor Patrimonial a alta, baja, reincorporación y cambio de responsable — resto
+   del ciclo de vida de Tomo III §4.15.
+4. **Importación de base contable** como operación de este rol: carga masiva (CSV/Excel) con
+   validación por Motor de Reglas, idempotente, que nunca elimina historial (Tomo III §1.4
+   Entrada 5). Precursor manual y honesto del conector automático (Fase 7).
+5. Escritura de `Contrato` (hoy la tabla solo se lee) y evento `contrato.actualizado` que
+   invalida la caché del CIS.
+6. **DOC-012** (detalle de implementación de seguridad) y WAF §11 actualizado marcando la entrada
+   como implementada.
+
+**Done**: usuario sin el rol recibe 403 en toda escritura oficial (test e2e); toda escritura
+queda en Auditoría con usuario/IP/operación/resultado; importar dos veces el mismo archivo no
+duplica ni borra nada; `seguridad/README.md` y `ARQUITECTURA-WAF.md` §11 actualizados.
+
+## Fase 5 — Portal WEB mínimo
+
+**Por qué acá**: `web/README.md` dice "depende de CORE MVP + CIS real" — ambos existen recién
+después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita exponer.
+
+**Qué se construye**
+- Vite/React (ADR-001) con OIDC authorization code + PKCE contra Zitadel (`app.sicsaft.cl`).
+- Solo 6 módulos: Activos (consulta), Inventarios (estado y detalle), Áreas/Ubicaciones/
+  Responsables (ABM del Administrador Patrimonial), Auditoría (lectura), Contratos (ABM), hub
+  post-login que muestra solo módulos habilitados por contrato vigente (ADR-002 § flujo de
+  login). El resto (Dashboard, RFID, Documentos, Reportes, Integraciones, Roles, Configuración)
+  queda para después.
+- Identidad visual desde `BRAND.md`.
+- Dockerfile multi-stage, workflow `web-ci.yml` con path filter, servicio en el compose local.
+
+**Done**: un Administrador Patrimonial puede dar de alta un activo desde WEB y verlo aparecer en
+el catálogo que baja APP QR; e2e Playwright del flujo de login + alta; `web/README.md` y DOC-013.
+
+## Fase 6 — CIP: primer dashboard
+
+**Por qué acá**: `cip/README.md` pide "definir qué métricas del MVP de CORE ya están
+disponibles" — recién después de la Fase 3/4 hay inventarios y eventos reales que medir.
+
+**Qué se construye**
+- Métricas ya listadas en `cip/README.md` (cobertura de inventario, activos fuera de área, no
+  localizados, incidencias, estado de AFT), con drill-down Organización→Sede→Área→Ubicación→
+  Activo.
+- Alimentado **asíncronamente desde el Motor de Eventos** contra réplica de lectura o vistas
+  materializadas de la misma Postgres — no un motor analítico dedicado (WAF §9 lo prohíbe hasta
+  tener el modelo estable y carga medida).
+- Motor de Reportes en alcance mínimo (exportación bajo demanda, WAF §6); Motor de Alertas solo
+  si aparece un consumidor real.
+
+**Done**: CIP no toca la base transaccional en ninguna consulta (verificable en código);
+dashboard degrada a "últimos datos conocidos" si la fuente está caída (WAF §8); DOC-014.
+
+## Fase 7 — CON-CONTABILIDAD (pieza nueva)
+
+**Por qué acá y no antes**: Tomo III §1.4 Entrada 5 lo define como la fuente de la que siempre
+proviene la Base Oficial — conceptualmente crítico, pero técnicamente depende de Motor de
+Eventos + Auditoría + el camino de escritura del Administrador Patrimonial (Fase 4), y de saber
+contra qué sistema contable concreto se integra (dato de negocio que hoy no está en el repo). La
+importación manual de la Fase 4 cubre el 80% del valor mientras tanto.
+
+**Ojo con la clasificación**: `integraciones/README.md` marca todo el sistema como "fase tardía",
+y Tomo III §1.2 pone las integraciones en Etapa 5. Pero CON-CONTABILIDAD **no es una integración
+de Etapa 5** — es una entrada oficial de Etapa 1 según §1.4. Vale la pena corregir esa
+clasificación en `integraciones/README.md` cuando se llegue a esta fase.
+
+**Qué se construye**: conector en CIS (no un servicio que escriba directo a la base — regla no
+negociable de `CLAUDE.md`), sincronización idempotente, aislamiento de fallos y circuit breaker
+(WAF §4), registro por integración (fecha/origen/destino/estado/resultado/errores/
+`correlationId`), dominio `Integraciones` de DOC-005 que quedó fuera de la Fase 1, DOC-016.
+
+**Done**: caída del sistema contable no bloquea el flujo Captura→CIS→CORE (test de resiliencia);
+ninguna sincronización elimina historial (invariante testeado).
+
+## Fase 8 — RFID
+
+Cierra la Etapa 1 declarada en Tomo III §1.2 (APP QR + WEB + RFID). Entra como un conector más en
+CIS, sin tocar CORE ni Base Patrimonial — así está diseñado el límite de módulo (WAF §1).
+Requiere el módulo `inventario-rfid` ya reservado en DOC-004 §5, el dominio Zona RFID de
+Ubicaciones, y los eventos `RFID_*` de `rfid/README.md`. Depende de hardware/lector real: no
+arrancar sin un piloto concreto.
+
+## Track paralelo: OPS (no es una fase, es continuo)
+
+`devops/` no tiene una posición en la cadena de dependencias — tiene hitos atados a las fases:
+
+| Hito | Cuándo | Contenido |
+|---|---|---|
+| OPS-1 | con Fase 0 | Migraciones en CI, branch protection verificada, `correlationId` en logs |
+| OPS-2 | antes de Fase 3 | VPS + staging real con dominios `sicsaft.cl` y TLS Traefik, deploy automático a staging, smoke tests |
+| OPS-3 | con Fase 3 | Observabilidad (Prometheus/Grafana/Loki), backups con restauración probada (Tomo III §4.10) |
+| OPS-4 | con Fase 4 | Gestor de secretos real reemplazando `CORE_SERVICE_TOKEN` como env var plana, rotación, SAST/secret scan/Trivy |
+| OPS-5 | con Fase 5 | WAF/rate limiting en Traefik, producción con aprobación manual, k6 en cron |
+
+Nota de cumplimiento: Ley 21.719 entra en vigencia ~diciembre 2026. El modelo de datos de
+operadores/usuarios de la Fase 1 debería contemplar derechos ARCO y registro de tratamiento
+mientras se diseña, no como retrofit.
+
+## YAGNI: qué NO construir todavía
+
+Explícitamente descartado por política del propio proyecto (WAF §9 y Tomo III §1.2), aunque
+aparezca en documentos:
+- **BLE / GPS** (Etapa 2), **IoT / cámaras inteligentes** (Etapa 3), **IA / ML / analítica
+  predictiva** (Etapa 4), **ERP / Power BI / RRHH** (Etapa 5). El tomo dice explícitamente "nunca
+  desarrollaremos funciones que el mercado aún no demanda".
+- Separar los 9 motores en microservicios — módulos Nest dentro de un desplegable hasta tener
+  motivo real de escalado.
+- Cola de mensajes dedicada — con una sola fuente de captura con tráfico real, la cola local de
+  TASK-008 alcanza. Reevaluar en Fase 8 (RFID = segunda fuente concurrente).
+- Motor analítico dedicado para CIP — hasta que el modelo de dominio esté estable.
+- Autoscaling / multi-región — antes de tener carga real medida.
+- Los 11 dominios completos en DOC-005 — modelar Configuración/Integraciones/Gestión Documental
+  sin consumidor es especulativo. Reservar campos, no implementar.
+- Los 17 módulos de WEB y las 8 pantallas de reportes — 6 módulos cubren el ciclo real.
+- Módulo de Mantenimiento — el propio Tomo III §4.15 lo marca como "módulo futuro".
+
+## Riesgos principales
+
+| Riesgo | Mitigación |
+|---|---|
+| Fase 1 (DOC-005) se convierte en modelar los 11 dominios completos y bloquea meses | Alcance recortado y escrito en el propio DOC-005: solo lo que consume el flujo QR |
+| La idempotencia en memoria de CIS ya es un bug latente con más de una instancia | Se mueve a CORE en Fase 2; hasta entonces, CIS corre en una sola instancia (documentarlo) |
+| `duplicate`/`rejected` reservados en APP QR nunca se activan | Criterio de aceptación explícito de TASK-007 en Fase 3 |
+| Construir CON-CONTABILIDAD contra un sistema contable hipotético | Importación manual primero (Fase 4); el conector solo con un sistema real identificado |
+| Contradicción tomo vs. código al implementar Administrador Patrimonial | `CLAUDE.md` es claro: gana el tomo, se levanta la discrepancia — no editar la cita |
+| READMEs quedan desactualizados fase a fase | Regla de `CLAUDE.md`: README del sistema actualizado en el mismo commit o el inmediatamente siguiente |
+
+## Cadena de dependencias
+
+```
+Fase 0 (migraciones + correlationId + OIDC real)
+  └─ Fase 1 (DOC-005 mínimo)
+       └─ Fase 2 (CORE MVP: 4 motores + DOC-006)
+            └─ Fase 3 (CIS real + APP QR TASK-007)   ← primer flujo end-to-end real
+                 ├─ Fase 4 (Administrador Patrimonial + escritura oficial)  [pieza nueva]
+                 │    ├─ Fase 5 (WEB mínimo)
+                 │    └─ Fase 7 (CON-CONTABILIDAD)   [pieza nueva]
+                 └─ Fase 6 (CIP primer dashboard)
+                      └─ Fase 8 (RFID — cierra Etapa 1)
+
+Track OPS ─────── paralelo, con hitos atados a Fases 0/3/4/5
+```
+
+Archivos clave para quien implemente cada fase: [CLAUDE.md](CLAUDE.md),
+[ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md),
+[base-patrimonial/DOC-004-modelo-contrato.md](base-patrimonial/DOC-004-modelo-contrato.md),
+[app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md](app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md),
+[adr/ADR-002-identidad-zitadel-multi-tenant.md](adr/ADR-002-identidad-zitadel-multi-tenant.md),
+[devops/local/postgres/init/schema/core.sql](devops/local/postgres/init/schema/core.sql),
+`cis/src/qr-connector/qr-connector.service.ts`, `core/src/entitlements/contrato.repository.ts`.

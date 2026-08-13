@@ -38,6 +38,9 @@ Cada carpeta tiene su propio `README.md` con objetivo, estado, dependencias y pr
 Arquitectura de referencia transversal (escalable, modular, resiliente, marco Well-Architected
 sin atarse a un proveedor de nube): [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md).
 
+Plan de fases para lo que falta construir en todo el ecosistema, ordenado por dependencia real
+(verificado contra el código, no solo contra los README): [ROADMAP.md](ROADMAP.md).
+
 Identidad visual / paleta de colores oficial (todo trabajo visual del ecosistema debe salir de
 acá, no reinventar colores por sistema): [BRAND.md](BRAND.md).
 
