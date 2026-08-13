@@ -9,6 +9,7 @@ import {
   type AuthenticatedRequest,
   type ZitadelAuthContext,
 } from '../common/auth/zitadel-auth.guard';
+import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import {
   AuthSessionResponse,
   CatalogoResponse,
@@ -46,10 +47,13 @@ describe('QrConnectorController', () => {
         },
       ],
     })
-      // El controller no ejecuta el guard en estos tests (se llaman los metodos directo, sin
-      // HTTP) — se sobreescribe igual porque Nest resuelve las dependencias de ZitadelAuthGuard
-      // al armar el modulo aunque nunca corra canActivate.
+      // El controller no ejecuta los guards en estos tests (se llaman los metodos directo, sin
+      // HTTP) — se sobreescriben igual porque Nest resuelve sus dependencias al armar el modulo
+      // aunque nunca corra canActivate (ZitadelAuthGuard necesita JWKS/config, RateLimitGuard
+      // necesita un cliente Redis).
       .overrideGuard(ZitadelAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RateLimitGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

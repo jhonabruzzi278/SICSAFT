@@ -178,20 +178,28 @@ actualizado.
    (200ms/400ms de backoff) solo para fallos transitorios (sin respuesta o 5xx, nunca un
    400/404/409); envuelto por el circuit breaker, así que los 3 intentos de una request cuentan
    como un solo fallo para el umbral del circuito. Seguro para `POST /inventarios` porque CORE
-   dedupea por `idempotencyKey` (DOC-006 §3). Rate limiting por operador/dispositivo, resto de
-   WAF §4, sigue pendiente.
-4. ⬜ Caché de entitlements en CIS invalidada por evento (recién tiene sentido con Fase 4
+   dedupea por `idempotencyKey` (DOC-006 §3).
+4. ✅ Rate limiting por operador (resto de WAF §4): `src/rate-limit/`, `RateLimitGuard` sobre los
+   4 endpoints, 30 requests por operador cada 10s, respaldado en Redis (ventana fija atómica
+   `INCR`+`PEXPIRE` vía Lua) — primer consumidor de Redis en el código del ecosistema (ya estaba
+   en el stack decidido, ADR-001). Elegido sobre un limiter en memoria de proceso porque WAF §4
+   exige "multi-instancia sin estado en memoria compartido"; falla abierto si Redis no responde
+   (`devops/local/docker-compose.yml` actualizado con `REDIS_URL` para el servicio `cis`). Por
+   dispositivo sigue sin implementar: `deviceId` solo llega en el body de `auth/session`, no en
+   las otras 3 rutas — bloqueado en el mismo punto que el ítem 5.
+5. ⬜ Caché de entitlements en CIS invalidada por evento (recién tiene sentido con Fase 4
    escribiendo contratos; si al llegar acá aún no existe, dejarlo fuera y anotarlo).
-5. ⬜ `deviceId` enforced (un dispositivo por operador, DOC-002 §1) — requiere persistencia real.
-6. ⬜ **APP QR TASK-007**: `qr-connector.ts` reemplaza `LocalQrConnectorClient` por HTTP real,
+6. ⬜ `deviceId` enforced (un dispositivo por operador, DOC-002 §1) — requiere persistencia real.
+7. ⬜ **APP QR TASK-007**: `qr-connector.ts` reemplaza `LocalQrConnectorClient` por HTTP real,
    manejo de `400/401/409/5xx` de DOC-002 §5, sin tocar la UI. Se activa `duplicate` y `rejected`.
 
-**Done** (parcial — items 1-3): unit (100% stmts/lines/funcs, 90%+ branches, incluye reintentos
-con fake timers) y e2e de CIS actualizados a proxy delgado (`CoreClientService` stubeado, sin
-CORE real — la idempotencia y validación real ya se probaron contra Postgres en la Fase 2);
-`cis/README.md` actualizado quitando "mock" para catálogo/inventarios. **Falta para cerrar la
-fase**: items 4-6, incluida TASK-007 con recorrido manual mostrando un inventario escaneado en la
-PWA persistido en la Base Patrimonial vía CIS→CORE.
+**Done** (parcial — items 1-4): unit (100% stmts/funcs/lines, 90%+ branches, incluye reintentos
+con fake timers y el rate limiter con Redis mockeado) y e2e de CIS actualizados a proxy delgado
+(`CoreClientService`/`REDIS_CLIENT` stubeados, sin CORE ni Redis reales — la idempotencia y
+validación real ya se probaron contra Postgres en la Fase 2); `cis/README.md` actualizado
+quitando "mock" para catálogo/inventarios. **Falta para cerrar la fase**: items 5-7, incluida
+TASK-007 con recorrido manual mostrando un inventario escaneado en la PWA persistido en la Base
+Patrimonial vía CIS→CORE.
 
 **Hito de negocio**: primera vez que el ecosistema completo funciona de punta a punta. Todo lo
 anterior a esto es infraestructura.

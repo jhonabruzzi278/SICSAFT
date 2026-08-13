@@ -14,6 +14,7 @@ describe('AppModule', () => {
       ZITADEL_AUDIENCE: 'cis-api',
       CORE_URL: 'http://core:3001',
       CORE_SERVICE_TOKEN: 'secreto-compartido',
+      REDIS_URL: 'redis://localhost:6379',
     };
   });
 

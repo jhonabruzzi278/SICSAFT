@@ -11,6 +11,7 @@ import { SignJWT, generateKeyPair, type JWTVerifyGetKey } from 'jose';
 import { AppModule } from './../src/app.module';
 import { ZITADEL_JWKS } from './../src/common/auth/zitadel-auth.constants';
 import { CoreClientService } from './../src/core-client/core-client.service';
+import { REDIS_CLIENT } from './../src/rate-limit/rate-limit.constants';
 import {
   AuthSessionResponse,
   CatalogoResponse,
@@ -54,6 +55,7 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
     postInventario: jest.Mock;
     getInventarioEstado: jest.Mock;
   };
+  let redisClient: { eval: jest.Mock; pttl: jest.Mock; disconnect: jest.Mock };
 
   beforeAll(() => {
     process.env.ZITADEL_ISSUER = ISSUER;
@@ -120,6 +122,15 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
       }),
     };
 
+    // Idem para Redis (RateLimitGuard, WAF §4): se reemplaza el cliente real por un stub que por
+    // defecto siempre permite (count=1) — no hace falta un Redis real para probar el resto del
+    // conector. El test dedicado de 429 más abajo simula el conteo por encima del límite.
+    redisClient = {
+      eval: jest.fn().mockResolvedValue(1),
+      pttl: jest.fn().mockResolvedValue(0),
+      disconnect: jest.fn(),
+    };
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
@@ -127,6 +138,8 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
       .useValue(localJwks)
       .overrideProvider(CoreClientService)
       .useValue(coreClientService)
+      .overrideProvider(REDIS_CLIENT)
+      .useValue(redisClient)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -269,5 +282,20 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
       .get('/inventarios/no-existe/estado')
       .set('Authorization', 'Bearer token-invalido')
       .expect(401);
+  });
+
+  it('devuelve 429 cuando el operador supera el limite de requests (RateLimitGuard, WAF §4)', async () => {
+    // El stub de Redis simula que este operador ya superó el límite de la ventana actual.
+    redisClient.eval.mockResolvedValue(31);
+    redisClient.pttl.mockResolvedValue(4_000);
+
+    const res = await request(app.getHttpServer())
+      .get('/catalogo')
+      .set('Authorization', `Bearer ${bearerToken}`)
+      .query({ organizacionId: 'duoc-uc' })
+      .expect(429);
+
+    const body = res.body as { retryAfterMs: number };
+    expect(body.retryAfterMs).toBe(4_000);
   });
 });

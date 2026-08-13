@@ -129,11 +129,18 @@ services:
       # valor que CORE_SERVICE_TOKEN del servicio `core` (abajo). Generar con
       # `openssl rand -hex 32`, ver .env.example.
       CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      # Redis para el rate limiter (WAF §4, src/rate-limit/) — mismo REDIS_PASSWORD que el
+      # servicio `redis` (arriba). Primer consumidor de Redis en el codigo del ecosistema.
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     networks:
       - sicsaft
     depends_on:
-      - zitadel
-      - core
+      zitadel:
+        condition: service_started
+      core:
+        condition: service_started
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   # Migraciones de CORE (node-pg-migrate, ver core/migrations/) — corre una vez, aplica el

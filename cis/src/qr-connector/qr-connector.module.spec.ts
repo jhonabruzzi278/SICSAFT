@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { QrConnectorModule } from './qr-connector.module';
 import { QrConnectorController } from './qr-connector.controller';
 import { ZitadelAuthModule } from '../common/auth/zitadel-auth.module';
+import { RateLimitModule } from '../rate-limit/rate-limit.module';
 
 describe('QrConnectorModule', () => {
   const originalEnv = process.env;
@@ -13,6 +14,7 @@ describe('QrConnectorModule', () => {
       ZITADEL_AUDIENCE: 'cis-api',
       CORE_URL: 'http://core:3001',
       CORE_SERVICE_TOKEN: 'secreto-compartido',
+      REDIS_URL: 'redis://localhost:6379',
     };
   });
 
@@ -22,7 +24,7 @@ describe('QrConnectorModule', () => {
 
   it('wires QrConnectorController', async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ZitadelAuthModule, QrConnectorModule],
+      imports: [ZitadelAuthModule, RateLimitModule, QrConnectorModule],
     }).compile();
 
     expect(module.get(QrConnectorController)).toBeInstanceOf(

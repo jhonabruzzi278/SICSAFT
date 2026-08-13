@@ -40,8 +40,16 @@ Docker real para catálogo/inventarios (el mecanismo es el mismo `CoreClientServ
 pero no se corrió ese `docker exec` específico todavía). Toda ruta pasa por
 `CorrelationIdMiddleware` (`src/common/correlation-id/`, ROADMAP.md Fase 0), que propaga
 `X-Correlation-Id` hasta `CoreClientService` — sin logging estructurado que lo use todavía (WAF
-§2, pendiente). Resiliencia restante de WAF §4 (rate limiting por operador/dispositivo) y
-`deviceId` enforced (DOC-002 §1) siguen sin implementar — ver ROADMAP.md Fase 3.
+§2, pendiente). Los 4 endpoints también están detrás de `RateLimitGuard`
+(`src/rate-limit/`, WAF §4 "rate limiting hacia el CORE"), por operador: 30 requests cada 10s
+respaldado en Redis (ventana fija atómica vía Lua, `INCR`+`PEXPIRE`) — primer consumidor de Redis
+en el código del ecosistema (ya estaba en el stack decidido, ADR-001). Elegido sobre un limiter en
+memoria de proceso porque WAF §4 exige "multi-instancia sin estado en memoria compartido"; si
+Redis no responde, el limiter **falla abierto** (deja pasar la request) en vez de bloquear el
+flujo real Captura→CIS→CORE por una caída de un componente de protección secundario. Por
+dispositivo sigue pendiente: `deviceId` solo llega hoy en el body de `auth/session`, no en las
+otras 3 rutas — bloqueado en lo mismo que el enforcement de `deviceId` (DOC-002 §1) — ver
+ROADMAP.md Fase 3.
 
 ## Desarrollo local
 ```bash
@@ -75,6 +83,11 @@ arranca sin ellas):
 - `CORE_SERVICE_TOKEN`: secreto compartido de auth servicio-a-servicio hacia CORE — debe ser
   exactamente el mismo valor que `CORE_SERVICE_TOKEN` en el proceso de CORE (ver
   `../core/README.md`). Generar con `openssl rand -hex 32`.
+- `REDIS_URL`: URL de conexión a Redis para `RateLimitGuard` (ver `src/rate-limit/`), ej.
+  `redis://:password@redis:6379` dentro de Docker Compose. El cliente usa `lazyConnect` (no
+  conecta hasta el primer comando) y falla abierto ante cualquier error, así que un Redis
+  temporalmente caído no bloquea el arranque ni las requests — solo se pierde la protección de
+  rate limiting mientras dura.
 
 **Nota sobre `coverageThreshold.branches` (85%, no 100%)**: `emitDecoratorMetadata` de TypeScript
 emite un chequeo defensivo (`typeof X === "function" ? X : Object`) para cada tipo **importado
@@ -101,8 +114,10 @@ resuelto contra CORE vía
 [`../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md`](../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md).
 `QrConnectorService` no tiene lógica de negocio propia — valida con Zod el request de cada
 operación (`qr-connector.schemas.ts`) y delega en `CoreClientService`. Los 4 endpoints están
-detrás de `ZitadelAuthGuard` (`src/common/auth/zitadel-auth.guard.ts`) — sin
-`Authorization: Bearer <token>` válido, 401:
+detrás de `ZitadelAuthGuard` (`src/common/auth/zitadel-auth.guard.ts`, sin
+`Authorization: Bearer <token>` válido, 401) y luego de `RateLimitGuard`
+(`src/rate-limit/rate-limit.guard.ts`, sobre el límite por operador, 429) — el orden importa,
+`RateLimitGuard` necesita el `operadorId` que ya dejó `ZitadelAuthGuard` en la request:
 
 ```
 POST /auth/session                          -> valida el token, devuelve el mismo token (pass-through) + organizaciones/sedes reales via GET {CORE_URL}/entitlements
@@ -149,12 +164,12 @@ DOC-002 §1) — requiere persistencia que hoy no existe en CIS.
 - [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack: NestJS/TypeScript).
 - [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) — el CIS valida `organizacionId`,
   `sedeId` y vigencia de contrato en cada request, no solo identidad.
-- Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker + reintentos con backoff
-  — implementados en `src/core-client/circuit-breaker.ts` y `src/core-client/retry.ts`; rate
-  limiting hacia CORE sigue pendiente) y §3 (el CIS es el único punto que valida identidad de
-  fuentes de captura).
+- Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker + reintentos con backoff +
+  rate limiting — implementados en `src/core-client/circuit-breaker.ts`, `src/core-client/retry.ts`
+  y `src/rate-limit/`; por dispositivo, no solo por operador, sigue pendiente) y §3 (el CIS es el
+  único punto que valida identidad de fuentes de captura).
 
 ## Próximo paso sugerido
-Rate limiting por operador/dispositivo hacia CORE (resto de WAF §4, ROADMAP.md Fase 3), y que
-`app-qr-sicsaft/` (TASK-006/TASK-007) reemplace `LocalQrConnectorClient` por un cliente HTTP real
-contra estos 4 endpoints.
+`deviceId` enforced con persistencia real (DOC-002 §1, requiere que exista primero un lugar donde
+guardarlo) y que `app-qr-sicsaft/` (TASK-006/TASK-007) reemplace `LocalQrConnectorClient` por un
+cliente HTTP real contra estos 4 endpoints — lo que queda de ROADMAP.md Fase 3.

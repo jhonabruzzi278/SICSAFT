@@ -15,6 +15,7 @@ import {
   requireAuthContext,
   type AuthenticatedRequest,
 } from '../common/auth/zitadel-auth.guard';
+import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import { QrConnectorService } from './qr-connector.service';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 import {
@@ -40,8 +41,10 @@ import type {
 // ve una credencial. Los 4 endpoints son proxy hacia CORE (DOC-006, Fase 3): `organizaciones` en
 // auth/session viene de GET /entitlements, y catalogo/inventarios de GET /catalogo,
 // POST /inventarios y GET /inventarios/:id/estado — ya no hay mock ni estado propio en CIS.
+// RateLimitGuard corre despues de ZitadelAuthGuard (el orden en @UseGuards importa: necesita
+// `request.auth` ya seteado) — WAF §4 "rate limiting hacia el CORE" por operador.
 @Controller()
-@UseGuards(ZitadelAuthGuard)
+@UseGuards(ZitadelAuthGuard, RateLimitGuard)
 export class QrConnectorController {
   constructor(private readonly qrConnectorService: QrConnectorService) {}
 
