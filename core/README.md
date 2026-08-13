@@ -149,5 +149,8 @@ aplicable a este sistema.
 compartido), y el alcance mínimo del resto del dominio patrimonial ya tiene tabla real (DOC-005).
 El siguiente incremento con valor real es el primer motor real (Motor Patrimonial,
 consulta/inventario/cambio de ubicación — ver "Arquitectura interna" arriba) sobre esas tablas
-(`ROADMAP.md` Fase 2), o rotación/gestión del secreto vía un secret manager en vez de una env var
-plana cuando se pase a producción (ver `../devops/README.md`). Tarjeta Trello: `CORE-ADR-001`.
+(`ROADMAP.md` Fase 2) — **diseño completo en [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md)
+(requirements, historias, DOC-006 a DOC-011, diagramas), a la espera de confirmación antes de
+implementar código**. Alternativa sin código: rotación/gestión del secreto vía un secret manager
+en vez de una env var plana cuando se pase a producción (ver `../devops/README.md`). Tarjeta
+Trello: `CORE-ADR-001`.

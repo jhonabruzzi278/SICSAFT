@@ -40,6 +40,39 @@ diagrama de [README.md](README.md). Ningún cambio de código debe crear un ataj
   la sección exacta (`Tomo III §1.4`, no solo "el tomo dice") y anotar explícitamente si lo que
   describe ya está implementado o sigue pendiente.
 
+## Metodología AI-DLC para features nuevas
+
+Toda fase de trabajo no trivial (una fase de `ROADMAP.md`, una feature nueva) se documenta con la
+carpeta `aidlc-docs/` dentro del sistema que la implementa, **antes** de escribir código —
+patrón ya usado por `app-qr-sicsaft/aidlc-docs/` (primer sistema) y `core/aidlc-docs/` (segundo,
+Fase 2). Estructura estándar:
+
+```
+<sistema>/aidlc-docs/
+├── 00_PROJECT_METADATA.md        # estado de fase (Inception/Construction/Operations), quick links
+├── requirements/
+│   ├── INTENT.md                  # que se pidio, por que ahora, que NO es esta fase
+│   └── REQUIREMENTS.md            # funcionales/no funcionales, con ID (RF-XX/RNF-XX) y fuente
+├── story-artifacts/
+│   └── USER_STORIES.md            # desde la perspectiva del consumidor real, con criterios de aceptacion
+├── design-artifacts/
+│   ├── DOMAIN_MODEL.md            # entidades + diagramas (mermaid erDiagram/stateDiagram)
+│   ├── ARCHITECTURE.md            # mapa de modulos + diagramas de secuencia
+│   └── DOC-XXX-*.md               # contratos/documentos numerados, mismo esquema que DOC-002/004/005
+└── testing/
+    └── TEST_STRATEGY.md           # que se testea y como, sin bajar el umbral de cobertura vigente
+```
+
+- **Diseño antes que código**: cuando el usuario pide explícitamente diseñar primero, generar
+  todo `aidlc-docs/` de la fase, presentarlo, y esperar confirmación antes de tocar `src/`.
+- **Diagramas en Mermaid** (`erDiagram`, `stateDiagram-v2`, `sequenceDiagram`, `flowchart`) —
+  renderizan directo en GitHub, no requieren herramienta externa.
+- **No duplicar contenido ya citado**: un DOC-XXX nuevo referencia a los tomos oficiales y a los
+  DOC-XXX previos por sección, no repite su contenido.
+- Los DOC-XXX ya numerados de antemano en un README (ej. `core/README.md` § "Documentos
+  relacionados" listando DOC-006 a DOC-011 como pendientes) mantienen esa numeración cuando se
+  escriben — no se renumeran.
+
 ## Git / commits
 
 - `main` protegida — nunca push directo, siempre PR con CI en verde (ver

@@ -121,9 +121,17 @@ dentro del stack de `docker-compose.yml` local); `base-patrimonial/README.md` y 
 actualizados dejando explícito qué dominios quedan sin modelar. **Sin API todavía** — ningún
 endpoint de CORE sirve estas tablas; eso es la Fase 2 (Motor Patrimonial).
 
-## Fase 2 — CORE MVP: Orquestador + 4 motores de lectura
+## Fase 2 — CORE MVP: Orquestador + 4 motores de lectura 🟡 en diseño
 
 **Por qué acá**: primer valor real de CORE, ya con dominio detrás.
+
+**Diseño completo, sin código todavía**: metodología AI-DLC en
+[`core/aidlc-docs/`](core/aidlc-docs/00_PROJECT_METADATA.md) — requirements, historias de
+usuario, modelo de dominio de orquestación, arquitectura con diagramas de secuencia, y DOC-006
+(API CIS↔CORE) a DOC-011 (Motor de Auditoría). Incluye un hallazgo del diseño: dos correcciones
+pendientes sobre DOC-005 ya migrado (nombre de categoría `invalido` vs `codigo_invalido`, y una
+tabla `sesiones_inventario` que faltaba para agrupar los escaneos de una misma sesión) — ver
+[DOC-006 §0](core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md#-hallazgo-del-diseño-doc-005-tiene-dos-errores-respecto-al-contrato-ya-acordado-en-doc-002).
 
 **Qué se construye** (módulos Nest dentro del mismo desplegable, WAF §1 y §9 — no microservicios)
 1. **Orquestador Central**: punto único de entrada de operación, secuencia de motores, cierre de
