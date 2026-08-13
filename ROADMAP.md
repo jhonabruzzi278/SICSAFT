@@ -238,6 +238,13 @@ disponibles" — recién después de la Fase 3/4 hay inventarios y eventos reale
   tener el modelo estable y carga medida).
 - Motor de Reportes en alcance mínimo (exportación bajo demanda, WAF §6); Motor de Alertas solo
   si aparece un consumidor real.
+- **Patrón a adoptar acá, no antes**: transactional outbox para la publicación de eventos hacia
+  CIP/Alertas — el Motor de Eventos hoy (Fase 2) solo inserta en `eventos`, sin publicar a nadie;
+  el día que CIP consuma eventos en (casi) tiempo real vía la cola de Redis/BullMQ (ADR-001),
+  escribir en Postgres y publicar en la cola dejan de ser atómicos (riesgo de perder o duplicar
+  eventos si el proceso muere entre medio). El patrón estándar: insertar el evento y un registro
+  "pendiente de publicar" en la misma transacción; un worker aparte lo despacha con reintentos.
+  No implementar antes de tener un consumidor real (YAGNI, mismo criterio que WAF §9).
 
 **Done**: CIP no toca la base transaccional en ninguna consulta (verificable en código);
 dashboard degrada a "últimos datos conocidos" si la fuente está caída (WAF §8); DOC-014.
