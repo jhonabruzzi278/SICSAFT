@@ -206,18 +206,25 @@ después de la Fase 3 es el bloqueador para que la base tenga activos reales en 
 queda en Auditoría con usuario/IP/operación/resultado; importar dos veces el mismo archivo no
 duplica ni borra nada; `seguridad/README.md` y `ARQUITECTURA-WAF.md` §11 actualizados.
 
-## Fase 5 — Portal WEB mínimo
+## Fase 5 — Portal WEB mínimo 🟡 en diseño
 
 **Por qué acá**: `web/README.md` dice "depende de CORE MVP + CIS real" — ambos existen recién
 después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita exponer.
 
+**Diseño completo, sin código todavía**: metodología AI-DLC en
+[`web/aidlc-docs/`](web/aidlc-docs/00_PROJECT_METADATA.md) — requirements, historias, DOC-013 y
+un mockup visual (hub + Activos + Contratos, paleta `BRAND.md`), diseñado adelantado por pedido
+explícito del usuario en la misma sesión de Fase 2. DOC-013 §3 deja explícito que solo Activos
+(consulta) e Inventarios tienen endpoint real hoy (los de DOC-006) — el resto de la escritura
+(Estructura, Contratos, alta de Activos) depende de que Fase 4 defina sus propios endpoints.
+
 **Qué se construye**
 - Vite/React (ADR-001) con OIDC authorization code + PKCE contra Zitadel (`app.sicsaft.cl`).
-- Solo 6 módulos: Activos (consulta), Inventarios (estado y detalle), Áreas/Ubicaciones/
-  Responsables (ABM del Administrador Patrimonial), Auditoría (lectura), Contratos (ABM), hub
-  post-login que muestra solo módulos habilitados por contrato vigente (ADR-002 § flujo de
-  login). El resto (Dashboard, RFID, Documentos, Reportes, Integraciones, Roles, Configuración)
-  queda para después.
+- Solo 6 módulos: Activos (consulta **+ alta**, ver "Done" abajo), Inventarios (estado y
+  detalle), Áreas/Ubicaciones/Responsables (ABM del Administrador Patrimonial), Auditoría
+  (lectura), Contratos (ABM), hub post-login que muestra solo módulos habilitados por contrato
+  vigente (ADR-002 § flujo de login). El resto (Dashboard, RFID, Documentos, Reportes,
+  Integraciones, Roles, Configuración) queda para después.
 - Identidad visual desde `BRAND.md`.
 - Dockerfile multi-stage, workflow `web-ci.yml` con path filter, servicio en el compose local.
 
@@ -331,7 +338,7 @@ Fase 0 (migraciones + correlationId + OIDC real) ✅
        └─ Fase 2 (CORE MVP: 4 motores + DOC-006)   ← siguiente
             └─ Fase 3 (CIS real + APP QR TASK-007)   ← primer flujo end-to-end real
                  ├─ Fase 4 (Administrador Patrimonial + escritura oficial)  [pieza nueva]
-                 │    ├─ Fase 5 (WEB mínimo)
+                 │    ├─ Fase 5 (WEB mínimo) — diseño ✅, código pendiente
                  │    └─ Fase 7 (CON-CONTABILIDAD)   [pieza nueva]
                  └─ Fase 6 (CIP primer dashboard)
                       └─ Fase 8 (RFID — cierra Etapa 1)
