@@ -7,6 +7,7 @@ import { QrConnectorService } from './qr-connector.service';
 import { CatalogoQuery, InventarioRequest } from './qr-connector.schemas';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
 import type { CoreClientService } from '../core-client/core-client.service';
+import type { DeviceRegistryService } from '../device-registry/device-registry.service';
 import type {
   CatalogoResult,
   EntitlementsResult,
@@ -59,6 +60,12 @@ function buildCoreClientService(
   };
 }
 
+function buildDeviceRegistryService(): jest.Mocked<
+  Pick<DeviceRegistryService, 'registerDevice'>
+> {
+  return { registerDevice: jest.fn().mockResolvedValue(undefined) };
+}
+
 function buildAuthContext(
   overrides: Partial<ZitadelAuthContext> = {},
 ): ZitadelAuthContext {
@@ -91,11 +98,16 @@ function buildInventarioRequest(
 describe('QrConnectorService', () => {
   let service: QrConnectorService;
   let coreClientService: CoreClientMock;
+  let deviceRegistryService: jest.Mocked<
+    Pick<DeviceRegistryService, 'registerDevice'>
+  >;
 
   beforeEach(() => {
     coreClientService = buildCoreClientService();
+    deviceRegistryService = buildDeviceRegistryService();
     service = new QrConnectorService(
       coreClientService as unknown as CoreClientService,
+      deviceRegistryService as unknown as DeviceRegistryService,
     );
   });
 
@@ -117,6 +129,35 @@ describe('QrConnectorService', () => {
         'op-1',
         'correlation-test',
       );
+    });
+
+    it('registra el deviceId de la request como el dispositivo activo del operador (DOC-002 §1)', async () => {
+      const auth = buildAuthContext({
+        expiresAt: new Date(Date.now() + 900_000).toISOString(),
+      });
+
+      await service.authSession({ deviceId: 'device-nuevo' }, auth, 'corr-1');
+
+      expect(deviceRegistryService.registerDevice).toHaveBeenCalledWith(
+        'op-1',
+        'device-nuevo',
+        expect.any(Number),
+      );
+      const ttlMs = deviceRegistryService.registerDevice.mock.calls[0][2];
+      // TTL calculado desde expiresAt (~900_000ms), con margen por el tiempo real de ejecucion.
+      expect(ttlMs).toBeGreaterThan(800_000);
+      expect(ttlMs).toBeLessThanOrEqual(900_000);
+    });
+
+    it('usa un TTL minimo si el token esta a punto de expirar (evita un PX <= 0 en Redis)', async () => {
+      const auth = buildAuthContext({
+        expiresAt: new Date(Date.now() + 10).toISOString(),
+      });
+
+      await service.authSession({ deviceId: 'device-nuevo' }, auth, 'corr-1');
+
+      const ttlMs = deviceRegistryService.registerDevice.mock.calls[0][2];
+      expect(ttlMs).toBeGreaterThanOrEqual(1_000);
     });
   });
 
@@ -140,6 +181,7 @@ describe('QrConnectorService', () => {
       });
       service = new QrConnectorService(
         coreClientService as unknown as CoreClientService,
+        deviceRegistryService as unknown as DeviceRegistryService,
       );
 
       const query: CatalogoQuery = { organizacionId: 'duoc-uc' };

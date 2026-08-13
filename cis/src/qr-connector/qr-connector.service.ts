@@ -12,10 +12,19 @@ import {
 } from './qr-connector.types';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
 import { CoreClientService } from '../core-client/core-client.service';
+import { DeviceRegistryService } from '../device-registry/device-registry.service';
+
+// Piso del TTL de registro de dispositivo — evita mandarle a Redis un PX <= 0 en el caso limite
+// de que el token ya este por expirar en el instante exacto en que se procesa la request
+// (ZitadelAuthGuard ya valido que no este vencido, pero el margen puede ser de milisegundos).
+const MIN_DEVICE_TTL_MS = 1_000;
 
 @Injectable()
 export class QrConnectorService {
-  constructor(private readonly coreClientService: CoreClientService) {}
+  constructor(
+    private readonly coreClientService: CoreClientService,
+    private readonly deviceRegistryService: DeviceRegistryService,
+  ) {}
 
   async authSession(
     request: AuthSessionRequest,
@@ -25,8 +34,18 @@ export class QrConnectorService {
     // ZitadelAuthGuard ya validó el token — el operador viene autenticado por Zitadel, no por
     // este metodo. `accessToken`/`expiresAt` son pass-through del mismo token (ver ADR-002: el
     // CIS valida, no emite uno propio).
-    // `request.deviceId` no se enforced todavia (un solo dispositivo por operador, DOC-002 §1)
-    // — requiere persistencia que hoy no existe.
+    // DOC-002 §1 "un solo dispositivo por operador": el dispositivo de esta request pasa a ser
+    // el activo (supersede al anterior, ver DeviceRegistryService) — el registro expira solo
+    // junto con el token, sin requerir logout explicito.
+    const ttlMs = Math.max(
+      new Date(auth.expiresAt).getTime() - Date.now(),
+      MIN_DEVICE_TTL_MS,
+    );
+    await this.deviceRegistryService.registerDevice(
+      auth.operadorId,
+      request.deviceId,
+      ttlMs,
+    );
 
     const { organizaciones } = await this.coreClientService.getEntitlements(
       auth.operadorId,

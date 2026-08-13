@@ -1,8 +1,6 @@
-import { Global, Inject, Module, OnModuleDestroy } from '@nestjs/common';
-import type Redis from 'ioredis';
-import { createRedisClient } from './create-redis-client';
-import { loadRedisConfig } from './rate-limit.config';
-import { RATE_LIMIT_OPTIONS, REDIS_CLIENT } from './rate-limit.constants';
+import { Global, Module } from '@nestjs/common';
+import { RedisModule } from '../redis/redis.module';
+import { RATE_LIMIT_OPTIONS } from './rate-limit.constants';
 import { RateLimitGuard } from './rate-limit.guard';
 import type { RateLimitOptions } from './rate-limit.types';
 
@@ -17,23 +15,14 @@ const RATE_LIMIT_OPTIONS_VALUE: RateLimitOptions = {
 // QrConnectorController), mismo patron que ZitadelAuthModule.
 @Global()
 @Module({
+  imports: [RedisModule],
   providers: [
-    {
-      provide: REDIS_CLIENT,
-      useFactory: () => createRedisClient(loadRedisConfig().url),
-    },
     {
       provide: RATE_LIMIT_OPTIONS,
       useValue: RATE_LIMIT_OPTIONS_VALUE,
     },
     RateLimitGuard,
   ],
-  exports: [REDIS_CLIENT, RATE_LIMIT_OPTIONS, RateLimitGuard],
+  exports: [RATE_LIMIT_OPTIONS, RateLimitGuard],
 })
-export class RateLimitModule implements OnModuleDestroy {
-  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
-
-  onModuleDestroy(): void {
-    this.redis.disconnect();
-  }
-}
+export class RateLimitModule {}

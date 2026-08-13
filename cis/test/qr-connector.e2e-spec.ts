@@ -11,7 +11,7 @@ import { SignJWT, generateKeyPair, type JWTVerifyGetKey } from 'jose';
 import { AppModule } from './../src/app.module';
 import { ZITADEL_JWKS } from './../src/common/auth/zitadel-auth.constants';
 import { CoreClientService } from './../src/core-client/core-client.service';
-import { REDIS_CLIENT } from './../src/rate-limit/rate-limit.constants';
+import { REDIS_CLIENT } from './../src/redis/redis.constants';
 import {
   AuthSessionResponse,
   CatalogoResponse,
@@ -55,7 +55,12 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
     postInventario: jest.Mock;
     getInventarioEstado: jest.Mock;
   };
-  let redisClient: { eval: jest.Mock; pttl: jest.Mock; disconnect: jest.Mock };
+  let redisClient: {
+    eval: jest.Mock;
+    pttl: jest.Mock;
+    set: jest.Mock;
+    disconnect: jest.Mock;
+  };
 
   beforeAll(() => {
     process.env.ZITADEL_ISSUER = ISSUER;
@@ -128,6 +133,7 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
     redisClient = {
       eval: jest.fn().mockResolvedValue(1),
       pttl: jest.fn().mockResolvedValue(0),
+      set: jest.fn().mockResolvedValue('OK'),
       disconnect: jest.fn(),
     };
 
@@ -173,6 +179,21 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
     expect(coreClientService.getEntitlements).toHaveBeenCalledWith(
       'op-1',
       res.headers['x-correlation-id'],
+    );
+  });
+
+  it('POST /auth/session registra el deviceId como dispositivo activo del operador (DOC-002 §1)', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/session')
+      .set('Authorization', `Bearer ${bearerToken}`)
+      .send({ deviceId: 'device-e2e' })
+      .expect(201);
+
+    expect(redisClient.set).toHaveBeenCalledWith(
+      'device:operador:op-1',
+      'device-e2e',
+      'PX',
+      expect.any(Number),
     );
   });
 

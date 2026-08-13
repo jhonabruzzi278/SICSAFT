@@ -46,10 +46,18 @@ respaldado en Redis (ventana fija atómica vía Lua, `INCR`+`PEXPIRE`) — prime
 en el código del ecosistema (ya estaba en el stack decidido, ADR-001). Elegido sobre un limiter en
 memoria de proceso porque WAF §4 exige "multi-instancia sin estado en memoria compartido"; si
 Redis no responde, el limiter **falla abierto** (deja pasar la request) en vez de bloquear el
-flujo real Captura→CIS→CORE por una caída de un componente de protección secundario. Por
-dispositivo sigue pendiente: `deviceId` solo llega hoy en el body de `auth/session`, no en las
-otras 3 rutas — bloqueado en lo mismo que el enforcement de `deviceId` (DOC-002 §1) — ver
-ROADMAP.md Fase 3.
+flujo real Captura→CIS→CORE por una caída de un componente de protección secundario.
+`auth/session` también registra en Redis el `deviceId` de la request como dispositivo activo del
+operador (`src/device-registry/`, DOC-002 §1 "un solo dispositivo por operador"): un dispositivo
+nuevo **reemplaza** al anterior (nunca se rechaza) — no existe todavía un rol Administrador
+(ROADMAP.md Fase 4) para destrabar manualmente a un operador, así que rechazar dejaría varado a
+cualquiera que pierda o cambie de celular; el registro expira solo, con el mismo TTL que le queda
+al token, sin requerir logout explícito. Mismo criterio de resiliencia que el rate limiter: falla
+abierto ante cualquier error de Redis, porque es una restricción de negocio complementaria, no un
+control de seguridad (Zitadel ya autentica). El enforcement es parcial por diseño del contrato:
+`deviceId` solo llega en el body de `auth/session`, DOC-002 no lo manda en las otras 3 rutas — no
+hay forma de revalidar el dispositivo en cada request sin romper ese contrato ya acordado con
+APP QR.
 
 ## Desarrollo local
 ```bash
@@ -83,11 +91,12 @@ arranca sin ellas):
 - `CORE_SERVICE_TOKEN`: secreto compartido de auth servicio-a-servicio hacia CORE — debe ser
   exactamente el mismo valor que `CORE_SERVICE_TOKEN` en el proceso de CORE (ver
   `../core/README.md`). Generar con `openssl rand -hex 32`.
-- `REDIS_URL`: URL de conexión a Redis para `RateLimitGuard` (ver `src/rate-limit/`), ej.
+- `REDIS_URL`: URL de conexión a Redis (ver `src/redis/`), compartida por `RateLimitGuard`
+  (`src/rate-limit/`) y `DeviceRegistryService` (`src/device-registry/`), ej.
   `redis://:password@redis:6379` dentro de Docker Compose. El cliente usa `lazyConnect` (no
-  conecta hasta el primer comando) y falla abierto ante cualquier error, así que un Redis
-  temporalmente caído no bloquea el arranque ni las requests — solo se pierde la protección de
-  rate limiting mientras dura.
+  conecta hasta el primer comando) y ambos consumidores fallan abiertos ante cualquier error, así
+  que un Redis temporalmente caído no bloquea el arranque ni las requests — solo se pierde esa
+  protección mientras dura.
 
 **Nota sobre `coverageThreshold.branches` (85%, no 100%)**: `emitDecoratorMetadata` de TypeScript
 emite un chequeo defensivo (`typeof X === "function" ? X : Object`) para cada tipo **importado
@@ -138,8 +147,11 @@ contra CORE, ver `src/core-client/`).
 `x-internal-service-token` (secreto compartido, ver arriba) y validación de la respuesta con Zod
 (`core-client.types.ts`). `postInventario` distingue explícitamente 400/409 (rechazo permanente,
 DOC-002 §5) de cualquier otra falla transitoria (502) — ver `callCore`/`passthroughStatuses` en
-`core-client.service.ts`. `deviceId` no se enforced todavía (un solo dispositivo por operador,
-DOC-002 §1) — requiere persistencia que hoy no existe en CIS.
+`core-client.service.ts`.
+
+**`DeviceRegistryService` (`src/device-registry/`)**: `un solo dispositivo por operador`
+(DOC-002 §1) enforced en `auth/session` — ver arriba, sección Estado, para el criterio de
+supersede-en-vez-de-rechazo y el TTL atado al token.
 
 ## Depende de
 - Más datos reales de Contrato en `../core/` (hoy solo un caso precargado sobre Postgres, ver
@@ -166,10 +178,9 @@ DOC-002 §1) — requiere persistencia que hoy no existe en CIS.
   `sedeId` y vigencia de contrato en cada request, no solo identidad.
 - Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker + reintentos con backoff +
   rate limiting — implementados en `src/core-client/circuit-breaker.ts`, `src/core-client/retry.ts`
-  y `src/rate-limit/`; por dispositivo, no solo por operador, sigue pendiente) y §3 (el CIS es el
-  único punto que valida identidad de fuentes de captura).
+  y `src/rate-limit/`) y §3 (el CIS es el único punto que valida identidad de fuentes de captura).
 
 ## Próximo paso sugerido
-`deviceId` enforced con persistencia real (DOC-002 §1, requiere que exista primero un lugar donde
-guardarlo) y que `app-qr-sicsaft/` (TASK-006/TASK-007) reemplace `LocalQrConnectorClient` por un
-cliente HTTP real contra estos 4 endpoints — lo que queda de ROADMAP.md Fase 3.
+Que `app-qr-sicsaft/` (TASK-006/TASK-007) reemplace `LocalQrConnectorClient` por un cliente HTTP
+real contra estos 4 endpoints — lo que queda de ROADMAP.md Fase 3 que no es opcional (la caché de
+entitlements invalidada por evento está explícitamente marcada como diferible).
