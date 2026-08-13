@@ -6,6 +6,8 @@ import { EntitlementsModule } from './entitlements/entitlements.module';
 import { ServiceTokenModule } from './common/auth/service-token.module';
 import { DatabaseModule } from './database/database.module';
 import { CorrelationIdMiddleware } from './common/correlation-id/correlation-id.middleware';
+import { PatrimonialModule } from './patrimonial/patrimonial.module';
+import { OrquestadorModule } from './orquestador/orquestador.module';
 
 @Module({
   imports: [
@@ -13,6 +15,11 @@ import { CorrelationIdMiddleware } from './common/correlation-id/correlation-id.
     DatabaseModule,
     HealthModule,
     EntitlementsModule,
+    // Fase 2 (ROADMAP.md): Motor Patrimonial (GET /catalogo) + Orquestador (POST /inventarios,
+    // GET /inventarios/:id/estado — este ultimo trae InventariosModule/EventosModule/
+    // AuditoriaModule transitivamente, ver orquestador.module.ts).
+    PatrimonialModule,
+    OrquestadorModule,
   ],
   controllers: [AppController],
   providers: [AppService],

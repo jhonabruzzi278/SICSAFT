@@ -121,40 +121,46 @@ dentro del stack de `docker-compose.yml` local); `base-patrimonial/README.md` y 
 actualizados dejando explícito qué dominios quedan sin modelar. **Sin API todavía** — ningún
 endpoint de CORE sirve estas tablas; eso es la Fase 2 (Motor Patrimonial).
 
-## Fase 2 — CORE MVP: Orquestador + 4 motores de lectura 🟡 en diseño
+## Fase 2 — CORE MVP: Orquestador + 4 motores de lectura ✅ completa
 
 **Por qué acá**: primer valor real de CORE, ya con dominio detrás.
 
-**Diseño completo, sin código todavía**: metodología AI-DLC en
-[`core/aidlc-docs/`](core/aidlc-docs/00_PROJECT_METADATA.md) — requirements, historias de
-usuario, modelo de dominio de orquestación, arquitectura con diagramas de secuencia, y DOC-006
-(API CIS↔CORE) a DOC-011 (Motor de Auditoría). Incluye un hallazgo del diseño: dos correcciones
-pendientes sobre DOC-005 ya migrado (nombre de categoría `invalido` vs `codigo_invalido`, y una
-tabla `sesiones_inventario` que faltaba para agrupar los escaneos de una misma sesión) — ver
-[DOC-006 §0](core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md#-hallazgo-del-diseño-doc-005-tiene-dos-errores-respecto-al-contrato-ya-acordado-en-doc-002).
+**Diseño**: metodología AI-DLC en [`core/aidlc-docs/`](core/aidlc-docs/00_PROJECT_METADATA.md) —
+requirements, historias de usuario, modelo de dominio de orquestación, arquitectura con
+diagramas de secuencia, y DOC-006 (API CIS↔CORE) a DOC-011 (Motor de Auditoría). El diseño
+encontró (y la implementación corrigió, migración `1755200000000`) dos errores sobre DOC-005 ya
+migrado: nombre de categoría `invalido` vs `codigo_invalido`, y faltaba `sesiones_inventario`
+para agrupar los escaneos de una misma sesión (DOC-002 confirma que `POST /inventarios` envía
+sesiones cerradas completas, no escaneos sueltos).
 
-**Qué se construye** (módulos Nest dentro del mismo desplegable, WAF §1 y §9 — no microservicios)
-1. **Orquestador Central**: punto único de entrada de operación, secuencia de motores, cierre de
-   transacción, estados `Recibida → … → Finalizada` (Tomo IV §2.15–2.16).
-2. **Motor Patrimonial (alcance MVP)**: consulta de activos, catálogo por organización/área/
-   ubicación, inventario, cambio de ubicación/estado, traslado. Alta/baja/reincorporación/cambio
-   de responsable quedan para la Fase 4.
-3. **Motor de Reglas**: las 8 categorías de resultado de escaneo resueltas en CORE, no en la app
-   (hoy están en el cliente — incluida `duplicate`, que solo la Base Patrimonial puede detectar).
-4. **Motor de Eventos** y **Motor de Auditoría**: registro de todo hecho e intento, con
-   `correlationId` de Fase 0 (Tomo IV §2.9).
-5. Endpoints reales `GET /catalogo` y `POST /inventarios` **con la idempotencia implementada en
-   CORE, persistida** (mover lo que hoy está en `QrConnectorService`).
-6. **DOC-006 — API CIS↔CORE**: formaliza `/entitlements`, catálogo, inventarios, convención de
-   `correlationId` y semántica de idempotencia. Responde las preguntas abiertas del handoff §6.
+**Qué se construyó** (módulos Nest dentro del mismo desplegable, WAF §1 y §9 — no microservicios)
+1. ✅ **Orquestador Central** (`src/orquestador/`): único punto de entrada, arma
+   `ContextoOperacion`, audita siempre — éxito o rechazo (Tomo IV §2.15–16, DOC-007).
+2. ✅ **Motor Patrimonial** (`src/patrimonial/`): `GET /catalogo` paginado por
+   organización/área/ubicación, resolución de activo por código QR. **Traslado y cambio de
+   ubicación/estado quedaron sin endpoint HTTP** — sin consumidor real todavía (DOC-008, YAGNI);
+   el repository ya tiene los métodos, falta el controller. Alta/baja/reincorporación/cambio de
+   responsable siguen siendo Fase 4.
+3. ✅ **Motor de Reglas** (`src/reglas/`): `clasificarEscaneo`, función pura con las 8 categorías
+   (DOC-009) — incluida `duplicado`, que solo CORE puede detectar contra la Base Patrimonial real.
+4. ✅ **Motor de Eventos** (`src/eventos/`) y **Motor de Auditoría** (`src/auditoria/`): registro
+   de todo hecho e intento, con `correlationId` de Fase 0 (Tomo IV §2.9).
+5. ✅ `POST /inventarios` y `GET /inventarios/:id/estado` reales, con idempotencia persistida en
+   `sesiones_inventario` (ya no en memoria de `QrConnectorService` — esa migración a CIS sigue
+   pendiente para la Fase 3, ver abajo).
+6. ✅ **DOC-006 — API CIS↔CORE**: formaliza `/catalogo`, `/inventarios`, convención de
+   `correlationId` y semántica de idempotencia.
 
-**Qué NO se hace acá**: Motor de Alertas, Motor de Reportes, Gestión Documental, Gestión de
-Usuarios/Permisos como motores completos — sin datos ni consumidor todavía.
+**Qué NO se hizo, a propósito**: Motor de Alertas, Motor de Reportes, Gestión Documental,
+Gestión de Usuarios/Permisos como motores completos, y el controller de traslado — sin datos ni
+consumidor todavía.
 
-**Done**: e2e contra Postgres real cubriendo las 8 categorías de escaneo y el reintento
-idempotente; DOC-006 mergeado y referenciado desde `cis/`, `core/` y el handoff de APP QR;
-paginación obligatoria en todo listado desde el diseño (WAF §5); README de `core/` sin la frase
-"ningún motor implementado".
+**Done**: 96 tests (100% stmts/lines/funcs, >85% branches), e2e nuevo
+(`test/inventarios.e2e-spec.ts`) contra Postgres real cubriendo clasificación real, idempotencia
+(reintento + conflicto), y error 400 por organización inexistente; `docker build`/`docker run`
+real con `GET /catalogo` y `POST /inventarios` respondiendo contra la base migrada — auditoría y
+evento verificados en la fila real de Postgres, no solo en el response. `core/README.md`
+actualizado.
 
 ## Fase 3 — CIS deja de ser mock + APP QR TASK-007
 
@@ -335,8 +341,8 @@ aparezca en documentos:
 ```
 Fase 0 (migraciones + correlationId + OIDC real) ✅
   └─ Fase 1 (DOC-005 mínimo) ✅
-       └─ Fase 2 (CORE MVP: 4 motores + DOC-006)   ← siguiente
-            └─ Fase 3 (CIS real + APP QR TASK-007)   ← primer flujo end-to-end real
+       └─ Fase 2 (CORE MVP: 4 motores + DOC-006) ✅
+            └─ Fase 3 (CIS real + APP QR TASK-007)   ← siguiente, primer flujo end-to-end real
                  ├─ Fase 4 (Administrador Patrimonial + escritura oficial)  [pieza nueva]
                  │    ├─ Fase 5 (WEB mínimo) — diseño ✅, código pendiente
                  │    └─ Fase 7 (CON-CONTABILIDAD)   [pieza nueva]

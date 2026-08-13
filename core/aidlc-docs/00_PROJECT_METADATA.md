@@ -5,14 +5,17 @@
 **Metodología:** AI-DLC (mismo patrón que `app-qr-sicsaft/aidlc-docs/`, primer sistema backend
 que lo adopta — ver `CLAUDE.md` § Documentación)
 **Fecha:** 2026-08-13
-**Fase actual:** Inception — este directorio es el diseño, **todavía sin código de Fase 2**.
+**Fase actual:** Construction completa — código real implementado y verificado sobre este diseño.
 
 ## Status
 
-- [x] Inception — requirements, domain model, arquitectura y contratos de API diseñados en esta
-      sesión, antes de escribir código (pedido explícito del usuario).
-- [ ] Construction — pendiente, arranca después de que el diseño quede confirmado.
-- [ ] Operations — pendiente.
+- [x] Inception — requirements, domain model, arquitectura y contratos de API diseñados antes de
+      escribir código (pedido explícito del usuario).
+- [x] Construction — implementado: Orquestador, Motor Patrimonial (`GET /catalogo`), Motor de
+      Reglas (`clasificarEscaneo`), Motor de Eventos, Motor de Auditoría, `POST /inventarios` +
+      `GET /inventarios/:id/estado` idempotentes. 96 tests (100% stmts/lines/funcs), e2e contra
+      Postgres real, verificado en `docker build`/`docker run` real. Ver `core/README.md` § Estado.
+- [ ] Operations — pendiente (sin deploy real todavía, ver `devops/README.md`).
 
 ## Por qué este directorio existe
 

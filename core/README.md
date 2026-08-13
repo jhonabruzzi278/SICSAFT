@@ -29,12 +29,25 @@ real entre contenedores `cis`↔`core` (`docker network` + `docker exec`, proban
 header, header correcto, header incorrecto), no solo con mocks. Toda ruta pasa además por
 `CorrelationIdMiddleware` (`src/common/correlation-id/`, ROADMAP.md Fase 0): acepta/genera
 `X-Correlation-Id` y lo devuelve en la respuesta — CIS ya lo propaga al llamar acá. Todavía sin
-logging estructurado que lo use (WAF §2, pendiente). El alcance mínimo del resto del dominio
-patrimonial ya tiene tabla real también ([DOC-005](../base-patrimonial/DOC-005-modelo-patrimonial.md):
-`Área`, `Ubicación`, `Responsable`, `Catálogo de Activos`, `Activo`, `Inventarios`, `Eventos`,
-`Auditoría`, con datos de prueba) — pero **sin ningún motor implementado todavía** (Patrimonial,
-Reglas, Eventos, Auditoría, Alertas...) que lo sirva o escriba en él; las tablas existen, nada las
-consulta ni las llena todavía salvo el seed de desarrollo.
+logging estructurado que lo use (WAF §2, pendiente).
+
+**Fase 2 (Orquestador + 4 motores de lectura) ya implementada** — diseño completo en
+[`core/aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) (DOC-006 a DOC-011), código real sobre
+[DOC-005](../base-patrimonial/DOC-005-modelo-patrimonial.md):
+- `GET /catalogo` (Motor Patrimonial, `src/patrimonial/`) — paginado, por
+  organización/área/ubicación.
+- `POST /inventarios` (Orquestador + Motor de Reglas + Motor Patrimonial + Motor de Eventos,
+  `src/orquestador/` + `src/inventarios/` + `src/reglas/` + `src/eventos/`) — clasifica cada
+  escaneo contra la Base Patrimonial real en una de las 8 categorías (DOC-009), idempotente
+  (`sesiones_inventario`, migración `1755200000000`), auditado siempre — éxito o rechazo — por
+  el Motor de Auditoría (`src/auditoria/`).
+- `GET /inventarios/:id/estado`.
+
+Verificado igual que el resto del sistema: unit (100% stmts/lines/funcs, 90%+ branches), e2e
+nuevo (`test/inventarios.e2e-spec.ts`) contra Postgres real, `docker build`/`docker run` real con
+`GET /catalogo` y `POST /inventarios` respondiendo contra la base migrada. Alta/baja/
+reincorporación/cambio de responsable, Motor de Alertas y Motor de Reportes quedan fuera a
+propósito — Fase 4 y sin consumidor real, respectivamente (ver DOC-008).
 
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
@@ -138,19 +151,17 @@ módulos Nest dentro de un mismo desplegable, ver ADR-001).
 (modelo de `Contrato` — primer dato real que este esqueleto tendría que servir).
 [`base-patrimonial/DOC-005-modelo-patrimonial.md`](../base-patrimonial/DOC-005-modelo-patrimonial.md)
 (alcance mínimo del resto del dominio — Área/Ubicación/Responsable/Catálogo/Activo/Inventarios/
-Eventos/Auditoría, tablas reales sin motor que las sirva todavía). Pendiente: DOC-003 Modelo de
-dominio, DOC-006 API CIS↔CORE (incluye `GET /entitlements`), DOC-007 Arquitectura CORE, DOC-008
-Motor Patrimonial, DOC-009 Motor de Reglas, DOC-010 Motor Eventos, DOC-011 Motor Auditoría.
+Eventos/Auditoría). [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) — DOC-006 (API CIS↔CORE),
+DOC-007 (Orquestador), DOC-008 (Motor Patrimonial), DOC-009 (Motor de Reglas), DOC-010 (Motor de
+Eventos), DOC-011 (Motor de Auditoría), todos entregados e implementados. Pendiente: DOC-003
+Modelo de dominio SICSAFT completo.
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) para el marco de escalabilidad/resiliencia
 aplicable a este sistema.
 
 ## Próximo paso sugerido
-`GET /entitlements` ya está hecho, CIS ya lo consume, el llamador ya se valida (secreto
-compartido), y el alcance mínimo del resto del dominio patrimonial ya tiene tabla real (DOC-005).
-El siguiente incremento con valor real es el primer motor real (Motor Patrimonial,
-consulta/inventario/cambio de ubicación — ver "Arquitectura interna" arriba) sobre esas tablas
-(`ROADMAP.md` Fase 2) — **diseño completo en [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md)
-(requirements, historias, DOC-006 a DOC-011, diagramas), a la espera de confirmación antes de
-implementar código**. Alternativa sin código: rotación/gestión del secreto vía un secret manager
-en vez de una env var plana cuando se pase a producción (ver `../devops/README.md`). Tarjeta
-Trello: `CORE-ADR-001`.
+`GET /entitlements`, `GET /catalogo` y `POST /inventarios` ya están hechos y probados de punta a
+punta. El siguiente incremento con valor real es que `app-qr-sicsaft/` reemplace su stub
+(`LocalQrConnectorClient`) por un cliente real que hable con CIS→CORE (TASK-006/007,
+`ROADMAP.md` Fase 3) — recién ahí este trabajo tiene un consumidor de verdad. Alternativa sin
+código: rotación/gestión del `CORE_SERVICE_TOKEN` vía un secret manager en vez de una env var
+plana cuando se pase a producción (ver `../devops/README.md`). Tarjeta Trello: `CORE-ADR-001`.
