@@ -5,7 +5,11 @@ Repositorio oficial de toda la información patrimonial (Tomo III, Cap. 4). No a
 inventarios: administra el ciclo completo de vida de cada Activo Fijo Tangible. Principio
 (Base Única de la Verdad / Single Source of Truth): toda modificación oficial del patrimonio se
 hace sobre esta base; ningún otro sistema puede reemplazarla. Solo SICSAFT CORE puede escribir
-acá — ninguna fuente de captura (APP QR, WEB, RFID, ERP) accede directo.
+acá — ninguna fuente de captura (APP QR, WEB, RFID, ERP) accede directo. Según Tomo III §1.4, la
+Base Oficial siempre proviene en última instancia del **Sistema Contable** institucional
+(importación/actualización/sincronización, nunca elimina historial) y solo el **Administrador
+Patrimonial** puede modificarla directamente — ninguno de los dos está implementado todavía, ver
+[ARQUITECTURA-WAF.md §11](../ARQUITECTURA-WAF.md#11-entradas-y-salidas-oficiales-del-ecosistema-tomo-iii-cap1).
 
 ## Estado
 🟡 Modelo de dominio de `Contrato` documentado e implementado (ver
@@ -52,7 +56,8 @@ CORE, WEB, CIP — todos leen/escriben (vía CORE) contra este modelo. `Contrato
 bloquea la resolución real de entitlements en CIS (ver DOC-004 §6).
 
 ## Documentos relacionados
-[DOC-004](DOC-004-modelo-contrato.md) — modelo de `Contrato` (entregado, no implementado).
+[DOC-004](DOC-004-modelo-contrato.md) — modelo de `Contrato` (entregado e implementado: tabla
+real en Postgres, servida por `core/` vía `GET /entitlements`).
 Pendiente: DOC-003 Modelo de dominio SICSAFT, DOC-005 resto del modelo Base Patrimonial (los 11
 dominios de arriba salvo Contrato).
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §5 (rendimiento: separar lectura transaccional
@@ -60,6 +65,7 @@ de analítica) y §4 (fiabilidad: backups con restauración probada dado que el 
 borra).
 
 ## Próximo paso sugerido
-`Contrato` ya está modelado (DOC-004) — validarlo con quien defina CORE antes de elegir motor de
-BD. Para el resto del dominio: modelar el resto de entidades (diagrama completo, en conjunto con
-CORE) antes de elegir motor de base de datos concreto. Tarjeta Trello: `BASE-DOC-001`.
+`Contrato` ya está modelado e implementado (DOC-004), incluida su tabla real en Postgres — motor
+de BD ya resuelto (PostgreSQL, ADR-001) y validado con el patrón que usó CORE. Para el resto del
+dominio: modelar las entidades restantes (diagrama completo, en conjunto con CORE) siguiendo el
+mismo patrón — DOC-005. Tarjeta Trello: `BASE-DOC-001`.

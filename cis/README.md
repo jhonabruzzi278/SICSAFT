@@ -112,9 +112,9 @@ resueltos) no tengan respuesta, este mock es lo que consume APP QR (TASK-006/007
 implementación real.
 
 ## Depende de
-- CORE real sirviendo `GET /entitlements` sobre datos reales de Contrato (hoy es el mock de
-  `../core/`, ver [DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §7 — sin mapeo
-  operador→organización real todavía).
+- Más datos reales de Contrato en `../core/` (hoy solo un caso precargado sobre Postgres, ver
+  [DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §7 — sin mapeo operador→organización
+  real todavía).
 - Definiciones de SICSAFT CORE (contrato de API para catálogo/inventarios, tracing) para
   reemplazar el resto del mock — bloqueado, ver arriba.
 - Que exista un cliente OIDC real (WEB/APP QR) haciendo authorization code + PKCE contra Zitadel

@@ -5,8 +5,8 @@ Capacidad transversal de infraestructura, CI/CD, seguridad operacional y observa
 todos los sistemas del ecosistema (APP QR, CIS, CORE, WEB, CIP, RFID, Integraciones).
 
 ## Estado
-🟡 Stack local funcionando (`devops/local/`: Traefik + Postgres + Redis + Zitadel + CIS en Docker
-Compose, ver su README para cómo levantarlo). Producción (VPS real, dominios `sicsaft.cl`,
+🟡 Stack local funcionando (`devops/local/`: Traefik + Postgres + Redis + Zitadel + CIS + CORE en
+Docker Compose, ver su README para cómo levantarlo). Producción (VPS real, dominios `sicsaft.cl`,
 CI/CD) sigue sin implementar — ver [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) y
 [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) para el stack ya decidido.
 
