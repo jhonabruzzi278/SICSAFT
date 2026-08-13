@@ -44,6 +44,7 @@ export class QrConnectorService {
   async authSession(
     request: AuthSessionRequest,
     auth: ZitadelAuthContext,
+    correlationId: string,
   ): Promise<AuthSessionResponse> {
     // ZitadelAuthGuard ya validó el token — el operador viene autenticado por Zitadel, no por
     // este metodo. `accessToken`/`expiresAt` son pass-through del mismo token (ver ADR-002: el
@@ -53,6 +54,7 @@ export class QrConnectorService {
 
     const { organizaciones } = await this.coreClientService.getEntitlements(
       auth.operadorId,
+      correlationId,
     );
 
     return {

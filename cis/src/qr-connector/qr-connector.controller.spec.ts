@@ -15,11 +15,16 @@ import {
   InventarioEstadoResponse,
   PostInventarioResponse,
 } from './qr-connector.types';
+import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
+
+const CORRELATION_ID = 'correlation-test';
 
 function buildAuthenticatedRequest(
   auth: ZitadelAuthContext,
-): AuthenticatedRequest {
-  return { auth } as AuthenticatedRequest & Request;
+): AuthenticatedRequest & RequestWithCorrelationId {
+  return { auth, correlationId: CORRELATION_ID } as AuthenticatedRequest &
+    RequestWithCorrelationId &
+    Request;
 }
 
 describe('QrConnectorController', () => {
@@ -69,11 +74,15 @@ describe('QrConnectorController', () => {
     const request = buildAuthenticatedRequest(auth);
 
     await expect(controller.authSession(body, request)).resolves.toBe(expected);
-    expect(service.authSession).toHaveBeenCalledWith(body, auth);
+    expect(service.authSession).toHaveBeenCalledWith(
+      body,
+      auth,
+      CORRELATION_ID,
+    );
   });
 
   it('authSession lanza 401 si el guard no seteo el contexto de auth', () => {
-    const request = {} as AuthenticatedRequest;
+    const request = {} as AuthenticatedRequest & RequestWithCorrelationId;
     expect(() => controller.authSession({ deviceId: 'd-1' }, request)).toThrow(
       'No hay contexto de autenticación',
     );

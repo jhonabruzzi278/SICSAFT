@@ -93,7 +93,13 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
     const body = res.body as AuthSessionResponse;
     expect(body.accessToken).toBe(bearerToken);
     expect(body.organizaciones).toEqual(ENTITLEMENTS_STUB.organizaciones);
-    expect(coreClientService.getEntitlements).toHaveBeenCalledWith('op-1');
+    // El correlationId lo genera CorrelationIdMiddleware (no llega ninguno en la request) —
+    // se verifica que CoreClientService reciba el mismo valor que la response expuso.
+    expect(res.headers['x-correlation-id']).toEqual(expect.any(String));
+    expect(coreClientService.getEntitlements).toHaveBeenCalledWith(
+      'op-1',
+      res.headers['x-correlation-id'],
+    );
   });
 
   it('POST /auth/session devuelve 502 si CORE no responde', async () => {

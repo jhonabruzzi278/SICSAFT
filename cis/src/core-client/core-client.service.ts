@@ -7,6 +7,7 @@ import {
   entitlementsResponseSchema,
   type EntitlementsResult,
 } from './core-client.types';
+import { CORRELATION_ID_HEADER } from '../common/correlation-id/correlation-id.constants';
 
 // Debe coincidir exactamente con core/src/common/auth/service-token.guard.ts — no hay paquete
 // compartido entre CIS y CORE todavia (mismo caso que Organizacion/Sede en core-client.types.ts).
@@ -19,17 +20,26 @@ export class CoreClientService {
     private readonly httpService: HttpService,
   ) {}
 
-  async getEntitlements(operadorId: string): Promise<EntitlementsResult> {
-    const data = await this.request(operadorId);
+  async getEntitlements(
+    operadorId: string,
+    correlationId: string,
+  ): Promise<EntitlementsResult> {
+    const data = await this.request(operadorId, correlationId);
     return this.parse(data);
   }
 
-  private async request(operadorId: string): Promise<unknown> {
+  private async request(
+    operadorId: string,
+    correlationId: string,
+  ): Promise<unknown> {
     try {
       const response = await firstValueFrom(
         this.httpService.get(`${this.config.baseUrl}/entitlements`, {
           params: { operadorId },
-          headers: { [SERVICE_TOKEN_HEADER]: this.config.serviceToken },
+          headers: {
+            [SERVICE_TOKEN_HEADER]: this.config.serviceToken,
+            [CORRELATION_ID_HEADER]: correlationId,
+          },
         }),
       );
       return response.data;

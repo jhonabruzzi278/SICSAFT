@@ -33,13 +33,16 @@ describe('CoreClientService', () => {
       of(buildAxiosResponse({ organizaciones: [] })),
     );
 
-    await service.getEntitlements('op-1');
+    await service.getEntitlements('op-1', 'correlation-test');
 
     expect(httpService.get).toHaveBeenCalledWith(
       'http://core:3001/entitlements',
       {
         params: { operadorId: 'op-1' },
-        headers: { 'x-internal-service-token': 'secreto-compartido' },
+        headers: {
+          'x-internal-service-token': 'secreto-compartido',
+          'x-correlation-id': 'correlation-test',
+        },
       },
     );
   });
@@ -54,7 +57,7 @@ describe('CoreClientService', () => {
     ];
     httpService.get.mockReturnValue(of(buildAxiosResponse({ organizaciones })));
 
-    const result = await service.getEntitlements('op-1');
+    const result = await service.getEntitlements('op-1', 'correlation-test');
 
     expect(result).toEqual({ organizaciones });
   });
@@ -64,9 +67,9 @@ describe('CoreClientService', () => {
       throwError(() => new Error('ECONNREFUSED')),
     );
 
-    await expect(service.getEntitlements('op-1')).rejects.toThrow(
-      BadGatewayException,
-    );
+    await expect(
+      service.getEntitlements('op-1', 'correlation-test'),
+    ).rejects.toThrow(BadGatewayException);
   });
 
   it('lanza 502 si CORE responde una forma inesperada', async () => {
@@ -74,8 +77,8 @@ describe('CoreClientService', () => {
       of(buildAxiosResponse({ algoDistinto: true })),
     );
 
-    await expect(service.getEntitlements('op-1')).rejects.toThrow(
-      BadGatewayException,
-    );
+    await expect(
+      service.getEntitlements('op-1', 'correlation-test'),
+    ).rejects.toThrow(BadGatewayException);
   });
 });

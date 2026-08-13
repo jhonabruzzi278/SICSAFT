@@ -16,6 +16,7 @@ import {
   type AuthenticatedRequest,
 } from '../common/auth/zitadel-auth.guard';
 import { QrConnectorService } from './qr-connector.service';
+import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 import {
   authSessionRequestSchema,
   catalogoQuerySchema,
@@ -48,11 +49,12 @@ export class QrConnectorController {
   @UsePipes(new ZodValidationPipe(authSessionRequestSchema))
   authSession(
     @Body() body: AuthSessionRequest,
-    @Req() request: AuthenticatedRequest,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
   ): Promise<AuthSessionResponse> {
     return this.qrConnectorService.authSession(
       body,
       requireAuthContext(request),
+      request.correlationId,
     );
   }
 

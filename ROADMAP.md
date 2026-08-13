@@ -64,11 +64,17 @@ triplicados a mano multiplica la deuda por 10. Es la fase más barata y la que m
    importa `SEED_CONTRATOS` de `contrato.seed.ts` en vez de retipear los datos en SQL — elimina
    una de las dos duplicaciones. La copia de `cis/src/qr-connector/qr-connector.seed.ts` queda
    pendiente hasta la Fase 3.
-3. ⬜ `correlationId` transversal: middleware en CIS y CORE que acepte/genere `X-Correlation-Id`, lo
-   propague en `CoreClientService` y lo incluya en todo log estructurado (WAF §2).
+3. ✅ `correlationId` transversal (parcial): `CorrelationIdMiddleware` en CIS y CORE
+   (`src/common/correlation-id/`) acepta/genera `X-Correlation-Id` en toda ruta y lo devuelve en
+   la respuesta; `CoreClientService.getEntitlements` ya lo propaga como header al llamar a CORE.
+   Falta la otra mitad de WAF §2 — **no hay logging estructurado todavía** (ni CIS ni CORE
+   loggean nada hoy más allá del arranque de Nest): el `correlationId` está disponible en
+   `req.correlationId` para cuando se agregue, pero no se emite a ningún log/trace todavía. Ver
+   OPS-1 en el track OPS abajo.
 4. ⬜ Cliente OIDC real: crear la app en Zitadel, mapeo operador→organización (`org_id` del token
    usado de verdad en `GET /entitlements`), flujo authorization code + PKCE probado end-to-end
-   desde APP QR contra el stack local.
+   desde APP QR contra el stack local. **Sigue pendiente** — requiere bootstrap de Zitadel en vivo
+   y tocar `app-qr-sicsaft/`, queda para el siguiente incremento de esta fase.
 
 **Sigue**: ADR-001, ADR-002, DOC-004 §7, `devops/local/README.md` § "Qué falta", WAF §2/§3.
 

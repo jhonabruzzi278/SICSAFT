@@ -26,9 +26,12 @@ de la red de contenedores, nunca un navegador directo).
 `x-internal-service-token` con un secreto compartido (`CORE_SERVICE_TOKEN`, comparado en tiempo
 constante para evitar timing attacks) — sin el header correcto, 401. Verificado con conectividad
 real entre contenedores `cis`↔`core` (`docker network` + `docker exec`, probando los 3 casos: sin
-header, header correcto, header incorrecto), no solo con mocks. Todavía sin ningún otro motor
-implementado (Patrimonial, Reglas, Eventos, Auditoría, Alertas...) ni el resto de los 11 dominios
-de Base Patrimonial — solo `Contrato`/`Sede`/`Organizacion` tienen tabla real hoy.
+header, header correcto, header incorrecto), no solo con mocks. Toda ruta pasa además por
+`CorrelationIdMiddleware` (`src/common/correlation-id/`, ROADMAP.md Fase 0): acepta/genera
+`X-Correlation-Id` y lo devuelve en la respuesta — CIS ya lo propaga al llamar acá. Todavía sin
+logging estructurado que lo use (WAF §2, pendiente). Todavía sin ningún otro motor implementado
+(Patrimonial, Reglas, Eventos, Auditoría, Alertas...) ni el resto de los 11 dominios de Base
+Patrimonial — solo `Contrato`/`Sede`/`Organizacion` tienen tabla real hoy.
 
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —

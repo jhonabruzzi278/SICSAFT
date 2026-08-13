@@ -66,14 +66,21 @@ describe('QrConnectorService', () => {
   describe('authSession', () => {
     it('devuelve el mismo token del contexto de auth (pass-through) con las organizaciones de CORE', async () => {
       const auth = buildAuthContext();
-      const result = await service.authSession({ deviceId: 'd-1' }, auth);
+      const result = await service.authSession(
+        { deviceId: 'd-1' },
+        auth,
+        'correlation-test',
+      );
 
       expect(result.accessToken).toBe(auth.accessToken);
       expect(result.expiresAt).toBe(auth.expiresAt);
       expect(result.organizaciones.some((org) => org.id === 'duoc-uc')).toBe(
         true,
       );
-      expect(coreClientService.getEntitlements).toHaveBeenCalledWith('op-1');
+      expect(coreClientService.getEntitlements).toHaveBeenCalledWith(
+        'op-1',
+        'correlation-test',
+      );
     });
   });
 

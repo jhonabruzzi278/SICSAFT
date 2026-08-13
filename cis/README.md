@@ -19,8 +19,10 @@ a `GET {CORE_URL}/entitlements` vía `CoreClientService` y valida la respuesta e
 Probado de punta a punta: lint, unit (100% stmts/lines/funcs, 91%+ branches), e2e (incluye el
 caso 502), build, y conectividad real entre contenedores `cis`↔`core` verificada con
 `docker network` + `docker exec` (incluidos los 3 casos del secreto: sin header, correcto,
-incorrecto). Todavía sin persistencia real (el mock de inventarios/catálogo guarda todo en
-memoria).
+incorrecto). Toda ruta pasa por `CorrelationIdMiddleware` (`src/common/correlation-id/`,
+ROADMAP.md Fase 0), que propaga `X-Correlation-Id` hasta `CoreClientService` — sin logging
+estructurado que lo use todavía (WAF §2, pendiente). Todavía sin persistencia real (el mock de
+inventarios/catálogo guarda todo en memoria).
 
 ## Desarrollo local
 ```bash
