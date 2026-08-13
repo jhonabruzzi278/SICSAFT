@@ -18,23 +18,29 @@ mantiene estado propio (sin `Map` en memoria, sin seed): las 4 operaciones —
 distinto, no se asume su forma) y devuelve 502 ante cualquier falla (red, timeout, 5xx, secreto
 inválido, forma inesperada) — nunca datos a medias. `CoreClientService` manda el secreto
 compartido de auth servicio-a-servicio (`x-internal-service-token`, ver `../core/README.md`) —
-CORE ya no acepta llamadas sin él. Todo llamado a CORE pasa además por un `CircuitBreaker` propio
-(`src/core-client/circuit-breaker.ts`, WAF §4): 5 fallos consecutivos abren el circuito, 30s antes
-de un sondeo half-open; mientras está abierto, `CoreClientService` devuelve 502 sin ni siquiera
-intentar la llamada HTTP. Idempotencia de inventarios (DOC-002 §4/§5), validación de
-organización/área/ubicación y clasificación de escaneos ya no viven en CIS — se resolvieron en
-CORE (`sesiones_inventario`, Motor de Reglas, Fase 2 de ROADMAP.md); CIS solo propaga el 400/409
-que CORE produce.
-Probado de punta a punta: lint, unit (100% stmts/lines/funcs, 89%+ branches), e2e (incluye los
-casos 502/400/404/409, con `CoreClientService` stubeado — no se levanta un CORE real), build.
-Conectividad real entre contenedores `cis`↔`core` verificada con `docker network` + `docker exec`
-para `GET /entitlements` (incluidos los 3 casos del secreto: sin header, correcto, incorrecto);
-queda pendiente repetir esa verificación de punta a punta contra Docker real para
-catálogo/inventarios (el mecanismo es el mismo `CoreClientService`, ya probado, pero no se corrió
-ese `docker exec` específico todavía). Toda ruta pasa por `CorrelationIdMiddleware`
-(`src/common/correlation-id/`, ROADMAP.md Fase 0), que propaga `X-Correlation-Id` hasta
-`CoreClientService` — sin logging estructurado que lo use todavía (WAF §2, pendiente).
-Resiliencia restante de WAF §4 (reintentos con backoff, rate limiting por operador/dispositivo) y
+CORE ya no acepta llamadas sin él. Todo llamado a CORE pasa primero por reintentos con backoff
+exponencial (`src/core-client/retry.ts`, WAF §4: "reintentos con backoff exponencial + límite de
+intentos, nunca reintento inmediato en bucle") y luego por un `CircuitBreaker` propio
+(`src/core-client/circuit-breaker.ts`): 3 intentos totales (200ms/400ms de backoff) solo para
+fallos transitorios — sin respuesta o 5xx, nunca un 400/404/409 (rechazo permanente, DOC-002 §5);
+si los 3 intentos fallan, cuenta como **un** fallo para el circuito, que abre a los 5 consecutivos
+y sondea de nuevo (half-open) a los 30s — mientras está abierto, `CoreClientService` devuelve 502
+sin ni siquiera intentar la llamada HTTP. Reintentar es seguro para las 4 operaciones, incluido
+`POST /inventarios`: CORE dedupea por `idempotencyKey` (DOC-006 §3), reintentar una request ya
+aceptada devuelve la misma fila, nunca duplica. Idempotencia de inventarios (DOC-002 §4/§5),
+validación de organización/área/ubicación y clasificación de escaneos ya no viven en CIS — se
+resolvieron en CORE (`sesiones_inventario`, Motor de Reglas, Fase 2 de ROADMAP.md); CIS solo
+propaga el 400/409 que CORE produce.
+Probado de punta a punta: lint, unit (100% stmts/lines/funcs, 90%+ branches, incluye reintentos
+con fake timers), e2e (incluye los casos 502/400/404/409, con `CoreClientService` stubeado — no se
+levanta un CORE real), build. Conectividad real entre contenedores `cis`↔`core` verificada con
+`docker network` + `docker exec` para `GET /entitlements` (incluidos los 3 casos del secreto: sin
+header, correcto, incorrecto); queda pendiente repetir esa verificación de punta a punta contra
+Docker real para catálogo/inventarios (el mecanismo es el mismo `CoreClientService`, ya probado,
+pero no se corrió ese `docker exec` específico todavía). Toda ruta pasa por
+`CorrelationIdMiddleware` (`src/common/correlation-id/`, ROADMAP.md Fase 0), que propaga
+`X-Correlation-Id` hasta `CoreClientService` — sin logging estructurado que lo use todavía (WAF
+§2, pendiente). Resiliencia restante de WAF §4 (rate limiting por operador/dispositivo) y
 `deviceId` enforced (DOC-002 §1) siguen sin implementar — ver ROADMAP.md Fase 3.
 
 ## Desarrollo local
@@ -143,11 +149,12 @@ DOC-002 §1) — requiere persistencia que hoy no existe en CIS.
 - [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack: NestJS/TypeScript).
 - [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) — el CIS valida `organizacionId`,
   `sedeId` y vigencia de contrato en cada request, no solo identidad.
-- Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker — implementado en
-  `src/core-client/circuit-breaker.ts`; reintentos con backoff y rate limiting hacia CORE siguen
-  pendientes) y §3 (el CIS es el único punto que valida identidad de fuentes de captura).
+- Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker + reintentos con backoff
+  — implementados en `src/core-client/circuit-breaker.ts` y `src/core-client/retry.ts`; rate
+  limiting hacia CORE sigue pendiente) y §3 (el CIS es el único punto que valida identidad de
+  fuentes de captura).
 
 ## Próximo paso sugerido
-Reintentos con backoff y rate limiting por operador/dispositivo hacia CORE (resto de WAF §4,
-ROADMAP.md Fase 3), y que `app-qr-sicsaft/` (TASK-006/TASK-007) reemplace `LocalQrConnectorClient`
-por un cliente HTTP real contra estos 4 endpoints.
+Rate limiting por operador/dispositivo hacia CORE (resto de WAF §4, ROADMAP.md Fase 3), y que
+`app-qr-sicsaft/` (TASK-006/TASK-007) reemplace `LocalQrConnectorClient` por un cliente HTTP real
+contra estos 4 endpoints.

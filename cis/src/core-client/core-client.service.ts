@@ -15,6 +15,7 @@ import {
 } from './core-client.constants';
 import type { CoreClientConfig } from './core-client.config';
 import { CircuitBreaker, CircuitOpenError } from './circuit-breaker';
+import { withRetry } from './retry';
 import {
   catalogoResponseSchema,
   entitlementsResponseSchema,
@@ -34,6 +35,20 @@ import type {
 // Debe coincidir exactamente con core/src/common/auth/service-token.guard.ts — no hay paquete
 // compartido entre CIS y CORE todavia (mismo caso que Organizacion/Sede en core-client.types.ts).
 const SERVICE_TOKEN_HEADER = 'x-internal-service-token';
+
+// WAF §4: parametros conservadores para el trafico actual, igual criterio que
+// CORE_CIRCUIT_BREAKER en core-client.module.ts. 3 intentos totales, 200ms/400ms de backoff.
+const CORE_RETRY_MAX_ATTEMPTS = 3;
+const CORE_RETRY_BASE_DELAY_MS = 200;
+
+// Solo reintenta lo transitorio: sin respuesta (red caida/timeout) o 5xx. Un 400/404/409 es un
+// rechazo permanente del lado de CORE (DOC-002 §5) — reintentarlo no cambia el resultado.
+function isTransientCoreError(error: unknown): boolean {
+  if (!(error instanceof AxiosError)) {
+    return false;
+  }
+  return error.response === undefined || error.response.status >= 500;
+}
 
 @Injectable()
 export class CoreClientService {
@@ -124,8 +139,15 @@ export class CoreClientService {
     };
   }
 
-  // Unico punto por el que CIS le habla a CORE — pasa siempre por el circuit breaker (WAF §4:
-  // "si un sistema externo empieza a fallar, el CIS deja de insistir temporalmente").
+  // Unico punto por el que CIS le habla a CORE — pasa siempre por reintentos con backoff y luego
+  // por el circuit breaker (WAF §4: "reintentos con backoff exponencial + limite de intentos" +
+  // "si un sistema externo empieza a fallar, el CIS deja de insistir temporalmente"). Reintentar
+  // es seguro para las 4 operaciones, incluido POST /inventarios: CORE dedupea por
+  // idempotencyKey (DOC-006 §3, sesiones_inventario.idempotency_key UNIQUE) — reintentar una
+  // request ya aceptada devuelve la misma fila, nunca duplica (WAF §4: "reintentar una operacion
+  // de red nunca duplica un alta"). El breaker envuelve la secuencia completa de reintentos: cada
+  // request logica cuenta una sola vez para el umbral de fallos consecutivos, no una vez por
+  // intento interno.
   private async callCore(
     path: string,
     correlationId: string,
@@ -133,7 +155,13 @@ export class CoreClientService {
     options: { passthroughStatuses?: number[] } = {},
   ): Promise<unknown> {
     try {
-      const response = await this.breaker.execute(request);
+      const response = await this.breaker.execute(() =>
+        withRetry(request, {
+          maxAttempts: CORE_RETRY_MAX_ATTEMPTS,
+          baseDelayMs: CORE_RETRY_BASE_DELAY_MS,
+          shouldRetry: isTransientCoreError,
+        }),
+      );
       return response.data;
     } catch (error: unknown) {
       if (error instanceof CircuitOpenError) {

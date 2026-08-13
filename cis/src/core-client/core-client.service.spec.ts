@@ -32,6 +32,12 @@ function buildAxiosError(status: number, data: unknown): AxiosError {
   return error;
 }
 
+// Sin `.response` — asi lanza axios real ante ECONNREFUSED/timeout (no llega a haber respuesta
+// HTTP), a diferencia de un 4xx/5xx que si trae una.
+function buildAxiosNetworkError(): AxiosError {
+  return new AxiosError('ECONNREFUSED', AxiosError.ERR_NETWORK);
+}
+
 describe('CoreClientService', () => {
   const config: CoreClientConfig = {
     baseUrl: 'http://core:3001',
@@ -44,6 +50,7 @@ describe('CoreClientService', () => {
   let service: CoreClientService;
 
   beforeEach(() => {
+    jest.useFakeTimers();
     axiosGet = jest.fn();
     axiosPost = jest.fn();
     httpService = {
@@ -52,6 +59,10 @@ describe('CoreClientService', () => {
     // Umbral alto: en estos tests un solo fallo nunca debe abrir el circuito por accidente.
     breaker = new CircuitBreaker({ failureThreshold: 100, resetTimeoutMs: 1 });
     service = new CoreClientService(config, breaker, httpService);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   describe('getEntitlements', () => {
@@ -84,12 +95,39 @@ describe('CoreClientService', () => {
       expect(result).toEqual({ organizaciones });
     });
 
-    it('lanza 502 si la request a CORE falla (red/timeout/5xx)', async () => {
-      axiosGet.mockRejectedValue(new Error('ECONNREFUSED'));
+    it('lanza 502 si la request a CORE falla (red/timeout/5xx) tras agotar los reintentos', async () => {
+      axiosGet.mockRejectedValue(buildAxiosNetworkError());
+
+      const assertion = expect(
+        service.getEntitlements('op-1', 'correlation-test'),
+      ).rejects.toThrow(BadGatewayException);
+      await jest.advanceTimersByTimeAsync(200); // backoff del 1er reintento
+      await jest.advanceTimersByTimeAsync(400); // backoff del 2do reintento (exponencial)
+      await assertion;
+
+      // WAF §4: reintentos con backoff, nunca reintento inmediato en bucle — 3 intentos totales.
+      expect(axiosGet).toHaveBeenCalledTimes(3);
+    });
+
+    it('no reintenta si el error no es un AxiosError (bug inesperado del cliente HTTP)', async () => {
+      axiosGet.mockRejectedValue(new Error('bug inesperado, no deberia pasar'));
 
       await expect(
         service.getEntitlements('op-1', 'correlation-test'),
       ).rejects.toThrow(BadGatewayException);
+      expect(axiosGet).toHaveBeenCalledTimes(1);
+    });
+
+    it('reintenta un fallo transitorio y tiene éxito en un intento posterior, sin propagar error', async () => {
+      axiosGet
+        .mockRejectedValueOnce(buildAxiosNetworkError())
+        .mockResolvedValueOnce(buildAxiosResponse({ organizaciones: [] }));
+
+      const resultPromise = service.getEntitlements('op-1', 'correlation-test');
+      await jest.advanceTimersByTimeAsync(200); // backoff del unico reintento necesario
+
+      await expect(resultPromise).resolves.toEqual({ organizaciones: [] });
+      expect(axiosGet).toHaveBeenCalledTimes(2);
     });
 
     it('lanza 502 si CORE responde una forma inesperada', async () => {
@@ -181,18 +219,13 @@ describe('CoreClientService', () => {
       ).resolves.toEqual({ inventarioId: 'sesion-1', estado: 'recibido' });
     });
 
-    it('propaga un 400 de CORE como BadRequestException con el mismo body', async () => {
+    it('propaga un 400 de CORE como BadRequestException con el mismo body, sin reintentar', async () => {
       const cuerpo = {
         message: 'Rechazado',
         errores: [{ campo: 'x', detalle: 'y' }],
       };
       axiosPost.mockRejectedValue(buildAxiosError(400, cuerpo));
 
-      await expect(
-        service.postInventario(request, 'x-corr-http'),
-      ).rejects.toThrow(BadRequestException);
-
-      axiosPost.mockRejectedValue(buildAxiosError(400, cuerpo));
       try {
         await service.postInventario(request, 'x-corr-http');
         throw new Error('deberia haber lanzado');
@@ -200,23 +233,31 @@ describe('CoreClientService', () => {
         expect(error).toBeInstanceOf(BadRequestException);
         expect((error as BadRequestException).getResponse()).toEqual(cuerpo);
       }
+      // Rechazo permanente (DOC-002 §5) — un solo intento, nunca se reintenta un 400.
+      expect(axiosPost).toHaveBeenCalledTimes(1);
     });
 
-    it('propaga un 409 de CORE como ConflictException con el mismo body', async () => {
+    it('propaga un 409 de CORE como ConflictException con el mismo body, sin reintentar', async () => {
       const cuerpo = { message: 'idempotencyKey ya usada' };
       axiosPost.mockRejectedValue(buildAxiosError(409, cuerpo));
 
       await expect(
         service.postInventario(request, 'x-corr-http'),
       ).rejects.toThrow(ConflictException);
+      expect(axiosPost).toHaveBeenCalledTimes(1);
     });
 
-    it('un 5xx de CORE se propaga como 502, no como el status original', async () => {
+    it('un 5xx de CORE se propaga como 502, no como el status original, tras reintentar', async () => {
       axiosPost.mockRejectedValue(buildAxiosError(500, { message: 'boom' }));
 
-      await expect(
+      const assertion = expect(
         service.postInventario(request, 'x-corr-http'),
       ).rejects.toThrow(BadGatewayException);
+      await jest.advanceTimersByTimeAsync(200);
+      await jest.advanceTimersByTimeAsync(400);
+      await assertion;
+
+      expect(axiosPost).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -243,7 +284,7 @@ describe('CoreClientService', () => {
       );
     });
 
-    it('propaga un 404 de CORE como NotFoundException', async () => {
+    it('propaga un 404 de CORE como NotFoundException, sin reintentar', async () => {
       axiosGet.mockRejectedValue(
         buildAxiosError(404, { message: "No existe el inventario 'x'" }),
       );
@@ -251,6 +292,7 @@ describe('CoreClientService', () => {
       await expect(service.getInventarioEstado('x', 'corr-1')).rejects.toThrow(
         NotFoundException,
       );
+      expect(axiosGet).toHaveBeenCalledTimes(1);
     });
 
     it('escapa el inventarioId al armar la URL', async () => {

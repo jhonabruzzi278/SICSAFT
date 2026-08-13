@@ -174,20 +174,24 @@ actualizado.
 2. ✅ Circuit breaker propio de CIS hacia CORE (WAF §4): `src/core-client/circuit-breaker.ts`,
    compartido entre las 4 llamadas, 5 fallos consecutivos abren el circuito, 30s de reset timeout
    antes de sondear de nuevo (half-open).
-3. ⬜ Resto de la resiliencia que WAF §4 pide: reintentos con backoff, rate limiting por
-   operador/dispositivo.
+3. ✅ Reintentos con backoff exponencial (WAF §4): `src/core-client/retry.ts`, 3 intentos totales
+   (200ms/400ms de backoff) solo para fallos transitorios (sin respuesta o 5xx, nunca un
+   400/404/409); envuelto por el circuit breaker, así que los 3 intentos de una request cuentan
+   como un solo fallo para el umbral del circuito. Seguro para `POST /inventarios` porque CORE
+   dedupea por `idempotencyKey` (DOC-006 §3). Rate limiting por operador/dispositivo, resto de
+   WAF §4, sigue pendiente.
 4. ⬜ Caché de entitlements en CIS invalidada por evento (recién tiene sentido con Fase 4
    escribiendo contratos; si al llegar acá aún no existe, dejarlo fuera y anotarlo).
 5. ⬜ `deviceId` enforced (un dispositivo por operador, DOC-002 §1) — requiere persistencia real.
 6. ⬜ **APP QR TASK-007**: `qr-connector.ts` reemplaza `LocalQrConnectorClient` por HTTP real,
    manejo de `400/401/409/5xx` de DOC-002 §5, sin tocar la UI. Se activa `duplicate` y `rejected`.
 
-**Done** (parcial — items 1-2): unit (100% stmts/lines/funcs, 89%+ branches) y e2e de CIS
-actualizados a proxy delgado (`CoreClientService` stubeado, sin CORE real — la idempotencia y
-validación real ya se probaron contra Postgres en la Fase 2); `cis/README.md` actualizado
-quitando "mock" para catálogo/inventarios. **Falta para cerrar la fase**: items 3-6, incluida
-TASK-007 con recorrido manual mostrando un inventario escaneado en la PWA persistido en la Base
-Patrimonial vía CIS→CORE.
+**Done** (parcial — items 1-3): unit (100% stmts/lines/funcs, 90%+ branches, incluye reintentos
+con fake timers) y e2e de CIS actualizados a proxy delgado (`CoreClientService` stubeado, sin
+CORE real — la idempotencia y validación real ya se probaron contra Postgres en la Fase 2);
+`cis/README.md` actualizado quitando "mock" para catálogo/inventarios. **Falta para cerrar la
+fase**: items 4-6, incluida TASK-007 con recorrido manual mostrando un inventario escaneado en la
+PWA persistido en la Base Patrimonial vía CIS→CORE.
 
 **Hito de negocio**: primera vez que el ecosistema completo funciona de punta a punta. Todo lo
 anterior a esto es infraestructura.
