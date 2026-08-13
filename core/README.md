@@ -29,9 +29,12 @@ real entre contenedores `cis`↔`core` (`docker network` + `docker exec`, proban
 header, header correcto, header incorrecto), no solo con mocks. Toda ruta pasa además por
 `CorrelationIdMiddleware` (`src/common/correlation-id/`, ROADMAP.md Fase 0): acepta/genera
 `X-Correlation-Id` y lo devuelve en la respuesta — CIS ya lo propaga al llamar acá. Todavía sin
-logging estructurado que lo use (WAF §2, pendiente). Todavía sin ningún otro motor implementado
-(Patrimonial, Reglas, Eventos, Auditoría, Alertas...) ni el resto de los 11 dominios de Base
-Patrimonial — solo `Contrato`/`Sede`/`Organizacion` tienen tabla real hoy.
+logging estructurado que lo use (WAF §2, pendiente). El alcance mínimo del resto del dominio
+patrimonial ya tiene tabla real también ([DOC-005](../base-patrimonial/DOC-005-modelo-patrimonial.md):
+`Área`, `Ubicación`, `Responsable`, `Catálogo de Activos`, `Activo`, `Inventarios`, `Eventos`,
+`Auditoría`, con datos de prueba) — pero **sin ningún motor implementado todavía** (Patrimonial,
+Reglas, Eventos, Auditoría, Alertas...) que lo sirva o escriba en él; las tablas existen, nada las
+consulta ni las llena todavía salvo el seed de desarrollo.
 
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
@@ -113,8 +116,9 @@ registrando el motivo.
 ## Depende de
 - Modelo de dominio y esquema de Base Patrimonial Central (`../base-patrimonial`) — a diseñar en
   conjunto, no por separado. `Contrato` ya está modelado
-  ([DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md)); el resto de los 11 dominios sigue
-  pendiente (DOC-005).
+  ([DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md)); el alcance mínimo del resto
+  también ([DOC-005](../base-patrimonial/DOC-005-modelo-patrimonial.md)) — `Configuración` e
+  `Integraciones` siguen pendientes, sin consumidor todavía.
 - Decisión de identidad/auth (afecta también a CIS y `../seguridad`) — ya resuelta a nivel de
   mecanismo (Zitadel/OIDC, ver [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md)), CIS
   ya la implementa. CORE no valida tokens de operador directamente (eso ya lo hace CIS antes de
@@ -131,16 +135,19 @@ registrando el motivo.
 [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack: NestJS/TypeScript — los 9 motores son
 módulos Nest dentro de un mismo desplegable, ver ADR-001).
 [`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md)
-(modelo de `Contrato` — primer dato real que este esqueleto tendría que servir). Pendiente:
-DOC-003 Modelo de dominio, DOC-005 resto del modelo Base Patrimonial, DOC-006 API CIS↔CORE
-(incluye `GET /entitlements`), DOC-007 Arquitectura CORE, DOC-008 Motor Patrimonial, DOC-009
-Motor de Reglas, DOC-010 Motor Eventos, DOC-011 Motor Auditoría.
+(modelo de `Contrato` — primer dato real que este esqueleto tendría que servir).
+[`base-patrimonial/DOC-005-modelo-patrimonial.md`](../base-patrimonial/DOC-005-modelo-patrimonial.md)
+(alcance mínimo del resto del dominio — Área/Ubicación/Responsable/Catálogo/Activo/Inventarios/
+Eventos/Auditoría, tablas reales sin motor que las sirva todavía). Pendiente: DOC-003 Modelo de
+dominio, DOC-006 API CIS↔CORE (incluye `GET /entitlements`), DOC-007 Arquitectura CORE, DOC-008
+Motor Patrimonial, DOC-009 Motor de Reglas, DOC-010 Motor Eventos, DOC-011 Motor Auditoría.
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) para el marco de escalabilidad/resiliencia
 aplicable a este sistema.
 
 ## Próximo paso sugerido
-`GET /entitlements` ya está hecho, CIS ya lo consume, y el llamador ya se valida (secreto
-compartido). El siguiente incremento con valor real es el primer motor real (Motor Patrimonial,
-consulta/inventario/cambio de ubicación — ver "Arquitectura interna" arriba) sobre datos reales
-de Base Patrimonial, o rotación/gestión del secreto vía un secret manager en vez de una env var
+`GET /entitlements` ya está hecho, CIS ya lo consume, el llamador ya se valida (secreto
+compartido), y el alcance mínimo del resto del dominio patrimonial ya tiene tabla real (DOC-005).
+El siguiente incremento con valor real es el primer motor real (Motor Patrimonial,
+consulta/inventario/cambio de ubicación — ver "Arquitectura interna" arriba) sobre esas tablas
+(`ROADMAP.md` Fase 2), o rotación/gestión del secreto vía un secret manager en vez de una env var
 plana cuando se pase a producción (ver `../devops/README.md`). Tarjeta Trello: `CORE-ADR-001`.

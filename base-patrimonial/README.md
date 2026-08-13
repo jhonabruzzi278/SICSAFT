@@ -16,8 +16,13 @@ Patrimonial** puede modificarla directamente — ninguno de los dos está implem
 [DOC-004](DOC-004-modelo-contrato.md)): tablas reales en Postgres
 (migraciones versionadas en `../core/migrations/`), servidas por `core/` vía `GET /entitlements`
 — desbloquea la resolución real de entitlements en CIS. Motor de base de datos ya resuelto a
-nivel de ecosistema (PostgreSQL, [ADR-001](../adr/ADR-001-stack-backend-nestjs.md)). El resto del
-dominio patrimonial (los 11 dominios de abajo) sigue sin modelar ni implementar — DOC-005.
+nivel de ecosistema (PostgreSQL, [ADR-001](../adr/ADR-001-stack-backend-nestjs.md)). Alcance
+mínimo del resto del dominio patrimonial también modelado e implementado (ver
+[DOC-005](DOC-005-modelo-patrimonial.md)): `Área`, `Ubicación`, `Responsable`, `Catálogo de
+Activos`, `Activo` (Base Patrimonial Central), `Inventarios`, `Eventos` y `Auditoría` — tablas
+reales en Postgres con datos de prueba (dos activos de DUOC UC/Melipilla). `Configuración` e
+`Integraciones` siguen sin modelar (sin consumidor todavía, ver DOC-005 §1). Sin API todavía
+sobre ninguna de estas tablas nuevas — eso es el Motor Patrimonial (`ROADMAP.md` Fase 2).
 
 ## Los 11 dominios oficiales (Tomo III §4.2–4.13)
 La Base Patrimonial Central es el dominio raíz; los otros 10 dominios conviven a su alrededor y
@@ -58,14 +63,16 @@ bloquea la resolución real de entitlements en CIS (ver DOC-004 §6).
 ## Documentos relacionados
 [DOC-004](DOC-004-modelo-contrato.md) — modelo de `Contrato` (entregado e implementado: tabla
 real en Postgres, servida por `core/` vía `GET /entitlements`).
-Pendiente: DOC-003 Modelo de dominio SICSAFT, DOC-005 resto del modelo Base Patrimonial (los 11
-dominios de arriba salvo Contrato).
+[DOC-005](DOC-005-modelo-patrimonial.md) — modelo del resto del dominio en su alcance mínimo
+viable (Área, Ubicación, Responsable, Catálogo de Activos, Activo, Inventarios, Eventos,
+Auditoría), entregado e implementado. Pendiente: DOC-003 Modelo de dominio SICSAFT completo,
+`Configuración`/`Integraciones` (sin consumidor, ver DOC-005 §1).
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §5 (rendimiento: separar lectura transaccional
 de analítica) y §4 (fiabilidad: backups con restauración probada dado que el historial nunca se
 borra).
 
 ## Próximo paso sugerido
-`Contrato` ya está modelado e implementado (DOC-004), incluida su tabla real en Postgres — motor
-de BD ya resuelto (PostgreSQL, ADR-001) y validado con el patrón que usó CORE. Para el resto del
-dominio: modelar las entidades restantes (diagrama completo, en conjunto con CORE) siguiendo el
-mismo patrón — DOC-005. Tarjeta Trello: `BASE-DOC-001`.
+`Contrato` (DOC-004) y el alcance mínimo del resto del dominio (DOC-005) ya están modelados e
+implementados sobre Postgres real — motor de BD ya resuelto (PostgreSQL, ADR-001). El siguiente
+paso con valor real es el Motor Patrimonial de CORE (`ROADMAP.md` Fase 2), que recién le da un
+consumidor a estas tablas. Tarjeta Trello: `BASE-DOC-001`.

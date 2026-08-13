@@ -93,26 +93,33 @@ resultados *distintos* para operadores de organizaciones distintas (test e2e); u
 navegador produce un token que CIS acepta sin tokens firmados a mano; README de `core/`,
 `seguridad/` y `devops/local/` actualizados en el mismo commit.
 
-## Fase 1 — DOC-005: modelo de dominio patrimonial mínimo viable
+## Fase 1 — DOC-005: modelo de dominio patrimonial mínimo viable ✅ completa
 
 **Por qué acá**: es la dependencia dura de todo motor, de WEB, de CIP y del rol Administrador
 Patrimonial.
 
-**Qué se construye**
-- **DOC-005** en `base-patrimonial/`, mismo formato que DOC-004 (entidades, estados,
-  invariantes, cómo lo consume CIS/CORE, qué NO resuelve), citando Tomo III §4.2–4.15.
-- Alcance **recortado a lo que el flujo QR necesita**, no los 11 dominios completos: `Área`,
+**Qué se construyó**
+- ✅ [DOC-005](base-patrimonial/DOC-005-modelo-patrimonial.md) en `base-patrimonial/`, mismo
+  formato que DOC-004 (entidades, estados, invariantes, cómo lo consume CIS/CORE, qué NO
+  resuelve), citando Tomo III §4.2–4.15.
+- ✅ Alcance recortado a lo que el flujo QR necesita, no los 11 dominios completos: `Área`,
   `Ubicación` (reconciliando `Sede` con la jerarquía Sede→Edificio→Piso→Oficina, deuda explícita
-  de DOC-004 §2), `Responsable`, `Catálogo de Activos`, `Activo` (Base Patrimonial Central),
-  `Inventario`, `Evento`, `Historial`, `Auditoría`.
-- **Fuera de alcance deliberado**: `Configuración` e `Integraciones` (no hay integraciones aún),
-  Gestión Documental, campos de Zona RFID/coordenadas (Etapa 2+) — se reservan sin implementar,
-  igual que DOC-004 §5 reservó `inventario-rfid`.
-- Migraciones + índices por patrón real de consulta (WAF §5), no "todo indexado".
+  de DOC-004 §2 — resuelta en DOC-005 §3), `Responsable`, `Catálogo de Activos`, `Activo` (Base
+  Patrimonial Central), `Inventarios`, `Eventos`, `Auditoría`. `Historial` no es tabla propia —
+  es la lectura cronológica de `Eventos` por activo (DOC-005 §1).
+- ✅ Fuera de alcance deliberado (sin implementar, documentado en DOC-005 §8):
+  `Configuración`/`Integraciones` (sin consumidor), Gestión Documental, Zona RFID/coordenadas
+  (Etapa 2+), estado `en_mantenimiento` de `Activo` (Tomo III §4.15 lo marca "módulo futuro").
+- ✅ Migraciones reales en `core/migrations/` (`1755100000000_schema-patrimonial`,
+  `1755100000001_seed-dev-fixture-patrimonial`), con índices en las FK que el patrón de consulta
+  ya conocido (por organización/área/ubicación/catálogo) va a necesitar — no "todo indexado".
+  Seed de desarrollo con dos activos reales de DUOC UC/Melipilla (notebook + proyector, con su
+  área, ubicación, responsable, evento de alta e inventario correcto).
 
-**Done**: DOC-005 mergeado; migraciones aplicadas; datos de prueba realistas cargados por
-migración de seed; `base-patrimonial/README.md` y `core/README.md` actualizados dejando explícito
-qué dominios quedan sin modelar.
+**Done**: DOC-005 mergeado; migraciones `up`/`down` probadas contra Postgres real (standalone y
+dentro del stack de `docker-compose.yml` local); `base-patrimonial/README.md` y `core/README.md`
+actualizados dejando explícito qué dominios quedan sin modelar. **Sin API todavía** — ningún
+endpoint de CORE sirve estas tablas; eso es la Fase 2 (Motor Patrimonial).
 
 ## Fase 2 — CORE MVP: Orquestador + 4 motores de lectura
 
@@ -304,9 +311,9 @@ aparezca en documentos:
 ## Cadena de dependencias
 
 ```
-Fase 0 (migraciones + correlationId + OIDC real)
-  └─ Fase 1 (DOC-005 mínimo)
-       └─ Fase 2 (CORE MVP: 4 motores + DOC-006)
+Fase 0 (migraciones + correlationId + OIDC real) ✅
+  └─ Fase 1 (DOC-005 mínimo) ✅
+       └─ Fase 2 (CORE MVP: 4 motores + DOC-006)   ← siguiente
             └─ Fase 3 (CIS real + APP QR TASK-007)   ← primer flujo end-to-end real
                  ├─ Fase 4 (Administrador Patrimonial + escritura oficial)  [pieza nueva]
                  │    ├─ Fase 5 (WEB mínimo)
