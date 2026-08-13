@@ -60,7 +60,9 @@ describe('QrConnectorService', () => {
 
   beforeEach(() => {
     coreClientService = buildCoreClientService();
-    service = new QrConnectorService(coreClientService as CoreClientService);
+    service = new QrConnectorService(
+      coreClientService as unknown as CoreClientService,
+    );
   });
 
   describe('authSession', () => {

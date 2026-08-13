@@ -16,6 +16,14 @@ a `GET {CORE_URL}/entitlements` vía `CoreClientService` y valida la respuesta e
 (zod) — si CORE no responde o responde algo inesperado, devuelve 502, nunca datos a medias.
 `CoreClientService` también manda el secreto compartido de auth servicio-a-servicio
 (`x-internal-service-token`, ver `../core/README.md`) — CORE ya no acepta llamadas sin él.
+Todo llamado a CORE pasa por un `CircuitBreaker` propio (`src/core-client/circuit-breaker.ts`,
+WAF §4 ya implementado, no solo referenciado): 5 fallos consecutivos abren el circuito, 30s antes
+de un sondeo half-open; mientras está abierto, `CoreClientService` devuelve 502 sin ni siquiera
+intentar la llamada HTTP. `CoreClientService` ya expone `getCatalogo`/`postInventario`/
+`getInventarioEstado` contra CORE (DOC-006 §2-§4) además de `getEntitlements`, pero
+`QrConnectorService` todavía no los usa — catálogo e inventarios siguen sirviendo desde
+`SEED_CATALOGO`/`SEED_ORGANIZACIONES` en memoria (ver sección de abajo); reemplazar ese mock por
+estos métodos ya construidos es el próximo paso.
 Probado de punta a punta: lint, unit (100% stmts/lines/funcs, 91%+ branches), e2e (incluye el
 caso 502), build, y conectividad real entre contenedores `cis`↔`core` verificada con
 `docker network` + `docker exec` (incluidos los 3 casos del secreto: sin header, correcto,
@@ -137,9 +145,11 @@ implementación real.
 - [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) — el CIS valida `organizacionId`,
   `sedeId` y vigencia de contrato en cada request, no solo identidad.
 - Pendiente: DOC-005 Arquitectura CIS, DOC-006 API CIS↔CORE.
-- Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker + rate limiting hacia el
-  CORE) y §3 (el CIS es el único punto que valida identidad de fuentes de captura).
+- Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker — implementado en
+  `src/core-client/circuit-breaker.ts`; rate limiting hacia el CORE sigue pendiente) y §3 (el CIS
+  es el único punto que valida identidad de fuentes de captura).
 
 ## Próximo paso sugerido
-Levantar el mock del Conector QR como primer entregable sobre NestJS (stack ya decidido, ver
-ADR-001). Tarjeta Trello: `CIS-ADR-001`.
+Reemplazar `SEED_CATALOGO`/`SEED_ORGANIZACIONES` en `QrConnectorService` por las llamadas reales
+`CoreClientService.getCatalogo`/`postInventario`/`getInventarioEstado` (DOC-006 §2-§4, ya
+construidas y con circuit breaker) para que catálogo e inventarios dejen de ser mock.
