@@ -1,29 +1,24 @@
 import { test, expect } from '@playwright/test';
-import { resetApp, scanCode } from './helpers.js';
+import { resetApp, scanCode, seedAuth } from './helpers.js';
 
-test('el operador persiste tras recargar la página', async ({ page }) => {
+test('la sesión OIDC persiste tras recargar la página', async ({ page }) => {
   await resetApp(page);
 
-  const stored = await page.evaluate(() => localStorage.getItem('qrvault-operator'));
-  expect(stored).toBe('Operador Test');
-
+  // El token ya está en sessionStorage (oidcClient, TASK-007): tras recargar, la app arranca
+  // directo en selección de organización, sin volver a mandar al operador a loguearse.
   await page.reload();
   await page.waitForTimeout(300);
 
-  // El operador ya está guardado: la app arranca directo en selección de
-  // organización, sin volver a pedir el nombre.
-  await expect(page.locator('[data-testid="operator-name-input"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="operator-login-btn"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="organization-select"]')).toBeVisible();
 });
 
 test('el select de ubicación queda deshabilitado hasta elegir un área', async ({ page }) => {
+  await seedAuth(page);
   await page.goto('/');
   await page.evaluate(() => indexedDB.deleteDatabase('qrvault-inventory'));
   await page.reload();
   await page.waitForTimeout(500);
-
-  await page.fill('[data-testid="operator-name-input"]', 'Operador Test');
-  await page.click('[data-testid="operator-continue-btn"]');
 
   await page.click('[data-testid="organization-select"]');
   await page.click('[data-testid="organization-option-org-001"]');
@@ -41,7 +36,9 @@ test('la pantalla de inicio muestra el resumen de operador/organización/área/u
 
   await expect(page.locator('[data-testid="session-summary"]')).toContainText('Operador Test');
   await expect(page.locator('[data-testid="session-summary"]')).toContainText('Municipalidad Central');
-  await expect(page.locator('[data-testid="session-summary"]')).toContainText('Administración');
+  // CIS/CORE no exponen nombre propio de área (buildOrganizationTree, qr-connector.ts) — se
+  // muestra el id crudo tal cual, a diferencia de organización/ubicación que sí tienen nombre real.
+  await expect(page.locator('[data-testid="session-summary"]')).toContainText('area-001');
   await expect(page.locator('[data-testid="session-summary"]')).toContainText('Edificio Principal — Piso 1');
 });
 

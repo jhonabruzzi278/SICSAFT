@@ -5,7 +5,7 @@
 ## Instrucciones para la nueva sesión
 
 1. Este documento es autocontenido: no hace falta re-auditar el código para tener el contexto de negocio y las decisiones ya tomadas.
-2. **TASK-004 a TASK-010 ya están hechas** — ver sección 7. Las 12 pantallas de DOC-001 están cubiertas, incluido el envío HTTP real. No hay backlog nuevo definido todavía para APP QR SICSAFT — antes de inventar trabajo nuevo, confirmar con el usuario si corresponde sincronizar Trello o mirar otro sistema del ecosistema (`cis/`, `core/`, etc., ver `README.md` raíz). **Pendiente real que sí quedó abierto**: la suite de e2e de Playwright (`tests/`) todavía asume el login viejo (nombre tipeado) y no tiene forma de driving un login OIDC real contra Zitadel — necesita una decisión de estrategia de test (mock de red vs. correr contra el stack de `devops/local/` completo) antes de poder correr de nuevo, ver sección 7.
+2. **TASK-004 a TASK-010 ya están hechas** — ver sección 7. Las 12 pantallas de DOC-001 están cubiertas, incluido el envío HTTP real. No hay backlog nuevo definido todavía para APP QR SICSAFT — antes de inventar trabajo nuevo, confirmar con el usuario si corresponde sincronizar Trello o mirar otro sistema del ecosistema (`cis/`, `core/`, etc., ver `README.md` raíz). La suite de e2e de Playwright (`tests/`) ya corre en verde contra la sesión OIDC real, mockeando la red con MSW (`src/mocks/`, ver sección 7) — **pendiente real que sí quedó abierto**: el recorrido manual contra Zitadel/CIS/CORE reales, sección 7.
 3. **TASK-007 (sincronización real con CORE) ya no está bloqueada — se hizo.** Las 4 preguntas de la sección 6 tienen respuesta concreta desde el trabajo de `cis/`/`core/` (Fases 2-3 de `ROADMAP.md`): CIS expone exactamente las 4 rutas propuestas (DOC-006), la identidad viene de Zitadel real vía PKCE, `correlationId` de negocio convive con el header transversal, y la idempotencia es la propuesta. El Conector QR (`src/lib/qr-connector.ts`) ya no es un stub: `HttpQrConnectorClient` habla HTTP real contra CIS. Sección 6 actualizada con las respuestas.
 4. El backlog vive en Trello: https://trello.com/b/nCi6W4oB/sicsaft (tablero **SICSAFT**, board id `6a79df5317e070b5a23014d0`). Se gestiona con `C:\Proyectos\trello-ai-project-manager\trello_project.py` (`validate-plan` / `sync-plan`, dry-run por defecto, `--apply` para escribir). Requiere `TRELLO_API_KEY`, `TRELLO_TOKEN`, `TRELLO_BOARD_ID` en variables de entorno — **no están guardadas en ningún archivo**; pedíselas al usuario si hace falta escribir en Trello, y si te las pasa por chat, avisale que las rote después (ya se expusieron una vez en una sesión anterior). **El tablero no se sincronizó todavía con el trabajo de TASK-004 a TASK-009** — falta mover esas tarjetas a "Hecho" cuando haya credenciales.
 5. No se hizo `git push` de ningún commit todavía — todo vive local en `main`.
@@ -109,23 +109,32 @@ TASK-004 (sesiones de inventario) ................................ ✅ Hecho
             → TASK-010 (resumen final del inventario) .............. ✅ Hecho
 ```
 
-**TASK-007 — nota de verificación**: el código está implementado completo (sección 5), pero **no
-se corrió `npm run test:e2e` ni un recorrido manual en navegador** (regla de la sección 9) — esta
-sesión no tenía acceso a crear la app OIDC en el dashboard de Zitadel ni a levantar el stack
-completo de `devops/local/` para probar de punta a punta. Falta, antes de dar la tarea por
-cerrada en el sentido estricto de la sección 9:
+**TASK-007 — nota de verificación**: el código está implementado completo (sección 5).
+`npm run test:e2e` **ya corre en verde** (37/37) — la suite de Playwright (`tests/`) se migró del
+login por texto a la sesión OIDC real, mockeando la red con MSW (ver debajo). Sigue pendiente,
+antes de dar la tarea por cerrada en el sentido estricto de la sección 9:
 1. Crear la app OIDC `app-qr-sicsaft` en Zitadel con `offline_access` habilitado (ver
    `devops/local/README.md` "Cliente OIDC real", pasos nuevos agregados) y completar
    `VITE_ZITADEL_CLIENT_ID` en `.env`.
-2. Decidir la estrategia de e2e de Playwright (`tests/`) — la suite entera bootstrapea cada test
-   vía `identifyOperator()` (`tests/helpers.js`), que llenaba un input de texto; ya no hay login
-   por texto, y las mismas pruebas ahora necesitarían CIS/CORE/Redis/Zitadel reales corriendo
-   (antes eran 100% frontend contra IndexedDB). No se tocaron `tests/` en esta sesión — decidir
-   entre mockear la capa de red (MSW o interceptación de rutas de Playwright) o correr contra el
-   stack completo de `devops/local/` es una decisión de arquitectura de test aparte, no algo para
-   resolver de paso.
-3. Recorrido manual real: login → organización → área/ubicación → escaneo → envío → ver el
+2. Recorrido manual real: login → organización → área/ubicación → escaneo → envío → ver el
    inventario persistido en Postgres vía CIS→CORE.
+
+**Estrategia de e2e — resuelta con MSW.** La suite entera bootstrapeaba cada test vía
+`identifyOperator()` (`tests/helpers.js`), que llenaba un input de texto que ya no existe.
+`oidcClient.isAuthenticated()` sólo mira si hay tokens en `sessionStorage` (no valida firma —
+CIS es quien valida server-side), así que alcanza con sembrar un JWT falso vía
+`page.addInitScript()` (`tests/helpers.js`, `seedAuth`) para saltar `OperatorGate` sin simular el
+redirect real a Zitadel. La red hacia CIS (los 4 endpoints de DOC-006) se mockea con
+[MSW](https://mswjs.io/) (`src/mocks/`), activado sólo en un modo Vite dedicado
+(`VITE_MOCK_API=true`, `.env.e2e`, `playwright.config.js` construye con `--mode e2e`) — nunca se
+filtra al build de producción normal (`npm run build`). Las fixtures del catálogo mockeado
+reusan `FULL_CATALOG` de `catalog-data.ts` en vez de duplicar datos.
+
+Hallazgo documentado de paso, no corregido (cambiaría comportamiento de producto, fuera de
+alcance de esto): `scan-resolve.ts` usa el `ubicacionId` crudo del activo para
+`expectedLocationName` (mensaje "otra ubicación") en vez de resolverlo contra `sedes[]` como sí
+hace `buildOrganizationTree` para el picker — pese a que el comentario del código dice "mismo
+criterio que el picker". Muestra un id crudo en vez de un nombre legible en ese mensaje puntual.
 
 No hay más tarjetas definidas para APP QR SICSAFT en el handoff más allá de esto — confirmar con
 el usuario antes de proponer alcance nuevo.
