@@ -88,21 +88,26 @@ describe('QrConnectorController', () => {
     );
   });
 
-  it('getCatalogo delega en el service', () => {
+  it('getCatalogo delega en el service con el correlationId de la request', async () => {
     const expected: CatalogoResponse = { activos: [] };
-    service.getCatalogo.mockReturnValue(expected);
+    service.getCatalogo.mockResolvedValue(expected);
 
     const query = { organizacionId: 'duoc-uc' };
-    expect(controller.getCatalogo(query)).toBe(expected);
-    expect(service.getCatalogo).toHaveBeenCalledWith(query);
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+    await expect(controller.getCatalogo(query, request)).resolves.toBe(
+      expected,
+    );
+    expect(service.getCatalogo).toHaveBeenCalledWith(query, CORRELATION_ID);
   });
 
-  it('postInventario delega en el service', () => {
+  it('postInventario delega en el service con el correlationId de la request', async () => {
     const expected: PostInventarioResponse = {
       inventarioId: 'inv-1',
       estado: 'recibido',
     };
-    service.postInventario.mockReturnValue(expected);
+    service.postInventario.mockResolvedValue(expected);
 
     const body = {
       correlationId: 'c',
@@ -116,18 +121,31 @@ describe('QrConnectorController', () => {
       escaneos: [],
       incidencias: [],
     };
-    expect(controller.postInventario(body)).toBe(expected);
-    expect(service.postInventario).toHaveBeenCalledWith(body);
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+    await expect(controller.postInventario(body, request)).resolves.toBe(
+      expected,
+    );
+    expect(service.postInventario).toHaveBeenCalledWith(body, CORRELATION_ID);
   });
 
-  it('getInventarioEstado delega en el service', () => {
+  it('getInventarioEstado delega en el service con el correlationId de la request', async () => {
     const expected: InventarioEstadoResponse = {
       estado: 'recibido',
       ultimoIntento: 't',
     };
-    service.getInventarioEstado.mockReturnValue(expected);
+    service.getInventarioEstado.mockResolvedValue(expected);
 
-    expect(controller.getInventarioEstado('inv-1')).toBe(expected);
-    expect(service.getInventarioEstado).toHaveBeenCalledWith('inv-1');
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+    await expect(
+      controller.getInventarioEstado('inv-1', request),
+    ).resolves.toBe(expected);
+    expect(service.getInventarioEstado).toHaveBeenCalledWith(
+      'inv-1',
+      CORRELATION_ID,
+    );
   });
 });

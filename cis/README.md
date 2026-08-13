@@ -7,30 +7,35 @@ transacciones y despacho hacia el CORE. Ninguna fuente de captura debe hablarle 
 Base Patrimonial Central ni al CORE — todo pasa por acá.
 
 ## Estado
-🟡 Esqueleto NestJS + **mock del Conector QR** (contrato DOC-002 completo) + **auth real vía
-Zitadel** (ADR-002) + **entitlements reales desde CORE** (DOC-004 §6): los 4 endpoints exigen
-`Authorization: Bearer <token>` y `ZitadelAuthGuard` valida firma/issuer/audience/vencimiento
-contra el JWKS de Zitadel — el CIS ya no acepta `operadorId`/`credencial` en el body, la
-identidad viene del token. `auth/session` ya no devuelve un seed fijo de `organizaciones`: llama
-a `GET {CORE_URL}/entitlements` vía `CoreClientService` y valida la respuesta en el límite
-(zod) — si CORE no responde o responde algo inesperado, devuelve 502, nunca datos a medias.
-`CoreClientService` también manda el secreto compartido de auth servicio-a-servicio
-(`x-internal-service-token`, ver `../core/README.md`) — CORE ya no acepta llamadas sin él.
-Todo llamado a CORE pasa por un `CircuitBreaker` propio (`src/core-client/circuit-breaker.ts`,
-WAF §4 ya implementado, no solo referenciado): 5 fallos consecutivos abren el circuito, 30s antes
+🟢 Esqueleto NestJS + **Conector QR real, proxy delgado hacia CORE** (contrato DOC-002, resuelto
+contra DOC-006 §2-§4) + **auth real vía Zitadel** (ADR-002) + **circuit breaker propio** (WAF §4):
+los 4 endpoints exigen `Authorization: Bearer <token>` y `ZitadelAuthGuard` valida
+firma/issuer/audience/vencimiento contra el JWKS de Zitadel — el CIS ya no acepta
+`operadorId`/`credencial` en el body, la identidad viene del token. `QrConnectorService` ya no
+mantiene estado propio (sin `Map` en memoria, sin seed): las 4 operaciones —
+`getEntitlements`/`getCatalogo`/`postInventario`/`getInventarioEstado` — son pass-through hacia
+`CoreClientService`, que valida cada respuesta con Zod en el límite (CORE es un proceso/red
+distinto, no se asume su forma) y devuelve 502 ante cualquier falla (red, timeout, 5xx, secreto
+inválido, forma inesperada) — nunca datos a medias. `CoreClientService` manda el secreto
+compartido de auth servicio-a-servicio (`x-internal-service-token`, ver `../core/README.md`) —
+CORE ya no acepta llamadas sin él. Todo llamado a CORE pasa además por un `CircuitBreaker` propio
+(`src/core-client/circuit-breaker.ts`, WAF §4): 5 fallos consecutivos abren el circuito, 30s antes
 de un sondeo half-open; mientras está abierto, `CoreClientService` devuelve 502 sin ni siquiera
-intentar la llamada HTTP. `CoreClientService` ya expone `getCatalogo`/`postInventario`/
-`getInventarioEstado` contra CORE (DOC-006 §2-§4) además de `getEntitlements`, pero
-`QrConnectorService` todavía no los usa — catálogo e inventarios siguen sirviendo desde
-`SEED_CATALOGO`/`SEED_ORGANIZACIONES` en memoria (ver sección de abajo); reemplazar ese mock por
-estos métodos ya construidos es el próximo paso.
-Probado de punta a punta: lint, unit (100% stmts/lines/funcs, 91%+ branches), e2e (incluye el
-caso 502), build, y conectividad real entre contenedores `cis`↔`core` verificada con
-`docker network` + `docker exec` (incluidos los 3 casos del secreto: sin header, correcto,
-incorrecto). Toda ruta pasa por `CorrelationIdMiddleware` (`src/common/correlation-id/`,
-ROADMAP.md Fase 0), que propaga `X-Correlation-Id` hasta `CoreClientService` — sin logging
-estructurado que lo use todavía (WAF §2, pendiente). Todavía sin persistencia real (el mock de
-inventarios/catálogo guarda todo en memoria).
+intentar la llamada HTTP. Idempotencia de inventarios (DOC-002 §4/§5), validación de
+organización/área/ubicación y clasificación de escaneos ya no viven en CIS — se resolvieron en
+CORE (`sesiones_inventario`, Motor de Reglas, Fase 2 de ROADMAP.md); CIS solo propaga el 400/409
+que CORE produce.
+Probado de punta a punta: lint, unit (100% stmts/lines/funcs, 89%+ branches), e2e (incluye los
+casos 502/400/404/409, con `CoreClientService` stubeado — no se levanta un CORE real), build.
+Conectividad real entre contenedores `cis`↔`core` verificada con `docker network` + `docker exec`
+para `GET /entitlements` (incluidos los 3 casos del secreto: sin header, correcto, incorrecto);
+queda pendiente repetir esa verificación de punta a punta contra Docker real para
+catálogo/inventarios (el mecanismo es el mismo `CoreClientService`, ya probado, pero no se corrió
+ese `docker exec` específico todavía). Toda ruta pasa por `CorrelationIdMiddleware`
+(`src/common/correlation-id/`, ROADMAP.md Fase 0), que propaga `X-Correlation-Id` hasta
+`CoreClientService` — sin logging estructurado que lo use todavía (WAF §2, pendiente).
+Resiliencia restante de WAF §4 (reintentos con backoff, rate limiting por operador/dispositivo) y
+`deviceId` enforced (DOC-002 §1) siguen sin implementar — ver ROADMAP.md Fase 3.
 
 ## Desarrollo local
 ```bash
@@ -83,18 +88,21 @@ sí debe importarse como valor (se necesita en runtime para inyectarlo). `statem
 `lines` se mantienen en 100% — solo `branches` baja, y solo por esta razón estructural documentada,
 recalibrada con el número medido real cada vez que se agrega un módulo grande.
 
-## Conector QR — mock + auth real (`src/qr-connector/`, `src/common/auth/`)
+## Conector QR — proxy real hacia CORE (`src/qr-connector/`, `src/common/auth/`)
 Contrato completo de
-[`../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md`](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md)
-implementado como mock en memoria (`QrConnectorService`), validado con Zod contra el request de
-cada operación (`qr-connector.schemas.ts`). Los 4 endpoints están detrás de `ZitadelAuthGuard`
-(`src/common/auth/zitadel-auth.guard.ts`) — sin `Authorization: Bearer <token>` válido, 401:
+[`../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md`](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md),
+resuelto contra CORE vía
+[`../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md`](../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md).
+`QrConnectorService` no tiene lógica de negocio propia — valida con Zod el request de cada
+operación (`qr-connector.schemas.ts`) y delega en `CoreClientService`. Los 4 endpoints están
+detrás de `ZitadelAuthGuard` (`src/common/auth/zitadel-auth.guard.ts`) — sin
+`Authorization: Bearer <token>` válido, 401:
 
 ```
 POST /auth/session                          -> valida el token, devuelve el mismo token (pass-through) + organizaciones/sedes reales via GET {CORE_URL}/entitlements
-GET  /catalogo?organizacionId=&areaId=&ubicacionId=  -> catálogo semilla filtrado
-POST /inventarios                            -> idempotente por idempotencyKey (DOC-002 §4), 400 si la organización no existe, 409 si la key se reutiliza con payload distinto (DOC-002 §5)
-GET  /inventarios/{id}/estado                -> 404 si no existe
+GET  /catalogo?organizacionId=&areaId=&ubicacionId=  -> catálogo real via GET {CORE_URL}/catalogo
+POST /inventarios                            -> proxy a POST {CORE_URL}/inventarios; idempotente por idempotencyKey (DOC-002 §4), 400 si la organización no existe, 409 si la key se reutiliza con payload distinto (DOC-002 §5) — los tres resueltos por CORE, no por CIS
+GET  /inventarios/{id}/estado                -> proxy a GET {CORE_URL}/inventarios/{id}/estado; 404 si no existe
 ```
 
 **Auth (ADR-002)**: `operadorId`/`credencial` ya no van en el body de `auth/session` — Zitadel
@@ -104,52 +112,42 @@ un token propio, hace pass-through del mismo token de Zitadel — coincide con A
 de validación es el CIS, no el token" (el JWT no lleva `sedeId`, eso se resuelve en cada request
 contra CORE, ver `src/core-client/`).
 
-**Entitlements (`src/core-client/`)**: `CoreClientService.getEntitlements(operadorId)` llama a
-`GET {CORE_URL}/entitlements?operadorId=` con el header `x-internal-service-token` (secreto
-compartido, ver arriba) y valida la respuesta con Zod (`core-client.types.ts`) — CORE es un
-límite de confianza (proceso/red distinto), no se asume su forma. Cualquier falla (red, timeout,
-5xx, 401 del secreto, forma inesperada) se propaga como `BadGatewayException` (502) — el operador
-ve un error transitorio, no un 500 genérico ni datos parciales. `deviceId` tampoco se enforced
-todavía (un solo dispositivo por operador, DOC-002 §1) — requiere persistencia que hoy no existe.
-
-Datos semilla en `qr-connector.seed.ts`: `SEED_ORGANIZACIONES` sigue existiendo, pero solo para
-la validación de "¿existe esta organización?" en `postInventario` — `auth/session` ya no la usa
-en absoluto. Reemplazar ese seed en `postInventario` por CORE también queda pendiente (mismo
-alcance que catálogo/inventarios, ver DOC-002 §1).
-
-Mientras las 3 preguntas abiertas restantes a SICSAFT CORE (contrato CIS existente,
-correlationId/tracing, semántica de idempotencia — auth y el modelo de Contrato ya están
-resueltos) no tengan respuesta, este mock es lo que consume APP QR (TASK-006/007) en vez de la
-implementación real.
+**`CoreClientService` (`src/core-client/`)**: expone `getEntitlements`/`getCatalogo`/
+`postInventario`/`getInventarioEstado`, todas contra `{CORE_URL}` con el header
+`x-internal-service-token` (secreto compartido, ver arriba) y validación de la respuesta con Zod
+(`core-client.types.ts`). `postInventario` distingue explícitamente 400/409 (rechazo permanente,
+DOC-002 §5) de cualquier otra falla transitoria (502) — ver `callCore`/`passthroughStatuses` en
+`core-client.service.ts`. `deviceId` no se enforced todavía (un solo dispositivo por operador,
+DOC-002 §1) — requiere persistencia que hoy no existe en CIS.
 
 ## Depende de
 - Más datos reales de Contrato en `../core/` (hoy solo un caso precargado sobre Postgres, ver
   [DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §7 — sin mapeo operador→organización
   real todavía).
-- Definiciones de SICSAFT CORE (contrato de API para catálogo/inventarios, tracing) para
-  reemplazar el resto del mock — bloqueado, ver arriba.
-- Que `app-qr-sicsaft/` reemplace su stub (`LocalQrConnectorClient`) por un cliente OIDC real
-  (authorization code + PKCE) — el mecanismo ya está probado real de punta a punta con un flujo
-  simulado vía `curl` (login real, JWT real firmado por Zitadel, `ZitadelAuthGuard` lo valida y
-  CIS resuelve entitlements reales, ver `../devops/local/README.md` § "Cliente OIDC real"); los
-  tests siguen usando tokens firmados a mano porque son unitarios, no e2e contra Zitadel real.
-  Falta que el código de APP QR haga ese mismo flujo — TASK-006/TASK-007.
+- Que `app-qr-sicsaft/` reemplace su stub (`LocalQrConnectorClient`) por un cliente HTTP real
+  contra estos 4 endpoints (TASK-006/TASK-007) — el cliente OIDC ya está probado real de punta a
+  punta con un flujo simulado vía `curl` (login real, JWT real firmado por Zitadel,
+  `ZitadelAuthGuard` lo valida y CIS resuelve entitlements/catálogo/inventarios reales, ver
+  `../devops/local/README.md` § "Cliente OIDC real"); falta que el código de APP QR haga ese mismo
+  flujo en vez de `curl`.
 
 ## Bloquea
-- Nada — TASK-006/TASK-007 de APP QR ya tienen un mock real (con auth real) contra el cual
+- Nada — TASK-006/TASK-007 de APP QR ya tienen un conector real (con auth real) contra el cual
   apuntar.
 
 ## Documentos relacionados
-- DOC-002 (contrato Conector QR) — vive en el repo de APP QR QRVault por ahora.
+- [DOC-002](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md) (contrato
+  Conector QR) — vive en el repo de APP QR QRVault por ahora.
+- [DOC-006](../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md) (API CIS↔CORE) —
+  implementado en ambos lados.
 - [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack: NestJS/TypeScript).
 - [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) — el CIS valida `organizacionId`,
   `sedeId` y vigencia de contrato en cada request, no solo identidad.
-- Pendiente: DOC-005 Arquitectura CIS, DOC-006 API CIS↔CORE.
 - Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker — implementado en
-  `src/core-client/circuit-breaker.ts`; rate limiting hacia el CORE sigue pendiente) y §3 (el CIS
-  es el único punto que valida identidad de fuentes de captura).
+  `src/core-client/circuit-breaker.ts`; reintentos con backoff y rate limiting hacia CORE siguen
+  pendientes) y §3 (el CIS es el único punto que valida identidad de fuentes de captura).
 
 ## Próximo paso sugerido
-Reemplazar `SEED_CATALOGO`/`SEED_ORGANIZACIONES` en `QrConnectorService` por las llamadas reales
-`CoreClientService.getCatalogo`/`postInventario`/`getInventarioEstado` (DOC-006 §2-§4, ya
-construidas y con circuit breaker) para que catálogo e inventarios dejen de ser mock.
+Reintentos con backoff y rate limiting por operador/dispositivo hacia CORE (resto de WAF §4,
+ROADMAP.md Fase 3), y que `app-qr-sicsaft/` (TASK-006/TASK-007) reemplace `LocalQrConnectorClient`
+por un cliente HTTP real contra estos 4 endpoints.

@@ -1,11 +1,14 @@
 # DOC-006: API CIS↔CORE
 
-> **Estado**: diseño — sin implementar. Formaliza el contrato que
-> `cis/src/qr-connector/qr-connector.controller.ts` **ya expone hacia APP QR** (implementando
-> [DOC-002](../../../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md)) contra
-> lo que CORE debe servir del otro lado. CIS es un **proxy delgado**: no debería necesitar cambiar
-> sus tipos (`qr-connector.types.ts`) para consumir esto — si algo no calza, se ajusta este
-> documento, no el contrato ya construido con APP QR, salvo que DOC-002 mismo esté mal.
+> **Estado**: implementado en ambos lados. CORE sirve estos 3 endpoints desde Fase 2
+> (`core/src/patrimonial/catalogo.controller.ts`, `core/src/inventarios/inventarios.controller.ts`)
+> y CIS los consume desde Fase 3 (`cis/src/qr-connector/qr-connector.service.ts`, proxy delgado
+> hacia `CoreClientService`) — formaliza el contrato que
+> `cis/src/qr-connector/qr-connector.controller.ts` expone hacia APP QR (implementando
+> [DOC-002](../../../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md)) contra lo
+> que CORE sirve del otro lado. CIS es un **proxy delgado**: no necesitó cambiar sus tipos
+> (`qr-connector.types.ts`) para consumir esto — si algo no calzaba, este documento se ajustaba,
+> no el contrato ya construido con APP QR.
 
 ## ⚠️ Hallazgo del diseño: DOC-005 tiene dos errores respecto al contrato ya acordado en DOC-002
 

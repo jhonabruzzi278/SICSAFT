@@ -22,15 +22,15 @@ Brechas confirmadas en código, no solo declaradas en docs:
 
 1. **CORE no tiene ningún camino de escritura.** No hay `POST` de nada, ni tabla de activos. Los
    9 motores de `core/README.md` están en cero.
-2. **La idempotencia vive en el lugar equivocado**: `hashRequest`/`inventariosPorIdempotencyKey`
-   están en CIS (memoria de proceso), cuando DOC-002 §4 dice que es CORE quien no debe duplicar.
-   Con CIS multi-instancia (WAF §4 "multi-instancia sin estado en memoria") esto se rompe hoy.
+2. ~~La idempotencia vive en el lugar equivocado.~~ **Resuelto** (Fase 3): `hashRequest`/
+   `inventariosPorIdempotencyKey` en memoria de CIS se eliminaron — la idempotencia vive en
+   `sesiones_inventario` de CORE (Postgres real, no memoria de proceso) desde la Fase 2;
+   `QrConnectorService` es un proxy delgado, ya no rompe con CIS multi-instancia.
 3. ~~No hay herramienta de migraciones.~~ **Resuelto** (Fase 0): `core/migrations/`
    (node-pg-migrate), esquema versionado con `up`/`down` reales, probados contra Postgres real. El
-   seed DUOC UC sigue duplicado en dos lugares en vez de tres: la migración de seed ahora importa
-   `contrato.seed.ts` como fuente única (antes tenía su propia copia en SQL); la copia de
-   `cis/src/qr-connector/qr-connector.seed.ts` queda pendiente hasta la Fase 3 (CIS deja de ser
-   mock).
+   seed DUOC UC ya no está duplicado en dos lugares: la migración de seed importa
+   `contrato.seed.ts` como fuente única, y `cis/src/qr-connector/qr-connector.seed.ts` se eliminó
+   en la Fase 3 (CIS dejó de necesitarlo, ver ítem 2).
 4. **`GET /entitlements` ignora la organización del operador**: devuelve lo mismo para cualquier
    `operadorId` (DOC-004 §7). No hay mapeo operador→organización de Zitadel.
 5. ~~No existe ningún cliente OIDC real.~~ **Resuelto** (Fase 0): app OIDC creada en Zitadel,
@@ -61,10 +61,10 @@ triplicados a mano multiplica la deuda por 10. Es la fase más barata y la que m
    anterior con `up`/`down` reales; `docker-compose.yml` corre un servicio `core-migrate` una vez
    antes de levantar `core`; `core-ci.yml` corre `npm run migrate:up` en vez de aplicar un `.sql`
    suelto. `devops/local/postgres/init/02-core.sh` ya solo crea la base/usuario vacíos.
-2. ✅ Fuente única del seed de desarrollo (parcial): `migrations/1755000000001_seed-dev-fixture.ts`
-   importa `SEED_CONTRATOS` de `contrato.seed.ts` en vez de retipear los datos en SQL — elimina
-   una de las dos duplicaciones. La copia de `cis/src/qr-connector/qr-connector.seed.ts` queda
-   pendiente hasta la Fase 3.
+2. ✅ Fuente única del seed de desarrollo: `migrations/1755000000001_seed-dev-fixture.ts` importa
+   `SEED_CONTRATOS` de `contrato.seed.ts` en vez de retipear los datos en SQL. La copia de
+   `cis/src/qr-connector/qr-connector.seed.ts` se eliminó en la Fase 3 al conectar CIS a CORE, no
+   queda ninguna duplicación pendiente.
 3. ✅ `correlationId` transversal (parcial): `CorrelationIdMiddleware` en CIS y CORE
    (`src/common/correlation-id/`) acepta/genera `X-Correlation-Id` en toda ruta y lo devuelve en
    la respuesta; `CoreClientService.getEntitlements` ya lo propaga como header al llamar a CORE.
@@ -162,24 +162,32 @@ real con `GET /catalogo` y `POST /inventarios` respondiendo contra la base migra
 evento verificados en la fila real de Postgres, no solo en el response. `core/README.md`
 actualizado.
 
-## Fase 3 — CIS deja de ser mock + APP QR TASK-007
+## Fase 3 — CIS deja de ser mock + APP QR TASK-007 🟡 en curso
 
 **Por qué acá**: solo ahora existe algo real detrás del mock.
 
 **Qué se construye**
-- `QrConnectorService` pasa de `Map`/seed a proxy hacia CORE: se borran `SEED_CATALOGO`,
-  `SEED_ORGANIZACIONES` y los dos `Map` en memoria.
-- Resiliencia del CIS que WAF §4 pide y hoy no existe: circuit breaker hacia CORE, reintentos con
-  backoff, rate limiting por operador/dispositivo.
-- Caché de entitlements en CIS invalidada por evento (recién tiene sentido con Fase 4 escribiendo
-  contratos; si al llegar acá aún no existe, dejarlo fuera y anotarlo).
-- `deviceId` enforced (un dispositivo por operador, DOC-002 §1) — requiere persistencia real.
-- **APP QR TASK-007**: `qr-connector.ts` reemplaza `LocalQrConnectorClient` por HTTP real, manejo
-  de `400/401/409/5xx` de DOC-002 §5, sin tocar la UI. Se activa `duplicate` y `rejected`.
+1. ✅ `QrConnectorService` pasa de `Map`/seed a proxy hacia CORE: se borraron `SEED_CATALOGO`,
+   `SEED_ORGANIZACIONES`, `qr-connector.seed.ts` y los dos `Map` en memoria — idempotencia,
+   validación de organización y clasificación de escaneos ahora viven en CORE
+   (`sesiones_inventario`, Motor de Reglas, Fase 2), CIS solo propaga sus 400/409/404.
+2. ✅ Circuit breaker propio de CIS hacia CORE (WAF §4): `src/core-client/circuit-breaker.ts`,
+   compartido entre las 4 llamadas, 5 fallos consecutivos abren el circuito, 30s de reset timeout
+   antes de sondear de nuevo (half-open).
+3. ⬜ Resto de la resiliencia que WAF §4 pide: reintentos con backoff, rate limiting por
+   operador/dispositivo.
+4. ⬜ Caché de entitlements en CIS invalidada por evento (recién tiene sentido con Fase 4
+   escribiendo contratos; si al llegar acá aún no existe, dejarlo fuera y anotarlo).
+5. ⬜ `deviceId` enforced (un dispositivo por operador, DOC-002 §1) — requiere persistencia real.
+6. ⬜ **APP QR TASK-007**: `qr-connector.ts` reemplaza `LocalQrConnectorClient` por HTTP real,
+   manejo de `400/401/409/5xx` de DOC-002 §5, sin tocar la UI. Se activa `duplicate` y `rejected`.
 
-**Done**: TASK-007 cerrada con build + e2e + recorrido manual; un inventario escaneado en la PWA
-aparece persistido en la Base Patrimonial vía CIS→CORE; handoff y `cis/README.md` actualizados
-quitando "mock".
+**Done** (parcial — items 1-2): unit (100% stmts/lines/funcs, 89%+ branches) y e2e de CIS
+actualizados a proxy delgado (`CoreClientService` stubeado, sin CORE real — la idempotencia y
+validación real ya se probaron contra Postgres en la Fase 2); `cis/README.md` actualizado
+quitando "mock" para catálogo/inventarios. **Falta para cerrar la fase**: items 3-6, incluida
+TASK-007 con recorrido manual mostrando un inventario escaneado en la PWA persistido en la Base
+Patrimonial vía CIS→CORE.
 
 **Hito de negocio**: primera vez que el ecosistema completo funciona de punta a punta. Todo lo
 anterior a esto es infraestructura.

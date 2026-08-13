@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadGatewayException, INestApplication } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  INestApplication,
+  NotFoundException,
+} from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { SignJWT, generateKeyPair, type JWTVerifyGetKey } from 'jose';
@@ -26,10 +31,29 @@ const ENTITLEMENTS_STUB = {
   ],
 };
 
+const CATALOGO_STUB = {
+  activos: [
+    {
+      codigoQr: 'QR-0001',
+      nombre: 'Notebook Dell Latitude',
+      organizacionId: 'duoc-uc',
+      areaId: 'laboratorio-informatica',
+      ubicacionId: 'melipilla',
+      estado: 'activo',
+    },
+  ],
+  total: 1,
+};
+
 describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements de CORE', () => {
   let app: INestApplication<App>;
   let bearerToken: string;
-  let coreClientService: { getEntitlements: jest.Mock };
+  let coreClientService: {
+    getEntitlements: jest.Mock;
+    getCatalogo: jest.Mock;
+    postInventario: jest.Mock;
+    getInventarioEstado: jest.Mock;
+  };
 
   beforeAll(() => {
     process.env.ZITADEL_ISSUER = ISSUER;
@@ -53,10 +77,47 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
 
     // Idem para CORE: se reemplaza el cliente HTTP real por un stub — el e2e prueba
     // QrConnectorController + guard + servicio de punta a punta vía HTTP real, sin depender de
-    // que haya un CORE corriendo (CoreClientService.getEntitlements ya tiene su propia
-    // cobertura unitaria contra HttpService mockeado, ver core-client.service.spec.ts).
+    // que haya un CORE corriendo (CoreClientService ya tiene su propia cobertura unitaria contra
+    // HttpService mockeado, ver core-client.service.spec.ts). QrConnectorService es un proxy
+    // delgado desde Fase 3 — este stub simula lo que CORE ya resuelve (idempotencia, validación
+    // de organización), no lo reimplementa.
     coreClientService = {
       getEntitlements: jest.fn().mockResolvedValue(ENTITLEMENTS_STUB),
+      getCatalogo: jest.fn().mockResolvedValue(CATALOGO_STUB),
+      postInventario: jest
+        .fn()
+        .mockImplementation((body: { organizacionId: string }) => {
+          if (body.organizacionId === 'no-existe') {
+            return Promise.reject(
+              new BadRequestException({
+                message: 'Rechazado: organización inexistente',
+                errores: [
+                  {
+                    campo: 'organizacionId',
+                    detalle: "No existe la organización 'no-existe'",
+                  },
+                ],
+              }),
+            );
+          }
+          return Promise.resolve({
+            inventarioId: 'inv-e2e-1',
+            estado: 'recibido',
+          });
+        }),
+      getInventarioEstado: jest.fn().mockImplementation((id: string) => {
+        if (id === 'inv-e2e-1') {
+          return Promise.resolve({
+            estado: 'recibido',
+            ultimoIntento: '2026-08-12T10:00:00.000Z',
+          });
+        }
+        return Promise.reject(
+          new NotFoundException({
+            message: `No existe el inventario '${id}'`,
+          }),
+        );
+      }),
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({

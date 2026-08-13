@@ -37,9 +37,9 @@ import type {
 // Implementa el contrato de DOC-002 (app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md).
 // Autenticacion real via Zitadel (ADR-002): ZitadelAuthGuard valida el access token OIDC en
 // todas las rutas — el operador ya se autenticó contra Zitadel antes de llegar acá, el CIS nunca
-// ve una credencial. `organizaciones` en auth/session viene de CORE (GET /entitlements, ver
-// DOC-004 §6), ya no es mock. catalogo/inventarios siguen siendo mock — el resto del dominio
-// patrimonial (DOC-005) todavia no existe.
+// ve una credencial. Los 4 endpoints son proxy hacia CORE (DOC-006, Fase 3): `organizaciones` en
+// auth/session viene de GET /entitlements, y catalogo/inventarios de GET /catalogo,
+// POST /inventarios y GET /inventarios/:id/estado — ya no hay mock ni estado propio en CIS.
 @Controller()
 @UseGuards(ZitadelAuthGuard)
 export class QrConnectorController {
@@ -60,20 +60,30 @@ export class QrConnectorController {
 
   @Get('catalogo')
   @UsePipes(new ZodValidationPipe(catalogoQuerySchema))
-  getCatalogo(@Query() query: CatalogoQuery): CatalogoResponse {
-    return this.qrConnectorService.getCatalogo(query);
+  getCatalogo(
+    @Query() query: CatalogoQuery,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<CatalogoResponse> {
+    return this.qrConnectorService.getCatalogo(query, request.correlationId);
   }
 
   @Post('inventarios')
   @UsePipes(new ZodValidationPipe(inventarioRequestSchema))
-  postInventario(@Body() body: InventarioRequest): PostInventarioResponse {
-    return this.qrConnectorService.postInventario(body);
+  postInventario(
+    @Body() body: InventarioRequest,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<PostInventarioResponse> {
+    return this.qrConnectorService.postInventario(body, request.correlationId);
   }
 
   @Get('inventarios/:inventarioId/estado')
   getInventarioEstado(
     @Param('inventarioId') inventarioId: string,
-  ): InventarioEstadoResponse {
-    return this.qrConnectorService.getInventarioEstado(inventarioId);
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<InventarioEstadoResponse> {
+    return this.qrConnectorService.getInventarioEstado(
+      inventarioId,
+      request.correlationId,
+    );
   }
 }
