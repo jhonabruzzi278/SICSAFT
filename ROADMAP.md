@@ -33,9 +33,10 @@ Brechas confirmadas en código, no solo declaradas en docs:
    mock).
 4. **`GET /entitlements` ignora la organización del operador**: devuelve lo mismo para cualquier
    `operadorId` (DOC-004 §7). No hay mapeo operador→organización de Zitadel.
-5. **No existe ningún cliente OIDC real**: la app de Zitadel ni siquiera está creada en el
-   dashboard (`devops/local/README.md` § "Qué falta"). Todo el auth está probado con tokens
-   firmados a mano.
+5. ~~No existe ningún cliente OIDC real.~~ **Resuelto** (Fase 0): app OIDC creada en Zitadel,
+   flujo authorization code + PKCE probado real de punta a punta (ver
+   `devops/local/README.md` § "Cliente OIDC real"). Sigue faltando que `app-qr-sicsaft/` haga
+   este flujo desde su propio código (TASK-006/007, Fase 3).
 6. **DOC-006 (API CIS↔CORE) no existe**, y es literalmente lo que bloquea TASK-007 de APP QR.
 7. **Administrador Patrimonial** y **CON-CONTABILIDAD**: sin rol, sin endpoint, sin conector — y
    son las dos únicas entradas que Tomo III §1.4 autoriza a poblar/modificar la Base Oficial. Hoy
@@ -71,12 +72,21 @@ triplicados a mano multiplica la deuda por 10. Es la fase más barata y la que m
    loggean nada hoy más allá del arranque de Nest): el `correlationId` está disponible en
    `req.correlationId` para cuando se agregue, pero no se emite a ningún log/trace todavía. Ver
    OPS-1 en el track OPS abajo.
-4. ⬜ Cliente OIDC real: crear la app en Zitadel, mapeo operador→organización (`org_id` del token
-   usado de verdad en `GET /entitlements`), flujo authorization code + PKCE probado end-to-end
-   desde APP QR contra el stack local. **Sigue pendiente** — requiere bootstrap de Zitadel en vivo
-   y tocar `app-qr-sicsaft/`, queda para el siguiente incremento de esta fase.
+4. ✅ Cliente OIDC real (parcial): app OIDC creada en Zitadel para `app-qr-sicsaft` (User Agent,
+   PKCE, tipo de token JWT), flujo authorization code + PKCE probado real de punta a punta
+   (login de usuario real → código → JWT real → `POST /auth/session` en CIS → `GET
+   /entitlements` en CORE → Postgres real, HTTP 201). Detalle completo y pasos para reproducirlo
+   en `devops/local/README.md` § "Cliente OIDC real". En el camino se encontró y corrigió un bug
+   real de infraestructura (Zitadel multi-tenant por dominio rechazaba el JWKS pedido por el
+   nombre de servicio interno de Docker — fix: alias de red en `traefik`, ver docker-compose.yml).
+   **Lo que falta**: el cliente real *dentro* de `app-qr-sicsaft/` (hoy se probó con `curl`
+   simulando el cliente) es TASK-006/007 de APP QR — deliberadamente fuera de alcance de la Fase
+   0, ver Fase 3. El **mapeo operador→organización real** (`GET /entitlements` sigue devolviendo
+   el mismo resultado sin importar qué operador pregunte, DOC-004 §7) tampoco es parte de este
+   incremento — es un gap de datos en CORE, no de mecanismo OIDC, y queda para cuando exista más
+   de una organización con datos reales.
 
-**Sigue**: ADR-001, ADR-002, DOC-004 §7, `devops/local/README.md` § "Qué falta", WAF §2/§3.
+**Sigue**: ADR-001, ADR-002, DOC-004 §7, `devops/local/README.md` § "Cliente OIDC real", WAF §2/§3.
 
 **Done**: migración corre limpia en compose local y en ambos CI; `GET /entitlements` devuelve
 resultados *distintos* para operadores de organizaciones distintas (test e2e); un login real de

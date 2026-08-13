@@ -45,11 +45,12 @@ arranca sin ellas):
 - `ZITADEL_ISSUER`: el `iss` que Zitadel pone en el token (`ZITADEL_EXTERNALDOMAIN` del compose,
   ej. `http://id.sicsaft.localhost`).
 - `ZITADEL_AUDIENCE`: Client ID / Resource ID de la app OIDC del CIS en Zitadel — se crea a mano
-  en el dashboard, ver `../devops/local/README.md` § "Qué falta".
+  en el dashboard, ver `../devops/local/README.md` § "Cliente OIDC real".
 - `ZITADEL_JWKS_URI` (opcional, default `${ZITADEL_ISSUER}/oauth/v2/keys`): solo hace falta
-  sobreescribirla cuando la URL para *descargar* las llaves no es la misma que el `iss` — es el
-  caso de Docker Compose local, donde `id.sicsaft.localhost` solo resuelve vía el hosts file del
-  host, no dentro de la red de contenedores (ver `docker-compose.yml` de `devops/local/`).
+  sobreescribirla si alguna vez la URL para *descargar* las llaves deja de ser la misma que el
+  `iss` — en Docker Compose local ya no es el caso: el servicio `traefik` tiene un alias de red
+  `id.sicsaft.localhost`, así que ese dominio resuelve igual adentro y afuera de la red de
+  contenedores (ver `docker-compose.yml` de `devops/local/` y su § "Cliente OIDC real").
 - `CORE_URL`: URL base de SICSAFT CORE (`../core/`), ej. `http://core:3001` dentro de Docker
   Compose. Ver `src/core-client/core-client.config.ts` — el proceso tampoco arranca sin esta.
 - `CORE_SERVICE_TOKEN`: secreto compartido de auth servicio-a-servicio hacia CORE — debe ser
@@ -119,10 +120,12 @@ implementación real.
   real todavía).
 - Definiciones de SICSAFT CORE (contrato de API para catálogo/inventarios, tracing) para
   reemplazar el resto del mock — bloqueado, ver arriba.
-- Que exista un cliente OIDC real (WEB/APP QR) haciendo authorization code + PKCE contra Zitadel
-  y pasándole el token al CIS — hoy `ZitadelAuthGuard` está probado con tokens firmados a mano en
-  los tests, no contra un login de verdad de punta a punta (ver `../devops/local/README.md` §
-  "Qué falta").
+- Que `app-qr-sicsaft/` reemplace su stub (`LocalQrConnectorClient`) por un cliente OIDC real
+  (authorization code + PKCE) — el mecanismo ya está probado real de punta a punta con un flujo
+  simulado vía `curl` (login real, JWT real firmado por Zitadel, `ZitadelAuthGuard` lo valida y
+  CIS resuelve entitlements reales, ver `../devops/local/README.md` § "Cliente OIDC real"); los
+  tests siguen usando tokens firmados a mano porque son unitarios, no e2e contra Zitadel real.
+  Falta que el código de APP QR haga ese mismo flujo — TASK-006/TASK-007.
 
 ## Bloquea
 - Nada — TASK-006/TASK-007 de APP QR ya tienen un mock real (con auth real) contra el cual

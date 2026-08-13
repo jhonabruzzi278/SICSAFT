@@ -64,18 +64,48 @@ defecto que un contenedor lea el socket del daemon (Enhanced Container Isolation
 conviene tener menos archivos que mantener a mano a medida que se agreguen más servicios — queda
 como decisión abierta en `../README.md`.
 
-## Qué falta antes de que esto sea útil de punta a punta
-- **Crear la aplicación OIDC del CIS en Zitadel** (el CIS ya valida tokens reales contra Zitadel,
-  ver `cis/README.md` § Conector QR — falta crear la app en el dashboard, no código):
-  1. Levantar el stack y entrar a `http://id.sicsaft.localhost`, login con
-     `ZITADEL_ADMIN_USERNAME`/`ZITADEL_ADMIN_PASSWORD`.
-  2. Crear una Organización de prueba (ej. "DUOC UC") si no existe — valida el modelo de
-     [ADR-002](../../adr/ADR-002-identidad-zitadel-multi-tenant.md).
-  3. Crear un Proyecto y una Aplicación API (u OIDC) dentro — copiar el Client ID (o el Resource
-     ID del proyecto) a `CIS_ZITADEL_AUDIENCE` en `.env`.
-  4. `docker compose up -d --build cis` para que tome la variable nueva.
-  - Sigue sin existir un cliente real (WEB/APP QR) que haga el flujo de login completo
-    (authorization code + PKCE) y le pase el token al CIS — eso es TASK-006/007 de APP QR.
+## Cliente OIDC real (ROADMAP.md Fase 0) — ya hecho, pasos para reproducirlo
+1. Levantar el stack y entrar a `http://id.sicsaft.localhost`, login con
+   `ZITADEL_ADMIN_USERNAME`/`ZITADEL_ADMIN_PASSWORD` (Zitadel obliga a cambiar la contraseña en
+   el primer login — actualizar `.env` con la nueva).
+2. Crear una Organización de prueba ("DUOC UC") — valida el modelo de
+   [ADR-002](../../adr/ADR-002-identidad-zitadel-multi-tenant.md).
+3. Dentro de la organización: crear un Proyecto ("CIS") y una Aplicación OIDC tipo **User Agent**
+   (SPA/PWA, PKCE, sin secreto) para el futuro cliente real de APP QR — nombre `app-qr-sicsaft`,
+   redirect URI de desarrollo `http://localhost:5173/auth/callback` (puerto de Vite, con
+   "Development Mode" activado para permitir `http://`).
+4. **Cambiar el tipo de token de la app a JWT** (Token Settings → Auth Token Type → `JWT`, no
+   `Bearer Token`/opaco) — `ZitadelAuthGuard` valida firma vía JWKS con `jose`, un token opaco no
+   sirve. Esto no es obvio en la UI (el default es opaco) y solo se descubre probando el flujo
+   completo, no leyendo la documentación de Zitadel.
+5. Copiar el **Resource ID del proyecto** (no el Client ID de la app) a `CIS_ZITADEL_AUDIENCE` en
+   `.env` — el `aud` del JWT incluye ambos (`[clientId, projectId]`), y el Resource ID es estable
+   aunque se agreguen más apps al mismo proyecto (WEB más adelante, por ejemplo).
+6. `docker compose up -d --build cis` para que tome la variable nueva.
+
+Verificado real de punta a punta (no solo con mocks): login de un usuario real en el dashboard de
+Zitadel → authorization code + PKCE real (`GET /oauth/v2/authorize` con `code_challenge`) →
+canje del código por un JWT real (`POST /oauth/v2/token`) → `POST /auth/session` en CIS con ese
+JWT como `Authorization: Bearer` → CIS valida firma/`iss`/`aud` y llama a `GET /entitlements` en
+CORE → CORE responde con datos reales de Postgres. HTTP 201, no 401.
+
+**Bug real encontrado y corregido en el camino** (no solo documentado, corregido): Zitadel es
+multi-tenant por dominio y rechaza cualquier request cuyo header `Host` no sea uno de sus
+dominios registrados — pedirle el JWKS por el nombre de servicio interno de Docker
+(`http://zitadel:8080/...`, lo que decía el comentario original de `docker-compose.yml`) falla
+con `Instance not found`, verificado real, no en teoría. Node's `fetch` tampoco deja forzar un
+header `Host` distinto al de la URL (lo ignora). Fix: el servicio `traefik` de este compose ahora
+tiene un alias de red `id.sicsaft.localhost` (ver `docker-compose.yml`) — `cis` le pega a
+Zitadel por el mismo dominio externo tanto adentro como afuera de la red Docker, sin URLs
+internas especiales. `ZITADEL_JWKS_URI` ya no hace falta como variable separada: se deriva de
+`ZITADEL_ISSUER` (ver `loadZitadelAuthConfig`).
+
+Sigue sin existir un cliente real dentro de `app-qr-sicsaft/` que haga este mismo flujo desde la
+UI (hoy se probó con `curl` simulando el cliente) — eso es TASK-006/007 de APP QR, deliberadamente
+fuera de alcance de la Fase 0 (ver `app-qr-sicsaft/src/lib/qr-connector.ts`, que documenta por
+qué sigue siendo un stub hasta esa tarea).
+
+## Otros puntos ya resueltos
 - **`core` ya está en el compose** (esqueleto NestJS, `GET /`/`GET /health` + `GET /entitlements`
   real ya consumido por `cis`, sin router de Traefik a propósito — solo lo consume `cis` dentro
   de la red, ver `core/README.md`). Protegido con `CORE_SERVICE_TOKEN` (auth

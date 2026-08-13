@@ -24,7 +24,16 @@ services:
     volumes:
       - ./traefik/dynamic.yml:/etc/traefik/dynamic/dynamic.yml:ro
     networks:
-      - sicsaft
+      sicsaft:
+        # Zitadel es multi-tenant por dominio (ExternalDomain) — valida el Host de cada request
+        # contra sus dominios registrados. Sin este alias, un contenedor (ej. `cis` pidiendo
+        # JWKS) que le pega a Zitadel por el nombre de servicio interno (`zitadel:8080`) recibe
+        # "Instance not found" (el Host no coincide con ningun dominio de la instancia) —
+        # verificado real, no solo en teoria. El alias hace que `id.sicsaft.localhost` resuelva
+        # DENTRO de la red Docker al propio Traefik, que enruta por Host igual que desde el host
+        # — mismo dominio adentro y afuera, sin URLs internas especiales ni tocar headers.
+        aliases:
+          - id.sicsaft.localhost
     restart: unless-stopped
 
   postgres:
@@ -102,13 +111,15 @@ services:
     environment:
       PORT: 3000
       # `iss` del token lo pone Zitadel via ZITADEL_EXTERNALDOMAIN (arriba) — debe ser el mismo
-      # valor exacto para que jwtVerify() lo acepte.
+      # valor exacto para que jwtVerify() lo acepte. Sin ZITADEL_JWKS_URI explicito, CIS deriva
+      # el JWKS de este mismo issuer (ver loadZitadelAuthConfig) — funciona DENTRO de la red
+      # Docker gracias al alias `id.sicsaft.localhost` del servicio `traefik` (arriba): Zitadel
+      # es multi-tenant por dominio y rechaza requests cuyo Host no sea uno de sus dominios
+      # registrados, por eso no alcanza con pegarle por el nombre de servicio interno
+      # (`zitadel:8080`) sin ese alias.
       ZITADEL_ISSUER: http://id.sicsaft.localhost
-      # No es == ZITADEL_ISSUER: ese dominio solo resuelve via el hosts file del HOST, no dentro
-      # de la red de contenedores — acá el CIS llega a Zitadel por nombre de servicio Docker.
-      ZITADEL_JWKS_URI: http://zitadel:8080/oauth/v2/keys
-      # Client ID (o Resource ID de proyecto) de la app OIDC creada en Zitadel para el CIS — ver
-      # devops/local/README.md "Qué falta" para cómo crearla. Sin esto el CIS no levanta
+      # Resource ID del proyecto OIDC creado en Zitadel para el CIS — ver
+      # devops/local/README.md "Cliente OIDC real" para cómo crearlo. Sin esto el CIS no levanta
       # (loadZitadelAuthConfig valida al arrancar, ver cis/src/common/auth/zitadel-auth.config.ts).
       ZITADEL_AUDIENCE: ${CIS_ZITADEL_AUDIENCE}
       # URL interna de CORE dentro de la red de contenedores (ver servicio `core` abajo) — CIS la
