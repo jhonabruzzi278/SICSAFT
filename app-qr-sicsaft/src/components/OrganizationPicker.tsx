@@ -1,11 +1,11 @@
 import { Building2Icon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Organization } from '@/lib/organizations-data';
+import type { OrganizacionSummary } from '@/lib/qr-connector';
 
 interface OrganizationPickerProps {
-  organizations: Organization[];
-  onSelect: (organization: Organization) => void;
+  organizations: OrganizacionSummary[];
+  onSelect: (organization: OrganizacionSummary) => void;
 }
 
 export function OrganizationPicker({ organizations, onSelect }: OrganizationPickerProps) {
@@ -35,7 +35,7 @@ export function OrganizationPicker({ organizations, onSelect }: OrganizationPick
                 value={organization.id}
                 data-testid={`organization-option-${organization.id}`}
               >
-                {organization.name}
+                {organization.nombre}
               </SelectItem>
             ))}
           </SelectContent>

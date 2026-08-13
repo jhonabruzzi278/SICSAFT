@@ -8,20 +8,8 @@
 // + variante antes de darlo por no registrado.
 import type { ScanCategory } from './db';
 import type { ConnectorAsset } from './qr-connector';
-import { ORGANIZATIONS } from './organizations-data';
 
 const ASSET_CODE_PATTERN = /^[A-Z0-9]+(-[A-Z0-9]+)?$/;
-
-function findAreaLocationNames(
-  organizationId: string,
-  areaId: string,
-  locationId: string,
-): { areaName?: string; locationName?: string } {
-  const organization = ORGANIZATIONS.find((o) => o.id === organizationId);
-  const area = organization?.areas.find((a) => a.id === areaId);
-  const location = area?.locations.find((l) => l.id === locationId);
-  return { areaName: area?.name, locationName: location?.name };
-}
 
 export interface ScanResolution {
   category: ScanCategory;
@@ -87,14 +75,24 @@ export function resolveScannedProduct(
     return { category: 'unregistered', name };
   }
 
+  // CIS/CORE no exponen un nombre propio de área/ubicación (ver qr-connector.ts,
+  // buildOrganizationTree) — se muestra el id tal cual, mismo criterio que el picker.
   if (asset.areaId !== session.areaId) {
-    const { areaName, locationName } = findAreaLocationNames(asset.organizacionId, asset.areaId, asset.ubicacionId);
-    return { category: 'wrong-area', name, expectedAreaName: areaName, expectedLocationName: locationName };
+    return {
+      category: 'wrong-area',
+      name,
+      expectedAreaName: asset.areaId,
+      expectedLocationName: asset.ubicacionId,
+    };
   }
 
   if (asset.ubicacionId !== session.locationId) {
-    const { areaName, locationName } = findAreaLocationNames(asset.organizacionId, asset.areaId, asset.ubicacionId);
-    return { category: 'wrong-location', name, expectedAreaName: areaName, expectedLocationName: locationName };
+    return {
+      category: 'wrong-location',
+      name,
+      expectedAreaName: asset.areaId,
+      expectedLocationName: asset.ubicacionId,
+    };
   }
 
   return { category: 'correct', name };

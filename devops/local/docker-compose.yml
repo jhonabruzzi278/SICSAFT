@@ -132,6 +132,10 @@ services:
       # Redis para el rate limiter (WAF §4, src/rate-limit/) — mismo REDIS_PASSWORD que el
       # servicio `redis` (arriba). Primer consumidor de Redis en el codigo del ecosistema.
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      # Origen permitido para CORS (TASK-007 de APP QR, ver app-qr-sicsaft/src/lib/qr-connector.ts)
+      # — sin esto, ningun navegador puede llamar a CIS directo (solo servicio-a-servicio, que no
+      # pasa por CORS). Puerto de Vite en dev; agregar el dominio real cuando exista deploy.
+      CIS_CORS_ORIGIN: http://localhost:5173
     networks:
       - sicsaft
     depends_on:

@@ -82,6 +82,17 @@ como decisión abierta en `../README.md`.
    `.env` — el `aud` del JWT incluye ambos (`[clientId, projectId]`), y el Resource ID es estable
    aunque se agreguen más apps al mismo proyecto (WEB más adelante, por ejemplo).
 6. `docker compose up -d --build cis` para que tome la variable nueva.
+7. **Habilitar `offline_access`** en la app `app-qr-sicsaft` (Token Settings → Auth Token Type ya
+   en `JWT` del paso 4; agregar el scope/grant `offline_access` para que Zitadel emita
+   `refresh_token`) — TASK-007 usa refresh token explícito, no re-login silencioso (decisión
+   confirmada con el usuario, ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §5). Sin esto,
+   `oidc-client.ts` falla fuerte al canjear el primer `code` con un mensaje explícito en vez de
+   degradar a un comportamiento no pedido.
+8. Copiar el **Client ID** de la app `app-qr-sicsaft` a `app-qr-sicsaft/.env`
+   (`VITE_ZITADEL_CLIENT_ID`, ver `app-qr-sicsaft/.env.example`) junto con
+   `VITE_ZITADEL_ISSUER=http://id.sicsaft.localhost` y `VITE_CIS_URL=http://api.sicsaft.localhost`
+   — CIS ya expone `CIS_CORS_ORIGIN=http://localhost:5173` en `docker-compose.yml` (puerto de
+   Vite dev) para aceptar estas requests desde el navegador.
 
 Verificado real de punta a punta (no solo con mocks): login de un usuario real en el dashboard de
 Zitadel → authorization code + PKCE real (`GET /oauth/v2/authorize` con `code_challenge`) →
@@ -100,10 +111,12 @@ Zitadel por el mismo dominio externo tanto adentro como afuera de la red Docker,
 internas especiales. `ZITADEL_JWKS_URI` ya no hace falta como variable separada: se deriva de
 `ZITADEL_ISSUER` (ver `loadZitadelAuthConfig`).
 
-Sigue sin existir un cliente real dentro de `app-qr-sicsaft/` que haga este mismo flujo desde la
-UI (hoy se probó con `curl` simulando el cliente) — eso es TASK-006/007 de APP QR, deliberadamente
-fuera de alcance de la Fase 0 (ver `app-qr-sicsaft/src/lib/qr-connector.ts`, que documenta por
-qué sigue siendo un stub hasta esa tarea).
+**Actualización (Fase 3, TASK-007)**: `app-qr-sicsaft/src/lib/oidc/` ya implementa este mismo
+flujo real desde la UI (antes solo se había probado con `curl` simulando el cliente) —
+`app-qr-sicsaft/src/lib/qr-connector.ts` dejó de ser un stub. **No verificado en vivo todavía por
+esta sesión**: falta crear la app OIDC real en el dashboard (pasos 3, 7 y 8 de arriba) y correr el
+flujo completo en un navegador — ver la nota de verificación pendiente en
+`app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §7.
 
 ## Otros puntos ya resueltos
 - **`core` ya está en el compose** (esqueleto NestJS, `GET /`/`GET /health` + `GET /entitlements`

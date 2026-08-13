@@ -200,19 +200,38 @@ actualizado.
    Zitadel ya autentica). **Enforcement parcial por diseño de DOC-002**: `deviceId` solo llega en
    el body de `auth/session`, no en las otras 3 rutas — no hay forma de revalidar el dispositivo
    en cada request sin romper el contrato ya acordado con APP QR.
-7. ⬜ **APP QR TASK-007**: `qr-connector.ts` reemplaza `LocalQrConnectorClient` por HTTP real,
-   manejo de `400/401/409/5xx` de DOC-002 §5, sin tocar la UI. Se activa `duplicate` y `rejected`.
+7. 🟡 **APP QR TASK-007**: `qr-connector.ts` (`app-qr-sicsaft/`) reemplazó `LocalQrConnectorClient`
+   por `HttpQrConnectorClient` real, con auth OIDC/PKCE (`src/lib/oidc/`) y manejo de
+   `400/401/409/5xx` de DOC-002 §5 (`RejectedInventarioError` corta la cola de reintentos en
+   400/409 en vez de insistir para siempre). Se activó `rejected` (`SyncStatus`) — `duplicate`
+   (`ScanCategory`) sigue sin ser alcanzable: `POST /inventarios` no devuelve reclasificación por
+   escaneo, solo el estado de la sesión completa (DOC-006 §3), y activarlo requeriría un cambio de
+   contrato nuevo. CORS habilitado en CIS (`CIS_CORS_ORIGIN`, opcional/sin default) — primera vez
+   que un navegador le habla directo a CIS. **Hallazgo no anticipado por las 4 preguntas
+   originales**: CIS/CORE no modelan "área" con nombre propio (`GET /entitlements` es
+   organización→sedes, 2 niveles) — el árbol de 3 niveles que la UI necesita ahora se deriva en
+   runtime del catálogo completo de la organización (`buildOrganizationTree`), decisión confirmada
+   explícitamente con el usuario, no había otra forma sin inventar un endpoint nuevo.
+   **Sin cerrar en el sentido estricto**: no se corrió `npm run test:e2e` ni un recorrido manual
+   en navegador (regla ya acordada de `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §9) — hace falta
+   crear la app OIDC de `app-qr-sicsaft` en el dashboard de Zitadel (con `offline_access`
+   habilitado) y decidir la estrategia de la suite de Playwright, que hoy asume el login viejo
+   (nombre tipeado) y necesitaría el stack completo real para correr contra el nuevo flujo. Ver
+   nota completa en el HANDOFF.
 
-**Done** (parcial — items 1-4 y 6): unit (100% stmts/funcs/lines, 90%+ branches, incluye
-reintentos con fake timers y el rate limiter/device registry con Redis mockeado) y e2e de CIS
-actualizados a proxy delgado (`CoreClientService`/`REDIS_CLIENT` stubeados, sin CORE ni Redis
-reales — la idempotencia y validación real ya se probaron contra Postgres en la Fase 2);
-`cis/README.md` actualizado quitando "mock" para catálogo/inventarios. **Falta para cerrar la
-fase**: item 5 (opcional/diferible) y 7, incluida TASK-007 con recorrido manual mostrando un
-inventario escaneado en la PWA persistido en la Base Patrimonial vía CIS→CORE.
+**Done** (parcial — items 1-4, 6 y 7 con la salvedad de verificación de arriba): unit (100%
+stmts/funcs/lines, 90%+ branches, incluye reintentos con fake timers y el rate limiter/device
+registry con Redis mockeado) y e2e de CIS actualizados a proxy delgado (`CoreClientService`/
+`REDIS_CLIENT` stubeados, sin CORE ni Redis reales — la idempotencia y validación real ya se
+probaron contra Postgres en la Fase 2); `cis/README.md` actualizado quitando "mock" para
+catálogo/inventarios. **Falta para cerrar la fase**: item 5 (opcional/diferible) y la
+verificación real de TASK-007 (crear la app OIDC, decidir estrategia de Playwright, recorrido
+manual mostrando un inventario escaneado en la PWA persistido en la Base Patrimonial vía
+CIS→CORE).
 
-**Hito de negocio**: primera vez que el ecosistema completo funciona de punta a punta. Todo lo
-anterior a esto es infraestructura.
+**Hito de negocio**: primera vez que el ecosistema completo funciona de punta a punta *en código*
+— falta la verificación real de punta a punta (ver item 7) para confirmarlo en la práctica. Todo
+lo anterior a esto es infraestructura.
 
 ## Fase 4 — Administrador Patrimonial y camino de escritura oficial (pieza nueva)
 
@@ -372,7 +391,7 @@ aparezca en documentos:
 Fase 0 (migraciones + correlationId + OIDC real) ✅
   └─ Fase 1 (DOC-005 mínimo) ✅
        └─ Fase 2 (CORE MVP: 4 motores + DOC-006) ✅
-            └─ Fase 3 (CIS real + APP QR TASK-007)   ← siguiente, primer flujo end-to-end real
+            └─ Fase 3 (CIS real + APP QR TASK-007)   ← código completo, falta verificar en vivo (Zitadel + e2e)
                  ├─ Fase 4 (Administrador Patrimonial + escritura oficial)  [pieza nueva]
                  │    ├─ Fase 5 (WEB mínimo) — diseño ✅, código pendiente
                  │    └─ Fase 7 (CON-CONTABILIDAD)   [pieza nueva]

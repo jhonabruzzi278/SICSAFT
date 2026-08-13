@@ -1,7 +1,8 @@
-// Datos semilla de organización/área/ubicación. No hay backend todavía (ver
-// HANDOFF-APP-QR-SICSAFT.md sección 6) — esta jerarquía se resuelve local por
-// ahora, igual que el catálogo demo en catalog-data.ts. No editable desde la
-// UI en este alcance.
+// Forma del árbol organización→área→ubicación que usa la UI (OrganizationPicker,
+// AreaLocationPicker). Hasta TASK-007 esto traía datos semilla locales — ahora se deriva en
+// runtime del catálogo real de CIS (ver qr-connector.ts, buildOrganizationTree) para el flujo
+// oficial. catalog-data.ts (CatalogPage.tsx, fuera de alcance de TASK-007 por decisión del
+// usuario) sigue con sus propios datos locales, sin depender de este archivo.
 export interface OrgLocation {
   id: string;
   name: string;
@@ -18,44 +19,3 @@ export interface Organization {
   name: string;
   areas: OrgArea[];
 }
-
-export const ORGANIZATIONS: Organization[] = [
-  {
-    id: 'org-001',
-    name: 'Municipalidad Central',
-    areas: [
-      {
-        id: 'area-001',
-        name: 'Administración',
-        locations: [
-          { id: 'loc-001', name: 'Edificio Principal — Piso 1' },
-          { id: 'loc-002', name: 'Edificio Principal — Piso 2' },
-        ],
-      },
-      {
-        id: 'area-002',
-        name: 'Obras Públicas',
-        locations: [{ id: 'loc-003', name: 'Depósito Norte' }],
-      },
-    ],
-  },
-  {
-    id: 'org-002',
-    name: 'Hospital Regional',
-    areas: [
-      {
-        id: 'area-003',
-        name: 'Guardia',
-        locations: [{ id: 'loc-004', name: 'Sala de Guardia' }],
-      },
-      {
-        id: 'area-004',
-        name: 'Farmacia',
-        locations: [
-          { id: 'loc-005', name: 'Depósito Central' },
-          { id: 'loc-006', name: 'Mostrador' },
-        ],
-      },
-    ],
-  },
-];

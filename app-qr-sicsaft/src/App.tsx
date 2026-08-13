@@ -7,6 +7,9 @@ import { useSyncQueue } from '@/hooks/useSyncQueue';
 const ScanPage = lazy(() => import('@/pages/ScanPage').then((m) => ({ default: m.ScanPage })));
 const HistoryPage = lazy(() => import('@/pages/HistoryPage').then((m) => ({ default: m.HistoryPage })));
 const CatalogPage = lazy(() => import('@/pages/CatalogPage').then((m) => ({ default: m.CatalogPage })));
+const AuthCallbackPage = lazy(() =>
+  import('@/pages/AuthCallbackPage').then((m) => ({ default: m.AuthCallbackPage })),
+);
 
 function RouteTransition({ children }: { children: ReactNode }) {
   const shown = useEntrance();
@@ -35,6 +38,7 @@ export default function App() {
             <Route path="/" element={<ScanPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/catalog" element={<CatalogPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </RouteTransition>

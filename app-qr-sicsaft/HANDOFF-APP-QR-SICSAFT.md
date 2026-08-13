@@ -5,8 +5,8 @@
 ## Instrucciones para la nueva sesión
 
 1. Este documento es autocontenido: no hace falta re-auditar el código para tener el contexto de negocio y las decisiones ya tomadas.
-2. **TASK-004 a TASK-006 y TASK-008 a TASK-010 ya están hechas** — ver sección 7. Solo queda **TASK-007** (sincronización real con CORE), bloqueada. Con eso, las 12 pantallas de DOC-001 están cubiertas salvo el envío HTTP real. No hay backlog nuevo definido todavía para APP QR SICSAFT más allá de TASK-007 — antes de inventar trabajo nuevo, confirmar con el usuario si corresponde esperar a CORE, sincronizar Trello, o mirar otro sistema del ecosistema (`cis/`, `core/`, etc., ver `README.md` raíz).
-3. **TASK-007 (sincronización real con CORE) sigue bloqueada** — las 4 preguntas de la sección 6 siguen sin respuesta (confirmado con el usuario el 2026-08-12, sin novedades de CORE). Todo el Conector QR (`src/lib/qr-connector.ts`) es un **stub explícito**: implementa el contrato de DOC-002 como interfaz, con una implementación local respaldada por IndexedDB. No asumas respuestas a las preguntas abiertas; si en algún momento las responden, TASK-007 reemplaza esa implementación por HTTP real sin tocar la UI (`ScanPage.tsx` solo conoce la interfaz `QrConnectorClient`, nunca `db.ts` directo).
+2. **TASK-004 a TASK-010 ya están hechas** — ver sección 7. Las 12 pantallas de DOC-001 están cubiertas, incluido el envío HTTP real. No hay backlog nuevo definido todavía para APP QR SICSAFT — antes de inventar trabajo nuevo, confirmar con el usuario si corresponde sincronizar Trello o mirar otro sistema del ecosistema (`cis/`, `core/`, etc., ver `README.md` raíz). **Pendiente real que sí quedó abierto**: la suite de e2e de Playwright (`tests/`) todavía asume el login viejo (nombre tipeado) y no tiene forma de driving un login OIDC real contra Zitadel — necesita una decisión de estrategia de test (mock de red vs. correr contra el stack de `devops/local/` completo) antes de poder correr de nuevo, ver sección 7.
+3. **TASK-007 (sincronización real con CORE) ya no está bloqueada — se hizo.** Las 4 preguntas de la sección 6 tienen respuesta concreta desde el trabajo de `cis/`/`core/` (Fases 2-3 de `ROADMAP.md`): CIS expone exactamente las 4 rutas propuestas (DOC-006), la identidad viene de Zitadel real vía PKCE, `correlationId` de negocio convive con el header transversal, y la idempotencia es la propuesta. El Conector QR (`src/lib/qr-connector.ts`) ya no es un stub: `HttpQrConnectorClient` habla HTTP real contra CIS. Sección 6 actualizada con las respuestas.
 4. El backlog vive en Trello: https://trello.com/b/nCi6W4oB/sicsaft (tablero **SICSAFT**, board id `6a79df5317e070b5a23014d0`). Se gestiona con `C:\Proyectos\trello-ai-project-manager\trello_project.py` (`validate-plan` / `sync-plan`, dry-run por defecto, `--apply` para escribir). Requiere `TRELLO_API_KEY`, `TRELLO_TOKEN`, `TRELLO_BOARD_ID` en variables de entorno — **no están guardadas en ningún archivo**; pedíselas al usuario si hace falta escribir en Trello, y si te las pasa por chat, avisale que las rote después (ya se expusieron una vez en una sesión anterior). **El tablero no se sincronizó todavía con el trabajo de TASK-004 a TASK-009** — falta mover esas tarjetas a "Hecho" cuando haya credenciales.
 5. No se hizo `git push` de ningún commit todavía — todo vive local en `main`.
 
@@ -42,16 +42,16 @@ Rename QR Vault → APP QR SICSAFT en dos fases:
 
 | Paso | Estado | Detalle |
 |---|---|---|
-| Identificar operador | ✅ Existe | `OperatorGate.tsx` + `operator.ts` (localStorage, sin auth real — ver sección 6) |
-| Seleccionar organización | ✅ Existe | `OrganizationPicker.tsx`, alimentado por `qrConnector.authSession()` |
-| Seleccionar área | ✅ Existe | `AreaLocationPicker.tsx` |
+| Identificar operador | ✅ Existe | `OperatorGate.tsx` redirige a Zitadel (OIDC authorization code + PKCE, `src/lib/oidc/`) — ya no hay nombre tipeado, la identidad es real (TASK-007) |
+| Seleccionar organización | ✅ Existe | `OrganizationPicker.tsx`, alimentado por `qrConnector.authSession()` real contra CIS |
+| Seleccionar área | ✅ Existe | `AreaLocationPicker.tsx`, árbol derivado del catálogo real (`buildOrganizationTree`, ver sección 5) |
 | Seleccionar ubicación | ✅ Existe | `AreaLocationPicker.tsx`, cascada área→ubicación |
-| Iniciar inventario | ✅ Existe | `startScanning()` en `ScanPage.tsx` — trae catálogo vía `qrConnector.getCatalogo()`, genera `correlationId` |
+| Iniciar inventario | ✅ Existe | `startScanning()` en `ScanPage.tsx` reutiliza el catálogo ya traído al elegir organización, genera `correlationId` |
 | Escanear QR | ✅ Existe | `QrScanner.tsx` (`html5-qrcode`) |
-| Validar activos | ✅ Existe | `scan-resolve.ts` — 6 de las 8 categorías de DOC-001 sección 3 (`duplicate` reservada, no alcanzable sin backend real) |
+| Validar activos | ✅ Existe | `scan-resolve.ts` — 6 de las 8 categorías de DOC-001 sección 3. `duplicate` sigue sin ser alcanzable: `POST /inventarios` no devuelve reclasificación por escaneo, solo el estado de la sesión completa (DOC-006 §3) — requeriría un cambio de contrato, no algo que TASK-007 pudiera resolver sola |
 | Registrar incidencias | ✅ Existe | `IncidentDialog.tsx` |
 | Finalizar inventario | ✅ Existe | `finishScanning()` para la cámara y muestra el resumen — **ya no envía** (ver TASK-010) |
-| Enviar a SICSAFT CORE | ⚠️ Stub | Paso explícito del operador: botón "Confirmar y enviar" (`confirmAndSend()`, TASK-010) → `syncQueue.submitInventario()` → `qr-connector.ts` simula el envío (`postInventario`); si no hay conexión queda en cola local con reintentos (`sync-queue.ts`, TASK-008) — el envío real a CORE sigue bloqueado (TASK-007, sección 6) |
+| Enviar a SICSAFT CORE | ✅ Existe | Botón "Confirmar y enviar" (`confirmAndSend()`, TASK-010) → `syncQueue.submitInventario()` → `qr-connector.ts` envía HTTP real (`HttpQrConnectorClient.postInventario`); sin conexión o 5xx queda en cola con reintentos (`sync-queue.ts`, TASK-008); un 400/409 real de CORE ahora sí puede ocurrir y corta la cola con `syncStatus: 'rejected'` en vez de reintentar para siempre (TASK-007) |
 
 **Función que queda fuera de alcance (decisión del usuario, 2026-08-10)**: catálogo de productos + impresión de etiquetas QR (`CatalogPage.tsx`) se conserva tal cual, no forma parte del flujo oficial ni del Conector QR — sigue con acceso directo a `db.ts`.
 
@@ -61,35 +61,39 @@ Rename QR Vault → APP QR SICSAFT en dos fases:
 
 **12 pantallas mínimas — las 12 están cubiertas.** Pantalla 10 (resumen del inventario) muestra esperados/faltantes/correctos/fuera de lugar/no registrados/externos/incidencias (TASK-010). Pantalla 11 (confirmación y envío) es el botón "Confirmar y enviar" (`confirmAndSend()` en `ScanPage.tsx`, TASK-010) — separado de "Finalizar", matchea el diagrama de DOC-001 (`Finalizar → Resumen → Confirmar y enviar`). Pantalla 12 (estado de sincronización) se resolvió como parte de `HistoryPage.tsx` en vez de una ruta propia (badge de `syncStatus` + botón "Ver auditoría", TASK-008/009) — DOC-001 la describe como estado por inventario, no como pantalla de contenido propio.
 
-**Clasificación de resultados de escaneo** (8 categorías, `scan-resolve.ts`): correcto, otra área, otra ubicación, no registrado, código inválido, ya escaneado — implementadas y testeadas (TASK-005). "Duplicado" está reservada en el type pero no es alcanzable client-side (IndexedDB usa `code` como clave única) — la detectaría el futuro Base Patrimonial Central. "Con incidencia" se resolvió como una acción disponible sobre cualquier ítem escaneado, no como categoría excluyente.
+**Clasificación de resultados de escaneo** (8 categorías, `scan-resolve.ts`): correcto, otra área, otra ubicación, no registrado, código inválido, ya escaneado — implementadas y testeadas (TASK-005). "Duplicado" sigue reservada en el type sin ser alcanzable: aunque ahora hay backend real, `POST /inventarios` (DOC-006 §3) solo devuelve el estado de la sesión completa, no una reclasificación por escaneo — CORE sí reclasifica internamente (Motor de Reglas) pero ese detalle no vuelve al cliente con el contrato actual. Activarla requeriría negociar un campo nuevo en la respuesta, fuera de alcance de TASK-007. "Con incidencia" se resolvió como una acción disponible sobre cualquier ítem escaneado, no como categoría excluyente.
 
 ## 5. Contrato del Conector QR — DOC-002
 
 `aidlc-docs/design-artifacts/DOC-002-conector-qr.md`
 
-**Implementado como stub local** (`src/lib/qr-connector.ts`, TASK-006) — interfaz `QrConnectorClient` calcada del contrato, con una implementación local (`LocalQrConnectorClient`) respaldada por el mismo IndexedDB de siempre:
+**Implementado real contra CIS** (`src/lib/qr-connector.ts`, TASK-007) — `HttpQrConnectorClient` reemplazó al stub local (`LocalQrConnectorClient`, TASK-006):
 
 | Operación | Método | Estado |
 |---|---|---|
-| `authSession` | — | Stub: token falso, devuelve las organizaciones semilla (`organizations-data.ts`) |
-| `getCatalogo(organizacionId, areaId, ubicacionId)` | — | Stub: ignora área/ubicación, devuelve todo el catálogo de la organización (necesario para clasificar TASK-005) |
-| `postInventario(session)` | — | Stub: chequea `navigator.onLine` y lanza si no hay conexión (única falla simulable sin backend real) |
-| `getInventarioEstado` | — | Stub trivial, sin caller (pantalla 12 resuelta de otra forma, ver sección 4) |
+| `authSession` | — | Real: `POST {CIS_URL}/auth/session` con el access token de Zitadel (`Authorization: Bearer`) y `deviceId`; devuelve `organizaciones` reales (`{id, nombre, sedes}[]`, forma de CIS — no el árbol de 3 niveles que usaba el stub) |
+| `getCatalogo(organizacionId, areaId?, ubicacionId?)` | — | Real: `GET {CIS_URL}/catalogo`. área/ubicación ahora son opcionales — se llama sin ellas al elegir organización para traer el catálogo completo y derivar el árbol área/ubicación que la UI necesita (`buildOrganizationTree`, ver nota abajo) |
+| `postInventario(session)` | — | Real: `POST {CIS_URL}/inventarios`. Un 400/409 real (DOC-002 §5) lanza `RejectedInventarioError`, que `sync-queue.ts` distingue de una falla transitoria para no reintentar un payload que CORE nunca va a aceptar (`syncStatus: 'rejected'`, activado por primera vez) |
+| `getInventarioEstado` | — | Real: `GET {CIS_URL}/inventarios/{id}/estado`. Sigue sin caller (pantalla 12 resuelta de otra forma, ver sección 4) |
 
-**Ya implementado sin depender de CORE:**
-- Reintentos con backoff exponencial (5s/15s/45s, luego cada 5min) + reintento inmediato al recuperar conexión — `src/lib/sync-queue.ts` (TASK-008).
-- `correlationId` generado al iniciar el inventario, registro de auditoría local con operador/dispositivo/inventario/código/resultado/ubicación/incidencia/estado de sync — `src/lib/audit-log.ts` + `src/lib/device-id.ts` (TASK-009), visible en Historial → "Ver auditoría".
+**Hallazgo no anticipado por las 4 preguntas de la sección 6 (ahora resuelto):** CIS/CORE no modelan "área" como entidad con nombre propio — `GET /entitlements` solo da `organización→sedes` (2 niveles), y `activos[].areaId` en el catálogo es un id suelto sin nombre. El árbol de 3 niveles que la UI necesita (`OrganizationPicker`/`AreaLocationPicker`) ya no viene de datos semilla (`organizations-data.ts` perdió su array `ORGANIZATIONS`, solo quedan los tipos) — se deriva en runtime del catálogo completo de la organización (`buildOrganizationTree` en `qr-connector.ts`): el nombre de área se muestra como su id (no hay otro dato), el de ubicación se resuelve contra `sedes[]` cuando el id calza. Decisión confirmada explícitamente con el usuario — no había otra forma de poblar el picker sin inventar un endpoint nuevo en CIS/CORE.
 
-**Sigue bloqueado por CORE (sección 6):** el envío HTTP real, autenticación real, y el manejo de errores `400`/`401`/`409`/`5xx` contra un backend de verdad — todo eso es TASK-007.
+**Ya implementado sin depender de CORE (sin cambios, TASK-008/009):**
+- Reintentos con backoff exponencial (5s/15s/45s, luego cada 5min) + reintento inmediato al recuperar conexión — `src/lib/sync-queue.ts`.
+- `correlationId` generado al iniciar el inventario, registro de auditoría local con operador/dispositivo/inventario/código/resultado/ubicación/incidencia/estado de sync — `src/lib/audit-log.ts` + `src/lib/device-id.ts`, visible en Historial → "Ver auditoría".
 
-## 6. Preguntas abiertas — SOLO el equipo de SICSAFT CORE puede responderlas
+**Auth real (TASK-007):** `src/lib/oidc/` implementa authorization code + PKCE contra Zitadel (ya probado con curl, ver `devops/local/README.md` "Cliente OIDC real") — `oidc-config.ts`/`oidc-client.ts`/`token-store.ts`/`pkce.ts`. Decisiones confirmadas explícitamente con el usuario: refresh token explícito (requiere `offline_access` habilitado en la app OIDC de Zitadel, no re-login silencioso) y `sessionStorage` para el token (no `localStorage` — es un secreto, a diferencia de `device-id.ts`).
 
-1. ¿CIS ya expone rutas equivalentes a las 4 propuestas en la sección 5, o hay que adaptarse a un contrato ya existente?
-2. Mecanismo real de autenticación (¿OAuth2 client credentials? ¿JWT propio de SICSAFT? ¿certificado de dispositivo?).
-3. ¿CORE ya tiene su propio esquema de correlación/tracing al que el `correlationId` deba adaptarse, en vez de proponer uno nuevo?
-4. ¿La semántica de idempotencia propuesta (misma key = mismo resultado, nunca duplicar) es compatible con cómo CORE aplica las Reglas patrimoniales?
+## 6. Preguntas que bloqueaban TASK-007 — ya respondidas
 
-**Sin novedades de CORE al 2026-08-12.** Mientras sigan sin responder, TASK-007 queda saltada — TASK-008 y TASK-009 ya se hicieron contra el stub sin necesitar estas respuestas (son mecánica local, no protocolo de red).
+Las 4 preguntas originales, con la respuesta concreta que dio el trabajo de `cis/`/`core/` (Fases 2-3 de `ROADMAP.md`):
+
+1. **¿CIS expone las 4 rutas propuestas?** Sí, exactamente esas — `POST /auth/session`, `GET /catalogo`, `POST /inventarios`, `GET /inventarios/:id/estado` (DOC-006, `cis/src/qr-connector/`).
+2. **¿Mecanismo real de autenticación?** OIDC (Zitadel) con authorization code + PKCE — app tipo User Agent/SPA sin secreto de cliente, ya provisionada (ver `devops/local/README.md` "Cliente OIDC real"). CIS valida el JWT vía `ZitadelAuthGuard`.
+3. **¿Esquema de correlación propio de CORE?** No reemplaza al `correlationId` de negocio de DOC-002 §6 — conviven: CIS agrega un header transversal `X-Correlation-Id` (WAF §2) que es independiente del `correlationId` que ya viaja en el payload de `POST /inventarios`.
+4. **¿Semántica de idempotencia compatible?** Sí, idéntica a la propuesta — CORE persiste `idempotencyKey` en `sesiones_inventario` (DOC-006 §3): mismo key + mismo payload devuelve el resultado ya procesado, distinto payload da 409.
+
+Con esto TASK-007 se implementó completa (ver sección 5). **Pendiente real, no bloqueado por CORE:** la suite de e2e de Playwright (`tests/`) todavía asume el login viejo — ver sección 7.
 
 ## 7. Backlog completo y cadena de dependencias
 
@@ -99,17 +103,34 @@ Tablero Trello SICSAFT — última sincronización verificada contra el código 
 TASK-004 (sesiones de inventario) ................................ ✅ Hecho
   → TASK-005 (normalizar 8 resultados de escaneo) ................. ✅ Hecho
     → TASK-006 (cliente del Conector QR, stub) ..................... ✅ Hecho
-      → TASK-007 (sincronización real con CORE) .................... ⛔ Bloqueada — saltada, ver sección 6
-        → TASK-008 (cola sin conexión) .............................. ✅ Hecho (contra el stub)
+      → TASK-007 (sincronización real con CORE) .................... 🟡 Código hecho, verificación pendiente — ver nota abajo
+        → TASK-008 (cola sin conexión) .............................. ✅ Hecho, ahora contra backend real
           → TASK-009 (registro de eventos y auditoría) .............. ✅ Hecho
             → TASK-010 (resumen final del inventario) .............. ✅ Hecho
 ```
 
-Único pendiente de la cadena: **TASK-007**, bloqueada por CORE (sección 6). No hay más tarjetas
-definidas para APP QR SICSAFT en el handoff — confirmar con el usuario antes de proponer alcance
-nuevo.
+**TASK-007 — nota de verificación**: el código está implementado completo (sección 5), pero **no
+se corrió `npm run test:e2e` ni un recorrido manual en navegador** (regla de la sección 9) — esta
+sesión no tenía acceso a crear la app OIDC en el dashboard de Zitadel ni a levantar el stack
+completo de `devops/local/` para probar de punta a punta. Falta, antes de dar la tarea por
+cerrada en el sentido estricto de la sección 9:
+1. Crear la app OIDC `app-qr-sicsaft` en Zitadel con `offline_access` habilitado (ver
+   `devops/local/README.md` "Cliente OIDC real", pasos nuevos agregados) y completar
+   `VITE_ZITADEL_CLIENT_ID` en `.env`.
+2. Decidir la estrategia de e2e de Playwright (`tests/`) — la suite entera bootstrapea cada test
+   vía `identifyOperator()` (`tests/helpers.js`), que llenaba un input de texto; ya no hay login
+   por texto, y las mismas pruebas ahora necesitarían CIS/CORE/Redis/Zitadel reales corriendo
+   (antes eran 100% frontend contra IndexedDB). No se tocaron `tests/` en esta sesión — decidir
+   entre mockear la capa de red (MSW o interceptación de rutas de Playwright) o correr contra el
+   stack completo de `devops/local/` es una decisión de arquitectura de test aparte, no algo para
+   resolver de paso.
+3. Recorrido manual real: login → organización → área/ubicación → escaneo → envío → ver el
+   inventario persistido en Postgres vía CIS→CORE.
 
-Cada tarjeta tiene en su descripción de Trello: objetivo, alcance, criterios de aceptación verificables, evidencia esperada y dependencias — usar `board-summary`/`export-board` del script para traer el contenido exacto, y `sync-plan --apply` para marcar TASK-004 a TASK-006 y TASK-008 a TASK-010 como Hecho cuando haya credenciales.
+No hay más tarjetas definidas para APP QR SICSAFT en el handoff más allá de esto — confirmar con
+el usuario antes de proponer alcance nuevo.
+
+Cada tarjeta tiene en su descripción de Trello: objetivo, alcance, criterios de aceptación verificables, evidencia esperada y dependencias — usar `board-summary`/`export-board` del script para traer el contenido exacto, y `sync-plan --apply` para marcar TASK-004 a TASK-010 como Hecho cuando haya credenciales (TASK-007 con la salvedad de verificación de arriba).
 
 ## 8. Historial de commits relevantes (repo local, sin push)
 
@@ -128,14 +149,15 @@ dcfc1f6 docs: auditoria TASK-001/TASK-002 - matriz funcion->accion y gap vs fluj
 063e1a7 feat: renombrar QR Vault a APP QR SICSAFT (rebrand cosmetico)
 ```
 
-TASK-007 no tiene commit — quedó explícitamente saltada, no implementada a medias.
+TASK-007: implementación real (`src/lib/oidc/`, `qr-connector.ts` real, CORS en CIS) — ver nota de
+verificación pendiente arriba antes de considerarla cerrada con el mismo rigor que las anteriores.
 
 ## 9. Reglas de trabajo ya acordadas (no re-preguntar)
 
 - No modificar identificadores internos (IndexedDB, localStorage, TWA) sin migración explícita — ver sección 2.
 - El acceso a datos pasa por el Conector QR (`qr-connector.ts`) — `ScanPage.tsx`/`scan-resolve.ts` nunca importan `db.ts` directo. `HistoryPage.tsx` sí lee `db.ts` directo (dato genuinamente local al dispositivo, DOC-002 no define un endpoint de "listar mis inventarios"). `CatalogPage.tsx` también, está fuera de alcance del Conector.
 - El catálogo de productos/etiquetas QR se conserva fuera de alcance por ahora (no eliminar ni mover sin nueva decisión del usuario).
-- Categorías/estados no alcanzables sin backend real (`duplicate` en `ScanCategory`, `rejected` en `SyncStatus`, `getInventarioEstado`) se dejan **reservados y documentados en el código**, no se implementan a medias ni se inventan datos para simularlos artificialmente.
+- `rejected` en `SyncStatus` ya es alcanzable (TASK-007, `RejectedInventarioError`) — dejó de estar reservado. `duplicate` en `ScanCategory` sigue sin serlo: el contrato actual de `POST /inventarios` no devuelve reclasificación por escaneo (ver sección 5) — se deja **reservado y documentado en el código**, no se implementa a medias ni se inventan datos para simularlo.
 - No hacer `git push` ni aplicar cambios en Trello (`--apply`) sin confirmación explícita del usuario en cada caso.
 - Cada TASK-0XX se planifica con `EnterPlanMode` antes de tocar código (arquitectura/alcance revisados con el usuario primero) y se verifica con `npm run build` + `npm run test:e2e` + recorrido manual en navegador antes de darla por terminada.
 - Colores de marca: `src/index.css` ya no usa el preset "Sera" de fábrica — mapea 1:1 contra la paleta oficial azul-marino de SICSAFT. Fuente de verdad única para cualquier trabajo visual (nuevos componentes, otros sistemas del ecosistema): `../BRAND.md` (commit `e0e9be7`). No reinventar colores a mano sin pasar por ese archivo.

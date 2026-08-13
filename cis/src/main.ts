@@ -1,10 +1,27 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { CORRELATION_ID_HEADER } from './common/correlation-id/correlation-id.constants';
 
 const DEFAULT_PORT = 3000;
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+
+  // CIS_CORS_ORIGIN es opcional y sin default — si no esta seteada, CORS queda deshabilitado
+  // (comportamiento actual, sin romper nada existente). Solo hace falta para que un navegador
+  // (APP QR, TASK-007) le pueda hablar directo a CIS; llamadas servicio-a-servicio (CIS->CORE)
+  // no pasan por un browser y no necesitan esto. `X-Correlation-Id` se expone explicitamente
+  // porque un header de respuesta no-simple no es legible desde `fetch()` sin `exposedHeaders`.
+  const corsOrigin = process.env.CIS_CORS_ORIGIN;
+  if (corsOrigin) {
+    app.enableCors({
+      origin: corsOrigin.split(',').map((origin) => origin.trim()),
+      methods: ['GET', 'POST'],
+      allowedHeaders: ['Authorization', 'Content-Type', CORRELATION_ID_HEADER],
+      exposedHeaders: [CORRELATION_ID_HEADER],
+    });
+  }
+
   const port = process.env.PORT ?? DEFAULT_PORT;
   await app.listen(port);
 }

@@ -58,6 +58,11 @@ control de seguridad (Zitadel ya autentica). El enforcement es parcial por dise�
 `deviceId` solo llega en el body de `auth/session`, DOC-002 no lo manda en las otras 3 rutas — no
 hay forma de revalidar el dispositivo en cada request sin romper ese contrato ya acordado con
 APP QR.
+CORS habilitado (`app.enableCors`, `src/main.ts`) vía `CIS_CORS_ORIGIN` (opcional, sin default) —
+primera vez que un navegador (`app-qr-sicsaft/`, TASK-007) le habla directo a CIS, no solo
+llamadas servicio-a-servicio; `app-qr-sicsaft` ya tiene un cliente HTTP real
+(`HttpQrConnectorClient`) contra los 4 endpoints, pendiente de verificar en vivo (falta crear la
+app OIDC en el dashboard de Zitadel, ver `../devops/local/README.md`).
 
 ## Desarrollo local
 ```bash
@@ -97,6 +102,10 @@ arranca sin ellas):
   conecta hasta el primer comando) y ambos consumidores fallan abiertos ante cualquier error, así
   que un Redis temporalmente caído no bloquea el arranque ni las requests — solo se pierde esa
   protección mientras dura.
+- `CIS_CORS_ORIGIN` (opcional, sin default — CORS deshabilitado si no está seteada): origen(es)
+  permitidos separados por coma, ej. `http://localhost:5173`. Necesaria para que un navegador
+  (APP QR, TASK-007) le hable directo a CIS — las llamadas servicio-a-servicio (CIS→CORE) no
+  pasan por CORS y no la necesitan. Ver `src/main.ts`.
 
 **Nota sobre `coverageThreshold.branches` (85%, no 100%)**: `emitDecoratorMetadata` de TypeScript
 emite un chequeo defensivo (`typeof X === "function" ? X : Object`) para cada tipo **importado
@@ -157,16 +166,13 @@ supersede-en-vez-de-rechazo y el TTL atado al token.
 - Más datos reales de Contrato en `../core/` (hoy solo un caso precargado sobre Postgres, ver
   [DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §7 — sin mapeo operador→organización
   real todavía).
-- Que `app-qr-sicsaft/` reemplace su stub (`LocalQrConnectorClient`) por un cliente HTTP real
-  contra estos 4 endpoints (TASK-006/TASK-007) — el cliente OIDC ya está probado real de punta a
-  punta con un flujo simulado vía `curl` (login real, JWT real firmado por Zitadel,
-  `ZitadelAuthGuard` lo valida y CIS resuelve entitlements/catálogo/inventarios reales, ver
-  `../devops/local/README.md` § "Cliente OIDC real"); falta que el código de APP QR haga ese mismo
-  flujo en vez de `curl`.
 
 ## Bloquea
-- Nada — TASK-006/TASK-007 de APP QR ya tienen un conector real (con auth real) contra el cual
-  apuntar.
+- Nada. `app-qr-sicsaft/` (TASK-007) ya tiene un cliente HTTP real (`HttpQrConnectorClient`)
+  contra estos 4 endpoints, con CORS habilitado acá (`CIS_CORS_ORIGIN`) — primera vez que un
+  navegador le habla directo a CIS. Falta la verificación en vivo (crear la app OIDC en el
+  dashboard de Zitadel, recorrido manual), no código de CIS — ver
+  `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §7.
 
 ## Documentos relacionados
 - [DOC-002](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md) (contrato
@@ -181,6 +187,9 @@ supersede-en-vez-de-rechazo y el TTL atado al token.
   y `src/rate-limit/`) y §3 (el CIS es el único punto que valida identidad de fuentes de captura).
 
 ## Próximo paso sugerido
-Que `app-qr-sicsaft/` (TASK-006/TASK-007) reemplace `LocalQrConnectorClient` por un cliente HTTP
-real contra estos 4 endpoints — lo que queda de ROADMAP.md Fase 3 que no es opcional (la caché de
-entitlements invalidada por evento está explícitamente marcada como diferible).
+Verificación en vivo de TASK-007 (`app-qr-sicsaft/`, ver su `HANDOFF-APP-QR-SICSAFT.md` §7): crear
+la app OIDC real en el dashboard de Zitadel con `offline_access` habilitado
+(`../devops/local/README.md` § "Cliente OIDC real"), decidir la estrategia de e2e de Playwright de
+APP QR, y un recorrido manual de punta a punta — lo que queda de ROADMAP.md Fase 3 que no es
+opcional (la caché de entitlements invalidada por evento está explícitamente marcada como
+diferible).
