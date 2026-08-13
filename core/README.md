@@ -9,8 +9,10 @@ aplicaciones y sistemas externos interactúan con el patrimonio exclusivamente a
 ## Estado
 🟡 Esqueleto NestJS (mismo patrón que `../cis/`) + **`GET /entitlements` real sobre Postgres**
 ([DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §6): resuelve el modelo de `Contrato`
-contra una base `core` dedicada (`../devops/local/postgres/init/schema/core.sql`, mismo caso DUOC
-UC/Melipilla que ya usa CIS), con la máquina de estados y el invariante "una sede, un contrato
+contra una base `core` dedicada con esquema versionado por migraciones (`migrations/`,
+node-pg-migrate — ver "Desarrollo local"; mismo caso DUOC UC/Melipilla que ya usa CIS, cargado por
+la migración de seed a partir de `src/entitlements/contrato.seed.ts`, ya no retipeado a mano en
+SQL), con la máquina de estados y el invariante "una sede, un contrato
 vigente" de DOC-004 §3/§4 implementados, validados en `ContratoRepository` al leer (no solo en el
 seed de tests, ver `src/entitlements/contrato.seed.ts`) y testeados. Todo probado con lint, unit
 (100% stmts/lines/funcs, branches sobre el umbral del proyecto), e2e contra Postgres real, build y
@@ -29,10 +31,16 @@ implementado (Patrimonial, Reglas, Eventos, Auditoría, Alertas...) ni el resto 
 de Base Patrimonial — solo `Contrato`/`Sede`/`Organizacion` tienen tabla real hoy.
 
 ## Desarrollo local
-Requiere una base `core` real con el esquema de
-[`devops/local/postgres/init/schema/core.sql`](../devops/local/postgres/init/schema/core.sql)
-aplicado — más simple: levantar `docker compose up -d postgres` desde `../devops/local`, que la
-crea sola (ver `devops/local/README.md`). `test:e2e` (y `start:dev`) leen la conexión de
+Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
+`docker compose up -d` desde `../devops/local` ya lo hace solo (el servicio `core-migrate` corre
+`npm run migrate:up` una vez, antes de levantar `core`; `postgres` solo crea la base/usuario
+vacíos, ver `devops/local/postgres/init/02-core.sh`). Fuera de Docker, aplicar a mano:
+```bash
+cd core
+npm install
+npm run migrate:up    # requiere CORE_DB_HOST/PORT/NAME/USER/PASSWORD en el entorno
+```
+`test:e2e` (y `start:dev`) leen la misma conexión de
 `CORE_DB_HOST`/`CORE_DB_PORT`/`CORE_DB_NAME`/`CORE_DB_USER`/`CORE_DB_PASSWORD` — ver
 `src/database/database.config.ts` y los defaults de `test/jest-e2e.setup.ts` (apuntan a
 `localhost:5432`, que el compose ya expone al host).

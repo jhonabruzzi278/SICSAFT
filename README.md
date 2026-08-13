@@ -62,7 +62,8 @@ usuarios reales en mente. Su identificador técnico interno (`package.json` → 
 `docker build`/`docker run` verificados. **CORE** (`core/`) tiene el mismo esqueleto base (`GET
 /`, `GET /health`) más `GET /entitlements`, que resuelve el modelo de `Contrato`
 ([DOC-004](base-patrimonial/DOC-004-modelo-contrato.md)) sobre una base Postgres real dedicada
-(`devops/local/postgres/init/schema/core.sql`, ya no un seed en memoria) — corre como servicio
+(esquema versionado con migraciones reales en `core/migrations/`, ya no un seed en memoria ni un
+`.sql` aplicado a mano) — corre como servicio
 interno en el compose local, sin ruta de Traefik (solo lo consume CIS). **El círculo CIS↔CORE ya
 está cerrado y protegido**: `auth/session` llama a `GET /entitlements` de verdad
 (`cis/src/core-client/`) con un secreto compartido (`CORE_SERVICE_TOKEN`) que CORE valida en

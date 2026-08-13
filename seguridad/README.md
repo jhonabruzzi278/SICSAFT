@@ -14,8 +14,8 @@ mock — ya no está bloqueado por la pregunta de "qué mecanismo de auth" (una 
 abiertas del handoff de APP QR queda respondida a nivel de mecanismo). El modelo de dominio de
 `Contrato` también está documentado **e implementado sobre Postgres real**:
 [`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md) +
-`core/src/entitlements/` sirviendo `GET /entitlements` contra la base `core`
-(`devops/local/postgres/init/schema/core.sql`), ya consumido por CIS en `auth/session`
+`core/src/entitlements/` sirviendo `GET /entitlements` contra la base `core` (esquema versionado
+en `core/migrations/`), ya consumido por CIS en `auth/session`
 (`cis/src/core-client/`) y protegido con auth servicio-a-servicio (secreto compartido
 `CORE_SERVICE_TOKEN`, `core/src/common/auth/service-token.guard.ts` — comparación en tiempo
 constante, CIS es el único llamador válido). Lo que sigue sin resolver: `sedeId`/vigencia de

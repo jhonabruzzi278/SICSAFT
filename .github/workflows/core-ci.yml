@@ -57,11 +57,8 @@ jobs:
       - name: Unit tests + cobertura
         run: npm run test:cov
 
-      - name: Aplicar esquema (mismo archivo que docker-compose local)
-        working-directory: .
-        run: |
-          PGPASSWORD=core psql -h localhost -U core -d core \
-            -f devops/local/postgres/init/schema/core.sql
+      - name: Aplicar migraciones (mismo runner que docker-compose local)
+        run: npm run migrate:up
 
       - name: Tests e2e
         run: npm run test:e2e

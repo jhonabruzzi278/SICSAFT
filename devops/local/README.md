@@ -81,9 +81,11 @@ como decisión abierta en `../README.md`.
   de la red, ver `core/README.md`). Protegido con `CORE_SERVICE_TOKEN` (auth
   servicio-a-servicio) — sin ese secreto en `.env`, ni `cis` ni `core` arrancan.
 - **`GET /entitlements` ya lee de Postgres real**, no de un seed en memoria: el servicio
-  `postgres` de este compose crea una base `core` dedicada (`init/02-core.sh` +
-  `init/schema/core.sql`, mismo modelo de `base-patrimonial/DOC-004-modelo-contrato.md`) con el
-  caso DUOC UC/Melipilla precargado. `CORE_DB_USER`/`CORE_DB_PASSWORD` en `.env` — sin ellos,
-  `core` no arranca (ver `core/src/database/database.config.ts`).
+  `postgres` de este compose crea una base `core` dedicada y vacía (`init/02-core.sh`); el
+  esquema (mismo modelo de `base-patrimonial/DOC-004-modelo-contrato.md`) lo aplica el servicio
+  `core-migrate` corriendo las migraciones de `core/migrations/` una sola vez, antes de levantar
+  `core` (`depends_on: service_completed_successfully`) — con el caso DUOC UC/Melipilla
+  precargado por la migración de seed. `CORE_DB_USER`/`CORE_DB_PASSWORD` en `.env` — sin ellos,
+  ni `core-migrate` ni `core` arrancan (ver `core/src/database/database.config.ts`).
 - Este compose es la base compartida; WEB se agrega acá como servicio nuevo cuando tenga
   Dockerfile — no antes, para no mantener contenedores vacíos.

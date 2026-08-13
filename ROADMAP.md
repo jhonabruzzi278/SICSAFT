@@ -14,7 +14,7 @@ Lo que **sí** existe hoy:
 - `cis/src/` — `ZitadelAuthGuard` real, `CoreClientService` con validación Zod y manejo de 502, y
   `QrConnectorService` con **catálogo e inventarios todavía en memoria** (`Map` +
   `SEED_CATALOGO`/`SEED_ORGANIZACIONES`).
-- `devops/local/postgres/init/schema/core.sql` — solo 4 tablas: `organizaciones`, `sedes`,
+- `core/migrations/` (node-pg-migrate, ver Fase 0) — solo 4 tablas: `organizaciones`, `sedes`,
   `contratos`, `contrato_sedes`. Cero tablas patrimoniales.
 - CI: solo `cis-ci.yml` y `core-ci.yml`.
 
@@ -25,9 +25,12 @@ Brechas confirmadas en código, no solo declaradas en docs:
 2. **La idempotencia vive en el lugar equivocado**: `hashRequest`/`inventariosPorIdempotencyKey`
    están en CIS (memoria de proceso), cuando DOC-002 §4 dice que es CORE quien no debe duplicar.
    Con CIS multi-instancia (WAF §4 "multi-instancia sin estado en memoria") esto se rompe hoy.
-3. **No hay herramienta de migraciones.** El esquema es un `init/*.sql` que solo corre en base
-   vacía, y el seed DUOC UC está duplicado a mano en tres lugares (SQL, `contrato.seed.ts`,
-   `qr-connector.seed.ts`) con un comentario que dice "mantener sincronizado a mano".
+3. ~~No hay herramienta de migraciones.~~ **Resuelto** (Fase 0): `core/migrations/`
+   (node-pg-migrate), esquema versionado con `up`/`down` reales, probados contra Postgres real. El
+   seed DUOC UC sigue duplicado en dos lugares en vez de tres: la migración de seed ahora importa
+   `contrato.seed.ts` como fuente única (antes tenía su propia copia en SQL); la copia de
+   `cis/src/qr-connector/qr-connector.seed.ts` queda pendiente hasta la Fase 3 (CIS deja de ser
+   mock).
 4. **`GET /entitlements` ignora la organización del operador**: devuelve lo mismo para cualquier
    `operadorId` (DOC-004 §7). No hay mapeo operador→organización de Zitadel.
 5. **No existe ningún cliente OIDC real**: la app de Zitadel ni siquiera está creada en el
@@ -52,14 +55,18 @@ completar documentos.
 triplicados a mano multiplica la deuda por 10. Es la fase más barata y la que más riesgo saca.
 
 **Qué se construye**
-1. Herramienta de migraciones en `core/` (node-pg-migrate o el runner de TypeORM/Drizzle según lo
-   que decida un ADR corto; ADR-001 fijó Postgres pero no el mecanismo de esquema). El `core.sql`
-   actual se convierte en la migración `0001`.
-2. Fuente única del seed de desarrollo: eliminar la duplicación entre `core.sql`,
-   `contrato.seed.ts` y `qr-connector.seed.ts`.
-3. `correlationId` transversal: middleware en CIS y CORE que acepte/genere `X-Correlation-Id`, lo
+1. ✅ Herramienta de migraciones en `core/` (node-pg-migrate — dependencia productiva, corre sin
+   devDependencies via `jiti`). `migrations/1755000000000_schema-contrato.ts` recrea el esquema
+   anterior con `up`/`down` reales; `docker-compose.yml` corre un servicio `core-migrate` una vez
+   antes de levantar `core`; `core-ci.yml` corre `npm run migrate:up` en vez de aplicar un `.sql`
+   suelto. `devops/local/postgres/init/02-core.sh` ya solo crea la base/usuario vacíos.
+2. ✅ Fuente única del seed de desarrollo (parcial): `migrations/1755000000001_seed-dev-fixture.ts`
+   importa `SEED_CONTRATOS` de `contrato.seed.ts` en vez de retipear los datos en SQL — elimina
+   una de las dos duplicaciones. La copia de `cis/src/qr-connector/qr-connector.seed.ts` queda
+   pendiente hasta la Fase 3.
+3. ⬜ `correlationId` transversal: middleware en CIS y CORE que acepte/genere `X-Correlation-Id`, lo
    propague en `CoreClientService` y lo incluya en todo log estructurado (WAF §2).
-4. Cliente OIDC real: crear la app en Zitadel, mapeo operador→organización (`org_id` del token
+4. ⬜ Cliente OIDC real: crear la app en Zitadel, mapeo operador→organización (`org_id` del token
    usado de verdad en `GET /entitlements`), flujo authorization code + PKCE probado end-to-end
    desde APP QR contra el stack local.
 
@@ -299,5 +306,5 @@ Archivos clave para quien implemente cada fase: [CLAUDE.md](CLAUDE.md),
 [base-patrimonial/DOC-004-modelo-contrato.md](base-patrimonial/DOC-004-modelo-contrato.md),
 [app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md](app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md),
 [adr/ADR-002-identidad-zitadel-multi-tenant.md](adr/ADR-002-identidad-zitadel-multi-tenant.md),
-[devops/local/postgres/init/schema/core.sql](devops/local/postgres/init/schema/core.sql),
+[core/migrations](core/migrations),
 `cis/src/qr-connector/qr-connector.service.ts`, `core/src/entitlements/contrato.repository.ts`.

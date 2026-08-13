@@ -125,6 +125,27 @@ services:
       - core
     restart: unless-stopped
 
+  # Migraciones de CORE (node-pg-migrate, ver core/migrations/) — corre una vez, aplica el
+  # esquema real y sale. `02-core.sh` solo crea la base/usuario vacios; el esquema ya no se
+  # aplica desde un init script de Postgres (no versionado, sin down) sino acá.
+  core-migrate:
+    build:
+      context: ../../core
+      dockerfile: Dockerfile
+    command: ["node", "scripts/migrate.js", "up"]
+    environment:
+      CORE_DB_HOST: postgres
+      CORE_DB_PORT: 5432
+      CORE_DB_NAME: core
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   core:
     build:
       context: ../../core
@@ -149,6 +170,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      core-migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
     # Sin router en traefik/dynamic.yml a propósito: CORE solo lo consume CIS dentro de la red
     # de contenedores (ver README raíz — "todo pasa por CIS → CORE"), nunca un navegador
