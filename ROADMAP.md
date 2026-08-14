@@ -358,8 +358,10 @@ después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita e
   por módulo implementado (Activos, Contratos, Inventarios, Áreas/Ubicaciones/Responsables);
   Auditoría vive fuera del flujo por organización, como link directo en el header (no depende de
   qué organización esté seleccionada).
-- ⬜ Dockerfile/`web-ci.yml`/servicio en el compose local — sin empezar (se corre con `npm run dev`
-  fuera de Docker, ver `web/README.md` § Desarrollo local).
+- ✅ Dockerfile/`web-ci.yml`/servicio en el compose local — imagen nginx (usuario sin privilegios,
+  fallback SPA) + `web-ci.yml` (build + `docker build`) + servicio `web` en
+  `devops/local/docker-compose.yml` (`http://web.sicsaft.localhost` vía Traefik). Sigue
+  soportando `npm run dev` suelto para desarrollo, ver `web/README.md` § Desarrollo local.
 
 **Gaps de arquitectura encontrados y resueltos en este incremento** (los cinco solo aparecieron
 probando el flujo real en el navegador, ninguno lo detectaban los tests unitarios/e2e con mocks):
@@ -390,10 +392,12 @@ completo de Área/Ubicación/Responsable, incluida la edición de Área/Ubicaci�
 arriba), ambos verificados con unit + e2e reales contra Postgres (CORE y CIS), sin login real de
 navegador todavía (a diferencia de RF-03/RF-04/RF-07). Los 6 módulos del MVP de Fase 5 quedan con
 sus requisitos cerrados por completo — sin filas pendientes en `REQUISITOS.md` § "RF/RNF con
-estado parcial" para WEB. ⬜ e2e Playwright del flujo de login + alta — sin escribir todavía.
-⬜ Dockerfile/`web-ci.yml`/servicio en el compose local — WEB sigue corriendo solo con
-`npm run dev` fuera de Docker. ✅ `web/README.md`, `cis/README.md`, `core/README.md`, `README.md`,
-`REQUISITOS.md` y DOC-013 actualizados.
+estado parcial" para WEB. ✅ e2e Playwright del flujo de login + alta (`web/tests/`, MSW mockea
+CIS, mismo patrón que `app-qr-sicsaft/tests/`) — cubre operador sin sesión redirigido a `/login` y
+login + alta de Activo visible de inmediato (RF-08), corre en `web-ci.yml`.
+✅ Dockerfile/`web-ci.yml`/servicio en el compose local — WEB corre en Docker
+(`http://web.sicsaft.localhost`) además de `npm run dev` suelto. ✅ `web/README.md`,
+`cis/README.md`, `core/README.md`, `README.md`, `REQUISITOS.md` y DOC-013 actualizados.
 
 ## Fase 6 — CIP: primer dashboard
 
