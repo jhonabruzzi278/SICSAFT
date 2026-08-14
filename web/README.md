@@ -177,6 +177,13 @@ cp .env.example .env   # completar VITE_ZITADEL_CLIENT_ID con el Client ID real
 npm run dev            # http://localhost:5174
 ```
 
+**Dentro del stack de Docker** (en vez de `npm run dev` suelto): completar
+`WEB_VITE_ZITADEL_CLIENT_ID` en `devops/local/.env` y correr `docker compose up -d --build web`
+desde `devops/local/` — sirve el build de producción vía nginx en
+`http://web.sicsaft.localhost` (Traefik, `devops/local/traefik/dynamic.yml`). Como Vite incrusta
+las `VITE_*` en build time, cambiar `WEB_VITE_ZITADEL_CLIENT_ID` exige reconstruir la imagen
+(`docker compose build web`), no solo reiniciar el contenedor.
+
 ## Depende de
 CORE (escritura oficial de `Activo`/`Contrato`/`Area`/`Ubicacion`/`Responsable`, Fases 4/5 — ✅) y
 CIS (autenticación real + puente de escritura, `src/administrador/` — ✅). Sin dependencias
@@ -201,5 +208,7 @@ WEB). Lo que queda, en orden de valor:
    navegador (login real, como ya se hizo con Activos/Contratos/Inventarios) — hoy solo están
    probados con e2e de CORE/CIS.
 2. e2e Playwright del flujo de login + alta (anotado como pendiente desde Fase 5 inicial).
-3. Dockerfile/`web-ci.yml`/servicio en el compose local — WEB sigue corriendo solo con
-   `npm run dev` fuera de Docker.
+
+✅ `Dockerfile`/`web-ci.yml`/servicio en el compose local — WEB ya tiene imagen de producción
+(nginx sirviendo el build de Vite, usuario sin privilegios) y corre dentro del stack en
+`http://web.sicsaft.localhost` además de `npm run dev` suelto (ver "Desarrollo local" arriba).

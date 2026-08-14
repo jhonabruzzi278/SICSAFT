@@ -20,9 +20,14 @@ secas). Agregar al archivo hosts (`C:\Windows\System32\drivers\etc\hosts`, como 
 127.0.0.1 id.sicsaft.localhost
 127.0.0.1 api.sicsaft.localhost
 127.0.0.1 traefik.sicsaft.localhost
+127.0.0.1 web.sicsaft.localhost
 ```
 
 (Se agregan más líneas acá a medida que sumemos servicios: `app.`, `qr.`, `cip.`.)
+
+`web.sicsaft.localhost` sirve el build de producción de WEB (nginx, ver `web/Dockerfile`) cuando
+corre dentro del stack (`docker compose up -d --build web`) — para desarrollo día a día seguí
+usando `npm run dev` (puerto 5174, hot reload), ver `../../web/README.md` § Desarrollo local.
 
 ## 2. Configurar variables de entorno
 ```bash
