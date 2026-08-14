@@ -730,9 +730,7 @@ describe('CoreClientService', () => {
       const pagina = { entradas: [entrada], total: 1 };
       axiosGet.mockResolvedValue(buildAxiosResponse(pagina));
 
-      await expect(service.getAuditoria({}, 'corr-1')).resolves.toEqual(
-        pagina,
-      );
+      await expect(service.getAuditoria({}, 'corr-1')).resolves.toEqual(pagina);
     });
   });
 
@@ -788,9 +786,9 @@ describe('CoreClientService', () => {
     it('postArea propaga un 403 de CORE como ForbiddenException', async () => {
       axiosPost.mockRejectedValue(buildAxiosError(403, { message: 'sin rol' }));
 
-      await expect(
-        service.postArea(postAreaRequest, 'corr-1'),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.postArea(postAreaRequest, 'corr-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('patchArea llama a PATCH {baseUrl}/areas/:id y devuelve el area actualizada', async () => {

@@ -342,7 +342,11 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/admin/areas')
         .set('Authorization', `Bearer ${bearerToken}`)
-        .send({ organizacionId: 'duoc-uc', codigo: 'BIB', nombre: 'Biblioteca' })
+        .send({
+          organizacionId: 'duoc-uc',
+          codigo: 'BIB',
+          nombre: 'Biblioteca',
+        })
         .expect(201);
 
       expect(res.body as AreaResult).toEqual(AREA_STUB);

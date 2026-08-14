@@ -166,9 +166,9 @@ describe('AdministradorService', () => {
       coreClientService.getAuditoria.mockResolvedValue(pagina);
       const filtro = { usuario: 'op-1', operacion: 'baja' };
 
-      await expect(
-        service.getAuditoria(filtro, 'corr-1'),
-      ).resolves.toEqual(pagina);
+      await expect(service.getAuditoria(filtro, 'corr-1')).resolves.toEqual(
+        pagina,
+      );
       expect(coreClientService.getAuditoria).toHaveBeenCalledWith(
         filtro,
         'corr-1',
@@ -329,12 +329,7 @@ describe('AdministradorService', () => {
       const actualizada = { ...AREA, nombre: 'Biblioteca Central' };
       coreClientService.patchArea.mockResolvedValue(actualizada);
 
-      const area = await service.actualizarArea(
-        'area-1',
-        body,
-        AUTH,
-        'corr-1',
-      );
+      const area = await service.actualizarArea('area-1', body, AUTH, 'corr-1');
 
       expect(area).toBe(actualizada);
       expect(coreClientService.patchArea).toHaveBeenCalledWith(

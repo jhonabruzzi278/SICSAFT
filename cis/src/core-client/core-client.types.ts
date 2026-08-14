@@ -111,7 +111,9 @@ export const contratosPaginaResponseSchema = z.object({
   contratos: z.array(contratoResponseSchema),
   total: z.number(),
 });
-export type ContratosPaginaResult = z.infer<typeof contratosPaginaResponseSchema>;
+export type ContratosPaginaResult = z.infer<
+  typeof contratosPaginaResponseSchema
+>;
 
 // RNF-01 — limit/offset, mismos defaults que el resto de listados paginados (20/tope 100, ver
 // core/src/patrimonial/catalogo.schemas.ts).
@@ -165,7 +167,9 @@ export const auditoriaPaginaResponseSchema = z.object({
   entradas: z.array(auditoriaEntradaSchema),
   total: z.number(),
 });
-export type AuditoriaPaginaResult = z.infer<typeof auditoriaPaginaResponseSchema>;
+export type AuditoriaPaginaResult = z.infer<
+  typeof auditoriaPaginaResponseSchema
+>;
 
 // RF-06 — filtros de GET /auditoria (cierra el gap: el requisito pedia "filtrable por
 // usuario/fecha/operacion"). Mismo shape que core/src/auditoria/auditoria.types.ts AuditoriaFiltro

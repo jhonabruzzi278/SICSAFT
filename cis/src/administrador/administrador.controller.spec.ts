@@ -169,9 +169,9 @@ describe('AdministradorController', () => {
       offset: 0,
     };
 
-    await expect(
-      controller.getAuditoria(query, request),
-    ).resolves.toEqual(pagina);
+    await expect(controller.getAuditoria(query, request)).resolves.toEqual(
+      pagina,
+    );
     expect(service.getAuditoria).toHaveBeenCalledWith(query, CORRELATION_ID);
   });
 
@@ -269,7 +269,9 @@ describe('AdministradorController', () => {
   it('getAreas delega en el service con organizacionId, la paginacion y el correlationId', async () => {
     const pagina = { areas: [AREA], total: 1 };
     service.getAreas.mockResolvedValue(pagina);
-    const request = { correlationId: CORRELATION_ID } as RequestWithCorrelationId;
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
 
     await expect(
       controller.getAreas(
@@ -320,7 +322,9 @@ describe('AdministradorController', () => {
   it('getUbicaciones delega en el service con sedeId, la paginacion y el correlationId', async () => {
     const pagina = { ubicaciones: [UBICACION], total: 1 };
     service.getUbicaciones.mockResolvedValue(pagina);
-    const request = { correlationId: CORRELATION_ID } as RequestWithCorrelationId;
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
 
     await expect(
       controller.getUbicaciones(
@@ -376,7 +380,9 @@ describe('AdministradorController', () => {
   it('getResponsables delega en el service con areaId, la paginacion y el correlationId', async () => {
     const pagina = { responsables: [RESPONSABLE], total: 1 };
     service.getResponsables.mockResolvedValue(pagina);
-    const request = { correlationId: CORRELATION_ID } as RequestWithCorrelationId;
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
 
     await expect(
       controller.getResponsables(

@@ -93,10 +93,7 @@ export class AdministradorController {
     @Query(new ZodValidationPipe(contratosQuerySchema)) query: ContratosQuery,
     @Req() request: RequestWithCorrelationId,
   ): Promise<ContratosPaginaResult> {
-    return this.administradorService.getContratos(
-      query,
-      request.correlationId,
-    );
+    return this.administradorService.getContratos(query, request.correlationId);
   }
 
   @Post('contratos')
