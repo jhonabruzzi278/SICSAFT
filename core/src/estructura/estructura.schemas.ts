@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { escrituraOficialSchema } from '../patrimonial/activo.schemas';
+import { paginacionSchema } from '../common/paginacion.schemas';
 
 // RF-05 (Fase 5) — reusa el mismo envoltorio de escritura oficial que Activo/Contrato
 // (escrituraOficialSchema es generico, no especifico de Activo pese a vivir en
@@ -84,13 +85,6 @@ export const actualizarEstadoResponsableSchema = escrituraOficialSchema.extend({
 export type ActualizarEstadoResponsableBody = z.infer<
   typeof actualizarEstadoResponsableSchema
 >;
-
-// RNF-01 (cierra el gap) — limit/offset con los mismos defaults que catalogoQuerySchema (DOC-006
-// §2): 20 por pagina, tope 100.
-const paginacionSchema = {
-  limit: z.coerce.number().int().positive().max(100).default(20),
-  offset: z.coerce.number().int().nonnegative().default(0),
-};
 
 export const areasQuerySchema = z.object({
   organizacionId: z.string().min(1),

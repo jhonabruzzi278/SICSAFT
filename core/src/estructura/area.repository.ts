@@ -13,6 +13,7 @@ import type {
   AreasPagina,
   NuevaAreaInput,
 } from './area.types';
+import { verificarPerteneceOrganizacion } from './verificar-pertenece';
 
 const FOREIGN_KEY_VIOLATION = '23503';
 
@@ -158,39 +159,33 @@ export class AreaRepository {
     return result.rows[0];
   }
 
-  private async verificarResponsablePerteneceOrganizacion(
+  private verificarResponsablePerteneceOrganizacion(
     responsableId: string,
     organizacionId: string,
   ): Promise<void> {
-    const result = await this.pool.query<{ organizacionId: string }>(
+    return verificarPerteneceOrganizacion(
+      this.pool,
       `SELECT a.organizacion_id AS "organizacionId"
        FROM responsables r JOIN areas a ON a.id = r.area_id
        WHERE r.id = $1`,
-      [responsableId],
+      responsableId,
+      organizacionId,
+      'responsableId',
     );
-    const row = result.rows[0];
-    if (!row || row.organizacionId !== organizacionId) {
-      throw new BadRequestException({
-        message: `responsableId '${responsableId}' inexistente en la organizacion '${organizacionId}'`,
-      });
-    }
   }
 
-  private async verificarUbicacionPerteneceOrganizacion(
+  private verificarUbicacionPerteneceOrganizacion(
     ubicacionId: string,
     organizacionId: string,
   ): Promise<void> {
-    const result = await this.pool.query<{ organizacionId: string }>(
+    return verificarPerteneceOrganizacion(
+      this.pool,
       `SELECT s.organizacion_id AS "organizacionId"
        FROM ubicaciones u JOIN sedes s ON s.id = u.sede_id
        WHERE u.id = $1`,
-      [ubicacionId],
+      ubicacionId,
+      organizacionId,
+      'ubicacionPrincipalId',
     );
-    const row = result.rows[0];
-    if (!row || row.organizacionId !== organizacionId) {
-      throw new BadRequestException({
-        message: `ubicacionPrincipalId '${ubicacionId}' inexistente en la organizacion '${organizacionId}'`,
-      });
-    }
   }
 }

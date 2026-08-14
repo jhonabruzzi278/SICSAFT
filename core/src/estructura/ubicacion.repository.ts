@@ -13,6 +13,7 @@ import type {
   Ubicacion,
   UbicacionesPagina,
 } from './ubicacion.types';
+import { verificarPerteneceOrganizacion } from './verificar-pertenece';
 
 const FOREIGN_KEY_VIOLATION = '23503';
 
@@ -178,21 +179,18 @@ export class UbicacionRepository {
     return result.rows[0];
   }
 
-  private async verificarPertenece(
+  private verificarPertenece(
     tabla: 'sedes' | 'areas',
     id: string,
     organizacionId: string,
     campo: string,
   ): Promise<void> {
-    const result = await this.pool.query<{ organizacionId: string }>(
+    return verificarPerteneceOrganizacion(
+      this.pool,
       `SELECT organizacion_id AS "organizacionId" FROM ${tabla} WHERE id = $1`,
-      [id],
+      id,
+      organizacionId,
+      campo,
     );
-    const row = result.rows[0];
-    if (!row || row.organizacionId !== organizacionId) {
-      throw new BadRequestException({
-        message: `${campo} '${id}' inexistente en la organizacion '${organizacionId}'`,
-      });
-    }
   }
 }

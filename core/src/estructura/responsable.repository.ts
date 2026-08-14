@@ -14,6 +14,7 @@ import type {
   Responsable,
   ResponsablesPagina,
 } from './responsable.types';
+import { verificarPerteneceOrganizacion } from './verificar-pertenece';
 
 const FOREIGN_KEY_VIOLATION = '23503';
 const UNIQUE_VIOLATION = '23505';
@@ -135,19 +136,16 @@ export class ResponsableRepository {
     return { responsable, organizacionId };
   }
 
-  private async verificarAreaPerteneceOrganizacion(
+  private verificarAreaPerteneceOrganizacion(
     areaId: string,
     organizacionId: string,
   ): Promise<void> {
-    const result = await this.pool.query<{ organizacionId: string }>(
+    return verificarPerteneceOrganizacion(
+      this.pool,
       `SELECT organizacion_id AS "organizacionId" FROM areas WHERE id = $1`,
-      [areaId],
+      areaId,
+      organizacionId,
+      'areaId',
     );
-    const row = result.rows[0];
-    if (!row || row.organizacionId !== organizacionId) {
-      throw new BadRequestException({
-        message: `areaId '${areaId}' inexistente en la organizacion '${organizacionId}'`,
-      });
-    }
   }
 }

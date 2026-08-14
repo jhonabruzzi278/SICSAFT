@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { escrituraOficialSchema } from '../patrimonial/activo.schemas';
+import { paginacionSchema } from '../common/paginacion.schemas';
 
 // DOC-012 §7 — POST /contratos (alta). CORE decide `estado` ('vigente') y `id` — nunca se
 // confian esos dos campos desde el cliente (mismo criterio que altaActivoSchema).
@@ -23,7 +24,6 @@ export type ActualizarContratoBody = z.infer<typeof actualizarContratoSchema>;
 // RNF-01 (cierra el gap) — mismos defaults que catalogoQuerySchema (DOC-006 §2): 20 por pagina,
 // tope 100.
 export const contratosQuerySchema = z.object({
-  limit: z.coerce.number().int().positive().max(100).default(20),
-  offset: z.coerce.number().int().nonnegative().default(0),
+  ...paginacionSchema,
 });
 export type ContratosQuery = z.infer<typeof contratosQuerySchema>;

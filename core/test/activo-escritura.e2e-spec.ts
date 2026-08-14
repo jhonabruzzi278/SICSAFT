@@ -1,15 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
 import { SERVICE_TOKEN_HEADER } from './../src/common/auth/service-token.guard';
 import type { Activo } from './../src/patrimonial/activo.types';
-
-const SERVICE_TOKEN = 'secreto-compartido-e2e'; // igual al default de jest-e2e.setup.ts
-// El rol es de Proyecto pero asignado por organizacion (DOC-012 §2) — nunca una lista plana.
-const ADMIN_ROLES_DUOC_UC = { 'duoc-uc': ['administrador-patrimonial'] };
+import {
+  ADMIN_ROLES_DUOC_UC,
+  crearAppE2e,
+  SERVICE_TOKEN,
+} from './support/e2e-app';
 
 // Contra el seed real de base-patrimonial/DOC-005-modelo-patrimonial.md: DUOC UC / Melipilla,
 // catalogo-notebook ya existe (migracion 1755100000001_seed-dev-fixture-patrimonial.ts).
@@ -40,12 +39,7 @@ describe('DOC-012 §5 — escritura oficial de Activo (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    app = await crearAppE2e();
   });
 
   afterEach(async () => {

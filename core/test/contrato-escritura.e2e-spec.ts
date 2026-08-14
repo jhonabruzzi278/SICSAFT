@@ -1,14 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
 import { SERVICE_TOKEN_HEADER } from './../src/common/auth/service-token.guard';
 import type { Contrato } from './../src/entitlements/contrato.types';
-
-const SERVICE_TOKEN = 'secreto-compartido-e2e'; // igual al default de jest-e2e.setup.ts
-const ADMIN_ROLES_DUOC_UC = { 'duoc-uc': ['administrador-patrimonial'] };
+import {
+  ADMIN_ROLES_DUOC_UC,
+  crearAppE2e,
+  SERVICE_TOKEN,
+} from './support/e2e-app';
 
 // Contra el seed real de base-patrimonial/DOC-004-modelo-contrato.md: DUOC UC ya tiene un
 // contrato vigente cubriendo 'melipilla' (migracion 1755000000001_seed-dev-fixture.ts) — por eso
@@ -41,12 +41,7 @@ describe('DOC-012 §7 — escritura oficial de Contrato (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    app = await crearAppE2e();
   });
 
   afterEach(async () => {
