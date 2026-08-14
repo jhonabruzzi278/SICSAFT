@@ -20,3 +20,16 @@ export interface NuevaUbicacionInput {
   oficina?: string;
   dependencia?: string;
 }
+
+// RF-05 (cierra el gap: el requisito original pedia "ABM completo") — payload de
+// PATCH /ubicaciones/:id. Sin `sedeId`: mover una ubicacion a otra sede es un traslado, una
+// operacion distinta y mas grande (misma logica que dejo el traslado de Activo sin controller
+// HTTP en el Motor Patrimonial, DOC-008 — sin consumidor real, YAGNI). Todos los campos
+// opcionales, el schema exige al menos uno.
+export interface ActualizarUbicacionInput {
+  edificio?: string;
+  piso?: string;
+  areaId?: string;
+  oficina?: string;
+  dependencia?: string;
+}

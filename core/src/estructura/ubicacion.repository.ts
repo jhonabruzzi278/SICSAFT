@@ -1,8 +1,17 @@
 import { randomUUID } from 'node:crypto';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { Pool } from 'pg';
 import { PG_POOL } from '../database/database.constants';
-import type { NuevaUbicacionInput, Ubicacion } from './ubicacion.types';
+import type {
+  ActualizarUbicacionInput,
+  NuevaUbicacionInput,
+  Ubicacion,
+} from './ubicacion.types';
 
 const FOREIGN_KEY_VIOLATION = '23503';
 
@@ -62,6 +71,76 @@ export class UbicacionRepository {
       [id],
     );
     // Recien insertada con este mismo id — nunca undefined.
+    return result.rows[0] as Ubicacion;
+  }
+
+  // RF-05 (cierra el gap "ABM completo") — PATCH /ubicaciones/:id. Sin `sedeId` en `cambios`, la
+  // ubicacion no cambia de sede (ver ubicacion.types.ts). Cross-org: la ubicacion no tiene
+  // organizacionId propio, se deriva de su sede actual — mismo criterio "404 sin confirmar
+  // existencia en otra organizacion" que ActivoRepository.cambiarEstado.
+  async actualizar(
+    id: string,
+    organizacionId: string,
+    cambios: ActualizarUbicacionInput,
+  ): Promise<Ubicacion> {
+    const actual = await this.pool.query<Ubicacion>(
+      `${SELECT_UBICACION_SQL} WHERE id = $1`,
+      [id],
+    );
+    const ubicacion = actual.rows[0];
+    if (!ubicacion) {
+      throw new NotFoundException({ message: `No existe la ubicacion '${id}'` });
+    }
+
+    const sedeResult = await this.pool.query<{ organizacionId: string }>(
+      `SELECT organizacion_id AS "organizacionId" FROM sedes WHERE id = $1`,
+      [ubicacion.sedeId],
+    );
+    if (sedeResult.rows[0]?.organizacionId !== organizacionId) {
+      throw new NotFoundException({ message: `No existe la ubicacion '${id}'` });
+    }
+
+    if (cambios.areaId !== undefined) {
+      await this.verificarPertenece('areas', cambios.areaId, organizacionId, 'areaId');
+    }
+
+    const sets: string[] = [];
+    const valores: unknown[] = [];
+    if (cambios.edificio !== undefined) {
+      valores.push(cambios.edificio);
+      sets.push(`edificio = $${valores.length}`);
+    }
+    if (cambios.piso !== undefined) {
+      valores.push(cambios.piso);
+      sets.push(`piso = $${valores.length}`);
+    }
+    if (cambios.areaId !== undefined) {
+      valores.push(cambios.areaId);
+      sets.push(`area_id = $${valores.length}`);
+    }
+    if (cambios.oficina !== undefined) {
+      valores.push(cambios.oficina);
+      sets.push(`oficina = $${valores.length}`);
+    }
+    if (cambios.dependencia !== undefined) {
+      valores.push(cambios.dependencia);
+      sets.push(`dependencia = $${valores.length}`);
+    }
+
+    if (sets.length === 0) {
+      return ubicacion;
+    }
+
+    valores.push(id);
+    await this.pool.query(
+      `UPDATE ubicaciones SET ${sets.join(', ')} WHERE id = $${valores.length}`,
+      valores,
+    );
+
+    const result = await this.pool.query<Ubicacion>(
+      `${SELECT_UBICACION_SQL} WHERE id = $1`,
+      [id],
+    );
     return result.rows[0] as Ubicacion;
   }
 

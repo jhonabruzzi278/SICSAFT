@@ -13,13 +13,17 @@ import {
   altaAreaSchema,
   altaResponsableSchema,
   altaUbicacionSchema,
+  actualizarAreaSchema,
   actualizarEstadoResponsableSchema,
+  actualizarUbicacionSchema,
 } from './estructura.schemas';
 import type {
   AltaAreaBody,
   AltaResponsableBody,
   AltaUbicacionBody,
+  ActualizarAreaBody,
   ActualizarEstadoResponsableBody,
+  ActualizarUbicacionBody,
 } from './estructura.schemas';
 import type { Area } from './area.types';
 import type { Ubicacion } from './ubicacion.types';
@@ -41,11 +45,30 @@ export class EstructuraEscrituraController {
     return this.orquestadorService.procesarAltaArea(body);
   }
 
+  // RF-05 (cierra el gap "ABM completo") — pipe por parametro, no @UsePipes de metodo (mismo
+  // hallazgo que motivo el cuidado en AdministradorController.actualizarEstadoContrato).
+  @Patch('areas/:id')
+  actualizarArea(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(actualizarAreaSchema)) body: ActualizarAreaBody,
+  ): Promise<Area> {
+    return this.orquestadorService.procesarActualizarArea(id, body);
+  }
+
   @Post('ubicaciones')
   altaUbicacion(
     @Body(new ZodValidationPipe(altaUbicacionSchema)) body: AltaUbicacionBody,
   ): Promise<Ubicacion> {
     return this.orquestadorService.procesarAltaUbicacion(body);
+  }
+
+  @Patch('ubicaciones/:id')
+  actualizarUbicacion(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(actualizarUbicacionSchema))
+    body: ActualizarUbicacionBody,
+  ): Promise<Ubicacion> {
+    return this.orquestadorService.procesarActualizarUbicacion(id, body);
   }
 
   @Post('responsables')

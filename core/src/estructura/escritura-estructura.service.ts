@@ -2,8 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { AreaRepository } from './area.repository';
 import { UbicacionRepository } from './ubicacion.repository';
 import { ResponsableRepository } from './responsable.repository';
-import type { Area, NuevaAreaInput } from './area.types';
-import type { NuevaUbicacionInput, Ubicacion } from './ubicacion.types';
+import type { ActualizarAreaInput, Area, NuevaAreaInput } from './area.types';
+import type {
+  ActualizarUbicacionInput,
+  NuevaUbicacionInput,
+  Ubicacion,
+} from './ubicacion.types';
 import type {
   EstadoResponsable,
   NuevoResponsableInput,
@@ -29,8 +33,24 @@ export class EscrituraEstructuraService {
     return this.areaRepository.crear(input);
   }
 
+  actualizarArea(
+    id: string,
+    organizacionId: string,
+    cambios: ActualizarAreaInput,
+  ): Promise<Area> {
+    return this.areaRepository.actualizar(id, organizacionId, cambios);
+  }
+
   altaUbicacion(input: NuevaUbicacionInput): Promise<Ubicacion> {
     return this.ubicacionRepository.crear(input);
+  }
+
+  actualizarUbicacion(
+    id: string,
+    organizacionId: string,
+    cambios: ActualizarUbicacionInput,
+  ): Promise<Ubicacion> {
+    return this.ubicacionRepository.actualizar(id, organizacionId, cambios);
   }
 
   altaResponsable(input: NuevoResponsableInput): Promise<Responsable> {

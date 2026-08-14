@@ -43,10 +43,12 @@ function buildService() {
   const areaRepository = {
     crear: jest.fn(),
     findByOrganizacion: jest.fn(),
+    actualizar: jest.fn(),
   } as unknown as jest.Mocked<AreaRepository>;
   const ubicacionRepository = {
     crear: jest.fn(),
     findBySede: jest.fn(),
+    actualizar: jest.fn(),
   } as unknown as jest.Mocked<UbicacionRepository>;
   const responsableRepository = {
     crear: jest.fn(),
@@ -73,6 +75,22 @@ describe('EscrituraEstructuraService', () => {
     expect(areaRepository.crear).toHaveBeenCalledWith(input);
   });
 
+  it('actualizarArea delega en AreaRepository.actualizar', async () => {
+    const { service, areaRepository } = buildService();
+    const actualizada = { ...AREA, nombre: 'Biblioteca Central' };
+    areaRepository.actualizar.mockResolvedValue(actualizada);
+
+    const cambios = { nombre: 'Biblioteca Central' };
+    await expect(
+      service.actualizarArea('area-1', 'duoc-uc', cambios),
+    ).resolves.toBe(actualizada);
+    expect(areaRepository.actualizar).toHaveBeenCalledWith(
+      'area-1',
+      'duoc-uc',
+      cambios,
+    );
+  });
+
   it('altaUbicacion delega en UbicacionRepository.crear', async () => {
     const { service, ubicacionRepository } = buildService();
     ubicacionRepository.crear.mockResolvedValue(UBICACION);
@@ -80,6 +98,22 @@ describe('EscrituraEstructuraService', () => {
     const input = { organizacionId: 'duoc-uc', sedeId: 'melipilla' };
     await expect(service.altaUbicacion(input)).resolves.toBe(UBICACION);
     expect(ubicacionRepository.crear).toHaveBeenCalledWith(input);
+  });
+
+  it('actualizarUbicacion delega en UbicacionRepository.actualizar', async () => {
+    const { service, ubicacionRepository } = buildService();
+    const actualizada = { ...UBICACION, edificio: 'Torre A' };
+    ubicacionRepository.actualizar.mockResolvedValue(actualizada);
+
+    const cambios = { edificio: 'Torre A' };
+    await expect(
+      service.actualizarUbicacion('ubicacion-1', 'duoc-uc', cambios),
+    ).resolves.toBe(actualizada);
+    expect(ubicacionRepository.actualizar).toHaveBeenCalledWith(
+      'ubicacion-1',
+      'duoc-uc',
+      cambios,
+    );
   });
 
   it('altaResponsable delega en ResponsableRepository.crear', async () => {

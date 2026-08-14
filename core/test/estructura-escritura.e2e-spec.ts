@@ -119,6 +119,120 @@ describe('RF-05 — escritura oficial de Area/Ubicacion/Responsable (e2e)', () =
     });
   });
 
+  describe('PATCH /areas/:id (cierra RF-05)', () => {
+    async function crearArea(): Promise<string> {
+      const res = await request(app.getHttpServer())
+        .post('/areas')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(buildAltaAreaBody())
+        .expect(201);
+      return (res.body as Area).id;
+    }
+
+    it('actualiza nombre/dependencia/centroCosto contra Postgres real', async () => {
+      const areaId = await crearArea();
+
+      const res = await request(app.getHttpServer())
+        .patch(`/areas/${areaId}`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(
+          buildAltaAreaBody({
+            nombre: 'Biblioteca Central',
+            dependencia: 'Rectoria',
+            centroCosto: 'CC-100',
+          }),
+        )
+        .expect(200);
+
+      const area = res.body as Area;
+      expect(area.nombre).toBe('Biblioteca Central');
+      expect(area.dependencia).toBe('Rectoria');
+      expect(area.centroCosto).toBe('CC-100');
+    });
+
+    it('asigna responsableId y ubicacionPrincipalId (cierra el ciclo que DOC-005 §2 dejaba abierto)', async () => {
+      const areaId = await crearArea();
+      const resResponsable = await request(app.getHttpServer())
+        .post('/responsables')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(buildAltaResponsableBody())
+        .expect(201);
+      const resUbicacion = await request(app.getHttpServer())
+        .post('/ubicaciones')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(buildAltaUbicacionBody())
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .patch(`/areas/${areaId}`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(
+          buildAltaAreaBody({
+            responsableId: (resResponsable.body as Responsable).id,
+            ubicacionPrincipalId: (resUbicacion.body as Ubicacion).id,
+          }),
+        )
+        .expect(200);
+
+      const area = res.body as Area;
+      expect(area.responsableId).toBe((resResponsable.body as Responsable).id);
+      expect(area.ubicacionPrincipalId).toBe(
+        (resUbicacion.body as Ubicacion).id,
+      );
+    });
+
+    it('devuelve 404 si el area no existe', async () => {
+      await request(app.getHttpServer())
+        .patch('/areas/no-existe')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(buildAltaAreaBody({ nombre: 'X' }))
+        .expect(404);
+    });
+
+    it('devuelve 404 (no 403) si el operador tiene el rol pero en otra organizacion', async () => {
+      const areaId = await crearArea();
+
+      await request(app.getHttpServer())
+        .patch(`/areas/${areaId}`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(
+          buildAltaAreaBody({
+            organizacionId: 'otra-organizacion',
+            rolesPorOrganizacion: {
+              'otra-organizacion': ['administrador-patrimonial'],
+            },
+            nombre: 'X',
+          }),
+        )
+        .expect(404);
+    });
+
+    it('devuelve 400 si responsableId es de otra organizacion', async () => {
+      const areaId = await crearArea();
+
+      await request(app.getHttpServer())
+        .patch(`/areas/${areaId}`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(buildAltaAreaBody({ responsableId: 'no-existe' }))
+        .expect(400);
+    });
+
+    it('devuelve 400 si el body no trae ningun campo a actualizar', async () => {
+      const areaId = await crearArea();
+
+      await request(app.getHttpServer())
+        .patch(`/areas/${areaId}`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send({
+          correlationId: `corr-e2e-${randomUUID()}`,
+          operadorId: 'op-admin-e2e',
+          organizacionId: 'duoc-uc',
+          rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
+        })
+        .expect(400);
+    });
+  });
+
   describe('POST /ubicaciones + GET /ubicaciones', () => {
     it('crea la ubicacion contra Postgres real y aparece en el listado por sede', async () => {
       const res = await request(app.getHttpServer())
@@ -165,6 +279,93 @@ describe('RF-05 — escritura oficial de Area/Ubicacion/Responsable (e2e)', () =
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
         .send(buildAltaUbicacionBody({ rolesPorOrganizacion: {} }))
         .expect(403);
+    });
+  });
+
+  describe('PATCH /ubicaciones/:id (cierra RF-05)', () => {
+    async function crearUbicacion(): Promise<string> {
+      const res = await request(app.getHttpServer())
+        .post('/ubicaciones')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(buildAltaUbicacionBody())
+        .expect(201);
+      return (res.body as Ubicacion).id;
+    }
+
+    it('actualiza edificio/piso/oficina/dependencia/areaId contra Postgres real', async () => {
+      const ubicacionId = await crearUbicacion();
+
+      const res = await request(app.getHttpServer())
+        .patch(`/ubicaciones/${ubicacionId}`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(
+          buildAltaUbicacionBody({
+            edificio: 'Torre A',
+            piso: '2',
+            oficina: '201',
+            dependencia: 'Biblioteca',
+            areaId: 'area-biblioteca',
+          }),
+        )
+        .expect(200);
+
+      const ubicacion = res.body as Ubicacion;
+      expect(ubicacion.edificio).toBe('Torre A');
+      expect(ubicacion.piso).toBe('2');
+      expect(ubicacion.oficina).toBe('201');
+      expect(ubicacion.dependencia).toBe('Biblioteca');
+      expect(ubicacion.areaId).toBe('area-biblioteca');
+    });
+
+    it('devuelve 404 si la ubicacion no existe', async () => {
+      await request(app.getHttpServer())
+        .patch('/ubicaciones/no-existe')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(buildAltaUbicacionBody({ edificio: 'X' }))
+        .expect(404);
+    });
+
+    it('devuelve 404 (no 403) si el operador tiene el rol pero en otra organizacion', async () => {
+      const ubicacionId = await crearUbicacion();
+
+      await request(app.getHttpServer())
+        .patch(`/ubicaciones/${ubicacionId}`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(
+          buildAltaUbicacionBody({
+            organizacionId: 'otra-organizacion',
+            rolesPorOrganizacion: {
+              'otra-organizacion': ['administrador-patrimonial'],
+            },
+            edificio: 'X',
+          }),
+        )
+        .expect(404);
+    });
+
+    it('devuelve 400 si areaId es de otra organizacion', async () => {
+      const ubicacionId = await crearUbicacion();
+
+      await request(app.getHttpServer())
+        .patch(`/ubicaciones/${ubicacionId}`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(buildAltaUbicacionBody({ areaId: 'no-existe' }))
+        .expect(400);
+    });
+
+    it('devuelve 400 si el body no trae ningun campo a actualizar', async () => {
+      const ubicacionId = await crearUbicacion();
+
+      await request(app.getHttpServer())
+        .patch(`/ubicaciones/${ubicacionId}`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send({
+          correlationId: `corr-e2e-${randomUUID()}`,
+          operadorId: 'op-admin-e2e',
+          organizacionId: 'duoc-uc',
+          rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
+        })
+        .expect(400);
     });
   });
 

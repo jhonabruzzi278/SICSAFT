@@ -12,6 +12,29 @@ export const altaAreaSchema = escrituraOficialSchema.extend({
 });
 export type AltaAreaBody = z.infer<typeof altaAreaSchema>;
 
+// RF-05 (cierra el gap "ABM completo") — PATCH /areas/:id, todos los campos opcionales pero
+// exige al menos uno via refine (un PATCH sin campos a cambiar no tiene sentido).
+export const actualizarAreaSchema = escrituraOficialSchema
+  .extend({
+    codigo: z.string().min(1).optional(),
+    nombre: z.string().min(1).optional(),
+    dependencia: z.string().min(1).optional(),
+    centroCosto: z.string().min(1).optional(),
+    responsableId: z.string().min(1).optional(),
+    ubicacionPrincipalId: z.string().min(1).optional(),
+  })
+  .refine(
+    (data) =>
+      data.codigo !== undefined ||
+      data.nombre !== undefined ||
+      data.dependencia !== undefined ||
+      data.centroCosto !== undefined ||
+      data.responsableId !== undefined ||
+      data.ubicacionPrincipalId !== undefined,
+    { message: 'Debe incluir al menos un campo a actualizar' },
+  );
+export type ActualizarAreaBody = z.infer<typeof actualizarAreaSchema>;
+
 export const altaUbicacionSchema = escrituraOficialSchema.extend({
   sedeId: z.string().min(1),
   edificio: z.string().min(1).optional(),
@@ -21,6 +44,27 @@ export const altaUbicacionSchema = escrituraOficialSchema.extend({
   dependencia: z.string().min(1).optional(),
 });
 export type AltaUbicacionBody = z.infer<typeof altaUbicacionSchema>;
+
+// RF-05 (cierra el gap "ABM completo") — PATCH /ubicaciones/:id. Sin `sedeId` (ver
+// ubicacion.types.ts, ActualizarUbicacionInput) — mover de sede es un traslado, fuera de alcance.
+export const actualizarUbicacionSchema = escrituraOficialSchema
+  .extend({
+    edificio: z.string().min(1).optional(),
+    piso: z.string().min(1).optional(),
+    areaId: z.string().min(1).optional(),
+    oficina: z.string().min(1).optional(),
+    dependencia: z.string().min(1).optional(),
+  })
+  .refine(
+    (data) =>
+      data.edificio !== undefined ||
+      data.piso !== undefined ||
+      data.areaId !== undefined ||
+      data.oficina !== undefined ||
+      data.dependencia !== undefined,
+    { message: 'Debe incluir al menos un campo a actualizar' },
+  );
+export type ActualizarUbicacionBody = z.infer<typeof actualizarUbicacionSchema>;
 
 export const altaResponsableSchema = escrituraOficialSchema.extend({
   identificacion: z.string().min(1),

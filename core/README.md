@@ -115,10 +115,18 @@ no tienen columna `organizacionId` propia (`sede_id`/`area_id` respectivamente, 
 escritura cruza esas referencias contra `organizacionId` con una consulta previa
 (`verificarPertenece`/`verificarAreaPerteneceOrganizacion`) antes de insertar, defensa en
 profundidad mismo criterio que `ActivoRepository` con activos de otra organización (una FK de
-Postgres por sí sola no distingue una sede/área real pero de otra organización). Sin endpoint para
-editar Área/Ubicación ni para asignar `responsable_id`/`ubicacion_principal_id` a un Área —
-DOC-005 §2 documenta ese ciclo como "sin ciclo estricto de creación", deliberadamente fuera de
-alcance de este incremento.
+Postgres por sí sola no distingue una sede/área real pero de otra organización).
+
+**Edición de Área/Ubicación (2026-08-14, cierra RF-05)**: `AreaRepository.actualizar` y
+`UbicacionRepository.actualizar` (`PATCH /areas/:id`, `PATCH /ubicaciones/:id`) — mismo criterio
+que `ActivoRepository.cambiarEstado`: si el recurso no existe o es de otra organización, 404 (no
+403 ni 400), sin confirmar si el id existe en otra organización. La edición de Área incluye
+`responsableId`/`ubicacionPrincipalId` (validados cross-organización antes de escribir, igual que
+las referencias del alta) — cierra el ciclo que DOC-005 §2 documentaba como "sin ciclo estricto de
+creación": esa nota explicaba por qué el alta no exige esos dos campos, no por qué la asignación
+posterior no se podía hacer nunca. Sin `sedeId` editable en Ubicación — mover de sede es un
+traslado, operación distinta y más grande, mismo motivo por el que el traslado de Activo sigue sin
+controller HTTP en el Motor Patrimonial (DOC-008, YAGNI, sin consumidor real).
 
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —

@@ -25,6 +25,8 @@ import type {
 import type { Contrato } from '../entitlements/contrato.types';
 import type {
   AltaAreaBody,
+  ActualizarAreaBody,
+  ActualizarUbicacionBody,
   AltaResponsableBody,
   AltaUbicacionBody,
   ActualizarEstadoResponsableBody,
@@ -210,6 +212,26 @@ export class OrquestadorService {
     );
   }
 
+  // RF-05 (cierra el gap "ABM completo") — PATCH /areas/:id.
+  procesarActualizarArea(
+    areaId: string,
+    payload: ActualizarAreaBody,
+  ): Promise<Area> {
+    return this.ejecutarOperacionOficial(
+      `PATCH /areas/${areaId}`,
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraEstructuraService.actualizarArea(
+          areaId,
+          payload.organizacionId,
+          payload,
+        ),
+      (area) => area.id,
+    );
+  }
+
   // RF-05 — POST /ubicaciones (alta). Mismo motivo que procesarAltaArea (sin `estado`).
   procesarAltaUbicacion(payload: AltaUbicacionBody): Promise<Ubicacion> {
     return this.ejecutarOperacionOficial(
@@ -218,6 +240,26 @@ export class OrquestadorService {
       payload.organizacionId,
       payload.rolesPorOrganizacion,
       () => this.escrituraEstructuraService.altaUbicacion(payload),
+      (ubicacion) => ubicacion.id,
+    );
+  }
+
+  // RF-05 (cierra el gap "ABM completo") — PATCH /ubicaciones/:id.
+  procesarActualizarUbicacion(
+    ubicacionId: string,
+    payload: ActualizarUbicacionBody,
+  ): Promise<Ubicacion> {
+    return this.ejecutarOperacionOficial(
+      `PATCH /ubicaciones/${ubicacionId}`,
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraEstructuraService.actualizarUbicacion(
+          ubicacionId,
+          payload.organizacionId,
+          payload,
+        ),
       (ubicacion) => ubicacion.id,
     );
   }

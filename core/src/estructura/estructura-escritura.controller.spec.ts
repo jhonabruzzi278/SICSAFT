@@ -10,7 +10,9 @@ import type {
   AltaAreaBody,
   AltaResponsableBody,
   AltaUbicacionBody,
+  ActualizarAreaBody,
   ActualizarEstadoResponsableBody,
+  ActualizarUbicacionBody,
 } from './estructura.schemas';
 
 const ROLES = { 'duoc-uc': ['administrador-patrimonial'] };
@@ -59,7 +61,9 @@ describe('EstructuraEscrituraController', () => {
           provide: OrquestadorService,
           useValue: {
             procesarAltaArea: jest.fn(),
+            procesarActualizarArea: jest.fn(),
             procesarAltaUbicacion: jest.fn(),
+            procesarActualizarUbicacion: jest.fn(),
             procesarAltaResponsable: jest.fn(),
             procesarActualizarEstadoResponsable: jest.fn(),
           },
@@ -89,6 +93,26 @@ describe('EstructuraEscrituraController', () => {
     expect(orquestadorService.procesarAltaArea).toHaveBeenCalledWith(body);
   });
 
+  it('actualizarArea delega en OrquestadorService.procesarActualizarArea', async () => {
+    const actualizada = { ...AREA, nombre: 'Biblioteca Central' };
+    orquestadorService.procesarActualizarArea.mockResolvedValue(actualizada);
+    const body: ActualizarAreaBody = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: ROLES,
+      nombre: 'Biblioteca Central',
+    };
+
+    await expect(controller.actualizarArea('area-1', body)).resolves.toBe(
+      actualizada,
+    );
+    expect(orquestadorService.procesarActualizarArea).toHaveBeenCalledWith(
+      'area-1',
+      body,
+    );
+  });
+
   it('altaUbicacion delega en OrquestadorService.procesarAltaUbicacion', async () => {
     orquestadorService.procesarAltaUbicacion.mockResolvedValue(UBICACION);
     const body: AltaUbicacionBody = {
@@ -101,6 +125,27 @@ describe('EstructuraEscrituraController', () => {
 
     await expect(controller.altaUbicacion(body)).resolves.toBe(UBICACION);
     expect(orquestadorService.procesarAltaUbicacion).toHaveBeenCalledWith(body);
+  });
+
+  it('actualizarUbicacion delega en OrquestadorService.procesarActualizarUbicacion', async () => {
+    const actualizada = { ...UBICACION, edificio: 'Torre A' };
+    orquestadorService.procesarActualizarUbicacion.mockResolvedValue(
+      actualizada,
+    );
+    const body: ActualizarUbicacionBody = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: ROLES,
+      edificio: 'Torre A',
+    };
+
+    await expect(
+      controller.actualizarUbicacion('ubicacion-1', body),
+    ).resolves.toBe(actualizada);
+    expect(
+      orquestadorService.procesarActualizarUbicacion,
+    ).toHaveBeenCalledWith('ubicacion-1', body);
   });
 
   it('altaResponsable delega en OrquestadorService.procesarAltaResponsable', async () => {

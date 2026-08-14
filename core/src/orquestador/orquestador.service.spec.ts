@@ -17,7 +17,9 @@ import type {
   AltaAreaBody,
   AltaResponsableBody,
   AltaUbicacionBody,
+  ActualizarAreaBody,
   ActualizarEstadoResponsableBody,
+  ActualizarUbicacionBody,
 } from '../estructura/estructura.schemas';
 import type { Area } from '../estructura/area.types';
 import type { Ubicacion } from '../estructura/ubicacion.types';
@@ -94,7 +96,9 @@ function buildService() {
   } as unknown as jest.Mocked<EscrituraContratoService>;
   const escrituraEstructuraService = {
     altaArea: jest.fn(),
+    actualizarArea: jest.fn(),
     altaUbicacion: jest.fn(),
+    actualizarUbicacion: jest.fn(),
     altaResponsable: jest.fn(),
     actualizarEstadoResponsable: jest.fn(),
   } as unknown as jest.Mocked<EscrituraEstructuraService>;
@@ -638,6 +642,56 @@ describe('OrquestadorService', () => {
     });
   });
 
+  describe('procesarActualizarArea', () => {
+    const payload: ActualizarAreaBody = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
+      nombre: 'Biblioteca Central',
+    };
+
+    it('actualiza el area, audita el resultado (id) y la devuelve', async () => {
+      const { service, escrituraEstructuraService, auditoriaRepository } =
+        buildService();
+      const actualizada = { ...AREA, nombre: 'Biblioteca Central' };
+      escrituraEstructuraService.actualizarArea.mockResolvedValue(actualizada);
+
+      await expect(
+        service.procesarActualizarArea('area-1', payload),
+      ).resolves.toBe(actualizada);
+      expect(escrituraEstructuraService.actualizarArea).toHaveBeenCalledWith(
+        'area-1',
+        'duoc-uc',
+        payload,
+      );
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'PATCH /areas/area-1',
+        resultado: 'area-1',
+      });
+    });
+
+    it('rechaza con 403 y audita sin llamar al servicio si falta el rol', async () => {
+      const { service, escrituraEstructuraService, auditoriaRepository } =
+        buildService();
+
+      await expect(
+        service.procesarActualizarArea('area-1', {
+          ...payload,
+          rolesPorOrganizacion: {},
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(escrituraEstructuraService.actualizarArea).not.toHaveBeenCalled();
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'PATCH /areas/area-1',
+        resultado: 'rechazado:403',
+      });
+    });
+  });
+
   describe('procesarAltaUbicacion', () => {
     const payload: AltaUbicacionBody = {
       correlationId: 'corr-1',
@@ -677,6 +731,58 @@ describe('OrquestadorService', () => {
       expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
         usuario: 'op-admin',
         operacion: 'POST /ubicaciones',
+        resultado: 'rechazado:403',
+      });
+    });
+  });
+
+  describe('procesarActualizarUbicacion', () => {
+    const payload: ActualizarUbicacionBody = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
+      edificio: 'Torre A',
+    };
+
+    it('actualiza la ubicacion, audita el resultado (id) y la devuelve', async () => {
+      const { service, escrituraEstructuraService, auditoriaRepository } =
+        buildService();
+      const actualizada = { ...UBICACION, edificio: 'Torre A' };
+      escrituraEstructuraService.actualizarUbicacion.mockResolvedValue(
+        actualizada,
+      );
+
+      await expect(
+        service.procesarActualizarUbicacion('ubicacion-1', payload),
+      ).resolves.toBe(actualizada);
+      expect(
+        escrituraEstructuraService.actualizarUbicacion,
+      ).toHaveBeenCalledWith('ubicacion-1', 'duoc-uc', payload);
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'PATCH /ubicaciones/ubicacion-1',
+        resultado: 'ubicacion-1',
+      });
+    });
+
+    it('rechaza con 403 y audita sin llamar al servicio si falta el rol', async () => {
+      const { service, escrituraEstructuraService, auditoriaRepository } =
+        buildService();
+
+      await expect(
+        service.procesarActualizarUbicacion('ubicacion-1', {
+          ...payload,
+          rolesPorOrganizacion: {},
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(
+        escrituraEstructuraService.actualizarUbicacion,
+      ).not.toHaveBeenCalled();
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'PATCH /ubicaciones/ubicacion-1',
         resultado: 'rechazado:403',
       });
     });
