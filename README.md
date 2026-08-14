@@ -17,6 +17,9 @@ Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
   Usuarios / Organización
 ```
 
+Diagrama completo con los módulos internos de cada nivel:
+[ARQUITECTURA-WAF.md § 1.1](ARQUITECTURA-WAF.md#11-diagrama-maestro-de-arquitectura-funcional).
+
 ## Sistemas
 
 | Código | Carpeta | Sistema | Estado |
