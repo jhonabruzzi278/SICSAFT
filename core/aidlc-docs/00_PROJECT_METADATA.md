@@ -39,6 +39,19 @@ adivinar decisiones sobre la marcha. Este directorio es ese detalle, con la mism
 - Motor de Auditoría: [`design-artifacts/DOC-011-motor-auditoria.md`](design-artifacts/DOC-011-motor-auditoria.md)
 - Estrategia de testing: [`testing/TEST_STRATEGY.md`](testing/TEST_STRATEGY.md)
 
+## Nota — Fase 4 agregó código a este mismo `core/`, con diseño en otro lado
+
+Este directorio documenta específicamente la Fase 2 (Motor Patrimonial MVP, lectura). La Fase 4
+(Administrador Patrimonial, escritura oficial) agregó código real a los mismos módulos
+(`src/patrimonial/`, `src/orquestador/`) — `POST /activos`, `POST /activos/:id/baja`,
+`POST /activos/:id/reincorporacion`, `PATCH /activos/:id/responsable` — pero su diseño **no**
+vive acá: al ser una capacidad transversal de seguridad/permisos (Usuario → Rol → Organización),
+el DOC-XXX correspondiente (DOC-012) se documentó en
+[`seguridad/DOC-012-administrador-patrimonial.md`](../../seguridad/DOC-012-administrador-patrimonial.md),
+no en `core/aidlc-docs/`, siguiendo el mismo criterio que ya usa `base-patrimonial/DOC-004`/
+`DOC-005` (el dominio del documento determina dónde vive, no dónde termina el código). Ver
+`core/README.md` § Estado para el resumen de qué de DOC-012 ya está implementado acá.
+
 ## Notas del análisis
 
 - Estos DOC-XXX ya estaban *citados* como pendientes en `core/README.md` § "Documentos

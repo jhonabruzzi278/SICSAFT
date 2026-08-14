@@ -45,9 +45,23 @@ logging estructurado que lo use (WAF §2, pendiente).
 
 Verificado igual que el resto del sistema: unit (100% stmts/lines/funcs, 90%+ branches), e2e
 nuevo (`test/inventarios.e2e-spec.ts`) contra Postgres real, `docker build`/`docker run` real con
-`GET /catalogo` y `POST /inventarios` respondiendo contra la base migrada. Alta/baja/
-reincorporación/cambio de responsable, Motor de Alertas y Motor de Reportes quedan fuera a
-propósito — Fase 4 y sin consumidor real, respectivamente (ver DOC-008).
+`GET /catalogo` y `POST /inventarios` respondiendo contra la base migrada. Motor de Alertas y
+Motor de Reportes quedan fuera a propósito — sin consumidor real (ver DOC-008).
+
+**Fase 4 (Administrador Patrimonial) — items 1 y 3 ya implementados**: diseño completo en
+[`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md).
+El Motor Patrimonial ya cubre el resto del ciclo de vida de `Activo` que DOC-008 dejaba para esta
+fase: `POST /activos` (alta), `POST /activos/:id/baja`, `POST /activos/:id/reincorporacion`,
+`PATCH /activos/:id/responsable` (`src/patrimonial/activo-escritura.controller.ts` +
+`escritura-activo.service.ts`), todos detrás de `ServiceTokenGuard` con la autorización de rol
+(`administrador-patrimonial`, verificada **por organización** — no solo "¿tiene el rol en algún
+lado?") resuelta dentro de `OrquestadorService` para que un 403 por falta de rol también quede
+auditado. `ActivoRepository` cruza la organización del payload contra la organización real del
+activo objetivo antes de escribir (defensa en profundidad, 404 si no coincide) — corrige un
+hallazgo real de revisión de seguridad encontrado durante este mismo incremento. Verificado con
+unit + e2e reales contra Postgres (`test/activo-escritura.e2e-spec.ts`, incluye el caso
+cross-organización). Pendiente de Fase 4: importación masiva de base contable y escritura de
+`Contrato` (items 4 y 5 de DOC-012).
 
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
@@ -93,8 +107,9 @@ uno necesite escalar de forma independiente.
 - **Motor Patrimonial**: ciclo de vida completo del activo — alta, modificación, traslado, cambio
   de responsable/ubicación/estado, inventario, baja, reincorporación, consulta. Entradas: QR,
   WEB, RFID, ERP, Administrador. Salidas: Base Patrimonial, Historial, Eventos, Indicadores,
-  Alertas. (MVP: consulta, inventario, cambio de ubicación/estado, traslado — alta/baja/
-  reincorporación/cambio de responsable quedan para después del MVP).
+  Alertas. Consulta/inventario ya del MVP (Fase 2); alta/baja/reincorporación/cambio de
+  responsable ya implementados (Fase 4, DOC-012 — ver "Estado"); cambio de ubicación/traslado
+  siguen sin endpoint HTTP propio, sin consumidor real todavía (DOC-008).
 - **Motor de Reglas**: valida invariantes antes de confirmar cualquier transacción — un activo no
   puede tener dos responsables vigentes, una etiqueta QR solo puede estar en un activo, un RFID
   no se repite, un traslado requiere autorización según perfil, un inventario no cierra con
@@ -155,13 +170,19 @@ Eventos/Auditoría). [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) — DOC-
 DOC-007 (Orquestador), DOC-008 (Motor Patrimonial), DOC-009 (Motor de Reglas), DOC-010 (Motor de
 Eventos), DOC-011 (Motor de Auditoría), todos entregados e implementados. Pendiente: DOC-003
 Modelo de dominio SICSAFT completo.
+[`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
+— diseño del rol Administrador Patrimonial (Fase 4), items 1 y 3 ya implementados en este mismo
+`core/` (`src/patrimonial/activo-escritura.controller.ts`, `src/orquestador/orquestador.service.ts`).
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) para el marco de escalabilidad/resiliencia
 aplicable a este sistema.
 
 ## Próximo paso sugerido
-`GET /entitlements`, `GET /catalogo` y `POST /inventarios` ya están hechos y probados de punta a
-punta. El siguiente incremento con valor real es que `app-qr-sicsaft/` reemplace su stub
-(`LocalQrConnectorClient`) por un cliente real que hable con CIS→CORE (TASK-006/007,
-`ROADMAP.md` Fase 3) — recién ahí este trabajo tiene un consumidor de verdad. Alternativa sin
-código: rotación/gestión del `CORE_SERVICE_TOKEN` vía un secret manager en vez de una env var
-plana cuando se pase a producción (ver `../devops/README.md`). Tarjeta Trello: `CORE-ADR-001`.
+`GET /entitlements`, `GET /catalogo`, `POST /inventarios` (Fase 2/3) y los 4 endpoints de
+escritura oficial de `Activo` (Fase 4, DOC-012 items 1/3) ya están hechos y probados de punta a
+punta — TASK-007 de APP QR también se verificó real (`ROADMAP.md` Fase 3). El siguiente
+incremento con valor real dentro de esta misma fase es DOC-012 item 4 (importación masiva de
+base contable, precursor manual de CON-CONTABILIDAD) o item 5 (escritura de `Contrato`, hoy solo
+se lee) — cualquiera de los dos requiere diseño mínimo adicional (formato exacto de fila de
+importación, transiciones válidas de `Contrato`) antes de código. Alternativa sin código:
+rotación/gestión del `CORE_SERVICE_TOKEN` vía un secret manager en vez de una env var plana
+cuando se pase a producción (ver `../devops/README.md`). Tarjeta Trello: `CORE-ADR-001`.

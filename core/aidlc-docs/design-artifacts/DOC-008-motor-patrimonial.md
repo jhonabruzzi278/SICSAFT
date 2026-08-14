@@ -1,5 +1,12 @@
 # DOC-008: Motor Patrimonial (alcance MVP — Fase 2)
 
+> **Actualización (Fase 4)**: alta/baja/reincorporación/cambio de responsable, dejadas fuera de
+> esta fase a propósito (ver abajo), **ya están implementadas** —
+> [`seguridad/DOC-012-administrador-patrimonial.md`](../../../seguridad/DOC-012-administrador-patrimonial.md)
+> §5, `src/patrimonial/activo-escritura.controller.ts`. Esta sección queda como registro de la
+> decisión original de alcance, no como estado actual — ver DOC-012 para el diseño real de esas
+> 4 operaciones.
+
 ## Alcance de esta fase
 
 Consulta, catálogo, verificación por inventario, cambio de ubicación/estado, traslado — **no**
