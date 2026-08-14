@@ -33,7 +33,11 @@ jobs:
         run: npm run build
 
       - name: Instalar Chromium (Playwright)
-        run: npx playwright install --with-deps chromium
+        # Binario local (node_modules/.bin), no `npx playwright` — npx puede resolver y ejecutar
+        # un paquete remoto si no lo encuentra local (S6505); esta forma usa exactamente la
+        # version de @playwright/test ya fijada en package-lock.json (S8543), instalada por
+        # `npm ci` en el paso anterior.
+        run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Tests e2e
         run: npm run test:e2e
