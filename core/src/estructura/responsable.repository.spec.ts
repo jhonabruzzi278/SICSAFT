@@ -21,14 +21,22 @@ const RESPONSABLE_ROW: Responsable = {
 
 describe('ResponsableRepository', () => {
   describe('findByArea', () => {
-    it('devuelve las filas del area', async () => {
+    it('devuelve las filas del area paginadas y el total real (RNF-01, cierra el gap)', async () => {
       const pool = {
-        query: jest.fn().mockResolvedValue({ rows: [RESPONSABLE_ROW] }),
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [{ total: '1' }] })
+          .mockResolvedValueOnce({ rows: [RESPONSABLE_ROW] }),
       } as unknown as jest.Mocked<Pool>;
       const repository = new ResponsableRepository(pool);
 
-      await expect(repository.findByArea('area-1')).resolves.toEqual([
-        RESPONSABLE_ROW,
+      const pagina = await repository.findByArea('area-1', 20, 0);
+
+      expect(pagina).toEqual({ responsables: [RESPONSABLE_ROW], total: 1 });
+      expect(pool.query).toHaveBeenNthCalledWith(2, expect.any(String), [
+        'area-1',
+        20,
+        0,
       ]);
     });
   });

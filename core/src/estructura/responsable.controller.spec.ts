@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ResponsableController } from './responsable.controller';
 import { ResponsableRepository } from './responsable.repository';
 import { ServiceTokenGuard } from '../common/auth/service-token.guard';
-import type { Responsable } from './responsable.types';
+import type { Responsable, ResponsablesPagina } from './responsable.types';
 
 const RESPONSABLES: Responsable[] = [
   {
@@ -17,6 +17,7 @@ const RESPONSABLES: Responsable[] = [
     estado: 'activo',
   },
 ];
+const PAGINA: ResponsablesPagina = { responsables: RESPONSABLES, total: 1 };
 
 describe('ResponsableController', () => {
   let controller: ResponsableController;
@@ -37,12 +38,16 @@ describe('ResponsableController', () => {
     responsableRepository = module.get(ResponsableRepository);
   });
 
-  it('getResponsables delega en ResponsableRepository.findByArea', async () => {
-    responsableRepository.findByArea.mockResolvedValue(RESPONSABLES);
+  it('getResponsables delega en ResponsableRepository.findByArea con limit/offset', async () => {
+    responsableRepository.findByArea.mockResolvedValue(PAGINA);
 
     await expect(
-      controller.getResponsables({ areaId: 'area-1' }),
-    ).resolves.toBe(RESPONSABLES);
-    expect(responsableRepository.findByArea).toHaveBeenCalledWith('area-1');
+      controller.getResponsables({ areaId: 'area-1', limit: 20, offset: 0 }),
+    ).resolves.toBe(PAGINA);
+    expect(responsableRepository.findByArea).toHaveBeenCalledWith(
+      'area-1',
+      20,
+      0,
+    );
   });
 });

@@ -117,6 +117,20 @@ escritura cruza esas referencias contra `organizacionId` con una consulta previa
 profundidad mismo criterio que `ActivoRepository` con activos de otra organización (una FK de
 Postgres por sí sola no distingue una sede/área real pero de otra organización).
 
+**Paginación de `GET /contratos`, `/auditoria`, `/areas`, `/ubicaciones`, `/responsables`
+(2026-08-14, cierra RNF-01)**: los 5 endpoints de listado agregados en Fase 5 devolvían un array
+plano sin límite (RNF-01 pedía que ningún listado devolviera un dataset sin paginar, `GET
+/catalogo` ya lo hacía desde Fase 2). Ahora todos devuelven `{ <entidad>, total }` con
+`limit`/`offset` (`z.coerce.number()`, default 20, tope 100), mismo contrato que `GET /catalogo`.
+`AreaRepository`/`UbicacionRepository`/`ResponsableRepository`/`AuditoriaRepository` paginan en SQL
+(`COUNT(*)` + `LIMIT`/`OFFSET`). `ContratoRepository.findPagina` es distinto a propósito: reusa
+`findAll()` internamente y pagina en memoria — paginar en SQL ahí hubiese roto
+`assertInvarianteSedeUnContratoVigente` (DOC-004 §4), que valida "un solo contrato vigente por
+sede" contra el dataset **completo**, no contra una página. Aceptable mientras el volumen se
+mantenga bajo (mismo criterio ya usado para diferir el filtro por organización de `GET
+/auditoria`); si crece, hay que separar la invariante de la lectura paginada. Verificado con unit +
+e2e reales contra Postgres.
+
 **Edición de Área/Ubicación (2026-08-14, cierra RF-05)**: `AreaRepository.actualizar` y
 `UbicacionRepository.actualizar` (`PATCH /areas/:id`, `PATCH /ubicaciones/:id`) — mismo criterio
 que `ActivoRepository.cambiarEstado`: si el recurso no existe o es de otra organización, 404 (no

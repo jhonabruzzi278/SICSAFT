@@ -19,3 +19,11 @@ export const actualizarContratoSchema = escrituraOficialSchema.extend({
   estado: z.enum(['vigente', 'suspendido', 'vencido', 'cancelado']),
 });
 export type ActualizarContratoBody = z.infer<typeof actualizarContratoSchema>;
+
+// RNF-01 (cierra el gap) — mismos defaults que catalogoQuerySchema (DOC-006 §2): 20 por pagina,
+// tope 100.
+export const contratosQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  offset: z.coerce.number().int().nonnegative().default(0),
+});
+export type ContratosQuery = z.infer<typeof contratosQuerySchema>;

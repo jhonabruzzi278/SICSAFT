@@ -96,6 +96,34 @@ describe('ContratoRepository', () => {
     await expect(repository.findAll()).rejects.toThrow(/sede-1/);
   });
 
+  describe('findPagina', () => {
+    it('pagina en memoria (RNF-01, cierra el gap) y devuelve el total real', async () => {
+      const filaBase = {
+        organizacionId: 'org-x',
+        organizacionNombre: 'Org X',
+        vigenciaDesde: new Date('2026-01-01T00:00:00.000Z'),
+        vigenciaHasta: null,
+        estado: 'vigente' as const,
+        modulosContratados: ['inventario-qr'] as const,
+        sedes: [] as { id: string; nombre: string }[],
+      };
+      const pool = buildPool([
+        { ...filaBase, id: 'contrato-1' },
+        { ...filaBase, id: 'contrato-2' },
+        { ...filaBase, id: 'contrato-3' },
+      ]);
+      const repository = new ContratoRepository(pool);
+
+      const pagina = await repository.findPagina(2, 1);
+
+      expect(pagina.total).toBe(3);
+      expect(pagina.contratos.map((c) => c.id)).toEqual([
+        'contrato-2',
+        'contrato-3',
+      ]);
+    });
+  });
+
   describe('findById', () => {
     it('devuelve el contrato cuando existe', async () => {
       const pool = buildPool([CONTRATO_ROW]);

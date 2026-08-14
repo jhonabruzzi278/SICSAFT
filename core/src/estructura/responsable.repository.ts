@@ -12,6 +12,7 @@ import type {
   EstadoResponsable,
   NuevoResponsableInput,
   Responsable,
+  ResponsablesPagina,
 } from './responsable.types';
 
 const FOREIGN_KEY_VIOLATION = '23503';
@@ -30,12 +31,24 @@ const SELECT_RESPONSABLE_SQL = `
 export class ResponsableRepository {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  async findByArea(areaId: string): Promise<Responsable[]> {
-    const result = await this.pool.query<Responsable>(
-      `${SELECT_RESPONSABLE_SQL} WHERE area_id = $1 ORDER BY nombre`,
+  // RNF-01 (cierra el gap) — paginado real via LIMIT/OFFSET, con COUNT(*) para el total.
+  async findByArea(
+    areaId: string,
+    limit: number,
+    offset: number,
+  ): Promise<ResponsablesPagina> {
+    const totalResult = await this.pool.query<{ total: string }>(
+      'SELECT COUNT(*) AS total FROM responsables WHERE area_id = $1',
       [areaId],
     );
-    return result.rows;
+    const result = await this.pool.query<Responsable>(
+      `${SELECT_RESPONSABLE_SQL} WHERE area_id = $1 ORDER BY nombre LIMIT $2 OFFSET $3`,
+      [areaId, limit, offset],
+    );
+    return {
+      responsables: result.rows,
+      total: Number(totalResult.rows[0]?.total ?? '0'),
+    };
   }
 
   // RF-05 — `identificacion` es unica (migracion 1755100000000): reintentar la misma alta dos

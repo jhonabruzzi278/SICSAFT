@@ -35,4 +35,12 @@ export interface AuditoriaFiltro {
   operacion?: string;
   fechaDesde?: string;
   fechaHasta?: string;
+  limit: number;
+  offset: number;
+}
+
+// RNF-01 (cierra el gap) — GET /auditoria paginado, mismo criterio que CatalogoPagina.
+export interface AuditoriaPagina {
+  entradas: AuditoriaEntrada[];
+  total: number;
 }

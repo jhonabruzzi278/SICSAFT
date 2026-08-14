@@ -7,7 +7,12 @@ import {
 } from '@nestjs/common';
 import type { Pool } from 'pg';
 import { PG_POOL } from '../database/database.constants';
-import type { ActualizarAreaInput, Area, NuevaAreaInput } from './area.types';
+import type {
+  ActualizarAreaInput,
+  Area,
+  AreasPagina,
+  NuevaAreaInput,
+} from './area.types';
 
 const FOREIGN_KEY_VIOLATION = '23503';
 
@@ -26,12 +31,24 @@ const SELECT_AREA_SQL = `
 export class AreaRepository {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  async findByOrganizacion(organizacionId: string): Promise<Area[]> {
-    const result = await this.pool.query<Area>(
-      `${SELECT_AREA_SQL} WHERE organizacion_id = $1 ORDER BY nombre`,
+  // RNF-01 (cierra el gap) — paginado real via LIMIT/OFFSET, con COUNT(*) para el total.
+  async findByOrganizacion(
+    organizacionId: string,
+    limit: number,
+    offset: number,
+  ): Promise<AreasPagina> {
+    const totalResult = await this.pool.query<{ total: string }>(
+      'SELECT COUNT(*) AS total FROM areas WHERE organizacion_id = $1',
       [organizacionId],
     );
-    return result.rows;
+    const result = await this.pool.query<Area>(
+      `${SELECT_AREA_SQL} WHERE organizacion_id = $1 ORDER BY nombre LIMIT $2 OFFSET $3`,
+      [organizacionId, limit, offset],
+    );
+    return {
+      areas: result.rows,
+      total: Number(totalResult.rows[0]?.total ?? '0'),
+    };
   }
 
   async crear(input: NuevaAreaInput): Promise<Area> {

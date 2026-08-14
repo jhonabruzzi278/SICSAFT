@@ -34,3 +34,9 @@ export interface NuevoContratoInput {
   vigenciaHasta?: string | null;
   modulosContratados: ModuloContratado[];
 }
+
+// RNF-01 (cierra el gap) — GET /contratos paginado, mismo criterio que CatalogoPagina.
+export interface ContratosPagina {
+  contratos: Contrato[];
+  total: number;
+}

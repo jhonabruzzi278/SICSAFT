@@ -53,17 +53,29 @@ describe('DOC-012 §7 — escritura oficial de Contrato (e2e)', () => {
     await app.close();
   });
 
-  describe('GET /contratos (lectura)', () => {
-    it('devuelve la lista de contratos contra Postgres real, sin exigir el rol de escritura', async () => {
+  describe('GET /contratos (lectura, paginado — RNF-01)', () => {
+    it('devuelve la pagina de contratos contra Postgres real con el total, sin exigir el rol de escritura', async () => {
       const res = await request(app.getHttpServer())
         .get('/contratos')
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
         .expect(200);
 
-      const contratos = res.body as Contrato[];
-      expect(contratos.some((c) => c.id === 'contrato-duoc-uc-melipilla')).toBe(
-        true,
-      );
+      const pagina = res.body as { contratos: Contrato[]; total: number };
+      expect(
+        pagina.contratos.some((c) => c.id === 'contrato-duoc-uc-melipilla'),
+      ).toBe(true);
+      expect(pagina.total).toBeGreaterThanOrEqual(1);
+    });
+
+    it('respeta limit/offset', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/contratos')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .query({ limit: 1, offset: 0 })
+        .expect(200);
+
+      const pagina = res.body as { contratos: Contrato[]; total: number };
+      expect(pagina.contratos.length).toBe(1);
     });
 
     it('devuelve 401 sin service token', async () => {

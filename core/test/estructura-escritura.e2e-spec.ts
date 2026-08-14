@@ -79,15 +79,18 @@ describe('RF-05 — escritura oficial de Area/Ubicacion/Responsable (e2e)', () =
       expect(area.organizacionId).toBe('duoc-uc');
       expect(area.id).toEqual(expect.any(String));
 
+      // limit alto: corridas repetidas de este e2e contra el mismo Postgres local acumulan filas
+      // (sin reset entre corridas) — sin esto, la recien creada podria caer fuera de la pagina
+      // default (20) si ya hay 20+ areas previas de otras corridas.
       const listaRes = await request(app.getHttpServer())
         .get('/areas')
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
-        .query({ organizacionId: 'duoc-uc' })
+        .query({ organizacionId: 'duoc-uc', limit: 100 })
         .expect(200);
 
-      expect((listaRes.body as Area[]).some((a) => a.id === area.id)).toBe(
-        true,
-      );
+      const pagina = listaRes.body as { areas: Area[]; total: number };
+      expect(pagina.areas.some((a) => a.id === area.id)).toBe(true);
+      expect(pagina.total).toBeGreaterThanOrEqual(1);
     });
 
     it('devuelve 403 si rolesPorOrganizacion no incluye administrador-patrimonial', async () => {
@@ -247,12 +250,12 @@ describe('RF-05 — escritura oficial de Area/Ubicacion/Responsable (e2e)', () =
       const listaRes = await request(app.getHttpServer())
         .get('/ubicaciones')
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
-        .query({ sedeId: 'melipilla' })
+        .query({ sedeId: 'melipilla', limit: 100 })
         .expect(200);
 
-      expect(
-        (listaRes.body as Ubicacion[]).some((u) => u.id === ubicacion.id),
-      ).toBe(true);
+      const pagina = listaRes.body as { ubicaciones: Ubicacion[]; total: number };
+      expect(pagina.ubicaciones.some((u) => u.id === ubicacion.id)).toBe(true);
+      expect(pagina.total).toBeGreaterThanOrEqual(1);
     });
 
     // Hallazgo de revision de seguridad (mismo patron que ActivoRepository): una sede real de
@@ -383,11 +386,16 @@ describe('RF-05 — escritura oficial de Area/Ubicacion/Responsable (e2e)', () =
       const listaRes = await request(app.getHttpServer())
         .get('/responsables')
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
-        .query({ areaId: 'area-biblioteca' })
+        .query({ areaId: 'area-biblioteca', limit: 100 })
         .expect(200);
-      expect(
-        (listaRes.body as Responsable[]).some((r) => r.id === responsable.id),
-      ).toBe(true);
+      const pagina = listaRes.body as {
+        responsables: Responsable[];
+        total: number;
+      };
+      expect(pagina.responsables.some((r) => r.id === responsable.id)).toBe(
+        true,
+      );
+      expect(pagina.total).toBeGreaterThanOrEqual(1);
 
       const patchRes = await request(app.getHttpServer())
         .patch(`/responsables/${responsable.id}/estado`)

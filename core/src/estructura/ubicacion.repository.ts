@@ -11,6 +11,7 @@ import type {
   ActualizarUbicacionInput,
   NuevaUbicacionInput,
   Ubicacion,
+  UbicacionesPagina,
 } from './ubicacion.types';
 
 const FOREIGN_KEY_VIOLATION = '23503';
@@ -28,12 +29,24 @@ const SELECT_UBICACION_SQL = `
 export class UbicacionRepository {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  async findBySede(sedeId: string): Promise<Ubicacion[]> {
-    const result = await this.pool.query<Ubicacion>(
-      `${SELECT_UBICACION_SQL} WHERE sede_id = $1 ORDER BY edificio, piso`,
+  // RNF-01 (cierra el gap) — paginado real via LIMIT/OFFSET, con COUNT(*) para el total.
+  async findBySede(
+    sedeId: string,
+    limit: number,
+    offset: number,
+  ): Promise<UbicacionesPagina> {
+    const totalResult = await this.pool.query<{ total: string }>(
+      'SELECT COUNT(*) AS total FROM ubicaciones WHERE sede_id = $1',
       [sedeId],
     );
-    return result.rows;
+    const result = await this.pool.query<Ubicacion>(
+      `${SELECT_UBICACION_SQL} WHERE sede_id = $1 ORDER BY edificio, piso LIMIT $2 OFFSET $3`,
+      [sedeId, limit, offset],
+    );
+    return {
+      ubicaciones: result.rows,
+      total: Number(totalResult.rows[0]?.total ?? '0'),
+    };
   }
 
   // RF-05 — defensa en profundidad: `sedeId` (y `areaId`, si viene) deben pertenecer a

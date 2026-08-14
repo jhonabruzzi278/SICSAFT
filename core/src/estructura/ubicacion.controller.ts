@@ -4,9 +4,10 @@ import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { UbicacionRepository } from './ubicacion.repository';
 import { ubicacionesQuerySchema } from './estructura.schemas';
 import type { UbicacionesQuery } from './estructura.schemas';
-import type { Ubicacion } from './ubicacion.types';
+import type { UbicacionesPagina } from './ubicacion.types';
 
 // RF-05 (Fase 5, WEB) — lectura abierta, mismo criterio que ContratoController.getContratos.
+// Paginado (RNF-01, cierra el gap).
 @Controller()
 @UseGuards(ServiceTokenGuard)
 export class UbicacionController {
@@ -15,7 +16,11 @@ export class UbicacionController {
   @Get('ubicaciones')
   getUbicaciones(
     @Query(new ZodValidationPipe(ubicacionesQuerySchema)) query: UbicacionesQuery,
-  ): Promise<Ubicacion[]> {
-    return this.ubicacionRepository.findBySede(query.sedeId);
+  ): Promise<UbicacionesPagina> {
+    return this.ubicacionRepository.findBySede(
+      query.sedeId,
+      query.limit,
+      query.offset,
+    );
   }
 }

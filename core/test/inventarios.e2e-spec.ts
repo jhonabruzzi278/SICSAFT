@@ -229,14 +229,14 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
       const res = await request(app.getHttpServer())
         .get('/auditoria')
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .query({ usuario: 'op-e2e-1', limit: 100 })
         .expect(200);
 
-      const entradas = res.body as Array<{
-        usuario: string;
-        operacion: string;
-        resultado: string;
-      }>;
-      expect(entradas).toEqual(
+      const pagina = res.body as {
+        entradas: Array<{ usuario: string; operacion: string; resultado: string }>;
+        total: number;
+      };
+      expect(pagina.entradas).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             usuario: 'op-e2e-1',
@@ -245,6 +245,7 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
           }),
         ]),
       );
+      expect(pagina.total).toBeGreaterThan(0);
     });
 
     it('filtra por usuario (ILIKE parcial) contra Postgres real', async () => {
@@ -261,14 +262,15 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
       const res = await request(app.getHttpServer())
         .get('/auditoria')
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
-        .query({ usuario: 'filtro-usuario' })
+        .query({ usuario: 'filtro-usuario', limit: 100 })
         .expect(200);
 
-      const entradas = res.body as Array<{ usuario: string }>;
-      expect(entradas.length).toBeGreaterThan(0);
+      const pagina = res.body as { entradas: Array<{ usuario: string }>; total: number };
+      expect(pagina.entradas.length).toBeGreaterThan(0);
       expect(
-        entradas.every((e) => e.usuario.includes('filtro-usuario')),
+        pagina.entradas.every((e) => e.usuario.includes('filtro-usuario')),
       ).toBe(true);
+      expect(pagina.total).toBeGreaterThan(0);
     });
 
     it('filtra por rango de fecha excluyendo entradas fuera de rango', async () => {
@@ -290,7 +292,9 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
           fechaDesde: '2099-01-01T00:00:00.000Z',
         })
         .expect(200);
-      expect(enElFuturo.body).toEqual([]);
+      const paginaFutura = enElFuturo.body as { entradas: unknown[]; total: number };
+      expect(paginaFutura.entradas).toEqual([]);
+      expect(paginaFutura.total).toBe(0);
 
       const ahora = await request(app.getHttpServer())
         .get('/auditoria')
@@ -300,7 +304,9 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
           fechaDesde: '2020-01-01T00:00:00.000Z',
         })
         .expect(200);
-      expect((ahora.body as unknown[]).length).toBeGreaterThan(0);
+      const paginaActual = ahora.body as { entradas: unknown[]; total: number };
+      expect(paginaActual.entradas.length).toBeGreaterThan(0);
+      expect(paginaActual.total).toBeGreaterThan(0);
     });
 
     it('devuelve 401 sin service token', async () => {

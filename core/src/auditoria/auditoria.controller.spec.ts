@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuditoriaController } from './auditoria.controller';
 import { AuditoriaRepository } from './auditoria.repository';
 import { ServiceTokenGuard } from '../common/auth/service-token.guard';
-import type { AuditoriaEntrada } from './auditoria.types';
+import type { AuditoriaEntrada, AuditoriaPagina } from './auditoria.types';
 
 const ENTRADAS: AuditoriaEntrada[] = [
   {
@@ -17,6 +17,7 @@ const ENTRADAS: AuditoriaEntrada[] = [
     observaciones: null,
   },
 ];
+const PAGINA: AuditoriaPagina = { entradas: ENTRADAS, total: 1 };
 
 describe('AuditoriaController', () => {
   let controller: AuditoriaController;
@@ -40,18 +41,19 @@ describe('AuditoriaController', () => {
     auditoriaRepository = module.get(AuditoriaRepository);
   });
 
-  it('getAuditoria delega en AuditoriaRepository.listar con los filtros', async () => {
-    auditoriaRepository.listar.mockResolvedValue(ENTRADAS);
-    const query = { usuario: 'op-1', operacion: 'inventarios' };
+  it('getAuditoria delega en AuditoriaRepository.listar con los filtros y la paginacion', async () => {
+    auditoriaRepository.listar.mockResolvedValue(PAGINA);
+    const query = { usuario: 'op-1', operacion: 'inventarios', limit: 20, offset: 0 };
 
-    await expect(controller.getAuditoria(query)).resolves.toBe(ENTRADAS);
+    await expect(controller.getAuditoria(query)).resolves.toBe(PAGINA);
     expect(auditoriaRepository.listar).toHaveBeenCalledWith(query);
   });
 
-  it('getAuditoria delega en AuditoriaRepository.listar sin filtros', async () => {
-    auditoriaRepository.listar.mockResolvedValue(ENTRADAS);
+  it('getAuditoria delega en AuditoriaRepository.listar solo con la paginacion (sin filtros)', async () => {
+    auditoriaRepository.listar.mockResolvedValue(PAGINA);
+    const query = { limit: 20, offset: 0 };
 
-    await expect(controller.getAuditoria({})).resolves.toBe(ENTRADAS);
-    expect(auditoriaRepository.listar).toHaveBeenCalledWith({});
+    await expect(controller.getAuditoria(query)).resolves.toBe(PAGINA);
+    expect(auditoriaRepository.listar).toHaveBeenCalledWith(query);
   });
 });

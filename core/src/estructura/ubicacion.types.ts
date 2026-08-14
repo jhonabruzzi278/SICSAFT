@@ -33,3 +33,9 @@ export interface ActualizarUbicacionInput {
   oficina?: string;
   dependencia?: string;
 }
+
+// RNF-01 (cierra el gap) — GET /ubicaciones paginado, mismo criterio que CatalogoPagina.
+export interface UbicacionesPagina {
+  ubicaciones: Ubicacion[];
+  total: number;
+}

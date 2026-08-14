@@ -85,11 +85,27 @@ export type ActualizarEstadoResponsableBody = z.infer<
   typeof actualizarEstadoResponsableSchema
 >;
 
-export const areasQuerySchema = z.object({ organizacionId: z.string().min(1) });
+// RNF-01 (cierra el gap) — limit/offset con los mismos defaults que catalogoQuerySchema (DOC-006
+// §2): 20 por pagina, tope 100.
+const paginacionSchema = {
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  offset: z.coerce.number().int().nonnegative().default(0),
+};
+
+export const areasQuerySchema = z.object({
+  organizacionId: z.string().min(1),
+  ...paginacionSchema,
+});
 export type AreasQuery = z.infer<typeof areasQuerySchema>;
 
-export const ubicacionesQuerySchema = z.object({ sedeId: z.string().min(1) });
+export const ubicacionesQuerySchema = z.object({
+  sedeId: z.string().min(1),
+  ...paginacionSchema,
+});
 export type UbicacionesQuery = z.infer<typeof ubicacionesQuerySchema>;
 
-export const responsablesQuerySchema = z.object({ areaId: z.string().min(1) });
+export const responsablesQuerySchema = z.object({
+  areaId: z.string().min(1),
+  ...paginacionSchema,
+});
 export type ResponsablesQuery = z.infer<typeof responsablesQuerySchema>;

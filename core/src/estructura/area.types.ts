@@ -36,3 +36,9 @@ export interface ActualizarAreaInput {
   responsableId?: string;
   ubicacionPrincipalId?: string;
 }
+
+// RNF-01 (cierra el gap) — GET /areas paginado, mismo criterio que CatalogoPagina.
+export interface AreasPagina {
+  areas: Area[];
+  total: number;
+}

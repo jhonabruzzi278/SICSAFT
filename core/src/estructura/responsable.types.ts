@@ -24,3 +24,9 @@ export interface NuevoResponsableInput {
   correo?: string;
   telefono?: string;
 }
+
+// RNF-01 (cierra el gap) — GET /responsables paginado, mismo criterio que CatalogoPagina.
+export interface ResponsablesPagina {
+  responsables: Responsable[];
+  total: number;
+}

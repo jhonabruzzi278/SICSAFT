@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ContratoController } from './contrato.controller';
 import { ContratoRepository } from './contrato.repository';
 import { ServiceTokenGuard } from '../common/auth/service-token.guard';
-import type { Contrato } from './contrato.types';
+import type { Contrato, ContratosPagina } from './contrato.types';
 
 const CONTRATOS: Contrato[] = [
   {
@@ -17,6 +17,7 @@ const CONTRATOS: Contrato[] = [
     modulosContratados: ['inventario-qr'],
   },
 ];
+const PAGINA: ContratosPagina = { contratos: CONTRATOS, total: 1 };
 
 describe('ContratoController', () => {
   let controller: ContratoController;
@@ -28,7 +29,7 @@ describe('ContratoController', () => {
       providers: [
         {
           provide: ContratoRepository,
-          useValue: { findAll: jest.fn() },
+          useValue: { findPagina: jest.fn() },
         },
       ],
     })
@@ -40,10 +41,12 @@ describe('ContratoController', () => {
     contratoRepository = module.get(ContratoRepository);
   });
 
-  it('getContratos delega en ContratoRepository.findAll', async () => {
-    contratoRepository.findAll.mockResolvedValue(CONTRATOS);
+  it('getContratos delega en ContratoRepository.findPagina con limit/offset', async () => {
+    contratoRepository.findPagina.mockResolvedValue(PAGINA);
 
-    await expect(controller.getContratos()).resolves.toBe(CONTRATOS);
-    expect(contratoRepository.findAll).toHaveBeenCalled();
+    await expect(
+      controller.getContratos({ limit: 20, offset: 0 }),
+    ).resolves.toBe(PAGINA);
+    expect(contratoRepository.findPagina).toHaveBeenCalledWith(20, 0);
   });
 });

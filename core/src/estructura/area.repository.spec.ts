@@ -17,16 +17,23 @@ const AREA_ROW: Area = {
 
 describe('AreaRepository', () => {
   describe('findByOrganizacion', () => {
-    it('devuelve las filas de la organizacion', async () => {
+    it('devuelve las filas de la organizacion paginadas y el total real (RNF-01, cierra el gap)', async () => {
       const pool = {
-        query: jest.fn().mockResolvedValue({ rows: [AREA_ROW] }),
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [{ total: '1' }] }) // COUNT(*)
+          .mockResolvedValueOnce({ rows: [AREA_ROW] }), // SELECT paginado
       } as unknown as jest.Mocked<Pool>;
       const repository = new AreaRepository(pool);
 
-      await expect(repository.findByOrganizacion('duoc-uc')).resolves.toEqual([
-        AREA_ROW,
+      const pagina = await repository.findByOrganizacion('duoc-uc', 20, 0);
+
+      expect(pagina).toEqual({ areas: [AREA_ROW], total: 1 });
+      expect(pool.query).toHaveBeenNthCalledWith(2, expect.any(String), [
+        'duoc-uc',
+        20,
+        0,
       ]);
-      expect(pool.query).toHaveBeenCalledWith(expect.any(String), ['duoc-uc']);
     });
   });
 

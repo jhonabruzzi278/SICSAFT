@@ -11,6 +11,7 @@ import { PG_POOL } from '../database/database.constants';
 import { assertInvarianteSedeUnContratoVigente } from './contrato.seed';
 import type {
   Contrato,
+  ContratosPagina,
   EstadoContrato,
   ModuloContratado,
   NuevoContratoInput,
@@ -93,6 +94,19 @@ export class ContratoRepository {
     assertInvarianteSedeUnContratoVigente(contratos);
 
     return contratos;
+  }
+
+  // RNF-01 (cierra el gap) — GET /contratos paginado. Reusa findAll() (necesita el dataset
+  // completo igual: el invariante DOC-004 §4 se valida contra TODOS los contratos, no solo la
+  // página pedida) y pagina en memoria — volumen bajo hoy (un Contrato por organizacion/sede), sin
+  // costo real de traer todo a memoria; si el volumen crece, se reemplaza por LIMIT/OFFSET en SQL
+  // manteniendo el invariante con una consulta separada.
+  async findPagina(limit: number, offset: number): Promise<ContratosPagina> {
+    const contratos = await this.findAll();
+    return {
+      contratos: contratos.slice(offset, offset + limit),
+      total: contratos.length,
+    };
   }
 
   // DOC-012 §7 — usado por las 2 operaciones de escritura oficial para resolver 404 vs 400 antes

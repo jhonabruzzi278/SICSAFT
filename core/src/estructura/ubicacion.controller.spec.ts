@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UbicacionController } from './ubicacion.controller';
 import { UbicacionRepository } from './ubicacion.repository';
 import { ServiceTokenGuard } from '../common/auth/service-token.guard';
-import type { Ubicacion } from './ubicacion.types';
+import type { Ubicacion, UbicacionesPagina } from './ubicacion.types';
 
 const UBICACIONES: Ubicacion[] = [
   {
@@ -16,6 +16,7 @@ const UBICACIONES: Ubicacion[] = [
     dependencia: null,
   },
 ];
+const PAGINA: UbicacionesPagina = { ubicaciones: UBICACIONES, total: 1 };
 
 describe('UbicacionController', () => {
   let controller: UbicacionController;
@@ -36,12 +37,16 @@ describe('UbicacionController', () => {
     ubicacionRepository = module.get(UbicacionRepository);
   });
 
-  it('getUbicaciones delega en UbicacionRepository.findBySede', async () => {
-    ubicacionRepository.findBySede.mockResolvedValue(UBICACIONES);
+  it('getUbicaciones delega en UbicacionRepository.findBySede con limit/offset', async () => {
+    ubicacionRepository.findBySede.mockResolvedValue(PAGINA);
 
     await expect(
-      controller.getUbicaciones({ sedeId: 'melipilla' }),
-    ).resolves.toBe(UBICACIONES);
-    expect(ubicacionRepository.findBySede).toHaveBeenCalledWith('melipilla');
+      controller.getUbicaciones({ sedeId: 'melipilla', limit: 20, offset: 0 }),
+    ).resolves.toBe(PAGINA);
+    expect(ubicacionRepository.findBySede).toHaveBeenCalledWith(
+      'melipilla',
+      20,
+      0,
+    );
   });
 });

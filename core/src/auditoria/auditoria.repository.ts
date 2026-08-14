@@ -5,15 +5,9 @@ import { PG_POOL } from '../database/database.constants';
 import type {
   AuditoriaEntrada,
   AuditoriaFiltro,
+  AuditoriaPagina,
   RegistrarAuditoriaInput,
 } from './auditoria.types';
-
-// RF-06 (Fase 5, WEB) — tope de filas de GET /auditoria: la tabla no tiene politica de
-// retencion/purga todavia (Tomo III §4.10, ver DOC-011 § "Que NO resuelve"), asi que sin limite
-// una organizacion con volumen real devolveria toda la historia del ecosistema en una sola
-// respuesta. 200 alcanza para el primer incremento (RNF-01 ya exige paginado en GET /catalogo por
-// volumen real medido; acá se difiere hasta tener el mismo problema, YAGNI).
-const LISTAR_LIMITE = 200;
 
 // DOC-011 — invocado una vez por transaccion, siempre, desde el Orquestador (DOC-007). Nunca
 // desde un motor individual, para no duplicar el registro si un motor falla a mitad de camino.
@@ -41,8 +35,9 @@ export class AuditoriaRepository {
   // organizacion todavia: mismo criterio ya aceptado en ContratoController.getContratos ("lectura
   // abierta, no hay 403 posible en este endpoint"). Filtros opcionales por usuario/operacion
   // (ILIKE, ver auditoria.types.ts) y rango de fecha — mismo patron de condiciones dinamicas que
-  // ActivoRepository.findCatalogo. Mas recientes primero.
-  async listar(filtro: AuditoriaFiltro = {}): Promise<AuditoriaEntrada[]> {
+  // ActivoRepository.findCatalogo. RNF-01 (cierra el gap) — paginado real via LIMIT/OFFSET, con
+  // COUNT(*) sobre el mismo WHERE para el total. Mas recientes primero.
+  async listar(filtro: AuditoriaFiltro): Promise<AuditoriaPagina> {
     const condiciones: string[] = [];
     const valores: unknown[] = [];
 
@@ -65,8 +60,13 @@ export class AuditoriaRepository {
 
     const whereSql =
       condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';
-    valores.push(LISTAR_LIMITE);
 
+    const totalResult = await this.pool.query<{ total: string }>(
+      `SELECT COUNT(*) AS total FROM auditoria ${whereSql}`,
+      valores,
+    );
+
+    const valoresPagina = [...valores, filtro.limit, filtro.offset];
     const result = await this.pool.query<{
       id: string;
       usuario: string;
@@ -81,12 +81,15 @@ export class AuditoriaRepository {
        FROM auditoria
        ${whereSql}
        ORDER BY fecha DESC
-       LIMIT $${valores.length}`,
-      valores,
+       LIMIT $${valoresPagina.length - 1} OFFSET $${valoresPagina.length}`,
+      valoresPagina,
     );
-    return result.rows.map((row) => ({
-      ...row,
-      fecha: row.fecha.toISOString(),
-    }));
+    return {
+      entradas: result.rows.map((row) => ({
+        ...row,
+        fecha: row.fecha.toISOString(),
+      })),
+      total: Number(totalResult.rows[0]?.total ?? '0'),
+    };
   }
 }

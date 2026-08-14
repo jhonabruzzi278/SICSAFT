@@ -16,14 +16,22 @@ const UBICACION_ROW: Ubicacion = {
 
 describe('UbicacionRepository', () => {
   describe('findBySede', () => {
-    it('devuelve las filas de la sede', async () => {
+    it('devuelve las filas de la sede paginadas y el total real (RNF-01, cierra el gap)', async () => {
       const pool = {
-        query: jest.fn().mockResolvedValue({ rows: [UBICACION_ROW] }),
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [{ total: '1' }] })
+          .mockResolvedValueOnce({ rows: [UBICACION_ROW] }),
       } as unknown as jest.Mocked<Pool>;
       const repository = new UbicacionRepository(pool);
 
-      await expect(repository.findBySede('melipilla')).resolves.toEqual([
-        UBICACION_ROW,
+      const pagina = await repository.findBySede('melipilla', 20, 0);
+
+      expect(pagina).toEqual({ ubicaciones: [UBICACION_ROW], total: 1 });
+      expect(pool.query).toHaveBeenNthCalledWith(2, expect.any(String), [
+        'melipilla',
+        20,
+        0,
       ]);
     });
   });

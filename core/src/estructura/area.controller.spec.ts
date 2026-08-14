@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AreaController } from './area.controller';
 import { AreaRepository } from './area.repository';
 import { ServiceTokenGuard } from '../common/auth/service-token.guard';
-import type { Area } from './area.types';
+import type { Area, AreasPagina } from './area.types';
 
 const AREAS: Area[] = [
   {
@@ -17,6 +17,7 @@ const AREAS: Area[] = [
     ubicacionPrincipalId: null,
   },
 ];
+const PAGINA: AreasPagina = { areas: AREAS, total: 1 };
 
 describe('AreaController', () => {
   let controller: AreaController;
@@ -37,12 +38,16 @@ describe('AreaController', () => {
     areaRepository = module.get(AreaRepository);
   });
 
-  it('getAreas delega en AreaRepository.findByOrganizacion', async () => {
-    areaRepository.findByOrganizacion.mockResolvedValue(AREAS);
+  it('getAreas delega en AreaRepository.findByOrganizacion con limit/offset', async () => {
+    areaRepository.findByOrganizacion.mockResolvedValue(PAGINA);
 
     await expect(
-      controller.getAreas({ organizacionId: 'duoc-uc' }),
-    ).resolves.toBe(AREAS);
-    expect(areaRepository.findByOrganizacion).toHaveBeenCalledWith('duoc-uc');
+      controller.getAreas({ organizacionId: 'duoc-uc', limit: 20, offset: 0 }),
+    ).resolves.toBe(PAGINA);
+    expect(areaRepository.findByOrganizacion).toHaveBeenCalledWith(
+      'duoc-uc',
+      20,
+      0,
+    );
   });
 });
