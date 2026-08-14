@@ -13,3 +13,5 @@ process.env.CORE_SERVICE_TOKEN ??= 'secreto-compartido';
 // arrancar (RATE_LIMIT_CONFIG usa `lazyConnect`, nunca conecta de verdad en estos tests) —
 // qr-connector.e2e-spec.ts además reemplaza el proveedor REDIS_CLIENT por un stub.
 process.env.REDIS_URL ??= 'redis://localhost:6379'; // NOSONAR
+// DOC-012 §5 (Fase 5) — ver src/administrador/organizacion-mapping.config.ts.
+process.env.ZITADEL_ORG_ID_MAP ??= '{"386029528616558597":"duoc-uc"}';

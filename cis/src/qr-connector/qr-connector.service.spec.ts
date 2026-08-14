@@ -13,12 +13,19 @@ import type {
   EntitlementsResult,
   InventarioEstadoResult,
   PostInventarioResult,
+  SesionDetalleResult,
+  SesionResumenResult,
 } from '../core-client/core-client.types';
 
 type CoreClientMock = jest.Mocked<
   Pick<
     CoreClientService,
-    'getEntitlements' | 'getCatalogo' | 'postInventario' | 'getInventarioEstado'
+    | 'getEntitlements'
+    | 'getCatalogo'
+    | 'postInventario'
+    | 'getInventarioEstado'
+    | 'getInventarios'
+    | 'getInventarioDetalle'
   >
 >;
 
@@ -28,6 +35,8 @@ function buildCoreClientService(
     catalogo?: CatalogoResult;
     postInventarioResult?: PostInventarioResult;
     inventarioEstado?: InventarioEstadoResult;
+    sesiones?: SesionResumenResult[];
+    sesionDetalle?: SesionDetalleResult;
   } = {},
 ): CoreClientMock {
   return {
@@ -57,6 +66,21 @@ function buildCoreClientService(
         ultimoIntento: '2026-08-12T10:00:00.000Z',
       },
     ),
+    getInventarios: jest.fn().mockResolvedValue(overrides.sesiones ?? []),
+    getInventarioDetalle: jest.fn().mockResolvedValue(
+      overrides.sesionDetalle ?? {
+        id: 'sesion-1',
+        organizacionId: 'duoc-uc',
+        areaId: 'laboratorio-informatica',
+        ubicacionId: 'melipilla',
+        operadorId: 'op-1',
+        fechaInicio: '2026-08-12T10:00:00.000Z',
+        fechaCierre: '2026-08-12T11:00:00.000Z',
+        estado: 'recibido',
+        creadoEn: '2026-08-12T11:00:05.000Z',
+        escaneos: [],
+      },
+    ),
   };
 }
 
@@ -73,6 +97,7 @@ function buildAuthContext(
     operadorId: 'op-1',
     accessToken: 'zitadel-token',
     expiresAt: '2026-08-12T10:15:00.000Z',
+    rolesPorOrganizacion: {},
     ...overrides,
   };
 }
@@ -258,6 +283,61 @@ describe('QrConnectorService', () => {
 
       await expect(
         service.getInventarioEstado('no-existe', 'corr-1'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getInventarios', () => {
+    it('delega en CoreClientService con organizacionId', async () => {
+      const sesiones: SesionResumenResult[] = [
+        {
+          id: 'sesion-1',
+          organizacionId: 'duoc-uc',
+          areaId: 'laboratorio-informatica',
+          ubicacionId: 'melipilla',
+          operadorId: 'op-1',
+          fechaInicio: '2026-08-12T10:00:00.000Z',
+          fechaCierre: '2026-08-12T11:00:00.000Z',
+          estado: 'recibido',
+          creadoEn: '2026-08-12T11:00:05.000Z',
+        },
+      ];
+      coreClientService = buildCoreClientService({ sesiones });
+      service = new QrConnectorService(
+        coreClientService as unknown as CoreClientService,
+        deviceRegistryService as unknown as DeviceRegistryService,
+      );
+
+      await expect(service.getInventarios('duoc-uc', 'corr-1')).resolves.toBe(
+        sesiones,
+      );
+      expect(coreClientService.getInventarios).toHaveBeenCalledWith(
+        'duoc-uc',
+        'corr-1',
+      );
+    });
+  });
+
+  describe('getInventarioDetalle', () => {
+    it('delega en CoreClientService con el id', async () => {
+      const result = await service.getInventarioDetalle('sesion-1', 'corr-1');
+
+      expect(result.id).toBe('sesion-1');
+      expect(coreClientService.getInventarioDetalle).toHaveBeenCalledWith(
+        'sesion-1',
+        'corr-1',
+      );
+    });
+
+    it('propaga el 404 de CORE para un id que no existe', async () => {
+      coreClientService.getInventarioDetalle.mockRejectedValue(
+        new NotFoundException({
+          message: "No existe el inventario 'no-existe'",
+        }),
+      );
+
+      await expect(
+        service.getInventarioDetalle('no-existe', 'corr-1'),
       ).rejects.toThrow(NotFoundException);
     });
   });

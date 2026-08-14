@@ -43,4 +43,44 @@ describe('EventoRepository', () => {
       null,
     ]);
   });
+
+  describe('registrarContrato', () => {
+    it('inserta el evento sin activo asociado, con detalle serializado a JSON', async () => {
+      const pool = buildPool();
+      const repository = new EventoRepository(pool);
+
+      await repository.registrarContrato({
+        contratoId: 'contrato-1',
+        tipo: 'contrato_actualizado',
+        usuario: 'op-admin',
+        detalle: { estadoNuevo: 'vigente' },
+      });
+
+      expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
+        expect.any(String),
+        'contrato-1',
+        'contrato_actualizado',
+        'op-admin',
+        '{"estadoNuevo":"vigente"}',
+      ]);
+    });
+
+    it('inserta sin usuario ni detalle usando null', async () => {
+      const pool = buildPool();
+      const repository = new EventoRepository(pool);
+
+      await repository.registrarContrato({
+        contratoId: 'contrato-1',
+        tipo: 'contrato_actualizado',
+      });
+
+      expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
+        expect.any(String),
+        'contrato-1',
+        'contrato_actualizado',
+        null,
+        null,
+      ]);
+    });
+  });
 });

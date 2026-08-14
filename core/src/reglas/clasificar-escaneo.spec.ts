@@ -7,6 +7,7 @@ const ACTIVO_BASE: Activo = {
   codigoPatrimonial: 'AFT-2026-000001',
   codigoQr: 'QR-000001',
   organizacionId: 'duoc-uc',
+  responsableId: null,
   areaId: 'area-biblioteca',
   ubicacionId: 'ubicacion-biblioteca-101',
   estado: 'activo',

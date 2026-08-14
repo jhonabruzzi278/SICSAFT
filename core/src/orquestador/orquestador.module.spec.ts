@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrquestadorModule } from './orquestador.module';
 import { InventariosController } from '../inventarios/inventarios.controller';
+import { ActivoEscrituraController } from '../patrimonial/activo-escritura.controller';
 import { ServiceTokenModule } from '../common/auth/service-token.module';
 import { DatabaseModule } from '../database/database.module';
 
@@ -30,6 +31,9 @@ describe('OrquestadorModule', () => {
 
     expect(module.get(InventariosController)).toBeInstanceOf(
       InventariosController,
+    );
+    expect(module.get(ActivoEscrituraController)).toBeInstanceOf(
+      ActivoEscrituraController,
     );
 
     await module.close();

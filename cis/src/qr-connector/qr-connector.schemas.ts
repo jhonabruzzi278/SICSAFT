@@ -21,6 +21,12 @@ export const catalogoQuerySchema = z.object({
 });
 export type CatalogoQuery = z.infer<typeof catalogoQuerySchema>;
 
+// RF-04 (Fase 5, WEB) — GET /inventarios (listado).
+export const inventariosQuerySchema = z.object({
+  organizacionId: z.string().min(1),
+});
+export type InventariosQuery = z.infer<typeof inventariosQuerySchema>;
+
 // Las 8 categorias de resultado de escaneo de DOC-001 §3 / scan-resolve.ts de APP QR.
 export const scanResultadoSchema = z.enum([
   'correcto',

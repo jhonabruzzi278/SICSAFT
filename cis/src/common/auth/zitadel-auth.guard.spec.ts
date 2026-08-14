@@ -53,9 +53,13 @@ describe('ZitadelAuthGuard', () => {
       expiresIn?: string;
       omitExpiration?: boolean;
       omitSubject?: boolean;
+      rolesClaim?: Record<string, Record<string, string>>;
     } = {},
   ): Promise<string> {
-    let builder = new SignJWT({}).setProtectedHeader({ alg: 'RS256' });
+    const claims = overrides.rolesClaim
+      ? { 'urn:zitadel:iam:org:project:roles': overrides.rolesClaim }
+      : {};
+    let builder = new SignJWT(claims).setProtectedHeader({ alg: 'RS256' });
     if (!overrides.omitSubject) {
       builder = builder.setSubject(overrides.subject ?? 'op-1');
     }
@@ -80,6 +84,80 @@ describe('ZitadelAuthGuard', () => {
     expect(request.auth?.operadorId).toBe('op-1');
     expect(request.auth?.accessToken).toBe(token);
     expect(Number.isNaN(Date.parse(request.auth?.expiresAt ?? ''))).toBe(false);
+  });
+
+  it('expone rolesPorOrganizacion vacio cuando el token no trae el claim de roles de proyecto', async () => {
+    const token = await signToken({ subject: 'op-1' });
+    const context = buildContext(`Bearer ${token}`);
+
+    await guard.canActivate(context);
+
+    const request = context.switchToHttp().getRequest<{
+      auth?: { rolesPorOrganizacion: Record<string, string[]> };
+    }>();
+    expect(request.auth?.rolesPorOrganizacion).toEqual({});
+  });
+
+  it('invierte el claim urn:zitadel:iam:org:project:roles a organizacionId -> roles[]', async () => {
+    const token = await signToken({
+      subject: 'op-1',
+      rolesClaim: { 'administrador-patrimonial': { 'org-1': 'DUOC UC' } },
+    });
+    const context = buildContext(`Bearer ${token}`);
+
+    await guard.canActivate(context);
+
+    const request = context.switchToHttp().getRequest<{
+      auth?: { rolesPorOrganizacion: Record<string, string[]> };
+    }>();
+    expect(request.auth?.rolesPorOrganizacion).toEqual({
+      'org-1': ['administrador-patrimonial'],
+    });
+  });
+
+  it('un mismo rol en varias organizaciones queda en cada organizacionId por separado', async () => {
+    const token = await signToken({
+      subject: 'op-1',
+      rolesClaim: {
+        'administrador-patrimonial': { 'org-1': 'DUOC UC', 'org-2': 'INACAP' },
+      },
+    });
+    const context = buildContext(`Bearer ${token}`);
+
+    await guard.canActivate(context);
+
+    const request = context.switchToHttp().getRequest<{
+      auth?: { rolesPorOrganizacion: Record<string, string[]> };
+    }>();
+    expect(request.auth?.rolesPorOrganizacion).toEqual({
+      'org-1': ['administrador-patrimonial'],
+      'org-2': ['administrador-patrimonial'],
+    });
+  });
+
+  it('ignora una entrada del claim cuyo valor no es un objeto {organizacionId: nombre}', async () => {
+    const token = await new SignJWT({
+      'urn:zitadel:iam:org:project:roles': {
+        'rol-malformado': 'no-es-un-objeto',
+        'administrador-patrimonial': { 'org-1': 'DUOC UC' },
+      },
+    })
+      .setProtectedHeader({ alg: 'RS256' })
+      .setSubject('op-1')
+      .setIssuer(ISSUER)
+      .setAudience(AUDIENCE)
+      .setExpirationTime('15m')
+      .sign(privateKey);
+    const context = buildContext(`Bearer ${token}`);
+
+    await guard.canActivate(context);
+
+    const request = context.switchToHttp().getRequest<{
+      auth?: { rolesPorOrganizacion: Record<string, string[]> };
+    }>();
+    expect(request.auth?.rolesPorOrganizacion).toEqual({
+      'org-1': ['administrador-patrimonial'],
+    });
   });
 
   it('lanza 401 si falta el header Authorization', async () => {

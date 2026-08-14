@@ -64,6 +64,71 @@ llamadas servicio-a-servicio; `app-qr-sicsaft` ya tiene un cliente HTTP real
 (`HttpQrConnectorClient`) contra los 4 endpoints, pendiente de verificar en vivo (falta crear la
 app OIDC en el dashboard de Zitadel, ver `../devops/local/README.md`).
 
+**Fase 5 (Portal WEB) — `AdministradorModule` nuevo**: `POST /admin/activos`
+(`src/administrador/`) es el puente real WEB→CIS→CORE para la escritura oficial de `Activo`
+(DOC-012 §5) — mismos guards que el Conector QR (`ZitadelAuthGuard` + `RateLimitGuard`).
+`AdministradorService` traduce `rolesPorOrganizacion` (que Zitadel firma con SU id de
+organización, ej. `386029528616558597`) al `organizacionId` de texto que CORE entiende (`duoc-uc`)
+usando un mapeo explícito por env (`ZITADEL_ORG_ID_MAP`, `src/administrador/
+organizacion-mapping.config.ts`) — sin este mapeo, un token real de Zitadel nunca podría autorizar
+una escritura oficial, porque `verificarRolAdministradorPatrimonial` en CORE compara contra su
+propio id, que nunca coincide con la clave que Zitadel firma (mismo gap que DOC-004 §7, resuelto
+acá solo para el camino de escritura). `CoreClientService.postActivo` extiende el cliente de CORE
+existente, propagando también un 403 (además de 400/409) para que WEB pueda distinguir "sin
+permiso" de "CORE caído" (DOC-012 §8). **Verificado real de punta a punta el 2026-08-14**: rol
+`administrador-patrimonial` creado en Zitadel (proyecto "CIS", org "DUOC UC"), usuario de prueba
+con ese rol, login OIDC/PKCE real desde `web/` → JWT real con el claim de rol → CIS lo valida y
+traduce → CORE crea el activo en Postgres → visible de inmediato en `GET /catalogo` (mismo
+catálogo que consume APP QR, confirma WAF §8). Detalle completo en
+`../devops/local/README.md` § "Cliente OIDC real (WEB)".
+
+**Extensión a Contrato (2026-08-14)**: mismo módulo, `GET/POST /admin/contratos` y
+`PATCH /admin/contratos/:id` — puente hacia `GET/POST /contratos` y `PATCH /contratos/:id` de
+CORE (DOC-012 §7; `GET /contratos` en CORE también es nuevo, ver `../core/README.md`). Lectura
+(`getContratos`) no traduce `rolesPorOrganizacion` — CORE no exige el rol para leer (DOC-012 §4).
+Dos bugs reales encontrados probando el flujo completo desde el navegador, no en tests
+unitarios/e2e con mocks: (1) CORS de `src/main.ts` solo permitía `GET`/`POST`, el navegador
+bloqueaba el `PATCH` en el preflight — se agregó `PATCH` a `methods`; (2)
+`actualizarEstadoContrato` usaba `@UsePipes()` a nivel de método, que Nest aplica a **todos** los
+parámetros del handler — validaba `@Param('id')` (un string) contra un schema que esperaba un
+objeto, rompiendo con "Payload inválido" en cualquier request real. Corregido a un pipe por
+parámetro (`@Body(new ZodValidationPipe(...))`, mismo patrón que ya usaban los endpoints de
+escritura de Activo en CORE) y cubierto con `test/administrador.e2e-spec.ts` (JWT real firmado,
+guard real, `CoreClientService` stubeado) para que este tipo de bug de wiring HTTP no vuelva a
+pasar desapercibido en un spec unitario que llama al método directo.
+
+**Extensión a Inventarios — listado y detalle (2026-08-14)**: `QrConnectorController` (no
+`AdministradorModule` — lectura abierta, sin rol) suma `GET /inventarios` y `GET /inventarios/:id`
+como puente hacia el mismo par de endpoints nuevos en CORE (`GET /inventarios/:id/estado` ya
+existía desde Fase 3, pero exigía conocer el `id` de antemano; sin listado no había forma de que
+WEB mostrara qué sesiones existen). Aplicado el pipe-por-parámetro desde el vamos (el hallazgo de
+`@UsePipes()` de método de más arriba), sin repetir el bug.
+
+**`GET /admin/auditoria` (2026-08-14, RF-06 — filtros agregados el mismo día)**:
+`AdministradorController`/`AdministradorService` suman un puente hacia `GET /auditoria` de CORE
+(mismo criterio que `getContratos`: lectura abierta, no traduce `rolesPorOrganizacion`), incluidos
+los filtros `usuario`/`operacion`/`fechaDesde`/`fechaHasta` como query params (pasan tal cual a
+CORE, que hace la búsqueda parcial/rango real — CIS no reinterpreta ninguno). Sin filtro por
+organización — la tabla `auditoria` de CORE no tiene ese dato todavía (ver `../core/README.md`).
+
+**Área/Ubicación/Responsable (2026-08-14, RF-05 — cerrado el mismo día)**:
+`AdministradorController`/`AdministradorService` suman `GET/POST/PATCH /admin/areas`,
+`GET/POST/PATCH /admin/ubicaciones`, `GET/POST /admin/responsables` y
+`PATCH /admin/responsables/:id/estado` — mismo puente que Activos/Contratos (traduce
+`rolesPorOrganizacion` de Zitadel a `organizacionId` de CORE antes de las escrituras, lecturas
+abiertas). Los dos `PATCH` de edición (Área/Ubicación) validan con `@Body(new
+ZodValidationPipe(...))` por parámetro, no `@UsePipes()` de método — mismo cuidado preventivo que
+ya se aplicó a Inventarios tras el hallazgo real en `actualizarEstadoContrato`. Último módulo del
+MVP de WEB en tener endpoint — ver `../core/README.md` § `src/estructura/` para el detalle de la
+escritura oficial nueva en CORE.
+
+**Paginación en `getContratos`/`getAuditoria`/`getAreas`/`getUbicaciones`/`getResponsables`
+(2026-08-14, cierra RNF-01)**: CORE dejó de devolver array plano en estos 5 endpoints (ver
+`../core/README.md`) — `CoreClientService` y `AdministradorController`/`AdministradorService`
+propagan `limit`/`offset` end-to-end (`administrador.schemas.ts` agrega un fragmento
+`paginacionSchema` compartido, mismo patrón que `core/src/estructura/estructura.schemas.ts`) y
+devuelven el envelope `{ <entidad>, total }` tal cual, sin reinterpretarlo.
+
 ## Desarrollo local
 ```bash
 cd cis
@@ -182,6 +247,9 @@ supersede-en-vez-de-rechazo y el TTL atado al token.
 - [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack: NestJS/TypeScript).
 - [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) — el CIS valida `organizacionId`,
   `sedeId` y vigencia de contrato en cada request, no solo identidad.
+- [`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
+  — diseño del rol Administrador Patrimonial; `src/administrador/` es el lado CIS del camino de
+  escritura oficial que DOC-012 define.
 - Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker + reintentos con backoff +
   rate limiting — implementados en `src/core-client/circuit-breaker.ts`, `src/core-client/retry.ts`
   y `src/rate-limit/`) y §3 (el CIS es el único punto que valida identidad de fuentes de captura).

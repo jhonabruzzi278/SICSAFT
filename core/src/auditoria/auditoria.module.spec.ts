@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuditoriaModule } from './auditoria.module';
 import { AuditoriaRepository } from './auditoria.repository';
 import { DatabaseModule } from '../database/database.module';
+import { ServiceTokenModule } from '../common/auth/service-token.module';
 
 describe('AuditoriaModule', () => {
   const originalEnv = process.env;
@@ -9,6 +10,7 @@ describe('AuditoriaModule', () => {
   beforeEach(() => {
     process.env = {
       ...originalEnv,
+      CORE_SERVICE_TOKEN: 'secreto-compartido',
       CORE_DB_HOST: 'postgres',
       CORE_DB_PORT: '5432',
       CORE_DB_NAME: 'core',
@@ -23,7 +25,7 @@ describe('AuditoriaModule', () => {
 
   it('wires AuditoriaRepository', async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [DatabaseModule, AuditoriaModule],
+      imports: [ServiceTokenModule, DatabaseModule, AuditoriaModule],
     }).compile();
 
     expect(module.get(AuditoriaRepository)).toBeInstanceOf(AuditoriaRepository);

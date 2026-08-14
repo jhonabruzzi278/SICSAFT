@@ -45,9 +45,102 @@ logging estructurado que lo use (WAF §2, pendiente).
 
 Verificado igual que el resto del sistema: unit (100% stmts/lines/funcs, 90%+ branches), e2e
 nuevo (`test/inventarios.e2e-spec.ts`) contra Postgres real, `docker build`/`docker run` real con
-`GET /catalogo` y `POST /inventarios` respondiendo contra la base migrada. Alta/baja/
-reincorporación/cambio de responsable, Motor de Alertas y Motor de Reportes quedan fuera a
-propósito — Fase 4 y sin consumidor real, respectivamente (ver DOC-008).
+`GET /catalogo` y `POST /inventarios` respondiendo contra la base migrada. Motor de Alertas y
+Motor de Reportes quedan fuera a propósito — sin consumidor real (ver DOC-008).
+
+**Fase 4 (Administrador Patrimonial) — completa, items 1/3/4/5 implementados**: diseño completo en
+[`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md).
+El Motor Patrimonial ya cubre el resto del ciclo de vida de `Activo` que DOC-008 dejaba para esta
+fase: `POST /activos` (alta), `POST /activos/:id/baja`, `POST /activos/:id/reincorporacion`,
+`PATCH /activos/:id/responsable` (`src/patrimonial/activo-escritura.controller.ts` +
+`escritura-activo.service.ts`), todos detrás de `ServiceTokenGuard` con la autorización de rol
+(`administrador-patrimonial`, verificada **por organización** — no solo "¿tiene el rol en algún
+lado?") resuelta dentro de `OrquestadorService` para que un 403 por falta de rol también quede
+auditado. `ActivoRepository` cruza la organización del payload contra la organización real del
+activo objetivo antes de escribir (defensa en profundidad, 404 si no coincide) — corrige un
+hallazgo real de revisión de seguridad encontrado durante este mismo incremento. Se suman
+`POST /importaciones/contable` (`src/patrimonial/importacion-contable.*` — idempotente por fila,
+nunca sobrescribe ni elimina, DOC-012 §6) y `POST /contratos` + `PATCH /contratos/:id`
+(`src/entitlements/contrato-escritura.controller.ts` + `escritura-contrato.service.ts` — valida el
+invariante DOC-004 §4 y la máquina de estados DOC-004 §3, DOC-012 §7; la escritura de `Contrato`
+corre en una transacción real vía `pool.connect()` porque un e2e contra Postgres real encontró que
+sin ella un FK inválido en `contrato_sedes` dejaba un contrato huérfano sin ninguna sede).
+Verificado con unit (100% stmts/lines/funcs) + e2e reales contra Postgres
+(`test/activo-escritura.e2e-spec.ts`, `test/contrato-escritura.e2e-spec.ts`,
+`test/importacion-contable.e2e-spec.ts`, incluyen los casos cross-organización y de idempotencia
+por reintento).
+
+**`GET /contratos` (2026-08-14, para Fase 5/WEB)**: `ContratoController`
+(`src/entitlements/contrato.controller.ts`) — lectura abierta (`ServiceTokenGuard` a secas, sin
+exigir el rol de escritura, DOC-012 §4), devuelve `ContratoRepository.findAll()`. Faltaba: hasta
+ahora `Contrato` solo se leía indirecto vía `GET /entitlements` (que no expone `id`/`estado`),
+insuficiente para que un cliente (WEB) supiera qué `id` mandarle a `PATCH /contratos/:id`.
+
+**`GET /inventarios` + `GET /inventarios/:id` (2026-08-14, para Fase 5/WEB, RF-04)**:
+`InventariosController.getInventarios`/`getInventarioDetalle` +
+`SesionInventarioRepository.findByOrganizacion`/`findDetalle` — listado de sesiones por
+organización y detalle con sus escaneos. Mismo motivo que `GET /contratos`: `GET
+/inventarios/:id/estado` (Fase 2/3) ya existía pero exige conocer el `id` de antemano, sin forma
+de listar qué sesiones existen. Ambos endpoints nuevos usan pipes por parámetro
+(`@Param(new ZodValidationPipe(...))`), no `@UsePipes()` de método — ver `cis/README.md` § Fase 5
+para el hallazgo real que motivó ese cuidado.
+
+**`GET /auditoria` (2026-08-14, para Fase 5/WEB, RF-06)**: `AuditoriaController`
+(`src/auditoria/`) — primer consumidor real del Motor de Auditoría (DOC-011 lo dejaba
+explícitamente sin controller, "sin consumidor"). `AuditoriaRepository.listar()` devuelve hasta
+200 entradas, más recientes primero. Lectura abierta, mismo criterio que `GET /contratos`: la
+tabla `auditoria` no tiene `organizacionId` (DOC-005 §7, audita cualquier operación del
+ecosistema, no solo las de una organización), así que no hay forma de exigir el rol contra una
+organización específica todavía — limitación conocida, documentada, no bloqueante para este
+incremento (mismo volumen bajo que justificó diferir el filtro por organización en
+`GET /contratos`).
+
+**Filtros de `GET /auditoria` (2026-08-14, cierra RF-06)**: `AuditoriaRepository.listar` acepta
+`usuario`/`operacion` (`ILIKE '%valor%'`, búsqueda parcial — `operacion` incluye el id del recurso
+en varias operaciones, ej. `POST /activos/{id}/baja`, `PATCH /responsables/{id}/estado`, un filtro
+exacto casi nunca matchearía) y `fechaDesde`/`fechaHasta` (rango inclusive sobre la columna
+`timestamptz`). Condiciones dinámicas parametrizadas, mismo patrón que
+`ActivoRepository.findCatalogo`. El requisito original (`web/aidlc-docs/requirements/`) pedía
+auditoría "filtrable por usuario/fecha/operación" — el primer incremento solo devolvía el listado
+sin filtro alguno; este cierra ese gap.
+
+**Módulo `src/estructura/` — Área/Ubicación/Responsable (2026-08-14, para Fase 5/WEB, RF-05)**:
+último módulo del MVP de WEB, el único sin ningún endpoint previo. `AreaRepository`/
+`UbicacionRepository`/`ResponsableRepository` (lectura: `GET /areas?organizacionId=`,
+`GET /ubicaciones?sedeId=`, `GET /responsables?areaId=`, todas lectura abierta) +
+`EscrituraEstructuraService` (alta de las tres, más `PATCH /responsables/:id/estado` — la "baja"
+de un Responsable, nunca un DELETE, Tomo III §4.10) invocado desde `OrquestadorService` con el
+mismo patrón de autorización+auditoría que Activo/Contrato (DOC-012). `Ubicacion` y `Responsable`
+no tienen columna `organizacionId` propia (`sede_id`/`area_id` respectivamente, DOC-005 §2) — la
+escritura cruza esas referencias contra `organizacionId` con una consulta previa
+(`verificarPertenece`/`verificarAreaPerteneceOrganizacion`) antes de insertar, defensa en
+profundidad mismo criterio que `ActivoRepository` con activos de otra organización (una FK de
+Postgres por sí sola no distingue una sede/área real pero de otra organización).
+
+**Paginación de `GET /contratos`, `/auditoria`, `/areas`, `/ubicaciones`, `/responsables`
+(2026-08-14, cierra RNF-01)**: los 5 endpoints de listado agregados en Fase 5 devolvían un array
+plano sin límite (RNF-01 pedía que ningún listado devolviera un dataset sin paginar, `GET
+/catalogo` ya lo hacía desde Fase 2). Ahora todos devuelven `{ <entidad>, total }` con
+`limit`/`offset` (`z.coerce.number()`, default 20, tope 100), mismo contrato que `GET /catalogo`.
+`AreaRepository`/`UbicacionRepository`/`ResponsableRepository`/`AuditoriaRepository` paginan en SQL
+(`COUNT(*)` + `LIMIT`/`OFFSET`). `ContratoRepository.findPagina` es distinto a propósito: reusa
+`findAll()` internamente y pagina en memoria — paginar en SQL ahí hubiese roto
+`assertInvarianteSedeUnContratoVigente` (DOC-004 §4), que valida "un solo contrato vigente por
+sede" contra el dataset **completo**, no contra una página. Aceptable mientras el volumen se
+mantenga bajo (mismo criterio ya usado para diferir el filtro por organización de `GET
+/auditoria`); si crece, hay que separar la invariante de la lectura paginada. Verificado con unit +
+e2e reales contra Postgres.
+
+**Edición de Área/Ubicación (2026-08-14, cierra RF-05)**: `AreaRepository.actualizar` y
+`UbicacionRepository.actualizar` (`PATCH /areas/:id`, `PATCH /ubicaciones/:id`) — mismo criterio
+que `ActivoRepository.cambiarEstado`: si el recurso no existe o es de otra organización, 404 (no
+403 ni 400), sin confirmar si el id existe en otra organización. La edición de Área incluye
+`responsableId`/`ubicacionPrincipalId` (validados cross-organización antes de escribir, igual que
+las referencias del alta) — cierra el ciclo que DOC-005 §2 documentaba como "sin ciclo estricto de
+creación": esa nota explicaba por qué el alta no exige esos dos campos, no por qué la asignación
+posterior no se podía hacer nunca. Sin `sedeId` editable en Ubicación — mover de sede es un
+traslado, operación distinta y más grande, mismo motivo por el que el traslado de Activo sigue sin
+controller HTTP en el Motor Patrimonial (DOC-008, YAGNI, sin consumidor real).
 
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
@@ -93,8 +186,11 @@ uno necesite escalar de forma independiente.
 - **Motor Patrimonial**: ciclo de vida completo del activo — alta, modificación, traslado, cambio
   de responsable/ubicación/estado, inventario, baja, reincorporación, consulta. Entradas: QR,
   WEB, RFID, ERP, Administrador. Salidas: Base Patrimonial, Historial, Eventos, Indicadores,
-  Alertas. (MVP: consulta, inventario, cambio de ubicación/estado, traslado — alta/baja/
-  reincorporación/cambio de responsable quedan para después del MVP).
+  Alertas. Consulta/inventario ya del MVP (Fase 2); alta/baja/reincorporación/cambio de
+  responsable ya implementados (Fase 4, DOC-012 — ver "Estado"); cambio de ubicación/traslado
+  siguen sin implementar (ni el método en `ActivoRepository` ni el endpoint HTTP existen —
+  corregido 2026-08-14, la documentación anterior sugería que el método ya estaba, DOC-008),
+  sin consumidor real todavía.
 - **Motor de Reglas**: valida invariantes antes de confirmar cualquier transacción — un activo no
   puede tener dos responsables vigentes, una etiqueta QR solo puede estar en un activo, un RFID
   no se repite, un traslado requiere autorización según perfil, un inventario no cierra con
@@ -155,13 +251,24 @@ Eventos/Auditoría). [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) — DOC-
 DOC-007 (Orquestador), DOC-008 (Motor Patrimonial), DOC-009 (Motor de Reglas), DOC-010 (Motor de
 Eventos), DOC-011 (Motor de Auditoría), todos entregados e implementados. Pendiente: DOC-003
 Modelo de dominio SICSAFT completo.
+[`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
+— diseño del rol Administrador Patrimonial (Fase 4), completo: items 1/3/4/5 implementados en
+este mismo `core/` (`src/patrimonial/activo-escritura.controller.ts`,
+`src/patrimonial/importacion-contable.controller.ts`,
+`src/entitlements/contrato-escritura.controller.ts`, `src/orquestador/orquestador.service.ts`).
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) para el marco de escalabilidad/resiliencia
 aplicable a este sistema.
 
 ## Próximo paso sugerido
-`GET /entitlements`, `GET /catalogo` y `POST /inventarios` ya están hechos y probados de punta a
-punta. El siguiente incremento con valor real es que `app-qr-sicsaft/` reemplace su stub
-(`LocalQrConnectorClient`) por un cliente real que hable con CIS→CORE (TASK-006/007,
-`ROADMAP.md` Fase 3) — recién ahí este trabajo tiene un consumidor de verdad. Alternativa sin
-código: rotación/gestión del `CORE_SERVICE_TOKEN` vía un secret manager en vez de una env var
-plana cuando se pase a producción (ver `../devops/README.md`). Tarjeta Trello: `CORE-ADR-001`.
+`GET /entitlements`, `GET /catalogo`, `GET /contratos`, `POST /inventarios` (Fase 2/3/5) y los 7
+endpoints de escritura oficial de DOC-012 (`Activo` alta/baja/reincorporación/responsable,
+importación masiva, `Contrato` alta/actualización de estado) ya están hechos y probados de punta a
+punta contra Postgres real, incluido desde WEB vía CIS (`ROADMAP.md` Fase 5) — TASK-007 de APP QR
+también se verificó real (`ROADMAP.md` Fase 3). Fase 4 queda completa a nivel de código; solo
+faltan las 4 acciones de Gestión de Permisos sin consumidor (Autorizar/Exportar/Administrar/
+Configurar, DOC-012 §9) que WEB va a necesitar para su propio ABM. El siguiente incremento con
+valor real es el módulo Inventarios de WEB (`GET /inventarios/:id/estado` ya existe, falta la
+pantalla) o Áreas/Ubicaciones/Responsables (RF-05), que sí requiere endpoints de escritura nuevos
+en CORE. Alternativa sin código: rotación/gestión del `CORE_SERVICE_TOKEN` vía un secret manager
+en vez de una env var plana cuando se pase a producción (ver `../devops/README.md`). Tarjeta
+Trello: `CORE-ADR-001`.

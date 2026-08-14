@@ -18,8 +18,27 @@ export interface Activo {
   organizacionId: string;
   areaId: string | null;
   ubicacionId: string | null;
+  // Ya era columna de la tabla (migracion Fase 1) — sin seleccionar hasta ahora porque ningun
+  // consumidor lo necesitaba (GET /catalogo no lo expone, DOC-006 §2). DOC-012 §5/§7 si lo
+  // necesita (alta con responsable, cambio de responsable).
+  responsableId: string | null;
   estado: EstadoActivo;
   catalogo: CatalogoActivoInfo;
+}
+
+// DOC-012 §5 — payload de POST /activos (alta). `organizacionId`/`catalogoId` son las unicas
+// referencias obligatorias para que el activo exista de forma minima; el resto se asigna despues
+// (traslado/cambio de responsable) o directo acá si ya se conoce.
+export interface NuevoActivoInput {
+  codigoPatrimonial: string;
+  codigoQr: string;
+  organizacionId: string;
+  catalogoId: string;
+  serie?: string;
+  responsableId?: string;
+  areaId?: string;
+  ubicacionId?: string;
+  valorPatrimonial?: number;
 }
 
 export interface CatalogoFiltro {

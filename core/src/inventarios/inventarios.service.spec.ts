@@ -17,6 +17,7 @@ const ACTIVO: Activo = {
   codigoPatrimonial: 'AFT-2026-000001',
   codigoQr: 'QR-000001',
   organizacionId: 'duoc-uc',
+  responsableId: null,
   areaId: 'area-biblioteca',
   ubicacionId: 'ubicacion-biblioteca-101',
   estado: 'activo',
@@ -51,6 +52,8 @@ function buildService() {
   const sesionRepository = {
     findByIdempotencyKey: jest.fn(),
     findEstado: jest.fn(),
+    findByOrganizacion: jest.fn(),
+    findDetalle: jest.fn(),
     crear: jest.fn(),
   } as unknown as jest.Mocked<SesionInventarioRepository>;
   const activoRepository = {
@@ -274,6 +277,61 @@ describe('InventariosService', () => {
       sesionRepository.findEstado.mockResolvedValue(null);
 
       await expect(service.obtenerEstado('sesion-x')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('listarSesiones', () => {
+    it('delega en sesionRepository.findByOrganizacion', async () => {
+      const { service, sesionRepository } = buildService();
+      const sesiones = [
+        {
+          id: 'sesion-1',
+          organizacionId: 'duoc-uc',
+          areaId: 'area-biblioteca',
+          ubicacionId: 'ubicacion-biblioteca-101',
+          operadorId: 'op-1',
+          fechaInicio: '2026-01-15T10:00:00.000Z',
+          fechaCierre: '2026-01-15T10:30:00.000Z',
+          estado: 'recibido' as const,
+          creadoEn: '2026-01-15T10:30:05.000Z',
+        },
+      ];
+      sesionRepository.findByOrganizacion.mockResolvedValue(sesiones);
+
+      await expect(service.listarSesiones('duoc-uc')).resolves.toBe(sesiones);
+      expect(sesionRepository.findByOrganizacion).toHaveBeenCalledWith(
+        'duoc-uc',
+      );
+    });
+  });
+
+  describe('obtenerDetalle', () => {
+    it('devuelve el detalle cuando la sesion existe', async () => {
+      const { service, sesionRepository } = buildService();
+      const detalle = {
+        id: 'sesion-1',
+        organizacionId: 'duoc-uc',
+        areaId: 'area-biblioteca',
+        ubicacionId: 'ubicacion-biblioteca-101',
+        operadorId: 'op-1',
+        fechaInicio: '2026-01-15T10:00:00.000Z',
+        fechaCierre: '2026-01-15T10:30:00.000Z',
+        estado: 'recibido' as const,
+        creadoEn: '2026-01-15T10:30:05.000Z',
+        escaneos: [],
+      };
+      sesionRepository.findDetalle.mockResolvedValue(detalle);
+
+      await expect(service.obtenerDetalle('sesion-1')).resolves.toBe(detalle);
+    });
+
+    it('lanza 404 cuando la sesion no existe', async () => {
+      const { service, sesionRepository } = buildService();
+      sesionRepository.findDetalle.mockResolvedValue(null);
+
+      await expect(service.obtenerDetalle('sesion-x')).rejects.toThrow(
         NotFoundException,
       );
     });

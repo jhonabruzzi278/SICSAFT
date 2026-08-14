@@ -1,27 +1,28 @@
-# Project Metadata — Portal WEB SICSAFT (Fase 5, adelantado)
+# Project Metadata — Portal WEB SICSAFT (Fase 5)
 
 **Sistema:** Portal WEB SICSAFT (SYS-05) — `web/`
 **Ciclo:** ROADMAP.md Fase 5 — "Portal WEB mínimo"
 **Metodología:** AI-DLC (tercer sistema que lo adopta, después de `app-qr-sicsaft/aidlc-docs/` y
 `core/aidlc-docs/`)
-**Fecha:** 2026-08-13
-**Fase actual:** Inception — diseño adelantado por pedido explícito del usuario, **sin
-construirse todavía**.
+**Fecha:** 2026-08-13 (diseño), 2026-08-14 (primer incremento de código)
+**Fase actual:** Construction — login + módulo Activos implementados y verificados de punta a
+punta; resto de los módulos del MVP sin construir (ver `web/README.md` § Estado).
 
 ## Status
 
 - [x] Inception — requirements, historias, arquitectura, DOC-013 y un mockup visual diseñados en
-      esta sesión.
-- [ ] Construction — bloqueada: Fase 5 depende de Fase 3 (CIS real) y Fase 4 (Administrador
-      Patrimonial), ninguna de las dos existe todavía.
+      la sesión de Fase 2.
+- [x] Construction — en curso: login OIDC/PKCE real + módulo Activos (consulta + alta) ya
+      implementados y verificados contra Postgres real. Faltan Inventarios,
+      Áreas/Ubicaciones/Responsables, Auditoría, Contratos y el empaquetado Docker/CI.
 - [ ] Operations — pendiente.
 
 ## Por qué este directorio existe ahora, adelantado
 
 El usuario pidió explícitamente diseñar (no construir) el Portal WEB durante la sesión de diseño
-de Fase 2, para dejar la "parte visual" del ecosistema planificada de punta a punta. Es diseño
-puro — ningún archivo de `web/src/` existe todavía, y no debería existir hasta que Fase 3/4 estén
-resueltas (`web/README.md` § Depende de).
+de Fase 2, para dejar la "parte visual" del ecosistema planificada de punta a punta. El código
+empezó recién en la sesión del 2026-08-14, una vez que Fase 3 (CIS real) y Fase 4 (Administrador
+Patrimonial) ya estaban completas (`web/README.md` § Depende de).
 
 ## Quick Links
 

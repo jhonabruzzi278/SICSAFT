@@ -6,9 +6,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { jwtVerify, type JWTVerifyGetKey } from 'jose';
+import { jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
 import { ZITADEL_AUTH_CONFIG, ZITADEL_JWKS } from './zitadel-auth.constants';
 import type { ZitadelAuthConfig } from './zitadel-auth.config';
+
+// Claim de roles de Proyecto que Zitadel firma en el JWT — solo aparece si la app pidio el scope
+// reservado `urn:zitadel:iam:org:project:role:<rol>` o tiene "Assert Roles on Authentication"
+// habilitado (DOC-012 §2). Forma: { "<rol>": { "<organizacionId>": "<nombreOrg>" } }.
+const ZITADEL_PROJECT_ROLES_CLAIM = 'urn:zitadel:iam:org:project:roles';
 
 export interface ZitadelAuthContext {
   // `sub` del token — el operador ya fue autenticado por Zitadel, el CIS no valida credenciales.
@@ -17,6 +22,15 @@ export interface ZitadelAuthContext {
   // el CIS no emite un token propio (ver ADR-002: "el CIS, no el token" valida, no reemplaza).
   accessToken: string;
   expiresAt: string;
+  // Roles de Proyecto que Zitadel firmo, invertido de {rol: {orgId: orgName}} a
+  // {orgId: [rol, ...]} (vacio si el claim no viene — la mayoria de los requests no lo
+  // necesitan). El rol es de Proyecto pero asignado por organizacion (DOC-012 §2) — perder ese
+  // contexto y exponer solo una lista plana de nombres de rol le habria permitido a un
+  // administrador-patrimonial de la Organizacion A escribir sobre activos de la Organizacion B
+  // (hallazgo real de la revision de seguridad de este mismo incremento). CIS solo certifica que
+  // Zitadel firmo el rol en esa organizacion, nunca decide autorizacion con esto — esa decision
+  // es de CORE (DOC-012 §3, WAF §3 cero confianza entre niveles).
+  rolesPorOrganizacion: Record<string, string[]>;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -60,8 +74,34 @@ export class ZitadelAuthGuard implements CanActivate {
       operadorId: payload.sub,
       accessToken: token,
       expiresAt: new Date(payload.exp * 1000).toISOString(),
+      rolesPorOrganizacion: this.extractRolesPorOrganizacion(payload),
     };
     return true;
+  }
+
+  // Invierte { "<rol>": { "<organizacionId>": "<nombreOrg>" } } a
+  // { "<organizacionId>": ["<rol>", ...] } — la forma que necesita el chequeo de autorizacion en
+  // CORE (verificarRolAdministradorPatrimonial, DOC-012 §3), que siempre valida contra la
+  // organizacion del recurso objetivo, nunca solo "¿tiene el rol en algun lado?".
+  private extractRolesPorOrganizacion(
+    payload: JWTPayload,
+  ): Record<string, string[]> {
+    const claim = payload[ZITADEL_PROJECT_ROLES_CLAIM];
+    if (!claim || typeof claim !== 'object') {
+      return {};
+    }
+    const resultado: Record<string, string[]> = {};
+    for (const [rol, organizaciones] of Object.entries(
+      claim as Record<string, unknown>,
+    )) {
+      if (!organizaciones || typeof organizaciones !== 'object') {
+        continue;
+      }
+      for (const organizacionId of Object.keys(organizaciones)) {
+        (resultado[organizacionId] ??= []).push(rol);
+      }
+    }
+    return resultado;
   }
 
   private extractBearerToken(header: string | undefined): string {

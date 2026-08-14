@@ -22,6 +22,16 @@ describe('ServiceTokenGuard', () => {
     expect(guard.canActivate(buildContext('secreto-compartido'))).toBe(true);
   });
 
+  it('marca request.serviceAuthenticated en true cuando el token es valido', () => {
+    const context = buildContext('secreto-compartido');
+    guard.canActivate(context);
+
+    const request = context
+      .switchToHttp()
+      .getRequest<{ serviceAuthenticated?: boolean }>();
+    expect(request.serviceAuthenticated).toBe(true);
+  });
+
   it('lanza 401 si falta el header', () => {
     expect(() => guard.canActivate(buildContext(undefined))).toThrow(
       UnauthorizedException,

@@ -1,5 +1,12 @@
 # DOC-008: Motor Patrimonial (alcance MVP — Fase 2)
 
+> **Actualización (Fase 4)**: alta/baja/reincorporación/cambio de responsable, dejadas fuera de
+> esta fase a propósito (ver abajo), **ya están implementadas** —
+> [`seguridad/DOC-012-administrador-patrimonial.md`](../../../seguridad/DOC-012-administrador-patrimonial.md)
+> §5, `src/patrimonial/activo-escritura.controller.ts`. Esta sección queda como registro de la
+> decisión original de alcance, no como estado actual — ver DOC-012 para el diseño real de esas
+> 4 operaciones.
+
 ## Alcance de esta fase
 
 Consulta, catálogo, verificación por inventario, cambio de ubicación/estado, traslado — **no**
@@ -31,10 +38,14 @@ cliente).
 No son parte de `POST /inventarios` (eso es verificación, no movimiento) — quedan modelados como
 la extensión natural de este motor pero **sin endpoint HTTP propio en esta fase**: no hay
 consumidor real todavía (ningún cliente de APP QR pide trasladar un activo hoy, ver
-`app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-001-flujo-oficial.md`). Se deja el método en el
-repository (`actualizarUbicacion`/`actualizarEstado`) porque el Motor de Eventos SÍ necesita
-poder generar el evento `traslado` cuando exista ese caso de uso — pero sin controller que lo
-exponga hasta que aparezca un consumidor (YAGNI, evita construir un endpoint sin quien lo llame).
+`app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-001-flujo-oficial.md`).
+
+**Corrección (2026-08-14, revisión de requisitos)**: esta sección decía "se deja el método en el
+repository" — verificado contra el código, `ActivoRepository` **no tiene** `actualizarUbicacion`
+ni `actualizarEstado` (búsqueda directa en `src/patrimonial/activo.repository.ts`, ningún
+resultado). Ninguna de las dos existe todavía, ni como scaffold — el diseño original de esta
+sección se adelantó a la implementación. YAGNI se sostiene: sin consumidor real, no vale la pena
+ni el scaffold — cuando aparezca uno, se construye el método y el controller juntos, no antes.
 
 ## Invariantes que valida (antes de escribir, no solo con un CHECK de Postgres)
 

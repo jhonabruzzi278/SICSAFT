@@ -1,14 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
 import { SERVICE_TOKEN_HEADER } from './../src/common/auth/service-token.guard';
 import type { CatalogoPagina } from './../src/patrimonial/activo.types';
 import type { PostInventarioResponse } from './../src/inventarios/inventarios.types';
-
-const SERVICE_TOKEN = 'secreto-compartido-e2e'; // igual al default de jest-e2e.setup.ts
+import { crearAppE2e, SERVICE_TOKEN } from './support/e2e-app';
 
 // Contra el seed real de base-patrimonial/DOC-005-modelo-patrimonial.md (migraciones
 // 1755100000001/1755200000000): DUOC UC / Melipilla, notebook (QR-000001) + proyector
@@ -38,12 +35,7 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    app = await crearAppE2e();
   });
 
   afterEach(async () => {
@@ -154,6 +146,173 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
         .post('/inventarios')
         .send(buildInventarioPayload())
         .expect(401);
+    });
+  });
+
+  describe('GET /inventarios (listado) + GET /inventarios/:id (detalle)', () => {
+    it('lista la sesion recien creada por organizacion y trae su detalle con escaneos', async () => {
+      const payload = buildInventarioPayload();
+      const creada = await request(app.getHttpServer())
+        .post('/inventarios')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(payload)
+        .expect(201);
+      const inventarioId = (creada.body as PostInventarioResponse).inventarioId;
+
+      const listaRes = await request(app.getHttpServer())
+        .get('/inventarios')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .query({ organizacionId: 'duoc-uc' })
+        .expect(200);
+
+      const sesiones = listaRes.body as Array<{ id: string; estado: string }>;
+      expect(sesiones.some((s) => s.id === inventarioId)).toBe(true);
+
+      const detalleRes = await request(app.getHttpServer())
+        .get(`/inventarios/${inventarioId}`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .expect(200);
+
+      const detalle = detalleRes.body as {
+        id: string;
+        estado: string;
+        escaneos: Array<{ codigoQr: string; resultado: string }>;
+      };
+      expect(detalle.id).toBe(inventarioId);
+      expect(detalle.estado).toBe('recibido');
+      expect(detalle.escaneos).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            codigoQr: 'QR-000001',
+            resultado: 'correcto',
+          }),
+          expect.objectContaining({
+            codigoQr: 'QR-NOPE',
+            resultado: 'no_registrado',
+          }),
+        ]),
+      );
+    });
+
+    it('GET /inventarios/:id de un id inexistente devuelve 404', async () => {
+      await request(app.getHttpServer())
+        .get('/inventarios/no-existe')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .expect(404);
+    });
+
+    it('devuelve 401 sin service token', async () => {
+      await request(app.getHttpServer())
+        .get('/inventarios')
+        .query({ organizacionId: 'duoc-uc' })
+        .expect(401);
+    });
+  });
+
+  describe('GET /auditoria', () => {
+    it('incluye la entrada registrada por el Orquestador al procesar un inventario', async () => {
+      const payload = buildInventarioPayload();
+      await request(app.getHttpServer())
+        .post('/inventarios')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(payload)
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .get('/auditoria')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .query({ usuario: 'op-e2e-1', limit: 100 })
+        .expect(200);
+
+      const pagina = res.body as {
+        entradas: Array<{
+          usuario: string;
+          operacion: string;
+          resultado: string;
+        }>;
+        total: number;
+      };
+      expect(pagina.entradas).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            usuario: 'op-e2e-1',
+            operacion: 'POST /inventarios',
+            resultado: 'recibido',
+          }),
+        ]),
+      );
+      expect(pagina.total).toBeGreaterThan(0);
+    });
+
+    it('filtra por usuario (ILIKE parcial) contra Postgres real', async () => {
+      const payload = buildInventarioPayload({
+        operadorId: 'op-e2e-filtro-usuario',
+        idempotencyKey: `idem-e2e-${randomUUID()}`,
+      });
+      await request(app.getHttpServer())
+        .post('/inventarios')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(payload)
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .get('/auditoria')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .query({ usuario: 'filtro-usuario', limit: 100 })
+        .expect(200);
+
+      const pagina = res.body as {
+        entradas: Array<{ usuario: string }>;
+        total: number;
+      };
+      expect(pagina.entradas.length).toBeGreaterThan(0);
+      expect(
+        pagina.entradas.every((e) => e.usuario.includes('filtro-usuario')),
+      ).toBe(true);
+      expect(pagina.total).toBeGreaterThan(0);
+    });
+
+    it('filtra por rango de fecha excluyendo entradas fuera de rango', async () => {
+      const payload = buildInventarioPayload({
+        operadorId: 'op-e2e-filtro-fecha',
+        idempotencyKey: `idem-e2e-${randomUUID()}`,
+      });
+      await request(app.getHttpServer())
+        .post('/inventarios')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(payload)
+        .expect(201);
+
+      const enElFuturo = await request(app.getHttpServer())
+        .get('/auditoria')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .query({
+          usuario: 'filtro-fecha',
+          fechaDesde: '2099-01-01T00:00:00.000Z',
+        })
+        .expect(200);
+      const paginaFutura = enElFuturo.body as {
+        entradas: unknown[];
+        total: number;
+      };
+      expect(paginaFutura.entradas).toEqual([]);
+      expect(paginaFutura.total).toBe(0);
+
+      const ahora = await request(app.getHttpServer())
+        .get('/auditoria')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .query({
+          usuario: 'filtro-fecha',
+          fechaDesde: '2020-01-01T00:00:00.000Z',
+        })
+        .expect(200);
+      const paginaActual = ahora.body as { entradas: unknown[]; total: number };
+      expect(paginaActual.entradas.length).toBeGreaterThan(0);
+      expect(paginaActual.total).toBeGreaterThan(0);
+    });
+
+    it('devuelve 401 sin service token', async () => {
+      await request(app.getHttpServer()).get('/auditoria').expect(401);
     });
   });
 });

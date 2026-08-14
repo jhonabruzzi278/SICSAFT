@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -17,14 +18,49 @@ import type { CoreClientConfig } from './core-client.config';
 import { CircuitBreaker, CircuitOpenError } from './circuit-breaker';
 import { withRetry } from './retry';
 import {
+  activoResponseSchema,
+  areaResponseSchema,
+  areasPaginaResponseSchema,
+  auditoriaPaginaResponseSchema,
   catalogoResponseSchema,
+  contratoResponseSchema,
+  contratosPaginaResponseSchema,
   entitlementsResponseSchema,
   inventarioEstadoResponseSchema,
   postInventarioResponseSchema,
+  responsableResponseSchema,
+  responsablesPaginaResponseSchema,
+  sesionDetalleResponseSchema,
+  sesionesResumenResponseSchema,
+  ubicacionResponseSchema,
+  ubicacionesPaginaResponseSchema,
+  type ActivoResult,
+  type AreaResult,
+  type AreasPaginaResult,
+  type AuditoriaFiltro,
+  type AuditoriaPaginaResult,
   type CatalogoResult,
+  type ContratoResult,
+  type ContratosPaginaResult,
   type EntitlementsResult,
   type InventarioEstadoResult,
+  type Paginacion,
+  type PatchAreaRequest,
+  type PatchContratoRequest,
+  type PatchResponsableEstadoRequest,
+  type PatchUbicacionRequest,
+  type PostActivoRequest,
+  type PostAreaRequest,
+  type PostContratoRequest,
   type PostInventarioResult,
+  type PostResponsableRequest,
+  type PostUbicacionRequest,
+  type ResponsableResult,
+  type ResponsablesPaginaResult,
+  type SesionDetalleResult,
+  type SesionResumenResult,
+  type UbicacionResult,
+  type UbicacionesPaginaResult,
 } from './core-client.types';
 import { CORRELATION_ID_HEADER } from '../common/correlation-id/correlation-id.constants';
 import type {
@@ -87,6 +123,65 @@ export class CoreClientService {
     return this.parse(postInventarioResponseSchema, data, 'inventarios');
   }
 
+  // DOC-012 §5 — proxy hacia POST /activos de CORE (escritura oficial). A diferencia de
+  // postInventario, acá se propaga tambien un 403 (falta el rol administrador-patrimonial en esa
+  // organizacion) ademas de 400/409 — DOC-012 §8 exige que el 403 llegue tal cual, no colapsado a
+  // 502, para que WEB pueda distinguir "sin permiso" de "CORE caido".
+  async postActivo(
+    request: PostActivoRequest,
+    correlationId: string,
+  ): Promise<ActivoResult> {
+    const data = await this.post('/activos', request, correlationId, {
+      passthroughStatuses: [400, 403, 409],
+    });
+    return this.parse(activoResponseSchema, data, 'activos');
+  }
+
+  // DOC-012 §4/§7 — GET /contratos es lectura abierta (mismo criterio que getCatalogo), sin
+  // passthroughStatuses especiales: no hay 403 posible en este endpoint (CORE no exige el rol
+  // para leer). Paginado (RNF-01, cierra el gap).
+  async getContratos(
+    paginacion: Paginacion,
+    correlationId: string,
+  ): Promise<ContratosPaginaResult> {
+    const data = await this.get(
+      '/contratos',
+      { limit: paginacion.limit, offset: paginacion.offset },
+      correlationId,
+    );
+    return this.parse(contratosPaginaResponseSchema, data, 'contratos');
+  }
+
+  // DOC-012 §7 — proxy hacia POST /contratos de CORE (escritura oficial), mismo criterio de
+  // passthroughStatuses que postActivo (400/403/409).
+  async postContrato(
+    request: PostContratoRequest,
+    correlationId: string,
+  ): Promise<ContratoResult> {
+    const data = await this.post('/contratos', request, correlationId, {
+      passthroughStatuses: [400, 403, 409],
+    });
+    return this.parse(contratoResponseSchema, data, 'contratos');
+  }
+
+  // DOC-012 §7 — proxy hacia PATCH /contratos/:id de CORE. A diferencia de postActivo, acá
+  // también se propaga un 404 legítimo del negocio (contrato inexistente o de otra organización,
+  // ver DOC-012 §3.2) — el 404 ya se propaga sin pedirlo explícito (ver callCore), pero se lista
+  // en passthroughStatuses igual para que quede documentado junto al resto de esta llamada.
+  async patchContrato(
+    contratoId: string,
+    request: PatchContratoRequest,
+    correlationId: string,
+  ): Promise<ContratoResult> {
+    const data = await this.patch(
+      `/contratos/${encodeURIComponent(contratoId)}`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 409] },
+    );
+    return this.parse(contratoResponseSchema, data, 'contratos');
+  }
+
   async getInventarioEstado(
     inventarioId: string,
     correlationId: string,
@@ -103,9 +198,177 @@ export class CoreClientService {
     );
   }
 
+  // RF-04 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos.
+  async getInventarios(
+    organizacionId: string,
+    correlationId: string,
+  ): Promise<SesionResumenResult[]> {
+    const data = await this.get(
+      '/inventarios',
+      { organizacionId },
+      correlationId,
+    );
+    return this.parse(sesionesResumenResponseSchema, data, 'inventarios');
+  }
+
+  async getInventarioDetalle(
+    inventarioId: string,
+    correlationId: string,
+  ): Promise<SesionDetalleResult> {
+    const data = await this.get(
+      `/inventarios/${encodeURIComponent(inventarioId)}`,
+      undefined,
+      correlationId,
+    );
+    return this.parse(sesionDetalleResponseSchema, data, 'inventarios/detalle');
+  }
+
+  // RF-06 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos. Paginado
+  // (RNF-01, cierra el gap).
+  async getAuditoria(
+    filtro: AuditoriaFiltro,
+    correlationId: string,
+  ): Promise<AuditoriaPaginaResult> {
+    const data = await this.get(
+      '/auditoria',
+      {
+        usuario: filtro.usuario,
+        operacion: filtro.operacion,
+        fechaDesde: filtro.fechaDesde,
+        fechaHasta: filtro.fechaHasta,
+        limit: filtro.limit,
+        offset: filtro.offset,
+      },
+      correlationId,
+    );
+    return this.parse(auditoriaPaginaResponseSchema, data, 'auditoria');
+  }
+
+  // RF-05 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos. Paginado
+  // (RNF-01, cierra el gap).
+  async getAreas(
+    organizacionId: string,
+    paginacion: Paginacion,
+    correlationId: string,
+  ): Promise<AreasPaginaResult> {
+    const data = await this.get(
+      '/areas',
+      { organizacionId, limit: paginacion.limit, offset: paginacion.offset },
+      correlationId,
+    );
+    return this.parse(areasPaginaResponseSchema, data, 'areas');
+  }
+
+  // RF-05 — escritura oficial, mismo criterio de passthroughStatuses que postActivo.
+  async postArea(
+    request: PostAreaRequest,
+    correlationId: string,
+  ): Promise<AreaResult> {
+    const data = await this.post('/areas', request, correlationId, {
+      passthroughStatuses: [400, 403, 409],
+    });
+    return this.parse(areaResponseSchema, data, 'areas');
+  }
+
+  // RF-05 (cierra el gap "ABM completo") — PATCH /areas/:id. Sin 404 en passthroughStatuses:
+  // callCore ya lo traduce a NotFoundException antes de mirar la lista (mismo criterio que
+  // patchContrato/patchResponsableEstado).
+  async patchArea(
+    areaId: string,
+    request: PatchAreaRequest,
+    correlationId: string,
+  ): Promise<AreaResult> {
+    const data = await this.patch(
+      `/areas/${encodeURIComponent(areaId)}`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 409] },
+    );
+    return this.parse(areaResponseSchema, data, 'areas');
+  }
+
+  // Paginado (RNF-01, cierra el gap).
+  async getUbicaciones(
+    sedeId: string,
+    paginacion: Paginacion,
+    correlationId: string,
+  ): Promise<UbicacionesPaginaResult> {
+    const data = await this.get(
+      '/ubicaciones',
+      { sedeId, limit: paginacion.limit, offset: paginacion.offset },
+      correlationId,
+    );
+    return this.parse(ubicacionesPaginaResponseSchema, data, 'ubicaciones');
+  }
+
+  async postUbicacion(
+    request: PostUbicacionRequest,
+    correlationId: string,
+  ): Promise<UbicacionResult> {
+    const data = await this.post('/ubicaciones', request, correlationId, {
+      passthroughStatuses: [400, 403, 409],
+    });
+    return this.parse(ubicacionResponseSchema, data, 'ubicaciones');
+  }
+
+  // RF-05 (cierra el gap "ABM completo") — PATCH /ubicaciones/:id.
+  async patchUbicacion(
+    ubicacionId: string,
+    request: PatchUbicacionRequest,
+    correlationId: string,
+  ): Promise<UbicacionResult> {
+    const data = await this.patch(
+      `/ubicaciones/${encodeURIComponent(ubicacionId)}`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 409] },
+    );
+    return this.parse(ubicacionResponseSchema, data, 'ubicaciones');
+  }
+
+  // Paginado (RNF-01, cierra el gap).
+  async getResponsables(
+    areaId: string,
+    paginacion: Paginacion,
+    correlationId: string,
+  ): Promise<ResponsablesPaginaResult> {
+    const data = await this.get(
+      '/responsables',
+      { areaId, limit: paginacion.limit, offset: paginacion.offset },
+      correlationId,
+    );
+    return this.parse(responsablesPaginaResponseSchema, data, 'responsables');
+  }
+
+  async postResponsable(
+    request: PostResponsableRequest,
+    correlationId: string,
+  ): Promise<ResponsableResult> {
+    const data = await this.post('/responsables', request, correlationId, {
+      passthroughStatuses: [400, 403, 409],
+    });
+    return this.parse(responsableResponseSchema, data, 'responsables');
+  }
+
+  async patchResponsableEstado(
+    responsableId: string,
+    request: PatchResponsableEstadoRequest,
+    correlationId: string,
+  ): Promise<ResponsableResult> {
+    const data = await this.patch(
+      `/responsables/${encodeURIComponent(responsableId)}/estado`,
+      request,
+      correlationId,
+      // Sin 404 acá a proposito: callCore ya lo traduce a NotFoundException antes de mirar
+      // passthroughStatuses (mismo criterio que patchContrato).
+      { passthroughStatuses: [400, 403, 409] },
+    );
+    return this.parse(responsableResponseSchema, data, 'responsables');
+  }
+
   private async get(
     path: string,
-    params: Record<string, string | undefined> | undefined,
+    params: Record<string, string | number | undefined> | undefined,
     correlationId: string,
   ): Promise<unknown> {
     return this.callCore(path, correlationId, () =>
@@ -120,6 +383,9 @@ export class CoreClientService {
     path: string,
     body: unknown,
     correlationId: string,
+    options: { passthroughStatuses: number[] } = {
+      passthroughStatuses: [400, 409],
+    },
   ): Promise<unknown> {
     return this.callCore(
       path,
@@ -128,7 +394,24 @@ export class CoreClientService {
         this.httpService.axiosRef.post(`${this.config.baseUrl}${path}`, body, {
           headers: this.headers(correlationId),
         }),
-      { passthroughStatuses: [400, 409] },
+      options,
+    );
+  }
+
+  private async patch(
+    path: string,
+    body: unknown,
+    correlationId: string,
+    options: { passthroughStatuses: number[] },
+  ): Promise<unknown> {
+    return this.callCore(
+      path,
+      correlationId,
+      () =>
+        this.httpService.axiosRef.patch(`${this.config.baseUrl}${path}`, body, {
+          headers: this.headers(correlationId),
+        }),
+      options,
     );
   }
 
@@ -191,6 +474,9 @@ export class CoreClientService {
   private passthroughError(status: number, body: unknown): Error {
     if (status === 400) {
       return new BadRequestException(body);
+    }
+    if (status === 403) {
+      return new ForbiddenException(body);
     }
     return new ConflictException(body);
   }

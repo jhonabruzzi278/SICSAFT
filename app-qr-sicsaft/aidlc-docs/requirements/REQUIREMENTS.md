@@ -1,5 +1,11 @@
 # Requirements
 
+> Alcance original: MVP demo standalone (IndexedDB local, sin backend). El flujo de captura real
+> del ecosistema hoy es TASK-007 (`HttpQrConnectorClient` contra CIS/CORE, ROADMAP.md Fase 3) —
+> superó este MVP; esta tabla queda como registro histórico de la demo inicial, no describe el
+> comportamiento actual de `app-qr-sicsaft/`. Ver `REQUISITOS.md` (raíz del repo) para el índice
+> consolidado de todo el ecosistema.
+
 ## Functional Requirements (extraídos del brief del usuario)
 
 | ID | Requisito | Estado |
