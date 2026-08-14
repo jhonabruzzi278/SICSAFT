@@ -119,6 +119,69 @@ export interface AuditoriaEntrada {
   observaciones: string | null;
 }
 
+// RF-05 — Area/Ubicacion/Responsable (DOC-005 §2/§3).
+export interface Area {
+  id: string;
+  organizacionId: string;
+  codigo: string;
+  nombre: string;
+  dependencia: string | null;
+  centroCosto: string | null;
+  responsableId: string | null;
+  ubicacionPrincipalId: string | null;
+}
+
+export interface AltaAreaInput {
+  organizacionId: string;
+  codigo: string;
+  nombre: string;
+  dependencia?: string;
+  centroCosto?: string;
+}
+
+export interface Ubicacion {
+  id: string;
+  sedeId: string;
+  edificio: string | null;
+  piso: string | null;
+  areaId: string | null;
+  oficina: string | null;
+  dependencia: string | null;
+}
+
+export interface AltaUbicacionInput {
+  organizacionId: string;
+  sedeId: string;
+  edificio?: string;
+  piso?: string;
+  areaId?: string;
+  oficina?: string;
+  dependencia?: string;
+}
+
+export type EstadoResponsable = 'activo' | 'inactivo';
+
+export interface Responsable {
+  id: string;
+  identificacion: string;
+  nombre: string;
+  cargo: string | null;
+  areaId: string;
+  correo: string | null;
+  telefono: string | null;
+  estado: EstadoResponsable;
+}
+
+export interface AltaResponsableInput {
+  organizacionId: string;
+  identificacion: string;
+  nombre: string;
+  cargo?: string;
+  areaId: string;
+  correo?: string;
+  telefono?: string;
+}
+
 export class CisApiError extends Error {
   constructor(
     public readonly status: number,
@@ -226,6 +289,60 @@ export const cisClient = {
   async getAuditoria(): Promise<AuditoriaEntrada[]> {
     const res = await authorizedFetch('/admin/auditoria');
     return (await res.json()) as AuditoriaEntrada[];
+  },
+
+  async getAreas(organizacionId: string): Promise<Area[]> {
+    const params = new URLSearchParams({ organizacionId });
+    const res = await authorizedFetch(`/admin/areas?${params.toString()}`);
+    return (await res.json()) as Area[];
+  },
+
+  async altaArea(input: AltaAreaInput): Promise<Area> {
+    const res = await authorizedFetch('/admin/areas', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return (await res.json()) as Area;
+  },
+
+  async getUbicaciones(sedeId: string): Promise<Ubicacion[]> {
+    const params = new URLSearchParams({ sedeId });
+    const res = await authorizedFetch(`/admin/ubicaciones?${params.toString()}`);
+    return (await res.json()) as Ubicacion[];
+  },
+
+  async altaUbicacion(input: AltaUbicacionInput): Promise<Ubicacion> {
+    const res = await authorizedFetch('/admin/ubicaciones', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return (await res.json()) as Ubicacion;
+  },
+
+  async getResponsables(areaId: string): Promise<Responsable[]> {
+    const params = new URLSearchParams({ areaId });
+    const res = await authorizedFetch(`/admin/responsables?${params.toString()}`);
+    return (await res.json()) as Responsable[];
+  },
+
+  async altaResponsable(input: AltaResponsableInput): Promise<Responsable> {
+    const res = await authorizedFetch('/admin/responsables', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return (await res.json()) as Responsable;
+  },
+
+  async actualizarEstadoResponsable(
+    responsableId: string,
+    organizacionId: string,
+    estado: EstadoResponsable,
+  ): Promise<Responsable> {
+    const res = await authorizedFetch(
+      `/admin/responsables/${encodeURIComponent(responsableId)}/estado`,
+      { method: 'PATCH', body: JSON.stringify({ organizacionId, estado }) },
+    );
+    return (await res.json()) as Responsable;
   },
 };
 

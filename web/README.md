@@ -6,14 +6,17 @@ es la app móvil de captura). Consume datos vía CIS/CORE — nunca le habla a C
 negociable de `CLAUDE.md`).
 
 ## Estado
-🟡 En desarrollo — login OIDC/PKCE real contra Zitadel + módulos **Activos** (consulta + alta),
-**Contratos** (consulta + alta + cambio de estado), **Inventarios** (consulta de sesiones +
-detalle de escaneos) y **Auditoría** (consulta, solo lectura, sin filtro por organización — ver
-"Gaps" abajo), verificados contra Postgres real (Activos/Contratos/Inventarios de punta a punta;
-Auditoría verificada por los e2e de CORE/CIS, sin login real de navegador todavía — ver
-`cis/README.md` § Fase 5 y `devops/local/README.md` § "Cliente OIDC real (WEB)"). Diseño AI-DLC
-completo para el resto del MVP en [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md)
-(requirements, historias, arquitectura, [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)).
+🟢 Los 6 módulos del MVP de Fase 5 implementados — login OIDC/PKCE real contra Zitadel +
+**Activos** (consulta + alta), **Contratos** (consulta + alta + cambio de estado),
+**Inventarios** (consulta de sesiones + detalle de escaneos), **Auditoría** (consulta, solo
+lectura, sin filtro por organización — ver "Gaps" abajo) y **Áreas/Ubicaciones/Responsables**
+(ABM, el único que no reusaba infraestructura ya construida). Activos/Contratos/Inventarios
+verificados de punta a punta contra Postgres real (login real de navegador incluido); Auditoría y
+Áreas/Ubicaciones/Responsables verificados con unit + e2e reales contra Postgres (CORE y CIS), sin
+login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/local/README.md`
+§ "Cliente OIDC real (WEB)". Diseño AI-DLC completo en
+[`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) (requirements, historias, arquitectura,
+[DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)).
 
 **Qué existe hoy** (`src/`):
 - `lib/oidc/` — cliente OIDC authorization code + PKCE, puerto por puerto idéntico al patrón ya
@@ -45,6 +48,17 @@ completo para el resto del MVP en [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA
   Activos/Contratos/Inventarios, no vive dentro del flujo por-organización del hub, sino como link
   directo en el header (`AppShell`), porque la tabla `auditoria` de CORE no tiene `organizacionId`
   (ver "Gaps" abajo).
+- `pages/EstructuraPage.tsx` — RF-05: ABM de Área/Ubicación/Responsable, tres secciones en una
+  pantalla (tabla + alta cada una, `GET/POST /admin/areas`, `GET/POST /admin/ubicaciones`,
+  `GET/POST /admin/responsables` + `PATCH /admin/responsables/:id/estado`, todos nuevos en
+  CIS/CORE). El orden de las secciones sigue la dependencia real: Ubicaciones necesita elegir una
+  sede (tomada de `organizacion.sedes` del mismo `POST /auth/session` que ya usa el hub) y
+  Responsables necesita elegir un Área ya creada (`areaId` es obligatorio, no hay responsable sin
+  área) — por eso Áreas va primero y alimenta el selector de las otras dos secciones. Sin edición
+  de Área/Ubicación ni asignación de `responsable_id`/`ubicacion_principal_id` a un Área (DOC-005
+  §2 documenta ese ciclo como "sin ciclo estricto de creación", intencionalmente diferido — ver
+  `core/README.md`). La "baja" de un Responsable es cambiar su `estado` a `inactivo` (nunca un
+  DELETE, mismo criterio que Activo/Contrato) — el botón alterna activo/inactivo en la tabla.
 
 **Decisiones de esta primera versión, distintas del diseño original de `ARCHITECTURE.md`**:
 - Sin `shadcn/ui`/`radix-ui` — primitivos propios en `components/ui.tsx` (Tailwind v4 + los
@@ -90,11 +104,20 @@ completo para el resto del MVP en [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA
   requiere una migración nueva (columna + índice) y threading de `organizacionId` a través de cada
   llamada a `AuditoriaRepository.registrar` en `OrquestadorService`, deliberadamente fuera de
   alcance de este incremento (ver DOC-011).
+- **RF-05 (Área/Ubicación/Responsable)** no existía ni en CORE ni en CIS — módulo nuevo
+  `core/src/estructura/` (repositories + `EscrituraEstructuraService`, invocado desde
+  `OrquestadorService` con el mismo patrón de autorización+auditoría que Activo/Contrato) y puente
+  nuevo en `AdministradorController`/`AdministradorService` de CIS. `Ubicacion`/`Responsable` no
+  tienen columna `organizacionId` propia (`sede_id`/`area_id` respectivamente) — la escritura
+  cruza esas referencias contra `organizacionId` antes de insertar (defensa en profundidad, mismo
+  criterio que `ActivoRepository` con activos de otra organización, DOC-012 §3) en vez de confiar
+  solo en la FK de Postgres, que no distinguiría una sede/área real pero de otra organización.
 
 ## Módulos previstos
-6 en el MVP de Fase 5 (ver [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)): Activos
-(🟢), Contratos (🟢), Inventarios (🟢), hub (🟢), Auditoría (🟢, sin filtro por organización — ver
-"Gaps" arriba), Áreas/Ubicaciones/Responsables. El
+6 en el MVP de Fase 5 (ver [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)) — los 6
+implementados: Activos (🟢), Contratos (🟢), Inventarios (🟢), hub (🟢), Auditoría (🟢, sin filtro
+por organización — ver "Gaps" arriba), Áreas/Ubicaciones/Responsables (🟢, sin edición de
+Área/Ubicación ni asignación `responsable_id`/`ubicacion_principal_id` — ver "Qué existe hoy"). El
 resto — Dashboard, Incidencias, Movimientos, QR, RFID, Documentos, Reportes, Usuarios, Roles,
 Configuración, Integraciones — queda para después, sin diseñar todavía (sin consumidor real).
 
@@ -112,9 +135,9 @@ npm run dev            # http://localhost:5174
 ```
 
 ## Depende de
-CORE (escritura oficial de `Activo`/`Contrato`, Fase 4 — ✅) y CIS (autenticación real + puente de
-escritura, `src/administrador/` — ✅). Para el módulo que falta: los endpoints de escritura de
-Áreas/Ubicaciones/Responsables siguen sin existir ni en CORE ni en CIS (DOC-013 §3).
+CORE (escritura oficial de `Activo`/`Contrato`/`Area`/`Ubicacion`/`Responsable`, Fases 4/5 — ✅) y
+CIS (autenticación real + puente de escritura, `src/administrador/` — ✅). Sin dependencias
+pendientes para el MVP de Fase 5.
 
 ## Bloquea
 Nada crítico.
@@ -128,6 +151,13 @@ Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §8 (WEB y APP QR son clientes
 del mismo contrato de CIS/CORE).
 
 ## Próximo paso sugerido
-Áreas/Ubicaciones/Responsables (RF-05) es el único módulo del MVP que falta y el que más esfuerzo
-real requiere: no existe ningún endpoint de escritura todavía, ni en CORE ni en CIS (a diferencia
-de Inventarios/Contratos/Auditoría, que reusaron o extendieron infraestructura ya construida).
+Los 6 módulos del MVP de Fase 5 están implementados. Lo que queda, en orden de valor:
+1. Verificación real de punta a punta de Auditoría y Áreas/Ubicaciones/Responsables desde el
+   navegador (login real, como ya se hizo con Activos/Contratos/Inventarios) — hoy solo están
+   probados con e2e de CORE/CIS.
+2. e2e Playwright del flujo de login + alta (anotado como pendiente desde Fase 5 inicial).
+3. Dockerfile/`web-ci.yml`/servicio en el compose local — WEB sigue corriendo solo con
+   `npm run dev` fuera de Docker.
+4. Cerrar los gaps documentados: edición de Área/Ubicación, asignación de
+   `responsable_id`/`ubicacion_principal_id` a un Área, y filtro por organización en
+   `GET /auditoria`.

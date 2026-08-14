@@ -294,7 +294,7 @@ toda escritura queda en Auditoría con usuario/IP/operación/resultado ✅; impo
 mismo archivo no duplica ni borra nada ✅ (verificado e2e); `seguridad/README.md` y
 `ARQUITECTURA-WAF.md` §11 actualizados ✅.
 
-## Fase 5 — Portal WEB mínimo 🟡 en curso
+## Fase 5 — Portal WEB mínimo ✅ 6/6 módulos implementados
 
 **Por qué acá**: `web/README.md` dice "depende de CORE MVP + CIS real" — ambos existen recién
 después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita exponer.
@@ -303,7 +303,7 @@ después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita e
 — requirements, historias, DOC-013 y un mockup visual (hub + Activos + Contratos, paleta
 `BRAND.md`), diseñado adelantado por pedido explícito del usuario en la misma sesión de Fase 2.
 
-**Qué se construyó** (2026-08-14, tres incrementos)
+**Qué se construyó** (2026-08-14, cuatro incrementos)
 - ✅ Vite/React (ADR-001, sin shadcn/ui en esta primera versión — ver `web/README.md` §
   "Decisiones") con OIDC authorization code + PKCE real contra Zitadel — app OIDC propia
   `web-sicsaft` en el mismo proyecto "CIS", ver `devops/local/README.md` § "Cliente OIDC real
@@ -330,10 +330,23 @@ después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita e
   una migración nueva más threading de `organizacionId` por cada llamada a
   `AuditoriaRepository.registrar` en `OrquestadorService`, deliberadamente fuera de alcance de
   este incremento.
+- ✅ Módulo **Áreas/Ubicaciones/Responsables** completo (ABM, RF-05, el único módulo del MVP que
+  no reusaba infraestructura ya construida — sin ningún endpoint previo ni en CORE ni en CIS).
+  Módulo nuevo `core/src/estructura/` (repositories + `EscrituraEstructuraService`, invocado desde
+  `OrquestadorService` con el mismo patrón de autorización+auditoría que Activo/Contrato) + puente
+  nuevo en `AdministradorController`/`AdministradorService` de CIS. `Ubicacion`/`Responsable` no
+  tienen columna `organizacionId` propia (`sede_id`/`area_id` respectivamente, DOC-005 §2) — la
+  escritura cruza esas referencias contra `organizacionId` con una consulta previa antes de
+  insertar (defensa en profundidad, mismo criterio que `ActivoRepository` con activos de otra
+  organización — una FK de Postgres por sí sola no distingue una sede/área real pero de otra
+  organización). Sin edición de Área/Ubicación ni asignación de
+  `responsable_id`/`ubicacion_principal_id` a un Área — DOC-005 §2 documenta ese ciclo como "sin
+  ciclo estricto de creación", deliberadamente fuera de alcance de este incremento. La "baja" de
+  un Responsable es cambiar su `estado` a `inactivo` (nunca un DELETE, Tomo III §4.10).
 - ✅ Hub (RF-02): lista organizaciones con contrato vigente vía `POST /auth/session`, con tarjetas
-  por módulo implementado (Activos, Contratos, Inventarios); Auditoría vive fuera del flujo por
-  organización, como link directo en el header (no depende de qué organización esté seleccionada).
-- ⬜ Áreas/Ubicaciones/Responsables — sin construir (único módulo del MVP que falta).
+  por módulo implementado (Activos, Contratos, Inventarios, Áreas/Ubicaciones/Responsables);
+  Auditoría vive fuera del flujo por organización, como link directo en el header (no depende de
+  qué organización esté seleccionada).
 - ⬜ Dockerfile/`web-ci.yml`/servicio en el compose local — sin empezar (se corre con `npm run dev`
   fuera de Docker, ver `web/README.md` § Desarrollo local).
 
@@ -360,10 +373,13 @@ probando el flujo real en el navegador, ninguno lo detectaban los tests unitario
 sesiones de inventario) y RF-07 (alta de Contrato + transición de estado, incluido el invariante
 DOC-004 §4 rechazando sedes ya cubiertas) — verificados real de punta a punta (login real →
 escritura/lectura real → Postgres real → visible en la UI), no solo con mocks. ✅ RF-06 (listado de
-auditoría, sin filtro por organización) — verificado con unit + e2e reales contra Postgres (CORE y
-CIS), sin login real de navegador todavía (a diferencia de RF-03/RF-04/RF-07). ⬜ e2e Playwright
-del flujo de login + alta — sin escribir todavía. ✅ `web/README.md`, `cis/README.md`,
-`core/README.md` y DOC-013 actualizados.
+auditoría, sin filtro por organización) y ✅ RF-05 (ABM de Área/Ubicación/Responsable, sin edición
+de Área/Ubicación ni asignación `responsable_id`/`ubicacion_principal_id`) — ambos verificados con
+unit + e2e reales contra Postgres (CORE y CIS), sin login real de navegador todavía (a diferencia
+de RF-03/RF-04/RF-07). Los 6 módulos del MVP de Fase 5 están implementados. ⬜ e2e Playwright del
+flujo de login + alta — sin escribir todavía. ⬜ Dockerfile/`web-ci.yml`/servicio en el compose
+local — WEB sigue corriendo solo con `npm run dev` fuera de Docker. ✅ `web/README.md`,
+`cis/README.md`, `core/README.md`, `README.md` y DOC-013 actualizados.
 
 ## Fase 6 — CIP: primer dashboard
 
@@ -472,7 +488,7 @@ Fase 0 (migraciones + correlationId + OIDC real) ✅
        └─ Fase 2 (CORE MVP: 4 motores + DOC-006) ✅
             └─ Fase 3 (CIS real + APP QR TASK-007) ✅ verificado real de punta a punta 2026-08-13
                  ├─ Fase 4 (Administrador Patrimonial + escritura oficial) ✅ completa
-                 │    ├─ Fase 5 (WEB mínimo) — diseño ✅, login + Activos ✅, resto de módulos pendiente
+                 │    ├─ Fase 5 (WEB mínimo) ✅ 6/6 módulos implementados
                  │    └─ Fase 7 (CON-CONTABILIDAD)   [pieza nueva]
                  └─ Fase 6 (CIP primer dashboard)
                       └─ Fase 8 (RFID — cierra Etapa 1)
