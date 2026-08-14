@@ -654,6 +654,39 @@ describe('CoreClientService', () => {
     });
   });
 
+  describe('getAuditoria', () => {
+    const entrada = {
+      id: 'audit-1',
+      usuario: 'op-1',
+      fecha: '2026-08-14T10:00:00.000Z',
+      equipo: null,
+      ip: null,
+      operacion: 'POST /inventarios',
+      resultado: 'recibido',
+      observaciones: null,
+    };
+
+    it('llama a GET {baseUrl}/auditoria', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse([entrada]));
+
+      await service.getAuditoria('corr-1');
+
+      expect(axiosGet).toHaveBeenCalledWith('http://core:3001/auditoria', {
+        params: undefined,
+        headers: {
+          'x-internal-service-token': 'secreto-compartido',
+          'x-correlation-id': 'corr-1',
+        },
+      });
+    });
+
+    it('devuelve las entradas cuando CORE responde una forma valida', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse([entrada]));
+
+      await expect(service.getAuditoria('corr-1')).resolves.toEqual([entrada]);
+    });
+  });
+
   describe('circuit breaker', () => {
     it('cuando el circuito esta abierto, lanza 502 sin llamar a axios', async () => {
       const breakerAbierto = {

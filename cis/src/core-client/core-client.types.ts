@@ -133,6 +133,21 @@ export const sesionDetalleResponseSchema = sesionResumenSchema.extend({
 });
 export type SesionDetalleResult = z.infer<typeof sesionDetalleResponseSchema>;
 
+// RF-06 (Fase 5, WEB) — contrato de GET /auditoria de CORE. Sin organizacionId (ver
+// core/src/auditoria/auditoria.types.ts): la tabla audita cualquier operacion del ecosistema.
+const auditoriaEntradaSchema = z.object({
+  id: z.string(),
+  usuario: z.string(),
+  fecha: z.string(),
+  equipo: z.string().nullable(),
+  ip: z.string().nullable(),
+  operacion: z.string(),
+  resultado: z.string(),
+  observaciones: z.string().nullable(),
+});
+export type AuditoriaEntradaResult = z.infer<typeof auditoriaEntradaSchema>;
+export const auditoriaResponseSchema = z.array(auditoriaEntradaSchema);
+
 export const activoResponseSchema = z.object({
   id: z.string(),
   codigoPatrimonial: z.string(),

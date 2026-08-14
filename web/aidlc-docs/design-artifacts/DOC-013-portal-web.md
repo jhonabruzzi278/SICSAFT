@@ -26,16 +26,18 @@ definir — ver §5, nota abierta).
 | Contratos ✅ | `contratos`/`contrato_sedes` (DOC-004) | ambas | `GET /admin/contratos` (CIS, nuevo, → `GET /contratos` en CORE, también nuevo); alta/estado = `POST /admin/contratos`/`PATCH /admin/contratos/:id` (CIS) → CORE (DOC-012 §7) |
 | Inventarios ✅ | `sesiones_inventario` + `inventarios` (DOC-006 §3) | — (solo lectura) | `GET /inventarios` (listado, CIS+CORE, nuevo) + `GET /inventarios/:id` (detalle, nuevo); `GET /inventarios/:id/estado` (ya existía) |
 | Áreas/Ubicaciones/Responsables | `areas`/`ubicaciones`/`responsables` (DOC-005) | las tres tablas | Sin endpoint todavía, ni en CIS ni en CORE |
-| Auditoría | `auditoria` (DOC-005) | — (solo lectura) | Sin endpoint todavía — `GET /auditoria`, mencionado como pendiente en DOC-011 |
+| Auditoría ✅ | `auditoria` (DOC-005) | — (solo lectura) | `GET /admin/auditoria` (CIS, nuevo, → `GET /auditoria` en CORE, también nuevo) |
 
 **Actualización (2026-08-14)**: Activos (consulta + alta), Contratos (consulta + alta +
-transición de estado) e Inventarios (consulta de sesiones + detalle de escaneos) ya tienen
-endpoint real de punta a punta e implementados en `web/`. Contratos necesitó agregar
-`GET /contratos` en CORE (no existía) y extender el puente CIS con `PATCH` (CORS solo permitía
-`GET`/`POST` hasta ese incremento). Inventarios necesitó agregar el listado (`GET /inventarios`)
-en CORE y CIS — el detalle por id ya existía pero exigía conocerlo de antemano. Solo
-Áreas/Ubicaciones/Responsables y Auditoría siguen sin ningún endpoint, en ningún nivel — son el
-resto del MVP.
+transición de estado), Inventarios (consulta de sesiones + detalle de escaneos) y Auditoría
+(consulta, solo lectura) ya tienen endpoint real e implementados en `web/`. Contratos necesitó
+agregar `GET /contratos` en CORE (no existía) y extender el puente CIS con `PATCH` (CORS solo
+permitía `GET`/`POST` hasta ese incremento). Inventarios necesitó agregar el listado
+(`GET /inventarios`) en CORE y CIS — el detalle por id ya existía pero exigía conocerlo de
+antemano. Auditoría necesitó el primer controller real sobre `AuditoriaRepository` (DOC-011 lo
+dejaba sin consumidor) — sin filtro por organización, porque `auditoria` no tiene
+`organizacionId` (gap conocido, ver `web/README.md` § "Gaps"). Solo Áreas/Ubicaciones/Responsables
+sigue sin ningún endpoint, en ningún nivel — es el único módulo que falta del MVP.
 
 ## 4. Autorización a nivel de módulo, no solo de ruta
 

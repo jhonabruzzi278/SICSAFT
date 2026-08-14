@@ -216,4 +216,39 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
         .expect(401);
     });
   });
+
+  describe('GET /auditoria', () => {
+    it('incluye la entrada registrada por el Orquestador al procesar un inventario', async () => {
+      const payload = buildInventarioPayload();
+      await request(app.getHttpServer())
+        .post('/inventarios')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(payload)
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .get('/auditoria')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .expect(200);
+
+      const entradas = res.body as Array<{
+        usuario: string;
+        operacion: string;
+        resultado: string;
+      }>;
+      expect(entradas).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            usuario: 'op-e2e-1',
+            operacion: 'POST /inventarios',
+            resultado: 'recibido',
+          }),
+        ]),
+      );
+    });
+
+    it('devuelve 401 sin service token', async () => {
+      await request(app.getHttpServer()).get('/auditoria').expect(401);
+    });
+  });
 });

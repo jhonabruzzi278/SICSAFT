@@ -7,8 +7,10 @@ negociable de `CLAUDE.md`).
 
 ## Estado
 🟡 En desarrollo — login OIDC/PKCE real contra Zitadel + módulos **Activos** (consulta + alta),
-**Contratos** (consulta + alta + cambio de estado) e **Inventarios** (consulta de sesiones +
-detalle de escaneos), los tres verificados de punta a punta contra Postgres real (ver
+**Contratos** (consulta + alta + cambio de estado), **Inventarios** (consulta de sesiones +
+detalle de escaneos) y **Auditoría** (consulta, solo lectura, sin filtro por organización — ver
+"Gaps" abajo), verificados contra Postgres real (Activos/Contratos/Inventarios de punta a punta;
+Auditoría verificada por los e2e de CORE/CIS, sin login real de navegador todavía — ver
 `cis/README.md` § Fase 5 y `devops/local/README.md` § "Cliente OIDC real (WEB)"). Diseño AI-DLC
 completo para el resto del MVP en [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md)
 (requirements, historias, arquitectura, [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)).
@@ -38,6 +40,11 @@ completo para el resto del MVP en [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA
   las consulta). Tabla de sesiones + panel de detalle (escaneos con su resultado) al hacer click
   en una fila. Requirió agregar `GET /inventarios` (listado) tanto en CORE como en CIS — antes
   solo existía `GET /inventarios/:id/estado`, que exige conocer el `id` de antemano.
+- `pages/AuditoriaPage.tsx` — RF-06: solo lectura, tabla de las 200 entradas más recientes
+  (`GET /admin/auditoria`, nuevo en CIS/CORE). Sin selector de organización — a diferencia de
+  Activos/Contratos/Inventarios, no vive dentro del flujo por-organización del hub, sino como link
+  directo en el header (`AppShell`), porque la tabla `auditoria` de CORE no tiene `organizacionId`
+  (ver "Gaps" abajo).
 
 **Decisiones de esta primera versión, distintas del diseño original de `ARCHITECTURE.md`**:
 - Sin `shadcn/ui`/`radix-ui` — primitivos propios en `components/ui.tsx` (Tailwind v4 + los
@@ -74,10 +81,20 @@ completo para el resto del MVP en [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA
   patrón que ya usaban los endpoints de escritura de Activo en CORE, y aplicado preventivamente a
   los nuevos endpoints de Inventarios) y cubierto con un e2e nuevo
   (`cis/test/administrador.e2e-spec.ts`) para que no vuelva a pasar desapercibido.
+- **`GET /auditoria` no filtra por organización** (gap conocido, sin resolver): la tabla
+  `auditoria` de CORE (DOC-005 §7) no tiene columna `organizacionId` — audita cualquier operación
+  del ecosistema, no solo las de una organización. `AuditoriaPage` en WEB muestra las 200 entradas
+  más recientes de **todo** el ecosistema a cualquier operador autenticado con contrato vigente en
+  alguna organización, sin importar cuál. Aceptado para este incremento porque el volumen real es
+  bajo (mismo criterio ya aplicado a `GET /contratos`, que tampoco filtra) — agregar el filtro
+  requiere una migración nueva (columna + índice) y threading de `organizacionId` a través de cada
+  llamada a `AuditoriaRepository.registrar` en `OrquestadorService`, deliberadamente fuera de
+  alcance de este incremento (ver DOC-011).
 
 ## Módulos previstos
 6 en el MVP de Fase 5 (ver [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)): Activos
-(🟢), Contratos (🟢), Inventarios (🟢), hub (🟢), Áreas/Ubicaciones/Responsables, Auditoría. El
+(🟢), Contratos (🟢), Inventarios (🟢), hub (🟢), Auditoría (🟢, sin filtro por organización — ver
+"Gaps" arriba), Áreas/Ubicaciones/Responsables. El
 resto — Dashboard, Incidencias, Movimientos, QR, RFID, Documentos, Reportes, Usuarios, Roles,
 Configuración, Integraciones — queda para después, sin diseñar todavía (sin consumidor real).
 
@@ -97,7 +114,7 @@ npm run dev            # http://localhost:5174
 ## Depende de
 CORE (escritura oficial de `Activo`/`Contrato`, Fase 4 — ✅) y CIS (autenticación real + puente de
 escritura, `src/administrador/` — ✅). Para el módulo que falta: los endpoints de escritura de
-Áreas/Ubicaciones/Responsables/Auditoría siguen sin existir ni en CORE ni en CIS (DOC-013 §3).
+Áreas/Ubicaciones/Responsables siguen sin existir ni en CORE ni en CIS (DOC-013 §3).
 
 ## Bloquea
 Nada crítico.
@@ -113,6 +130,4 @@ del mismo contrato de CIS/CORE).
 ## Próximo paso sugerido
 Áreas/Ubicaciones/Responsables (RF-05) es el único módulo del MVP que falta y el que más esfuerzo
 real requiere: no existe ningún endpoint de escritura todavía, ni en CORE ni en CIS (a diferencia
-de Inventarios/Contratos, que reusaron o extendieron infraestructura ya construida). Auditoría
-(RF-06, solo lectura) es más simple — requiere agregar `GET /auditoria` en CORE (mencionado como
-pendiente en DOC-011) y su puente en CIS.
+de Inventarios/Contratos/Auditoría, que reusaron o extendieron infraestructura ya construida).

@@ -12,6 +12,7 @@ import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 import type {
   ActivoResult,
+  AuditoriaEntradaResult,
   ContratoResult,
 } from '../core-client/core-client.types';
 import type {
@@ -63,6 +64,7 @@ describe('AdministradorController', () => {
             getContratos: jest.fn(),
             altaContrato: jest.fn(),
             actualizarEstadoContrato: jest.fn(),
+            getAuditoria: jest.fn(),
           },
         },
       ],
@@ -116,6 +118,28 @@ describe('AdministradorController', () => {
 
     await expect(controller.getContratos(request)).resolves.toEqual([CONTRATO]);
     expect(service.getContratos).toHaveBeenCalledWith(CORRELATION_ID);
+  });
+
+  it('getAuditoria delega en el service con el correlationId', async () => {
+    const entradas: AuditoriaEntradaResult[] = [
+      {
+        id: 'audit-1',
+        usuario: 'op-1',
+        fecha: '2026-08-14T10:00:00.000Z',
+        equipo: null,
+        ip: null,
+        operacion: 'POST /inventarios',
+        resultado: 'recibido',
+        observaciones: null,
+      },
+    ];
+    service.getAuditoria.mockResolvedValue(entradas);
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+
+    await expect(controller.getAuditoria(request)).resolves.toEqual(entradas);
+    expect(service.getAuditoria).toHaveBeenCalledWith(CORRELATION_ID);
   });
 
   it('altaContrato delega en el service con el body, el auth del guard y el correlationId', async () => {

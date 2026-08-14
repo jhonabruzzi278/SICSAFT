@@ -85,6 +85,16 @@ de listar qué sesiones existen. Ambos endpoints nuevos usan pipes por parámetr
 (`@Param(new ZodValidationPipe(...))`), no `@UsePipes()` de método — ver `cis/README.md` § Fase 5
 para el hallazgo real que motivó ese cuidado.
 
+**`GET /auditoria` (2026-08-14, para Fase 5/WEB, RF-06)**: `AuditoriaController`
+(`src/auditoria/`) — primer consumidor real del Motor de Auditoría (DOC-011 lo dejaba
+explícitamente sin controller, "sin consumidor"). `AuditoriaRepository.listar()` devuelve las 200
+entradas más recientes, más recientes primero. Lectura abierta, mismo criterio que `GET
+/contratos`: la tabla `auditoria` no tiene `organizacionId` (DOC-005 §7, audita cualquier
+operación del ecosistema, no solo las de una organización), así que no hay forma de exigir el rol
+contra una organización específica todavía — limitación conocida, documentada, no bloqueante para
+este incremento (mismo volumen bajo que justificó diferir el filtro por organización en
+`GET /contratos`).
+
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
 `docker compose up -d` desde `../devops/local` ya lo hace solo (el servicio `core-migrate` corre

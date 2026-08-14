@@ -19,6 +19,7 @@ import { CircuitBreaker, CircuitOpenError } from './circuit-breaker';
 import { withRetry } from './retry';
 import {
   activoResponseSchema,
+  auditoriaResponseSchema,
   catalogoResponseSchema,
   contratoResponseSchema,
   contratosResponseSchema,
@@ -28,6 +29,7 @@ import {
   sesionDetalleResponseSchema,
   sesionesResumenResponseSchema,
   type ActivoResult,
+  type AuditoriaEntradaResult,
   type CatalogoResult,
   type ContratoResult,
   type EntitlementsResult,
@@ -191,6 +193,12 @@ export class CoreClientService {
       correlationId,
     );
     return this.parse(sesionDetalleResponseSchema, data, 'inventarios/detalle');
+  }
+
+  // RF-06 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos.
+  async getAuditoria(correlationId: string): Promise<AuditoriaEntradaResult[]> {
+    const data = await this.get('/auditoria', undefined, correlationId);
+    return this.parse(auditoriaResponseSchema, data, 'auditoria');
   }
 
   private async get(

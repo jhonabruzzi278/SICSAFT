@@ -9,6 +9,7 @@ import { CoreClientService } from './../src/core-client/core-client.service';
 import { REDIS_CLIENT } from './../src/redis/redis.constants';
 import type {
   ActivoResult,
+  AuditoriaEntradaResult,
   ContratoResult,
 } from './../src/core-client/core-client.types';
 
@@ -33,6 +34,17 @@ const ACTIVO_STUB: ActivoResult = {
     marca: null,
     modelo: null,
   },
+};
+
+const AUDITORIA_STUB: AuditoriaEntradaResult = {
+  id: 'audit-1',
+  usuario: 'op-1',
+  fecha: '2026-08-14T10:00:00.000Z',
+  equipo: null,
+  ip: null,
+  operacion: 'POST /inventarios',
+  resultado: 'recibido',
+  observaciones: null,
 };
 
 const CONTRATO_STUB: ContratoResult = {
@@ -60,6 +72,7 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
     getContratos: jest.Mock;
     postContrato: jest.Mock;
     patchContrato: jest.Mock;
+    getAuditoria: jest.Mock;
   };
 
   beforeAll(() => {
@@ -93,6 +106,7 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
       patchContrato: jest
         .fn()
         .mockResolvedValue({ ...CONTRATO_STUB, estado: 'suspendido' }),
+      getAuditoria: jest.fn().mockResolvedValue([AUDITORIA_STUB]),
     };
 
     const redisClient = {
@@ -165,6 +179,21 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
         .expect(200);
 
       expect(res.body).toEqual([CONTRATO_STUB]);
+    });
+  });
+
+  describe('GET /admin/auditoria', () => {
+    it('devuelve las entradas sin exigir el rol de escritura', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/admin/auditoria')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .expect(200);
+
+      expect(res.body).toEqual([AUDITORIA_STUB]);
+    });
+
+    it('devuelve 401 sin Authorization', async () => {
+      await request(app.getHttpServer()).get('/admin/auditoria').expect(401);
     });
   });
 

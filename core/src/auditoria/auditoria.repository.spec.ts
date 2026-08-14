@@ -53,4 +53,43 @@ describe('AuditoriaRepository', () => {
       null,
     ]);
   });
+
+  describe('listar', () => {
+    it('devuelve las filas con fecha serializada a ISO, con el limite', async () => {
+      const fecha = new Date('2026-08-14T10:00:00.000Z');
+      const pool = {
+        query: jest.fn().mockResolvedValue({
+          rows: [
+            {
+              id: 'audit-1',
+              usuario: 'op-1',
+              fecha,
+              equipo: null,
+              ip: null,
+              operacion: 'POST /inventarios',
+              resultado: 'recibido',
+              observaciones: null,
+            },
+          ],
+        }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new AuditoriaRepository(pool);
+
+      const resultado = await repository.listar();
+
+      expect(resultado).toEqual([
+        {
+          id: 'audit-1',
+          usuario: 'op-1',
+          fecha: '2026-08-14T10:00:00.000Z',
+          equipo: null,
+          ip: null,
+          operacion: 'POST /inventarios',
+          resultado: 'recibido',
+          observaciones: null,
+        },
+      ]);
+      expect(pool.query).toHaveBeenCalledWith(expect.any(String), [200]);
+    });
+  });
 });

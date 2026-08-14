@@ -321,9 +321,19 @@ después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita e
   `GET /inventarios` (listado por organización) en CORE y CIS — `GET /inventarios/:id/estado`
   (Fase 2/3) ya existía pero exigía conocer el `id` de antemano, sin forma de listar qué sesiones
   hay.
+- ✅ Módulo **Auditoría** completo (consulta, RF-06, solo lectura, sin filtro por organización —
+  gap conocido, ver `web/README.md` § "Gaps"). Primer consumidor real de `AuditoriaRepository`
+  (DOC-011 lo dejaba sin controller, "sin consumidor todavía"): `GET /auditoria` nuevo en CORE
+  (200 entradas más recientes) + `GET /admin/auditoria` puente en CIS, mismo criterio de lectura
+  abierta que `GET /contratos`. Sin filtro por organización porque la tabla `auditoria` (DOC-005
+  §7) audita cualquier operación del ecosistema y no tiene columna `organizacionId` — agregarla es
+  una migración nueva más threading de `organizacionId` por cada llamada a
+  `AuditoriaRepository.registrar` en `OrquestadorService`, deliberadamente fuera de alcance de
+  este incremento.
 - ✅ Hub (RF-02): lista organizaciones con contrato vigente vía `POST /auth/session`, con tarjetas
-  por módulo implementado (Activos, Contratos, Inventarios).
-- ⬜ Áreas/Ubicaciones/Responsables, Auditoría — sin construir (únicos módulos del MVP que faltan).
+  por módulo implementado (Activos, Contratos, Inventarios); Auditoría vive fuera del flujo por
+  organización, como link directo en el header (no depende de qué organización esté seleccionada).
+- ⬜ Áreas/Ubicaciones/Responsables — sin construir (único módulo del MVP que falta).
 - ⬜ Dockerfile/`web-ci.yml`/servicio en el compose local — sin empezar (se corre con `npm run dev`
   fuera de Docker, ver `web/README.md` § Desarrollo local).
 
@@ -349,7 +359,9 @@ probando el flujo real en el navegador, ninguno lo detectaban los tests unitario
 **Done**: ✅ RF-03/RF-08 (alta de Activo visible en `GET /catalogo`), RF-04 (listado + detalle de
 sesiones de inventario) y RF-07 (alta de Contrato + transición de estado, incluido el invariante
 DOC-004 §4 rechazando sedes ya cubiertas) — verificados real de punta a punta (login real →
-escritura/lectura real → Postgres real → visible en la UI), no solo con mocks. ⬜ e2e Playwright
+escritura/lectura real → Postgres real → visible en la UI), no solo con mocks. ✅ RF-06 (listado de
+auditoría, sin filtro por organización) — verificado con unit + e2e reales contra Postgres (CORE y
+CIS), sin login real de navegador todavía (a diferencia de RF-03/RF-04/RF-07). ⬜ e2e Playwright
 del flujo de login + alta — sin escribir todavía. ✅ `web/README.md`, `cis/README.md`,
 `core/README.md` y DOC-013 actualizados.
 

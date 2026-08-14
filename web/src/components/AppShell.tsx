@@ -16,6 +16,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           {authenticated && (
             <div className="flex items-center gap-4 text-sm text-text-dim">
+              <Link to="/auditoria" className="hover:text-text">
+                Auditoría
+              </Link>
               {nombre && <span>{nombre}</span>}
               <Button
                 variant="ghost"

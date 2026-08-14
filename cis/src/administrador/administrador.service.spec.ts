@@ -4,6 +4,7 @@ import { CoreClientService } from '../core-client/core-client.service';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
 import type {
   ActivoResult,
+  AuditoriaEntradaResult,
   ContratoResult,
 } from '../core-client/core-client.types';
 import type {
@@ -47,6 +48,7 @@ function buildService(mapping: Record<string, string>) {
     getContratos: jest.fn(),
     postContrato: jest.fn(),
     patchContrato: jest.fn(),
+    getAuditoria: jest.fn(),
   } as unknown as jest.Mocked<CoreClientService>;
   const service = new AdministradorService(coreClientService, mapping);
   return { service, coreClientService };
@@ -118,6 +120,28 @@ describe('AdministradorService', () => {
 
       await expect(service.getContratos('corr-1')).resolves.toEqual([CONTRATO]);
       expect(coreClientService.getContratos).toHaveBeenCalledWith('corr-1');
+    });
+  });
+
+  describe('getAuditoria', () => {
+    it('delega en CoreClientService.getAuditoria sin traducir roles (lectura abierta)', async () => {
+      const { service, coreClientService } = buildService({});
+      const entradas: AuditoriaEntradaResult[] = [
+        {
+          id: 'audit-1',
+          usuario: 'op-1',
+          fecha: '2026-08-14T10:00:00.000Z',
+          equipo: null,
+          ip: null,
+          operacion: 'POST /inventarios',
+          resultado: 'recibido',
+          observaciones: null,
+        },
+      ];
+      coreClientService.getAuditoria.mockResolvedValue(entradas);
+
+      await expect(service.getAuditoria('corr-1')).resolves.toEqual(entradas);
+      expect(coreClientService.getAuditoria).toHaveBeenCalledWith('corr-1');
     });
   });
 

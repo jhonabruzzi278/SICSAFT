@@ -106,6 +106,19 @@ export interface SesionInventarioDetalle extends SesionInventario {
   escaneos: EscaneoInventario[];
 }
 
+// RF-06 — sin organizacionId (ver core/src/auditoria/auditoria.types.ts): la tabla audita
+// cualquier operacion del ecosistema, no solo las de una organizacion.
+export interface AuditoriaEntrada {
+  id: string;
+  usuario: string;
+  fecha: string;
+  equipo: string | null;
+  ip: string | null;
+  operacion: string;
+  resultado: string;
+  observaciones: string | null;
+}
+
 export class CisApiError extends Error {
   constructor(
     public readonly status: number,
@@ -208,6 +221,11 @@ export const cisClient = {
   async getInventarioDetalle(id: string): Promise<SesionInventarioDetalle> {
     const res = await authorizedFetch(`/inventarios/${encodeURIComponent(id)}`);
     return (await res.json()) as SesionInventarioDetalle;
+  },
+
+  async getAuditoria(): Promise<AuditoriaEntrada[]> {
+    const res = await authorizedFetch('/admin/auditoria');
+    return (await res.json()) as AuditoriaEntrada[];
   },
 };
 

@@ -8,6 +8,7 @@ import { HubPage } from '@/pages/HubPage';
 import { ActivosPage } from '@/pages/ActivosPage';
 import { ContratosPage } from '@/pages/ContratosPage';
 import { InventariosPage } from '@/pages/InventariosPage';
+import { AuditoriaPage } from '@/pages/AuditoriaPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   if (!oidcClient.isAuthenticated()) {
@@ -51,6 +52,14 @@ export default function App() {
           element={
             <RequireAuth>
               <InventariosPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/auditoria"
+          element={
+            <RequireAuth>
+              <AuditoriaPage />
             </RequireAuth>
           }
         />

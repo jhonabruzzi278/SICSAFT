@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CoreClientService } from '../core-client/core-client.service';
 import type {
   ActivoResult,
+  AuditoriaEntradaResult,
   ContratoResult,
 } from '../core-client/core-client.types';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
@@ -85,6 +86,11 @@ export class AdministradorService {
       },
       correlationId,
     );
+  }
+
+  // RF-06 (Fase 5) — lectura abierta, mismo criterio que getContratos.
+  getAuditoria(correlationId: string): Promise<AuditoriaEntradaResult[]> {
+    return this.coreClientService.getAuditoria(correlationId);
   }
 
   // `auth.rolesPorOrganizacion` viene keyed por organizacionId de ZITADEL (lo que Zitadel firmo

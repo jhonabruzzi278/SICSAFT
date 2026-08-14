@@ -30,6 +30,7 @@ import type {
 } from './administrador.schemas';
 import type {
   ActivoResult,
+  AuditoriaEntradaResult,
   ContratoResult,
 } from '../core-client/core-client.types';
 
@@ -74,6 +75,14 @@ export class AdministradorController {
       requireAuthContext(request),
       request.correlationId,
     );
+  }
+
+  // RF-06 (Fase 5) — lectura abierta, mismo criterio que getContratos.
+  @Get('auditoria')
+  getAuditoria(
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<AuditoriaEntradaResult[]> {
+    return this.administradorService.getAuditoria(request.correlationId);
   }
 
   // Pipe a nivel de parámetro (no @UsePipes de método) — @UsePipes valida TODOS los parámetros
