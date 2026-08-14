@@ -54,7 +54,10 @@ export class ResponsableRepository {
   // RF-05 — `identificacion` es unica (migracion 1755100000000): reintentar la misma alta dos
   // veces es un 409, no un duplicado silencioso.
   async crear(input: NuevoResponsableInput): Promise<Responsable> {
-    await this.verificarAreaPerteneceOrganizacion(input.areaId, input.organizacionId);
+    await this.verificarAreaPerteneceOrganizacion(
+      input.areaId,
+      input.organizacionId,
+    );
 
     const id = randomUUID();
     try {
@@ -89,7 +92,7 @@ export class ResponsableRepository {
       [id],
     );
     // Recien insertado con este mismo id — nunca undefined.
-    return result.rows[0] as Responsable;
+    return result.rows[0];
   }
 
   // RF-05 — la "baja" de un Responsable es cambiar `estado` a 'inactivo' (nunca un DELETE, Tomo
@@ -116,7 +119,9 @@ export class ResponsableRepository {
   private async findConOrganizacion(
     id: string,
   ): Promise<{ responsable: Responsable; organizacionId: string } | null> {
-    const result = await this.pool.query<Responsable & { organizacionId: string }>(
+    const result = await this.pool.query<
+      Responsable & { organizacionId: string }
+    >(
       `SELECT r.id, r.identificacion, r.nombre, r.cargo, r.area_id AS "areaId", r.correo,
               r.telefono, r.estado, a.organizacion_id AS "organizacionId"
        FROM responsables r JOIN areas a ON a.id = r.area_id WHERE r.id = $1`,

@@ -85,6 +85,9 @@ export class EstructuraEscrituraController {
     @Body(new ZodValidationPipe(actualizarEstadoResponsableSchema))
     body: ActualizarEstadoResponsableBody,
   ): Promise<Responsable> {
-    return this.orquestadorService.procesarActualizarEstadoResponsable(id, body);
+    return this.orquestadorService.procesarActualizarEstadoResponsable(
+      id,
+      body,
+    );
   }
 }

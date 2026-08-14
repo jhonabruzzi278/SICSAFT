@@ -15,7 +15,8 @@ export class UbicacionController {
 
   @Get('ubicaciones')
   getUbicaciones(
-    @Query(new ZodValidationPipe(ubicacionesQuerySchema)) query: UbicacionesQuery,
+    @Query(new ZodValidationPipe(ubicacionesQuerySchema))
+    query: UbicacionesQuery,
   ): Promise<UbicacionesPagina> {
     return this.ubicacionRepository.findBySede(
       query.sedeId,

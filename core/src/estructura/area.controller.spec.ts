@@ -27,7 +27,10 @@ describe('AreaController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AreaController],
       providers: [
-        { provide: AreaRepository, useValue: { findByOrganizacion: jest.fn() } },
+        {
+          provide: AreaRepository,
+          useValue: { findByOrganizacion: jest.fn() },
+        },
       ],
     })
       .overrideGuard(ServiceTokenGuard)

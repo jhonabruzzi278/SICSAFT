@@ -3,7 +3,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Pool } from 'pg';
 import { PG_POOL } from '../database/database.constants';
 import type {
-  AuditoriaEntrada,
   AuditoriaFiltro,
   AuditoriaPagina,
   RegistrarAuditoriaInput,

@@ -822,7 +822,10 @@ describe('OrquestadorService', () => {
         buildService();
 
       await expect(
-        service.procesarAltaResponsable({ ...payload, rolesPorOrganizacion: {} }),
+        service.procesarAltaResponsable({
+          ...payload,
+          rolesPorOrganizacion: {},
+        }),
       ).rejects.toThrow(ForbiddenException);
 
       expect(escrituraEstructuraService.altaResponsable).not.toHaveBeenCalled();

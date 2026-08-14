@@ -143,9 +143,10 @@ describe('EstructuraEscrituraController', () => {
     await expect(
       controller.actualizarUbicacion('ubicacion-1', body),
     ).resolves.toBe(actualizada);
-    expect(
-      orquestadorService.procesarActualizarUbicacion,
-    ).toHaveBeenCalledWith('ubicacion-1', body);
+    expect(orquestadorService.procesarActualizarUbicacion).toHaveBeenCalledWith(
+      'ubicacion-1',
+      body,
+    );
   });
 
   it('altaResponsable delega en OrquestadorService.procesarAltaResponsable', async () => {

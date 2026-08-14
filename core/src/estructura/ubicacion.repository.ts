@@ -53,9 +53,19 @@ export class UbicacionRepository {
   // `organizacionId`, no solo existir — mismo criterio que ActivoRepository cruzando la
   // organizacion real del activo objetivo (hallazgo real de revision de seguridad, DOC-012 §3).
   async crear(input: NuevaUbicacionInput): Promise<Ubicacion> {
-    await this.verificarPertenece('sedes', input.sedeId, input.organizacionId, 'sedeId');
+    await this.verificarPertenece(
+      'sedes',
+      input.sedeId,
+      input.organizacionId,
+      'sedeId',
+    );
     if (input.areaId) {
-      await this.verificarPertenece('areas', input.areaId, input.organizacionId, 'areaId');
+      await this.verificarPertenece(
+        'areas',
+        input.areaId,
+        input.organizacionId,
+        'areaId',
+      );
     }
 
     const id = randomUUID();
@@ -75,7 +85,9 @@ export class UbicacionRepository {
       );
     } catch (error: unknown) {
       if (esErrorPg(error) && error.code === FOREIGN_KEY_VIOLATION) {
-        throw new BadRequestException({ message: 'sedeId o areaId inexistente' });
+        throw new BadRequestException({
+          message: 'sedeId o areaId inexistente',
+        });
       }
       throw error;
     }
@@ -84,7 +96,7 @@ export class UbicacionRepository {
       [id],
     );
     // Recien insertada con este mismo id — nunca undefined.
-    return result.rows[0] as Ubicacion;
+    return result.rows[0];
   }
 
   // RF-05 (cierra el gap "ABM completo") — PATCH /ubicaciones/:id. Sin `sedeId` en `cambios`, la
@@ -102,7 +114,9 @@ export class UbicacionRepository {
     );
     const ubicacion = actual.rows[0];
     if (!ubicacion) {
-      throw new NotFoundException({ message: `No existe la ubicacion '${id}'` });
+      throw new NotFoundException({
+        message: `No existe la ubicacion '${id}'`,
+      });
     }
 
     const sedeResult = await this.pool.query<{ organizacionId: string }>(
@@ -110,11 +124,18 @@ export class UbicacionRepository {
       [ubicacion.sedeId],
     );
     if (sedeResult.rows[0]?.organizacionId !== organizacionId) {
-      throw new NotFoundException({ message: `No existe la ubicacion '${id}'` });
+      throw new NotFoundException({
+        message: `No existe la ubicacion '${id}'`,
+      });
     }
 
     if (cambios.areaId !== undefined) {
-      await this.verificarPertenece('areas', cambios.areaId, organizacionId, 'areaId');
+      await this.verificarPertenece(
+        'areas',
+        cambios.areaId,
+        organizacionId,
+        'areaId',
+      );
     }
 
     const sets: string[] = [];
@@ -154,7 +175,7 @@ export class UbicacionRepository {
       `${SELECT_UBICACION_SQL} WHERE id = $1`,
       [id],
     );
-    return result.rows[0] as Ubicacion;
+    return result.rows[0];
   }
 
   private async verificarPertenece(

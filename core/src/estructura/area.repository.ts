@@ -79,7 +79,7 @@ export class AreaRepository {
       [id],
     );
     // Recien insertada con este mismo id — nunca undefined.
-    return result.rows[0] as Area;
+    return result.rows[0];
   }
 
   // RF-05 (cierra el gap "ABM completo") — PATCH /areas/:id. Mismo criterio que
@@ -155,7 +155,7 @@ export class AreaRepository {
       `${SELECT_AREA_SQL} WHERE id = $1`,
       [id],
     );
-    return result.rows[0] as Area;
+    return result.rows[0];
   }
 
   private async verificarResponsablePerteneceOrganizacion(

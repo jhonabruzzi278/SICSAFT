@@ -15,7 +15,8 @@ export class ResponsableController {
 
   @Get('responsables')
   getResponsables(
-    @Query(new ZodValidationPipe(responsablesQuerySchema)) query: ResponsablesQuery,
+    @Query(new ZodValidationPipe(responsablesQuerySchema))
+    query: ResponsablesQuery,
   ): Promise<ResponsablesPagina> {
     return this.responsableRepository.findByArea(
       query.areaId,

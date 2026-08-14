@@ -62,7 +62,12 @@ function buildService() {
     responsableRepository,
   );
 
-  return { service, areaRepository, ubicacionRepository, responsableRepository };
+  return {
+    service,
+    areaRepository,
+    ubicacionRepository,
+    responsableRepository,
+  };
 }
 
 describe('EscrituraEstructuraService', () => {
@@ -70,7 +75,11 @@ describe('EscrituraEstructuraService', () => {
     const { service, areaRepository } = buildService();
     areaRepository.crear.mockResolvedValue(AREA);
 
-    const input = { organizacionId: 'duoc-uc', codigo: 'BIB', nombre: 'Biblioteca' };
+    const input = {
+      organizacionId: 'duoc-uc',
+      codigo: 'BIB',
+      nombre: 'Biblioteca',
+    };
     await expect(service.altaArea(input)).resolves.toBe(AREA);
     expect(areaRepository.crear).toHaveBeenCalledWith(input);
   });
@@ -136,7 +145,11 @@ describe('EscrituraEstructuraService', () => {
     responsableRepository.actualizarEstado.mockResolvedValue(inactivo);
 
     await expect(
-      service.actualizarEstadoResponsable('responsable-1', 'duoc-uc', 'inactivo'),
+      service.actualizarEstadoResponsable(
+        'responsable-1',
+        'duoc-uc',
+        'inactivo',
+      ),
     ).resolves.toBe(inactivo);
     expect(responsableRepository.actualizarEstado).toHaveBeenCalledWith(
       'responsable-1',

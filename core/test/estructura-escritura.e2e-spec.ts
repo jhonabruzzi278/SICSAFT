@@ -108,7 +108,9 @@ describe('RF-05 — escritura oficial de Area/Ubicacion/Responsable (e2e)', () =
         .send(
           buildAltaAreaBody({
             organizacionId: 'no-existe',
-            rolesPorOrganizacion: { 'no-existe': ['administrador-patrimonial'] },
+            rolesPorOrganizacion: {
+              'no-existe': ['administrador-patrimonial'],
+            },
           }),
         )
         .expect(400);
@@ -253,7 +255,10 @@ describe('RF-05 — escritura oficial de Area/Ubicacion/Responsable (e2e)', () =
         .query({ sedeId: 'melipilla', limit: 100 })
         .expect(200);
 
-      const pagina = listaRes.body as { ubicaciones: Ubicacion[]; total: number };
+      const pagina = listaRes.body as {
+        ubicaciones: Ubicacion[];
+        total: number;
+      };
       expect(pagina.ubicaciones.some((u) => u.id === ubicacion.id)).toBe(true);
       expect(pagina.total).toBeGreaterThanOrEqual(1);
     });

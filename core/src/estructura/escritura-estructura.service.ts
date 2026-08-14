@@ -62,6 +62,10 @@ export class EscrituraEstructuraService {
     organizacionId: string,
     estado: EstadoResponsable,
   ): Promise<Responsable> {
-    return this.responsableRepository.actualizarEstado(id, organizacionId, estado);
+    return this.responsableRepository.actualizarEstado(
+      id,
+      organizacionId,
+      estado,
+    );
   }
 }

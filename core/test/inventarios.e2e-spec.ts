@@ -233,7 +233,11 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
         .expect(200);
 
       const pagina = res.body as {
-        entradas: Array<{ usuario: string; operacion: string; resultado: string }>;
+        entradas: Array<{
+          usuario: string;
+          operacion: string;
+          resultado: string;
+        }>;
         total: number;
       };
       expect(pagina.entradas).toEqual(
@@ -265,7 +269,10 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
         .query({ usuario: 'filtro-usuario', limit: 100 })
         .expect(200);
 
-      const pagina = res.body as { entradas: Array<{ usuario: string }>; total: number };
+      const pagina = res.body as {
+        entradas: Array<{ usuario: string }>;
+        total: number;
+      };
       expect(pagina.entradas.length).toBeGreaterThan(0);
       expect(
         pagina.entradas.every((e) => e.usuario.includes('filtro-usuario')),
@@ -292,7 +299,10 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
           fechaDesde: '2099-01-01T00:00:00.000Z',
         })
         .expect(200);
-      const paginaFutura = enElFuturo.body as { entradas: unknown[]; total: number };
+      const paginaFutura = enElFuturo.body as {
+        entradas: unknown[];
+        total: number;
+      };
       expect(paginaFutura.entradas).toEqual([]);
       expect(paginaFutura.total).toBe(0);
 

@@ -229,7 +229,11 @@ describe('UbicacionRepository', () => {
       } as unknown as jest.Mocked<Pool>;
       const repository = new UbicacionRepository(pool);
 
-      const ubicacion = await repository.actualizar('ubicacion-1', 'duoc-uc', {});
+      const ubicacion = await repository.actualizar(
+        'ubicacion-1',
+        'duoc-uc',
+        {},
+      );
 
       expect(ubicacion).toEqual(UBICACION_ROW);
     });

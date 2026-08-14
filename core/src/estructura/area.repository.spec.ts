@@ -78,7 +78,11 @@ describe('AreaRepository', () => {
       const repository = new AreaRepository(pool);
 
       await expect(
-        repository.crear({ organizacionId: 'duoc-uc', codigo: 'BIB', nombre: 'Biblioteca' }),
+        repository.crear({
+          organizacionId: 'duoc-uc',
+          codigo: 'BIB',
+          nombre: 'Biblioteca',
+        }),
       ).rejects.toThrow('boom');
     });
   });
@@ -140,9 +144,9 @@ describe('AreaRepository', () => {
 
     it('lanza NotFoundException si el area es de otra organizacion', async () => {
       const pool = {
-        query: jest
-          .fn()
-          .mockResolvedValueOnce({ rows: [{ ...AREA_ROW, organizacionId: 'otra-org' }] }),
+        query: jest.fn().mockResolvedValueOnce({
+          rows: [{ ...AREA_ROW, organizacionId: 'otra-org' }],
+        }),
       } as unknown as jest.Mocked<Pool>;
       const repository = new AreaRepository(pool);
 

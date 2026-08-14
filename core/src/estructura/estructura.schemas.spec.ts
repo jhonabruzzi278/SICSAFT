@@ -1,4 +1,7 @@
-import { actualizarAreaSchema, actualizarUbicacionSchema } from './estructura.schemas';
+import {
+  actualizarAreaSchema,
+  actualizarUbicacionSchema,
+} from './estructura.schemas';
 
 const ENVOLTORIO = {
   correlationId: 'corr-1',
@@ -14,26 +17,37 @@ const ENVOLTORIO = {
 describe('actualizarAreaSchema', () => {
   it('acepta el envoltorio con al menos un campo editable', () => {
     expect(
-      actualizarAreaSchema.safeParse({ ...ENVOLTORIO, nombre: 'Biblioteca Central' })
-        .success,
+      actualizarAreaSchema.safeParse({
+        ...ENVOLTORIO,
+        nombre: 'Biblioteca Central',
+      }).success,
     ).toBe(true);
   });
 
   it('acepta cualquiera de los campos editables individualmente', () => {
-    expect(actualizarAreaSchema.safeParse({ ...ENVOLTORIO, codigo: 'BIB-2' }).success).toBe(true);
     expect(
-      actualizarAreaSchema.safeParse({ ...ENVOLTORIO, dependencia: 'Rectoria' }).success,
-    ).toBe(true);
-    expect(
-      actualizarAreaSchema.safeParse({ ...ENVOLTORIO, centroCosto: 'CC-100' }).success,
-    ).toBe(true);
-    expect(
-      actualizarAreaSchema.safeParse({ ...ENVOLTORIO, responsableId: 'responsable-1' })
+      actualizarAreaSchema.safeParse({ ...ENVOLTORIO, codigo: 'BIB-2' })
         .success,
     ).toBe(true);
     expect(
-      actualizarAreaSchema.safeParse({ ...ENVOLTORIO, ubicacionPrincipalId: 'ubicacion-1' })
+      actualizarAreaSchema.safeParse({ ...ENVOLTORIO, dependencia: 'Rectoria' })
         .success,
+    ).toBe(true);
+    expect(
+      actualizarAreaSchema.safeParse({ ...ENVOLTORIO, centroCosto: 'CC-100' })
+        .success,
+    ).toBe(true);
+    expect(
+      actualizarAreaSchema.safeParse({
+        ...ENVOLTORIO,
+        responsableId: 'responsable-1',
+      }).success,
+    ).toBe(true);
+    expect(
+      actualizarAreaSchema.safeParse({
+        ...ENVOLTORIO,
+        ubicacionPrincipalId: 'ubicacion-1',
+      }).success,
     ).toBe(true);
   });
 
@@ -46,23 +60,30 @@ describe('actualizarAreaSchema', () => {
 describe('actualizarUbicacionSchema', () => {
   it('acepta el envoltorio con al menos un campo editable', () => {
     expect(
-      actualizarUbicacionSchema.safeParse({ ...ENVOLTORIO, edificio: 'Torre A' }).success,
+      actualizarUbicacionSchema.safeParse({
+        ...ENVOLTORIO,
+        edificio: 'Torre A',
+      }).success,
     ).toBe(true);
   });
 
   it('acepta cualquiera de los campos editables individualmente', () => {
-    expect(actualizarUbicacionSchema.safeParse({ ...ENVOLTORIO, piso: '2' }).success).toBe(
-      true,
-    );
     expect(
-      actualizarUbicacionSchema.safeParse({ ...ENVOLTORIO, areaId: 'area-1' }).success,
+      actualizarUbicacionSchema.safeParse({ ...ENVOLTORIO, piso: '2' }).success,
     ).toBe(true);
     expect(
-      actualizarUbicacionSchema.safeParse({ ...ENVOLTORIO, oficina: '201' }).success,
-    ).toBe(true);
-    expect(
-      actualizarUbicacionSchema.safeParse({ ...ENVOLTORIO, dependencia: 'Biblioteca' })
+      actualizarUbicacionSchema.safeParse({ ...ENVOLTORIO, areaId: 'area-1' })
         .success,
+    ).toBe(true);
+    expect(
+      actualizarUbicacionSchema.safeParse({ ...ENVOLTORIO, oficina: '201' })
+        .success,
+    ).toBe(true);
+    expect(
+      actualizarUbicacionSchema.safeParse({
+        ...ENVOLTORIO,
+        dependencia: 'Biblioteca',
+      }).success,
     ).toBe(true);
   });
 

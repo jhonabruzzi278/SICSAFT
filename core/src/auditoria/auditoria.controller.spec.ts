@@ -43,7 +43,12 @@ describe('AuditoriaController', () => {
 
   it('getAuditoria delega en AuditoriaRepository.listar con los filtros y la paginacion', async () => {
     auditoriaRepository.listar.mockResolvedValue(PAGINA);
-    const query = { usuario: 'op-1', operacion: 'inventarios', limit: 20, offset: 0 };
+    const query = {
+      usuario: 'op-1',
+      operacion: 'inventarios',
+      limit: 20,
+      offset: 0,
+    };
 
     await expect(controller.getAuditoria(query)).resolves.toBe(PAGINA);
     expect(auditoriaRepository.listar).toHaveBeenCalledWith(query);
