@@ -95,6 +95,22 @@ contra una organización específica todavía — limitación conocida, document
 este incremento (mismo volumen bajo que justificó diferir el filtro por organización en
 `GET /contratos`).
 
+**Módulo `src/estructura/` — Área/Ubicación/Responsable (2026-08-14, para Fase 5/WEB, RF-05)**:
+último módulo del MVP de WEB, el único sin ningún endpoint previo. `AreaRepository`/
+`UbicacionRepository`/`ResponsableRepository` (lectura: `GET /areas?organizacionId=`,
+`GET /ubicaciones?sedeId=`, `GET /responsables?areaId=`, todas lectura abierta) +
+`EscrituraEstructuraService` (alta de las tres, más `PATCH /responsables/:id/estado` — la "baja"
+de un Responsable, nunca un DELETE, Tomo III §4.10) invocado desde `OrquestadorService` con el
+mismo patrón de autorización+auditoría que Activo/Contrato (DOC-012). `Ubicacion` y `Responsable`
+no tienen columna `organizacionId` propia (`sede_id`/`area_id` respectivamente, DOC-005 §2) — la
+escritura cruza esas referencias contra `organizacionId` con una consulta previa
+(`verificarPertenece`/`verificarAreaPerteneceOrganizacion`) antes de insertar, defensa en
+profundidad mismo criterio que `ActivoRepository` con activos de otra organización (una FK de
+Postgres por sí sola no distingue una sede/área real pero de otra organización). Sin endpoint para
+editar Área/Ubicación ni para asignar `responsable_id`/`ubicacion_principal_id` a un Área —
+DOC-005 §2 documenta ese ciclo como "sin ciclo estricto de creación", deliberadamente fuera de
+alcance de este incremento.
+
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
 `docker compose up -d` desde `../devops/local` ya lo hace solo (el servicio `core-migrate` corre

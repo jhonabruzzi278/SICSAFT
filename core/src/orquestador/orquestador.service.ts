@@ -4,6 +4,7 @@ import { InventariosService } from '../inventarios/inventarios.service';
 import { EscrituraActivoService } from '../patrimonial/escritura-activo.service';
 import { ImportacionContableService } from '../patrimonial/importacion-contable.service';
 import { EscrituraContratoService } from '../entitlements/escritura-contrato.service';
+import { EscrituraEstructuraService } from '../estructura/escritura-estructura.service';
 import { verificarRolAdministradorPatrimonial } from '../common/auth/administrador-patrimonial.guard';
 import type {
   InventarioRequest,
@@ -22,6 +23,15 @@ import type {
   AltaContratoBody,
 } from '../entitlements/contrato.schemas';
 import type { Contrato } from '../entitlements/contrato.types';
+import type {
+  AltaAreaBody,
+  AltaResponsableBody,
+  AltaUbicacionBody,
+  ActualizarEstadoResponsableBody,
+} from '../estructura/estructura.schemas';
+import type { Area } from '../estructura/area.types';
+import type { Ubicacion } from '../estructura/ubicacion.types';
+import type { Responsable } from '../estructura/responsable.types';
 import { buildContextoOperacion } from './contexto-operacion';
 
 // DOC-007 — unico punto de entrada a los motores (Tomo IV §2.4). Generalizado en DOC-012 (Fase 4)
@@ -35,6 +45,7 @@ export class OrquestadorService {
     private readonly escrituraActivoService: EscrituraActivoService,
     private readonly importacionContableService: ImportacionContableService,
     private readonly escrituraContratoService: EscrituraContratoService,
+    private readonly escrituraEstructuraService: EscrituraEstructuraService,
     private readonly auditoriaRepository: AuditoriaRepository,
   ) {}
 
@@ -182,6 +193,61 @@ export class OrquestadorService {
           payload.organizacionId,
           payload.estado,
           payload.operadorId,
+        ),
+    );
+  }
+
+  // RF-05 — POST /areas (alta). Area no expone `estado` (a diferencia de Activo/Contrato), asi
+  // que usa ejecutarOperacionOficial directo en vez del atajo ejecutarEscrituraOficial.
+  procesarAltaArea(payload: AltaAreaBody): Promise<Area> {
+    return this.ejecutarOperacionOficial(
+      'POST /areas',
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () => this.escrituraEstructuraService.altaArea(payload),
+      (area) => area.id,
+    );
+  }
+
+  // RF-05 — POST /ubicaciones (alta). Mismo motivo que procesarAltaArea (sin `estado`).
+  procesarAltaUbicacion(payload: AltaUbicacionBody): Promise<Ubicacion> {
+    return this.ejecutarOperacionOficial(
+      'POST /ubicaciones',
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () => this.escrituraEstructuraService.altaUbicacion(payload),
+      (ubicacion) => ubicacion.id,
+    );
+  }
+
+  // RF-05 — POST /responsables (alta). Responsable si expone `estado`, usa el atajo.
+  procesarAltaResponsable(payload: AltaResponsableBody): Promise<Responsable> {
+    return this.ejecutarEscrituraOficial(
+      'POST /responsables',
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () => this.escrituraEstructuraService.altaResponsable(payload),
+    );
+  }
+
+  // RF-05 — PATCH /responsables/:id/estado (su "baja").
+  procesarActualizarEstadoResponsable(
+    responsableId: string,
+    payload: ActualizarEstadoResponsableBody,
+  ): Promise<Responsable> {
+    return this.ejecutarEscrituraOficial(
+      `PATCH /responsables/${responsableId}/estado`,
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraEstructuraService.actualizarEstadoResponsable(
+          responsableId,
+          payload.organizacionId,
+          payload.estado,
         ),
     );
   }
