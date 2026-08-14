@@ -34,8 +34,12 @@ jobs:
 
       - name: Build de imagen Docker
         run: |
+          # Placeholders sin uso real: esta imagen (sicsaft-web:ci) nunca corre ni se publica, solo
+          # valida que el Dockerfile buildee. https:// acá (no http://, que sí usan devops/local/
+          # y .env.example para el entorno local real sin TLS) evita un falso positivo de
+          # "clear-text protocol" (S5332) sobre hosts que jamás se resuelven de verdad.
           docker build \
-            --build-arg VITE_ZITADEL_ISSUER=http://id.sicsaft.localhost \
+            --build-arg VITE_ZITADEL_ISSUER=https://id.sicsaft.invalid \
             --build-arg VITE_ZITADEL_CLIENT_ID=ci-placeholder \
-            --build-arg VITE_CIS_URL=http://api.sicsaft.localhost \
+            --build-arg VITE_CIS_URL=https://api.sicsaft.invalid \
             -t sicsaft-web:ci .
