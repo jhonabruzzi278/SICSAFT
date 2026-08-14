@@ -45,3 +45,19 @@ export const inventarioEstadoParamsSchema = z.object({
 export type InventarioEstadoParams = z.infer<
   typeof inventarioEstadoParamsSchema
 >;
+
+// RF-04 (Fase 5, WEB) — GET /inventarios (listado).
+export const inventariosQuerySchema = z.object({
+  organizacionId: z.string().min(1),
+});
+export type InventariosQuery = z.infer<typeof inventariosQuerySchema>;
+
+// GET /inventarios/:id (detalle) — mismo shape que inventarioEstadoParamsSchema, nombre de
+// campo distinto (`id`, no `inventarioId`) porque la ruta usa `:id` para no chocar con
+// `inventarios/:inventarioId/estado`.
+export const inventarioDetalleParamsSchema = z.object({
+  id: z.string().min(1),
+});
+export type InventarioDetalleParams = z.infer<
+  typeof inventarioDetalleParamsSchema
+>;

@@ -4,6 +4,7 @@ import {
   Param,
   Post,
   Body,
+  Query,
   Req,
   UseGuards,
   UsePipes,
@@ -14,16 +15,22 @@ import type { RequestWithCorrelationId } from '../common/correlation-id/correlat
 import { OrquestadorService } from '../orquestador/orquestador.service';
 import { InventariosService } from './inventarios.service';
 import {
+  inventarioDetalleParamsSchema,
   inventarioEstadoParamsSchema,
+  inventariosQuerySchema,
   inventarioRequestSchema,
 } from './inventarios.schemas';
 import type {
+  InventarioDetalleParams,
   InventarioEstadoParams,
   InventarioRequestBody,
+  InventariosQuery,
 } from './inventarios.schemas';
 import type {
   InventarioEstadoResponse,
   PostInventarioResponse,
+  SesionDetalle,
+  SesionResumen,
 } from './inventarios.types';
 
 // DOC-006 §3/§4. POST pasa por el Orquestador (DOC-007, audita siempre) — GET es solo lectura,
@@ -55,5 +62,25 @@ export class InventariosController {
     @Param() params: InventarioEstadoParams,
   ): Promise<InventarioEstadoResponse> {
     return this.inventariosService.obtenerEstado(params.inventarioId);
+  }
+
+  // RF-04 (Fase 5, WEB) — listado y detalle de sesiones. Pipe a nivel de parámetro (no
+  // @UsePipes de método): `getInventarioDetalle` combina @Param con @Query en potencia futura y
+  // ya se probó en DOC-012 §5 (Fase 5) que @UsePipes de método valida TODOS los parámetros del
+  // handler, rompiendo con cualquier @Param que no sea el body.
+  @Get('inventarios')
+  getInventarios(
+    @Query(new ZodValidationPipe(inventariosQuerySchema))
+    query: InventariosQuery,
+  ): Promise<SesionResumen[]> {
+    return this.inventariosService.listarSesiones(query.organizacionId);
+  }
+
+  @Get('inventarios/:id')
+  getInventarioDetalle(
+    @Param(new ZodValidationPipe(inventarioDetalleParamsSchema))
+    params: InventarioDetalleParams,
+  ): Promise<SesionDetalle> {
+    return this.inventariosService.obtenerDetalle(params.id);
   }
 }

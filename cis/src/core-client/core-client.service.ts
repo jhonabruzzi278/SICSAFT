@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -17,14 +18,26 @@ import type { CoreClientConfig } from './core-client.config';
 import { CircuitBreaker, CircuitOpenError } from './circuit-breaker';
 import { withRetry } from './retry';
 import {
+  activoResponseSchema,
   catalogoResponseSchema,
+  contratoResponseSchema,
+  contratosResponseSchema,
   entitlementsResponseSchema,
   inventarioEstadoResponseSchema,
   postInventarioResponseSchema,
+  sesionDetalleResponseSchema,
+  sesionesResumenResponseSchema,
+  type ActivoResult,
   type CatalogoResult,
+  type ContratoResult,
   type EntitlementsResult,
   type InventarioEstadoResult,
+  type PatchContratoRequest,
+  type PostActivoRequest,
+  type PostContratoRequest,
   type PostInventarioResult,
+  type SesionDetalleResult,
+  type SesionResumenResult,
 } from './core-client.types';
 import { CORRELATION_ID_HEADER } from '../common/correlation-id/correlation-id.constants';
 import type {
@@ -87,6 +100,58 @@ export class CoreClientService {
     return this.parse(postInventarioResponseSchema, data, 'inventarios');
   }
 
+  // DOC-012 §5 — proxy hacia POST /activos de CORE (escritura oficial). A diferencia de
+  // postInventario, acá se propaga tambien un 403 (falta el rol administrador-patrimonial en esa
+  // organizacion) ademas de 400/409 — DOC-012 §8 exige que el 403 llegue tal cual, no colapsado a
+  // 502, para que WEB pueda distinguir "sin permiso" de "CORE caido".
+  async postActivo(
+    request: PostActivoRequest,
+    correlationId: string,
+  ): Promise<ActivoResult> {
+    const data = await this.post('/activos', request, correlationId, {
+      passthroughStatuses: [400, 403, 409],
+    });
+    return this.parse(activoResponseSchema, data, 'activos');
+  }
+
+  // DOC-012 §4/§7 — GET /contratos es lectura abierta (mismo criterio que getCatalogo), sin
+  // passthroughStatuses especiales: no hay 403 posible en este endpoint (CORE no exige el rol
+  // para leer).
+  async getContratos(correlationId: string): Promise<ContratoResult[]> {
+    const data = await this.get('/contratos', undefined, correlationId);
+    return this.parse(contratosResponseSchema, data, 'contratos');
+  }
+
+  // DOC-012 §7 — proxy hacia POST /contratos de CORE (escritura oficial), mismo criterio de
+  // passthroughStatuses que postActivo (400/403/409).
+  async postContrato(
+    request: PostContratoRequest,
+    correlationId: string,
+  ): Promise<ContratoResult> {
+    const data = await this.post('/contratos', request, correlationId, {
+      passthroughStatuses: [400, 403, 409],
+    });
+    return this.parse(contratoResponseSchema, data, 'contratos');
+  }
+
+  // DOC-012 §7 — proxy hacia PATCH /contratos/:id de CORE. A diferencia de postActivo, acá
+  // también se propaga un 404 legítimo del negocio (contrato inexistente o de otra organización,
+  // ver DOC-012 §3.2) — el 404 ya se propaga sin pedirlo explícito (ver callCore), pero se lista
+  // en passthroughStatuses igual para que quede documentado junto al resto de esta llamada.
+  async patchContrato(
+    contratoId: string,
+    request: PatchContratoRequest,
+    correlationId: string,
+  ): Promise<ContratoResult> {
+    const data = await this.patch(
+      `/contratos/${encodeURIComponent(contratoId)}`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 409] },
+    );
+    return this.parse(contratoResponseSchema, data, 'contratos');
+  }
+
   async getInventarioEstado(
     inventarioId: string,
     correlationId: string,
@@ -101,6 +166,31 @@ export class CoreClientService {
       data,
       'inventarios/estado',
     );
+  }
+
+  // RF-04 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos.
+  async getInventarios(
+    organizacionId: string,
+    correlationId: string,
+  ): Promise<SesionResumenResult[]> {
+    const data = await this.get(
+      '/inventarios',
+      { organizacionId },
+      correlationId,
+    );
+    return this.parse(sesionesResumenResponseSchema, data, 'inventarios');
+  }
+
+  async getInventarioDetalle(
+    inventarioId: string,
+    correlationId: string,
+  ): Promise<SesionDetalleResult> {
+    const data = await this.get(
+      `/inventarios/${encodeURIComponent(inventarioId)}`,
+      undefined,
+      correlationId,
+    );
+    return this.parse(sesionDetalleResponseSchema, data, 'inventarios/detalle');
   }
 
   private async get(
@@ -120,6 +210,9 @@ export class CoreClientService {
     path: string,
     body: unknown,
     correlationId: string,
+    options: { passthroughStatuses: number[] } = {
+      passthroughStatuses: [400, 409],
+    },
   ): Promise<unknown> {
     return this.callCore(
       path,
@@ -128,7 +221,24 @@ export class CoreClientService {
         this.httpService.axiosRef.post(`${this.config.baseUrl}${path}`, body, {
           headers: this.headers(correlationId),
         }),
-      { passthroughStatuses: [400, 409] },
+      options,
+    );
+  }
+
+  private async patch(
+    path: string,
+    body: unknown,
+    correlationId: string,
+    options: { passthroughStatuses: number[] },
+  ): Promise<unknown> {
+    return this.callCore(
+      path,
+      correlationId,
+      () =>
+        this.httpService.axiosRef.patch(`${this.config.baseUrl}${path}`, body, {
+          headers: this.headers(correlationId),
+        }),
+      options,
     );
   }
 
@@ -191,6 +301,9 @@ export class CoreClientService {
   private passthroughError(status: number, body: unknown): Error {
     if (status === 400) {
       return new BadRequestException(body);
+    }
+    if (status === 403) {
+      return new ForbiddenException(body);
     }
     return new ConflictException(body);
   }

@@ -43,6 +43,8 @@ describe('QrConnectorController', () => {
             getCatalogo: jest.fn(),
             postInventario: jest.fn(),
             getInventarioEstado: jest.fn(),
+            getInventarios: jest.fn(),
+            getInventarioDetalle: jest.fn(),
           },
         },
       ],
@@ -150,6 +152,62 @@ describe('QrConnectorController', () => {
     ).resolves.toBe(expected);
     expect(service.getInventarioEstado).toHaveBeenCalledWith(
       'inv-1',
+      CORRELATION_ID,
+    );
+  });
+
+  it('getInventarios delega en el service con la query y el correlationId de la request', async () => {
+    const expected = [
+      {
+        id: 'sesion-1',
+        organizacionId: 'duoc-uc',
+        areaId: 'laboratorio-informatica',
+        ubicacionId: 'melipilla',
+        operadorId: 'op-1',
+        fechaInicio: '2026-08-12T10:00:00.000Z',
+        fechaCierre: '2026-08-12T11:00:00.000Z',
+        estado: 'recibido' as const,
+        creadoEn: '2026-08-12T11:00:05.000Z',
+      },
+    ];
+    service.getInventarios.mockResolvedValue(expected);
+
+    const query = { organizacionId: 'duoc-uc' };
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+    await expect(controller.getInventarios(query, request)).resolves.toBe(
+      expected,
+    );
+    expect(service.getInventarios).toHaveBeenCalledWith(
+      'duoc-uc',
+      CORRELATION_ID,
+    );
+  });
+
+  it('getInventarioDetalle delega en el service con el id y el correlationId de la request', async () => {
+    const expected = {
+      id: 'sesion-1',
+      organizacionId: 'duoc-uc',
+      areaId: 'laboratorio-informatica',
+      ubicacionId: 'melipilla',
+      operadorId: 'op-1',
+      fechaInicio: '2026-08-12T10:00:00.000Z',
+      fechaCierre: '2026-08-12T11:00:00.000Z',
+      estado: 'recibido' as const,
+      creadoEn: '2026-08-12T11:00:05.000Z',
+      escaneos: [],
+    };
+    service.getInventarioDetalle.mockResolvedValue(expected);
+
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+    await expect(
+      controller.getInventarioDetalle('sesion-1', request),
+    ).resolves.toBe(expected);
+    expect(service.getInventarioDetalle).toHaveBeenCalledWith(
+      'sesion-1',
       CORRELATION_ID,
     );
   });

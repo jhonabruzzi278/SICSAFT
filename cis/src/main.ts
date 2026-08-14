@@ -16,7 +16,9 @@ async function bootstrap(): Promise<void> {
   if (corsOrigin) {
     app.enableCors({
       origin: corsOrigin.split(',').map((origin) => origin.trim()),
-      methods: ['GET', 'POST'],
+      // PATCH: DOC-012 §7 (Fase 5), PATCH /admin/contratos/:id — WEB es el primer cliente que
+      // necesita este método desde un navegador (APP QR solo usa GET/POST).
+      methods: ['GET', 'POST', 'PATCH'],
       allowedHeaders: ['Authorization', 'Content-Type', CORRELATION_ID_HEADER],
       exposedHeaders: [CORRELATION_ID_HEADER],
     });

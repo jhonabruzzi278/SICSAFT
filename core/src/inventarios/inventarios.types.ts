@@ -44,3 +44,8 @@ export interface InventarioEstadoResponse {
   estado: SesionEstado;
   ultimoIntento: string;
 }
+
+export type {
+  SesionResumen,
+  SesionDetalle,
+} from './sesion-inventario.repository';

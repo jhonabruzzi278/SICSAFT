@@ -21,11 +21,13 @@ import type { RequestWithCorrelationId } from '../common/correlation-id/correlat
 import {
   authSessionRequestSchema,
   catalogoQuerySchema,
+  inventariosQuerySchema,
   inventarioRequestSchema,
 } from './qr-connector.schemas';
 import type {
   AuthSessionRequest,
   CatalogoQuery,
+  InventariosQuery,
   InventarioRequest,
 } from './qr-connector.schemas';
 import type {
@@ -33,6 +35,8 @@ import type {
   CatalogoResponse,
   InventarioEstadoResponse,
   PostInventarioResponse,
+  SesionDetalle,
+  SesionResumen,
 } from './qr-connector.types';
 
 // Implementa el contrato de DOC-002 (app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md).
@@ -86,6 +90,32 @@ export class QrConnectorController {
   ): Promise<InventarioEstadoResponse> {
     return this.qrConnectorService.getInventarioEstado(
       inventarioId,
+      request.correlationId,
+    );
+  }
+
+  // RF-04 (Fase 5, WEB) — pipes a nivel de parámetro, no @UsePipes de método (DOC-012 §5 ya dejó
+  // un hallazgo real: @UsePipes de método valida TODOS los parámetros del handler, rompiendo
+  // cualquier @Param que coexista con el que sí se quiere validar).
+  @Get('inventarios')
+  getInventarios(
+    @Query(new ZodValidationPipe(inventariosQuerySchema))
+    query: InventariosQuery,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<SesionResumen[]> {
+    return this.qrConnectorService.getInventarios(
+      query.organizacionId,
+      request.correlationId,
+    );
+  }
+
+  @Get('inventarios/:id')
+  getInventarioDetalle(
+    @Param('id') id: string,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<SesionDetalle> {
+    return this.qrConnectorService.getInventarioDetalle(
+      id,
       request.correlationId,
     );
   }

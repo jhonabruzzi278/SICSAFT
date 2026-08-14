@@ -1,0 +1,172 @@
+/* eslint-disable @typescript-eslint/unbound-method -- jest.fn() mocks no usan `this`. */
+import { Test, TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
+import { AdministradorController } from './administrador.controller';
+import { AdministradorService } from './administrador.service';
+import {
+  ZitadelAuthGuard,
+  type AuthenticatedRequest,
+  type ZitadelAuthContext,
+} from '../common/auth/zitadel-auth.guard';
+import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
+import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
+import type {
+  ActivoResult,
+  ContratoResult,
+} from '../core-client/core-client.types';
+import type {
+  ActualizarContratoBody,
+  AltaActivoBody,
+  AltaContratoBody,
+} from './administrador.schemas';
+
+const CORRELATION_ID = 'correlation-test';
+
+function buildAuthenticatedRequest(
+  auth: ZitadelAuthContext,
+): AuthenticatedRequest & RequestWithCorrelationId {
+  return { auth, correlationId: CORRELATION_ID } as AuthenticatedRequest &
+    RequestWithCorrelationId &
+    Request;
+}
+
+const ACTIVO: ActivoResult = {
+  id: 'activo-1',
+  codigoPatrimonial: 'AFT-1',
+  codigoQr: 'QR-1',
+  organizacionId: 'duoc-uc',
+  areaId: null,
+  ubicacionId: null,
+  responsableId: null,
+  estado: 'activo',
+  catalogo: {
+    tipo: 'Equipo Computacional',
+    familia: 'Informática',
+    subfamilia: null,
+    marca: null,
+    modelo: null,
+  },
+};
+
+describe('AdministradorController', () => {
+  let controller: AdministradorController;
+  let service: jest.Mocked<AdministradorService>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [AdministradorController],
+      providers: [
+        {
+          provide: AdministradorService,
+          useValue: {
+            altaActivo: jest.fn(),
+            getContratos: jest.fn(),
+            altaContrato: jest.fn(),
+            actualizarEstadoContrato: jest.fn(),
+          },
+        },
+      ],
+    })
+      .overrideGuard(ZitadelAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RateLimitGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
+
+    controller = module.get(AdministradorController);
+    service = module.get(AdministradorService);
+  });
+
+  it('altaActivo delega en el service con el body, el auth del guard y el correlationId', async () => {
+    service.altaActivo.mockResolvedValue(ACTIVO);
+    const body: AltaActivoBody = {
+      organizacionId: 'duoc-uc',
+      codigoPatrimonial: 'AFT-1',
+      codigoQr: 'QR-1',
+      catalogoId: 'catalogo-notebook',
+    };
+    const auth: ZitadelAuthContext = {
+      operadorId: 'op-1',
+      accessToken: 'zitadel-token',
+      expiresAt: '2026-08-12T10:15:00.000Z',
+      rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+    };
+    const request = buildAuthenticatedRequest(auth);
+
+    await expect(controller.altaActivo(body, request)).resolves.toBe(ACTIVO);
+    expect(service.altaActivo).toHaveBeenCalledWith(body, auth, CORRELATION_ID);
+  });
+
+  const CONTRATO: ContratoResult = {
+    id: 'contrato-1',
+    organizacionId: 'duoc-uc',
+    organizacionNombre: 'DUOC UC',
+    sedes: [{ id: 'melipilla', nombre: 'Melipilla' }],
+    vigenciaDesde: '2026-01-01T00:00:00.000Z',
+    vigenciaHasta: null,
+    estado: 'vigente',
+    modulosContratados: ['inventario-qr'],
+  };
+
+  it('getContratos delega en el service con el correlationId', async () => {
+    service.getContratos.mockResolvedValue([CONTRATO]);
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+
+    await expect(controller.getContratos(request)).resolves.toEqual([CONTRATO]);
+    expect(service.getContratos).toHaveBeenCalledWith(CORRELATION_ID);
+  });
+
+  it('altaContrato delega en el service con el body, el auth del guard y el correlationId', async () => {
+    service.altaContrato.mockResolvedValue(CONTRATO);
+    const body: AltaContratoBody = {
+      organizacionId: 'duoc-uc',
+      sedeIds: ['melipilla'],
+      vigenciaDesde: '2026-01-01T00:00:00.000Z',
+      modulosContratados: ['inventario-qr'],
+    };
+    const auth: ZitadelAuthContext = {
+      operadorId: 'op-1',
+      accessToken: 'zitadel-token',
+      expiresAt: '2026-08-12T10:15:00.000Z',
+      rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+    };
+    const request = buildAuthenticatedRequest(auth);
+
+    await expect(controller.altaContrato(body, request)).resolves.toBe(
+      CONTRATO,
+    );
+    expect(service.altaContrato).toHaveBeenCalledWith(
+      body,
+      auth,
+      CORRELATION_ID,
+    );
+  });
+
+  it('actualizarEstadoContrato delega en el service con el id, el body, el auth del guard y el correlationId', async () => {
+    const suspendido = { ...CONTRATO, estado: 'suspendido' as const };
+    service.actualizarEstadoContrato.mockResolvedValue(suspendido);
+    const body: ActualizarContratoBody = {
+      organizacionId: 'duoc-uc',
+      estado: 'suspendido',
+    };
+    const auth: ZitadelAuthContext = {
+      operadorId: 'op-1',
+      accessToken: 'zitadel-token',
+      expiresAt: '2026-08-12T10:15:00.000Z',
+      rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+    };
+    const request = buildAuthenticatedRequest(auth);
+
+    await expect(
+      controller.actualizarEstadoContrato('contrato-1', body, request),
+    ).resolves.toBe(suspendido);
+    expect(service.actualizarEstadoContrato).toHaveBeenCalledWith(
+      'contrato-1',
+      body,
+      auth,
+      CORRELATION_ID,
+    );
+  });
+});

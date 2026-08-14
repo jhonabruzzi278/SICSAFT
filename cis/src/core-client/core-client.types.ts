@@ -52,3 +52,102 @@ export const inventarioEstadoResponseSchema = z.object({
 export type InventarioEstadoResult = z.infer<
   typeof inventarioEstadoResponseSchema
 >;
+
+// Contrato de POST /activos de CORE — DOC-012 §5. `PostActivoRequest` es lo que CIS le manda a
+// CORE (ya con `operadorId`/`rolesPorOrganizacion` resueltos, ver AdministradorService), no lo
+// que WEB le manda a CIS (ese es AltaActivoBody, forma mas chica — sin esos dos campos).
+export interface PostActivoRequest {
+  correlationId: string;
+  operadorId: string;
+  organizacionId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
+  codigoPatrimonial: string;
+  codigoQr: string;
+  catalogoId: string;
+  serie?: string;
+  responsableId?: string;
+  areaId?: string;
+  ubicacionId?: string;
+  valorPatrimonial?: number;
+}
+
+// Contrato de POST /contratos y PATCH /contratos/:id de CORE — DOC-012 §7. Mismo criterio que
+// PostActivoRequest: CIS ya resolvio operadorId/rolesPorOrganizacion antes de armar esto.
+export interface PostContratoRequest {
+  correlationId: string;
+  operadorId: string;
+  organizacionId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
+  sedeIds: string[];
+  vigenciaDesde: string;
+  vigenciaHasta?: string | null;
+  modulosContratados: string[];
+}
+
+export interface PatchContratoRequest {
+  correlationId: string;
+  operadorId: string;
+  organizacionId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
+  estado: string;
+}
+
+const sedeContratoSchema = z.object({ id: z.string(), nombre: z.string() });
+
+export const contratoResponseSchema = z.object({
+  id: z.string(),
+  organizacionId: z.string(),
+  organizacionNombre: z.string(),
+  sedes: z.array(sedeContratoSchema),
+  vigenciaDesde: z.string(),
+  vigenciaHasta: z.string().nullable(),
+  estado: z.enum(['vigente', 'suspendido', 'vencido', 'cancelado']),
+  modulosContratados: z.array(z.string()),
+});
+export type ContratoResult = z.infer<typeof contratoResponseSchema>;
+export const contratosResponseSchema = z.array(contratoResponseSchema);
+
+// RF-04 (Fase 5, WEB) — GET /inventarios (listado) y GET /inventarios/:id (detalle) de CORE.
+const sesionResumenSchema = z.object({
+  id: z.string(),
+  organizacionId: z.string(),
+  areaId: z.string(),
+  ubicacionId: z.string(),
+  operadorId: z.string(),
+  fechaInicio: z.string(),
+  fechaCierre: z.string(),
+  estado: z.enum(['pendiente', 'recibido', 'rechazado']),
+  creadoEn: z.string(),
+});
+export type SesionResumenResult = z.infer<typeof sesionResumenSchema>;
+export const sesionesResumenResponseSchema = z.array(sesionResumenSchema);
+
+export const sesionDetalleResponseSchema = sesionResumenSchema.extend({
+  escaneos: z.array(
+    z.object({
+      codigoQr: z.string(),
+      resultado: z.string(),
+      observaciones: z.string().nullable(),
+    }),
+  ),
+});
+export type SesionDetalleResult = z.infer<typeof sesionDetalleResponseSchema>;
+
+export const activoResponseSchema = z.object({
+  id: z.string(),
+  codigoPatrimonial: z.string(),
+  codigoQr: z.string(),
+  organizacionId: z.string(),
+  areaId: z.string().nullable(),
+  ubicacionId: z.string().nullable(),
+  responsableId: z.string().nullable(),
+  estado: z.enum(['activo', 'en_transito', 'extraviado', 'dado_de_baja']),
+  catalogo: z.object({
+    tipo: z.string(),
+    familia: z.string(),
+    subfamilia: z.string().nullable(),
+    marca: z.string().nullable(),
+    modelo: z.string().nullable(),
+  }),
+});
+export type ActivoResult = z.infer<typeof activoResponseSchema>;

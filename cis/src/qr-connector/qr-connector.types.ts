@@ -48,3 +48,26 @@ export interface InventarioEstadoResponse {
   estado: InventarioEstado;
   ultimoIntento: string;
 }
+
+// RF-04 (Fase 5, WEB) — GET /inventarios (listado) y GET /inventarios/:id (detalle).
+export interface SesionResumen {
+  id: string;
+  organizacionId: string;
+  areaId: string;
+  ubicacionId: string;
+  operadorId: string;
+  fechaInicio: string;
+  fechaCierre: string;
+  estado: InventarioEstado;
+  creadoEn: string;
+}
+
+export interface EscaneoDetalle {
+  codigoQr: string;
+  resultado: string;
+  observaciones: string | null;
+}
+
+export interface SesionDetalle extends SesionResumen {
+  escaneos: EscaneoDetalle[];
+}

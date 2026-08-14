@@ -9,6 +9,8 @@ import {
   CatalogoResponse,
   InventarioEstadoResponse,
   PostInventarioResponse,
+  SesionDetalle,
+  SesionResumen,
 } from './qr-connector.types';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
 import { CoreClientService } from '../core-client/core-client.service';
@@ -88,6 +90,24 @@ export class QrConnectorService {
     correlationId: string,
   ): Promise<InventarioEstadoResponse> {
     return this.coreClientService.getInventarioEstado(
+      inventarioId,
+      correlationId,
+    );
+  }
+
+  // RF-04 (Fase 5, WEB) — proxy delgado, mismo criterio que getCatalogo.
+  async getInventarios(
+    organizacionId: string,
+    correlationId: string,
+  ): Promise<SesionResumen[]> {
+    return this.coreClientService.getInventarios(organizacionId, correlationId);
+  }
+
+  async getInventarioDetalle(
+    inventarioId: string,
+    correlationId: string,
+  ): Promise<SesionDetalle> {
+    return this.coreClientService.getInventarioDetalle(
       inventarioId,
       correlationId,
     );

@@ -108,6 +108,118 @@ describe('SesionInventarioRepository', () => {
     });
   });
 
+  describe('findByOrganizacion', () => {
+    it('devuelve las sesiones mapeadas con fechas ISO', async () => {
+      const client = buildClient();
+      const pool = buildPool(client);
+      pool.query.mockResolvedValue({
+        rows: [
+          {
+            id: 'sesion-1',
+            organizacionId: 'duoc-uc',
+            areaId: 'area-biblioteca',
+            ubicacionId: 'ubicacion-biblioteca-101',
+            operadorId: 'op-1',
+            fechaInicio: new Date('2026-01-15T10:00:00.000Z'),
+            fechaCierre: new Date('2026-01-15T10:30:00.000Z'),
+            estado: 'recibido',
+            creadoEn: new Date('2026-01-15T10:30:05.000Z'),
+          },
+        ],
+      } as never);
+      const repository = new SesionInventarioRepository(pool);
+
+      const sesiones = await repository.findByOrganizacion('duoc-uc');
+
+      expect(sesiones).toEqual([
+        {
+          id: 'sesion-1',
+          organizacionId: 'duoc-uc',
+          areaId: 'area-biblioteca',
+          ubicacionId: 'ubicacion-biblioteca-101',
+          operadorId: 'op-1',
+          fechaInicio: '2026-01-15T10:00:00.000Z',
+          fechaCierre: '2026-01-15T10:30:00.000Z',
+          estado: 'recibido',
+          creadoEn: '2026-01-15T10:30:05.000Z',
+        },
+      ]);
+      expect(pool.query).toHaveBeenCalledWith(expect.any(String), ['duoc-uc']);
+    });
+
+    it('devuelve un array vacio si no hay sesiones', async () => {
+      const client = buildClient();
+      const pool = buildPool(client);
+      pool.query.mockResolvedValue({ rows: [] } as never);
+      const repository = new SesionInventarioRepository(pool);
+
+      await expect(repository.findByOrganizacion('duoc-uc')).resolves.toEqual(
+        [],
+      );
+    });
+  });
+
+  describe('findDetalle', () => {
+    const SESION_ROW = {
+      id: 'sesion-1',
+      organizacionId: 'duoc-uc',
+      areaId: 'area-biblioteca',
+      ubicacionId: 'ubicacion-biblioteca-101',
+      operadorId: 'op-1',
+      fechaInicio: new Date('2026-01-15T10:00:00.000Z'),
+      fechaCierre: new Date('2026-01-15T10:30:00.000Z'),
+      estado: 'recibido',
+      creadoEn: new Date('2026-01-15T10:30:05.000Z'),
+    };
+
+    it('devuelve la sesion con sus escaneos', async () => {
+      const client = buildClient();
+      const pool = buildPool(client);
+      const query = jest
+        .fn()
+        .mockResolvedValueOnce({ rows: [SESION_ROW] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              codigoQr: 'QR-000001',
+              resultado: 'correcto',
+              observaciones: null,
+            },
+          ],
+        });
+      pool.query = query as never;
+      const repository = new SesionInventarioRepository(pool);
+
+      const detalle = await repository.findDetalle('sesion-1');
+
+      expect(detalle).toEqual({
+        id: 'sesion-1',
+        organizacionId: 'duoc-uc',
+        areaId: 'area-biblioteca',
+        ubicacionId: 'ubicacion-biblioteca-101',
+        operadorId: 'op-1',
+        fechaInicio: '2026-01-15T10:00:00.000Z',
+        fechaCierre: '2026-01-15T10:30:00.000Z',
+        estado: 'recibido',
+        creadoEn: '2026-01-15T10:30:05.000Z',
+        escaneos: [
+          { codigoQr: 'QR-000001', resultado: 'correcto', observaciones: null },
+        ],
+      });
+    });
+
+    it('devuelve null si la sesion no existe (sin consultar escaneos)', async () => {
+      const client = buildClient();
+      const pool = buildPool(client);
+      const query = jest.fn().mockResolvedValueOnce({ rows: [] });
+      pool.query = query as never;
+      const repository = new SesionInventarioRepository(pool);
+
+      await expect(repository.findDetalle('no-existe')).resolves.toBeNull();
+      expect(query).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('crear', () => {
     it('inserta la sesion y cada fila dentro de una transaccion', async () => {
       const client = buildClient();

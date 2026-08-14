@@ -2,6 +2,8 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { AuditoriaRepository } from '../auditoria/auditoria.repository';
 import { InventariosService } from '../inventarios/inventarios.service';
 import { EscrituraActivoService } from '../patrimonial/escritura-activo.service';
+import { ImportacionContableService } from '../patrimonial/importacion-contable.service';
+import { EscrituraContratoService } from '../entitlements/escritura-contrato.service';
 import { verificarRolAdministradorPatrimonial } from '../common/auth/administrador-patrimonial.guard';
 import type {
   InventarioRequest,
@@ -13,15 +15,26 @@ import type {
   CambioResponsableBody,
 } from '../patrimonial/activo.schemas';
 import type { Activo } from '../patrimonial/activo.types';
+import type { ImportacionContableBody } from '../patrimonial/importacion-contable.schemas';
+import type { ImportacionContableResultado } from '../patrimonial/importacion-contable.types';
+import type {
+  ActualizarContratoBody,
+  AltaContratoBody,
+} from '../entitlements/contrato.schemas';
+import type { Contrato } from '../entitlements/contrato.types';
 import { buildContextoOperacion } from './contexto-operacion';
 
 // DOC-007 — unico punto de entrada a los motores (Tomo IV §2.4). Generalizado en DOC-012 (Fase 4)
-// con el segundo caso de uso real: escritura oficial de Activo.
+// con los demas casos de uso reales: escritura oficial de Activo, importacion masiva y escritura
+// de Contrato — todos comparten el mismo patron de autorizacion+auditoria (ver
+// ejecutarOperacionOficial).
 @Injectable()
 export class OrquestadorService {
   constructor(
     private readonly inventariosService: InventariosService,
     private readonly escrituraActivoService: EscrituraActivoService,
+    private readonly importacionContableService: ImportacionContableService,
+    private readonly escrituraContratoService: EscrituraContratoService,
     private readonly auditoriaRepository: AuditoriaRepository,
   ) {}
 
@@ -120,33 +133,109 @@ export class OrquestadorService {
     );
   }
 
+  // DOC-012 §6 — POST /importaciones/contable. Idempotente por fila (no atomico por request como
+  // POST /inventarios) — el resultado siempre es 200 con el detalle de cada fila, el 403 por
+  // falta de rol es el unico rechazo de todo el request.
+  procesarImportacionContable(
+    payload: ImportacionContableBody,
+  ): Promise<ImportacionContableResultado> {
+    return this.ejecutarOperacionOficial(
+      'POST /importaciones/contable',
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.importacionContableService.procesar(
+          payload.organizacionId,
+          payload.filas,
+          payload.operadorId,
+        ),
+      (resultado) =>
+        `${resultado.creados} creados, ${resultado.yaImportados} ya_importados, ${resultado.conflictos} conflictos`,
+    );
+  }
+
+  // DOC-012 §7 — POST /contratos (alta).
+  procesarAltaContrato(payload: AltaContratoBody): Promise<Contrato> {
+    return this.ejecutarEscrituraOficial(
+      'POST /contratos',
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () => this.escrituraContratoService.alta(payload, payload.operadorId),
+    );
+  }
+
+  // DOC-012 §7 — PATCH /contratos/:id.
+  procesarActualizacionContrato(
+    contratoId: string,
+    payload: ActualizarContratoBody,
+  ): Promise<Contrato> {
+    return this.ejecutarEscrituraOficial(
+      `PATCH /contratos/${contratoId}`,
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraContratoService.actualizarEstado(
+          contratoId,
+          payload.organizacionId,
+          payload.estado,
+          payload.operadorId,
+        ),
+    );
+  }
+
+  // Activo y Contrato comparten la misma forma de resultado (ambos exponen `estado`) — atajo
+  // sobre ejecutarOperacionOficial para no repetir `(valor) => valor.estado` en cada llamador.
+  private ejecutarEscrituraOficial<T extends { estado: string }>(
+    operacion: string,
+    operadorId: string,
+    organizacionId: string,
+    rolesPorOrganizacion: unknown,
+    accion: () => Promise<T>,
+  ): Promise<T> {
+    return this.ejecutarOperacionOficial(
+      operacion,
+      operadorId,
+      organizacionId,
+      rolesPorOrganizacion,
+      accion,
+      (valor) => valor.estado,
+    );
+  }
+
   // DOC-012 §8 — la autorizacion de rol (verificarRolAdministradorPatrimonial) corre acá adentro,
   // no en un @UseGuards() a nivel de controller: asi un 403 por falta de rol pasa por el mismo
   // try/catch que cualquier otro rechazo de negocio y queda auditado (a diferencia de
   // ServiceTokenGuard, que sigue cortando antes del Orquestador porque autentica la conexion
   // CIS<->CORE, no una accion de negocio auditable por usuario). Se verifica el rol CONTRA
   // `organizacionId` (nunca "¿tiene el rol en algun lado?", hallazgo de revision de seguridad) —
-  // el repository vuelve a cruzar esta misma organizacion contra la organizacion real del activo
-  // objetivo como defensa en profundidad (ver activo.repository.ts).
-  private async ejecutarEscrituraOficial(
+  // el repository vuelve a cruzar esta misma organizacion contra la organizacion real del
+  // activo/contrato objetivo como defensa en profundidad (ver activo.repository.ts/
+  // contrato.repository.ts). `resultadoDe` deja el mapeo valor->string de auditoria a cada
+  // llamador porque no todos los resultados tienen la misma forma (Activo/Contrato exponen
+  // `estado`, ImportacionContableResultado no).
+  private async ejecutarOperacionOficial<T>(
     operacion: string,
     operadorId: string,
     organizacionId: string,
     rolesPorOrganizacion: unknown,
-    accion: () => Promise<Activo>,
-  ): Promise<Activo> {
+    accion: () => Promise<T>,
+    resultadoDe: (valor: T) => string,
+  ): Promise<T> {
     try {
       verificarRolAdministradorPatrimonial(
         rolesPorOrganizacion,
         organizacionId,
       );
-      const activo = await accion();
+      const valor = await accion();
       await this.auditoriaRepository.registrar({
         usuario: operadorId,
         operacion,
-        resultado: activo.estado,
+        resultado: resultadoDe(valor),
       });
-      return activo;
+      return valor;
     } catch (error: unknown) {
       await this.auditoriaRepository.registrar({
         usuario: operadorId,

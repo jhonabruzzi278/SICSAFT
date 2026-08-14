@@ -54,6 +54,8 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
     getCatalogo: jest.Mock;
     postInventario: jest.Mock;
     getInventarioEstado: jest.Mock;
+    getInventarios: jest.Mock;
+    getInventarioDetalle: jest.Mock;
   };
   let redisClient: {
     eval: jest.Mock;
@@ -112,6 +114,46 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
             estado: 'recibido',
           });
         }),
+      getInventarios: jest.fn().mockResolvedValue([
+        {
+          id: 'sesion-e2e-1',
+          organizacionId: 'duoc-uc',
+          areaId: 'laboratorio-informatica',
+          ubicacionId: 'melipilla',
+          operadorId: 'op-1',
+          fechaInicio: '2026-08-12T10:00:00.000Z',
+          fechaCierre: '2026-08-12T11:00:00.000Z',
+          estado: 'recibido',
+          creadoEn: '2026-08-12T11:00:05.000Z',
+        },
+      ]),
+      getInventarioDetalle: jest.fn().mockImplementation((id: string) => {
+        if (id === 'sesion-e2e-1') {
+          return Promise.resolve({
+            id: 'sesion-e2e-1',
+            organizacionId: 'duoc-uc',
+            areaId: 'laboratorio-informatica',
+            ubicacionId: 'melipilla',
+            operadorId: 'op-1',
+            fechaInicio: '2026-08-12T10:00:00.000Z',
+            fechaCierre: '2026-08-12T11:00:00.000Z',
+            estado: 'recibido',
+            creadoEn: '2026-08-12T11:00:05.000Z',
+            escaneos: [
+              {
+                codigoQr: 'QR-0001',
+                resultado: 'correcto',
+                observaciones: null,
+              },
+            ],
+          });
+        }
+        return Promise.reject(
+          new NotFoundException({
+            message: `No existe el inventario '${id}'`,
+          }),
+        );
+      }),
       getInventarioEstado: jest.fn().mockImplementation((id: string) => {
         if (id === 'inv-e2e-1') {
           return Promise.resolve({
@@ -303,6 +345,42 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
       .get('/inventarios/no-existe/estado')
       .set('Authorization', 'Bearer token-invalido')
       .expect(401);
+  });
+
+  it('GET /inventarios (listado) devuelve las sesiones de la organizacion', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/inventarios')
+      .set('Authorization', `Bearer ${bearerToken}`)
+      .query({ organizacionId: 'duoc-uc' })
+      .expect(200);
+
+    const sesiones = res.body as Array<{ id: string }>;
+    expect(sesiones.some((s) => s.id === 'sesion-e2e-1')).toBe(true);
+  });
+
+  it('GET /inventarios sin Authorization devuelve 401', async () => {
+    await request(app.getHttpServer())
+      .get('/inventarios')
+      .query({ organizacionId: 'duoc-uc' })
+      .expect(401);
+  });
+
+  it('GET /inventarios/:id (detalle) devuelve la sesion con sus escaneos', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/inventarios/sesion-e2e-1')
+      .set('Authorization', `Bearer ${bearerToken}`)
+      .expect(200);
+
+    const detalle = res.body as { id: string; escaneos: unknown[] };
+    expect(detalle.id).toBe('sesion-e2e-1');
+    expect(detalle.escaneos).toHaveLength(1);
+  });
+
+  it('GET /inventarios/:id con id inexistente devuelve 404', async () => {
+    await request(app.getHttpServer())
+      .get('/inventarios/no-existe')
+      .set('Authorization', `Bearer ${bearerToken}`)
+      .expect(404);
   });
 
   it('devuelve 429 cuando el operador supera el limite de requests (RateLimitGuard, WAF §4)', async () => {

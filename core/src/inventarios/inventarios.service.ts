@@ -14,6 +14,8 @@ import type {
   InventarioEstadoResponse,
   InventarioRequest,
   PostInventarioResponse,
+  SesionDetalle,
+  SesionResumen,
 } from './inventarios.types';
 
 // Codigo SQLSTATE de Postgres para violacion de foreign key — ver DOC-006 §5: una
@@ -105,6 +107,22 @@ export class InventariosService {
       });
     }
     return info;
+  }
+
+  // RF-04 (Fase 5, WEB) — lectura pura, sin orquestacion/auditoria (mismo criterio que
+  // obtenerEstado).
+  listarSesiones(organizacionId: string): Promise<SesionResumen[]> {
+    return this.sesionRepository.findByOrganizacion(organizacionId);
+  }
+
+  async obtenerDetalle(inventarioId: string): Promise<SesionDetalle> {
+    const detalle = await this.sesionRepository.findDetalle(inventarioId);
+    if (!detalle) {
+      throw new NotFoundException({
+        message: `No existe el inventario '${inventarioId}'`,
+      });
+    }
+    return detalle;
   }
 
   private resolverReintento(

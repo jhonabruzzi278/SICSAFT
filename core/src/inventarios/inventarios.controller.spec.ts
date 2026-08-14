@@ -24,7 +24,14 @@ describe('InventariosController', () => {
           provide: OrquestadorService,
           useValue: { procesarInventario: jest.fn() },
         },
-        { provide: InventariosService, useValue: { obtenerEstado: jest.fn() } },
+        {
+          provide: InventariosService,
+          useValue: {
+            obtenerEstado: jest.fn(),
+            listarSesiones: jest.fn(),
+            obtenerDetalle: jest.fn(),
+          },
+        },
       ],
     })
       .overrideGuard(ServiceTokenGuard)
@@ -79,5 +86,48 @@ describe('InventariosController', () => {
       controller.getInventarioEstado({ inventarioId: 'sesion-1' }),
     ).resolves.toBe(expected);
     expect(inventariosService.obtenerEstado).toHaveBeenCalledWith('sesion-1');
+  });
+
+  it('getInventarios delega en InventariosService con organizacionId', async () => {
+    const expected = [
+      {
+        id: 'sesion-1',
+        organizacionId: 'duoc-uc',
+        areaId: 'area-biblioteca',
+        ubicacionId: 'ubicacion-biblioteca-101',
+        operadorId: 'op-1',
+        fechaInicio: '2026-01-15T10:00:00.000Z',
+        fechaCierre: '2026-01-15T10:30:00.000Z',
+        estado: 'recibido' as const,
+        creadoEn: '2026-01-15T10:30:05.000Z',
+      },
+    ];
+    inventariosService.listarSesiones.mockResolvedValue(expected);
+
+    await expect(
+      controller.getInventarios({ organizacionId: 'duoc-uc' }),
+    ).resolves.toBe(expected);
+    expect(inventariosService.listarSesiones).toHaveBeenCalledWith('duoc-uc');
+  });
+
+  it('getInventarioDetalle delega en InventariosService con el id', async () => {
+    const expected = {
+      id: 'sesion-1',
+      organizacionId: 'duoc-uc',
+      areaId: 'area-biblioteca',
+      ubicacionId: 'ubicacion-biblioteca-101',
+      operadorId: 'op-1',
+      fechaInicio: '2026-01-15T10:00:00.000Z',
+      fechaCierre: '2026-01-15T10:30:00.000Z',
+      estado: 'recibido' as const,
+      creadoEn: '2026-01-15T10:30:05.000Z',
+      escaneos: [],
+    };
+    inventariosService.obtenerDetalle.mockResolvedValue(expected);
+
+    await expect(
+      controller.getInventarioDetalle({ id: 'sesion-1' }),
+    ).resolves.toBe(expected);
+    expect(inventariosService.obtenerDetalle).toHaveBeenCalledWith('sesion-1');
   });
 });

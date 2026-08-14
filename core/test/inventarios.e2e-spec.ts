@@ -156,4 +156,64 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
         .expect(401);
     });
   });
+
+  describe('GET /inventarios (listado) + GET /inventarios/:id (detalle)', () => {
+    it('lista la sesion recien creada por organizacion y trae su detalle con escaneos', async () => {
+      const payload = buildInventarioPayload();
+      const creada = await request(app.getHttpServer())
+        .post('/inventarios')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(payload)
+        .expect(201);
+      const inventarioId = (creada.body as PostInventarioResponse).inventarioId;
+
+      const listaRes = await request(app.getHttpServer())
+        .get('/inventarios')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .query({ organizacionId: 'duoc-uc' })
+        .expect(200);
+
+      const sesiones = listaRes.body as Array<{ id: string; estado: string }>;
+      expect(sesiones.some((s) => s.id === inventarioId)).toBe(true);
+
+      const detalleRes = await request(app.getHttpServer())
+        .get(`/inventarios/${inventarioId}`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .expect(200);
+
+      const detalle = detalleRes.body as {
+        id: string;
+        estado: string;
+        escaneos: Array<{ codigoQr: string; resultado: string }>;
+      };
+      expect(detalle.id).toBe(inventarioId);
+      expect(detalle.estado).toBe('recibido');
+      expect(detalle.escaneos).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            codigoQr: 'QR-000001',
+            resultado: 'correcto',
+          }),
+          expect.objectContaining({
+            codigoQr: 'QR-NOPE',
+            resultado: 'no_registrado',
+          }),
+        ]),
+      );
+    });
+
+    it('GET /inventarios/:id de un id inexistente devuelve 404', async () => {
+      await request(app.getHttpServer())
+        .get('/inventarios/no-existe')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .expect(404);
+    });
+
+    it('devuelve 401 sin service token', async () => {
+      await request(app.getHttpServer())
+        .get('/inventarios')
+        .query({ organizacionId: 'duoc-uc' })
+        .expect(401);
+    });
+  });
 });
