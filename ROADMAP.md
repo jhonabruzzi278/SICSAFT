@@ -372,14 +372,19 @@ probando el flujo real en el navegador, ninguno lo detectaban los tests unitario
 **Done**: ✅ RF-03/RF-08 (alta de Activo visible en `GET /catalogo`), RF-04 (listado + detalle de
 sesiones de inventario) y RF-07 (alta de Contrato + transición de estado, incluido el invariante
 DOC-004 §4 rechazando sedes ya cubiertas) — verificados real de punta a punta (login real →
-escritura/lectura real → Postgres real → visible en la UI), no solo con mocks. ✅ RF-06 (listado de
-auditoría, sin filtro por organización) y ✅ RF-05 (ABM de Área/Ubicación/Responsable, sin edición
-de Área/Ubicación ni asignación `responsable_id`/`ubicacion_principal_id`) — ambos verificados con
-unit + e2e reales contra Postgres (CORE y CIS), sin login real de navegador todavía (a diferencia
-de RF-03/RF-04/RF-07). Los 6 módulos del MVP de Fase 5 están implementados. ⬜ e2e Playwright del
-flujo de login + alta — sin escribir todavía. ⬜ Dockerfile/`web-ci.yml`/servicio en el compose
-local — WEB sigue corriendo solo con `npm run dev` fuera de Docker. ✅ `web/README.md`,
-`cis/README.md`, `core/README.md`, `README.md` y DOC-013 actualizados.
+escritura/lectura real → Postgres real → visible en la UI), no solo con mocks. Los 6 módulos del
+MVP de Fase 5 tienen código funcionando, pero **dos quedaron parciales respecto de su propio
+requisito** (ver `REQUISITOS.md` § "RF/RNF con estado parcial" para el detalle completo): ⚠️ RF-06
+(el requisito pide auditoría "filtrable por usuario/fecha/operación" — se construyó solo el
+listado de las 200 entradas más recientes, sin ningún filtro) y ⚠️ RF-05 (el requisito pide "ABM
+completo" de Área/Ubicación/Responsable — se construyó alta + consulta de las 3 entidades y baja
+de Responsable, sin edición de Área/Ubicación ni asignación de
+`responsable_id`/`ubicacion_principal_id`). Ambos verificados con unit + e2e reales contra
+Postgres (CORE y CIS), sin login real de navegador todavía (a diferencia de RF-03/RF-04/RF-07).
+⬜ e2e Playwright del flujo de login + alta — sin escribir todavía. ⬜ Dockerfile/`web-ci.yml`/
+servicio en el compose local — WEB sigue corriendo solo con `npm run dev` fuera de Docker.
+✅ `web/README.md`, `cis/README.md`, `core/README.md`, `README.md`, `REQUISITOS.md` (nuevo, índice
+consolidado de RF/RNF) y DOC-013 actualizados.
 
 ## Fase 6 — CIP: primer dashboard
 

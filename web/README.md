@@ -114,12 +114,14 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   solo en la FK de Postgres, que no distinguiría una sede/área real pero de otra organización.
 
 ## Módulos previstos
-6 en el MVP de Fase 5 (ver [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)) — los 6
-implementados: Activos (🟢), Contratos (🟢), Inventarios (🟢), hub (🟢), Auditoría (🟢, sin filtro
-por organización — ver "Gaps" arriba), Áreas/Ubicaciones/Responsables (🟢, sin edición de
-Área/Ubicación ni asignación `responsable_id`/`ubicacion_principal_id` — ver "Qué existe hoy"). El
-resto — Dashboard, Incidencias, Movimientos, QR, RFID, Documentos, Reportes, Usuarios, Roles,
-Configuración, Integraciones — queda para después, sin diseñar todavía (sin consumidor real).
+6 en el MVP de Fase 5 (ver [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)), los 6
+con código funcionando: Activos (🟢), Contratos (🟢), Inventarios (🟢), hub (🟢), Auditoría (🟡,
+sin ningún filtro — el requisito RF-06 pide filtrar por usuario/fecha/operación, ver "Gaps"
+arriba), Áreas/Ubicaciones/Responsables (🟡, sin edición de Área/Ubicación ni asignación de
+`responsable_id`/`ubicacion_principal_id` — el requisito RF-05 pide ABM completo, ver "Qué existe
+hoy"). El resto — Dashboard, Incidencias, Movimientos, QR, RFID, Documentos, Reportes, Usuarios,
+Roles, Configuración, Integraciones — queda para después, sin diseñar todavía (sin consumidor
+real).
 
 ## Roles previstos
 Administrador, Responsable Patrimonial, Operador, Supervisor, Auditor, Directivo.
@@ -151,13 +153,17 @@ Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §8 (WEB y APP QR son clientes
 del mismo contrato de CIS/CORE).
 
 ## Próximo paso sugerido
-Los 6 módulos del MVP de Fase 5 están implementados. Lo que queda, en orden de valor:
-1. Verificación real de punta a punta de Auditoría y Áreas/Ubicaciones/Responsables desde el
+Los 6 módulos del MVP de Fase 5 tienen código funcionando, pero RF-05 y RF-06 quedaron parciales
+respecto de su propio requisito (ver `../REQUISITOS.md` § "RF/RNF con estado parcial"). En orden
+de valor:
+1. **Cerrar RF-06**: `GET /auditoria` no tiene ningún filtro (usuario/fecha/operación), y el
+   requisito lo pide explícito — agregar query params a `AuditoriaRepository.listar` (CORE) y los
+   controles correspondientes en `AuditoriaPage`.
+2. **Cerrar RF-05**: falta `PATCH /areas/:id`/`PATCH /ubicaciones/:id` (edición) y la asignación de
+   `responsable_id`/`ubicacion_principal_id` a un Área ya creada — hoy solo hay alta + consulta.
+3. Verificación real de punta a punta de Auditoría y Áreas/Ubicaciones/Responsables desde el
    navegador (login real, como ya se hizo con Activos/Contratos/Inventarios) — hoy solo están
    probados con e2e de CORE/CIS.
-2. e2e Playwright del flujo de login + alta (anotado como pendiente desde Fase 5 inicial).
-3. Dockerfile/`web-ci.yml`/servicio en el compose local — WEB sigue corriendo solo con
+4. e2e Playwright del flujo de login + alta (anotado como pendiente desde Fase 5 inicial).
+5. Dockerfile/`web-ci.yml`/servicio en el compose local — WEB sigue corriendo solo con
    `npm run dev` fuera de Docker.
-4. Cerrar los gaps documentados: edición de Área/Ubicación, asignación de
-   `responsable_id`/`ubicacion_principal_id` a un Área, y filtro por organización en
-   `GET /auditoria`.

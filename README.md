@@ -38,6 +38,10 @@ Cada carpeta tiene su propio `README.md` con objetivo, estado, dependencias y pr
 Arquitectura de referencia transversal (escalable, modular, resiliente, marco Well-Architected
 sin atarse a un proveedor de nube): [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md).
 
+Plan de fases pendientes: [ROADMAP.md](ROADMAP.md). Índice consolidado de requisitos funcionales y
+no funcionales de todos los sistemas (RF/RNF, con estado real y gaps conocidos):
+[REQUISITOS.md](REQUISITOS.md).
+
 Plan de fases para lo que falta construir en todo el ecosistema, ordenado por dependencia real
 (verificado contra el código, no solo contra los README): [ROADMAP.md](ROADMAP.md).
 
