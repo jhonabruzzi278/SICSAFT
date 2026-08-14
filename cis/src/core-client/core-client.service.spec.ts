@@ -366,13 +366,15 @@ describe('CoreClientService', () => {
       modulosContratados: ['inventario-qr'],
     };
 
-    it('llama a GET {baseUrl}/contratos', async () => {
-      axiosGet.mockResolvedValue(buildAxiosResponse([contrato]));
+    const pagina = { contratos: [contrato], total: 1 };
 
-      await service.getContratos('corr-1');
+    it('llama a GET {baseUrl}/contratos con limit/offset', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse(pagina));
+
+      await service.getContratos({ limit: 20, offset: 0 }, 'corr-1');
 
       expect(axiosGet).toHaveBeenCalledWith('http://core:3001/contratos', {
-        params: undefined,
+        params: { limit: 20, offset: 0 },
         headers: {
           'x-internal-service-token': 'secreto-compartido',
           'x-correlation-id': 'corr-1',
@@ -380,10 +382,12 @@ describe('CoreClientService', () => {
       });
     });
 
-    it('devuelve los contratos cuando CORE responde una forma valida', async () => {
-      axiosGet.mockResolvedValue(buildAxiosResponse([contrato]));
+    it('devuelve los contratos paginados cuando CORE responde una forma valida', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse(pagina));
 
-      await expect(service.getContratos('corr-1')).resolves.toEqual([contrato]);
+      await expect(
+        service.getContratos({ limit: 20, offset: 0 }, 'corr-1'),
+      ).resolves.toEqual(pagina);
     });
   });
 
@@ -667,7 +671,9 @@ describe('CoreClientService', () => {
     };
 
     it('llama a GET {baseUrl}/auditoria sin filtros', async () => {
-      axiosGet.mockResolvedValue(buildAxiosResponse([entrada]));
+      axiosGet.mockResolvedValue(
+        buildAxiosResponse({ entradas: [entrada], total: 1 }),
+      );
 
       await service.getAuditoria({}, 'corr-1');
 
@@ -677,6 +683,8 @@ describe('CoreClientService', () => {
           operacion: undefined,
           fechaDesde: undefined,
           fechaHasta: undefined,
+          limit: undefined,
+          offset: undefined,
         },
         headers: {
           'x-internal-service-token': 'secreto-compartido',
@@ -685,8 +693,10 @@ describe('CoreClientService', () => {
       });
     });
 
-    it('llama a GET {baseUrl}/auditoria con los filtros como query params', async () => {
-      axiosGet.mockResolvedValue(buildAxiosResponse([entrada]));
+    it('llama a GET {baseUrl}/auditoria con los filtros y la paginacion como query params', async () => {
+      axiosGet.mockResolvedValue(
+        buildAxiosResponse({ entradas: [entrada], total: 1 }),
+      );
 
       await service.getAuditoria(
         {
@@ -694,6 +704,8 @@ describe('CoreClientService', () => {
           operacion: 'baja',
           fechaDesde: '2026-08-01T00:00:00.000Z',
           fechaHasta: '2026-08-14T23:59:59.000Z',
+          limit: 20,
+          offset: 0,
         },
         'corr-1',
       );
@@ -704,6 +716,8 @@ describe('CoreClientService', () => {
           operacion: 'baja',
           fechaDesde: '2026-08-01T00:00:00.000Z',
           fechaHasta: '2026-08-14T23:59:59.000Z',
+          limit: 20,
+          offset: 0,
         },
         headers: {
           'x-internal-service-token': 'secreto-compartido',
@@ -712,12 +726,13 @@ describe('CoreClientService', () => {
       });
     });
 
-    it('devuelve las entradas cuando CORE responde una forma valida', async () => {
-      axiosGet.mockResolvedValue(buildAxiosResponse([entrada]));
+    it('devuelve las entradas paginadas cuando CORE responde una forma valida', async () => {
+      const pagina = { entradas: [entrada], total: 1 };
+      axiosGet.mockResolvedValue(buildAxiosResponse(pagina));
 
-      await expect(service.getAuditoria({}, 'corr-1')).resolves.toEqual([
-        entrada,
-      ]);
+      await expect(service.getAuditoria({}, 'corr-1')).resolves.toEqual(
+        pagina,
+      );
     });
   });
 
@@ -741,13 +756,15 @@ describe('CoreClientService', () => {
       nombre: 'Biblioteca',
     };
 
-    it('getAreas llama a GET {baseUrl}/areas con organizacionId', async () => {
-      axiosGet.mockResolvedValue(buildAxiosResponse([area]));
+    it('getAreas llama a GET {baseUrl}/areas con organizacionId y paginacion', async () => {
+      axiosGet.mockResolvedValue(
+        buildAxiosResponse({ areas: [area], total: 1 }),
+      );
 
-      await service.getAreas('duoc-uc', 'corr-1');
+      await service.getAreas('duoc-uc', { limit: 20, offset: 0 }, 'corr-1');
 
       expect(axiosGet).toHaveBeenCalledWith('http://core:3001/areas', {
-        params: { organizacionId: 'duoc-uc' },
+        params: { organizacionId: 'duoc-uc', limit: 20, offset: 0 },
         headers: {
           'x-internal-service-token': 'secreto-compartido',
           'x-correlation-id': 'corr-1',
@@ -836,13 +853,19 @@ describe('CoreClientService', () => {
       sedeId: 'melipilla',
     };
 
-    it('getUbicaciones llama a GET {baseUrl}/ubicaciones con sedeId', async () => {
-      axiosGet.mockResolvedValue(buildAxiosResponse([ubicacion]));
+    it('getUbicaciones llama a GET {baseUrl}/ubicaciones con sedeId y paginacion', async () => {
+      axiosGet.mockResolvedValue(
+        buildAxiosResponse({ ubicaciones: [ubicacion], total: 1 }),
+      );
 
-      await service.getUbicaciones('melipilla', 'corr-1');
+      await service.getUbicaciones(
+        'melipilla',
+        { limit: 20, offset: 0 },
+        'corr-1',
+      );
 
       expect(axiosGet).toHaveBeenCalledWith('http://core:3001/ubicaciones', {
-        params: { sedeId: 'melipilla' },
+        params: { sedeId: 'melipilla', limit: 20, offset: 0 },
         headers: {
           'x-internal-service-token': 'secreto-compartido',
           'x-correlation-id': 'corr-1',
@@ -931,13 +954,19 @@ describe('CoreClientService', () => {
       areaId: 'area-1',
     };
 
-    it('getResponsables llama a GET {baseUrl}/responsables con areaId', async () => {
-      axiosGet.mockResolvedValue(buildAxiosResponse([responsable]));
+    it('getResponsables llama a GET {baseUrl}/responsables con areaId y paginacion', async () => {
+      axiosGet.mockResolvedValue(
+        buildAxiosResponse({ responsables: [responsable], total: 1 }),
+      );
 
-      await service.getResponsables('area-1', 'corr-1');
+      await service.getResponsables(
+        'area-1',
+        { limit: 20, offset: 0 },
+        'corr-1',
+      );
 
       expect(axiosGet).toHaveBeenCalledWith('http://core:3001/responsables', {
-        params: { areaId: 'area-1' },
+        params: { areaId: 'area-1', limit: 20, offset: 0 },
         headers: {
           'x-internal-service-token': 'secreto-compartido',
           'x-correlation-id': 'corr-1',

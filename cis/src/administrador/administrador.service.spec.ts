@@ -134,10 +134,16 @@ describe('AdministradorService', () => {
   describe('getContratos', () => {
     it('delega en CoreClientService.getContratos sin traducir roles (lectura abierta)', async () => {
       const { service, coreClientService } = buildService({});
-      coreClientService.getContratos.mockResolvedValue([CONTRATO]);
+      const pagina = { contratos: [CONTRATO], total: 1 };
+      coreClientService.getContratos.mockResolvedValue(pagina);
 
-      await expect(service.getContratos('corr-1')).resolves.toEqual([CONTRATO]);
-      expect(coreClientService.getContratos).toHaveBeenCalledWith('corr-1');
+      await expect(
+        service.getContratos({ limit: 20, offset: 0 }, 'corr-1'),
+      ).resolves.toEqual(pagina);
+      expect(coreClientService.getContratos).toHaveBeenCalledWith(
+        { limit: 20, offset: 0 },
+        'corr-1',
+      );
     });
   });
 
@@ -156,12 +162,13 @@ describe('AdministradorService', () => {
           observaciones: null,
         },
       ];
-      coreClientService.getAuditoria.mockResolvedValue(entradas);
+      const pagina = { entradas, total: entradas.length };
+      coreClientService.getAuditoria.mockResolvedValue(pagina);
       const filtro = { usuario: 'op-1', operacion: 'baja' };
 
       await expect(
         service.getAuditoria(filtro, 'corr-1'),
-      ).resolves.toEqual(entradas);
+      ).resolves.toEqual(pagina);
       expect(coreClientService.getAuditoria).toHaveBeenCalledWith(
         filtro,
         'corr-1',
@@ -267,13 +274,15 @@ describe('AdministradorService', () => {
   describe('getAreas', () => {
     it('delega en CoreClientService.getAreas sin traducir roles (lectura abierta)', async () => {
       const { service, coreClientService } = buildService({});
-      coreClientService.getAreas.mockResolvedValue([AREA]);
+      const pagina = { areas: [AREA], total: 1 };
+      coreClientService.getAreas.mockResolvedValue(pagina);
 
-      await expect(service.getAreas('duoc-uc', 'corr-1')).resolves.toEqual([
-        AREA,
-      ]);
+      await expect(
+        service.getAreas('duoc-uc', { limit: 20, offset: 0 }, 'corr-1'),
+      ).resolves.toEqual(pagina);
       expect(coreClientService.getAreas).toHaveBeenCalledWith(
         'duoc-uc',
+        { limit: 20, offset: 0 },
         'corr-1',
       );
     });
@@ -344,13 +353,15 @@ describe('AdministradorService', () => {
   describe('getUbicaciones', () => {
     it('delega en CoreClientService.getUbicaciones sin traducir roles (lectura abierta)', async () => {
       const { service, coreClientService } = buildService({});
-      coreClientService.getUbicaciones.mockResolvedValue([UBICACION]);
+      const pagina = { ubicaciones: [UBICACION], total: 1 };
+      coreClientService.getUbicaciones.mockResolvedValue(pagina);
 
       await expect(
-        service.getUbicaciones('melipilla', 'corr-1'),
-      ).resolves.toEqual([UBICACION]);
+        service.getUbicaciones('melipilla', { limit: 20, offset: 0 }, 'corr-1'),
+      ).resolves.toEqual(pagina);
       expect(coreClientService.getUbicaciones).toHaveBeenCalledWith(
         'melipilla',
+        { limit: 20, offset: 0 },
         'corr-1',
       );
     });
@@ -420,13 +431,15 @@ describe('AdministradorService', () => {
   describe('getResponsables', () => {
     it('delega en CoreClientService.getResponsables sin traducir roles (lectura abierta)', async () => {
       const { service, coreClientService } = buildService({});
-      coreClientService.getResponsables.mockResolvedValue([RESPONSABLE]);
+      const pagina = { responsables: [RESPONSABLE], total: 1 };
+      coreClientService.getResponsables.mockResolvedValue(pagina);
 
       await expect(
-        service.getResponsables('area-1', 'corr-1'),
-      ).resolves.toEqual([RESPONSABLE]);
+        service.getResponsables('area-1', { limit: 20, offset: 0 }, 'corr-1'),
+      ).resolves.toEqual(pagina);
       expect(coreClientService.getResponsables).toHaveBeenCalledWith(
         'area-1',
+        { limit: 20, offset: 0 },
         'corr-1',
       );
     });

@@ -122,6 +122,13 @@ ya se aplicó a Inventarios tras el hallazgo real en `actualizarEstadoContrato`.
 MVP de WEB en tener endpoint — ver `../core/README.md` § `src/estructura/` para el detalle de la
 escritura oficial nueva en CORE.
 
+**Paginación en `getContratos`/`getAuditoria`/`getAreas`/`getUbicaciones`/`getResponsables`
+(2026-08-14, cierra RNF-01)**: CORE dejó de devolver array plano en estos 5 endpoints (ver
+`../core/README.md`) — `CoreClientService` y `AdministradorController`/`AdministradorService`
+propagan `limit`/`offset` end-to-end (`administrador.schemas.ts` agrega un fragmento
+`paginacionSchema` compartido, mismo patrón que `core/src/estructura/estructura.schemas.ts`) y
+devuelven el envelope `{ <entidad>, total }` tal cual, sin reinterpretarlo.
+
 ## Desarrollo local
 ```bash
 cd cis

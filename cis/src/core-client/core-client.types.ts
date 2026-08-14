@@ -105,7 +105,20 @@ export const contratoResponseSchema = z.object({
   modulosContratados: z.array(z.string()),
 });
 export type ContratoResult = z.infer<typeof contratoResponseSchema>;
-export const contratosResponseSchema = z.array(contratoResponseSchema);
+
+// RNF-01 (cierra el gap) — GET /contratos paginado, mismo criterio que CatalogoResult.
+export const contratosPaginaResponseSchema = z.object({
+  contratos: z.array(contratoResponseSchema),
+  total: z.number(),
+});
+export type ContratosPaginaResult = z.infer<typeof contratosPaginaResponseSchema>;
+
+// RNF-01 — limit/offset, mismos defaults que el resto de listados paginados (20/tope 100, ver
+// core/src/patrimonial/catalogo.schemas.ts).
+export interface Paginacion {
+  limit?: number;
+  offset?: number;
+}
 
 // RF-04 (Fase 5, WEB) — GET /inventarios (listado) y GET /inventarios/:id (detalle) de CORE.
 const sesionResumenSchema = z.object({
@@ -146,11 +159,18 @@ const auditoriaEntradaSchema = z.object({
   observaciones: z.string().nullable(),
 });
 export type AuditoriaEntradaResult = z.infer<typeof auditoriaEntradaSchema>;
-export const auditoriaResponseSchema = z.array(auditoriaEntradaSchema);
+
+// RNF-01 (cierra el gap) — GET /auditoria paginado.
+export const auditoriaPaginaResponseSchema = z.object({
+  entradas: z.array(auditoriaEntradaSchema),
+  total: z.number(),
+});
+export type AuditoriaPaginaResult = z.infer<typeof auditoriaPaginaResponseSchema>;
 
 // RF-06 — filtros de GET /auditoria (cierra el gap: el requisito pedia "filtrable por
-// usuario/fecha/operacion"). Mismo shape que core/src/auditoria/auditoria.types.ts AuditoriaFiltro.
-export interface AuditoriaFiltro {
+// usuario/fecha/operacion"). Mismo shape que core/src/auditoria/auditoria.types.ts AuditoriaFiltro
+// (mas limit/offset, RNF-01).
+export interface AuditoriaFiltro extends Paginacion {
   usuario?: string;
   operacion?: string;
   fechaDesde?: string;
@@ -169,7 +189,13 @@ export const areaResponseSchema = z.object({
   ubicacionPrincipalId: z.string().nullable(),
 });
 export type AreaResult = z.infer<typeof areaResponseSchema>;
-export const areasResponseSchema = z.array(areaResponseSchema);
+
+// RNF-01 (cierra el gap) — GET /areas paginado.
+export const areasPaginaResponseSchema = z.object({
+  areas: z.array(areaResponseSchema),
+  total: z.number(),
+});
+export type AreasPaginaResult = z.infer<typeof areasPaginaResponseSchema>;
 
 export interface PostAreaRequest {
   correlationId: string;
@@ -206,7 +232,15 @@ export const ubicacionResponseSchema = z.object({
   dependencia: z.string().nullable(),
 });
 export type UbicacionResult = z.infer<typeof ubicacionResponseSchema>;
-export const ubicacionesResponseSchema = z.array(ubicacionResponseSchema);
+
+// RNF-01 (cierra el gap) — GET /ubicaciones paginado.
+export const ubicacionesPaginaResponseSchema = z.object({
+  ubicaciones: z.array(ubicacionResponseSchema),
+  total: z.number(),
+});
+export type UbicacionesPaginaResult = z.infer<
+  typeof ubicacionesPaginaResponseSchema
+>;
 
 export interface PostUbicacionRequest {
   correlationId: string;
@@ -246,7 +280,15 @@ export const responsableResponseSchema = z.object({
   estado: z.enum(['activo', 'inactivo']),
 });
 export type ResponsableResult = z.infer<typeof responsableResponseSchema>;
-export const responsablesResponseSchema = z.array(responsableResponseSchema);
+
+// RNF-01 (cierra el gap) — GET /responsables paginado.
+export const responsablesPaginaResponseSchema = z.object({
+  responsables: z.array(responsableResponseSchema),
+  total: z.number(),
+});
+export type ResponsablesPaginaResult = z.infer<
+  typeof responsablesPaginaResponseSchema
+>;
 
 export interface PostResponsableRequest {
   correlationId: string;

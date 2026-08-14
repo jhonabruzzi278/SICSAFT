@@ -3,11 +3,16 @@ import { CoreClientService } from '../core-client/core-client.service';
 import type {
   ActivoResult,
   AreaResult,
-  AuditoriaEntradaResult,
+  AreasPaginaResult,
   AuditoriaFiltro,
+  AuditoriaPaginaResult,
   ContratoResult,
+  ContratosPaginaResult,
+  Paginacion,
   ResponsableResult,
+  ResponsablesPaginaResult,
   UbicacionResult,
+  UbicacionesPaginaResult,
 } from '../core-client/core-client.types';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
 import { ORGANIZACION_MAPPING } from './administrador.constants';
@@ -55,9 +60,12 @@ export class AdministradorService {
   }
 
   // DOC-012 §4 — lectura abierta, no necesita traducir rolesPorOrganizacion (CORE no exige rol
-  // para GET /contratos, mismo criterio que GET /catalogo).
-  getContratos(correlationId: string): Promise<ContratoResult[]> {
-    return this.coreClientService.getContratos(correlationId);
+  // para GET /contratos, mismo criterio que GET /catalogo). Paginado (RNF-01, cierra el gap).
+  getContratos(
+    paginacion: Paginacion,
+    correlationId: string,
+  ): Promise<ContratosPaginaResult> {
+    return this.coreClientService.getContratos(paginacion, correlationId);
   }
 
   altaContrato(
@@ -102,16 +110,22 @@ export class AdministradorService {
   getAuditoria(
     filtro: AuditoriaFiltro,
     correlationId: string,
-  ): Promise<AuditoriaEntradaResult[]> {
+  ): Promise<AuditoriaPaginaResult> {
     return this.coreClientService.getAuditoria(filtro, correlationId);
   }
 
-  // RF-05 (Fase 5) — lectura abierta, mismo criterio que getContratos.
+  // RF-05 (Fase 5) — lectura abierta, mismo criterio que getContratos. Paginado (RNF-01, cierra
+  // el gap).
   getAreas(
     organizacionId: string,
+    paginacion: Paginacion,
     correlationId: string,
-  ): Promise<AreaResult[]> {
-    return this.coreClientService.getAreas(organizacionId, correlationId);
+  ): Promise<AreasPaginaResult> {
+    return this.coreClientService.getAreas(
+      organizacionId,
+      paginacion,
+      correlationId,
+    );
   }
 
   altaArea(
@@ -153,11 +167,17 @@ export class AdministradorService {
     );
   }
 
+  // Paginado (RNF-01, cierra el gap).
   getUbicaciones(
     sedeId: string,
+    paginacion: Paginacion,
     correlationId: string,
-  ): Promise<UbicacionResult[]> {
-    return this.coreClientService.getUbicaciones(sedeId, correlationId);
+  ): Promise<UbicacionesPaginaResult> {
+    return this.coreClientService.getUbicaciones(
+      sedeId,
+      paginacion,
+      correlationId,
+    );
   }
 
   altaUbicacion(
@@ -199,11 +219,17 @@ export class AdministradorService {
     );
   }
 
+  // Paginado (RNF-01, cierra el gap).
   getResponsables(
     areaId: string,
+    paginacion: Paginacion,
     correlationId: string,
-  ): Promise<ResponsableResult[]> {
-    return this.coreClientService.getResponsables(areaId, correlationId);
+  ): Promise<ResponsablesPaginaResult> {
+    return this.coreClientService.getResponsables(
+      areaId,
+      paginacion,
+      correlationId,
+    );
   }
 
   altaResponsable(

@@ -31,6 +31,7 @@ import {
   altaUbicacionSchema,
   areasQuerySchema,
   auditoriaQuerySchema,
+  contratosQuerySchema,
   responsablesQuerySchema,
   ubicacionesQuerySchema,
 } from './administrador.schemas';
@@ -46,16 +47,21 @@ import type {
   AltaUbicacionBody,
   AreasQuery,
   AuditoriaQuery,
+  ContratosQuery,
   ResponsablesQuery,
   UbicacionesQuery,
 } from './administrador.schemas';
 import type {
   ActivoResult,
+  AreasPaginaResult,
+  AuditoriaPaginaResult,
   AreaResult,
-  AuditoriaEntradaResult,
   ContratoResult,
+  ContratosPaginaResult,
   ResponsableResult,
+  ResponsablesPaginaResult,
   UbicacionResult,
+  UbicacionesPaginaResult,
 } from '../core-client/core-client.types';
 
 // DOC-012 §5 (Fase 5) — endpoints de escritura oficial para WEB (Administrador Patrimonial).
@@ -81,11 +87,16 @@ export class AdministradorController {
     );
   }
 
+  // Paginado (RNF-01, cierra el gap).
   @Get('contratos')
   getContratos(
+    @Query(new ZodValidationPipe(contratosQuerySchema)) query: ContratosQuery,
     @Req() request: RequestWithCorrelationId,
-  ): Promise<ContratoResult[]> {
-    return this.administradorService.getContratos(request.correlationId);
+  ): Promise<ContratosPaginaResult> {
+    return this.administradorService.getContratos(
+      query,
+      request.correlationId,
+    );
   }
 
   @Post('contratos')
@@ -108,7 +119,7 @@ export class AdministradorController {
   getAuditoria(
     @Query(new ZodValidationPipe(auditoriaQuerySchema)) query: AuditoriaQuery,
     @Req() request: RequestWithCorrelationId,
-  ): Promise<AuditoriaEntradaResult[]> {
+  ): Promise<AuditoriaPaginaResult> {
     return this.administradorService.getAuditoria(query, request.correlationId);
   }
 
@@ -134,9 +145,10 @@ export class AdministradorController {
   getAreas(
     @Query(new ZodValidationPipe(areasQuerySchema)) query: AreasQuery,
     @Req() request: RequestWithCorrelationId,
-  ): Promise<AreaResult[]> {
+  ): Promise<AreasPaginaResult> {
     return this.administradorService.getAreas(
       query.organizacionId,
+      { limit: query.limit, offset: query.offset },
       request.correlationId,
     );
   }
@@ -175,9 +187,10 @@ export class AdministradorController {
     @Query(new ZodValidationPipe(ubicacionesQuerySchema))
     query: UbicacionesQuery,
     @Req() request: RequestWithCorrelationId,
-  ): Promise<UbicacionResult[]> {
+  ): Promise<UbicacionesPaginaResult> {
     return this.administradorService.getUbicaciones(
       query.sedeId,
+      { limit: query.limit, offset: query.offset },
       request.correlationId,
     );
   }
@@ -216,9 +229,10 @@ export class AdministradorController {
     @Query(new ZodValidationPipe(responsablesQuerySchema))
     query: ResponsablesQuery,
     @Req() request: RequestWithCorrelationId,
-  ): Promise<ResponsableResult[]> {
+  ): Promise<ResponsablesPaginaResult> {
     return this.administradorService.getResponsables(
       query.areaId,
+      { limit: query.limit, offset: query.offset },
       request.correlationId,
     );
   }

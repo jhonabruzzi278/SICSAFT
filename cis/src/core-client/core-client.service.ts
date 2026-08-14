@@ -20,28 +20,31 @@ import { withRetry } from './retry';
 import {
   activoResponseSchema,
   areaResponseSchema,
-  areasResponseSchema,
-  auditoriaResponseSchema,
+  areasPaginaResponseSchema,
+  auditoriaPaginaResponseSchema,
   catalogoResponseSchema,
   contratoResponseSchema,
-  contratosResponseSchema,
+  contratosPaginaResponseSchema,
   entitlementsResponseSchema,
   inventarioEstadoResponseSchema,
   postInventarioResponseSchema,
   responsableResponseSchema,
-  responsablesResponseSchema,
+  responsablesPaginaResponseSchema,
   sesionDetalleResponseSchema,
   sesionesResumenResponseSchema,
   ubicacionResponseSchema,
-  ubicacionesResponseSchema,
+  ubicacionesPaginaResponseSchema,
   type ActivoResult,
   type AreaResult,
-  type AuditoriaEntradaResult,
+  type AreasPaginaResult,
   type AuditoriaFiltro,
+  type AuditoriaPaginaResult,
   type CatalogoResult,
   type ContratoResult,
+  type ContratosPaginaResult,
   type EntitlementsResult,
   type InventarioEstadoResult,
+  type Paginacion,
   type PatchAreaRequest,
   type PatchContratoRequest,
   type PatchResponsableEstadoRequest,
@@ -53,9 +56,11 @@ import {
   type PostResponsableRequest,
   type PostUbicacionRequest,
   type ResponsableResult,
+  type ResponsablesPaginaResult,
   type SesionDetalleResult,
   type SesionResumenResult,
   type UbicacionResult,
+  type UbicacionesPaginaResult,
 } from './core-client.types';
 import { CORRELATION_ID_HEADER } from '../common/correlation-id/correlation-id.constants';
 import type {
@@ -134,10 +139,17 @@ export class CoreClientService {
 
   // DOC-012 §4/§7 — GET /contratos es lectura abierta (mismo criterio que getCatalogo), sin
   // passthroughStatuses especiales: no hay 403 posible en este endpoint (CORE no exige el rol
-  // para leer).
-  async getContratos(correlationId: string): Promise<ContratoResult[]> {
-    const data = await this.get('/contratos', undefined, correlationId);
-    return this.parse(contratosResponseSchema, data, 'contratos');
+  // para leer). Paginado (RNF-01, cierra el gap).
+  async getContratos(
+    paginacion: Paginacion,
+    correlationId: string,
+  ): Promise<ContratosPaginaResult> {
+    const data = await this.get(
+      '/contratos',
+      { limit: paginacion.limit, offset: paginacion.offset },
+      correlationId,
+    );
+    return this.parse(contratosPaginaResponseSchema, data, 'contratos');
   }
 
   // DOC-012 §7 — proxy hacia POST /contratos de CORE (escritura oficial), mismo criterio de
@@ -211,11 +223,12 @@ export class CoreClientService {
     return this.parse(sesionDetalleResponseSchema, data, 'inventarios/detalle');
   }
 
-  // RF-06 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos.
+  // RF-06 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos. Paginado
+  // (RNF-01, cierra el gap).
   async getAuditoria(
     filtro: AuditoriaFiltro,
     correlationId: string,
-  ): Promise<AuditoriaEntradaResult[]> {
+  ): Promise<AuditoriaPaginaResult> {
     const data = await this.get(
       '/auditoria',
       {
@@ -223,19 +236,27 @@ export class CoreClientService {
         operacion: filtro.operacion,
         fechaDesde: filtro.fechaDesde,
         fechaHasta: filtro.fechaHasta,
+        limit: filtro.limit,
+        offset: filtro.offset,
       },
       correlationId,
     );
-    return this.parse(auditoriaResponseSchema, data, 'auditoria');
+    return this.parse(auditoriaPaginaResponseSchema, data, 'auditoria');
   }
 
-  // RF-05 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos.
+  // RF-05 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos. Paginado
+  // (RNF-01, cierra el gap).
   async getAreas(
     organizacionId: string,
+    paginacion: Paginacion,
     correlationId: string,
-  ): Promise<AreaResult[]> {
-    const data = await this.get('/areas', { organizacionId }, correlationId);
-    return this.parse(areasResponseSchema, data, 'areas');
+  ): Promise<AreasPaginaResult> {
+    const data = await this.get(
+      '/areas',
+      { organizacionId, limit: paginacion.limit, offset: paginacion.offset },
+      correlationId,
+    );
+    return this.parse(areasPaginaResponseSchema, data, 'areas');
   }
 
   // RF-05 — escritura oficial, mismo criterio de passthroughStatuses que postActivo.
@@ -266,12 +287,18 @@ export class CoreClientService {
     return this.parse(areaResponseSchema, data, 'areas');
   }
 
+  // Paginado (RNF-01, cierra el gap).
   async getUbicaciones(
     sedeId: string,
+    paginacion: Paginacion,
     correlationId: string,
-  ): Promise<UbicacionResult[]> {
-    const data = await this.get('/ubicaciones', { sedeId }, correlationId);
-    return this.parse(ubicacionesResponseSchema, data, 'ubicaciones');
+  ): Promise<UbicacionesPaginaResult> {
+    const data = await this.get(
+      '/ubicaciones',
+      { sedeId, limit: paginacion.limit, offset: paginacion.offset },
+      correlationId,
+    );
+    return this.parse(ubicacionesPaginaResponseSchema, data, 'ubicaciones');
   }
 
   async postUbicacion(
@@ -299,12 +326,18 @@ export class CoreClientService {
     return this.parse(ubicacionResponseSchema, data, 'ubicaciones');
   }
 
+  // Paginado (RNF-01, cierra el gap).
   async getResponsables(
     areaId: string,
+    paginacion: Paginacion,
     correlationId: string,
-  ): Promise<ResponsableResult[]> {
-    const data = await this.get('/responsables', { areaId }, correlationId);
-    return this.parse(responsablesResponseSchema, data, 'responsables');
+  ): Promise<ResponsablesPaginaResult> {
+    const data = await this.get(
+      '/responsables',
+      { areaId, limit: paginacion.limit, offset: paginacion.offset },
+      correlationId,
+    );
+    return this.parse(responsablesPaginaResponseSchema, data, 'responsables');
   }
 
   async postResponsable(
@@ -335,7 +368,7 @@ export class CoreClientService {
 
   private async get(
     path: string,
-    params: Record<string, string | undefined> | undefined,
+    params: Record<string, string | number | undefined> | undefined,
     correlationId: string,
   ): Promise<unknown> {
     return this.callCore(path, correlationId, () =>

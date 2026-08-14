@@ -145,23 +145,31 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
 
     coreClientService = {
       postActivo: jest.fn().mockResolvedValue(ACTIVO_STUB),
-      getContratos: jest.fn().mockResolvedValue([CONTRATO_STUB]),
+      getContratos: jest
+        .fn()
+        .mockResolvedValue({ contratos: [CONTRATO_STUB], total: 1 }),
       postContrato: jest.fn().mockResolvedValue(CONTRATO_STUB),
       patchContrato: jest
         .fn()
         .mockResolvedValue({ ...CONTRATO_STUB, estado: 'suspendido' }),
-      getAuditoria: jest.fn().mockResolvedValue([AUDITORIA_STUB]),
-      getAreas: jest.fn().mockResolvedValue([AREA_STUB]),
+      getAuditoria: jest
+        .fn()
+        .mockResolvedValue({ entradas: [AUDITORIA_STUB], total: 1 }),
+      getAreas: jest.fn().mockResolvedValue({ areas: [AREA_STUB], total: 1 }),
       postArea: jest.fn().mockResolvedValue(AREA_STUB),
       patchArea: jest
         .fn()
         .mockResolvedValue({ ...AREA_STUB, nombre: 'Biblioteca Central' }),
-      getUbicaciones: jest.fn().mockResolvedValue([UBICACION_STUB]),
+      getUbicaciones: jest
+        .fn()
+        .mockResolvedValue({ ubicaciones: [UBICACION_STUB], total: 1 }),
       postUbicacion: jest.fn().mockResolvedValue(UBICACION_STUB),
       patchUbicacion: jest
         .fn()
         .mockResolvedValue({ ...UBICACION_STUB, edificio: 'Torre A' }),
-      getResponsables: jest.fn().mockResolvedValue([RESPONSABLE_STUB]),
+      getResponsables: jest
+        .fn()
+        .mockResolvedValue({ responsables: [RESPONSABLE_STUB], total: 1 }),
       postResponsable: jest.fn().mockResolvedValue(RESPONSABLE_STUB),
       patchResponsableEstado: jest
         .fn()
@@ -237,7 +245,7 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
         .set('Authorization', `Bearer ${bearerToken}`)
         .expect(200);
 
-      expect(res.body).toEqual([CONTRATO_STUB]);
+      expect(res.body).toEqual({ contratos: [CONTRATO_STUB], total: 1 });
     });
   });
 
@@ -248,7 +256,7 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
         .set('Authorization', `Bearer ${bearerToken}`)
         .expect(200);
 
-      expect(res.body).toEqual([AUDITORIA_STUB]);
+      expect(res.body).toEqual({ entradas: [AUDITORIA_STUB], total: 1 });
     });
 
     it('propaga los filtros como query params a CoreClientService.getAuditoria', async () => {
@@ -259,7 +267,7 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
         .expect(200);
 
       expect(coreClientService.getAuditoria).toHaveBeenCalledWith(
-        { usuario: 'op-1', operacion: 'baja' },
+        { usuario: 'op-1', operacion: 'baja', limit: 20, offset: 0 },
         expect.any(String),
       );
     });
@@ -327,7 +335,7 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
         .query({ organizacionId: 'duoc-uc' })
         .expect(200);
 
-      expect(res.body).toEqual([AREA_STUB]);
+      expect(res.body).toEqual({ areas: [AREA_STUB], total: 1 });
     });
 
     it('traduce el rol de Zitadel a organizacionId de CORE y devuelve el area creada', async () => {
@@ -392,7 +400,7 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
         .query({ sedeId: 'melipilla' })
         .expect(200);
 
-      expect(res.body).toEqual([UBICACION_STUB]);
+      expect(res.body).toEqual({ ubicaciones: [UBICACION_STUB], total: 1 });
     });
 
     it('crea la ubicacion y la devuelve', async () => {
@@ -443,7 +451,7 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
         .query({ areaId: 'area-1' })
         .expect(200);
 
-      expect(res.body).toEqual([RESPONSABLE_STUB]);
+      expect(res.body).toEqual({ responsables: [RESPONSABLE_STUB], total: 1 });
     });
 
     it('crea el responsable y lo devuelve', async () => {

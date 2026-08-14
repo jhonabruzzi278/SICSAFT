@@ -1,5 +1,16 @@
 import { z } from 'zod';
 
+// RNF-01 — limit/offset compartido por todos los listados, mismos defaults que CORE
+// (core/src/estructura/estructura.schemas.ts).
+const paginacionSchema = {
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  offset: z.coerce.number().int().nonnegative().default(0),
+};
+
+// RNF-01 (cierra el gap) — GET /admin/contratos ahora acepta limit/offset.
+export const contratosQuerySchema = z.object({ ...paginacionSchema });
+export type ContratosQuery = z.infer<typeof contratosQuerySchema>;
+
 // DOC-012 §5 — lo que WEB manda a CIS. Mas chico que PostActivoRequest (core-client.types.ts):
 // `operadorId`/`rolesPorOrganizacion` los resuelve CIS a partir del access token ya validado
 // (ZitadelAuthGuard), nunca se confian desde el body de un cliente de navegador.
@@ -69,7 +80,10 @@ export const actualizarAreaSchema = z
   );
 export type ActualizarAreaBody = z.infer<typeof actualizarAreaSchema>;
 
-export const areasQuerySchema = z.object({ organizacionId: z.string().min(1) });
+export const areasQuerySchema = z.object({
+  organizacionId: z.string().min(1),
+  ...paginacionSchema,
+});
 export type AreasQuery = z.infer<typeof areasQuerySchema>;
 
 export const altaUbicacionSchema = z.object({
@@ -105,7 +119,10 @@ export const actualizarUbicacionSchema = z
   );
 export type ActualizarUbicacionBody = z.infer<typeof actualizarUbicacionSchema>;
 
-export const ubicacionesQuerySchema = z.object({ sedeId: z.string().min(1) });
+export const ubicacionesQuerySchema = z.object({
+  sedeId: z.string().min(1),
+  ...paginacionSchema,
+});
 export type UbicacionesQuery = z.infer<typeof ubicacionesQuerySchema>;
 
 export const altaResponsableSchema = z.object({
@@ -119,7 +136,10 @@ export const altaResponsableSchema = z.object({
 });
 export type AltaResponsableBody = z.infer<typeof altaResponsableSchema>;
 
-export const responsablesQuerySchema = z.object({ areaId: z.string().min(1) });
+export const responsablesQuerySchema = z.object({
+  areaId: z.string().min(1),
+  ...paginacionSchema,
+});
 export type ResponsablesQuery = z.infer<typeof responsablesQuerySchema>;
 
 export const actualizarEstadoResponsableSchema = z.object({
@@ -137,5 +157,6 @@ export const auditoriaQuerySchema = z.object({
   operacion: z.string().min(1).optional(),
   fechaDesde: z.string().min(1).optional(),
   fechaHasta: z.string().min(1).optional(),
+  ...paginacionSchema,
 });
 export type AuditoriaQuery = z.infer<typeof auditoriaQuerySchema>;
