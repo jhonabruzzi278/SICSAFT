@@ -10,7 +10,7 @@
 | Sistema | Fuente | Alcance | RF | RNF | Estado |
 |---|---|---|---|---|---|
 | APP QR | [`app-qr-sicsaft/aidlc-docs/requirements/REQUIREMENTS.md`](app-qr-sicsaft/aidlc-docs/requirements/REQUIREMENTS.md) | MVP demo standalone (histórico — superado por TASK-007) | 11 | 4 | ✅ Completo (demo original) |
-| CORE | [`core/aidlc-docs/requirements/REQUIREMENTS.md`](core/aidlc-docs/requirements/REQUIREMENTS.md) | Fase 2 (Orquestador + 4 motores de lectura) | 7 | 5 | ✅ Completo, 2 parciales (RF-05, RNF-01), ambos YAGNI/bajo riesgo deliberado — ver detalle |
+| CORE | [`core/aidlc-docs/requirements/REQUIREMENTS.md`](core/aidlc-docs/requirements/REQUIREMENTS.md) | Fase 2 (Orquestador + 4 motores de lectura) | 7 | 5 | ✅ Completo, 1 parcial (RF-05), YAGNI/bajo riesgo deliberado — ver detalle |
 | WEB | [`web/aidlc-docs/requirements/REQUIREMENTS.md`](web/aidlc-docs/requirements/REQUIREMENTS.md) | Fase 5 (Portal WEB, 6 módulos) | 8 | 5 | ✅ Completo — 8/8 RF, 5/5 RNF |
 | CIS | *(sin `aidlc-docs/`, ver nota)* | Fase 0/3/4/5 (conector QR, escritura oficial) | — | — | Sin requisitos formalizados con ID — ver nota abajo |
 
@@ -31,7 +31,6 @@ pidió). Priorizados por severidad:
 | Sistema | ID | Qué falta | Por qué importa |
 |---|---|---|---|
 | CORE | RF-05 | Traslado y cambio de ubicación/estado de Activo — **ni el método en `ActivoRepository` ni el controller existen** (corregido 2026-08-14: la documentación decía "el repository ya tiene los métodos", verificado contra el código que no) | Deliberadamente YAGNI — sin consumidor real (ningún cliente pide trasladar un activo hoy), construir el método+controller sin quien los llame sería especulativo. **No se recomienda cerrar este ítem con código** — se cierra solo, naturalmente, cuando aparezca un consumidor real (mismo criterio que el propio ROADMAP.md ya aplica a otros motores) |
-| CORE | RNF-01 | 5 endpoints nuevos de Fase 5 no paginan (`/contratos`, `/auditoria`, `/areas`, `/ubicaciones`, `/responsables`) — devuelven array plano, no `{items, total}` como `GET /catalogo` | Aceptado por volumen bajo de datos reales hoy. Cerrarlo es un cambio de contrato (rompe la forma de respuesta que CIS y WEB ya consumen como array) — alcance similar al de RF-05/RF-06 de WEB recién cerrados, no un fix trivial. Pendiente de decisión: ¿se prioriza ahora o se revisa cuando haya más de una organización con datos reales? |
 | APP QR | RNF-01/RNF-02 | Sin validar en dispositivo Android físico (offline real, PWA instalable) | Fuera de alcance de este repositorio — requiere una persona con un teléfono real; ningún cambio de código lo cierra. Queda anotado como bloqueado en acción humana, no como deuda técnica |
 
 **Cerrado 2026-08-14**:
@@ -43,6 +42,17 @@ pidió). Priorizados por severidad:
   incluida la asignación de `responsable_id`/`ubicacion_principal_id` a un Área; puente en CIS
   (`PATCH /admin/areas/:id`, `PATCH /admin/ubicaciones/:id`) y formularios de edición en
   `EstructuraPage` (WEB). Verificado con unit + e2e reales contra Postgres.
+- ~~CORE RNF-01 — 5 endpoints de Fase 5 sin paginar~~. `GET /contratos`, `/auditoria`, `/areas`,
+  `/ubicaciones`, `/responsables` devuelven ahora `{ <entidad>, total }` con `limit`/`offset`
+  (default 20, tope 100), mismo criterio que `GET /catalogo`. `ContratoRepository.findPagina`
+  reusa `findAll()` internamente para no romper la invariante de contrato vigente único por sede
+  (DOC-004 §4), que se valida contra el dataset completo; los otros 4 repositorios paginan con
+  `COUNT(*)` + `LIMIT`/`OFFSET` en SQL. CIS propaga `limit`/`offset` end-to-end
+  (`administrador.schemas.ts`, `core-client.types.ts`). WEB no tiene UI de paginación (ningún RF
+  la pide) — `cis-client.ts` pide el tope de página (100) para no perder filas silenciosamente
+  mientras el volumen se mantenga bajo esa cota; si crece más allá, requerirá UI de paginación real
+  (nuevo RF, no este). Verificado con unit + e2e reales contra Postgres en CORE, unit + e2e en CIS,
+  build limpio en WEB.
 - ~~WEB RNF-05 — accesibilidad sin verificar~~. Contraste calculado real (compositing de opacidad
   incluido) contra la fórmula WCAG 2.1 para cada color/fondo del sistema de diseño. Encontró y
   corrigió un hallazgo real: el badge de estado `vencido`/fallback tenía 3.50:1 de contraste
