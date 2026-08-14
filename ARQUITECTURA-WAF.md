@@ -50,6 +50,84 @@ sin tocar el CORE ni la Base Patrimonial: solo agregan un conector nuevo en el C
   contrato es aditivo o versionado explícitamente (`/v1/`, `/v2/`), nunca un breaking change
   silencioso, porque un nivel no controla el ciclo de deploy del nivel vecino.
 
+### 1.1. Diagrama maestro de arquitectura funcional
+
+Mismos 6 niveles de arriba, con los módulos internos de cada uno y el ciclo de vida completo
+captura → orquestación → base de la verdad → inteligencia → decisión. "Base Patrimonial Central"
+es el nombre oficial usado en todo el repo (README.md, `base-patrimonial/`) — un diagrama externo
+puede referirse al mismo concepto como "BPI (Base Patrimonial Inteligente)", es el mismo Nivel 4,
+no una pieza distinta.
+
+```mermaid
+flowchart TD
+    subgraph N1["Nivel 1 — Fuentes oficiales de captura (Tomo III §1.2)"]
+        direction LR
+        QR["📱 QR<br/>APP QR SICSAFT"]
+        WEBC["💻 WEB / CCP<br/>Centro de Control Patrimonial"]
+        RFIDC["📡 RFID<br/>captura automática de eventos"]
+    end
+
+    subgraph N2["Nivel 2 — CIS · Centro de Interoperabilidad"]
+        direction LR
+        PSD["PSD<br/>Plataforma de<br/>Servicios Digitales"]
+        GW["API Gateway"]
+        CONN["Conectores"]
+        INTEG["Integraciones"]
+        SEC["Seguridad"]
+    end
+
+    subgraph N3["Nivel 3 — SICSAFT CORE · Motor de Orquestación Patrimonial"]
+        direction LR
+        MOT["Motores<br/>funcionales"]
+        REG["Reglas de<br/>negocio"]
+        EVT["Eventos y<br/>alertas"]
+        AUD3["Auditoría"]
+        USR["Gestión de<br/>usuarios"]
+    end
+
+    subgraph N4["Nivel 4 — Base Patrimonial Central (fuente única de la verdad)"]
+        direction LR
+        ACT["Activos"]
+        UBI["Ubicaciones"]
+        DOCN["Documentos"]
+        HIST["Historial"]
+        INV["Inventarios"]
+        EVTL["Eventos"]
+        RFIDL["RFID"]
+    end
+
+    subgraph N5["Nivel 5 — CIP · Centro de Inteligencia Patrimonial"]
+        direction LR
+        DASH["Dashboards<br/>ejecutivos"]
+        BI["BI de<br/>negocio"]
+        REP["Reportes<br/>avanzados"]
+        AUDA["Auditoría<br/>analítica"]
+        IND["Indicadores<br/>clave"]
+        ALERT["Alertas<br/>inteligentes"]
+        PRED["Analítica<br/>predictiva"]
+    end
+
+    subgraph N6["Nivel 6 — Usuarios y decisiones"]
+        direction LR
+        DIR["Dirección"]
+        FIN["Finanzas"]
+        PAT["Patrimonio"]
+        AUDU["Auditoría"]
+    end
+
+    N1 --> N2 --> N3 --> N4 --> N5 --> N6
+    N5 -.->|"nuevos conectores y servicios<br/>(evolución tecnológica, ver §12)"| N2
+
+    style N4 fill:#e8f5e9,stroke:#2e7d32
+```
+
+**Regla de oro** (Tomo IV §1.7, ya citada arriba): ningún sistema, usuario o dispositivo modifica
+la Base Patrimonial Central directamente — toda operación pasa por SICSAFT CORE. Los nuevos
+sensores/protocolos de la hoja de ruta tecnológica (BLE, GPS, IoT, cámaras, IA, ERP — ver §12 y
+`ROADMAP.md` § YAGNI) se incorporan como conectores nuevos en el CIS (flecha punteada de vuelta al
+Nivel 2), sin tocar CORE ni Base Patrimonial — la arquitectura no cambia, solo se agregan
+conectores.
+
 ## 2. Pilar: Excelencia Operacional
 
 Objetivo: operar el ecosistema con cambios frecuentes y bajo riesgo, con visibilidad completa de
