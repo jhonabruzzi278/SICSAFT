@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -17,7 +18,7 @@ function buildInventarioPayload(
 ): Record<string, unknown> {
   return {
     correlationId: 'corr-e2e-1',
-    idempotencyKey: `idem-e2e-${Math.random()}`,
+    idempotencyKey: `idem-e2e-${randomUUID()}`,
     operadorId: 'op-e2e-1',
     organizacionId: 'duoc-uc',
     areaId: 'area-biblioteca',
@@ -114,7 +115,7 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
     });
 
     it('mismo idempotencyKey con payload distinto devuelve 409', async () => {
-      const idempotencyKey = `idem-e2e-conflict-${Math.random()}`;
+      const idempotencyKey = `idem-e2e-conflict-${randomUUID()}`;
       await request(app.getHttpServer())
         .post('/inventarios')
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
