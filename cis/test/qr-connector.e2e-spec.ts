@@ -1,4 +1,3 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadGatewayException,
   BadRequestException,
@@ -8,16 +7,14 @@ import {
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { SignJWT, generateKeyPair, type JWTVerifyGetKey } from 'jose';
-import { AppModule } from './../src/app.module';
-import { ZITADEL_JWKS } from './../src/common/auth/zitadel-auth.constants';
-import { CoreClientService } from './../src/core-client/core-client.service';
-import { REDIS_CLIENT } from './../src/redis/redis.constants';
 import {
   AuthSessionResponse,
   CatalogoResponse,
   InventarioEstadoResponse,
   PostInventarioResponse,
 } from './../src/qr-connector/qr-connector.types';
+import { crearAppE2e } from './support/e2e-app';
+import { crearRedisStub, type RedisStub } from './support/redis-stub';
 
 const ISSUER = 'http://id.sicsaft.localhost';
 const AUDIENCE = 'cis-api';
@@ -57,12 +54,7 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
     getInventarios: jest.Mock;
     getInventarioDetalle: jest.Mock;
   };
-  let redisClient: {
-    eval: jest.Mock;
-    pttl: jest.Mock;
-    set: jest.Mock;
-    disconnect: jest.Mock;
-  };
+  let redisClient: RedisStub;
 
   beforeAll(() => {
     process.env.ZITADEL_ISSUER = ISSUER;
@@ -172,26 +164,13 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
     // Idem para Redis (RateLimitGuard, WAF §4): se reemplaza el cliente real por un stub que por
     // defecto siempre permite (count=1) — no hace falta un Redis real para probar el resto del
     // conector. El test dedicado de 429 más abajo simula el conteo por encima del límite.
-    redisClient = {
-      eval: jest.fn().mockResolvedValue(1),
-      pttl: jest.fn().mockResolvedValue(0),
-      set: jest.fn().mockResolvedValue('OK'),
-      disconnect: jest.fn(),
-    };
+    redisClient = crearRedisStub();
 
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(ZITADEL_JWKS)
-      .useValue(localJwks)
-      .overrideProvider(CoreClientService)
-      .useValue(coreClientService)
-      .overrideProvider(REDIS_CLIENT)
-      .useValue(redisClient)
-      .compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    app = await crearAppE2e({
+      jwks: localJwks,
+      coreClientService,
+      redisClient,
+    });
   });
 
   afterEach(async () => {

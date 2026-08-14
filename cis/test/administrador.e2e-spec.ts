@@ -1,12 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { SignJWT, generateKeyPair, type JWTVerifyGetKey } from 'jose';
-import { AppModule } from './../src/app.module';
-import { ZITADEL_JWKS } from './../src/common/auth/zitadel-auth.constants';
-import { CoreClientService } from './../src/core-client/core-client.service';
-import { REDIS_CLIENT } from './../src/redis/redis.constants';
 import type {
   ActivoResult,
   AreaResult,
@@ -15,6 +10,8 @@ import type {
   ResponsableResult,
   UbicacionResult,
 } from './../src/core-client/core-client.types';
+import { crearAppE2e } from './support/e2e-app';
+import { crearRedisStub } from './support/redis-stub';
 
 const ISSUER = 'http://id.sicsaft.localhost';
 const AUDIENCE = 'cis-api';
@@ -176,26 +173,11 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
         .mockResolvedValue({ ...RESPONSABLE_STUB, estado: 'inactivo' }),
     };
 
-    const redisClient = {
-      eval: jest.fn().mockResolvedValue(1),
-      pttl: jest.fn().mockResolvedValue(0),
-      set: jest.fn().mockResolvedValue('OK'),
-      disconnect: jest.fn(),
-    };
-
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(ZITADEL_JWKS)
-      .useValue(localJwks)
-      .overrideProvider(CoreClientService)
-      .useValue(coreClientService)
-      .overrideProvider(REDIS_CLIENT)
-      .useValue(redisClient)
-      .compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    app = await crearAppE2e({
+      jwks: localJwks,
+      coreClientService,
+      redisClient: crearRedisStub(),
+    });
   });
 
   afterEach(async () => {
