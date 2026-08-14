@@ -50,17 +50,21 @@ export function FieldError({ children }: { children?: string }) {
   return <p className="mt-1 text-xs text-destructive">{children}</p>;
 }
 
+// RNF-05 — contraste AA verificado con canvas.getImageData (compositing real de la opacidad
+// contra --color-bg-card, no solo el color base): success/warning/destructive dan 5.1-6.7:1. La
+// variante original de `vencido`/fallback (bg-text-faint/15 text-text-faint) daba 3.50:1, por
+// debajo del minimo AA de 4.5:1 para texto normal — corregida a text-dim (6.64:1).
 const BADGE_STYLES: Record<string, string> = {
   vigente: 'bg-success/15 text-success',
   activo: 'bg-success/15 text-success',
   suspendido: 'bg-warning/15 text-warning',
-  vencido: 'bg-text-faint/15 text-text-faint',
+  vencido: 'bg-text-dim/15 text-text-dim',
   cancelado: 'bg-destructive/15 text-destructive',
   dado_de_baja: 'bg-destructive/15 text-destructive',
 };
 
 export function Badge({ children }: { children: string }) {
-  const style = BADGE_STYLES[children] ?? 'bg-text-faint/15 text-text-faint';
+  const style = BADGE_STYLES[children] ?? 'bg-text-dim/15 text-text-dim';
   return (
     <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${style}`}>
       {children}

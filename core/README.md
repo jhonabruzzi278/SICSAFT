@@ -174,7 +174,9 @@ uno necesite escalar de forma independiente.
   WEB, RFID, ERP, Administrador. Salidas: Base Patrimonial, Historial, Eventos, Indicadores,
   Alertas. Consulta/inventario ya del MVP (Fase 2); alta/baja/reincorporación/cambio de
   responsable ya implementados (Fase 4, DOC-012 — ver "Estado"); cambio de ubicación/traslado
-  siguen sin endpoint HTTP propio, sin consumidor real todavía (DOC-008).
+  siguen sin implementar (ni el método en `ActivoRepository` ni el endpoint HTTP existen —
+  corregido 2026-08-14, la documentación anterior sugería que el método ya estaba, DOC-008),
+  sin consumidor real todavía.
 - **Motor de Reglas**: valida invariantes antes de confirmar cualquier transacción — un activo no
   puede tener dos responsables vigentes, una etiqueta QR solo puede estar en un activo, un RFID
   no se repite, un traslado requiere autorización según perfil, un inventario no cierra con

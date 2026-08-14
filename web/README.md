@@ -74,7 +74,13 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   del primer incremento. Migrar a shadcn/ui es straightforward si se necesita más adelante
   (mismos tokens de color).
 - Sin `next-themes`/toggle de tema — solo modo oscuro (mismo criterio que la landing oficial, ver
-  `BRAND.md`), RNF-05 (foco visible, contraste AA) ya se cumple en un solo tema.
+  `BRAND.md`). RNF-05 (foco visible, contraste AA) verificado con contraste real calculado
+  (compositing de opacidad incluido, fórmula WCAG 2.1) el 2026-08-14 — encontró y corrigió un
+  hallazgo real: el badge de estado `vencido`/fallback (`components/ui.tsx`) usaba
+  `text-text-faint` sobre `bg-text-faint/15`, con 3.50:1 de contraste efectivo, bajo el mínimo AA
+  (4.5:1); corregido a `text-text-dim`/`bg-text-dim/15` (6.64:1). El resto del sistema de color
+  (texto principal/atenuado, badges `success`/`warning`/`destructive`, foco visible) ya pasaba AA
+  cómodamente.
 - Sin lectura de `catalogo_activos` — el campo "Catálogo (id)" del formulario de alta de Activos
   es texto libre (ids del seed de desarrollo: `catalogo-notebook`, `catalogo-proyector`) porque
   no existe todavía un endpoint que liste el catálogo de tipos de activo (gap ya anotado en
