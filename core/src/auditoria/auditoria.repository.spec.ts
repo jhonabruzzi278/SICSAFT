@@ -91,5 +91,52 @@ describe('AuditoriaRepository', () => {
       ]);
       expect(pool.query).toHaveBeenCalledWith(expect.any(String), [200]);
     });
+
+    it('filtra por usuario y operacion con ILIKE parcial', async () => {
+      const pool = buildPool();
+      const repository = new AuditoriaRepository(pool);
+
+      await repository.listar({ usuario: 'op-1', operacion: 'baja' });
+
+      expect(pool.query).toHaveBeenCalledWith(
+        expect.stringContaining('usuario ILIKE $1 AND operacion ILIKE $2'),
+        ['%op-1%', '%baja%', 200],
+      );
+    });
+
+    it('filtra por rango de fecha (desde/hasta inclusive)', async () => {
+      const pool = buildPool();
+      const repository = new AuditoriaRepository(pool);
+
+      await repository.listar({
+        fechaDesde: '2026-08-01T00:00:00.000Z',
+        fechaHasta: '2026-08-14T23:59:59.000Z',
+      });
+
+      expect(pool.query).toHaveBeenCalledWith(
+        expect.stringContaining('fecha >= $1 AND fecha <= $2'),
+        ['2026-08-01T00:00:00.000Z', '2026-08-14T23:59:59.000Z', 200],
+      );
+    });
+
+    it('combina todos los filtros a la vez', async () => {
+      const pool = buildPool();
+      const repository = new AuditoriaRepository(pool);
+
+      await repository.listar({
+        usuario: 'op-1',
+        operacion: 'baja',
+        fechaDesde: '2026-08-01T00:00:00.000Z',
+        fechaHasta: '2026-08-14T23:59:59.000Z',
+      });
+
+      expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
+        '%op-1%',
+        '%baja%',
+        '2026-08-01T00:00:00.000Z',
+        '2026-08-14T23:59:59.000Z',
+        200,
+      ]);
+    });
   });
 });

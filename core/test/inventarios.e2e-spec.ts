@@ -247,6 +247,62 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
       );
     });
 
+    it('filtra por usuario (ILIKE parcial) contra Postgres real', async () => {
+      const payload = buildInventarioPayload({
+        operadorId: 'op-e2e-filtro-usuario',
+        idempotencyKey: `idem-e2e-${randomUUID()}`,
+      });
+      await request(app.getHttpServer())
+        .post('/inventarios')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(payload)
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .get('/auditoria')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .query({ usuario: 'filtro-usuario' })
+        .expect(200);
+
+      const entradas = res.body as Array<{ usuario: string }>;
+      expect(entradas.length).toBeGreaterThan(0);
+      expect(
+        entradas.every((e) => e.usuario.includes('filtro-usuario')),
+      ).toBe(true);
+    });
+
+    it('filtra por rango de fecha excluyendo entradas fuera de rango', async () => {
+      const payload = buildInventarioPayload({
+        operadorId: 'op-e2e-filtro-fecha',
+        idempotencyKey: `idem-e2e-${randomUUID()}`,
+      });
+      await request(app.getHttpServer())
+        .post('/inventarios')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(payload)
+        .expect(201);
+
+      const enElFuturo = await request(app.getHttpServer())
+        .get('/auditoria')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .query({
+          usuario: 'filtro-fecha',
+          fechaDesde: '2099-01-01T00:00:00.000Z',
+        })
+        .expect(200);
+      expect(enElFuturo.body).toEqual([]);
+
+      const ahora = await request(app.getHttpServer())
+        .get('/auditoria')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .query({
+          usuario: 'filtro-fecha',
+          fechaDesde: '2020-01-01T00:00:00.000Z',
+        })
+        .expect(200);
+      expect((ahora.body as unknown[]).length).toBeGreaterThan(0);
+    });
+
     it('devuelve 401 sin service token', async () => {
       await request(app.getHttpServer()).get('/auditoria').expect(401);
     });

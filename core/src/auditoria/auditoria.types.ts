@@ -22,3 +22,17 @@ export interface AuditoriaEntrada {
   resultado: string;
   observaciones: string | null;
 }
+
+// RF-06 — filtros de GET /auditoria (cierra el gap: el requisito original pedia "filtrable por
+// usuario/fecha/operacion", el primer incremento solo devolvia las 200 mas recientes sin filtro
+// alguno). `usuario`/`operacion` son busqueda parcial (ILIKE), no igualdad exacta: `operacion`
+// incluye el id del recurso en varias operaciones (ej. `POST /activos/${id}/baja`,
+// `PATCH /responsables/${id}/estado`), asi que un filtro exacto casi nunca matchearia mas de una
+// fila — parcial permite filtrar por categoria ("baja", "responsables") igual que por el string
+// completo. `fechaDesde`/`fechaHasta` son ISO 8601, inclusive en ambos extremos.
+export interface AuditoriaFiltro {
+  usuario?: string;
+  operacion?: string;
+  fechaDesde?: string;
+  fechaHasta?: string;
+}

@@ -2,7 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Pool } from 'pg';
 import { PG_POOL } from '../database/database.constants';
-import type { AuditoriaEntrada, RegistrarAuditoriaInput } from './auditoria.types';
+import type {
+  AuditoriaEntrada,
+  AuditoriaFiltro,
+  RegistrarAuditoriaInput,
+} from './auditoria.types';
 
 // RF-06 (Fase 5, WEB) — tope de filas de GET /auditoria: la tabla no tiene politica de
 // retencion/purga todavia (Tomo III §4.10, ver DOC-011 § "Que NO resuelve"), asi que sin limite
@@ -35,8 +39,34 @@ export class AuditoriaRepository {
 
   // RF-06 — sin organizacionId en la tabla (ver auditoria.types.ts), asi que sin filtro de
   // organizacion todavia: mismo criterio ya aceptado en ContratoController.getContratos ("lectura
-  // abierta, no hay 403 posible en este endpoint"). Mas recientes primero.
-  async listar(): Promise<AuditoriaEntrada[]> {
+  // abierta, no hay 403 posible en este endpoint"). Filtros opcionales por usuario/operacion
+  // (ILIKE, ver auditoria.types.ts) y rango de fecha — mismo patron de condiciones dinamicas que
+  // ActivoRepository.findCatalogo. Mas recientes primero.
+  async listar(filtro: AuditoriaFiltro = {}): Promise<AuditoriaEntrada[]> {
+    const condiciones: string[] = [];
+    const valores: unknown[] = [];
+
+    if (filtro.usuario) {
+      valores.push(`%${filtro.usuario}%`);
+      condiciones.push(`usuario ILIKE $${valores.length}`);
+    }
+    if (filtro.operacion) {
+      valores.push(`%${filtro.operacion}%`);
+      condiciones.push(`operacion ILIKE $${valores.length}`);
+    }
+    if (filtro.fechaDesde) {
+      valores.push(filtro.fechaDesde);
+      condiciones.push(`fecha >= $${valores.length}`);
+    }
+    if (filtro.fechaHasta) {
+      valores.push(filtro.fechaHasta);
+      condiciones.push(`fecha <= $${valores.length}`);
+    }
+
+    const whereSql =
+      condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';
+    valores.push(LISTAR_LIMITE);
+
     const result = await this.pool.query<{
       id: string;
       usuario: string;
@@ -49,9 +79,10 @@ export class AuditoriaRepository {
     }>(
       `SELECT id, usuario, fecha, equipo, ip, operacion, resultado, observaciones
        FROM auditoria
+       ${whereSql}
        ORDER BY fecha DESC
-       LIMIT $1`,
-      [LISTAR_LIMITE],
+       LIMIT $${valores.length}`,
+      valores,
     );
     return result.rows.map((row) => ({
       ...row,

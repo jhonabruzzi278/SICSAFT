@@ -40,10 +40,18 @@ describe('AuditoriaController', () => {
     auditoriaRepository = module.get(AuditoriaRepository);
   });
 
-  it('getAuditoria delega en AuditoriaRepository.listar', async () => {
+  it('getAuditoria delega en AuditoriaRepository.listar con los filtros', async () => {
+    auditoriaRepository.listar.mockResolvedValue(ENTRADAS);
+    const query = { usuario: 'op-1', operacion: 'inventarios' };
+
+    await expect(controller.getAuditoria(query)).resolves.toBe(ENTRADAS);
+    expect(auditoriaRepository.listar).toHaveBeenCalledWith(query);
+  });
+
+  it('getAuditoria delega en AuditoriaRepository.listar sin filtros', async () => {
     auditoriaRepository.listar.mockResolvedValue(ENTRADAS);
 
-    await expect(controller.getAuditoria()).resolves.toBe(ENTRADAS);
-    expect(auditoriaRepository.listar).toHaveBeenCalled();
+    await expect(controller.getAuditoria({})).resolves.toBe(ENTRADAS);
+    expect(auditoriaRepository.listar).toHaveBeenCalledWith({});
   });
 });
