@@ -6,9 +6,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { jwtVerify, type JWTVerifyGetKey } from 'jose';
+import { jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
 import { ZITADEL_AUTH_CONFIG, ZITADEL_JWKS } from './zitadel-auth.constants';
 import type { ZitadelAuthConfig } from './zitadel-auth.config';
+
+// Claim de roles de Proyecto que Zitadel firma en el JWT — solo aparece si la app pidio el scope
+// reservado `urn:zitadel:iam:org:project:role:<rol>` o tiene "Assert Roles on Authentication"
+// habilitado (DOC-012 §2). Forma: { "<rol>": { "<organizacionId>": "<nombreOrg>" } }.
+const ZITADEL_PROJECT_ROLES_CLAIM = 'urn:zitadel:iam:org:project:roles';
 
 export interface ZitadelAuthContext {
   // `sub` del token — el operador ya fue autenticado por Zitadel, el CIS no valida credenciales.
@@ -17,6 +22,10 @@ export interface ZitadelAuthContext {
   // el CIS no emite un token propio (ver ADR-002: "el CIS, no el token" valida, no reemplaza).
   accessToken: string;
   expiresAt: string;
+  // Roles de Proyecto que Zitadel firmo (vacio si el claim no viene — la mayoria de los requests
+  // no lo necesitan). CIS solo certifica que Zitadel firmo el rol, nunca decide autorizacion con
+  // esto — esa decision es de CORE (DOC-012 §3, WAF §3 cero confianza entre niveles).
+  roles: string[];
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -60,8 +69,17 @@ export class ZitadelAuthGuard implements CanActivate {
       operadorId: payload.sub,
       accessToken: token,
       expiresAt: new Date(payload.exp * 1000).toISOString(),
+      roles: this.extractRoles(payload),
     };
     return true;
+  }
+
+  private extractRoles(payload: JWTPayload): string[] {
+    const claim = payload[ZITADEL_PROJECT_ROLES_CLAIM];
+    if (!claim || typeof claim !== 'object') {
+      return [];
+    }
+    return Object.keys(claim);
   }
 
   private extractBearerToken(header: string | undefined): string {

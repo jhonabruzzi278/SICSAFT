@@ -53,9 +53,13 @@ describe('ZitadelAuthGuard', () => {
       expiresIn?: string;
       omitExpiration?: boolean;
       omitSubject?: boolean;
+      rolesClaim?: Record<string, Record<string, string>>;
     } = {},
   ): Promise<string> {
-    let builder = new SignJWT({}).setProtectedHeader({ alg: 'RS256' });
+    const claims = overrides.rolesClaim
+      ? { 'urn:zitadel:iam:org:project:roles': overrides.rolesClaim }
+      : {};
+    let builder = new SignJWT(claims).setProtectedHeader({ alg: 'RS256' });
     if (!overrides.omitSubject) {
       builder = builder.setSubject(overrides.subject ?? 'op-1');
     }
@@ -80,6 +84,33 @@ describe('ZitadelAuthGuard', () => {
     expect(request.auth?.operadorId).toBe('op-1');
     expect(request.auth?.accessToken).toBe(token);
     expect(Number.isNaN(Date.parse(request.auth?.expiresAt ?? ''))).toBe(false);
+  });
+
+  it('expone roles vacio cuando el token no trae el claim de roles de proyecto', async () => {
+    const token = await signToken({ subject: 'op-1' });
+    const context = buildContext(`Bearer ${token}`);
+
+    await guard.canActivate(context);
+
+    const request = context
+      .switchToHttp()
+      .getRequest<{ auth?: { roles: string[] } }>();
+    expect(request.auth?.roles).toEqual([]);
+  });
+
+  it('expone los roles del claim urn:zitadel:iam:org:project:roles cuando esta presente', async () => {
+    const token = await signToken({
+      subject: 'op-1',
+      rolesClaim: { 'administrador-patrimonial': { 'org-1': 'DUOC UC' } },
+    });
+    const context = buildContext(`Bearer ${token}`);
+
+    await guard.canActivate(context);
+
+    const request = context
+      .switchToHttp()
+      .getRequest<{ auth?: { roles: string[] } }>();
+    expect(request.auth?.roles).toEqual(['administrador-patrimonial']);
   });
 
   it('lanza 401 si falta el header Authorization', async () => {

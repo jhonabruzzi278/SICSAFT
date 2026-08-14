@@ -15,6 +15,13 @@ import type { ServiceTokenConfig } from './service-token.config';
 // esa es responsabilidad exclusiva de CIS (ver ADR-002).
 export const SERVICE_TOKEN_HEADER = 'x-internal-service-token';
 
+export interface ServiceAuthenticatedRequest extends Request {
+  // Seteado por este guard cuando el secreto compartido es valido — otros guards que autorizan
+  // sobre datos que CIS reenvía en el body (ej. `AdministradorPatrimonialGuard`, DOC-012 §3.2)
+  // lo exigen para fallar cerrado si alguna vez se los usa sin este guard antes en la cadena.
+  serviceAuthenticated?: boolean;
+}
+
 @Injectable()
 export class ServiceTokenGuard implements CanActivate {
   constructor(
@@ -22,7 +29,9 @@ export class ServiceTokenGuard implements CanActivate {
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context
+      .switchToHttp()
+      .getRequest<ServiceAuthenticatedRequest>();
     const header = request.headers[SERVICE_TOKEN_HEADER];
     const received = Array.isArray(header) ? header[0] : header;
 
@@ -32,6 +41,7 @@ export class ServiceTokenGuard implements CanActivate {
       );
     }
 
+    request.serviceAuthenticated = true;
     return true;
   }
 
