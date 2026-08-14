@@ -11,7 +11,7 @@
 |---|---|---|---|---|---|
 | APP QR | [`app-qr-sicsaft/aidlc-docs/requirements/REQUIREMENTS.md`](app-qr-sicsaft/aidlc-docs/requirements/REQUIREMENTS.md) | MVP demo standalone (histórico — superado por TASK-007) | 11 | 4 | ✅ Completo (demo original) |
 | CORE | [`core/aidlc-docs/requirements/REQUIREMENTS.md`](core/aidlc-docs/requirements/REQUIREMENTS.md) | Fase 2 (Orquestador + 4 motores de lectura) | 7 | 5 | ✅ Completo, 2 parciales (RF-05, RNF-01) — ver detalle |
-| WEB | [`web/aidlc-docs/requirements/REQUIREMENTS.md`](web/aidlc-docs/requirements/REQUIREMENTS.md) | Fase 5 (Portal WEB, 6 módulos) | 8 | 5 | ✅ 6/6 módulos, 1 parcial (RF-05) — ver detalle |
+| WEB | [`web/aidlc-docs/requirements/REQUIREMENTS.md`](web/aidlc-docs/requirements/REQUIREMENTS.md) | Fase 5 (Portal WEB, 6 módulos) | 8 | 5 | ✅ 6/6 módulos, 0 parciales, RNF-05 sin verificar — ver detalle |
 | CIS | *(sin `aidlc-docs/`, ver nota)* | Fase 0/3/4/5 (conector QR, escritura oficial) | — | — | Sin requisitos formalizados con ID — ver nota abajo |
 
 **CIS nunca tuvo su propio `REQUIREMENTS.md`** — se construyó antes de que el proyecto adoptara la
@@ -30,15 +30,19 @@ pidió). Priorizados por severidad:
 
 | Sistema | ID | Qué falta | Por qué importa |
 |---|---|---|---|
-| WEB | RF-05 | Sin `PATCH /areas/:id` ni `PATCH /ubicaciones/:id` (edición); sin forma de asignar `responsable_id`/`ubicacion_principal_id` a un Área ya creada | El requisito pide "ABM completo" — hoy es "A" (alta) + "B" parcial (solo Responsable) + consulta, sin "M" real de Área/Ubicación |
 | CORE | RF-05 | Traslado y cambio de ubicación/estado de Activo sin controller HTTP (el repository ya tiene los métodos) | Documentado como YAGNI (sin consumidor real) — riesgo bajo, pero el RF original no lo excluye explícitamente |
 | CORE | RNF-01 | 5 endpoints nuevos de Fase 5 no paginan (`/contratos`, `/auditoria`, `/areas`, `/ubicaciones`, `/responsables`) | Aceptado por volumen bajo de datos reales hoy; revisar cuando haya más de una organización con datos reales |
 | WEB | RNF-05 | Accesibilidad nunca auditada con herramienta (axe/Lighthouse); contraste AA no confirmado formalmente | El requisito pide verificación explícita, no solo intención de diseño |
 
-**Cerrado 2026-08-14**: ~~WEB RF-06 — `GET /auditoria` sin filtro~~. `AuditoriaRepository.listar`
-(CORE) ganó filtros por `usuario`/`operacion` (`ILIKE '%valor%'`) y rango
-`fechaDesde`/`fechaHasta`; `AuditoriaPage` (WEB) agregó el formulario correspondiente. Verificado
-con unit + e2e reales contra Postgres.
+**Cerrado 2026-08-14**:
+- ~~WEB RF-06 — `GET /auditoria` sin filtro~~. `AuditoriaRepository.listar` (CORE) ganó filtros por
+  `usuario`/`operacion` (`ILIKE '%valor%'`) y rango `fechaDesde`/`fechaHasta`; `AuditoriaPage`
+  (WEB) agregó el formulario correspondiente. Verificado con unit + e2e reales contra Postgres.
+- ~~WEB RF-05 — sin edición de Área/Ubicación~~. `AreaRepository.actualizar`/
+  `UbicacionRepository.actualizar` (CORE) agregan `PATCH /areas/:id`/`PATCH /ubicaciones/:id`,
+  incluida la asignación de `responsable_id`/`ubicacion_principal_id` a un Área; puente en CIS
+  (`PATCH /admin/areas/:id`, `PATCH /admin/ubicaciones/:id`) y formularios de edición en
+  `EstructuraPage` (WEB). Verificado con unit + e2e reales contra Postgres.
 
 ## Cómo se usa este índice
 

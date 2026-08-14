@@ -6,13 +6,14 @@ es la app móvil de captura). Consume datos vía CIS/CORE — nunca le habla a C
 negociable de `CLAUDE.md`).
 
 ## Estado
-🟢 Los 6 módulos del MVP de Fase 5 implementados — login OIDC/PKCE real contra Zitadel +
-**Activos** (consulta + alta), **Contratos** (consulta + alta + cambio de estado),
-**Inventarios** (consulta de sesiones + detalle de escaneos), **Auditoría** (consulta, filtrable
-por usuario/operación/rango de fecha, sin filtro por organización — ver "Gaps" abajo) y
-**Áreas/Ubicaciones/Responsables** (alta + consulta de las 3 entidades y baja de Responsable, sin
-edición de Área/Ubicación — ver "Gaps" abajo). Activos/Contratos/Inventarios verificados de punta
-a punta contra Postgres real (login real de navegador incluido); Auditoría y
+🟢 Los 6 módulos del MVP de Fase 5 implementados, RF-05/RF-06 cerrados por completo — login
+OIDC/PKCE real contra Zitadel + **Activos** (consulta + alta), **Contratos** (consulta + alta +
+cambio de estado), **Inventarios** (consulta de sesiones + detalle de escaneos), **Auditoría**
+(consulta, filtrable por usuario/operación/rango de fecha, sin filtro por organización — gap
+distinto, conocido, ver "Gaps" abajo) y **Áreas/Ubicaciones/Responsables** (alta/edición/consulta
+de Área y Ubicación, incluida la asignación de responsable/ubicación principal a un Área, más
+alta/consulta/baja de Responsable). Activos/Contratos/Inventarios verificados de punta a punta
+contra Postgres real (login real de navegador incluido); Auditoría y
 Áreas/Ubicaciones/Responsables verificados con unit + e2e reales contra Postgres (CORE y CIS), sin
 login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/local/README.md`
 § "Cliente OIDC real (WEB)". Diseño AI-DLC completo en
@@ -53,16 +54,19 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   por-organización del hub, sino como link directo en el header (`AppShell`), porque la tabla
   `auditoria` de CORE no tiene `organizacionId` (ver "Gaps" abajo).
 - `pages/EstructuraPage.tsx` — RF-05: ABM de Área/Ubicación/Responsable, tres secciones en una
-  pantalla (tabla + alta cada una, `GET/POST /admin/areas`, `GET/POST /admin/ubicaciones`,
-  `GET/POST /admin/responsables` + `PATCH /admin/responsables/:id/estado`, todos nuevos en
-  CIS/CORE). El orden de las secciones sigue la dependencia real: Ubicaciones necesita elegir una
-  sede (tomada de `organizacion.sedes` del mismo `POST /auth/session` que ya usa el hub) y
-  Responsables necesita elegir un Área ya creada (`areaId` es obligatorio, no hay responsable sin
-  área) — por eso Áreas va primero y alimenta el selector de las otras dos secciones. Sin edición
-  de Área/Ubicación ni asignación de `responsable_id`/`ubicacion_principal_id` a un Área (DOC-005
-  §2 documenta ese ciclo como "sin ciclo estricto de creación", intencionalmente diferido — ver
-  `core/README.md`). La "baja" de un Responsable es cambiar su `estado` a `inactivo` (nunca un
-  DELETE, mismo criterio que Activo/Contrato) — el botón alterna activo/inactivo en la tabla.
+  pantalla (tabla + alta + edición cada una donde aplica: `GET/POST/PATCH /admin/areas`,
+  `GET/POST/PATCH /admin/ubicaciones`, `GET/POST /admin/responsables` +
+  `PATCH /admin/responsables/:id/estado`, todos nuevos en CIS/CORE). El orden de las secciones
+  sigue la dependencia real: Ubicaciones necesita elegir una sede (tomada de
+  `organizacion.sedes` del mismo `POST /auth/session` que ya usa el hub) y Responsables necesita
+  elegir un Área ya creada (`areaId` es obligatorio, no hay responsable sin área) — por eso Áreas
+  va primero y alimenta el selector de las otras dos secciones. Cada tabla tiene un botón "Editar"
+  por fila que reemplaza el formulario de alta por uno de edición (mismo panel, alterna entre los
+  dos modos) — Área incluye la asignación de `responsableId`/`ubicacionPrincipalId` (ids en texto
+  libre, DOC-005 §2 dejaba ese ciclo abierto a propósito al alta; ahora se cierra vía edición) y
+  Ubicación no permite cambiar `sedeId` (mover de sede es un traslado, operación distinta, fuera de
+  alcance). La "baja" de un Responsable es cambiar su `estado` a `inactivo` (nunca un DELETE,
+  mismo criterio que Activo/Contrato) — el botón alterna activo/inactivo en la tabla.
 
 **Decisiones de esta primera versión, distintas del diseño original de `ARCHITECTURE.md`**:
 - Sin `shadcn/ui`/`radix-ui` — primitivos propios en `components/ui.tsx` (Tailwind v4 + los
@@ -124,15 +128,27 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   cruza esas referencias contra `organizacionId` antes de insertar (defensa en profundidad, mismo
   criterio que `ActivoRepository` con activos de otra organización, DOC-012 §3) en vez de confiar
   solo en la FK de Postgres, que no distinguiría una sede/área real pero de otra organización.
+- **RF-05 cerrado por completo (2026-08-14)**: `AreaRepository.actualizar`/`UbicacionRepository.actualizar`
+  nuevos en CORE (`PATCH /areas/:id`, `PATCH /ubicaciones/:id`), mismo patrón de defensa en
+  profundidad que el alta (cross-organización antes de escribir) y mismo criterio "404 sin
+  confirmar existencia en otra organización" que `ActivoRepository.cambiarEstado`. La edición de
+  Área incluye `responsableId`/`ubicacionPrincipalId` — cierra el ciclo que DOC-005 §2 dejaba
+  abierto a propósito al alta ("sin ciclo estricto de creación" explicaba por qué el alta no los
+  exige, no por qué la asignación posterior no se podía hacer nunca). Sin `sedeId` editable en
+  Ubicación — mover de sede es un traslado, operación distinta y más grande, fuera de alcance
+  (mismo criterio que dejó el traslado de Activo sin controller HTTP, DOC-008). Puente nuevo en
+  CIS (`PATCH /admin/areas/:id`, `PATCH /admin/ubicaciones/:id`) y formularios de edición en
+  `EstructuraPage` (botón "Editar" por fila, reemplaza el panel de alta). Verificado con unit +
+  e2e reales contra Postgres.
 
 ## Módulos previstos
 6 en el MVP de Fase 5 (ver [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)), los 6
-con código funcionando: Activos (🟢), Contratos (🟢), Inventarios (🟢), hub (🟢), Auditoría (🟢,
-filtrable por usuario/operación/fecha — RF-06 cerrado, ver "Gaps" arriba), Áreas/Ubicaciones/
-Responsables (🟡, sin edición de Área/Ubicación ni asignación de
-`responsable_id`/`ubicacion_principal_id` — el requisito RF-05 pide ABM completo, ver "Qué existe
-hoy"). El resto — Dashboard, Incidencias, Movimientos, QR, RFID, Documentos, Reportes, Usuarios,
-Roles, Configuración, Integraciones — queda para después, sin diseñar todavía (sin consumidor
+con código funcionando y sus requisitos cerrados: Activos (🟢), Contratos (🟢), Inventarios (🟢),
+hub (🟢), Auditoría (🟢, filtrable por usuario/operación/fecha — RF-06 cerrado, ver "Gaps"
+arriba), Áreas/Ubicaciones/Responsables (🟢, ABM completo incluida la edición de Área/Ubicación —
+RF-05 cerrado, ver "Gaps" arriba). El resto — Dashboard, Incidencias, Movimientos, QR, RFID,
+Documentos, Reportes, Usuarios, Roles, Configuración, Integraciones — queda para después, sin
+diseñar todavía (sin consumidor
 real).
 
 ## Roles previstos
@@ -165,14 +181,12 @@ Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §8 (WEB y APP QR son clientes
 del mismo contrato de CIS/CORE).
 
 ## Próximo paso sugerido
-Los 6 módulos del MVP de Fase 5 tienen código funcionando; RF-06 (Auditoría) ya cerró su requisito
-por completo. Solo RF-05 queda parcial respecto de lo que pide (ver `../REQUISITOS.md`
-§ "RF/RNF con estado parcial"). En orden de valor:
-1. **Cerrar RF-05**: falta `PATCH /areas/:id`/`PATCH /ubicaciones/:id` (edición) y la asignación de
-   `responsable_id`/`ubicacion_principal_id` a un Área ya creada — hoy solo hay alta + consulta.
-2. Verificación real de punta a punta de Auditoría y Áreas/Ubicaciones/Responsables desde el
+Los 6 módulos del MVP de Fase 5 tienen código funcionando, y RF-05/RF-06 ya cerraron su requisito
+por completo (ver `../REQUISITOS.md`, sin filas pendientes en "RF/RNF con estado parcial" para
+WEB). Lo que queda, en orden de valor:
+1. Verificación real de punta a punta de Auditoría y Áreas/Ubicaciones/Responsables desde el
    navegador (login real, como ya se hizo con Activos/Contratos/Inventarios) — hoy solo están
    probados con e2e de CORE/CIS.
-3. e2e Playwright del flujo de login + alta (anotado como pendiente desde Fase 5 inicial).
-4. Dockerfile/`web-ci.yml`/servicio en el compose local — WEB sigue corriendo solo con
+2. e2e Playwright del flujo de login + alta (anotado como pendiente desde Fase 5 inicial).
+3. Dockerfile/`web-ci.yml`/servicio en el compose local — WEB sigue corriendo solo con
    `npm run dev` fuera de Docker.

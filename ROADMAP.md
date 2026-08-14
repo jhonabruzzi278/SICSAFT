@@ -346,10 +346,14 @@ después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita e
   escritura cruza esas referencias contra `organizacionId` con una consulta previa antes de
   insertar (defensa en profundidad, mismo criterio que `ActivoRepository` con activos de otra
   organización — una FK de Postgres por sí sola no distingue una sede/área real pero de otra
-  organización). Sin edición de Área/Ubicación ni asignación de
-  `responsable_id`/`ubicacion_principal_id` a un Área — DOC-005 §2 documenta ese ciclo como "sin
-  ciclo estricto de creación", deliberadamente fuera de alcance de este incremento. La "baja" de
-  un Responsable es cambiar su `estado` a `inactivo` (nunca un DELETE, Tomo III §4.10).
+  organización). La "baja" de un Responsable es cambiar su `estado` a `inactivo` (nunca un DELETE,
+  Tomo III §4.10). Requisito cerrado por completo: `AreaRepository.actualizar`/
+  `UbicacionRepository.actualizar` (`PATCH /areas/:id`, `PATCH /ubicaciones/:id`) agregan edición
+  de Área/Ubicación, incluida la asignación de `responsable_id`/`ubicacion_principal_id` a un Área
+  — DOC-005 §2 documentaba ese ciclo como "sin ciclo estricto de creación" (explica por qué el
+  alta no los exige, no por qué la asignación posterior no se podía hacer nunca). Sin `sedeId`
+  editable en Ubicación — mover de sede es un traslado, fuera de alcance (mismo criterio que dejó
+  el traslado de Activo sin controller HTTP, DOC-008).
 - ✅ Hub (RF-02): lista organizaciones con contrato vigente vía `POST /auth/session`, con tarjetas
   por módulo implementado (Activos, Contratos, Inventarios, Áreas/Ubicaciones/Responsables);
   Auditoría vive fuera del flujo por organización, como link directo en el header (no depende de
@@ -379,18 +383,17 @@ probando el flujo real en el navegador, ninguno lo detectaban los tests unitario
 **Done**: ✅ RF-03/RF-08 (alta de Activo visible en `GET /catalogo`), RF-04 (listado + detalle de
 sesiones de inventario) y RF-07 (alta de Contrato + transición de estado, incluido el invariante
 DOC-004 §4 rechazando sedes ya cubiertas) — verificados real de punta a punta (login real →
-escritura/lectura real → Postgres real → visible en la UI), no solo con mocks. Los 6 módulos del
-MVP de Fase 5 tienen código funcionando. ✅ RF-06 (auditoría filtrable por usuario/operación/fecha
-— cerrado el mismo día que se detectó el gap, ver más arriba). Solo **RF-05 quedó parcial respecto
-de su propio requisito** (ver `REQUISITOS.md` § "RF/RNF con estado parcial" para el detalle
-completo): pide "ABM completo" de Área/Ubicación/Responsable — se construyó alta + consulta de las
-3 entidades y baja de Responsable, sin edición de Área/Ubicación ni asignación de
-`responsable_id`/`ubicacion_principal_id`. RF-05/RF-06 verificados con unit + e2e reales contra
-Postgres (CORE y CIS), sin login real de navegador todavía (a diferencia de RF-03/RF-04/RF-07).
-⬜ e2e Playwright del flujo de login + alta — sin escribir todavía. ⬜ Dockerfile/`web-ci.yml`/
-servicio en el compose local — WEB sigue corriendo solo con `npm run dev` fuera de Docker.
-✅ `web/README.md`, `cis/README.md`, `core/README.md`, `README.md`, `REQUISITOS.md` (nuevo, índice
-consolidado de RF/RNF) y DOC-013 actualizados.
+escritura/lectura real → Postgres real → visible en la UI), no solo con mocks. ✅ RF-06 (auditoría
+filtrable por usuario/operación/fecha — cerrado el mismo día que se detectó el gap) y ✅ RF-05 (ABM
+completo de Área/Ubicación/Responsable, incluida la edición de Área/Ubicación y la asignación de
+`responsable_id`/`ubicacion_principal_id` — cerrado el mismo día que se detectó el gap, ver más
+arriba), ambos verificados con unit + e2e reales contra Postgres (CORE y CIS), sin login real de
+navegador todavía (a diferencia de RF-03/RF-04/RF-07). Los 6 módulos del MVP de Fase 5 quedan con
+sus requisitos cerrados por completo — sin filas pendientes en `REQUISITOS.md` § "RF/RNF con
+estado parcial" para WEB. ⬜ e2e Playwright del flujo de login + alta — sin escribir todavía.
+⬜ Dockerfile/`web-ci.yml`/servicio en el compose local — WEB sigue corriendo solo con
+`npm run dev` fuera de Docker. ✅ `web/README.md`, `cis/README.md`, `core/README.md`, `README.md`,
+`REQUISITOS.md` y DOC-013 actualizados.
 
 ## Fase 6 — CIP: primer dashboard
 

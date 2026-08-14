@@ -150,6 +150,18 @@ export interface AltaAreaInput {
   centroCosto?: string;
 }
 
+// RF-05 (cierra el gap "ABM completo") — PATCH /admin/areas/:id, todos opcionales pero CIS/CORE
+// exigen al menos uno.
+export interface ActualizarAreaInput {
+  organizacionId: string;
+  codigo?: string;
+  nombre?: string;
+  dependencia?: string;
+  centroCosto?: string;
+  responsableId?: string;
+  ubicacionPrincipalId?: string;
+}
+
 export interface Ubicacion {
   id: string;
   sedeId: string;
@@ -163,6 +175,17 @@ export interface Ubicacion {
 export interface AltaUbicacionInput {
   organizacionId: string;
   sedeId: string;
+  edificio?: string;
+  piso?: string;
+  areaId?: string;
+  oficina?: string;
+  dependencia?: string;
+}
+
+// RF-05 (cierra el gap "ABM completo") — PATCH /admin/ubicaciones/:id. Sin sedeId (mover de sede
+// es un traslado, fuera de alcance).
+export interface ActualizarUbicacionInput {
+  organizacionId: string;
   edificio?: string;
   piso?: string;
   areaId?: string;
@@ -322,6 +345,14 @@ export const cisClient = {
     return (await res.json()) as Area;
   },
 
+  async actualizarArea(id: string, input: ActualizarAreaInput): Promise<Area> {
+    const res = await authorizedFetch(`/admin/areas/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
+    return (await res.json()) as Area;
+  },
+
   async getUbicaciones(sedeId: string): Promise<Ubicacion[]> {
     const params = new URLSearchParams({ sedeId });
     const res = await authorizedFetch(`/admin/ubicaciones?${params.toString()}`);
@@ -333,6 +364,17 @@ export const cisClient = {
       method: 'POST',
       body: JSON.stringify(input),
     });
+    return (await res.json()) as Ubicacion;
+  },
+
+  async actualizarUbicacion(
+    id: string,
+    input: ActualizarUbicacionInput,
+  ): Promise<Ubicacion> {
+    const res = await authorizedFetch(
+      `/admin/ubicaciones/${encodeURIComponent(id)}`,
+      { method: 'PATCH', body: JSON.stringify(input) },
+    );
     return (await res.json()) as Ubicacion;
   },
 
