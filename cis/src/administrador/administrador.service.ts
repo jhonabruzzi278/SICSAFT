@@ -2,16 +2,23 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CoreClientService } from '../core-client/core-client.service';
 import type {
   ActivoResult,
+  AreaResult,
   AuditoriaEntradaResult,
   ContratoResult,
+  ResponsableResult,
+  UbicacionResult,
 } from '../core-client/core-client.types';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
 import { ORGANIZACION_MAPPING } from './administrador.constants';
 import type { OrganizacionMapping } from './organizacion-mapping.config';
 import type {
   AltaActivoBody,
+  AltaAreaBody,
   AltaContratoBody,
+  AltaResponsableBody,
+  AltaUbicacionBody,
   ActualizarContratoBody,
+  ActualizarEstadoResponsableBody,
 } from './administrador.schemas';
 
 // DOC-012 §5 (Fase 4/5) — puente WEB->CIS->CORE para la escritura oficial de Activo. WEB nunca
@@ -91,6 +98,102 @@ export class AdministradorService {
   // RF-06 (Fase 5) — lectura abierta, mismo criterio que getContratos.
   getAuditoria(correlationId: string): Promise<AuditoriaEntradaResult[]> {
     return this.coreClientService.getAuditoria(correlationId);
+  }
+
+  // RF-05 (Fase 5) — lectura abierta, mismo criterio que getContratos.
+  getAreas(
+    organizacionId: string,
+    correlationId: string,
+  ): Promise<AreaResult[]> {
+    return this.coreClientService.getAreas(organizacionId, correlationId);
+  }
+
+  altaArea(
+    body: AltaAreaBody,
+    auth: ZitadelAuthContext,
+    correlationId: string,
+  ): Promise<AreaResult> {
+    return this.coreClientService.postArea(
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion: this.traducirAOrganizacionesCore(
+          auth.rolesPorOrganizacion,
+        ),
+      },
+      correlationId,
+    );
+  }
+
+  getUbicaciones(
+    sedeId: string,
+    correlationId: string,
+  ): Promise<UbicacionResult[]> {
+    return this.coreClientService.getUbicaciones(sedeId, correlationId);
+  }
+
+  altaUbicacion(
+    body: AltaUbicacionBody,
+    auth: ZitadelAuthContext,
+    correlationId: string,
+  ): Promise<UbicacionResult> {
+    return this.coreClientService.postUbicacion(
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion: this.traducirAOrganizacionesCore(
+          auth.rolesPorOrganizacion,
+        ),
+      },
+      correlationId,
+    );
+  }
+
+  getResponsables(
+    areaId: string,
+    correlationId: string,
+  ): Promise<ResponsableResult[]> {
+    return this.coreClientService.getResponsables(areaId, correlationId);
+  }
+
+  altaResponsable(
+    body: AltaResponsableBody,
+    auth: ZitadelAuthContext,
+    correlationId: string,
+  ): Promise<ResponsableResult> {
+    return this.coreClientService.postResponsable(
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion: this.traducirAOrganizacionesCore(
+          auth.rolesPorOrganizacion,
+        ),
+      },
+      correlationId,
+    );
+  }
+
+  actualizarEstadoResponsable(
+    responsableId: string,
+    body: ActualizarEstadoResponsableBody,
+    auth: ZitadelAuthContext,
+    correlationId: string,
+  ): Promise<ResponsableResult> {
+    return this.coreClientService.patchResponsableEstado(
+      responsableId,
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion: this.traducirAOrganizacionesCore(
+          auth.rolesPorOrganizacion,
+        ),
+      },
+      correlationId,
+    );
   }
 
   // `auth.rolesPorOrganizacion` viene keyed por organizacionId de ZITADEL (lo que Zitadel firmo

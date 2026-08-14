@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
   UsePipes,
@@ -20,18 +21,35 @@ import type { RequestWithCorrelationId } from '../common/correlation-id/correlat
 import { AdministradorService } from './administrador.service';
 import {
   actualizarContratoSchema,
+  actualizarEstadoResponsableSchema,
   altaActivoSchema,
+  altaAreaSchema,
   altaContratoSchema,
+  altaResponsableSchema,
+  altaUbicacionSchema,
+  areasQuerySchema,
+  responsablesQuerySchema,
+  ubicacionesQuerySchema,
 } from './administrador.schemas';
 import type {
   ActualizarContratoBody,
+  ActualizarEstadoResponsableBody,
   AltaActivoBody,
+  AltaAreaBody,
   AltaContratoBody,
+  AltaResponsableBody,
+  AltaUbicacionBody,
+  AreasQuery,
+  ResponsablesQuery,
+  UbicacionesQuery,
 } from './administrador.schemas';
 import type {
   ActivoResult,
+  AreaResult,
   AuditoriaEntradaResult,
   ContratoResult,
+  ResponsableResult,
+  UbicacionResult,
 } from '../core-client/core-client.types';
 
 // DOC-012 §5 (Fase 5) — endpoints de escritura oficial para WEB (Administrador Patrimonial).
@@ -95,6 +113,97 @@ export class AdministradorController {
     @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
   ): Promise<ContratoResult> {
     return this.administradorService.actualizarEstadoContrato(
+      id,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // RF-05 (Fase 5) — lectura abierta, mismo criterio que getContratos.
+  @Get('areas')
+  getAreas(
+    @Query(new ZodValidationPipe(areasQuerySchema)) query: AreasQuery,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<AreaResult[]> {
+    return this.administradorService.getAreas(
+      query.organizacionId,
+      request.correlationId,
+    );
+  }
+
+  @Post('areas')
+  @UsePipes(new ZodValidationPipe(altaAreaSchema))
+  altaArea(
+    @Body() body: AltaAreaBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<AreaResult> {
+    return this.administradorService.altaArea(
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  @Get('ubicaciones')
+  getUbicaciones(
+    @Query(new ZodValidationPipe(ubicacionesQuerySchema))
+    query: UbicacionesQuery,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<UbicacionResult[]> {
+    return this.administradorService.getUbicaciones(
+      query.sedeId,
+      request.correlationId,
+    );
+  }
+
+  @Post('ubicaciones')
+  @UsePipes(new ZodValidationPipe(altaUbicacionSchema))
+  altaUbicacion(
+    @Body() body: AltaUbicacionBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<UbicacionResult> {
+    return this.administradorService.altaUbicacion(
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  @Get('responsables')
+  getResponsables(
+    @Query(new ZodValidationPipe(responsablesQuerySchema))
+    query: ResponsablesQuery,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<ResponsableResult[]> {
+    return this.administradorService.getResponsables(
+      query.areaId,
+      request.correlationId,
+    );
+  }
+
+  @Post('responsables')
+  @UsePipes(new ZodValidationPipe(altaResponsableSchema))
+  altaResponsable(
+    @Body() body: AltaResponsableBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<ResponsableResult> {
+    return this.administradorService.altaResponsable(
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // Pipe por parametro (mismo motivo que actualizarEstadoContrato de mas arriba).
+  @Patch('responsables/:id/estado')
+  actualizarEstadoResponsable(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(actualizarEstadoResponsableSchema))
+    body: ActualizarEstadoResponsableBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<ResponsableResult> {
+    return this.administradorService.actualizarEstadoResponsable(
       id,
       body,
       requireAuthContext(request),

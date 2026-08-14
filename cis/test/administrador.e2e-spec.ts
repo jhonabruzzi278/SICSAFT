@@ -9,8 +9,11 @@ import { CoreClientService } from './../src/core-client/core-client.service';
 import { REDIS_CLIENT } from './../src/redis/redis.constants';
 import type {
   ActivoResult,
+  AreaResult,
   AuditoriaEntradaResult,
   ContratoResult,
+  ResponsableResult,
+  UbicacionResult,
 } from './../src/core-client/core-client.types';
 
 const ISSUER = 'http://id.sicsaft.localhost';
@@ -47,6 +50,38 @@ const AUDITORIA_STUB: AuditoriaEntradaResult = {
   observaciones: null,
 };
 
+const AREA_STUB: AreaResult = {
+  id: 'area-1',
+  organizacionId: 'duoc-uc',
+  codigo: 'BIB',
+  nombre: 'Biblioteca',
+  dependencia: null,
+  centroCosto: null,
+  responsableId: null,
+  ubicacionPrincipalId: null,
+};
+
+const UBICACION_STUB: UbicacionResult = {
+  id: 'ubicacion-1',
+  sedeId: 'melipilla',
+  edificio: null,
+  piso: null,
+  areaId: null,
+  oficina: null,
+  dependencia: null,
+};
+
+const RESPONSABLE_STUB: ResponsableResult = {
+  id: 'responsable-1',
+  identificacion: '11.111.111-1',
+  nombre: 'Ana Soto',
+  cargo: null,
+  areaId: 'area-1',
+  correo: null,
+  telefono: null,
+  estado: 'activo',
+};
+
 const CONTRATO_STUB: ContratoResult = {
   id: 'contrato-1',
   organizacionId: 'duoc-uc',
@@ -73,6 +108,13 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
     postContrato: jest.Mock;
     patchContrato: jest.Mock;
     getAuditoria: jest.Mock;
+    getAreas: jest.Mock;
+    postArea: jest.Mock;
+    getUbicaciones: jest.Mock;
+    postUbicacion: jest.Mock;
+    getResponsables: jest.Mock;
+    postResponsable: jest.Mock;
+    patchResponsableEstado: jest.Mock;
   };
 
   beforeAll(() => {
@@ -107,6 +149,15 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
         .fn()
         .mockResolvedValue({ ...CONTRATO_STUB, estado: 'suspendido' }),
       getAuditoria: jest.fn().mockResolvedValue([AUDITORIA_STUB]),
+      getAreas: jest.fn().mockResolvedValue([AREA_STUB]),
+      postArea: jest.fn().mockResolvedValue(AREA_STUB),
+      getUbicaciones: jest.fn().mockResolvedValue([UBICACION_STUB]),
+      postUbicacion: jest.fn().mockResolvedValue(UBICACION_STUB),
+      getResponsables: jest.fn().mockResolvedValue([RESPONSABLE_STUB]),
+      postResponsable: jest.fn().mockResolvedValue(RESPONSABLE_STUB),
+      patchResponsableEstado: jest
+        .fn()
+        .mockResolvedValue({ ...RESPONSABLE_STUB, estado: 'inactivo' }),
     };
 
     const redisClient = {
@@ -244,6 +295,110 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
         .set('Authorization', `Bearer ${bearerToken}`)
         .send({ organizacionId: 'duoc-uc', estado: 'suspendido' })
         .expect(403);
+    });
+  });
+
+  describe('GET /admin/areas + POST /admin/areas (RF-05)', () => {
+    it('devuelve las areas sin exigir el rol de escritura', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/admin/areas')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .query({ organizacionId: 'duoc-uc' })
+        .expect(200);
+
+      expect(res.body).toEqual([AREA_STUB]);
+    });
+
+    it('traduce el rol de Zitadel a organizacionId de CORE y devuelve el area creada', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/admin/areas')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .send({ organizacionId: 'duoc-uc', codigo: 'BIB', nombre: 'Biblioteca' })
+        .expect(201);
+
+      expect(res.body as AreaResult).toEqual(AREA_STUB);
+      expect(coreClientService.postArea).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operadorId: 'op-admin',
+          rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        }),
+        expect.any(String),
+      );
+    });
+
+    it('devuelve 401 sin Authorization', async () => {
+      await request(app.getHttpServer())
+        .get('/admin/areas')
+        .query({ organizacionId: 'duoc-uc' })
+        .expect(401);
+    });
+  });
+
+  describe('GET /admin/ubicaciones + POST /admin/ubicaciones (RF-05)', () => {
+    it('devuelve las ubicaciones sin exigir el rol de escritura', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/admin/ubicaciones')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .query({ sedeId: 'melipilla' })
+        .expect(200);
+
+      expect(res.body).toEqual([UBICACION_STUB]);
+    });
+
+    it('crea la ubicacion y la devuelve', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/admin/ubicaciones')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .send({ organizacionId: 'duoc-uc', sedeId: 'melipilla' })
+        .expect(201);
+
+      expect(res.body as UbicacionResult).toEqual(UBICACION_STUB);
+    });
+  });
+
+  describe('GET /admin/responsables + POST /admin/responsables + PATCH /admin/responsables/:id/estado (RF-05)', () => {
+    it('devuelve los responsables sin exigir el rol de escritura', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/admin/responsables')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .query({ areaId: 'area-1' })
+        .expect(200);
+
+      expect(res.body).toEqual([RESPONSABLE_STUB]);
+    });
+
+    it('crea el responsable y lo devuelve', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/admin/responsables')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .send({
+          organizacionId: 'duoc-uc',
+          identificacion: '11.111.111-1',
+          nombre: 'Ana Soto',
+          areaId: 'area-1',
+        })
+        .expect(201);
+
+      expect(res.body as ResponsableResult).toEqual(RESPONSABLE_STUB);
+    });
+
+    it('actualiza el estado y lo devuelve — no rompe con "Payload inválido" (pipe por parametro desde el vamos)', async () => {
+      const res = await request(app.getHttpServer())
+        .patch('/admin/responsables/responsable-1/estado')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .send({ organizacionId: 'duoc-uc', estado: 'inactivo' })
+        .expect(200);
+
+      expect((res.body as ResponsableResult).estado).toBe('inactivo');
+      expect(coreClientService.patchResponsableEstado).toHaveBeenCalledWith(
+        'responsable-1',
+        expect.objectContaining({
+          operadorId: 'op-admin',
+          estado: 'inactivo',
+          rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        }),
+        expect.any(String),
+      );
     });
   });
 });

@@ -19,6 +19,8 @@ import { CircuitBreaker, CircuitOpenError } from './circuit-breaker';
 import { withRetry } from './retry';
 import {
   activoResponseSchema,
+  areaResponseSchema,
+  areasResponseSchema,
   auditoriaResponseSchema,
   catalogoResponseSchema,
   contratoResponseSchema,
@@ -26,20 +28,31 @@ import {
   entitlementsResponseSchema,
   inventarioEstadoResponseSchema,
   postInventarioResponseSchema,
+  responsableResponseSchema,
+  responsablesResponseSchema,
   sesionDetalleResponseSchema,
   sesionesResumenResponseSchema,
+  ubicacionResponseSchema,
+  ubicacionesResponseSchema,
   type ActivoResult,
+  type AreaResult,
   type AuditoriaEntradaResult,
   type CatalogoResult,
   type ContratoResult,
   type EntitlementsResult,
   type InventarioEstadoResult,
   type PatchContratoRequest,
+  type PatchResponsableEstadoRequest,
   type PostActivoRequest,
+  type PostAreaRequest,
   type PostContratoRequest,
   type PostInventarioResult,
+  type PostResponsableRequest,
+  type PostUbicacionRequest,
+  type ResponsableResult,
   type SesionDetalleResult,
   type SesionResumenResult,
+  type UbicacionResult,
 } from './core-client.types';
 import { CORRELATION_ID_HEADER } from '../common/correlation-id/correlation-id.constants';
 import type {
@@ -199,6 +212,78 @@ export class CoreClientService {
   async getAuditoria(correlationId: string): Promise<AuditoriaEntradaResult[]> {
     const data = await this.get('/auditoria', undefined, correlationId);
     return this.parse(auditoriaResponseSchema, data, 'auditoria');
+  }
+
+  // RF-05 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos.
+  async getAreas(
+    organizacionId: string,
+    correlationId: string,
+  ): Promise<AreaResult[]> {
+    const data = await this.get('/areas', { organizacionId }, correlationId);
+    return this.parse(areasResponseSchema, data, 'areas');
+  }
+
+  // RF-05 — escritura oficial, mismo criterio de passthroughStatuses que postActivo.
+  async postArea(
+    request: PostAreaRequest,
+    correlationId: string,
+  ): Promise<AreaResult> {
+    const data = await this.post('/areas', request, correlationId, {
+      passthroughStatuses: [400, 403, 409],
+    });
+    return this.parse(areaResponseSchema, data, 'areas');
+  }
+
+  async getUbicaciones(
+    sedeId: string,
+    correlationId: string,
+  ): Promise<UbicacionResult[]> {
+    const data = await this.get('/ubicaciones', { sedeId }, correlationId);
+    return this.parse(ubicacionesResponseSchema, data, 'ubicaciones');
+  }
+
+  async postUbicacion(
+    request: PostUbicacionRequest,
+    correlationId: string,
+  ): Promise<UbicacionResult> {
+    const data = await this.post('/ubicaciones', request, correlationId, {
+      passthroughStatuses: [400, 403, 409],
+    });
+    return this.parse(ubicacionResponseSchema, data, 'ubicaciones');
+  }
+
+  async getResponsables(
+    areaId: string,
+    correlationId: string,
+  ): Promise<ResponsableResult[]> {
+    const data = await this.get('/responsables', { areaId }, correlationId);
+    return this.parse(responsablesResponseSchema, data, 'responsables');
+  }
+
+  async postResponsable(
+    request: PostResponsableRequest,
+    correlationId: string,
+  ): Promise<ResponsableResult> {
+    const data = await this.post('/responsables', request, correlationId, {
+      passthroughStatuses: [400, 403, 409],
+    });
+    return this.parse(responsableResponseSchema, data, 'responsables');
+  }
+
+  async patchResponsableEstado(
+    responsableId: string,
+    request: PatchResponsableEstadoRequest,
+    correlationId: string,
+  ): Promise<ResponsableResult> {
+    const data = await this.patch(
+      `/responsables/${encodeURIComponent(responsableId)}/estado`,
+      request,
+      correlationId,
+      // Sin 404 acá a proposito: callCore ya lo traduce a NotFoundException antes de mirar
+      // passthroughStatuses (mismo criterio que patchContrato).
+      { passthroughStatuses: [400, 403, 409] },
+    );
+    return this.parse(responsableResponseSchema, data, 'responsables');
   }
 
   private async get(

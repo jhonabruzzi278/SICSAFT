@@ -4,13 +4,20 @@ import { CoreClientService } from '../core-client/core-client.service';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
 import type {
   ActivoResult,
+  AreaResult,
   AuditoriaEntradaResult,
   ContratoResult,
+  ResponsableResult,
+  UbicacionResult,
 } from '../core-client/core-client.types';
 import type {
   ActualizarContratoBody,
+  ActualizarEstadoResponsableBody,
   AltaActivoBody,
+  AltaAreaBody,
   AltaContratoBody,
+  AltaResponsableBody,
+  AltaUbicacionBody,
 } from './administrador.schemas';
 
 const ACTIVO: ActivoResult = {
@@ -49,6 +56,13 @@ function buildService(mapping: Record<string, string>) {
     postContrato: jest.fn(),
     patchContrato: jest.fn(),
     getAuditoria: jest.fn(),
+    getAreas: jest.fn(),
+    postArea: jest.fn(),
+    getUbicaciones: jest.fn(),
+    postUbicacion: jest.fn(),
+    getResponsables: jest.fn(),
+    postResponsable: jest.fn(),
+    patchResponsableEstado: jest.fn(),
   } as unknown as jest.Mocked<CoreClientService>;
   const service = new AdministradorService(coreClientService, mapping);
   return { service, coreClientService };
@@ -197,6 +211,201 @@ describe('AdministradorService', () => {
       expect(contrato).toBe(suspendido);
       expect(coreClientService.patchContrato).toHaveBeenCalledWith(
         'contrato-1',
+        {
+          ...body,
+          correlationId: 'corr-1',
+          operadorId: 'op-1',
+          rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        },
+        'corr-1',
+      );
+    });
+  });
+
+  const AREA: AreaResult = {
+    id: 'area-1',
+    organizacionId: 'duoc-uc',
+    codigo: 'BIB',
+    nombre: 'Biblioteca',
+    dependencia: null,
+    centroCosto: null,
+    responsableId: null,
+    ubicacionPrincipalId: null,
+  };
+
+  const UBICACION: UbicacionResult = {
+    id: 'ubicacion-1',
+    sedeId: 'melipilla',
+    edificio: null,
+    piso: null,
+    areaId: null,
+    oficina: null,
+    dependencia: null,
+  };
+
+  const RESPONSABLE: ResponsableResult = {
+    id: 'responsable-1',
+    identificacion: '11.111.111-1',
+    nombre: 'Ana Soto',
+    cargo: null,
+    areaId: 'area-1',
+    correo: null,
+    telefono: null,
+    estado: 'activo',
+  };
+
+  describe('getAreas', () => {
+    it('delega en CoreClientService.getAreas sin traducir roles (lectura abierta)', async () => {
+      const { service, coreClientService } = buildService({});
+      coreClientService.getAreas.mockResolvedValue([AREA]);
+
+      await expect(service.getAreas('duoc-uc', 'corr-1')).resolves.toEqual([
+        AREA,
+      ]);
+      expect(coreClientService.getAreas).toHaveBeenCalledWith(
+        'duoc-uc',
+        'corr-1',
+      );
+    });
+  });
+
+  describe('altaArea', () => {
+    const body: AltaAreaBody = {
+      organizacionId: 'duoc-uc',
+      codigo: 'BIB',
+      nombre: 'Biblioteca',
+    };
+
+    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
+      const { service, coreClientService } = buildService({
+        '386029528616558597': 'duoc-uc',
+      });
+      coreClientService.postArea.mockResolvedValue(AREA);
+
+      const area = await service.altaArea(body, AUTH, 'corr-1');
+
+      expect(area).toBe(AREA);
+      expect(coreClientService.postArea).toHaveBeenCalledWith(
+        {
+          ...body,
+          correlationId: 'corr-1',
+          operadorId: 'op-1',
+          rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        },
+        'corr-1',
+      );
+    });
+  });
+
+  describe('getUbicaciones', () => {
+    it('delega en CoreClientService.getUbicaciones sin traducir roles (lectura abierta)', async () => {
+      const { service, coreClientService } = buildService({});
+      coreClientService.getUbicaciones.mockResolvedValue([UBICACION]);
+
+      await expect(
+        service.getUbicaciones('melipilla', 'corr-1'),
+      ).resolves.toEqual([UBICACION]);
+      expect(coreClientService.getUbicaciones).toHaveBeenCalledWith(
+        'melipilla',
+        'corr-1',
+      );
+    });
+  });
+
+  describe('altaUbicacion', () => {
+    const body: AltaUbicacionBody = {
+      organizacionId: 'duoc-uc',
+      sedeId: 'melipilla',
+    };
+
+    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
+      const { service, coreClientService } = buildService({
+        '386029528616558597': 'duoc-uc',
+      });
+      coreClientService.postUbicacion.mockResolvedValue(UBICACION);
+
+      const ubicacion = await service.altaUbicacion(body, AUTH, 'corr-1');
+
+      expect(ubicacion).toBe(UBICACION);
+      expect(coreClientService.postUbicacion).toHaveBeenCalledWith(
+        {
+          ...body,
+          correlationId: 'corr-1',
+          operadorId: 'op-1',
+          rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        },
+        'corr-1',
+      );
+    });
+  });
+
+  describe('getResponsables', () => {
+    it('delega en CoreClientService.getResponsables sin traducir roles (lectura abierta)', async () => {
+      const { service, coreClientService } = buildService({});
+      coreClientService.getResponsables.mockResolvedValue([RESPONSABLE]);
+
+      await expect(
+        service.getResponsables('area-1', 'corr-1'),
+      ).resolves.toEqual([RESPONSABLE]);
+      expect(coreClientService.getResponsables).toHaveBeenCalledWith(
+        'area-1',
+        'corr-1',
+      );
+    });
+  });
+
+  describe('altaResponsable', () => {
+    const body: AltaResponsableBody = {
+      organizacionId: 'duoc-uc',
+      identificacion: '11.111.111-1',
+      nombre: 'Ana Soto',
+      areaId: 'area-1',
+    };
+
+    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
+      const { service, coreClientService } = buildService({
+        '386029528616558597': 'duoc-uc',
+      });
+      coreClientService.postResponsable.mockResolvedValue(RESPONSABLE);
+
+      const responsable = await service.altaResponsable(body, AUTH, 'corr-1');
+
+      expect(responsable).toBe(RESPONSABLE);
+      expect(coreClientService.postResponsable).toHaveBeenCalledWith(
+        {
+          ...body,
+          correlationId: 'corr-1',
+          operadorId: 'op-1',
+          rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        },
+        'corr-1',
+      );
+    });
+  });
+
+  describe('actualizarEstadoResponsable', () => {
+    const body: ActualizarEstadoResponsableBody = {
+      organizacionId: 'duoc-uc',
+      estado: 'inactivo',
+    };
+
+    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
+      const { service, coreClientService } = buildService({
+        '386029528616558597': 'duoc-uc',
+      });
+      const inactivo = { ...RESPONSABLE, estado: 'inactivo' as const };
+      coreClientService.patchResponsableEstado.mockResolvedValue(inactivo);
+
+      const responsable = await service.actualizarEstadoResponsable(
+        'responsable-1',
+        body,
+        AUTH,
+        'corr-1',
+      );
+
+      expect(responsable).toBe(inactivo);
+      expect(coreClientService.patchResponsableEstado).toHaveBeenCalledWith(
+        'responsable-1',
         {
           ...body,
           correlationId: 'corr-1',

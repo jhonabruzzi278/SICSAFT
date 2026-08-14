@@ -32,3 +32,53 @@ export const actualizarContratoSchema = z.object({
   estado: z.enum(['vigente', 'suspendido', 'vencido', 'cancelado']),
 });
 export type ActualizarContratoBody = z.infer<typeof actualizarContratoSchema>;
+
+// RF-05 (Fase 5) — lo que WEB manda a CIS para POST /admin/areas/ubicaciones/responsables. Mismo
+// criterio que altaActivoSchema: operadorId/rolesPorOrganizacion los resuelve CIS, nunca el body.
+export const altaAreaSchema = z.object({
+  organizacionId: z.string().min(1),
+  codigo: z.string().min(1),
+  nombre: z.string().min(1),
+  dependencia: z.string().min(1).optional(),
+  centroCosto: z.string().min(1).optional(),
+});
+export type AltaAreaBody = z.infer<typeof altaAreaSchema>;
+
+export const areasQuerySchema = z.object({ organizacionId: z.string().min(1) });
+export type AreasQuery = z.infer<typeof areasQuerySchema>;
+
+export const altaUbicacionSchema = z.object({
+  organizacionId: z.string().min(1),
+  sedeId: z.string().min(1),
+  edificio: z.string().min(1).optional(),
+  piso: z.string().min(1).optional(),
+  areaId: z.string().min(1).optional(),
+  oficina: z.string().min(1).optional(),
+  dependencia: z.string().min(1).optional(),
+});
+export type AltaUbicacionBody = z.infer<typeof altaUbicacionSchema>;
+
+export const ubicacionesQuerySchema = z.object({ sedeId: z.string().min(1) });
+export type UbicacionesQuery = z.infer<typeof ubicacionesQuerySchema>;
+
+export const altaResponsableSchema = z.object({
+  organizacionId: z.string().min(1),
+  identificacion: z.string().min(1),
+  nombre: z.string().min(1),
+  cargo: z.string().min(1).optional(),
+  areaId: z.string().min(1),
+  correo: z.string().email().optional(),
+  telefono: z.string().min(1).optional(),
+});
+export type AltaResponsableBody = z.infer<typeof altaResponsableSchema>;
+
+export const responsablesQuerySchema = z.object({ areaId: z.string().min(1) });
+export type ResponsablesQuery = z.infer<typeof responsablesQuerySchema>;
+
+export const actualizarEstadoResponsableSchema = z.object({
+  organizacionId: z.string().min(1),
+  estado: z.enum(['activo', 'inactivo']),
+});
+export type ActualizarEstadoResponsableBody = z.infer<
+  typeof actualizarEstadoResponsableSchema
+>;

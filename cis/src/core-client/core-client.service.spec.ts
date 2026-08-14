@@ -687,6 +687,209 @@ describe('CoreClientService', () => {
     });
   });
 
+  describe('Area (RF-05)', () => {
+    const area = {
+      id: 'area-1',
+      organizacionId: 'duoc-uc',
+      codigo: 'BIB',
+      nombre: 'Biblioteca',
+      dependencia: null,
+      centroCosto: null,
+      responsableId: null,
+      ubicacionPrincipalId: null,
+    };
+    const postAreaRequest = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+      codigo: 'BIB',
+      nombre: 'Biblioteca',
+    };
+
+    it('getAreas llama a GET {baseUrl}/areas con organizacionId', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse([area]));
+
+      await service.getAreas('duoc-uc', 'corr-1');
+
+      expect(axiosGet).toHaveBeenCalledWith('http://core:3001/areas', {
+        params: { organizacionId: 'duoc-uc' },
+        headers: {
+          'x-internal-service-token': 'secreto-compartido',
+          'x-correlation-id': 'corr-1',
+        },
+      });
+    });
+
+    it('postArea llama a POST {baseUrl}/areas y devuelve el area creada', async () => {
+      axiosPost.mockResolvedValue(buildAxiosResponse(area));
+
+      await expect(
+        service.postArea(postAreaRequest, 'corr-1'),
+      ).resolves.toEqual(area);
+      expect(axiosPost).toHaveBeenCalledWith(
+        'http://core:3001/areas',
+        postAreaRequest,
+        expect.anything(),
+      );
+    });
+
+    it('postArea propaga un 403 de CORE como ForbiddenException', async () => {
+      axiosPost.mockRejectedValue(buildAxiosError(403, { message: 'sin rol' }));
+
+      await expect(
+        service.postArea(postAreaRequest, 'corr-1'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('Ubicacion (RF-05)', () => {
+    const ubicacion = {
+      id: 'ubicacion-1',
+      sedeId: 'melipilla',
+      edificio: null,
+      piso: null,
+      areaId: null,
+      oficina: null,
+      dependencia: null,
+    };
+    const postUbicacionRequest = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+      sedeId: 'melipilla',
+    };
+
+    it('getUbicaciones llama a GET {baseUrl}/ubicaciones con sedeId', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse([ubicacion]));
+
+      await service.getUbicaciones('melipilla', 'corr-1');
+
+      expect(axiosGet).toHaveBeenCalledWith('http://core:3001/ubicaciones', {
+        params: { sedeId: 'melipilla' },
+        headers: {
+          'x-internal-service-token': 'secreto-compartido',
+          'x-correlation-id': 'corr-1',
+        },
+      });
+    });
+
+    it('postUbicacion llama a POST {baseUrl}/ubicaciones y devuelve la ubicacion creada', async () => {
+      axiosPost.mockResolvedValue(buildAxiosResponse(ubicacion));
+
+      await expect(
+        service.postUbicacion(postUbicacionRequest, 'corr-1'),
+      ).resolves.toEqual(ubicacion);
+    });
+
+    it('postUbicacion propaga un 400 de CORE como BadRequestException', async () => {
+      axiosPost.mockRejectedValue(
+        buildAxiosError(400, { message: "sedeId 'x' inexistente" }),
+      );
+
+      await expect(
+        service.postUbicacion(postUbicacionRequest, 'corr-1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('Responsable (RF-05)', () => {
+    const responsable = {
+      id: 'responsable-1',
+      identificacion: '11.111.111-1',
+      nombre: 'Ana Soto',
+      cargo: null,
+      areaId: 'area-1',
+      correo: null,
+      telefono: null,
+      estado: 'activo',
+    };
+    const postResponsableRequest = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+      identificacion: '11.111.111-1',
+      nombre: 'Ana Soto',
+      areaId: 'area-1',
+    };
+
+    it('getResponsables llama a GET {baseUrl}/responsables con areaId', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse([responsable]));
+
+      await service.getResponsables('area-1', 'corr-1');
+
+      expect(axiosGet).toHaveBeenCalledWith('http://core:3001/responsables', {
+        params: { areaId: 'area-1' },
+        headers: {
+          'x-internal-service-token': 'secreto-compartido',
+          'x-correlation-id': 'corr-1',
+        },
+      });
+    });
+
+    it('postResponsable llama a POST {baseUrl}/responsables y devuelve el responsable creado', async () => {
+      axiosPost.mockResolvedValue(buildAxiosResponse(responsable));
+
+      await expect(
+        service.postResponsable(postResponsableRequest, 'corr-1'),
+      ).resolves.toEqual(responsable);
+    });
+
+    it('postResponsable propaga un 409 de CORE como ConflictException', async () => {
+      axiosPost.mockRejectedValue(
+        buildAxiosError(409, { message: 'identificacion duplicada' }),
+      );
+
+      await expect(
+        service.postResponsable(postResponsableRequest, 'corr-1'),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('patchResponsableEstado llama a PATCH {baseUrl}/responsables/:id/estado y devuelve el responsable actualizado', async () => {
+      const inactivo = { ...responsable, estado: 'inactivo' };
+      axiosPatch.mockResolvedValue(buildAxiosResponse(inactivo));
+
+      const patchRequest = {
+        correlationId: 'corr-1',
+        operadorId: 'op-admin',
+        organizacionId: 'duoc-uc',
+        rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        estado: 'inactivo' as const,
+      };
+
+      await expect(
+        service.patchResponsableEstado('responsable-1', patchRequest, 'corr-1'),
+      ).resolves.toEqual(inactivo);
+      expect(axiosPatch).toHaveBeenCalledWith(
+        'http://core:3001/responsables/responsable-1/estado',
+        patchRequest,
+        expect.anything(),
+      );
+    });
+
+    it('patchResponsableEstado propaga un 404 de CORE como NotFoundException', async () => {
+      axiosPatch.mockRejectedValue(
+        buildAxiosError(404, { message: "No existe el responsable 'x'" }),
+      );
+
+      await expect(
+        service.patchResponsableEstado(
+          'no-existe',
+          {
+            correlationId: 'corr-1',
+            operadorId: 'op-admin',
+            organizacionId: 'duoc-uc',
+            rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+            estado: 'inactivo',
+          },
+          'corr-1',
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('circuit breaker', () => {
     it('cuando el circuito esta abierto, lanza 502 sin llamar a axios', async () => {
       const breakerAbierto = {

@@ -148,6 +148,90 @@ const auditoriaEntradaSchema = z.object({
 export type AuditoriaEntradaResult = z.infer<typeof auditoriaEntradaSchema>;
 export const auditoriaResponseSchema = z.array(auditoriaEntradaSchema);
 
+// RF-05 (Fase 5, WEB) — contrato de Area/Ubicacion/Responsable de CORE (DOC-005 §2/§3).
+export const areaResponseSchema = z.object({
+  id: z.string(),
+  organizacionId: z.string(),
+  codigo: z.string(),
+  nombre: z.string(),
+  dependencia: z.string().nullable(),
+  centroCosto: z.string().nullable(),
+  responsableId: z.string().nullable(),
+  ubicacionPrincipalId: z.string().nullable(),
+});
+export type AreaResult = z.infer<typeof areaResponseSchema>;
+export const areasResponseSchema = z.array(areaResponseSchema);
+
+export interface PostAreaRequest {
+  correlationId: string;
+  operadorId: string;
+  organizacionId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
+  codigo: string;
+  nombre: string;
+  dependencia?: string;
+  centroCosto?: string;
+}
+
+export const ubicacionResponseSchema = z.object({
+  id: z.string(),
+  sedeId: z.string(),
+  edificio: z.string().nullable(),
+  piso: z.string().nullable(),
+  areaId: z.string().nullable(),
+  oficina: z.string().nullable(),
+  dependencia: z.string().nullable(),
+});
+export type UbicacionResult = z.infer<typeof ubicacionResponseSchema>;
+export const ubicacionesResponseSchema = z.array(ubicacionResponseSchema);
+
+export interface PostUbicacionRequest {
+  correlationId: string;
+  operadorId: string;
+  organizacionId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
+  sedeId: string;
+  edificio?: string;
+  piso?: string;
+  areaId?: string;
+  oficina?: string;
+  dependencia?: string;
+}
+
+export const responsableResponseSchema = z.object({
+  id: z.string(),
+  identificacion: z.string(),
+  nombre: z.string(),
+  cargo: z.string().nullable(),
+  areaId: z.string(),
+  correo: z.string().nullable(),
+  telefono: z.string().nullable(),
+  estado: z.enum(['activo', 'inactivo']),
+});
+export type ResponsableResult = z.infer<typeof responsableResponseSchema>;
+export const responsablesResponseSchema = z.array(responsableResponseSchema);
+
+export interface PostResponsableRequest {
+  correlationId: string;
+  operadorId: string;
+  organizacionId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
+  identificacion: string;
+  nombre: string;
+  cargo?: string;
+  areaId: string;
+  correo?: string;
+  telefono?: string;
+}
+
+export interface PatchResponsableEstadoRequest {
+  correlationId: string;
+  operadorId: string;
+  organizacionId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
+  estado: 'activo' | 'inactivo';
+}
+
 export const activoResponseSchema = z.object({
   id: z.string(),
   codigoPatrimonial: z.string(),

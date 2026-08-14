@@ -12,13 +12,20 @@ import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 import type {
   ActivoResult,
+  AreaResult,
   AuditoriaEntradaResult,
   ContratoResult,
+  ResponsableResult,
+  UbicacionResult,
 } from '../core-client/core-client.types';
 import type {
   ActualizarContratoBody,
+  ActualizarEstadoResponsableBody,
   AltaActivoBody,
+  AltaAreaBody,
   AltaContratoBody,
+  AltaResponsableBody,
+  AltaUbicacionBody,
 } from './administrador.schemas';
 
 const CORRELATION_ID = 'correlation-test';
@@ -65,6 +72,13 @@ describe('AdministradorController', () => {
             altaContrato: jest.fn(),
             actualizarEstadoContrato: jest.fn(),
             getAuditoria: jest.fn(),
+            getAreas: jest.fn(),
+            altaArea: jest.fn(),
+            getUbicaciones: jest.fn(),
+            altaUbicacion: jest.fn(),
+            getResponsables: jest.fn(),
+            altaResponsable: jest.fn(),
+            actualizarEstadoResponsable: jest.fn(),
           },
         },
       ],
@@ -190,6 +204,152 @@ describe('AdministradorController', () => {
       'contrato-1',
       body,
       auth,
+      CORRELATION_ID,
+    );
+  });
+
+  const AREA: AreaResult = {
+    id: 'area-1',
+    organizacionId: 'duoc-uc',
+    codigo: 'BIB',
+    nombre: 'Biblioteca',
+    dependencia: null,
+    centroCosto: null,
+    responsableId: null,
+    ubicacionPrincipalId: null,
+  };
+
+  const UBICACION: UbicacionResult = {
+    id: 'ubicacion-1',
+    sedeId: 'melipilla',
+    edificio: null,
+    piso: null,
+    areaId: null,
+    oficina: null,
+    dependencia: null,
+  };
+
+  const RESPONSABLE: ResponsableResult = {
+    id: 'responsable-1',
+    identificacion: '11.111.111-1',
+    nombre: 'Ana Soto',
+    cargo: null,
+    areaId: 'area-1',
+    correo: null,
+    telefono: null,
+    estado: 'activo',
+  };
+
+  const AUTH: ZitadelAuthContext = {
+    operadorId: 'op-1',
+    accessToken: 'zitadel-token',
+    expiresAt: '2026-08-12T10:15:00.000Z',
+    rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+  };
+
+  it('getAreas delega en el service con organizacionId y el correlationId', async () => {
+    service.getAreas.mockResolvedValue([AREA]);
+    const request = { correlationId: CORRELATION_ID } as RequestWithCorrelationId;
+
+    await expect(
+      controller.getAreas({ organizacionId: 'duoc-uc' }, request),
+    ).resolves.toEqual([AREA]);
+    expect(service.getAreas).toHaveBeenCalledWith('duoc-uc', CORRELATION_ID);
+  });
+
+  it('altaArea delega en el service con el body, el auth del guard y el correlationId', async () => {
+    service.altaArea.mockResolvedValue(AREA);
+    const body: AltaAreaBody = {
+      organizacionId: 'duoc-uc',
+      codigo: 'BIB',
+      nombre: 'Biblioteca',
+    };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(controller.altaArea(body, request)).resolves.toBe(AREA);
+    expect(service.altaArea).toHaveBeenCalledWith(body, AUTH, CORRELATION_ID);
+  });
+
+  it('getUbicaciones delega en el service con sedeId y el correlationId', async () => {
+    service.getUbicaciones.mockResolvedValue([UBICACION]);
+    const request = { correlationId: CORRELATION_ID } as RequestWithCorrelationId;
+
+    await expect(
+      controller.getUbicaciones({ sedeId: 'melipilla' }, request),
+    ).resolves.toEqual([UBICACION]);
+    expect(service.getUbicaciones).toHaveBeenCalledWith(
+      'melipilla',
+      CORRELATION_ID,
+    );
+  });
+
+  it('altaUbicacion delega en el service con el body, el auth del guard y el correlationId', async () => {
+    service.altaUbicacion.mockResolvedValue(UBICACION);
+    const body: AltaUbicacionBody = {
+      organizacionId: 'duoc-uc',
+      sedeId: 'melipilla',
+    };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(controller.altaUbicacion(body, request)).resolves.toBe(
+      UBICACION,
+    );
+    expect(service.altaUbicacion).toHaveBeenCalledWith(
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  it('getResponsables delega en el service con areaId y el correlationId', async () => {
+    service.getResponsables.mockResolvedValue([RESPONSABLE]);
+    const request = { correlationId: CORRELATION_ID } as RequestWithCorrelationId;
+
+    await expect(
+      controller.getResponsables({ areaId: 'area-1' }, request),
+    ).resolves.toEqual([RESPONSABLE]);
+    expect(service.getResponsables).toHaveBeenCalledWith(
+      'area-1',
+      CORRELATION_ID,
+    );
+  });
+
+  it('altaResponsable delega en el service con el body, el auth del guard y el correlationId', async () => {
+    service.altaResponsable.mockResolvedValue(RESPONSABLE);
+    const body: AltaResponsableBody = {
+      organizacionId: 'duoc-uc',
+      identificacion: '11.111.111-1',
+      nombre: 'Ana Soto',
+      areaId: 'area-1',
+    };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(controller.altaResponsable(body, request)).resolves.toBe(
+      RESPONSABLE,
+    );
+    expect(service.altaResponsable).toHaveBeenCalledWith(
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  it('actualizarEstadoResponsable delega en el service con el id, el body, el auth del guard y el correlationId', async () => {
+    const inactivo = { ...RESPONSABLE, estado: 'inactivo' as const };
+    service.actualizarEstadoResponsable.mockResolvedValue(inactivo);
+    const body: ActualizarEstadoResponsableBody = {
+      organizacionId: 'duoc-uc',
+      estado: 'inactivo',
+    };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(
+      controller.actualizarEstadoResponsable('responsable-1', body, request),
+    ).resolves.toBe(inactivo);
+    expect(service.actualizarEstadoResponsable).toHaveBeenCalledWith(
+      'responsable-1',
+      body,
+      AUTH,
       CORRELATION_ID,
     );
   });
