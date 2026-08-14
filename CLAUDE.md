@@ -77,6 +77,9 @@ Fase 2). Estructura estándar:
 
 - `main` protegida — nunca push directo, siempre PR con CI en verde (ver
   [`devops/README.md`](devops/README.md) § Rama `main`).
+- Nunca commitear directo a `main` — todo cambio, incluido este archivo, se hace en una rama
+  propia y se mergea vía PR.
+- No borrar ramas, ni siquiera después de mergear el PR — ni localmente ni en el remoto.
 - Mensajes de commit: `<tipo>: <descripción>` (`feat`, `fix`, `refactor`, `docs`, `test`,
   `chore`, `perf`, `ci`), en español, describiendo el *por qué* más que el *qué*.
 - Commits agrupados por tema: si un cambio de sesión mezcla más de un tema (ej. "corregir docs
