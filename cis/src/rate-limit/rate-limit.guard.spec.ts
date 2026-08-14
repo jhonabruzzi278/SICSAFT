@@ -17,7 +17,7 @@ describe('RateLimitGuard', () => {
     operadorId: 'op-1',
     accessToken: 'token',
     expiresAt: '2026-08-12T10:15:00.000Z',
-    roles: [],
+    rolesPorOrganizacion: {},
   };
   let redis: jest.Mocked<Pick<Redis, 'eval' | 'pttl'>>;
   let guard: RateLimitGuard;

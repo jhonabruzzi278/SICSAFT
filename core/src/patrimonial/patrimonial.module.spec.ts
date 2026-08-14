@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PatrimonialModule } from './patrimonial.module';
 import { CatalogoController } from './catalogo.controller';
+import { EscrituraActivoService } from './escritura-activo.service';
 import { ServiceTokenModule } from '../common/auth/service-token.module';
 import { DatabaseModule } from '../database/database.module';
 
@@ -29,6 +30,9 @@ describe('PatrimonialModule', () => {
     }).compile();
 
     expect(module.get(CatalogoController)).toBeInstanceOf(CatalogoController);
+    expect(module.get(EscrituraActivoService)).toBeInstanceOf(
+      EscrituraActivoService,
+    );
 
     await module.close();
   });

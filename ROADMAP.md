@@ -237,7 +237,7 @@ entitlements, opcional) y la brecha de cobertura de payload-shape en los mocks M
 en la práctica (no solo en código) — login real, catálogo real, inventario persistido en la Base
 Patrimonial vía CIS→CORE. Todo lo anterior a esto es infraestructura.
 
-## Fase 4 — Administrador Patrimonial y camino de escritura oficial 🟡 en diseño
+## Fase 4 — Administrador Patrimonial y camino de escritura oficial 🟡 en curso
 
 **Por qué acá y no antes**: es el rol que Tomo III §1.4 define como único autorizado a modificar
 oficialmente la Base Patrimonial, y hoy no existe en ningún sistema
@@ -252,25 +252,33 @@ definida en DOC-005 §4, contrato de la importación masiva (idempotente por fil
 la escritura de `Contrato` con su evento `contrato.actualizado`.
 
 **Qué se construye**
-1. Rol `administrador-patrimonial` en Zitadel + claim de rol validado en CIS y **autorizado en
+1. ✅ Rol `administrador-patrimonial` en Zitadel + claim de rol validado en CIS y **autorizado en
    CORE** (WAF §3: el CORE no confía en un scope que no validó CIS, pero tampoco delega la
-   autorización de escritura).
+   autorización de escritura). El claim se transporta como `rolesPorOrganizacion:
+   Record<organizacionId, string[]>`, no una lista plana — una versión inicial de esto aplanaba
+   el claim y perdía el contexto de organización, lo que permitía a un admin de la Organización A
+   escribir sobre activos de la Organización B (hallazgo real de revisión de seguridad, corregido
+   antes de cerrar el incremento; ver DOC-012 §3).
 2. Primer alcance real de **Gestión de Permisos** (Tomo IV §2.14): las 8 acciones con mínimo
    privilegio, y separación explícita de que APP QR/WEB/RFID no pueden escribir la base aunque el
    usuario sea admin (matriz de WAF §11).
-3. Extensión del Motor Patrimonial a alta, baja, reincorporación y cambio de responsable — resto
-   del ciclo de vida de Tomo III §4.15.
+3. ✅ Extensión del Motor Patrimonial a alta, baja, reincorporación y cambio de responsable —
+   resto del ciclo de vida de Tomo III §4.15. `ActivoRepository` cruza `organizacionId` contra la
+   organización real del activo objetivo (404 si no coincide) como defensa en profundidad además
+   del chequeo de rol — verificado con unit + e2e reales contra Postgres
+   (`core/test/activo-escritura.e2e-spec.ts`, incluye el caso cross-organización).
 4. **Importación de base contable** como operación de este rol: carga masiva (CSV/Excel) con
    validación por Motor de Reglas, idempotente, que nunca elimina historial (Tomo III §1.4
    Entrada 5). Precursor manual y honesto del conector automático (Fase 7).
 5. Escritura de `Contrato` (hoy la tabla solo se lee) y evento `contrato.actualizado` que
    invalida la caché del CIS.
 6. ✅ **DOC-012** (detalle de implementación de seguridad) — falta actualizar WAF §11 marcando la
-   entrada como implementada cuando el código esté listo.
+   entrada como implementada cuando el código esté listo (items 2, 4 y 5 pendientes).
 
-**Done**: usuario sin el rol recibe 403 en toda escritura oficial (test e2e); toda escritura
-queda en Auditoría con usuario/IP/operación/resultado; importar dos veces el mismo archivo no
-duplica ni borra nada; `seguridad/README.md` y `ARQUITECTURA-WAF.md` §11 actualizados.
+**Done**: usuario sin el rol recibe 403 en toda escritura oficial ✅ (test e2e, items 1 y 3);
+toda escritura queda en Auditoría con usuario/IP/operación/resultado ✅; importar dos veces el
+mismo archivo no duplica ni borra nada ⬜ (item 4, pendiente); `seguridad/README.md` y
+`ARQUITECTURA-WAF.md` §11 actualizados ⬜ (pendiente hasta que items 2/4/5 también estén listos).
 
 ## Fase 5 — Portal WEB mínimo 🟡 en diseño
 
@@ -403,7 +411,7 @@ Fase 0 (migraciones + correlationId + OIDC real) ✅
   └─ Fase 1 (DOC-005 mínimo) ✅
        └─ Fase 2 (CORE MVP: 4 motores + DOC-006) ✅
             └─ Fase 3 (CIS real + APP QR TASK-007) ✅ verificado real de punta a punta 2026-08-13
-                 ├─ Fase 4 (Administrador Patrimonial + escritura oficial) — diseño ✅ (DOC-012), código pendiente
+                 ├─ Fase 4 (Administrador Patrimonial + escritura oficial) — rol+Motor Patrimonial ✅, importación+Contrato pendiente
                  │    ├─ Fase 5 (WEB mínimo) — diseño ✅, código pendiente
                  │    └─ Fase 7 (CON-CONTABILIDAD)   [pieza nueva]
                  └─ Fase 6 (CIP primer dashboard)

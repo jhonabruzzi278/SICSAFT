@@ -22,10 +22,15 @@ export interface ZitadelAuthContext {
   // el CIS no emite un token propio (ver ADR-002: "el CIS, no el token" valida, no reemplaza).
   accessToken: string;
   expiresAt: string;
-  // Roles de Proyecto que Zitadel firmo (vacio si el claim no viene — la mayoria de los requests
-  // no lo necesitan). CIS solo certifica que Zitadel firmo el rol, nunca decide autorizacion con
-  // esto — esa decision es de CORE (DOC-012 §3, WAF §3 cero confianza entre niveles).
-  roles: string[];
+  // Roles de Proyecto que Zitadel firmo, invertido de {rol: {orgId: orgName}} a
+  // {orgId: [rol, ...]} (vacio si el claim no viene — la mayoria de los requests no lo
+  // necesitan). El rol es de Proyecto pero asignado por organizacion (DOC-012 §2) — perder ese
+  // contexto y exponer solo una lista plana de nombres de rol le habria permitido a un
+  // administrador-patrimonial de la Organizacion A escribir sobre activos de la Organizacion B
+  // (hallazgo real de la revision de seguridad de este mismo incremento). CIS solo certifica que
+  // Zitadel firmo el rol en esa organizacion, nunca decide autorizacion con esto — esa decision
+  // es de CORE (DOC-012 §3, WAF §3 cero confianza entre niveles).
+  rolesPorOrganizacion: Record<string, string[]>;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -69,17 +74,34 @@ export class ZitadelAuthGuard implements CanActivate {
       operadorId: payload.sub,
       accessToken: token,
       expiresAt: new Date(payload.exp * 1000).toISOString(),
-      roles: this.extractRoles(payload),
+      rolesPorOrganizacion: this.extractRolesPorOrganizacion(payload),
     };
     return true;
   }
 
-  private extractRoles(payload: JWTPayload): string[] {
+  // Invierte { "<rol>": { "<organizacionId>": "<nombreOrg>" } } a
+  // { "<organizacionId>": ["<rol>", ...] } — la forma que necesita el chequeo de autorizacion en
+  // CORE (verificarRolAdministradorPatrimonial, DOC-012 §3), que siempre valida contra la
+  // organizacion del recurso objetivo, nunca solo "¿tiene el rol en algun lado?".
+  private extractRolesPorOrganizacion(
+    payload: JWTPayload,
+  ): Record<string, string[]> {
     const claim = payload[ZITADEL_PROJECT_ROLES_CLAIM];
     if (!claim || typeof claim !== 'object') {
-      return [];
+      return {};
     }
-    return Object.keys(claim);
+    const resultado: Record<string, string[]> = {};
+    for (const [rol, organizaciones] of Object.entries(
+      claim as Record<string, unknown>,
+    )) {
+      if (!organizaciones || typeof organizaciones !== 'object') {
+        continue;
+      }
+      for (const organizacionId of Object.keys(organizaciones)) {
+        (resultado[organizacionId] ??= []).push(rol);
+      }
+    }
+    return resultado;
   }
 
   private extractBearerToken(header: string | undefined): string {

@@ -86,19 +86,19 @@ describe('ZitadelAuthGuard', () => {
     expect(Number.isNaN(Date.parse(request.auth?.expiresAt ?? ''))).toBe(false);
   });
 
-  it('expone roles vacio cuando el token no trae el claim de roles de proyecto', async () => {
+  it('expone rolesPorOrganizacion vacio cuando el token no trae el claim de roles de proyecto', async () => {
     const token = await signToken({ subject: 'op-1' });
     const context = buildContext(`Bearer ${token}`);
 
     await guard.canActivate(context);
 
-    const request = context
-      .switchToHttp()
-      .getRequest<{ auth?: { roles: string[] } }>();
-    expect(request.auth?.roles).toEqual([]);
+    const request = context.switchToHttp().getRequest<{
+      auth?: { rolesPorOrganizacion: Record<string, string[]> };
+    }>();
+    expect(request.auth?.rolesPorOrganizacion).toEqual({});
   });
 
-  it('expone los roles del claim urn:zitadel:iam:org:project:roles cuando esta presente', async () => {
+  it('invierte el claim urn:zitadel:iam:org:project:roles a organizacionId -> roles[]', async () => {
     const token = await signToken({
       subject: 'op-1',
       rolesClaim: { 'administrador-patrimonial': { 'org-1': 'DUOC UC' } },
@@ -107,10 +107,32 @@ describe('ZitadelAuthGuard', () => {
 
     await guard.canActivate(context);
 
-    const request = context
-      .switchToHttp()
-      .getRequest<{ auth?: { roles: string[] } }>();
-    expect(request.auth?.roles).toEqual(['administrador-patrimonial']);
+    const request = context.switchToHttp().getRequest<{
+      auth?: { rolesPorOrganizacion: Record<string, string[]> };
+    }>();
+    expect(request.auth?.rolesPorOrganizacion).toEqual({
+      'org-1': ['administrador-patrimonial'],
+    });
+  });
+
+  it('un mismo rol en varias organizaciones queda en cada organizacionId por separado', async () => {
+    const token = await signToken({
+      subject: 'op-1',
+      rolesClaim: {
+        'administrador-patrimonial': { 'org-1': 'DUOC UC', 'org-2': 'INACAP' },
+      },
+    });
+    const context = buildContext(`Bearer ${token}`);
+
+    await guard.canActivate(context);
+
+    const request = context.switchToHttp().getRequest<{
+      auth?: { rolesPorOrganizacion: Record<string, string[]> };
+    }>();
+    expect(request.auth?.rolesPorOrganizacion).toEqual({
+      'org-1': ['administrador-patrimonial'],
+      'org-2': ['administrador-patrimonial'],
+    });
   });
 
   it('lanza 401 si falta el header Authorization', async () => {

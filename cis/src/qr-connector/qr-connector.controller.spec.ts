@@ -74,7 +74,7 @@ describe('QrConnectorController', () => {
       operadorId: 'op-1',
       accessToken: 'zitadel-token',
       expiresAt: '2026-08-12T10:15:00.000Z',
-      roles: [],
+      rolesPorOrganizacion: {},
     };
     const request = buildAuthenticatedRequest(auth);
 

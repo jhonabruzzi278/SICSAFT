@@ -1,4 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { Pool } from 'pg';
 import { PG_POOL } from '../database/database.constants';
 import type {
@@ -7,7 +14,17 @@ import type {
   CatalogoFiltro,
   CatalogoPagina,
   EstadoActivo,
+  NuevoActivoInput,
 } from './activo.types';
+
+// Mismos codigos SQLSTATE que inventarios.service.ts (sin paquete compartido entre modulos de
+// este mismo desplegable para algo tan chico, ver criterio ya aplicado ahi).
+const FOREIGN_KEY_VIOLATION = '23503';
+const UNIQUE_VIOLATION = '23505';
+
+function esErrorPg(error: unknown): error is { code: string } {
+  return typeof error === 'object' && error !== null && 'code' in error;
+}
 
 const SELECT_ACTIVO_SQL = `
   SELECT
@@ -17,6 +34,7 @@ const SELECT_ACTIVO_SQL = `
     a.organizacion_id AS "organizacionId",
     a.area_id AS "areaId",
     a.ubicacion_id AS "ubicacionId",
+    a.responsable_id AS "responsableId",
     a.estado,
     c.tipo,
     c.familia,
@@ -34,6 +52,7 @@ interface ActivoRow {
   organizacionId: string;
   areaId: string | null;
   ubicacionId: string | null;
+  responsableId: string | null;
   estado: EstadoActivo;
   tipo: string;
   familia: string;
@@ -131,6 +150,117 @@ export class ActivoRepository {
     };
   }
 
+  // DOC-012 §5 — busca por id (no por codigoQr como findByCodigoQr, ese es el camino de lectura
+  // de APP QR). Usado por las 4 operaciones de escritura oficial para resolver 404 vs 400 antes
+  // de decidir la transicion.
+  async findById(id: string): Promise<Activo | null> {
+    const result = await this.pool.query<ActivoRow>(
+      `${SELECT_ACTIVO_SQL} WHERE a.id = $1`,
+      [id],
+    );
+    const row = result.rows[0];
+    return row ? this.toActivo(row) : null;
+  }
+
+  // DOC-012 §5 — POST /activos (alta, [*] -> activo). `estado`/`fecha_alta` los decide CORE, no
+  // el cliente (CIS no confia datos crudos, mismo criterio que el resto del ecosistema).
+  async crear(input: NuevoActivoInput): Promise<Activo> {
+    const id = randomUUID();
+    try {
+      await this.pool.query(
+        `INSERT INTO activos
+           (id, codigo_patrimonial, codigo_qr, organizacion_id, catalogo_id, serie, estado,
+            responsable_id, area_id, ubicacion_id, valor_patrimonial, fecha_alta)
+         VALUES ($1, $2, $3, $4, $5, $6, 'activo', $7, $8, $9, $10, CURRENT_DATE)`,
+        [
+          id,
+          input.codigoPatrimonial,
+          input.codigoQr,
+          input.organizacionId,
+          input.catalogoId,
+          input.serie ?? null,
+          input.responsableId ?? null,
+          input.areaId ?? null,
+          input.ubicacionId ?? null,
+          input.valorPatrimonial ?? null,
+        ],
+      );
+    } catch (error: unknown) {
+      if (esErrorPg(error) && error.code === UNIQUE_VIOLATION) {
+        throw new ConflictException({
+          message: 'Ya existe un activo con ese codigoPatrimonial o codigoQr',
+        });
+      }
+      if (esErrorPg(error) && error.code === FOREIGN_KEY_VIOLATION) {
+        throw new BadRequestException({
+          message:
+            'organizacionId, catalogoId, responsableId, areaId o ubicacionId inexistente',
+        });
+      }
+      throw error;
+    }
+    // Recien insertado con este mismo id — nunca null.
+    return (await this.findById(id)) as Activo;
+  }
+
+  // DOC-012 §5 — POST /activos/:id/baja (-> dado_de_baja) y POST /activos/:id/reincorporacion
+  // (extraviado -> activo) comparten esta transicion generica: valida el estado de origen antes
+  // de escribir (400 si no coincide, 404 si el activo no existe) en vez de dejar que un UPDATE
+  // sin match silencioso pase desapercibido. `organizacionId` es la organizacion donde
+  // OrquestadorService ya verifico el rol (verificarRolAdministradorPatrimonial) — se vuelve a
+  // cruzar acá contra la organizacion REAL del activo (404 si no coincide, nunca 403, para no
+  // confirmarle a un caller sin ese rol que el activo si existe en otra organizacion). Defensa en
+  // profundidad: sin esto, un rol valido en la Organizacion A alcanzaba para escribir sobre
+  // activos de la Organizacion B con solo conocer su id (hallazgo real de revision de seguridad).
+  async cambiarEstado(
+    id: string,
+    organizacionId: string,
+    estadosOrigenPermitidos: EstadoActivo[],
+    estadoNuevo: EstadoActivo,
+  ): Promise<Activo> {
+    const actual = await this.findById(id);
+    if (!actual || actual.organizacionId !== organizacionId) {
+      throw new NotFoundException({ message: `No existe el activo '${id}'` });
+    }
+    if (!estadosOrigenPermitidos.includes(actual.estado)) {
+      throw new BadRequestException({
+        message: `El activo esta en estado '${actual.estado}', se esperaba uno de: ${estadosOrigenPermitidos.join(', ')}`,
+      });
+    }
+    await this.pool.query('UPDATE activos SET estado = $1 WHERE id = $2', [
+      estadoNuevo,
+      id,
+    ]);
+    return { ...actual, estado: estadoNuevo };
+  }
+
+  // DOC-012 §5 — PATCH /activos/:id/responsable. Sin cambio de estado (a diferencia de
+  // cambiarEstado arriba). Mismo cruce por organizacionId que cambiarEstado, mismo motivo.
+  async actualizarResponsable(
+    id: string,
+    organizacionId: string,
+    responsableId: string,
+  ): Promise<Activo> {
+    const actual = await this.findById(id);
+    if (!actual || actual.organizacionId !== organizacionId) {
+      throw new NotFoundException({ message: `No existe el activo '${id}'` });
+    }
+    try {
+      await this.pool.query(
+        'UPDATE activos SET responsable_id = $1 WHERE id = $2',
+        [responsableId, id],
+      );
+    } catch (error: unknown) {
+      if (esErrorPg(error) && error.code === FOREIGN_KEY_VIOLATION) {
+        throw new BadRequestException({
+          message: `responsableId '${responsableId}' inexistente`,
+        });
+      }
+      throw error;
+    }
+    return { ...actual, responsableId };
+  }
+
   private toActivo(row: ActivoRow): Activo {
     return {
       id: row.id,
@@ -139,6 +269,7 @@ export class ActivoRepository {
       organizacionId: row.organizacionId,
       areaId: row.areaId,
       ubicacionId: row.ubicacionId,
+      responsableId: row.responsableId,
       estado: row.estado,
       catalogo: {
         tipo: row.tipo,

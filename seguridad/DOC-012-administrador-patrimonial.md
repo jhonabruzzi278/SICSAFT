@@ -1,6 +1,9 @@
 # DOC-012: Administrador Patrimonial — rol y camino de escritura oficial
 
-> **Estado**: diseño, sin código todavía (Fase 4 del [ROADMAP.md](../ROADMAP.md)). Formaliza el
+> **Estado**: ítems 1 (rol + claim + autorización) y 3 (Motor Patrimonial: alta/baja/
+> reincorporación/cambio de responsable) implementados y verificados (unit + e2e contra Postgres
+> real); ítems 4 (importación masiva) y 5 (escritura de `Contrato`) siguen sin código (Fase 4 del
+> [ROADMAP.md](../ROADMAP.md)). Formaliza el
 > rol que Tomo III §1.4 Entrada 4 define como único autorizado a modificar oficialmente la Base
 > Patrimonial — hoy no existe en ningún sistema del ecosistema
 > ([`seguridad/README.md`](README.md) § "Rol pendiente"). Complementa
@@ -47,22 +50,34 @@ Ninguno de los dos niveles delega ciegamente en el otro:
 1. **CIS solo transporta un hecho ya firmado, no decide autorización.** `ZitadelAuthGuard`
    (`cis/src/common/auth/zitadel-auth.guard.ts`) ya valida firma/`iss`/`aud`/vencimiento del JWT
    — se extiende para además leer `urn:zitadel:iam:org:project:roles` y exponer
-   `request.auth.roles: string[]` (vacío si el claim no viene, nunca un error — la mayoría de los
-   requests de CIS no lo necesitan). CIS **nunca** decide "este usuario puede escribir" — solo
-   certifica "Zitadel firmó un token que dice que este usuario tiene este rol".
-2. **CORE es quien autoriza cada escritura, siempre.** Los endpoints nuevos de escritura oficial
-   (§5–§7) exigen un `AdministradorPatrimonialGuard` propio en CORE que revisa `roles` en el
-   payload de la request — el mismo patrón de "cero confianza" que ya existe entre CIS→CORE hoy
-   (`ServiceTokenGuard`, secreto compartido `CORE_SERVICE_TOKEN`): el secreto de servicio prueba
-   que la llamada viene de una instancia legítima de CIS, pero **no** prueba que el usuario final
-   tenga el rol — eso lo re-verifica CORE contra el campo `roles` que CIS reenvía, nunca confiando
-   en que "si CIS dejó pasar el request, ya está autorizado". Esto es exactamente lo que pide el
-   ROADMAP: *"CORE no confía en un scope que no validó CIS, pero tampoco delega la autorización de
+   `request.auth.rolesPorOrganizacion: Record<string, string[]>` (invertido de
+   `{rol: {orgId: orgName}}` a `{orgId: [rol, ...]}`; vacío si el claim no viene, nunca un error —
+   la mayoría de los requests de CIS no lo necesitan). **No** es una lista plana de nombres de rol
+   — una implementación inicial de esto aplanó el claim a `string[]` y perdió el contexto de
+   organización, lo que le habría permitido a un `administrador-patrimonial` de la Organización A
+   escribir sobre activos de la Organización B (hallazgo real de revisión de seguridad, corregido
+   antes de cerrar este incremento). CIS **nunca** decide "este usuario puede escribir" — solo
+   certifica "Zitadel firmó un token que dice que este usuario tiene este rol en esta
+   organización".
+2. **CORE es quien autoriza cada escritura, siempre, contra la organización del recurso.** Los
+   endpoints de escritura oficial (§5) invocan `verificarRolAdministradorPatrimonial(
+   rolesPorOrganizacion, organizacionId)` — nunca "¿tiene el rol en algún lado?", siempre "¿tiene
+   el rol en *esta* organización?" — el mismo patrón de "cero confianza" que ya existe entre
+   CIS→CORE hoy (`ServiceTokenGuard`, secreto compartido `CORE_SERVICE_TOKEN`): el secreto de
+   servicio prueba que la llamada viene de una instancia legítima de CIS, pero **no** prueba que
+   el usuario final tenga el rol — eso lo re-verifica CORE. Como defensa en profundidad adicional,
+   `ActivoRepository.cambiarEstado`/`actualizarResponsable` vuelven a cruzar `organizacionId`
+   contra la organización **real** del activo objetivo (no solo la que declaró el payload) antes
+   de escribir, devolviendo 404 — no 403 — si no coincide, para no confirmarle a un caller sin ese
+   rol que el activo existe en otra organización. Esto es exactamente lo que pide el ROADMAP:
+   *"CORE no confía en un scope que no validó CIS, pero tampoco delega la autorización de
    escritura"*.
-3. **CIS reenvía `operadorId` + `roles` en el body de cada llamada de escritura oficial hacia
-   CORE** (mismo mecanismo que ya usa para `organizacionId`/`areaId` en `POST /inventarios`, ver
-   DOC-006 §3) — no hay canal nuevo que inventar, es el mismo canal service-to-service ya
-   protegido por `CORE_SERVICE_TOKEN`.
+3. **CIS reenvía `operadorId` + `organizacionId` + `rolesPorOrganizacion` en el body de cada
+   llamada de escritura oficial hacia CORE** (mismo mecanismo que ya usa para
+   `organizacionId`/`areaId` en `POST /inventarios`, ver DOC-006 §3) — no hay canal nuevo que
+   inventar, es el mismo canal service-to-service ya protegido por `CORE_SERVICE_TOKEN`.
+   `organizacionId` es obligatorio en **todos** los endpoints de escritura oficial, no solo en
+   alta — es contra qué organización se verifica el rol.
 
 ## 4. Gestión de Permisos — las 8 acciones (Tomo IV §2.14)
 
@@ -85,7 +100,7 @@ hoy (lectura + registro de inventarios) — ningún cambio de esta fase les da a
 oficial, ni siquiera si el operador tuviera el rol (el rol solo existe/se valida en los endpoints
 nuevos, las 4 rutas de DOC-006 no lo piden ni lo aceptan).
 
-## 5. Extensión del Motor Patrimonial — ciclo de vida de `Activo`
+## 5. Extensión del Motor Patrimonial — ciclo de vida de `Activo` ✅ implementado
 
 Implementa la máquina de estados **ya documentada** en DOC-005 §4 "Estados de `Activo`"
 (`stateDiagram-v2`):
@@ -140,16 +155,21 @@ Hoy `ContratoRepository` (`core/src/entitlements/`) solo lee. Se agregan:
   caché de entitlements en CIS, que la Fase 3 dejó explícitamente diferida como opcional). Por
   ahora el evento queda en Auditoría/Eventos como registro, no como disparador activo.
 
-## 8. Auditoría de escritura (sin código nuevo — ya implementado)
+## 8. Auditoría de escritura ✅ implementado (sin mecanismo nuevo — reusa el de Fase 2)
 
 El Motor de Auditoría (Fase 2, `core/src/auditoria/`) ya audita "éxito o rechazo" (Tomo IV
 §2.15–16) a través del Orquestador Central — los endpoints nuevos de este documento se registran
 en el mismo Orquestador, no necesitan un mecanismo de auditoría propio. Lo único nuevo es que un
-**403 por falta de rol** también debe pasar por el Orquestador antes de cortar la request (para
-que quede en `auditoria` con `resultado: 'rechazado'`), no cortar directo en el guard sin auditar
-— diferencia de implementación a tener en cuenta al escribir `AdministradorPatrimonialGuard`
-(otros guards de CORE, como `ServiceTokenGuard`, sí cortan antes del Orquestador porque autentican
-la conexión CIS↔CORE, no una acción de negocio auditable por usuario).
+**403 por falta de rol** también pasa por el Orquestador antes de cortar la request (para que
+quede en `auditoria` con `resultado: 'rechazado:403'`), no corta directo en un guard sin auditar
+— por eso `verificarRolAdministradorPatrimonial` (`core/src/common/auth/administrador-patrimonial.guard.ts`)
+es una función pura invocada dentro de `OrquestadorService.ejecutarEscrituraOficial`, no un
+`@UseGuards()` a nivel de controller — un guard corta la request antes de que el Orquestador
+pueda envolver el error en su try/catch, así que auditar ahí requería mover el chequeo adentro
+(`AdministradorPatrimonialGuard`, la clase `CanActivate`, sigue existiendo y probada, pero no se
+usa en ningún endpoint real — queda reservada para un futuro caso donde cortar antes del
+Orquestador sea aceptable). `ServiceTokenGuard` sí sigue cortando antes del Orquestador porque
+autentica la conexión CIS↔CORE, no una acción de negocio auditable por usuario.
 
 ## 9. Fuera de alcance de esta fase (documentado, no implementado)
 
@@ -164,13 +184,17 @@ la conexión CIS↔CORE, no una acción de negocio auditable por usuario).
 
 ## 10. Done (criterio de aceptación, igual al del ROADMAP)
 
-- Usuario autenticado sin el rol `administrador-patrimonial` recibe 403 en **cada** endpoint de
-  este documento — cubierto por test e2e por endpoint.
-- Toda escritura (éxito o rechazo) queda en `auditoria` con usuario/operación/resultado.
-- Importar el mismo archivo dos veces no duplica ni borra ningún activo (test e2e con el mismo
-  payload dos veces).
-- `seguridad/README.md` deja de listar el rol como "pendiente" y `ARQUITECTURA-WAF.md` §11
-  actualiza la fila de Administrador Patrimonial de "no implementado" a implementado.
+- ✅ Usuario autenticado sin el rol `administrador-patrimonial` **en la organización del
+  recurso** recibe 403 en los 4 endpoints de §5 (`POST /activos`, `/baja`, `/reincorporacion`,
+  `PATCH /responsable`) — cubierto por test e2e por endpoint contra Postgres real
+  (`core/test/activo-escritura.e2e-spec.ts`), incluido el caso de rol válido en otra organización.
+- ✅ Toda escritura de §5 (éxito o rechazo) queda en `auditoria` con usuario/operación/resultado.
+- ⬜ Importar el mismo archivo dos veces no duplica ni borra ningún activo (§4, sin implementar
+  todavía).
+- ⬜ `seguridad/README.md` y `ARQUITECTURA-WAF.md` §11 — actualizar cuando §4/§6 (importación
+  masiva, escritura de `Contrato`) también estén implementados; la fila de Administrador
+  Patrimonial no debería marcarse "implementada" hasta que el rol pueda hacer las 3 operaciones
+  que Tomo III §1.4 le exige (incorporar activos, importar bases contables, actualizar estados).
 
 ## 11. Documentos relacionados
 
