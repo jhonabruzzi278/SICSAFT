@@ -11,8 +11,10 @@ import type {
   UbicacionResult,
 } from '../core-client/core-client.types';
 import type {
+  ActualizarAreaBody,
   ActualizarContratoBody,
   ActualizarEstadoResponsableBody,
+  ActualizarUbicacionBody,
   AltaActivoBody,
   AltaAreaBody,
   AltaContratoBody,
@@ -58,8 +60,10 @@ function buildService(mapping: Record<string, string>) {
     getAuditoria: jest.fn(),
     getAreas: jest.fn(),
     postArea: jest.fn(),
+    patchArea: jest.fn(),
     getUbicaciones: jest.fn(),
     postUbicacion: jest.fn(),
+    patchUbicacion: jest.fn(),
     getResponsables: jest.fn(),
     postResponsable: jest.fn(),
     patchResponsableEstado: jest.fn(),
@@ -303,6 +307,40 @@ describe('AdministradorService', () => {
     });
   });
 
+  describe('actualizarArea', () => {
+    const body: ActualizarAreaBody = {
+      organizacionId: 'duoc-uc',
+      nombre: 'Biblioteca Central',
+    };
+
+    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
+      const { service, coreClientService } = buildService({
+        '386029528616558597': 'duoc-uc',
+      });
+      const actualizada = { ...AREA, nombre: 'Biblioteca Central' };
+      coreClientService.patchArea.mockResolvedValue(actualizada);
+
+      const area = await service.actualizarArea(
+        'area-1',
+        body,
+        AUTH,
+        'corr-1',
+      );
+
+      expect(area).toBe(actualizada);
+      expect(coreClientService.patchArea).toHaveBeenCalledWith(
+        'area-1',
+        {
+          ...body,
+          correlationId: 'corr-1',
+          operadorId: 'op-1',
+          rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        },
+        'corr-1',
+      );
+    });
+  });
+
   describe('getUbicaciones', () => {
     it('delega en CoreClientService.getUbicaciones sin traducir roles (lectura abierta)', async () => {
       const { service, coreClientService } = buildService({});
@@ -334,6 +372,40 @@ describe('AdministradorService', () => {
 
       expect(ubicacion).toBe(UBICACION);
       expect(coreClientService.postUbicacion).toHaveBeenCalledWith(
+        {
+          ...body,
+          correlationId: 'corr-1',
+          operadorId: 'op-1',
+          rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        },
+        'corr-1',
+      );
+    });
+  });
+
+  describe('actualizarUbicacion', () => {
+    const body: ActualizarUbicacionBody = {
+      organizacionId: 'duoc-uc',
+      edificio: 'Torre A',
+    };
+
+    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
+      const { service, coreClientService } = buildService({
+        '386029528616558597': 'duoc-uc',
+      });
+      const actualizada = { ...UBICACION, edificio: 'Torre A' };
+      coreClientService.patchUbicacion.mockResolvedValue(actualizada);
+
+      const ubicacion = await service.actualizarUbicacion(
+        'ubicacion-1',
+        body,
+        AUTH,
+        'corr-1',
+      );
+
+      expect(ubicacion).toBe(actualizada);
+      expect(coreClientService.patchUbicacion).toHaveBeenCalledWith(
+        'ubicacion-1',
         {
           ...body,
           correlationId: 'corr-1',

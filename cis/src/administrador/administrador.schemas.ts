@@ -44,6 +44,31 @@ export const altaAreaSchema = z.object({
 });
 export type AltaAreaBody = z.infer<typeof altaAreaSchema>;
 
+// RF-05 (cierra el gap "ABM completo") — lo que WEB manda a CIS para PATCH /admin/areas/:id.
+// Todos opcionales, `.refine` exige al menos uno (mismo criterio que CORE, estructura.schemas.ts
+// — se repite acá porque CIS valida su propio contrato con WEB, distinto del contrato con CORE).
+export const actualizarAreaSchema = z
+  .object({
+    organizacionId: z.string().min(1),
+    codigo: z.string().min(1).optional(),
+    nombre: z.string().min(1).optional(),
+    dependencia: z.string().min(1).optional(),
+    centroCosto: z.string().min(1).optional(),
+    responsableId: z.string().min(1).optional(),
+    ubicacionPrincipalId: z.string().min(1).optional(),
+  })
+  .refine(
+    (data) =>
+      data.codigo !== undefined ||
+      data.nombre !== undefined ||
+      data.dependencia !== undefined ||
+      data.centroCosto !== undefined ||
+      data.responsableId !== undefined ||
+      data.ubicacionPrincipalId !== undefined,
+    { message: 'Debe incluir al menos un campo a actualizar' },
+  );
+export type ActualizarAreaBody = z.infer<typeof actualizarAreaSchema>;
+
 export const areasQuerySchema = z.object({ organizacionId: z.string().min(1) });
 export type AreasQuery = z.infer<typeof areasQuerySchema>;
 
@@ -57,6 +82,28 @@ export const altaUbicacionSchema = z.object({
   dependencia: z.string().min(1).optional(),
 });
 export type AltaUbicacionBody = z.infer<typeof altaUbicacionSchema>;
+
+// RF-05 (cierra el gap "ABM completo") — PATCH /admin/ubicaciones/:id. Sin `sedeId` (mover de
+// sede es un traslado, fuera de alcance — mismo criterio que CORE).
+export const actualizarUbicacionSchema = z
+  .object({
+    organizacionId: z.string().min(1),
+    edificio: z.string().min(1).optional(),
+    piso: z.string().min(1).optional(),
+    areaId: z.string().min(1).optional(),
+    oficina: z.string().min(1).optional(),
+    dependencia: z.string().min(1).optional(),
+  })
+  .refine(
+    (data) =>
+      data.edificio !== undefined ||
+      data.piso !== undefined ||
+      data.areaId !== undefined ||
+      data.oficina !== undefined ||
+      data.dependencia !== undefined,
+    { message: 'Debe incluir al menos un campo a actualizar' },
+  );
+export type ActualizarUbicacionBody = z.infer<typeof actualizarUbicacionSchema>;
 
 export const ubicacionesQuerySchema = z.object({ sedeId: z.string().min(1) });
 export type UbicacionesQuery = z.infer<typeof ubicacionesQuerySchema>;

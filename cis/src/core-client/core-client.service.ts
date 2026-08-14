@@ -42,8 +42,10 @@ import {
   type ContratoResult,
   type EntitlementsResult,
   type InventarioEstadoResult,
+  type PatchAreaRequest,
   type PatchContratoRequest,
   type PatchResponsableEstadoRequest,
+  type PatchUbicacionRequest,
   type PostActivoRequest,
   type PostAreaRequest,
   type PostContratoRequest,
@@ -247,6 +249,23 @@ export class CoreClientService {
     return this.parse(areaResponseSchema, data, 'areas');
   }
 
+  // RF-05 (cierra el gap "ABM completo") — PATCH /areas/:id. Sin 404 en passthroughStatuses:
+  // callCore ya lo traduce a NotFoundException antes de mirar la lista (mismo criterio que
+  // patchContrato/patchResponsableEstado).
+  async patchArea(
+    areaId: string,
+    request: PatchAreaRequest,
+    correlationId: string,
+  ): Promise<AreaResult> {
+    const data = await this.patch(
+      `/areas/${encodeURIComponent(areaId)}`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 409] },
+    );
+    return this.parse(areaResponseSchema, data, 'areas');
+  }
+
   async getUbicaciones(
     sedeId: string,
     correlationId: string,
@@ -262,6 +281,21 @@ export class CoreClientService {
     const data = await this.post('/ubicaciones', request, correlationId, {
       passthroughStatuses: [400, 403, 409],
     });
+    return this.parse(ubicacionResponseSchema, data, 'ubicaciones');
+  }
+
+  // RF-05 (cierra el gap "ABM completo") — PATCH /ubicaciones/:id.
+  async patchUbicacion(
+    ubicacionId: string,
+    request: PatchUbicacionRequest,
+    correlationId: string,
+  ): Promise<UbicacionResult> {
+    const data = await this.patch(
+      `/ubicaciones/${encodeURIComponent(ubicacionId)}`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 409] },
+    );
     return this.parse(ubicacionResponseSchema, data, 'ubicaciones');
   }
 

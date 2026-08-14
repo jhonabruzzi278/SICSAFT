@@ -775,6 +775,47 @@ describe('CoreClientService', () => {
         service.postArea(postAreaRequest, 'corr-1'),
       ).rejects.toThrow(ForbiddenException);
     });
+
+    it('patchArea llama a PATCH {baseUrl}/areas/:id y devuelve el area actualizada', async () => {
+      const actualizada = { ...area, nombre: 'Biblioteca Central' };
+      axiosPatch.mockResolvedValue(buildAxiosResponse(actualizada));
+      const patchRequest = {
+        correlationId: 'corr-1',
+        operadorId: 'op-admin',
+        organizacionId: 'duoc-uc',
+        rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        nombre: 'Biblioteca Central',
+      };
+
+      await expect(
+        service.patchArea('area-1', patchRequest, 'corr-1'),
+      ).resolves.toEqual(actualizada);
+      expect(axiosPatch).toHaveBeenCalledWith(
+        'http://core:3001/areas/area-1',
+        patchRequest,
+        expect.anything(),
+      );
+    });
+
+    it('patchArea propaga un 404 de CORE como NotFoundException', async () => {
+      axiosPatch.mockRejectedValue(
+        buildAxiosError(404, { message: "No existe el area 'x'" }),
+      );
+
+      await expect(
+        service.patchArea(
+          'no-existe',
+          {
+            correlationId: 'corr-1',
+            operadorId: 'op-admin',
+            organizacionId: 'duoc-uc',
+            rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+            nombre: 'X',
+          },
+          'corr-1',
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('Ubicacion (RF-05)', () => {
@@ -824,6 +865,47 @@ describe('CoreClientService', () => {
 
       await expect(
         service.postUbicacion(postUbicacionRequest, 'corr-1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('patchUbicacion llama a PATCH {baseUrl}/ubicaciones/:id y devuelve la ubicacion actualizada', async () => {
+      const actualizada = { ...ubicacion, edificio: 'Torre A' };
+      axiosPatch.mockResolvedValue(buildAxiosResponse(actualizada));
+      const patchRequest = {
+        correlationId: 'corr-1',
+        operadorId: 'op-admin',
+        organizacionId: 'duoc-uc',
+        rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        edificio: 'Torre A',
+      };
+
+      await expect(
+        service.patchUbicacion('ubicacion-1', patchRequest, 'corr-1'),
+      ).resolves.toEqual(actualizada);
+      expect(axiosPatch).toHaveBeenCalledWith(
+        'http://core:3001/ubicaciones/ubicacion-1',
+        patchRequest,
+        expect.anything(),
+      );
+    });
+
+    it('patchUbicacion propaga un 400 de CORE como BadRequestException', async () => {
+      axiosPatch.mockRejectedValue(
+        buildAxiosError(400, { message: "areaId 'x' inexistente" }),
+      );
+
+      await expect(
+        service.patchUbicacion(
+          'ubicacion-1',
+          {
+            correlationId: 'corr-1',
+            operadorId: 'op-admin',
+            organizacionId: 'duoc-uc',
+            rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+            areaId: 'no-existe',
+          },
+          'corr-1',
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });

@@ -182,6 +182,20 @@ export interface PostAreaRequest {
   centroCosto?: string;
 }
 
+// RF-05 (cierra el gap "ABM completo") — PATCH /areas/:id.
+export interface PatchAreaRequest {
+  correlationId: string;
+  operadorId: string;
+  organizacionId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
+  codigo?: string;
+  nombre?: string;
+  dependencia?: string;
+  centroCosto?: string;
+  responsableId?: string;
+  ubicacionPrincipalId?: string;
+}
+
 export const ubicacionResponseSchema = z.object({
   id: z.string(),
   sedeId: z.string(),
@@ -200,6 +214,20 @@ export interface PostUbicacionRequest {
   organizacionId: string;
   rolesPorOrganizacion: Record<string, string[]>;
   sedeId: string;
+  edificio?: string;
+  piso?: string;
+  areaId?: string;
+  oficina?: string;
+  dependencia?: string;
+}
+
+// RF-05 (cierra el gap "ABM completo") — PATCH /ubicaciones/:id. Sin sedeId (mover de sede es un
+// traslado, fuera de alcance).
+export interface PatchUbicacionRequest {
+  correlationId: string;
+  operadorId: string;
+  organizacionId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
   edificio?: string;
   piso?: string;
   areaId?: string;

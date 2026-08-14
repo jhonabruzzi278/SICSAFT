@@ -19,8 +19,10 @@ import type {
   UbicacionResult,
 } from '../core-client/core-client.types';
 import type {
+  ActualizarAreaBody,
   ActualizarContratoBody,
   ActualizarEstadoResponsableBody,
+  ActualizarUbicacionBody,
   AltaActivoBody,
   AltaAreaBody,
   AltaContratoBody,
@@ -74,8 +76,10 @@ describe('AdministradorController', () => {
             getAuditoria: jest.fn(),
             getAreas: jest.fn(),
             altaArea: jest.fn(),
+            actualizarArea: jest.fn(),
             getUbicaciones: jest.fn(),
             altaUbicacion: jest.fn(),
+            actualizarUbicacion: jest.fn(),
             getResponsables: jest.fn(),
             altaResponsable: jest.fn(),
             actualizarEstadoResponsable: jest.fn(),
@@ -273,6 +277,26 @@ describe('AdministradorController', () => {
     expect(service.altaArea).toHaveBeenCalledWith(body, AUTH, CORRELATION_ID);
   });
 
+  it('actualizarArea delega en el service con el id, el body, el auth del guard y el correlationId', async () => {
+    const actualizada = { ...AREA, nombre: 'Biblioteca Central' };
+    service.actualizarArea.mockResolvedValue(actualizada);
+    const body: ActualizarAreaBody = {
+      organizacionId: 'duoc-uc',
+      nombre: 'Biblioteca Central',
+    };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(
+      controller.actualizarArea('area-1', body, request),
+    ).resolves.toBe(actualizada);
+    expect(service.actualizarArea).toHaveBeenCalledWith(
+      'area-1',
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
   it('getUbicaciones delega en el service con sedeId y el correlationId', async () => {
     service.getUbicaciones.mockResolvedValue([UBICACION]);
     const request = { correlationId: CORRELATION_ID } as RequestWithCorrelationId;
@@ -298,6 +322,26 @@ describe('AdministradorController', () => {
       UBICACION,
     );
     expect(service.altaUbicacion).toHaveBeenCalledWith(
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  it('actualizarUbicacion delega en el service con el id, el body, el auth del guard y el correlationId', async () => {
+    const actualizada = { ...UBICACION, edificio: 'Torre A' };
+    service.actualizarUbicacion.mockResolvedValue(actualizada);
+    const body: ActualizarUbicacionBody = {
+      organizacionId: 'duoc-uc',
+      edificio: 'Torre A',
+    };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(
+      controller.actualizarUbicacion('ubicacion-1', body, request),
+    ).resolves.toBe(actualizada);
+    expect(service.actualizarUbicacion).toHaveBeenCalledWith(
+      'ubicacion-1',
       body,
       AUTH,
       CORRELATION_ID,

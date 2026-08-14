@@ -18,8 +18,10 @@ import type {
   AltaContratoBody,
   AltaResponsableBody,
   AltaUbicacionBody,
+  ActualizarAreaBody,
   ActualizarContratoBody,
   ActualizarEstadoResponsableBody,
+  ActualizarUbicacionBody,
 } from './administrador.schemas';
 
 // DOC-012 §5 (Fase 4/5) — puente WEB->CIS->CORE para la escritura oficial de Activo. WEB nunca
@@ -130,6 +132,27 @@ export class AdministradorService {
     );
   }
 
+  // RF-05 (cierra el gap "ABM completo") — PATCH /admin/areas/:id.
+  actualizarArea(
+    areaId: string,
+    body: ActualizarAreaBody,
+    auth: ZitadelAuthContext,
+    correlationId: string,
+  ): Promise<AreaResult> {
+    return this.coreClientService.patchArea(
+      areaId,
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion: this.traducirAOrganizacionesCore(
+          auth.rolesPorOrganizacion,
+        ),
+      },
+      correlationId,
+    );
+  }
+
   getUbicaciones(
     sedeId: string,
     correlationId: string,
@@ -143,6 +166,27 @@ export class AdministradorService {
     correlationId: string,
   ): Promise<UbicacionResult> {
     return this.coreClientService.postUbicacion(
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion: this.traducirAOrganizacionesCore(
+          auth.rolesPorOrganizacion,
+        ),
+      },
+      correlationId,
+    );
+  }
+
+  // RF-05 (cierra el gap "ABM completo") — PATCH /admin/ubicaciones/:id.
+  actualizarUbicacion(
+    ubicacionId: string,
+    body: ActualizarUbicacionBody,
+    auth: ZitadelAuthContext,
+    correlationId: string,
+  ): Promise<UbicacionResult> {
+    return this.coreClientService.patchUbicacion(
+      ubicacionId,
       {
         ...body,
         correlationId,

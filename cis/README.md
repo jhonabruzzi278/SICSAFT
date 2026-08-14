@@ -111,12 +111,16 @@ los filtros `usuario`/`operacion`/`fechaDesde`/`fechaHasta` como query params (p
 CORE, que hace la búsqueda parcial/rango real — CIS no reinterpreta ninguno). Sin filtro por
 organización — la tabla `auditoria` de CORE no tiene ese dato todavía (ver `../core/README.md`).
 
-**Área/Ubicación/Responsable (2026-08-14, RF-05)**: `AdministradorController`/
-`AdministradorService` suman `GET/POST /admin/areas`, `GET/POST /admin/ubicaciones`,
-`GET/POST /admin/responsables` y `PATCH /admin/responsables/:id/estado` — mismo puente que
-Activos/Contratos (traduce `rolesPorOrganizacion` de Zitadel a `organizacionId` de CORE antes de
-las escrituras, lecturas abiertas). Último módulo del MVP de WEB en tener endpoint — ver
-`../core/README.md` § `src/estructura/` para el detalle de la escritura oficial nueva en CORE.
+**Área/Ubicación/Responsable (2026-08-14, RF-05 — cerrado el mismo día)**:
+`AdministradorController`/`AdministradorService` suman `GET/POST/PATCH /admin/areas`,
+`GET/POST/PATCH /admin/ubicaciones`, `GET/POST /admin/responsables` y
+`PATCH /admin/responsables/:id/estado` — mismo puente que Activos/Contratos (traduce
+`rolesPorOrganizacion` de Zitadel a `organizacionId` de CORE antes de las escrituras, lecturas
+abiertas). Los dos `PATCH` de edición (Área/Ubicación) validan con `@Body(new
+ZodValidationPipe(...))` por parámetro, no `@UsePipes()` de método — mismo cuidado preventivo que
+ya se aplicó a Inventarios tras el hallazgo real en `actualizarEstadoContrato`. Último módulo del
+MVP de WEB en tener endpoint — ver `../core/README.md` § `src/estructura/` para el detalle de la
+escritura oficial nueva en CORE.
 
 ## Desarrollo local
 ```bash

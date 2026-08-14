@@ -20,8 +20,10 @@ import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 import { AdministradorService } from './administrador.service';
 import {
+  actualizarAreaSchema,
   actualizarContratoSchema,
   actualizarEstadoResponsableSchema,
+  actualizarUbicacionSchema,
   altaActivoSchema,
   altaAreaSchema,
   altaContratoSchema,
@@ -33,8 +35,10 @@ import {
   ubicacionesQuerySchema,
 } from './administrador.schemas';
 import type {
+  ActualizarAreaBody,
   ActualizarContratoBody,
   ActualizarEstadoResponsableBody,
+  ActualizarUbicacionBody,
   AltaActivoBody,
   AltaAreaBody,
   AltaContratoBody,
@@ -150,6 +154,22 @@ export class AdministradorController {
     );
   }
 
+  // RF-05 (cierra el gap "ABM completo") — pipe por parametro (mismo motivo que
+  // actualizarEstadoContrato de mas arriba).
+  @Patch('areas/:id')
+  actualizarArea(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(actualizarAreaSchema)) body: ActualizarAreaBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<AreaResult> {
+    return this.administradorService.actualizarArea(
+      id,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
   @Get('ubicaciones')
   getUbicaciones(
     @Query(new ZodValidationPipe(ubicacionesQuerySchema))
@@ -169,6 +189,22 @@ export class AdministradorController {
     @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
   ): Promise<UbicacionResult> {
     return this.administradorService.altaUbicacion(
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // RF-05 (cierra el gap "ABM completo") — pipe por parametro.
+  @Patch('ubicaciones/:id')
+  actualizarUbicacion(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(actualizarUbicacionSchema))
+    body: ActualizarUbicacionBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<UbicacionResult> {
+    return this.administradorService.actualizarUbicacion(
+      id,
       body,
       requireAuthContext(request),
       request.correlationId,

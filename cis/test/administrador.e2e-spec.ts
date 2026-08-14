@@ -110,8 +110,10 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
     getAuditoria: jest.Mock;
     getAreas: jest.Mock;
     postArea: jest.Mock;
+    patchArea: jest.Mock;
     getUbicaciones: jest.Mock;
     postUbicacion: jest.Mock;
+    patchUbicacion: jest.Mock;
     getResponsables: jest.Mock;
     postResponsable: jest.Mock;
     patchResponsableEstado: jest.Mock;
@@ -151,8 +153,14 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
       getAuditoria: jest.fn().mockResolvedValue([AUDITORIA_STUB]),
       getAreas: jest.fn().mockResolvedValue([AREA_STUB]),
       postArea: jest.fn().mockResolvedValue(AREA_STUB),
+      patchArea: jest
+        .fn()
+        .mockResolvedValue({ ...AREA_STUB, nombre: 'Biblioteca Central' }),
       getUbicaciones: jest.fn().mockResolvedValue([UBICACION_STUB]),
       postUbicacion: jest.fn().mockResolvedValue(UBICACION_STUB),
+      patchUbicacion: jest
+        .fn()
+        .mockResolvedValue({ ...UBICACION_STUB, edificio: 'Torre A' }),
       getResponsables: jest.fn().mockResolvedValue([RESPONSABLE_STUB]),
       postResponsable: jest.fn().mockResolvedValue(RESPONSABLE_STUB),
       patchResponsableEstado: jest
@@ -347,6 +355,35 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
     });
   });
 
+  describe('PATCH /admin/areas/:id (cierra RF-05)', () => {
+    it('actualiza el area y la devuelve — no rompe con "Payload inválido" (pipe por parametro desde el vamos)', async () => {
+      const res = await request(app.getHttpServer())
+        .patch('/admin/areas/area-1')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .send({ organizacionId: 'duoc-uc', nombre: 'Biblioteca Central' })
+        .expect(200);
+
+      expect((res.body as AreaResult).nombre).toBe('Biblioteca Central');
+      expect(coreClientService.patchArea).toHaveBeenCalledWith(
+        'area-1',
+        expect.objectContaining({
+          operadorId: 'op-admin',
+          nombre: 'Biblioteca Central',
+          rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        }),
+        expect.any(String),
+      );
+    });
+
+    it('devuelve 400 si el body no trae ningun campo a actualizar', async () => {
+      await request(app.getHttpServer())
+        .patch('/admin/areas/area-1')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .send({ organizacionId: 'duoc-uc' })
+        .expect(400);
+    });
+  });
+
   describe('GET /admin/ubicaciones + POST /admin/ubicaciones (RF-05)', () => {
     it('devuelve las ubicaciones sin exigir el rol de escritura', async () => {
       const res = await request(app.getHttpServer())
@@ -366,6 +403,35 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
         .expect(201);
 
       expect(res.body as UbicacionResult).toEqual(UBICACION_STUB);
+    });
+  });
+
+  describe('PATCH /admin/ubicaciones/:id (cierra RF-05)', () => {
+    it('actualiza la ubicacion y la devuelve', async () => {
+      const res = await request(app.getHttpServer())
+        .patch('/admin/ubicaciones/ubicacion-1')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .send({ organizacionId: 'duoc-uc', edificio: 'Torre A' })
+        .expect(200);
+
+      expect((res.body as UbicacionResult).edificio).toBe('Torre A');
+      expect(coreClientService.patchUbicacion).toHaveBeenCalledWith(
+        'ubicacion-1',
+        expect.objectContaining({
+          operadorId: 'op-admin',
+          edificio: 'Torre A',
+          rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        }),
+        expect.any(String),
+      );
+    });
+
+    it('devuelve 400 si el body no trae ningun campo a actualizar', async () => {
+      await request(app.getHttpServer())
+        .patch('/admin/ubicaciones/ubicacion-1')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .send({ organizacionId: 'duoc-uc' })
+        .expect(400);
     });
   });
 
