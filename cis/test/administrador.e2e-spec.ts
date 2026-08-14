@@ -243,6 +243,19 @@ describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
       expect(res.body).toEqual([AUDITORIA_STUB]);
     });
 
+    it('propaga los filtros como query params a CoreClientService.getAuditoria', async () => {
+      await request(app.getHttpServer())
+        .get('/admin/auditoria')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .query({ usuario: 'op-1', operacion: 'baja' })
+        .expect(200);
+
+      expect(coreClientService.getAuditoria).toHaveBeenCalledWith(
+        { usuario: 'op-1', operacion: 'baja' },
+        expect.any(String),
+      );
+    });
+
     it('devuelve 401 sin Authorization', async () => {
       await request(app.getHttpServer()).get('/admin/auditoria').expect(401);
     });

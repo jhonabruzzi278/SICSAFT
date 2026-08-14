@@ -104,10 +104,12 @@ existía desde Fase 3, pero exigía conocer el `id` de antemano; sin listado no 
 WEB mostrara qué sesiones existen). Aplicado el pipe-por-parámetro desde el vamos (el hallazgo de
 `@UsePipes()` de método de más arriba), sin repetir el bug.
 
-**`GET /admin/auditoria` (2026-08-14, RF-06)**: `AdministradorController`/`AdministradorService`
-suman un puente hacia `GET /auditoria` de CORE (mismo criterio que `getContratos`: lectura
-abierta, no traduce `rolesPorOrganizacion`). Sin filtro por organización — la tabla `auditoria` de
-CORE no tiene ese dato todavía (ver `../core/README.md`).
+**`GET /admin/auditoria` (2026-08-14, RF-06 — filtros agregados el mismo día)**:
+`AdministradorController`/`AdministradorService` suman un puente hacia `GET /auditoria` de CORE
+(mismo criterio que `getContratos`: lectura abierta, no traduce `rolesPorOrganizacion`), incluidos
+los filtros `usuario`/`operacion`/`fechaDesde`/`fechaHasta` como query params (pasan tal cual a
+CORE, que hace la búsqueda parcial/rango real — CIS no reinterpreta ninguno). Sin filtro por
+organización — la tabla `auditoria` de CORE no tiene ese dato todavía (ver `../core/README.md`).
 
 **Área/Ubicación/Responsable (2026-08-14, RF-05)**: `AdministradorController`/
 `AdministradorService` suman `GET/POST /admin/areas`, `GET/POST /admin/ubicaciones`,

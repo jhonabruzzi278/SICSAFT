@@ -4,6 +4,7 @@ import type {
   ActivoResult,
   AreaResult,
   AuditoriaEntradaResult,
+  AuditoriaFiltro,
   ContratoResult,
   ResponsableResult,
   UbicacionResult,
@@ -96,8 +97,11 @@ export class AdministradorService {
   }
 
   // RF-06 (Fase 5) — lectura abierta, mismo criterio que getContratos.
-  getAuditoria(correlationId: string): Promise<AuditoriaEntradaResult[]> {
-    return this.coreClientService.getAuditoria(correlationId);
+  getAuditoria(
+    filtro: AuditoriaFiltro,
+    correlationId: string,
+  ): Promise<AuditoriaEntradaResult[]> {
+    return this.coreClientService.getAuditoria(filtro, correlationId);
   }
 
   // RF-05 (Fase 5) — lectura abierta, mismo criterio que getContratos.

@@ -153,9 +153,15 @@ describe('AdministradorService', () => {
         },
       ];
       coreClientService.getAuditoria.mockResolvedValue(entradas);
+      const filtro = { usuario: 'op-1', operacion: 'baja' };
 
-      await expect(service.getAuditoria('corr-1')).resolves.toEqual(entradas);
-      expect(coreClientService.getAuditoria).toHaveBeenCalledWith('corr-1');
+      await expect(
+        service.getAuditoria(filtro, 'corr-1'),
+      ).resolves.toEqual(entradas);
+      expect(coreClientService.getAuditoria).toHaveBeenCalledWith(
+        filtro,
+        'corr-1',
+      );
     });
   });
 

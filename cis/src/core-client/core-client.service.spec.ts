@@ -666,13 +666,45 @@ describe('CoreClientService', () => {
       observaciones: null,
     };
 
-    it('llama a GET {baseUrl}/auditoria', async () => {
+    it('llama a GET {baseUrl}/auditoria sin filtros', async () => {
       axiosGet.mockResolvedValue(buildAxiosResponse([entrada]));
 
-      await service.getAuditoria('corr-1');
+      await service.getAuditoria({}, 'corr-1');
 
       expect(axiosGet).toHaveBeenCalledWith('http://core:3001/auditoria', {
-        params: undefined,
+        params: {
+          usuario: undefined,
+          operacion: undefined,
+          fechaDesde: undefined,
+          fechaHasta: undefined,
+        },
+        headers: {
+          'x-internal-service-token': 'secreto-compartido',
+          'x-correlation-id': 'corr-1',
+        },
+      });
+    });
+
+    it('llama a GET {baseUrl}/auditoria con los filtros como query params', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse([entrada]));
+
+      await service.getAuditoria(
+        {
+          usuario: 'op-1',
+          operacion: 'baja',
+          fechaDesde: '2026-08-01T00:00:00.000Z',
+          fechaHasta: '2026-08-14T23:59:59.000Z',
+        },
+        'corr-1',
+      );
+
+      expect(axiosGet).toHaveBeenCalledWith('http://core:3001/auditoria', {
+        params: {
+          usuario: 'op-1',
+          operacion: 'baja',
+          fechaDesde: '2026-08-01T00:00:00.000Z',
+          fechaHasta: '2026-08-14T23:59:59.000Z',
+        },
         headers: {
           'x-internal-service-token': 'secreto-compartido',
           'x-correlation-id': 'corr-1',
@@ -683,7 +715,9 @@ describe('CoreClientService', () => {
     it('devuelve las entradas cuando CORE responde una forma valida', async () => {
       axiosGet.mockResolvedValue(buildAxiosResponse([entrada]));
 
-      await expect(service.getAuditoria('corr-1')).resolves.toEqual([entrada]);
+      await expect(service.getAuditoria({}, 'corr-1')).resolves.toEqual([
+        entrada,
+      ]);
     });
   });
 

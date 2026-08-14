@@ -134,7 +134,7 @@ describe('AdministradorController', () => {
     expect(service.getContratos).toHaveBeenCalledWith(CORRELATION_ID);
   });
 
-  it('getAuditoria delega en el service con el correlationId', async () => {
+  it('getAuditoria delega en el service con la query y el correlationId', async () => {
     const entradas: AuditoriaEntradaResult[] = [
       {
         id: 'audit-1',
@@ -151,9 +151,12 @@ describe('AdministradorController', () => {
     const request = {
       correlationId: CORRELATION_ID,
     } as RequestWithCorrelationId;
+    const query = { usuario: 'op-1', operacion: 'baja' };
 
-    await expect(controller.getAuditoria(request)).resolves.toEqual(entradas);
-    expect(service.getAuditoria).toHaveBeenCalledWith(CORRELATION_ID);
+    await expect(
+      controller.getAuditoria(query, request),
+    ).resolves.toEqual(entradas);
+    expect(service.getAuditoria).toHaveBeenCalledWith(query, CORRELATION_ID);
   });
 
   it('altaContrato delega en el service con el body, el auth del guard y el correlationId', async () => {

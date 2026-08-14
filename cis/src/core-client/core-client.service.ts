@@ -37,6 +37,7 @@ import {
   type ActivoResult,
   type AreaResult,
   type AuditoriaEntradaResult,
+  type AuditoriaFiltro,
   type CatalogoResult,
   type ContratoResult,
   type EntitlementsResult,
@@ -209,8 +210,20 @@ export class CoreClientService {
   }
 
   // RF-06 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos.
-  async getAuditoria(correlationId: string): Promise<AuditoriaEntradaResult[]> {
-    const data = await this.get('/auditoria', undefined, correlationId);
+  async getAuditoria(
+    filtro: AuditoriaFiltro,
+    correlationId: string,
+  ): Promise<AuditoriaEntradaResult[]> {
+    const data = await this.get(
+      '/auditoria',
+      {
+        usuario: filtro.usuario,
+        operacion: filtro.operacion,
+        fechaDesde: filtro.fechaDesde,
+        fechaHasta: filtro.fechaHasta,
+      },
+      correlationId,
+    );
     return this.parse(auditoriaResponseSchema, data, 'auditoria');
   }
 

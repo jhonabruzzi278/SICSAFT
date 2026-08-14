@@ -82,3 +82,13 @@ export const actualizarEstadoResponsableSchema = z.object({
 export type ActualizarEstadoResponsableBody = z.infer<
   typeof actualizarEstadoResponsableSchema
 >;
+
+// RF-06 — filtros de GET /admin/auditoria, todos opcionales (cierra el gap: el requisito pedia
+// "filtrable por usuario/fecha/operacion").
+export const auditoriaQuerySchema = z.object({
+  usuario: z.string().min(1).optional(),
+  operacion: z.string().min(1).optional(),
+  fechaDesde: z.string().min(1).optional(),
+  fechaHasta: z.string().min(1).optional(),
+});
+export type AuditoriaQuery = z.infer<typeof auditoriaQuerySchema>;

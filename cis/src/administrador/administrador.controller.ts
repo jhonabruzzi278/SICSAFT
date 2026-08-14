@@ -28,6 +28,7 @@ import {
   altaResponsableSchema,
   altaUbicacionSchema,
   areasQuerySchema,
+  auditoriaQuerySchema,
   responsablesQuerySchema,
   ubicacionesQuerySchema,
 } from './administrador.schemas';
@@ -40,6 +41,7 @@ import type {
   AltaResponsableBody,
   AltaUbicacionBody,
   AreasQuery,
+  AuditoriaQuery,
   ResponsablesQuery,
   UbicacionesQuery,
 } from './administrador.schemas';
@@ -95,12 +97,15 @@ export class AdministradorController {
     );
   }
 
-  // RF-06 (Fase 5) — lectura abierta, mismo criterio que getContratos.
+  // RF-06 (Fase 5) — lectura abierta, mismo criterio que getContratos. Filtros opcionales por
+  // usuario/operacion/fecha (cierra el gap: el requisito pedia "filtrable", el primer incremento
+  // no tenia ningun filtro).
   @Get('auditoria')
   getAuditoria(
+    @Query(new ZodValidationPipe(auditoriaQuerySchema)) query: AuditoriaQuery,
     @Req() request: RequestWithCorrelationId,
   ): Promise<AuditoriaEntradaResult[]> {
-    return this.administradorService.getAuditoria(request.correlationId);
+    return this.administradorService.getAuditoria(query, request.correlationId);
   }
 
   // Pipe a nivel de parámetro (no @UsePipes de método) — @UsePipes valida TODOS los parámetros

@@ -148,6 +148,15 @@ const auditoriaEntradaSchema = z.object({
 export type AuditoriaEntradaResult = z.infer<typeof auditoriaEntradaSchema>;
 export const auditoriaResponseSchema = z.array(auditoriaEntradaSchema);
 
+// RF-06 — filtros de GET /auditoria (cierra el gap: el requisito pedia "filtrable por
+// usuario/fecha/operacion"). Mismo shape que core/src/auditoria/auditoria.types.ts AuditoriaFiltro.
+export interface AuditoriaFiltro {
+  usuario?: string;
+  operacion?: string;
+  fechaDesde?: string;
+  fechaHasta?: string;
+}
+
 // RF-05 (Fase 5, WEB) — contrato de Area/Ubicacion/Responsable de CORE (DOC-005 §2/§3).
 export const areaResponseSchema = z.object({
   id: z.string(),
