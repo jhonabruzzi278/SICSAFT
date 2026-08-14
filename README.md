@@ -22,10 +22,10 @@ Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
 | Código | Carpeta | Sistema | Estado |
 |---|---|---|---|
 | SYS-01 | [`app-qr-sicsaft/`](app-qr-sicsaft) | APP QR SICSAFT (captura vía QR) | 🟢 En desarrollo activo — ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` |
-| SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🟢 Conector QR real, proxy delgado hacia CORE (DOC-002/DOC-006), auth real via Zitadel (ADR-002), circuit breaker + reintentos + rate limiting (WAF §4), `deviceId` enforced y CORS para APP QR |
-| SYS-03 | [`core/`](core) | SICSAFT CORE | 🟡 Orquestador + 4 motores (Patrimonial, Reglas, Eventos, Auditoría — Fase 2) sobre Postgres real, `GET /entitlements`/`catalogo`/`inventarios` ya consumidos por CIS — resto de los 9 motores de `core/README.md` sin implementar |
+| SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🟢 Conector QR real, proxy delgado hacia CORE (DOC-002/DOC-006), auth real via Zitadel (ADR-002), circuit breaker + reintentos + rate limiting (WAF §4), `deviceId` enforced, CORS para APP QR/WEB, puente de escritura oficial para Administrador Patrimonial (DOC-012 §5) |
+| SYS-03 | [`core/`](core) | SICSAFT CORE | 🟡 Orquestador + 4 motores (Patrimonial, Reglas, Eventos, Auditoría — Fase 2) + escritura oficial de Activo/Contrato/importación masiva (Fase 4, DOC-012) sobre Postgres real — resto de los 9 motores de `core/README.md` sin implementar |
 | SYS-04 | [`base-patrimonial/`](base-patrimonial) | Base Patrimonial Central | 🟡 Modelo de `Contrato` documentado e implementado en Postgres (DOC-004) — resto de los 11 dominios sin definir |
-| SYS-05 | [`web/`](web) | Portal WEB SICSAFT | 🔲 No iniciado |
+| SYS-05 | [`web/`](web) | Portal WEB SICSAFT | 🟡 En desarrollo — login OIDC/PKCE real + módulos Activos, Contratos e Inventarios, verificados de punta a punta contra Postgres real; solo Áreas/Ubicaciones/Responsables y Auditoría del MVP sin construir |
 | SYS-06 | [`cip/`](cip) | Centro de Inteligencia Patrimonial | 🔲 No iniciado |
 | SYS-07 | [`rfid/`](rfid) | RFID SICSAFT | 🔲 No iniciado (fase tardía) |
 | SYS-08 | [`integraciones/`](integraciones) | Integraciones externas (ERP, RRHH, BI...) | 🔲 No iniciado (fase tardía) |
@@ -98,7 +98,8 @@ Backlog completo y contexto de negocio de APP QR: `app-qr-sicsaft/HANDOFF-APP-QR
    servicio-a-servicio CIS→CORE ya resueltos e implementados. Lo que sigue abierto es que CORE
    tenga motores reales (Patrimonial, Reglas, Eventos...) sobre el resto del dominio de Base
    Patrimonial (DOC-005), que todavía no tiene tabla ni modelo.
-5. `web/` y `cip/` una vez CORE tenga un MVP de inventarios.
+5. `web/` — en desarrollo (login + módulo Activos, ver ROADMAP.md Fase 5); `cip/` sigue sin
+   iniciar, pendiente de que existan inventarios/eventos reales que medir.
 6. `rfid/` e `integraciones/` quedan para fases posteriores.
 7. `devops/` se diseña recién cuando cada sistema tenga su ADR de stack — usa
    [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md) como marco (Trello `OPS-DOC-001`, ya entregado).

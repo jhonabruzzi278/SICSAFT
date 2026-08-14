@@ -38,9 +38,14 @@ Brechas confirmadas en código, no solo declaradas en docs:
    `devops/local/README.md` § "Cliente OIDC real"). Sigue faltando que `app-qr-sicsaft/` haga
    este flujo desde su propio código (TASK-006/007, Fase 3).
 6. **DOC-006 (API CIS↔CORE) no existe**, y es literalmente lo que bloquea TASK-007 de APP QR.
-7. **Administrador Patrimonial** y **CON-CONTABILIDAD**: sin rol, sin endpoint, sin conector — y
-   son las dos únicas entradas que Tomo III §1.4 autoriza a poblar/modificar la Base Oficial. Hoy
-   no hay *ninguna* forma legítima de meter un activo real al sistema.
+7. ~~**Administrador Patrimonial** y **CON-CONTABILIDAD**: sin rol, sin endpoint, sin conector —
+   y son las dos únicas entradas que Tomo III §1.4 autoriza a poblar/modificar la Base Oficial. Hoy
+   no hay *ninguna* forma legítima de meter un activo real al sistema.~~ **Resuelto para
+   Administrador Patrimonial** (Fase 4): rol + los 7 endpoints de escritura oficial (alta/baja/
+   reincorporación/responsable de `Activo`, importación masiva, alta/actualización de `Contrato`)
+   ya existen y están verificados contra Postgres real — ver DOC-012. **CON-CONTABILIDAD sigue sin
+   conector** (Fase 7) — la importación manual del Administrador Patrimonial cubre el 80% del
+   valor mientras tanto.
 8. WEB, CIP, RFID, Integraciones: carpetas placeholder. DevOps: producción sin arrancar.
 
 ## Principio de ordenamiento
@@ -237,7 +242,7 @@ entitlements, opcional) y la brecha de cobertura de payload-shape en los mocks M
 en la práctica (no solo en código) — login real, catálogo real, inventario persistido en la Base
 Patrimonial vía CIS→CORE. Todo lo anterior a esto es infraestructura.
 
-## Fase 4 — Administrador Patrimonial y camino de escritura oficial 🟡 en curso
+## Fase 4 — Administrador Patrimonial y camino de escritura oficial ✅ completa
 
 **Por qué acá y no antes**: es el rol que Tomo III §1.4 define como único autorizado a modificar
 oficialmente la Base Patrimonial, y hoy no existe en ningún sistema
@@ -259,51 +264,94 @@ la escritura de `Contrato` con su evento `contrato.actualizado`.
    el claim y perdía el contexto de organización, lo que permitía a un admin de la Organización A
    escribir sobre activos de la Organización B (hallazgo real de revisión de seguridad, corregido
    antes de cerrar el incremento; ver DOC-012 §3).
-2. Primer alcance real de **Gestión de Permisos** (Tomo IV §2.14): las 8 acciones con mínimo
-   privilegio, y separación explícita de que APP QR/WEB/RFID no pueden escribir la base aunque el
-   usuario sea admin (matriz de WAF §11).
+2. ✅ Primer alcance real de **Gestión de Permisos** (Tomo IV §2.14): las 8 acciones aplicadas a
+   `Activo`/`Contrato` (DOC-012 §4), con separación explícita de que APP QR/WEB/RFID no pueden
+   escribir la base aunque el usuario sea admin (matriz de WAF §11, ya actualizada). Las 4
+   acciones restantes (Autorizar/Exportar/Administrar/Configurar) quedan documentadas como fuera
+   de alcance hasta que WEB (Fase 5) tenga su propio ABM.
 3. ✅ Extensión del Motor Patrimonial a alta, baja, reincorporación y cambio de responsable —
    resto del ciclo de vida de Tomo III §4.15. `ActivoRepository` cruza `organizacionId` contra la
    organización real del activo objetivo (404 si no coincide) como defensa en profundidad además
    del chequeo de rol — verificado con unit + e2e reales contra Postgres
    (`core/test/activo-escritura.e2e-spec.ts`, incluye el caso cross-organización).
-4. **Importación de base contable** como operación de este rol: carga masiva (CSV/Excel) con
-   validación por Motor de Reglas, idempotente, que nunca elimina historial (Tomo III §1.4
-   Entrada 5). Precursor manual y honesto del conector automático (Fase 7).
-5. Escritura de `Contrato` (hoy la tabla solo se lee) y evento `contrato.actualizado` que
-   invalida la caché del CIS.
-6. ✅ **DOC-012** (detalle de implementación de seguridad) — falta actualizar WAF §11 marcando la
-   entrada como implementada cuando el código esté listo (items 2, 4 y 5 pendientes).
+4. ✅ **Importación de base contable** como operación de este rol: `POST /importaciones/contable`,
+   carga masiva idempotente por fila (nunca sobrescribe con contenido distinto, nunca elimina
+   historial — Tomo III §1.4 Entrada 5). Precursor manual y honesto del conector automático (Fase
+   7) — verificado e2e contra Postgres real, incluye el caso de reintento (`ya_importado`) y de
+   conflicto (`core/test/importacion-contable.e2e-spec.ts`).
+5. ✅ Escritura de `Contrato` (`POST /contratos`, `PATCH /contratos/:id`,
+   `core/src/entitlements/contrato-escritura.controller.ts`) y evento `contrato_actualizado` —
+   sin publicación a cola todavía (anotado para Fase 6, sin consumidor real hasta que exista la
+   caché de entitlements en CIS que la Fase 3 dejó diferida). La escritura corre en una
+   transacción real (`pool.connect()`) — un e2e contra Postgres real encontró que sin ella un FK
+   inválido en `contrato_sedes` dejaba un contrato huérfano sin ninguna sede, corregido antes de
+   cerrar el incremento.
+6. ✅ **DOC-012** (detalle de implementación de seguridad) — WAF §11 y `seguridad/README.md`
+   actualizados marcando la entrada como implementada.
 
-**Done**: usuario sin el rol recibe 403 en toda escritura oficial ✅ (test e2e, items 1 y 3);
+**Done**: usuario sin el rol recibe 403 en toda escritura oficial ✅ (test e2e, los 7 endpoints);
 toda escritura queda en Auditoría con usuario/IP/operación/resultado ✅; importar dos veces el
-mismo archivo no duplica ni borra nada ⬜ (item 4, pendiente); `seguridad/README.md` y
-`ARQUITECTURA-WAF.md` §11 actualizados ⬜ (pendiente hasta que items 2/4/5 también estén listos).
+mismo archivo no duplica ni borra nada ✅ (verificado e2e); `seguridad/README.md` y
+`ARQUITECTURA-WAF.md` §11 actualizados ✅.
 
-## Fase 5 — Portal WEB mínimo 🟡 en diseño
+## Fase 5 — Portal WEB mínimo 🟡 en curso
 
 **Por qué acá**: `web/README.md` dice "depende de CORE MVP + CIS real" — ambos existen recién
 después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita exponer.
 
-**Diseño completo, sin código todavía**: metodología AI-DLC en
-[`web/aidlc-docs/`](web/aidlc-docs/00_PROJECT_METADATA.md) — requirements, historias, DOC-013 y
-un mockup visual (hub + Activos + Contratos, paleta `BRAND.md`), diseñado adelantado por pedido
-explícito del usuario en la misma sesión de Fase 2. DOC-013 §3 deja explícito que solo Activos
-(consulta) e Inventarios tienen endpoint real hoy (los de DOC-006) — el resto de la escritura
-(Estructura, Contratos, alta de Activos) depende de que Fase 4 defina sus propios endpoints.
+**Diseño completo**: metodología AI-DLC en [`web/aidlc-docs/`](web/aidlc-docs/00_PROJECT_METADATA.md)
+— requirements, historias, DOC-013 y un mockup visual (hub + Activos + Contratos, paleta
+`BRAND.md`), diseñado adelantado por pedido explícito del usuario en la misma sesión de Fase 2.
 
-**Qué se construye**
-- Vite/React (ADR-001) con OIDC authorization code + PKCE contra Zitadel (`app.sicsaft.cl`).
-- Solo 6 módulos: Activos (consulta **+ alta**, ver "Done" abajo), Inventarios (estado y
-  detalle), Áreas/Ubicaciones/Responsables (ABM del Administrador Patrimonial), Auditoría
-  (lectura), Contratos (ABM), hub post-login que muestra solo módulos habilitados por contrato
-  vigente (ADR-002 § flujo de login). El resto (Dashboard, RFID, Documentos, Reportes,
-  Integraciones, Roles, Configuración) queda para después.
-- Identidad visual desde `BRAND.md`.
-- Dockerfile multi-stage, workflow `web-ci.yml` con path filter, servicio en el compose local.
+**Qué se construyó** (2026-08-14, tres incrementos)
+- ✅ Vite/React (ADR-001, sin shadcn/ui en esta primera versión — ver `web/README.md` §
+  "Decisiones") con OIDC authorization code + PKCE real contra Zitadel — app OIDC propia
+  `web-sicsaft` en el mismo proyecto "CIS", ver `devops/local/README.md` § "Cliente OIDC real
+  (WEB)".
+- ✅ Módulo **Activos** completo (consulta + alta, RF-03/RF-08): `GET /catalogo` reusado tal cual
+  de APP QR (WAF §8) + `POST /admin/activos` nuevo (`cis/src/administrador/`, puente hacia
+  `POST /activos` de CORE, DOC-012 §5).
+- ✅ Módulo **Contratos** completo (consulta + alta + transición de estado, RF-07): primer cliente
+  que escribe la tabla `contratos` (antes solo se leía). Requirió agregar `GET /contratos` en CORE
+  (no existía — solo `GET /entitlements`, sin `id`/`estado`) y extender `AdministradorModule` de
+  CIS con `GET/POST /admin/contratos` + `PATCH /admin/contratos/:id`, puente hacia
+  `POST /contratos`/`PATCH /contratos/:id` de CORE (Fase 4, DOC-012 §7).
+- ✅ Módulo **Inventarios** completo (consulta de sesiones + detalle de escaneos, RF-04, solo
+  lectura — las sesiones se crean desde APP QR, WEB solo las consulta). Requirió agregar
+  `GET /inventarios` (listado por organización) en CORE y CIS — `GET /inventarios/:id/estado`
+  (Fase 2/3) ya existía pero exigía conocer el `id` de antemano, sin forma de listar qué sesiones
+  hay.
+- ✅ Hub (RF-02): lista organizaciones con contrato vigente vía `POST /auth/session`, con tarjetas
+  por módulo implementado (Activos, Contratos, Inventarios).
+- ⬜ Áreas/Ubicaciones/Responsables, Auditoría — sin construir (únicos módulos del MVP que faltan).
+- ⬜ Dockerfile/`web-ci.yml`/servicio en el compose local — sin empezar (se corre con `npm run dev`
+  fuera de Docker, ver `web/README.md` § Desarrollo local).
 
-**Done**: un Administrador Patrimonial puede dar de alta un activo desde WEB y verlo aparecer en
-el catálogo que baja APP QR; e2e Playwright del flujo de login + alta; `web/README.md` y DOC-013.
+**Gaps de arquitectura encontrados y resueltos en este incremento** (los cinco solo aparecieron
+probando el flujo real en el navegador, ninguno lo detectaban los tests unitarios/e2e con mocks):
+1. El claim de rol de Zitadel usa el id de organización **de Zitadel**, no el `organizacionId` de
+   CORE — se agregó un mapeo explícito (`ZITADEL_ORG_ID_MAP`,
+   `cis/src/administrador/organizacion-mapping.config.ts`) para que la escritura oficial funcione
+   con tokens reales (mismo gap que DOC-004 §7, ahora también cerrado para escritura).
+2. CORE no tenía forma de listar contratos con `id`/`estado` (`GET /entitlements` no los expone)
+   — sin esto, WEB no podía saber qué `id` mandarle a `PATCH /contratos/:id`. Se agregó
+   `GET /contratos` en CORE (`core/src/entitlements/contrato.controller.ts`).
+3. CORS de CIS solo permitía `GET`/`POST` — el navegador bloqueaba `PATCH /admin/contratos/:id`
+   en el preflight.
+4. `AdministradorController.actualizarEstadoContrato` usaba `@UsePipes()` a nivel de método, que
+   Nest aplica a todos los parámetros del handler — validaba `@Param('id')` contra un schema de
+   objeto y rompía con "Payload inválido" en cualquier request real. Corregido y cubierto con
+   `cis/test/administrador.e2e-spec.ts` (JWT real firmado, sin mocks del guard); aplicado
+   preventivamente al construir los endpoints de Inventarios (pipes por parámetro desde el vamos).
+5. CORE tampoco tenía forma de listar sesiones de inventario por organización — mismo patrón que
+   el gap 2, resuelto agregando `SesionInventarioRepository.findByOrganizacion`/`findDetalle`.
+
+**Done**: ✅ RF-03/RF-08 (alta de Activo visible en `GET /catalogo`), RF-04 (listado + detalle de
+sesiones de inventario) y RF-07 (alta de Contrato + transición de estado, incluido el invariante
+DOC-004 §4 rechazando sedes ya cubiertas) — verificados real de punta a punta (login real →
+escritura/lectura real → Postgres real → visible en la UI), no solo con mocks. ⬜ e2e Playwright
+del flujo de login + alta — sin escribir todavía. ✅ `web/README.md`, `cis/README.md`,
+`core/README.md` y DOC-013 actualizados.
 
 ## Fase 6 — CIP: primer dashboard
 
@@ -411,8 +459,8 @@ Fase 0 (migraciones + correlationId + OIDC real) ✅
   └─ Fase 1 (DOC-005 mínimo) ✅
        └─ Fase 2 (CORE MVP: 4 motores + DOC-006) ✅
             └─ Fase 3 (CIS real + APP QR TASK-007) ✅ verificado real de punta a punta 2026-08-13
-                 ├─ Fase 4 (Administrador Patrimonial + escritura oficial) — rol+Motor Patrimonial ✅, importación+Contrato pendiente
-                 │    ├─ Fase 5 (WEB mínimo) — diseño ✅, código pendiente
+                 ├─ Fase 4 (Administrador Patrimonial + escritura oficial) ✅ completa
+                 │    ├─ Fase 5 (WEB mínimo) — diseño ✅, login + Activos ✅, resto de módulos pendiente
                  │    └─ Fase 7 (CON-CONTABILIDAD)   [pieza nueva]
                  └─ Fase 6 (CIP primer dashboard)
                       └─ Fase 8 (RFID — cierra Etapa 1)

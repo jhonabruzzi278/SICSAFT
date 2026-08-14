@@ -132,10 +132,16 @@ services:
       # Redis para el rate limiter (WAF §4, src/rate-limit/) — mismo REDIS_PASSWORD que el
       # servicio `redis` (arriba). Primer consumidor de Redis en el codigo del ecosistema.
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      # Origen permitido para CORS (TASK-007 de APP QR, ver app-qr-sicsaft/src/lib/qr-connector.ts)
-      # — sin esto, ningun navegador puede llamar a CIS directo (solo servicio-a-servicio, que no
-      # pasa por CORS). Puerto de Vite en dev; agregar el dominio real cuando exista deploy.
-      CIS_CORS_ORIGIN: http://localhost:5173
+      # Origen permitido para CORS (TASK-007 de APP QR, ver app-qr-sicsaft/src/lib/qr-connector.ts;
+      # Fase 5 de WEB, ver web/src/lib/oidc/) — sin esto, ningun navegador puede llamar a CIS
+      # directo (solo servicio-a-servicio, que no pasa por CORS). Puertos de Vite en dev (APP QR
+      # 5173, WEB 5174); agregar los dominios reales cuando exista deploy.
+      CIS_CORS_ORIGIN: http://localhost:5173,http://localhost:5174
+      # DOC-012 §5 (Fase 5) — mapeo Zitadel org id -> organizacionId de CORE, ver
+      # src/administrador/organizacion-mapping.config.ts. Solo DUOC UC tiene datos reales hoy
+      # (mismo caso que el resto del stack local) — Resource Id de la organizacion "DUOC UC" en
+      # Zitadel, ver devops/local/README.md "Cliente OIDC real (WEB)".
+      ZITADEL_ORG_ID_MAP: '{"386029528616558597":"duoc-uc"}'
     networks:
       - sicsaft
     depends_on:

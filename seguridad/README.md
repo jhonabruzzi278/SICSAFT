@@ -28,22 +28,26 @@ ver DOC-004 §7). El token del operador solo trae `sub`/identidad, no sede — c
 Consultar, crear, modificar, eliminar, autorizar, exportar, administrar, configurar — bajo
 principio de mínimo privilegio necesario.
 
-### Rol 🟡 parcialmente implementado: Administrador Patrimonial (Tomo III §1.4, Entrada 4)
+### Rol ✅ implementado: Administrador Patrimonial (Tomo III §1.4, Entrada 4)
 El tomo oficial define un rol que hasta la Fase 4 no existía en ningún sistema del ecosistema: el
 **Administrador Patrimonial**, el único autorizado a modificar oficialmente la Base Patrimonial
 (incorporar/eliminar activos, modificar responsables/áreas, actualizar estados oficiales,
 importar bases contables). Ninguna otra entrada (APP QR, Plataforma WEB, RFID) puede hacerlo
 directamente — ver [ARQUITECTURA-WAF.md §11](../ARQUITECTURA-WAF.md#11-entradas-y-salidas-oficiales-del-ecosistema-tomo-iii-cap1)
 para la matriz completa de permisos por entrada. Diseño completo en
-[DOC-012](DOC-012-administrador-patrimonial.md). **Ya implementado**: rol de Proyecto en Zitadel,
-claim `urn:zitadel:iam:org:project:roles` leído por `ZitadelAuthGuard` en CIS y reenviado como
+[DOC-012](DOC-012-administrador-patrimonial.md). **Ya implementado, las 3 operaciones que Tomo
+III §1.4 le exige**: rol de Proyecto en Zitadel, claim
+`urn:zitadel:iam:org:project:roles` leído por `ZitadelAuthGuard` en CIS y reenviado como
 `rolesPorOrganizacion` (nunca una lista plana sin organización — corrige un hallazgo real de
 revisión de seguridad), autorización verificada en CORE por organización dentro de
-`OrquestadorService`, y los 4 endpoints de escritura de `Activo` (alta/baja/reincorporación/
-cambio de responsable, `core/src/patrimonial/activo-escritura.controller.ts`). **Pendiente**:
-importación masiva de base contable y escritura de `Contrato` (DOC-012 items 4/5) — hasta que
-esos también estén, esta entrada de la matriz de WAF §11 sigue sin marcarse "implementada" en
-`ARQUITECTURA-WAF.md`.
+`OrquestadorService`, los 4 endpoints de escritura de `Activo` (alta/baja/reincorporación/
+cambio de responsable, `core/src/patrimonial/activo-escritura.controller.ts`), importación masiva
+idempotente por fila de base contable (`POST /importaciones/contable`,
+`core/src/patrimonial/importacion-contable.service.ts`, precursor manual de `CON-CONTABILIDAD`) y
+escritura de `Contrato` (`POST /contratos`, `PATCH /contratos/:id`,
+`core/src/entitlements/contrato-escritura.controller.ts` + `escritura-contrato.service.ts`).
+**Pendiente**: las 4 acciones restantes de Gestión de Permisos (Autorizar/Exportar/Administrar/
+Configurar) — sin consumidor real hasta que WEB (Fase 5) tenga su propio ABM.
 
 ## Capacidades previstas
 Autenticación, refresh/expiración de sesión, RBAC, segregación por organización, segregación
@@ -65,7 +69,7 @@ Organización→Contrato→Sede, flujo de login).
 [`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md)
 (modelo de `Contrato` — entidades, estados, invariantes, cómo lo consume CIS).
 [DOC-012](DOC-012-administrador-patrimonial.md) — diseño del rol Administrador Patrimonial y el
-camino de escritura oficial (Fase 4 del ROADMAP); items 1 y 3 ya implementados, ver § "Estado" de
+camino de escritura oficial (Fase 4 del ROADMAP), items 1/3/4/5 implementados, ver § "Estado" de
 este documento.
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §3 (cero confianza entre niveles, permisos
 mínimos necesarios, segregación por organización/área validada en el CORE, no solo en el cliente

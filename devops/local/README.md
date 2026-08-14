@@ -113,10 +113,60 @@ internas especiales. `ZITADEL_JWKS_URI` ya no hace falta como variable separada:
 
 **Actualización (Fase 3, TASK-007)**: `app-qr-sicsaft/src/lib/oidc/` ya implementa este mismo
 flujo real desde la UI (antes solo se había probado con `curl` simulando el cliente) —
-`app-qr-sicsaft/src/lib/qr-connector.ts` dejó de ser un stub. **No verificado en vivo todavía por
-esta sesión**: falta crear la app OIDC real en el dashboard (pasos 3, 7 y 8 de arriba) y correr el
-flujo completo en un navegador — ver la nota de verificación pendiente en
-`app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §7.
+`app-qr-sicsaft/src/lib/qr-connector.ts` dejó de ser un stub. Verificado real de punta a punta el
+2026-08-13 (login de usuario real → catálogo → escaneo → envío → persistencia confirmada en
+Postgres, ver `ROADMAP.md` Fase 3).
+
+## Cliente OIDC real (WEB) — Fase 5, ROADMAP.md
+
+Mismo proyecto "CIS" y misma organización "DUOC UC" que usa `app-qr-sicsaft` — no se crea un
+proyecto nuevo. Pasos reales seguidos (2026-08-14), reproducibles desde el dashboard
+(`http://id.sicsaft.localhost`):
+
+1. Dentro del proyecto "CIS" → **Roles** → crear un rol de Proyecto `administrador-patrimonial`
+   (DOC-012 §2). Sin esto, `verificarRolAdministradorPatrimonial` en CORE siempre rechaza —
+   Zitadel no tiene qué rol firmar.
+2. Proyecto "CIS" → **General** → activar **"Assert Roles on Authentication"**. Sin esto, el claim
+   `urn:zitadel:iam:org:project:roles` nunca aparece en el token aunque el usuario tenga el rol
+   asignado (alternativa: pedir el scope reservado
+   `urn:zitadel:iam:org:project:role:administrador-patrimonial` desde el cliente en vez de esta
+   opción a nivel de proyecto).
+3. Crear un usuario de prueba en la organización "DUOC UC" (Users → New) con **"Email Verified"**
+   y **"Set Initial Password"** marcados al crearlo — un usuario creado sin esas dos opciones
+   queda en estado "Initial" esperando un email de activación que nunca llega (sin SMTP
+   configurado en local) y no se le puede fijar contraseña hasta inicializarlo; más simple
+   recrearlo con ambas casillas marcadas que resolver el flujo de init code a mano.
+4. Ese usuario → **Authorizations** → New → proyecto "CIS" → rol `administrador-patrimonial`.
+5. Proyecto "CIS" → **Applications** → New → tipo **User Agent** (SPA, PKCE) → nombre
+   `web-sicsaft` → **Development Mode** habilitado (redirect URI `http://` en dev) → redirect URI
+   `http://localhost:5174/auth/callback` (puerto de Vite de `web/`, no 5173 — ese es
+   `app-qr-sicsaft`).
+6. En **Token Settings** de esa aplicación: **Auth Token Type = JWT** (no Bearer/opaco, mismo
+   motivo que `app-qr-sicsaft`), **Access Token Role Assertion** y **ID Token Role Assertion**
+   habilitados (el rol tiene que llegar en el token, no solo en `/userinfo`), y grant type
+   `refresh_token` agregado (mismo criterio de refresh explícito que `app-qr-sicsaft`, no
+   re-login silencioso).
+7. Copiar el **Client ID** de `web-sicsaft` a `web/.env` (`VITE_ZITADEL_CLIENT_ID`, ver
+   `web/.env.example`) junto con `VITE_ZITADEL_ISSUER=http://id.sicsaft.localhost` y
+   `VITE_CIS_URL=http://api.sicsaft.localhost`.
+8. `CIS_CORS_ORIGIN` en `docker-compose.yml` (servicio `cis`) debe incluir
+   `http://localhost:5174` además de `http://localhost:5173` — ya seteado.
+9. `ZITADEL_ORG_ID_MAP` en `docker-compose.yml` (servicio `cis`) — mapea el id de organización de
+   Zitadel (el que aparece en la URL del dashboard al entrar a "DUOC UC", ej.
+   `386029528616558597`) al `organizacionId` de texto que CORE realmente usa (`duoc-uc`). Sin este
+   mapeo, `AdministradorService` (`cis/src/administrador/`) no puede traducir el claim de rol que
+   Zitadel firma (keyed por SU id de organización) al id que `verificarRolAdministradorPatrimonial`
+   de CORE espera — ver `cis/README.md` § Fase 5.
+
+Los pasos 1-4 se hicieron una sola vez vía la API REST de gestión de Zitadel
+(`/management/v1/...`, con el access token de una sesión de administrador ya autenticada en el
+dashboard) cuando la UI del wizard de creación de aplicaciones no exponía directamente el
+`accessTokenRoleAssertion` — el resultado final es idéntico a hacerlo a mano desde Console.
+
+**Verificado real de punta a punta el 2026-08-14**: login de `admin-patrimonial@sicsaft.localhost`
+desde `web/` (authorization code + PKCE real) → JWT con el claim de rol → `POST /admin/activos`
+en CIS → CORE crea el activo en Postgres → visible en `GET /catalogo`. Ver `cis/README.md` y
+`core/README.md` Fase 4/5 para el detalle de cada lado.
 
 ## Otros puntos ya resueltos
 - **`core` ya está en el compose** (esqueleto NestJS, `GET /`/`GET /health` + `GET /entitlements`

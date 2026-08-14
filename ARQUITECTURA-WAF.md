@@ -219,15 +219,21 @@ explotación de información. Complementa el modelo de 6 niveles (§1) y el mode
 | APP QR | Captura vía código QR | Lectura, registro de inventarios/estados, generación de informes | Modificar la Base Patrimonial Oficial |
 | Plataforma WEB | Consulta, dashboards, reportes, administración | Generar configuraciones, asignar usuarios, autorizar procesos | Modificar directamente la Base Patrimonial sin permisos específicos |
 | RFID (referencia de integración: MOVAT) | Recibe eventos RFID — movimientos, alarmas, ubicación, lecturas | Solo lectura de eventos | Nunca modifica la Base Patrimonial |
-| **Administrador Patrimonial** | Único rol autorizado a modificar oficialmente la Base Patrimonial | Incorporar activos, eliminar activos (según permisos), modificar responsables/áreas, actualizar estados oficiales, importar bases contables | — |
+| **Administrador Patrimonial** ✅ | Único rol autorizado a modificar oficialmente la Base Patrimonial | Incorporar activos, eliminar activos (según permisos), modificar responsables/áreas, actualizar estados oficiales, importar bases contables | — |
 | **Sistema Contable** | Fuente de la que siempre proviene la Base Oficial | Importación, actualización, sincronización de registros oficiales | Nunca elimina información histórica |
 
-Las dos últimas entradas (**Administrador Patrimonial**, **Sistema Contable**) todavía no están
-modeladas en ningún sistema del ecosistema: no existe el rol "Administrador Patrimonial" en
-`seguridad/README.md` (hoy solo hay operadores autenticados vía Zitadel, sin este nivel de
-permiso exclusivo) ni una integración con sistema contable en `integraciones/README.md` (el
-conector `CON-CONTABILIDAD` está listado pero sin iniciar). Quedan como trabajo pendiente, no
-implementado.
+**Administrador Patrimonial** ya está implementado de punta a punta (ROADMAP.md Fase 4,
+[DOC-012](seguridad/DOC-012-administrador-patrimonial.md)): rol de Proyecto en Zitadel + claim
+`rolesPorOrganizacion` verificado en CORE (`core/src/common/auth/administrador-patrimonial.guard.ts`),
+alta/baja/reincorporación/cambio de responsable de `Activo`
+(`core/src/patrimonial/activo-escritura.controller.ts`), importación masiva idempotente de base
+contable (`POST /importaciones/contable`, precursor manual de `CON-CONTABILIDAD`) y escritura de
+`Contrato` (`POST /contratos`, `PATCH /contratos/:id`,
+`core/src/entitlements/contrato-escritura.controller.ts`) — las 3 operaciones que Tomo III §1.4 le
+exige a esta entrada. **Sistema Contable** (conector automático `CON-CONTABILIDAD`) sigue sin
+modelar: no hay integración con un sistema contable real en `integraciones/README.md` (el
+conector está listado pero sin iniciar, Fase 7 del ROADMAP) — la importación manual del
+Administrador Patrimonial cubre el 80% del valor mientras tanto.
 
 **Salidas oficiales (Tomo III §1.5)**
 

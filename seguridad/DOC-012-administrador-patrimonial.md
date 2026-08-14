@@ -1,9 +1,9 @@
 # DOC-012: Administrador Patrimonial — rol y camino de escritura oficial
 
-> **Estado**: ítems 1 (rol + claim + autorización) y 3 (Motor Patrimonial: alta/baja/
-> reincorporación/cambio de responsable) implementados y verificados (unit + e2e contra Postgres
-> real); ítems 4 (importación masiva) y 5 (escritura de `Contrato`) siguen sin código (Fase 4 del
-> [ROADMAP.md](../ROADMAP.md)). Formaliza el
+> **Estado**: los 4 ítems de código de esta fase están implementados y verificados (unit + e2e
+> contra Postgres real) — ítem 1 (rol + claim + autorización), ítem 3 (Motor Patrimonial: alta/
+> baja/reincorporación/cambio de responsable), ítem 4 (importación masiva idempotente de base
+> contable) e ítem 5 (escritura de `Contrato`). Formaliza el
 > rol que Tomo III §1.4 Entrada 4 define como único autorizado a modificar oficialmente la Base
 > Patrimonial — hoy no existe en ningún sistema del ecosistema
 > ([`seguridad/README.md`](README.md) § "Rol pendiente"). Complementa
@@ -120,40 +120,54 @@ Cada transición inserta una fila en `eventos` (tipo `alta`/`baja`/`reincorporac
 `cambio_responsable`, mismo patrón que el seed de Fase 1) — `Historial` sigue sin ser tabla
 propia, es la lectura cronológica de `eventos` por activo (DOC-005 §1, sin cambios).
 
-## 6. Importación de base contable (carga masiva)
+## 6. Importación de base contable (carga masiva) ✅ implementado
 
-Endpoint `POST /importaciones/contable` — recibe un array ya parseado de filas (CSV/Excel se
-parsean del lado de quien construyó DOC-013/WEB o un script CLI de este mismo repo, fuera de
-alcance de este documento; CORE solo recibe JSON validado, mismo criterio que "CORE no confía en
-datos crudos de un cliente" del resto del ecosistema).
+Endpoint `POST /importaciones/contable` (`core/src/patrimonial/importacion-contable.*`) — recibe
+un array ya parseado de filas (CSV/Excel se parsean del lado de quien construyó DOC-013/WEB o un
+script CLI de este mismo repo, fuera de alcance de este documento; CORE solo recibe JSON
+validado, mismo criterio que "CORE no confía en datos crudos de un cliente" del resto del
+ecosistema).
 
 - **Idempotente por fila, no por request completo** (a diferencia de `POST /inventarios`, que es
-  atómico por sesión): cada fila trae su propio `codigoPatrimonial` — reintentar la misma fila con
-  el mismo contenido no duplica; una fila con `codigoPatrimonial` ya existente pero contenido
-  distinto se **reporta como conflicto**, nunca sobrescribe en silencio.
+  atómico por sesión): cada fila trae su propio `codigoPatrimonial`
+  (`ActivoRepository.findByCodigoPatrimonial`) — reintentar la misma fila con el mismo contenido
+  se reporta `ya_importado` sin volver a escribir; una fila con `codigoPatrimonial` ya existente
+  pero contenido distinto (codigoQr/área/ubicación/responsable) se **reporta como `conflicto`**,
+  nunca sobrescribe en silencio. Una fila invalida (ej. `catalogoId` inexistente) tampoco aborta
+  el resto del archivo — cada fila se resuelve independiente, el response siempre es 200 con el
+  detalle por fila (`creados`/`yaImportados`/`conflictos`).
 - **Nunca elimina** (Tomo III §1.4 Entrada 5: "Nunca elimina información histórica") — una fila
   que ya no aparece en un archivo posterior no da de baja el activo; dar de baja es un acto
   explícito (§5), no una inferencia de ausencia.
-- Cada fila pasa por el Motor de Reglas existente (mismas validaciones que la Fase 2, reusando
-  `clasificarEscaneo`-equivalente para el caso "alta" en vez de "escaneo").
+- Cada fila creada registra un evento `alta` (`detalle.origen: 'importacion_contable'`) — mismo
+  motor de eventos de la Fase 2, sin mecanismo nuevo.
 - Precursor manual y honesto del conector automático `CON-CONTABILIDAD` (Fase 7) — mismo shape de
   payload por fila, para que el conector futuro sea un cliente más de este mismo endpoint, no un
   camino de escritura paralelo (evita repetir el error que la regla no negociable de `CLAUDE.md`
   prohíbe: nadie le escribe a Base Patrimonial sin pasar por CORE).
 
-## 7. Escritura de `Contrato`
+## 7. Escritura de `Contrato` ✅ implementado
 
-Hoy `ContratoRepository` (`core/src/entitlements/`) solo lee. Se agregan:
+`ContratoRepository` (`core/src/entitlements/`) ya no solo lee:
 
 - `POST /contratos` — alta, valida el invariante de DOC-004 §4 ("una sede, un contrato `vigente`
-  a la vez") antes de insertar.
+  a la vez") con una consulta previa (`contrato_sedes` × `contratos.estado = 'vigente'`) antes de
+  insertar dentro de una transacción real (`BEGIN`/`COMMIT`/`ROLLBACK` vía `pool.connect()`) —
+  necesaria para que un `contrato_sedes` invalido no deje una fila de `contratos` huérfana sin
+  ninguna sede (hallazgo real encontrado corriendo el e2e contra Postgres real durante este mismo
+  incremento, antes de la transacción un FK fallido a mitad de camino sí la dejaba).
 - `PATCH /contratos/:id` — solo transiciones válidas de la máquina de estados de DOC-004 §3
-  (`vigente ⇄ suspendido`, `vigente → vencido|cancelado`) — cualquier otra transición es 400.
-- Emite evento `contrato.actualizado` (insertado en `eventos`, mismo patrón que el resto del
-  ecosistema) — **sin publicación a una cola todavía** (el patrón de outbox transaccional está
-  anotado para Fase 6/CIP, no antes: no hay consumidor real de este evento hasta que exista la
-  caché de entitlements en CIS, que la Fase 3 dejó explícitamente diferida como opcional). Por
-  ahora el evento queda en Auditoría/Eventos como registro, no como disparador activo.
+  (`vigente ⇄ suspendido`, `vigente → vencido|cancelado`, ambos terminales sin transición de
+  salida) — cualquier otra combinación es 400 (`ContratoRepository.actualizarEstado`, tabla
+  `TRANSICIONES_VALIDAS`). Mismo cruce de `organizacionId` contra la organización real del
+  contrato que `ActivoRepository` (404, no 403, si no coincide — defensa en profundidad).
+- Emite evento `contrato_actualizado` (`EventoRepository.registrarContrato`, columna
+  `eventos.contrato_id` nueva — `eventos.activo_id` pasó a nullable, migración
+  `1755300000000_schema-escritura-contrato`) — **sin publicación a una cola todavía** (el patrón
+  de outbox transaccional está anotado para Fase 6/CIP, no antes: no hay consumidor real de este
+  evento hasta que exista la caché de entitlements en CIS, que la Fase 3 dejó explícitamente
+  diferida como opcional). Por ahora el evento queda en Auditoría/Eventos como registro, no como
+  disparador activo.
 
 ## 8. Auditoría de escritura ✅ implementado (sin mecanismo nuevo — reusa el de Fase 2)
 
@@ -176,25 +190,28 @@ autentica la conexión CIS↔CORE, no una acción de negocio auditable por usuar
 - Traslado de activo (`activo ⇄ en_transito`) — DOC-008 ya lo marca sin consumidor real.
 - Las 4 acciones restantes de Gestión de Permisos (Autorizar/Exportar/Administrar/Configurar) —
   sin consumidor hasta que WEB (Fase 5) tenga su propio ABM.
-- Publicación en cola del evento `contrato.actualizado` (patrón outbox) — anotado para Fase 6.
+- Publicación en cola del evento `contrato_actualizado` (patrón outbox) — anotado para Fase 6.
 - Parseo de CSV/Excel en sí — este documento define el contrato JSON que CORE recibe, no dónde se
-  parsea el archivo origen.
+  parsea el archivo origen (queda para quien construya el CLI o el módulo de WEB, Fase 5).
 - UI de ningún tipo — Fase 5 (WEB) es quien va a exponer estos endpoints a un humano; esta fase
   entrega solo la API + autorización + auditoría.
 
 ## 10. Done (criterio de aceptación, igual al del ROADMAP)
 
 - ✅ Usuario autenticado sin el rol `administrador-patrimonial` **en la organización del
-  recurso** recibe 403 en los 4 endpoints de §5 (`POST /activos`, `/baja`, `/reincorporacion`,
-  `PATCH /responsable`) — cubierto por test e2e por endpoint contra Postgres real
-  (`core/test/activo-escritura.e2e-spec.ts`), incluido el caso de rol válido en otra organización.
-- ✅ Toda escritura de §5 (éxito o rechazo) queda en `auditoria` con usuario/operación/resultado.
-- ⬜ Importar el mismo archivo dos veces no duplica ni borra ningún activo (§4, sin implementar
-  todavía).
-- ⬜ `seguridad/README.md` y `ARQUITECTURA-WAF.md` §11 — actualizar cuando §4/§6 (importación
-  masiva, escritura de `Contrato`) también estén implementados; la fila de Administrador
-  Patrimonial no debería marcarse "implementada" hasta que el rol pueda hacer las 3 operaciones
-  que Tomo III §1.4 le exige (incorporar activos, importar bases contables, actualizar estados).
+  recurso** recibe 403 en los 7 endpoints de escritura oficial (`POST /activos`, `/baja`,
+  `/reincorporacion`, `PATCH /responsable`, `POST /importaciones/contable`, `POST /contratos`,
+  `PATCH /contratos/:id`) — cubierto por test e2e por endpoint contra Postgres real
+  (`core/test/activo-escritura.e2e-spec.ts`, `contrato-escritura.e2e-spec.ts`,
+  `importacion-contable.e2e-spec.ts`), incluido el caso de rol válido en otra organización.
+- ✅ Toda escritura de §5/§6/§7 (éxito o rechazo) queda en `auditoria` con
+  usuario/operación/resultado.
+- ✅ Importar el mismo archivo dos veces no duplica ni borra ningún activo (§6) — verificado e2e
+  contra Postgres real: mismo contenido reporta `ya_importado` sin reescribir, contenido distinto
+  reporta `conflicto` sin sobrescribir.
+- ✅ `seguridad/README.md` y `ARQUITECTURA-WAF.md` §11 actualizados marcando la entrada
+  Administrador Patrimonial como implementada — el rol ya puede hacer las 3 operaciones que Tomo
+  III §1.4 le exige (incorporar activos, importar bases contables, actualizar estados/contratos).
 
 ## 11. Documentos relacionados
 

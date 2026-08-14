@@ -48,7 +48,7 @@ nuevo (`test/inventarios.e2e-spec.ts`) contra Postgres real, `docker build`/`doc
 `GET /catalogo` y `POST /inventarios` respondiendo contra la base migrada. Motor de Alertas y
 Motor de Reportes quedan fuera a propósito — sin consumidor real (ver DOC-008).
 
-**Fase 4 (Administrador Patrimonial) — items 1 y 3 ya implementados**: diseño completo en
+**Fase 4 (Administrador Patrimonial) — completa, items 1/3/4/5 implementados**: diseño completo en
 [`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md).
 El Motor Patrimonial ya cubre el resto del ciclo de vida de `Activo` que DOC-008 dejaba para esta
 fase: `POST /activos` (alta), `POST /activos/:id/baja`, `POST /activos/:id/reincorporacion`,
@@ -58,10 +58,32 @@ fase: `POST /activos` (alta), `POST /activos/:id/baja`, `POST /activos/:id/reinc
 lado?") resuelta dentro de `OrquestadorService` para que un 403 por falta de rol también quede
 auditado. `ActivoRepository` cruza la organización del payload contra la organización real del
 activo objetivo antes de escribir (defensa en profundidad, 404 si no coincide) — corrige un
-hallazgo real de revisión de seguridad encontrado durante este mismo incremento. Verificado con
-unit + e2e reales contra Postgres (`test/activo-escritura.e2e-spec.ts`, incluye el caso
-cross-organización). Pendiente de Fase 4: importación masiva de base contable y escritura de
-`Contrato` (items 4 y 5 de DOC-012).
+hallazgo real de revisión de seguridad encontrado durante este mismo incremento. Se suman
+`POST /importaciones/contable` (`src/patrimonial/importacion-contable.*` — idempotente por fila,
+nunca sobrescribe ni elimina, DOC-012 §6) y `POST /contratos` + `PATCH /contratos/:id`
+(`src/entitlements/contrato-escritura.controller.ts` + `escritura-contrato.service.ts` — valida el
+invariante DOC-004 §4 y la máquina de estados DOC-004 §3, DOC-012 §7; la escritura de `Contrato`
+corre en una transacción real vía `pool.connect()` porque un e2e contra Postgres real encontró que
+sin ella un FK inválido en `contrato_sedes` dejaba un contrato huérfano sin ninguna sede).
+Verificado con unit (100% stmts/lines/funcs) + e2e reales contra Postgres
+(`test/activo-escritura.e2e-spec.ts`, `test/contrato-escritura.e2e-spec.ts`,
+`test/importacion-contable.e2e-spec.ts`, incluyen los casos cross-organización y de idempotencia
+por reintento).
+
+**`GET /contratos` (2026-08-14, para Fase 5/WEB)**: `ContratoController`
+(`src/entitlements/contrato.controller.ts`) — lectura abierta (`ServiceTokenGuard` a secas, sin
+exigir el rol de escritura, DOC-012 §4), devuelve `ContratoRepository.findAll()`. Faltaba: hasta
+ahora `Contrato` solo se leía indirecto vía `GET /entitlements` (que no expone `id`/`estado`),
+insuficiente para que un cliente (WEB) supiera qué `id` mandarle a `PATCH /contratos/:id`.
+
+**`GET /inventarios` + `GET /inventarios/:id` (2026-08-14, para Fase 5/WEB, RF-04)**:
+`InventariosController.getInventarios`/`getInventarioDetalle` +
+`SesionInventarioRepository.findByOrganizacion`/`findDetalle` — listado de sesiones por
+organización y detalle con sus escaneos. Mismo motivo que `GET /contratos`: `GET
+/inventarios/:id/estado` (Fase 2/3) ya existía pero exige conocer el `id` de antemano, sin forma
+de listar qué sesiones existen. Ambos endpoints nuevos usan pipes por parámetro
+(`@Param(new ZodValidationPipe(...))`), no `@UsePipes()` de método — ver `cis/README.md` § Fase 5
+para el hallazgo real que motivó ese cuidado.
 
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
@@ -171,18 +193,23 @@ DOC-007 (Orquestador), DOC-008 (Motor Patrimonial), DOC-009 (Motor de Reglas), D
 Eventos), DOC-011 (Motor de Auditoría), todos entregados e implementados. Pendiente: DOC-003
 Modelo de dominio SICSAFT completo.
 [`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
-— diseño del rol Administrador Patrimonial (Fase 4), items 1 y 3 ya implementados en este mismo
-`core/` (`src/patrimonial/activo-escritura.controller.ts`, `src/orquestador/orquestador.service.ts`).
+— diseño del rol Administrador Patrimonial (Fase 4), completo: items 1/3/4/5 implementados en
+este mismo `core/` (`src/patrimonial/activo-escritura.controller.ts`,
+`src/patrimonial/importacion-contable.controller.ts`,
+`src/entitlements/contrato-escritura.controller.ts`, `src/orquestador/orquestador.service.ts`).
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) para el marco de escalabilidad/resiliencia
 aplicable a este sistema.
 
 ## Próximo paso sugerido
-`GET /entitlements`, `GET /catalogo`, `POST /inventarios` (Fase 2/3) y los 4 endpoints de
-escritura oficial de `Activo` (Fase 4, DOC-012 items 1/3) ya están hechos y probados de punta a
-punta — TASK-007 de APP QR también se verificó real (`ROADMAP.md` Fase 3). El siguiente
-incremento con valor real dentro de esta misma fase es DOC-012 item 4 (importación masiva de
-base contable, precursor manual de CON-CONTABILIDAD) o item 5 (escritura de `Contrato`, hoy solo
-se lee) — cualquiera de los dos requiere diseño mínimo adicional (formato exacto de fila de
-importación, transiciones válidas de `Contrato`) antes de código. Alternativa sin código:
-rotación/gestión del `CORE_SERVICE_TOKEN` vía un secret manager en vez de una env var plana
-cuando se pase a producción (ver `../devops/README.md`). Tarjeta Trello: `CORE-ADR-001`.
+`GET /entitlements`, `GET /catalogo`, `GET /contratos`, `POST /inventarios` (Fase 2/3/5) y los 7
+endpoints de escritura oficial de DOC-012 (`Activo` alta/baja/reincorporación/responsable,
+importación masiva, `Contrato` alta/actualización de estado) ya están hechos y probados de punta a
+punta contra Postgres real, incluido desde WEB vía CIS (`ROADMAP.md` Fase 5) — TASK-007 de APP QR
+también se verificó real (`ROADMAP.md` Fase 3). Fase 4 queda completa a nivel de código; solo
+faltan las 4 acciones de Gestión de Permisos sin consumidor (Autorizar/Exportar/Administrar/
+Configurar, DOC-012 §9) que WEB va a necesitar para su propio ABM. El siguiente incremento con
+valor real es el módulo Inventarios de WEB (`GET /inventarios/:id/estado` ya existe, falta la
+pantalla) o Áreas/Ubicaciones/Responsables (RF-05), que sí requiere endpoints de escritura nuevos
+en CORE. Alternativa sin código: rotación/gestión del `CORE_SERVICE_TOKEN` vía un secret manager
+en vez de una env var plana cuando se pase a producción (ver `../devops/README.md`). Tarjeta
+Trello: `CORE-ADR-001`.
