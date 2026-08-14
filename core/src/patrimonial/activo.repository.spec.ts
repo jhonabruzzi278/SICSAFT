@@ -414,5 +414,23 @@ describe('ActivoRepository', () => {
         ),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('relanza otros errores de Postgres sin envolver', async () => {
+      const error = new Error('conexion perdida');
+      const query = jest
+        .fn()
+        .mockResolvedValueOnce({ rows: [FILA_BASE] }) // findById
+        .mockRejectedValueOnce(error); // UPDATE falla
+      const pool = { query } as unknown as jest.Mocked<Pool>;
+      const repository = new ActivoRepository(pool);
+
+      await expect(
+        repository.actualizarResponsable(
+          'activo-notebook-001',
+          'duoc-uc',
+          'resp-2',
+        ),
+      ).rejects.toBe(error);
+    });
   });
 });
