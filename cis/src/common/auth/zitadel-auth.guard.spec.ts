@@ -135,6 +135,31 @@ describe('ZitadelAuthGuard', () => {
     });
   });
 
+  it('ignora una entrada del claim cuyo valor no es un objeto {organizacionId: nombre}', async () => {
+    const token = await new SignJWT({
+      'urn:zitadel:iam:org:project:roles': {
+        'rol-malformado': 'no-es-un-objeto',
+        'administrador-patrimonial': { 'org-1': 'DUOC UC' },
+      },
+    })
+      .setProtectedHeader({ alg: 'RS256' })
+      .setSubject('op-1')
+      .setIssuer(ISSUER)
+      .setAudience(AUDIENCE)
+      .setExpirationTime('15m')
+      .sign(privateKey);
+    const context = buildContext(`Bearer ${token}`);
+
+    await guard.canActivate(context);
+
+    const request = context.switchToHttp().getRequest<{
+      auth?: { rolesPorOrganizacion: Record<string, string[]> };
+    }>();
+    expect(request.auth?.rolesPorOrganizacion).toEqual({
+      'org-1': ['administrador-patrimonial'],
+    });
+  });
+
   it('lanza 401 si falta el header Authorization', async () => {
     await expect(guard.canActivate(buildContext(undefined))).rejects.toThrow(
       UnauthorizedException,
