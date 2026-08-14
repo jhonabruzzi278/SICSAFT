@@ -146,6 +146,13 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   CIS (`PATCH /admin/areas/:id`, `PATCH /admin/ubicaciones/:id`) y formularios de edición en
   `EstructuraPage` (botón "Editar" por fila, reemplaza el panel de alta). Verificado con unit +
   e2e reales contra Postgres.
+- **RNF-01 (CORE) cerrado (2026-08-14)**: `GET /contratos`, `/auditoria`, `/areas`, `/ubicaciones`,
+  `/responsables` de CORE devuelven ahora `{ <entidad>, total }` en vez de array plano (ver
+  `../core/README.md`). `cis-client.ts` desempaqueta el envelope y sigue devolviendo un array
+  plano a los componentes (`ContratosPage`, `AuditoriaPage`, `EstructuraPage`) — sin cambios ahí.
+  WEB no tiene UI de paginación (ningún RF la pide todavía) — pide el tope de página (`limit=100`)
+  en vez de el default (20) para no perder filas silenciosamente mientras el volumen se mantenga
+  bajo esa cota; si crece más allá, hace falta una UI de paginación real (nuevo RF, no este).
 
 ## Módulos previstos
 6 en el MVP de Fase 5 (ver [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)), los 6

@@ -284,9 +284,14 @@ export const cisClient = {
     return (await res.json()) as Activo;
   },
 
+  // RNF-01 — CIS/CORE paginan (`{ contratos, total }`, default 20/tope 100). WEB no tiene UI de
+  // paginacion (fuera de alcance, ningun RF la pide) — pide el tope de pagina (100) para no perder
+  // filas silenciosamente mientras el volumen de datos se mantenga bajo esa cota.
   async getContratos(): Promise<Contrato[]> {
-    const res = await authorizedFetch('/admin/contratos');
-    return (await res.json()) as Contrato[];
+    const params = new URLSearchParams({ limit: '100' });
+    const res = await authorizedFetch(`/admin/contratos?${params.toString()}`);
+    const data = (await res.json()) as { contratos: Contrato[]; total: number };
+    return data.contratos;
   },
 
   async altaContrato(input: AltaContratoInput): Promise<Contrato> {
@@ -320,21 +325,24 @@ export const cisClient = {
     return (await res.json()) as SesionInventarioDetalle;
   },
 
+  // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.
   async getAuditoria(filtro: AuditoriaFiltro): Promise<AuditoriaEntrada[]> {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams({ limit: '100' });
     if (filtro.usuario) params.set('usuario', filtro.usuario);
     if (filtro.operacion) params.set('operacion', filtro.operacion);
     if (filtro.fechaDesde) params.set('fechaDesde', filtro.fechaDesde);
     if (filtro.fechaHasta) params.set('fechaHasta', filtro.fechaHasta);
-    const query = params.toString();
-    const res = await authorizedFetch(`/admin/auditoria${query ? `?${query}` : ''}`);
-    return (await res.json()) as AuditoriaEntrada[];
+    const res = await authorizedFetch(`/admin/auditoria?${params.toString()}`);
+    const data = (await res.json()) as { entradas: AuditoriaEntrada[]; total: number };
+    return data.entradas;
   },
 
+  // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.
   async getAreas(organizacionId: string): Promise<Area[]> {
-    const params = new URLSearchParams({ organizacionId });
+    const params = new URLSearchParams({ organizacionId, limit: '100' });
     const res = await authorizedFetch(`/admin/areas?${params.toString()}`);
-    return (await res.json()) as Area[];
+    const data = (await res.json()) as { areas: Area[]; total: number };
+    return data.areas;
   },
 
   async altaArea(input: AltaAreaInput): Promise<Area> {
@@ -353,10 +361,12 @@ export const cisClient = {
     return (await res.json()) as Area;
   },
 
+  // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.
   async getUbicaciones(sedeId: string): Promise<Ubicacion[]> {
-    const params = new URLSearchParams({ sedeId });
+    const params = new URLSearchParams({ sedeId, limit: '100' });
     const res = await authorizedFetch(`/admin/ubicaciones?${params.toString()}`);
-    return (await res.json()) as Ubicacion[];
+    const data = (await res.json()) as { ubicaciones: Ubicacion[]; total: number };
+    return data.ubicaciones;
   },
 
   async altaUbicacion(input: AltaUbicacionInput): Promise<Ubicacion> {
@@ -378,10 +388,12 @@ export const cisClient = {
     return (await res.json()) as Ubicacion;
   },
 
+  // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.
   async getResponsables(areaId: string): Promise<Responsable[]> {
-    const params = new URLSearchParams({ areaId });
+    const params = new URLSearchParams({ areaId, limit: '100' });
     const res = await authorizedFetch(`/admin/responsables?${params.toString()}`);
-    return (await res.json()) as Responsable[];
+    const data = (await res.json()) as { responsables: Responsable[]; total: number };
+    return data.responsables;
   },
 
   async altaResponsable(input: AltaResponsableInput): Promise<Responsable> {
