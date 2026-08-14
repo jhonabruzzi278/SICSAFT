@@ -93,7 +93,7 @@ Las 4 preguntas originales, con la respuesta concreta que dio el trabajo de `cis
 3. **¿Esquema de correlación propio de CORE?** No reemplaza al `correlationId` de negocio de DOC-002 §6 — conviven: CIS agrega un header transversal `X-Correlation-Id` (WAF §2) que es independiente del `correlationId` que ya viaja en el payload de `POST /inventarios`.
 4. **¿Semántica de idempotencia compatible?** Sí, idéntica a la propuesta — CORE persiste `idempotencyKey` en `sesiones_inventario` (DOC-006 §3): mismo key + mismo payload devuelve el resultado ya procesado, distinto payload da 409.
 
-Con esto TASK-007 se implementó completa (ver sección 5). **Pendiente real, no bloqueado por CORE:** la suite de e2e de Playwright (`tests/`) todavía asume el login viejo — ver sección 7.
+Con esto TASK-007 se implementó completa (ver sección 5) y **se verificó real de punta a punta el 2026-08-13** (ver sección 7) — login OIDC real, catálogo real, escaneo y envío persistido en Postgres vía CIS→CORE.
 
 ## 7. Backlog completo y cadena de dependencias
 
@@ -103,21 +103,43 @@ Tablero Trello SICSAFT — última sincronización verificada contra el código 
 TASK-004 (sesiones de inventario) ................................ ✅ Hecho
   → TASK-005 (normalizar 8 resultados de escaneo) ................. ✅ Hecho
     → TASK-006 (cliente del Conector QR, stub) ..................... ✅ Hecho
-      → TASK-007 (sincronización real con CORE) .................... 🟡 Código hecho, verificación pendiente — ver nota abajo
+      → TASK-007 (sincronización real con CORE) .................... ✅ Hecho — verificado real de punta a punta 2026-08-13, ver nota abajo
         → TASK-008 (cola sin conexión) .............................. ✅ Hecho, ahora contra backend real
           → TASK-009 (registro de eventos y auditoría) .............. ✅ Hecho
             → TASK-010 (resumen final del inventario) .............. ✅ Hecho
 ```
 
-**TASK-007 — nota de verificación**: el código está implementado completo (sección 5).
-`npm run test:e2e` **ya corre en verde** (37/37) — la suite de Playwright (`tests/`) se migró del
-login por texto a la sesión OIDC real, mockeando la red con MSW (ver debajo). Sigue pendiente,
-antes de dar la tarea por cerrada en el sentido estricto de la sección 9:
-1. Crear la app OIDC `app-qr-sicsaft` en Zitadel con `offline_access` habilitado (ver
-   `devops/local/README.md` "Cliente OIDC real", pasos nuevos agregados) y completar
-   `VITE_ZITADEL_CLIENT_ID` en `.env`.
-2. Recorrido manual real: login → organización → área/ubicación → escaneo → envío → ver el
-   inventario persistido en Postgres vía CIS→CORE.
+**TASK-007 — nota de verificación (2026-08-13, cerrada)**: el código está implementado completo
+(sección 5) y el recorrido manual real ya se hizo con el stack local completo (Traefik + Postgres
++ Redis + Zitadel + CIS + CORE, todos reconstruidos con el código vigente): login OIDC/PKCE real
+contra Zitadel (app `app-qr-sicsaft` ya provisionada en el proyecto "CIS", client ID copiado a
+`app-qr-sicsaft/.env`) → `POST /auth/session` → organización real (DUOC UC) → catálogo real
+(`GET /catalogo`) → dos escaneos (`QR-000001`/`QR-000002`, los activos reales del seed) →
+`POST /inventarios` → fila nueva en `sesiones_inventario` (`estado: recibido`), dos filas en
+`inventarios` y un registro en `auditoria`, todo verificado por consulta directa a Postgres, no
+solo por la respuesta HTTP.
+
+**Dos bugs reales encontrados y corregidos durante la verificación** (ninguno de los dos lo
+detectaba `npm run test:e2e` porque los mocks MSW no validan la forma del request saliente ni
+dependen de la imagen Docker):
+1. La imagen Docker de `cis` en el compose local estaba compilada de antes de que se agregara
+   `CIS_CORS_ORIGIN`/`app.enableCors()` — el preflight `OPTIONS` devolvía 404 y todo fetch desde
+   el navegador fallaba con "Failed to fetch". Se resolvió con `docker compose up -d --build cis`;
+   no era un bug de código, es un recordatorio operativo (reconstruir imágenes al levantar el
+   stack después de cambios de código, no asumir que `docker compose up -d` sin `--build` alcanza).
+2. **Bug de código real**: `postInventario()` (`src/lib/qr-connector.ts`) mandaba el payload de
+   `POST /inventarios` con los nombres de campo internos de `ScanSession` (`operatorName`,
+   `organizationId`, `areaId`, `locationId`, `startedAt`, `date`, `items`) en vez de traducirlo al
+   contrato DOC-006 (`operadorId`, `organizacionId`, `areaId`, `ubicacionId`, `fechaInicio`,
+   `fechaCierre`, `escaneos[]`, `incidencias[]`) — CORE rechazaba cada envío con 400, pero
+   `sync-queue.ts` atrapa el error y marca la sesión como `rejected` sin relanzarlo, así que la UI
+   mostraba "Enviado ✔" con la base de datos vacía. Corregido con `toInventarioRequest()` (mismo
+   archivo): mapea `ScanCategory → ScanResultado` y usa `correlationId` también como
+   `idempotencyKey` (ya es estable por sesión, cumple el invariante de DOC-002 §4 sin agregar un
+   campo nuevo a `ScanSession`). Confirma que `test:e2e` en verde con mocks **no es evidencia** de
+   que el contrato real esté bien implementado — falta cubrir la forma del payload saliente en el
+   mock o en un test de contrato aparte (no hecho todavía, ver "Hallazgo documentado de paso" más
+   abajo).
 
 **Estrategia de e2e — resuelta con MSW.** La suite entera bootstrapeaba cada test vía
 `identifyOperator()` (`tests/helpers.js`), que llenaba un input de texto que ya no existe.
@@ -135,6 +157,13 @@ alcance de esto): `scan-resolve.ts` usa el `ubicacionId` crudo del activo para
 `expectedLocationName` (mensaje "otra ubicación") en vez de resolverlo contra `sedes[]` como sí
 hace `buildOrganizationTree` para el picker — pese a que el comentario del código dice "mismo
 criterio que el picker". Muestra un id crudo en vez de un nombre legible en ese mensaje puntual.
+
+Brecha de cobertura documentada de paso, no cerrada todavía: los handlers MSW de `POST
+/inventarios` (`src/mocks/handlers.ts`) devuelven éxito sin inspeccionar el `body` del request —
+por eso el bug de payload de TASK-007 (ver arriba) pasó 37/37 en verde antes de la verificación
+manual. Agregar una aserción de forma (`operadorId`/`organizacionId`/`escaneos[]`, no
+`operatorName`/`organizationId`/`items`) al handler o a un test de contrato dedicado evitaría que
+un regreso futuro vuelva a pasar la suite en silencio.
 
 No hay más tarjetas definidas para APP QR SICSAFT en el handoff más allá de esto — confirmar con
 el usuario antes de proponer alcance nuevo.

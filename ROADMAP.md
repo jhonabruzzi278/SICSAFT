@@ -162,7 +162,7 @@ real con `GET /catalogo` y `POST /inventarios` respondiendo contra la base migra
 evento verificados en la fila real de Postgres, no solo en el response. `core/README.md`
 actualizado.
 
-## Fase 3 — CIS deja de ser mock + APP QR TASK-007 🟡 en curso
+## Fase 3 — CIS deja de ser mock + APP QR TASK-007 ✅ completa
 
 **Por qué acá**: solo ahora existe algo real detrás del mock.
 
@@ -200,7 +200,7 @@ actualizado.
    Zitadel ya autentica). **Enforcement parcial por diseño de DOC-002**: `deviceId` solo llega en
    el body de `auth/session`, no en las otras 3 rutas — no hay forma de revalidar el dispositivo
    en cada request sin romper el contrato ya acordado con APP QR.
-7. 🟡 **APP QR TASK-007**: `qr-connector.ts` (`app-qr-sicsaft/`) reemplazó `LocalQrConnectorClient`
+7. ✅ **APP QR TASK-007**: `qr-connector.ts` (`app-qr-sicsaft/`) reemplazó `LocalQrConnectorClient`
    por `HttpQrConnectorClient` real, con auth OIDC/PKCE (`src/lib/oidc/`) y manejo de
    `400/401/409/5xx` de DOC-002 §5 (`RejectedInventarioError` corta la cola de reintentos en
    400/409 en vez de insistir para siempre). Se activó `rejected` (`SyncStatus`) — `duplicate`
@@ -212,26 +212,30 @@ actualizado.
    organización→sedes, 2 niveles) — el árbol de 3 niveles que la UI necesita ahora se deriva en
    runtime del catálogo completo de la organización (`buildOrganizationTree`), decisión confirmada
    explícitamente con el usuario, no había otra forma sin inventar un endpoint nuevo.
-   **Sin cerrar en el sentido estricto**: no se corrió `npm run test:e2e` ni un recorrido manual
-   en navegador (regla ya acordada de `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §9) — hace falta
-   crear la app OIDC de `app-qr-sicsaft` en el dashboard de Zitadel (con `offline_access`
-   habilitado) y decidir la estrategia de la suite de Playwright, que hoy asume el login viejo
-   (nombre tipeado) y necesitaría el stack completo real para correr contra el nuevo flujo. Ver
-   nota completa en el HANDOFF.
+   **Verificado real de punta a punta el 2026-08-13** (app OIDC de Zitadel ya provisionada,
+   client ID cargado en `.env`, stack local completo, recorrido manual login → organización →
+   catálogo → escaneo → envío → persistencia confirmada por consulta directa a Postgres). La
+   verificación encontró y corrigió **un bug real** en `postInventario()`: mandaba el payload de
+   `POST /inventarios` con los nombres de campo internos de la app (`operatorName`,
+   `organizationId`, `items`...) en vez del contrato DOC-006 (`operadorId`, `organizacionId`,
+   `escaneos[]`...) — CORE rechazaba cada envío con 400, invisible en la UI porque
+   `sync-queue.ts` no relanza el error (queda como `rejected` local). Ninguno de los 37 tests de
+   Playwright lo detectaba porque los mocks MSW no validan la forma del request saliente (queda
+   anotado como brecha de cobertura pendiente, ver HANDOFF §7). También se encontró que la imagen
+   Docker de `cis` del compose local estaba compilada de antes de agregar CORS — recordatorio
+   operativo, no bug de código: reconstruir con `--build` al levantar el stack tras cambios.
 
-**Done** (parcial — items 1-4, 6 y 7 con la salvedad de verificación de arriba): unit (100%
-stmts/funcs/lines, 90%+ branches, incluye reintentos con fake timers y el rate limiter/device
-registry con Redis mockeado) y e2e de CIS actualizados a proxy delgado (`CoreClientService`/
-`REDIS_CLIENT` stubeados, sin CORE ni Redis reales — la idempotencia y validación real ya se
-probaron contra Postgres en la Fase 2); `cis/README.md` actualizado quitando "mock" para
-catálogo/inventarios. **Falta para cerrar la fase**: item 5 (opcional/diferible) y la
-verificación real de TASK-007 (crear la app OIDC, decidir estrategia de Playwright, recorrido
-manual mostrando un inventario escaneado en la PWA persistido en la Base Patrimonial vía
-CIS→CORE).
+**Done**: unit (100% stmts/funcs/lines, 90%+ branches, incluye reintentos con fake timers y el
+rate limiter/device registry con Redis mockeado) y e2e de CIS actualizados a proxy delgado
+(`CoreClientService`/`REDIS_CLIENT` stubeados, sin CORE ni Redis reales — la idempotencia y
+validación real ya se probaron contra Postgres en la Fase 2); `cis/README.md` actualizado
+quitando "mock" para catálogo/inventarios; TASK-007 verificado real de punta a punta contra
+Postgres, no solo por la respuesta HTTP. **Diferido, no bloqueante**: item 5 (caché de
+entitlements, opcional) y la brecha de cobertura de payload-shape en los mocks MSW.
 
-**Hito de negocio**: primera vez que el ecosistema completo funciona de punta a punta *en código*
-— falta la verificación real de punta a punta (ver item 7) para confirmarlo en la práctica. Todo
-lo anterior a esto es infraestructura.
+**Hito de negocio**: primera vez que el ecosistema completo funciona de punta a punta, verificado
+en la práctica (no solo en código) — login real, catálogo real, inventario persistido en la Base
+Patrimonial vía CIS→CORE. Todo lo anterior a esto es infraestructura.
 
 ## Fase 4 — Administrador Patrimonial y camino de escritura oficial (pieza nueva)
 
@@ -391,7 +395,7 @@ aparezca en documentos:
 Fase 0 (migraciones + correlationId + OIDC real) ✅
   └─ Fase 1 (DOC-005 mínimo) ✅
        └─ Fase 2 (CORE MVP: 4 motores + DOC-006) ✅
-            └─ Fase 3 (CIS real + APP QR TASK-007)   ← código completo, falta verificar en vivo (Zitadel + e2e)
+            └─ Fase 3 (CIS real + APP QR TASK-007) ✅ verificado real de punta a punta 2026-08-13
                  ├─ Fase 4 (Administrador Patrimonial + escritura oficial)  [pieza nueva]
                  │    ├─ Fase 5 (WEB mínimo) — diseño ✅, código pendiente
                  │    └─ Fase 7 (CON-CONTABILIDAD)   [pieza nueva]

@@ -80,9 +80,10 @@ Backlog completo y contexto de negocio de APP QR: `app-qr-sicsaft/HANDOFF-APP-QR
 1. **APP QR** completó su backlog local (TASK-004 a TASK-010) — las 12 pantallas del flujo oficial
    están cubiertas, incluida TASK-007 (sincronización real con CORE): las 4 preguntas abiertas del
    handoff ya tienen respuesta (ver `cis/`/`core/` abajo) y `qr-connector.ts` habla HTTP real
-   contra CIS. **Código completo, verificación en vivo pendiente** — falta crear la app OIDC real
-   en el dashboard de Zitadel y correr un recorrido manual, ver
-   `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §7.
+   contra CIS. **Verificado real de punta a punta el 2026-08-13** — login OIDC contra Zitadel,
+   catálogo real, escaneo y envío persistido en Postgres vía CIS→CORE, ver
+   `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §7 (incluye un bug real de payload encontrado y
+   corregido durante la verificación).
 2. Modelo de dominio compartido entre `core/` y `base-patrimonial/` — Trello `CORE-ADR-001` /
    `BASE-DOC-001` — **`Contrato` hecho, incluida la tabla real en Postgres**
    ([DOC-004](base-patrimonial/DOC-004-modelo-contrato.md)); Motor Patrimonial (catálogo,

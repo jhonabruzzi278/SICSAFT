@@ -5,7 +5,7 @@
 // con el header transversal `X-Correlation-Id` que CIS agrega solo, y la idempotencia es
 // idéntica a la propuesta acá (misma key + mismo payload = mismo resultado, distinto payload =
 // 409).
-import type { ProductVariant, ScanSession } from './db';
+import type { ProductVariant, ScanCategory, ScanSession } from './db';
 import { oidcClient, AuthenticationRequiredError } from './oidc/oidc-client';
 import { loadOidcConfig } from './oidc/oidc-config';
 import { getOrCreateDeviceId } from './device-id';
@@ -92,6 +92,53 @@ interface ErrorBody {
   errores?: Array<{ campo: string; detalle: string } | string>;
 }
 
+// Forma real de CORE (DOC-006 §3, `ScanResultado` en core/src/reglas/reglas.types.ts) — distinta
+// de `ScanCategory` (nombres/idioma internos de la app, ver db.ts). `postInventario` traduce una
+// a la otra; nunca se manda `ScanCategory` tal cual por la red.
+type ScanResultado =
+  | 'correcto'
+  | 'otra_area'
+  | 'otra_ubicacion'
+  | 'no_registrado'
+  | 'invalido'
+  | 'duplicado'
+  | 'ya_escaneado'
+  | 'con_incidencia';
+
+const CATEGORY_TO_RESULTADO: Record<ScanCategory, ScanResultado> = {
+  correct: 'correcto',
+  'wrong-area': 'otra_area',
+  'wrong-location': 'otra_ubicacion',
+  unregistered: 'no_registrado',
+  invalid: 'invalido',
+  'already-scanned': 'ya_escaneado',
+  duplicate: 'duplicado',
+};
+
+// DOC-006 §3 (`InventarioRequest`) — nombres de campo en español, distintos de `InventarioPayload`
+// (forma interna de la app, `ScanSession` en db.ts). `correlationId` ya es estable por sesión
+// (generado al iniciar el inventario, ver db.ts) y sirve también como `idempotencyKey`: nunca
+// cambia entre reintentos de la misma sesión, que es exactamente lo que DOC-002 §4 exige.
+function toInventarioRequest(session: InventarioPayload): Record<string, unknown> {
+  return {
+    correlationId: session.correlationId,
+    idempotencyKey: session.correlationId,
+    operadorId: session.operatorName,
+    organizacionId: session.organizationId,
+    areaId: session.areaId,
+    ubicacionId: session.locationId,
+    fechaInicio: session.startedAt,
+    fechaCierre: session.date,
+    escaneos: session.items.map((item) => ({
+      codigoQr: item.code,
+      resultado: CATEGORY_TO_RESULTADO[item.category],
+    })),
+    incidencias: session.items
+      .filter((item): item is typeof item & { incidentNote: string } => Boolean(item.incidentNote))
+      .map((item) => ({ codigoQr: item.code, descripcion: item.incidentNote })),
+  };
+}
+
 function flattenErrores(errores: ErrorBody['errores']): string[] | undefined {
   if (!errores) return undefined;
   return errores.map((e) => (typeof e === 'string' ? e : `${e.campo}: ${e.detalle}`));
@@ -149,7 +196,7 @@ class HttpQrConnectorClient implements QrConnectorClient {
   async postInventario(session: InventarioPayload): Promise<InventarioResult> {
     const res = await authorizedFetch('/inventarios', {
       method: 'POST',
-      body: JSON.stringify(session),
+      body: JSON.stringify(toInventarioRequest(session)),
     });
 
     if (res.status === 400 || res.status === 409) {
