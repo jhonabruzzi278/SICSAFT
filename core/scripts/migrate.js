@@ -1,0 +1,37 @@
+'use strict';
+
+// Runner de migraciones — JS plano a proposito (sin ts-node) para poder correr en la imagen de
+// produccion sin devDependencies. Las migraciones en migrations/*.ts se transpilan al vuelo via
+// jiti, que node-pg-migrate ya trae como dependencia (ver migrations/README si se agrega).
+const { runner } = require('node-pg-migrate');
+
+function requireEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Configuracion de base de datos invalida: falta ${name}`);
+  }
+  return value;
+}
+
+async function main() {
+  const direction = process.argv[2] === 'down' ? 'down' : 'up';
+
+  await runner({
+    databaseUrl: {
+      host: requireEnv('CORE_DB_HOST'),
+      port: Number(process.env.CORE_DB_PORT || '5432'),
+      database: requireEnv('CORE_DB_NAME'),
+      user: requireEnv('CORE_DB_USER'),
+      password: requireEnv('CORE_DB_PASSWORD'),
+    },
+    dir: 'migrations',
+    direction,
+    migrationsTable: 'pgmigrations',
+    count: direction === 'down' ? 1 : Infinity,
+  });
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

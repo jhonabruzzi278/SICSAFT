@@ -64,26 +64,71 @@ defecto que un contenedor lea el socket del daemon (Enhanced Container Isolation
 conviene tener menos archivos que mantener a mano a medida que se agreguen más servicios — queda
 como decisión abierta en `../README.md`.
 
-## Qué falta antes de que esto sea útil de punta a punta
-- **Crear la aplicación OIDC del CIS en Zitadel** (el CIS ya valida tokens reales contra Zitadel,
-  ver `cis/README.md` § Conector QR — falta crear la app en el dashboard, no código):
-  1. Levantar el stack y entrar a `http://id.sicsaft.localhost`, login con
-     `ZITADEL_ADMIN_USERNAME`/`ZITADEL_ADMIN_PASSWORD`.
-  2. Crear una Organización de prueba (ej. "DUOC UC") si no existe — valida el modelo de
-     [ADR-002](../../adr/ADR-002-identidad-zitadel-multi-tenant.md).
-  3. Crear un Proyecto y una Aplicación API (u OIDC) dentro — copiar el Client ID (o el Resource
-     ID del proyecto) a `CIS_ZITADEL_AUDIENCE` en `.env`.
-  4. `docker compose up -d --build cis` para que tome la variable nueva.
-  - Sigue sin existir un cliente real (WEB/APP QR) que haga el flujo de login completo
-    (authorization code + PKCE) y le pase el token al CIS — eso es TASK-006/007 de APP QR.
+## Cliente OIDC real (ROADMAP.md Fase 0) — ya hecho, pasos para reproducirlo
+1. Levantar el stack y entrar a `http://id.sicsaft.localhost`, login con
+   `ZITADEL_ADMIN_USERNAME`/`ZITADEL_ADMIN_PASSWORD` (Zitadel obliga a cambiar la contraseña en
+   el primer login — actualizar `.env` con la nueva).
+2. Crear una Organización de prueba ("DUOC UC") — valida el modelo de
+   [ADR-002](../../adr/ADR-002-identidad-zitadel-multi-tenant.md).
+3. Dentro de la organización: crear un Proyecto ("CIS") y una Aplicación OIDC tipo **User Agent**
+   (SPA/PWA, PKCE, sin secreto) para el futuro cliente real de APP QR — nombre `app-qr-sicsaft`,
+   redirect URI de desarrollo `http://localhost:5173/auth/callback` (puerto de Vite, con
+   "Development Mode" activado para permitir `http://`).
+4. **Cambiar el tipo de token de la app a JWT** (Token Settings → Auth Token Type → `JWT`, no
+   `Bearer Token`/opaco) — `ZitadelAuthGuard` valida firma vía JWKS con `jose`, un token opaco no
+   sirve. Esto no es obvio en la UI (el default es opaco) y solo se descubre probando el flujo
+   completo, no leyendo la documentación de Zitadel.
+5. Copiar el **Resource ID del proyecto** (no el Client ID de la app) a `CIS_ZITADEL_AUDIENCE` en
+   `.env` — el `aud` del JWT incluye ambos (`[clientId, projectId]`), y el Resource ID es estable
+   aunque se agreguen más apps al mismo proyecto (WEB más adelante, por ejemplo).
+6. `docker compose up -d --build cis` para que tome la variable nueva.
+7. **Habilitar `offline_access`** en la app `app-qr-sicsaft` (Token Settings → Auth Token Type ya
+   en `JWT` del paso 4; agregar el scope/grant `offline_access` para que Zitadel emita
+   `refresh_token`) — TASK-007 usa refresh token explícito, no re-login silencioso (decisión
+   confirmada con el usuario, ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §5). Sin esto,
+   `oidc-client.ts` falla fuerte al canjear el primer `code` con un mensaje explícito en vez de
+   degradar a un comportamiento no pedido.
+8. Copiar el **Client ID** de la app `app-qr-sicsaft` a `app-qr-sicsaft/.env`
+   (`VITE_ZITADEL_CLIENT_ID`, ver `app-qr-sicsaft/.env.example`) junto con
+   `VITE_ZITADEL_ISSUER=http://id.sicsaft.localhost` y `VITE_CIS_URL=http://api.sicsaft.localhost`
+   — CIS ya expone `CIS_CORS_ORIGIN=http://localhost:5173` en `docker-compose.yml` (puerto de
+   Vite dev) para aceptar estas requests desde el navegador.
+
+Verificado real de punta a punta (no solo con mocks): login de un usuario real en el dashboard de
+Zitadel → authorization code + PKCE real (`GET /oauth/v2/authorize` con `code_challenge`) →
+canje del código por un JWT real (`POST /oauth/v2/token`) → `POST /auth/session` en CIS con ese
+JWT como `Authorization: Bearer` → CIS valida firma/`iss`/`aud` y llama a `GET /entitlements` en
+CORE → CORE responde con datos reales de Postgres. HTTP 201, no 401.
+
+**Bug real encontrado y corregido en el camino** (no solo documentado, corregido): Zitadel es
+multi-tenant por dominio y rechaza cualquier request cuyo header `Host` no sea uno de sus
+dominios registrados — pedirle el JWKS por el nombre de servicio interno de Docker
+(`http://zitadel:8080/...`, lo que decía el comentario original de `docker-compose.yml`) falla
+con `Instance not found`, verificado real, no en teoría. Node's `fetch` tampoco deja forzar un
+header `Host` distinto al de la URL (lo ignora). Fix: el servicio `traefik` de este compose ahora
+tiene un alias de red `id.sicsaft.localhost` (ver `docker-compose.yml`) — `cis` le pega a
+Zitadel por el mismo dominio externo tanto adentro como afuera de la red Docker, sin URLs
+internas especiales. `ZITADEL_JWKS_URI` ya no hace falta como variable separada: se deriva de
+`ZITADEL_ISSUER` (ver `loadZitadelAuthConfig`).
+
+**Actualización (Fase 3, TASK-007)**: `app-qr-sicsaft/src/lib/oidc/` ya implementa este mismo
+flujo real desde la UI (antes solo se había probado con `curl` simulando el cliente) —
+`app-qr-sicsaft/src/lib/qr-connector.ts` dejó de ser un stub. **No verificado en vivo todavía por
+esta sesión**: falta crear la app OIDC real en el dashboard (pasos 3, 7 y 8 de arriba) y correr el
+flujo completo en un navegador — ver la nota de verificación pendiente en
+`app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §7.
+
+## Otros puntos ya resueltos
 - **`core` ya está en el compose** (esqueleto NestJS, `GET /`/`GET /health` + `GET /entitlements`
   real ya consumido por `cis`, sin router de Traefik a propósito — solo lo consume `cis` dentro
   de la red, ver `core/README.md`). Protegido con `CORE_SERVICE_TOKEN` (auth
   servicio-a-servicio) — sin ese secreto en `.env`, ni `cis` ni `core` arrancan.
 - **`GET /entitlements` ya lee de Postgres real**, no de un seed en memoria: el servicio
-  `postgres` de este compose crea una base `core` dedicada (`init/02-core.sh` +
-  `init/schema/core.sql`, mismo modelo de `base-patrimonial/DOC-004-modelo-contrato.md`) con el
-  caso DUOC UC/Melipilla precargado. `CORE_DB_USER`/`CORE_DB_PASSWORD` en `.env` — sin ellos,
-  `core` no arranca (ver `core/src/database/database.config.ts`).
+  `postgres` de este compose crea una base `core` dedicada y vacía (`init/02-core.sh`); el
+  esquema (mismo modelo de `base-patrimonial/DOC-004-modelo-contrato.md`) lo aplica el servicio
+  `core-migrate` corriendo las migraciones de `core/migrations/` una sola vez, antes de levantar
+  `core` (`depends_on: service_completed_successfully`) — con el caso DUOC UC/Melipilla
+  precargado por la migración de seed. `CORE_DB_USER`/`CORE_DB_PASSWORD` en `.env` — sin ellos,
+  ni `core-migrate` ni `core` arrancan (ver `core/src/database/database.config.ts`).
 - Este compose es la base compartida; WEB se agrega acá como servicio nuevo cuando tenga
   Dockerfile — no antes, para no mantener contenedores vacíos.

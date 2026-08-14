@@ -19,7 +19,10 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
-    command: 'npm run build && npm run preview',
+    // Modo e2e dedicado (.env.e2e) — arma el bundle con VITE_MOCK_API=true, la red va mockeada
+    // con MSW (src/mocks/), ver HANDOFF §7. `vite preview` sólo sirve el dist/ ya buildeado, no
+    // necesita el modo de nuevo.
+    command: 'npx vite build --mode e2e && npx vite preview',
     url: 'http://localhost:8765',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

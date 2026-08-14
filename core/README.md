@@ -9,8 +9,10 @@ aplicaciones y sistemas externos interactúan con el patrimonio exclusivamente a
 ## Estado
 🟡 Esqueleto NestJS (mismo patrón que `../cis/`) + **`GET /entitlements` real sobre Postgres**
 ([DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §6): resuelve el modelo de `Contrato`
-contra una base `core` dedicada (`../devops/local/postgres/init/schema/core.sql`, mismo caso DUOC
-UC/Melipilla que ya usa CIS), con la máquina de estados y el invariante "una sede, un contrato
+contra una base `core` dedicada con esquema versionado por migraciones (`migrations/`,
+node-pg-migrate — ver "Desarrollo local"; mismo caso DUOC UC/Melipilla que ya usa CIS, cargado por
+la migración de seed a partir de `src/entitlements/contrato.seed.ts`, ya no retipeado a mano en
+SQL), con la máquina de estados y el invariante "una sede, un contrato
 vigente" de DOC-004 §3/§4 implementados, validados en `ContratoRepository` al leer (no solo en el
 seed de tests, ver `src/entitlements/contrato.seed.ts`) y testeados. Todo probado con lint, unit
 (100% stmts/lines/funcs, branches sobre el umbral del proyecto), e2e contra Postgres real, build y
@@ -24,15 +26,40 @@ de la red de contenedores, nunca un navegador directo).
 `x-internal-service-token` con un secreto compartido (`CORE_SERVICE_TOKEN`, comparado en tiempo
 constante para evitar timing attacks) — sin el header correcto, 401. Verificado con conectividad
 real entre contenedores `cis`↔`core` (`docker network` + `docker exec`, probando los 3 casos: sin
-header, header correcto, header incorrecto), no solo con mocks. Todavía sin ningún otro motor
-implementado (Patrimonial, Reglas, Eventos, Auditoría, Alertas...) ni el resto de los 11 dominios
-de Base Patrimonial — solo `Contrato`/`Sede`/`Organizacion` tienen tabla real hoy.
+header, header correcto, header incorrecto), no solo con mocks. Toda ruta pasa además por
+`CorrelationIdMiddleware` (`src/common/correlation-id/`, ROADMAP.md Fase 0): acepta/genera
+`X-Correlation-Id` y lo devuelve en la respuesta — CIS ya lo propaga al llamar acá. Todavía sin
+logging estructurado que lo use (WAF §2, pendiente).
+
+**Fase 2 (Orquestador + 4 motores de lectura) ya implementada** — diseño completo en
+[`core/aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) (DOC-006 a DOC-011), código real sobre
+[DOC-005](../base-patrimonial/DOC-005-modelo-patrimonial.md):
+- `GET /catalogo` (Motor Patrimonial, `src/patrimonial/`) — paginado, por
+  organización/área/ubicación.
+- `POST /inventarios` (Orquestador + Motor de Reglas + Motor Patrimonial + Motor de Eventos,
+  `src/orquestador/` + `src/inventarios/` + `src/reglas/` + `src/eventos/`) — clasifica cada
+  escaneo contra la Base Patrimonial real en una de las 8 categorías (DOC-009), idempotente
+  (`sesiones_inventario`, migración `1755200000000`), auditado siempre — éxito o rechazo — por
+  el Motor de Auditoría (`src/auditoria/`).
+- `GET /inventarios/:id/estado`.
+
+Verificado igual que el resto del sistema: unit (100% stmts/lines/funcs, 90%+ branches), e2e
+nuevo (`test/inventarios.e2e-spec.ts`) contra Postgres real, `docker build`/`docker run` real con
+`GET /catalogo` y `POST /inventarios` respondiendo contra la base migrada. Alta/baja/
+reincorporación/cambio de responsable, Motor de Alertas y Motor de Reportes quedan fuera a
+propósito — Fase 4 y sin consumidor real, respectivamente (ver DOC-008).
 
 ## Desarrollo local
-Requiere una base `core` real con el esquema de
-[`devops/local/postgres/init/schema/core.sql`](../devops/local/postgres/init/schema/core.sql)
-aplicado — más simple: levantar `docker compose up -d postgres` desde `../devops/local`, que la
-crea sola (ver `devops/local/README.md`). `test:e2e` (y `start:dev`) leen la conexión de
+Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
+`docker compose up -d` desde `../devops/local` ya lo hace solo (el servicio `core-migrate` corre
+`npm run migrate:up` una vez, antes de levantar `core`; `postgres` solo crea la base/usuario
+vacíos, ver `devops/local/postgres/init/02-core.sh`). Fuera de Docker, aplicar a mano:
+```bash
+cd core
+npm install
+npm run migrate:up    # requiere CORE_DB_HOST/PORT/NAME/USER/PASSWORD en el entorno
+```
+`test:e2e` (y `start:dev`) leen la misma conexión de
 `CORE_DB_HOST`/`CORE_DB_PORT`/`CORE_DB_NAME`/`CORE_DB_USER`/`CORE_DB_PASSWORD` — ver
 `src/database/database.config.ts` y los defaults de `test/jest-e2e.setup.ts` (apuntan a
 `localhost:5432`, que el compose ya expone al host).
@@ -102,8 +129,9 @@ registrando el motivo.
 ## Depende de
 - Modelo de dominio y esquema de Base Patrimonial Central (`../base-patrimonial`) — a diseñar en
   conjunto, no por separado. `Contrato` ya está modelado
-  ([DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md)); el resto de los 11 dominios sigue
-  pendiente (DOC-005).
+  ([DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md)); el alcance mínimo del resto
+  también ([DOC-005](../base-patrimonial/DOC-005-modelo-patrimonial.md)) — `Configuración` e
+  `Integraciones` siguen pendientes, sin consumidor todavía.
 - Decisión de identidad/auth (afecta también a CIS y `../seguridad`) — ya resuelta a nivel de
   mecanismo (Zitadel/OIDC, ver [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md)), CIS
   ya la implementa. CORE no valida tokens de operador directamente (eso ya lo hace CIS antes de
@@ -120,16 +148,20 @@ registrando el motivo.
 [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack: NestJS/TypeScript — los 9 motores son
 módulos Nest dentro de un mismo desplegable, ver ADR-001).
 [`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md)
-(modelo de `Contrato` — primer dato real que este esqueleto tendría que servir). Pendiente:
-DOC-003 Modelo de dominio, DOC-005 resto del modelo Base Patrimonial, DOC-006 API CIS↔CORE
-(incluye `GET /entitlements`), DOC-007 Arquitectura CORE, DOC-008 Motor Patrimonial, DOC-009
-Motor de Reglas, DOC-010 Motor Eventos, DOC-011 Motor Auditoría.
+(modelo de `Contrato` — primer dato real que este esqueleto tendría que servir).
+[`base-patrimonial/DOC-005-modelo-patrimonial.md`](../base-patrimonial/DOC-005-modelo-patrimonial.md)
+(alcance mínimo del resto del dominio — Área/Ubicación/Responsable/Catálogo/Activo/Inventarios/
+Eventos/Auditoría). [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) — DOC-006 (API CIS↔CORE),
+DOC-007 (Orquestador), DOC-008 (Motor Patrimonial), DOC-009 (Motor de Reglas), DOC-010 (Motor de
+Eventos), DOC-011 (Motor de Auditoría), todos entregados e implementados. Pendiente: DOC-003
+Modelo de dominio SICSAFT completo.
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) para el marco de escalabilidad/resiliencia
 aplicable a este sistema.
 
 ## Próximo paso sugerido
-`GET /entitlements` ya está hecho, CIS ya lo consume, y el llamador ya se valida (secreto
-compartido). El siguiente incremento con valor real es el primer motor real (Motor Patrimonial,
-consulta/inventario/cambio de ubicación — ver "Arquitectura interna" arriba) sobre datos reales
-de Base Patrimonial, o rotación/gestión del secreto vía un secret manager en vez de una env var
+`GET /entitlements`, `GET /catalogo` y `POST /inventarios` ya están hechos y probados de punta a
+punta. El siguiente incremento con valor real es que `app-qr-sicsaft/` reemplace su stub
+(`LocalQrConnectorClient`) por un cliente real que hable con CIS→CORE (TASK-006/007,
+`ROADMAP.md` Fase 3) — recién ahí este trabajo tiene un consumidor de verdad. Alternativa sin
+código: rotación/gestión del `CORE_SERVICE_TOKEN` vía un secret manager en vez de una env var
 plana cuando se pase a producción (ver `../devops/README.md`). Tarjeta Trello: `CORE-ADR-001`.

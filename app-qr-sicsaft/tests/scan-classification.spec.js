@@ -18,7 +18,8 @@ test('clasifica un activo correcto', async ({ page }) => {
 test('clasifica un activo de otra área y permite marcarlo fuera de lugar', async ({ page }) => {
   await scanCode(page, 'P008');
   await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('⚠ Otra área');
-  await expect(page.locator('[data-testid="scanned-item-expected"]')).toContainText('Obras Públicas');
+  // CIS/CORE no exponen nombre propio de área — se muestra el id crudo (ver session-setup.spec.js).
+  await expect(page.locator('[data-testid="scanned-item-expected"]')).toContainText('area-002');
 
   await page.click('[data-testid="mark-out-of-place-btn"]');
   await expect(page.locator('[data-testid="mark-out-of-place-btn"]')).toHaveText('Marcado fuera de lugar');
@@ -27,7 +28,10 @@ test('clasifica un activo de otra área y permite marcarlo fuera de lugar', asyn
 test('clasifica un activo de otra ubicación', async ({ page }) => {
   await scanCode(page, 'P005');
   await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('⚠ Otra ubicación');
-  await expect(page.locator('[data-testid="scanned-item-expected"]')).toContainText('Edificio Principal — Piso 2');
+  // scan-resolve.ts usa el ubicacionId crudo del activo para expectedLocationName, no lo resuelve
+  // contra sedes[] como sí hace buildOrganizationTree para el picker (hallazgo del plan de e2e,
+  // HANDOFF §7) — se afirma el comportamiento real, no el nombre bonito de la ubicación.
+  await expect(page.locator('[data-testid="scanned-item-expected"]')).toContainText('loc-002');
 });
 
 test('clasifica un activo no registrado y permite registrarlo como hallazgo externo', async ({ page }) => {

@@ -9,3 +9,7 @@ process.env.ZITADEL_AUDIENCE ??= 'cis-api';
 // arriba, ZITADEL_EXTERNALSECURE=false), y este valor solo se usa en tests.
 process.env.CORE_URL ??= 'http://core:3001'; // NOSONAR
 process.env.CORE_SERVICE_TOKEN ??= 'secreto-compartido';
+// Igual que CORE_URL arriba: solo hace falta para que RateLimitModule cargue su config al
+// arrancar (RATE_LIMIT_CONFIG usa `lazyConnect`, nunca conecta de verdad en estos tests) —
+// qr-connector.e2e-spec.ts además reemplaza el proveedor REDIS_CLIENT por un stub.
+process.env.REDIS_URL ??= 'redis://localhost:6379'; // NOSONAR

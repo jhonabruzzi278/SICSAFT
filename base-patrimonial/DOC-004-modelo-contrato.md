@@ -7,8 +7,8 @@
 > dominios de Base Patrimonial (Catálogo de Activos, Inventarios, Eventos, Historial, etc., ver
 > `base-patrimonial/README.md`) — eso queda para un DOC-005 posterior, en conjunto con CORE.
 >
-> **Estado**: implementada. Tablas reales en Postgres
-> (`devops/local/postgres/init/schema/core.sql`, motor ya resuelto a nivel de ecosistema por
+> **Estado**: implementada. Tablas reales en Postgres, versionadas con migraciones
+> (`core/migrations/`, motor ya resuelto a nivel de ecosistema por
 > [ADR-001](../adr/ADR-001-stack-backend-nestjs.md)) servidas por `core/` vía `GET /entitlements`
 > (`core/src/entitlements/contrato.repository.ts`), consumidas por CIS. Sigue sin existir el resto
 > de los 11 dominios de Base Patrimonial.
@@ -165,8 +165,7 @@ código, ver `core/README.md`):
 
 ## Depende de
 Nada técnicamente para el diseño (este documento no depende de código existente). Ya implementado
-sobre Postgres (`devops/local/postgres/init/schema/core.sql`, `core/src/entitlements/`) — ver §7
-para lo que sigue abierto.
+sobre Postgres (`core/migrations/`, `core/src/entitlements/`) — ver §7 para lo que sigue abierto.
 
 ## Bloquea
 - El `TODO(ADR-002/Contrato)` en `cis/src/qr-connector/qr-connector.service.ts` (resolución real

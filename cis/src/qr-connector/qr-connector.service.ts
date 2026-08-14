@@ -1,58 +1,55 @@
-import { randomUUID, createHash } from 'node:crypto';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   AuthSessionRequest,
   CatalogoQuery,
   InventarioRequest,
 } from './qr-connector.schemas';
 import {
-  ActivoCatalogo,
   AuthSessionResponse,
   CatalogoResponse,
   InventarioEstadoResponse,
   PostInventarioResponse,
 } from './qr-connector.types';
-import { SEED_CATALOGO, SEED_ORGANIZACIONES } from './qr-connector.seed';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
 import { CoreClientService } from '../core-client/core-client.service';
+import { DeviceRegistryService } from '../device-registry/device-registry.service';
 
-interface InventarioRegistro {
-  inventarioId: string;
-  requestHash: string;
-  response: PostInventarioResponse;
-  ultimoIntento: string;
-}
+// Piso del TTL de registro de dispositivo — evita mandarle a Redis un PX <= 0 en el caso limite
+// de que el token ya este por expirar en el instante exacto en que se procesa la request
+// (ZitadelAuthGuard ya valido que no este vencido, pero el margen puede ser de milisegundos).
+const MIN_DEVICE_TTL_MS = 1_000;
 
 @Injectable()
 export class QrConnectorService {
-  constructor(private readonly coreClientService: CoreClientService) {}
-
-  // Mock en memoria — se pierde al reiniciar el proceso. `organizaciones` ya no es mock (viene
-  // de CORE, ver authSession); esto sigue siendo mock para inventarios/catalogo mientras el
-  // resto del dominio patrimonial (DOC-005) no exista.
-  private readonly inventariosPorIdempotencyKey = new Map<
-    string,
-    InventarioRegistro
-  >();
-  private readonly inventariosPorId = new Map<string, InventarioRegistro>();
+  constructor(
+    private readonly coreClientService: CoreClientService,
+    private readonly deviceRegistryService: DeviceRegistryService,
+  ) {}
 
   async authSession(
     request: AuthSessionRequest,
     auth: ZitadelAuthContext,
+    correlationId: string,
   ): Promise<AuthSessionResponse> {
     // ZitadelAuthGuard ya validó el token — el operador viene autenticado por Zitadel, no por
     // este metodo. `accessToken`/`expiresAt` son pass-through del mismo token (ver ADR-002: el
     // CIS valida, no emite uno propio).
-    // `request.deviceId` no se enforced todavia (un solo dispositivo por operador, DOC-002 §1)
-    // — requiere persistencia que hoy no existe.
+    // DOC-002 §1 "un solo dispositivo por operador": el dispositivo de esta request pasa a ser
+    // el activo (supersede al anterior, ver DeviceRegistryService) — el registro expira solo
+    // junto con el token, sin requerir logout explicito.
+    const ttlMs = Math.max(
+      new Date(auth.expiresAt).getTime() - Date.now(),
+      MIN_DEVICE_TTL_MS,
+    );
+    await this.deviceRegistryService.registerDevice(
+      auth.operadorId,
+      request.deviceId,
+      ttlMs,
+    );
 
     const { organizaciones } = await this.coreClientService.getEntitlements(
       auth.operadorId,
+      correlationId,
     );
 
     return {
@@ -62,85 +59,37 @@ export class QrConnectorService {
     };
   }
 
-  getCatalogo(query: CatalogoQuery): CatalogoResponse {
-    const activos: ActivoCatalogo[] = SEED_CATALOGO.filter(
-      (activo) =>
-        activo.organizacionId === query.organizacionId &&
-        (query.areaId === undefined || activo.areaId === query.areaId) &&
-        (query.ubicacionId === undefined ||
-          activo.ubicacionId === query.ubicacionId),
+  // DOC-006 §2 (Fase 3): CIS es un proxy delgado — sin filtrado ni logica propia, CORE ya
+  // resuelve la query completa contra la Base Patrimonial real.
+  async getCatalogo(
+    query: CatalogoQuery,
+    correlationId: string,
+  ): Promise<CatalogoResponse> {
+    const { activos } = await this.coreClientService.getCatalogo(
+      query,
+      correlationId,
     );
-
     return { activos };
   }
 
-  postInventario(request: InventarioRequest): PostInventarioResponse {
-    const organizacionExiste = SEED_ORGANIZACIONES.some(
-      (org) => org.id === request.organizacionId,
-    );
-    if (!organizacionExiste) {
-      throw new BadRequestException({
-        message: 'Rechazado: organización inexistente',
-        errores: [
-          {
-            campo: 'organizacionId',
-            detalle: `No existe la organización '${request.organizacionId}'`,
-          },
-        ],
-      });
-    }
-
-    const requestHash = this.hashRequest(request);
-    const existente = this.inventariosPorIdempotencyKey.get(
-      request.idempotencyKey,
-    );
-
-    if (existente) {
-      if (existente.requestHash !== requestHash) {
-        // DOC-002 §5: idempotencyKey reutilizada con payload distinto es bug de cliente, no se
-        // reintenta automaticamente.
-        throw new ConflictException({
-          message: 'idempotencyKey ya usada con un payload distinto',
-          correlationId: request.correlationId,
-        });
-      }
-      // Mismo payload, misma key: reintento legitimo — se devuelve el resultado ya procesado,
-      // nunca se duplica el inventario (DOC-002 §4).
-      return existente.response;
-    }
-
-    const registro: InventarioRegistro = {
-      inventarioId: randomUUID(),
-      requestHash,
-      response: { inventarioId: '', estado: 'recibido' },
-      ultimoIntento: new Date().toISOString(),
-    };
-    registro.response = {
-      inventarioId: registro.inventarioId,
-      estado: 'recibido',
-    };
-
-    this.inventariosPorIdempotencyKey.set(request.idempotencyKey, registro);
-    this.inventariosPorId.set(registro.inventarioId, registro);
-
-    return registro.response;
+  // DOC-006 §3 (Fase 3): idempotencia, clasificacion de escaneos y validacion de
+  // organizacion/area/ubicacion viven en CORE (sesiones_inventario, Motor de Reglas) — CIS ya no
+  // mantiene su propio estado en memoria. Los 400/409 que DOC-002 §5 exige distinguir de un 502
+  // ya vienen resueltos por CoreClientService.callCore (passthroughStatuses).
+  async postInventario(
+    request: InventarioRequest,
+    correlationId: string,
+  ): Promise<PostInventarioResponse> {
+    return this.coreClientService.postInventario(request, correlationId);
   }
 
-  getInventarioEstado(inventarioId: string): InventarioEstadoResponse {
-    const registro = this.inventariosPorId.get(inventarioId);
-    if (!registro) {
-      throw new NotFoundException({
-        message: `No existe el inventario '${inventarioId}'`,
-      });
-    }
-
-    return {
-      estado: registro.response.estado,
-      ultimoIntento: registro.ultimoIntento,
-    };
-  }
-
-  private hashRequest(request: InventarioRequest): string {
-    return createHash('sha256').update(JSON.stringify(request)).digest('hex');
+  async getInventarioEstado(
+    inventarioId: string,
+    correlationId: string,
+  ): Promise<InventarioEstadoResponse> {
+    return this.coreClientService.getInventarioEstado(
+      inventarioId,
+      correlationId,
+    );
   }
 }

@@ -22,7 +22,7 @@ function formatSessionDate(isoDate: string): string {
 const SYNC_STATUS_LABEL: Record<ScanSession['syncStatus'], string> = {
   pending: 'Pendiente de sincronizar',
   synced: 'Sincronizado',
-  rejected: 'Rechazado', // reservado — sin caller hoy, ver qr-connector.ts
+  rejected: 'Rechazado', // CORE rechazó el payload (400/409, DOC-002 §5) — ver sync-queue.ts
 };
 
 const SYNC_STATUS_VARIANT: Record<ScanSession['syncStatus'], 'default' | 'outline' | 'destructive'> = {

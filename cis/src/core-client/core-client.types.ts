@@ -19,3 +19,36 @@ export const entitlementsResponseSchema = z.object({
 });
 
 export type EntitlementsResult = z.infer<typeof entitlementsResponseSchema>;
+
+// Contrato de GET /catalogo de CORE — ver core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md
+// §2. CORE pagina (`total`), pero el contrato ya construido con APP QR (DOC-002) no expone
+// paginacion todavia — CoreClientService devuelve solo `activos`, sin cambiar CatalogoResponse.
+const activoCatalogoSchema = z.object({
+  codigoQr: z.string(),
+  nombre: z.string(),
+  organizacionId: z.string(),
+  areaId: z.string(),
+  ubicacionId: z.string(),
+  estado: z.string(),
+});
+
+export const catalogoResponseSchema = z.object({
+  activos: z.array(activoCatalogoSchema),
+  total: z.number(),
+});
+export type CatalogoResult = z.infer<typeof catalogoResponseSchema>;
+
+// Contrato de POST /inventarios y GET /inventarios/:id/estado de CORE — DOC-006 §3/§4.
+export const postInventarioResponseSchema = z.object({
+  inventarioId: z.string(),
+  estado: z.enum(['pendiente', 'recibido', 'rechazado']),
+});
+export type PostInventarioResult = z.infer<typeof postInventarioResponseSchema>;
+
+export const inventarioEstadoResponseSchema = z.object({
+  estado: z.enum(['pendiente', 'recibido', 'rechazado']),
+  ultimoIntento: z.string(),
+});
+export type InventarioEstadoResult = z.infer<
+  typeof inventarioEstadoResponseSchema
+>;

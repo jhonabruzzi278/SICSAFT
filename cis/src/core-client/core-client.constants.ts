@@ -1,1 +1,2 @@
 export const CORE_CLIENT_CONFIG = Symbol('CORE_CLIENT_CONFIG');
+export const CORE_CIRCUIT_BREAKER = Symbol('CORE_CIRCUIT_BREAKER');

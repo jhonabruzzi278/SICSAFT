@@ -1,12 +1,33 @@
-// Cliente del Conector QR (DOC-002). Es la única vía por la que la app debe
-// tocar datos que no son locales al dispositivo — nunca escribir directo a la
-// Base Patrimonial Central. Como CIS/SICSAFT CORE no existen todavía (HANDOFF
-// sección 6, 4 preguntas abiertas sin responder), `LocalQrConnectorClient` es
-// un stub explícito respaldado por el mismo IndexedDB de siempre: mismo
-// contrato que usará la implementación HTTP real de TASK-007, sin la
-// fidelidad exacta del protocolo de red (eso es responsabilidad de esa tarea).
-import { getAllProducts, initInventoryDb, type ProductVariant, type ScanSession } from './db';
-import { ORGANIZATIONS, type Organization } from './organizations-data';
+// Cliente del Conector QR (DOC-002) — implementación HTTP real contra CIS (TASK-007). Las 4
+// preguntas que bloqueaban esta tarea (HANDOFF-APP-QR-SICSAFT.md sección 6) ya tienen respuesta:
+// CIS expone exactamente estas 4 rutas (DOC-006), la identidad viene de un access token real de
+// Zitadel vía PKCE (ADR-002, oidc-client.ts), `correlationId` de negocio (este payload) convive
+// con el header transversal `X-Correlation-Id` que CIS agrega solo, y la idempotencia es
+// idéntica a la propuesta acá (misma key + mismo payload = mismo resultado, distinto payload =
+// 409).
+import type { ProductVariant, ScanCategory, ScanSession } from './db';
+import { oidcClient, AuthenticationRequiredError } from './oidc/oidc-client';
+import { loadOidcConfig } from './oidc/oidc-config';
+import { getOrCreateDeviceId } from './device-id';
+import type { OrgArea, OrgLocation, Organization } from './organizations-data';
+
+export { AuthenticationRequiredError };
+
+export interface Sede {
+  id: string;
+  nombre: string;
+}
+
+// Forma real de CIS (GET /entitlements vía CoreClientService) — 2 niveles, organización→sede, no
+// 3 como el árbol organización→área→ubicación que usa la UI (`Organization`, ver
+// organizations-data.ts). CIS/CORE no modelan "área" al nivel de Contrato (base-patrimonial/
+// DOC-004) — solo aparece como campo suelto por activo en el catálogo. `buildOrganizationTree`
+// de acá abajo arma el árbol completo que la UI espera a partir de eso.
+export interface OrganizacionSummary {
+  id: string;
+  nombre: string;
+  sedes: Sede[];
+}
 
 export interface ConnectorAsset {
   codigoQr: string;
@@ -16,14 +37,16 @@ export interface ConnectorAsset {
   ubicacionId: string;
   // Extensión no cubierta por DOC-002 todavía: el contrato documentado no
   // modela variantes/talles. Se mantiene para que el escaneo de códigos
-  // "BASE-VARIANTE" (ver labels.ts) siga funcionando.
+  // "BASE-VARIANTE" (ver labels.ts) siga funcionando — CIS no la conoce, se
+  // resuelve local contra el catálogo propio (ver CatalogPage.tsx, fuera de
+  // alcance de TASK-007).
   variants?: ProductVariant[];
 }
 
 export interface AuthSessionResult {
   accessToken: string;
   expiresAt: string;
-  organizaciones: Organization[];
+  organizaciones: OrganizacionSummary[];
 }
 
 export interface InventarioResult {
@@ -43,69 +66,193 @@ export type InventarioPayload = Omit<
 >;
 
 export interface QrConnectorClient {
-  authSession(operatorName: string): Promise<AuthSessionResult>;
-  getCatalogo(organizacionId: string, areaId: string, ubicacionId: string): Promise<ConnectorAsset[]>;
+  authSession(): Promise<AuthSessionResult>;
+  getCatalogo(organizacionId: string, areaId?: string, ubicacionId?: string): Promise<ConnectorAsset[]>;
   postInventario(session: InventarioPayload): Promise<InventarioResult>;
   getInventarioEstado(inventarioId: string): Promise<InventarioEstado>;
 }
 
-class LocalQrConnectorClient implements QrConnectorClient {
-  private dbPromise: Promise<IDBDatabase> | null = null;
-
-  private getDb(): Promise<IDBDatabase> {
-    if (!this.dbPromise) this.dbPromise = initInventoryDb();
-    return this.dbPromise;
-  }
-
-  async authSession(operatorName: string): Promise<AuthSessionResult> {
-    // Sin mecanismo de autenticación real definido todavía (HANDOFF sección 6,
-    // pregunta 2) — token falso, no se persiste ni se usa para autorizar nada.
-    return {
-      accessToken: `local-${operatorName}`,
-      expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
-      organizaciones: ORGANIZATIONS,
-    };
-  }
-
-  async getCatalogo(organizacionId: string, _areaId: string, _ubicacionId: string): Promise<ConnectorAsset[]> {
-    // El stub ignora area/ubicación y devuelve todo el catálogo de la
-    // organización (+ productos sin organización asignada, legacy/visibles en
-    // cualquier lado) — necesario para que scan-resolve.ts pueda distinguir
-    // "otra área"/"otra ubicación" de "no registrado" (TASK-005). Filtrar
-    // server-side por ubicación exacta es algo a negociar con CORE (HANDOFF
-    // sección 6, pregunta 1).
-    const db = await this.getDb();
-    const products = await getAllProducts(db);
-    return products
-      .filter((p) => !p.organizationId || p.organizationId === organizacionId)
-      .map((p) => ({
-        codigoQr: p.code,
-        nombre: p.name,
-        organizacionId: p.organizationId ?? '',
-        areaId: p.areaId ?? '',
-        ubicacionId: p.locationId ?? '',
-        variants: p.variants,
-      }));
-  }
-
-  async postInventario(_session: InventarioPayload): Promise<InventarioResult> {
-    // Solo simula el intento de envío — no persiste nada localmente (eso es
-    // responsabilidad de sync-queue.ts, que guarda primero y solo después
-    // intenta enviar, para no perder datos escaneados si falla el envío).
-    // Sin backend real (TASK-007 sigue bloqueada), la única falla que se
-    // puede simular honestamente es la falta de conexión — igual que un
-    // fetch real.
-    if (!navigator.onLine) {
-      throw new Error('Sin conexión');
-    }
-    return { inventarioId: crypto.randomUUID(), estado: 'recibido' };
-  }
-
-  async getInventarioEstado(_inventarioId: string): Promise<InventarioEstado> {
-    // Sin caller todavía — la cola de TASK-008 usa el resultado de
-    // postInventario directamente en vez de sondear este endpoint.
-    return { estado: 'recibido', ultimoIntento: new Date().toISOString() };
+// DOC-002 §5: 400 (payload rechazado, ej. organización inexistente) y 409 (idempotencyKey
+// reutilizada con payload distinto) son rechazos permanentes — nunca hay que reintentarlos. Se
+// distinguen de una falla transitoria (5xx/red) con un tipo de error propio para que
+// sync-queue.ts (TASK-008) sepa cuándo dejar de insistir (`SyncStatus.rejected`) en vez de
+// reintentar para siempre un payload que CORE nunca va a aceptar.
+export class RejectedInventarioError extends Error {
+  constructor(
+    message: string,
+    readonly errores?: string[],
+  ) {
+    super(message);
+    this.name = 'RejectedInventarioError';
   }
 }
 
-export const qrConnector: QrConnectorClient = new LocalQrConnectorClient();
+interface ErrorBody {
+  message?: string;
+  errores?: Array<{ campo: string; detalle: string } | string>;
+}
+
+// Forma real de CORE (DOC-006 §3, `ScanResultado` en core/src/reglas/reglas.types.ts) — distinta
+// de `ScanCategory` (nombres/idioma internos de la app, ver db.ts). `postInventario` traduce una
+// a la otra; nunca se manda `ScanCategory` tal cual por la red.
+type ScanResultado =
+  | 'correcto'
+  | 'otra_area'
+  | 'otra_ubicacion'
+  | 'no_registrado'
+  | 'invalido'
+  | 'duplicado'
+  | 'ya_escaneado'
+  | 'con_incidencia';
+
+const CATEGORY_TO_RESULTADO: Record<ScanCategory, ScanResultado> = {
+  correct: 'correcto',
+  'wrong-area': 'otra_area',
+  'wrong-location': 'otra_ubicacion',
+  unregistered: 'no_registrado',
+  invalid: 'invalido',
+  'already-scanned': 'ya_escaneado',
+  duplicate: 'duplicado',
+};
+
+// DOC-006 §3 (`InventarioRequest`) — nombres de campo en español, distintos de `InventarioPayload`
+// (forma interna de la app, `ScanSession` en db.ts). `correlationId` ya es estable por sesión
+// (generado al iniciar el inventario, ver db.ts) y sirve también como `idempotencyKey`: nunca
+// cambia entre reintentos de la misma sesión, que es exactamente lo que DOC-002 §4 exige.
+function toInventarioRequest(session: InventarioPayload): Record<string, unknown> {
+  return {
+    correlationId: session.correlationId,
+    idempotencyKey: session.correlationId,
+    operadorId: session.operatorName,
+    organizacionId: session.organizationId,
+    areaId: session.areaId,
+    ubicacionId: session.locationId,
+    fechaInicio: session.startedAt,
+    fechaCierre: session.date,
+    escaneos: session.items.map((item) => ({
+      codigoQr: item.code,
+      resultado: CATEGORY_TO_RESULTADO[item.category],
+    })),
+    incidencias: session.items
+      .filter((item): item is typeof item & { incidentNote: string } => Boolean(item.incidentNote))
+      .map((item) => ({ codigoQr: item.code, descripcion: item.incidentNote })),
+  };
+}
+
+function flattenErrores(errores: ErrorBody['errores']): string[] | undefined {
+  if (!errores) return undefined;
+  return errores.map((e) => (typeof e === 'string' ? e : `${e.campo}: ${e.detalle}`));
+}
+
+async function parseErrorBody(res: Response): Promise<ErrorBody> {
+  try {
+    return (await res.json()) as ErrorBody;
+  } catch {
+    return {};
+  }
+}
+
+async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const config = loadOidcConfig();
+  // Deja pasar AuthenticationRequiredError tal cual — ScanPage.tsx la interpreta como "mandar al
+  // operador a loguearse de nuevo" (ver handleDecode/OperatorGate), no como una falla transitoria
+  // de red que sync-queue.ts deba reintentar.
+  const accessToken = await oidcClient.getValidAccessToken();
+
+  const headers = new Headers(init.headers);
+  headers.set('Authorization', `Bearer ${accessToken}`);
+  if (init.body) headers.set('Content-Type', 'application/json');
+
+  return fetch(`${config.cisUrl}${path}`, { ...init, headers });
+}
+
+class HttpQrConnectorClient implements QrConnectorClient {
+  async authSession(): Promise<AuthSessionResult> {
+    const res = await authorizedFetch('/auth/session', {
+      method: 'POST',
+      body: JSON.stringify({ deviceId: getOrCreateDeviceId() }),
+    });
+    if (!res.ok) {
+      const body = await parseErrorBody(res);
+      throw new Error(body.message ?? `No se pudo iniciar sesión (${res.status})`);
+    }
+    return (await res.json()) as AuthSessionResult;
+  }
+
+  async getCatalogo(organizacionId: string, areaId?: string, ubicacionId?: string): Promise<ConnectorAsset[]> {
+    const params = new URLSearchParams({ organizacionId });
+    if (areaId) params.set('areaId', areaId);
+    if (ubicacionId) params.set('ubicacionId', ubicacionId);
+
+    const res = await authorizedFetch(`/catalogo?${params.toString()}`);
+    if (!res.ok) {
+      const body = await parseErrorBody(res);
+      throw new Error(body.message ?? `No se pudo traer el catálogo (${res.status})`);
+    }
+    const body = (await res.json()) as { activos: ConnectorAsset[] };
+    return body.activos;
+  }
+
+  async postInventario(session: InventarioPayload): Promise<InventarioResult> {
+    const res = await authorizedFetch('/inventarios', {
+      method: 'POST',
+      body: JSON.stringify(toInventarioRequest(session)),
+    });
+
+    if (res.status === 400 || res.status === 409) {
+      const body = await parseErrorBody(res);
+      throw new RejectedInventarioError(
+        body.message ?? `CORE rechazó el inventario (${res.status})`,
+        flattenErrores(body.errores),
+      );
+    }
+    if (!res.ok) {
+      const body = await parseErrorBody(res);
+      throw new Error(body.message ?? `No se pudo enviar el inventario (${res.status})`);
+    }
+    return (await res.json()) as InventarioResult;
+  }
+
+  async getInventarioEstado(inventarioId: string): Promise<InventarioEstado> {
+    const res = await authorizedFetch(`/inventarios/${encodeURIComponent(inventarioId)}/estado`);
+    if (!res.ok) {
+      const body = await parseErrorBody(res);
+      throw new Error(body.message ?? `No se pudo consultar el estado (${res.status})`);
+    }
+    return (await res.json()) as InventarioEstado;
+  }
+}
+
+export const qrConnector: QrConnectorClient = new HttpQrConnectorClient();
+
+// Arma el árbol organización→área→ubicación que espera la UI (OrganizationPicker,
+// AreaLocationPicker) a partir del catálogo completo de una organización — CIS no tiene un
+// endpoint propio para listar áreas/ubicaciones (decisión confirmada explícitamente: no hay otra
+// forma de poblar el picker sin inventar un endpoint nuevo del lado de CIS/CORE). El nombre de
+// área no existe en el contrato (`activos[].areaId` es solo un id, sin campo `nombre` propio) —
+// se muestra el id tal cual. El nombre de ubicación sí está disponible: se resuelve contra
+// `sedes[]` de `AuthSessionResult` cuando el id calza.
+export function buildOrganizationTree(
+  summary: OrganizacionSummary,
+  catalogo: ConnectorAsset[],
+): Organization {
+  const areasById = new Map<string, OrgArea>();
+
+  for (const activo of catalogo) {
+    if (activo.organizacionId !== summary.id || !activo.areaId || !activo.ubicacionId) continue;
+
+    let area = areasById.get(activo.areaId);
+    if (!area) {
+      area = { id: activo.areaId, name: activo.areaId, locations: [] };
+      areasById.set(activo.areaId, area);
+    }
+
+    if (!area.locations.some((location) => location.id === activo.ubicacionId)) {
+      const sede = summary.sedes.find((s) => s.id === activo.ubicacionId);
+      const location: OrgLocation = { id: activo.ubicacionId, name: sede?.nombre ?? activo.ubicacionId };
+      area.locations.push(location);
+    }
+  }
+
+  return { id: summary.id, name: summary.nombre, areas: Array.from(areasById.values()) };
+}

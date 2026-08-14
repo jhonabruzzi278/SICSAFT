@@ -10,6 +10,11 @@ terceros. Cada integración pasa por CIS igual que cualquier otra fuente/destino
 ## Conectores previstos
 CON-ERP, CON-CONTABILIDAD, CON-RRHH, CON-EMAIL, CON-POWERBI, CON-RFID, CON-API.
 
+`CON-CONTABILIDAD` no es una integración más: Tomo III §1.4 (Entrada 5) lo define como la fuente
+de la que **siempre** proviene la Base Oficial (importación/actualización/sincronización, nunca
+elimina histórico) — distinto del resto, que son integraciones de salida/consumo. Ver
+[ARQUITECTURA-WAF.md §11](../ARQUITECTURA-WAF.md#11-entradas-y-salidas-oficiales-del-ecosistema-tomo-iii-cap1).
+
 ## Registro esperado por integración
 fecha, origen, destino, estado, resultado, errores, correlationId.
 

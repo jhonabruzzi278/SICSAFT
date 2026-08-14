@@ -21,12 +21,17 @@ import { AreaLocationPicker } from '@/components/AreaLocationPicker';
 import { IncidentDialog } from '@/components/IncidentDialog';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import type { ScannedSessionItem } from '@/lib/db';
-import { qrConnector, type ConnectorAsset } from '@/lib/qr-connector';
+import {
+  qrConnector,
+  buildOrganizationTree,
+  type ConnectorAsset,
+  type OrganizacionSummary,
+} from '@/lib/qr-connector';
 import { submitInventario } from '@/lib/sync-queue';
 import { resolveScannedProduct } from '@/lib/scan-resolve';
 import { triggerScanFeedback } from '@/lib/scan-feedback';
 import { downloadCsv } from '@/lib/csv-export';
-import { getStoredOperatorName, setStoredOperatorName } from '@/lib/operator';
+import { oidcClient, AuthenticationRequiredError } from '@/lib/oidc/oidc-client';
 import { getOrCreateDeviceId } from '@/lib/device-id';
 import { logAuditEvent } from '@/lib/audit-log';
 import type { Organization, OrgArea, OrgLocation } from '@/lib/organizations-data';
@@ -42,7 +47,8 @@ export function ScanPage() {
   const deviceIdRef = useRef(getOrCreateDeviceId());
   const [startingScan, setStartingScan] = useState(false);
   const [operatorName, setOperatorName] = useState<string | null>(null);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizacionSummary[]>([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [area, setArea] = useState<OrgArea | null>(null);
   const [location, setLocation] = useState<OrgLocation | null>(null);
@@ -57,33 +63,55 @@ export function ScanPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const storedOperator = getStoredOperatorName();
-    if (storedOperator) {
-      qrConnector.authSession(storedOperator).then((result) => {
+    // Se completa la sesión OIDC en AuthCallbackPage (o ya venía de una sesión previa dentro de
+    // la misma pestaña — sessionStorage, ver oidc/token-store.ts) — acá solo se resuelve
+    // auth/session contra CIS con el token ya vigente.
+    if (!oidcClient.isAuthenticated()) return;
+
+    qrConnector
+      .authSession()
+      .then((result) => {
         if (cancelled) return;
-        setOperatorName(storedOperator);
+        setOperatorName(oidcClient.getCurrentOperatorDisplayName());
         setOrganizations(result.organizaciones);
         setView('organization');
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        // Token vencido sin refresh posible u otra falla real — oidcClient.getValidAccessToken()
+        // ya limpió la sesión, se queda en la pantalla de login (view ya arranca en 'operator').
+        if (!(err instanceof AuthenticationRequiredError)) {
+          toast.error('No se pudo iniciar sesión. Intentá de nuevo.');
+        }
       });
-    }
+
     return () => {
       cancelled = true;
     };
   }, []);
 
-  async function handleOperatorContinue(name: string) {
-    setStoredOperatorName(name);
-    const result = await qrConnector.authSession(name);
-    setOperatorName(name);
-    setOrganizations(result.organizaciones);
-    setView('organization');
-  }
-
-  function handleOrganizationSelect(selected: Organization) {
-    setOrganization(selected);
-    setArea(null);
-    setLocation(null);
-    setView('area-location');
+  async function handleOrganizationSelect(summary: OrganizacionSummary) {
+    setLoadingCatalog(true);
+    try {
+      // CIS no tiene un endpoint propio para listar áreas/ubicaciones (decisión confirmada) — se
+      // trae el catálogo completo de la organización una sola vez acá y se deriva el árbol que
+      // espera AreaLocationPicker; startScanning() reutiliza este mismo catálogo, sin refetch.
+      const catalogo = await qrConnector.getCatalogo(summary.id);
+      catalogRef.current = catalogo;
+      setOrganization(buildOrganizationTree(summary, catalogo));
+      setArea(null);
+      setLocation(null);
+      setView('area-location');
+    } catch (err) {
+      if (err instanceof AuthenticationRequiredError) {
+        toast.error('Tu sesión venció. Iniciá sesión de nuevo.');
+        setView('operator');
+      } else {
+        toast.error('No se pudo cargar el catálogo de la organización. Intentá de nuevo.');
+      }
+    } finally {
+      setLoadingCatalog(false);
+    }
   }
 
   function handleAreaLocationContinue(selectedArea: OrgArea, selectedLocation: OrgLocation) {
@@ -212,16 +240,11 @@ export function ScanPage() {
     });
   }
 
-  async function startScanning() {
+  function startScanning() {
     if (!operatorName || !organization || !area || !location) return;
     setStartingScan(true);
-    try {
-      catalogRef.current = await qrConnector.getCatalogo(organization.id, area.id, location.id);
-    } catch {
-      toast.error('No se pudo cargar el catálogo. Intentá de nuevo.');
-      setStartingScan(false);
-      return;
-    }
+    // El catálogo ya se trajo completo al elegir la organización (handleOrganizationSelect) —
+    // catalogRef.current sigue vigente acá, no hace falta un segundo fetch.
     startedAtRef.current = new Date().toISOString();
     invalidAttemptsRef.current = 0;
     // Generado al iniciar, no al enviar (DOC-002 sección 6) — viaja en cada
@@ -339,11 +362,17 @@ export function ScanPage() {
   const externalFindCount = items.filter((i) => i.category === 'unregistered' && i.externalFind).length;
 
   if (view === 'operator') {
-    return <OperatorGate onContinue={handleOperatorContinue} />;
+    return <OperatorGate />;
   }
 
   if (view === 'organization') {
-    return <OrganizationPicker organizations={organizations} onSelect={handleOrganizationSelect} />;
+    return (
+      <OrganizationPicker
+        organizations={organizations}
+        onSelect={handleOrganizationSelect}
+        disabled={loadingCatalog}
+      />
+    );
   }
 
   if (view === 'area-location' && organization) {

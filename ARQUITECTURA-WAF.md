@@ -8,8 +8,9 @@
 
 ## 0. Por qué este documento
 
-Los tomos oficiales (`TOMO IV Cap.1 — Modelo General`, `TOMO IV Cap.2 — SICSAFT CORE`,
-`TOMO III Cap.4 — Arquitectura de Datos`) definen **qué** hace cada componente del ecosistema y
+Los tomos oficiales (`TOMO III Cap.1 — Arquitectura General del Ecosistema`, `TOMO IV Cap.1 —
+Modelo General`, `TOMO IV Cap.2 — SICSAFT CORE`, `TOMO III Cap.4 — Arquitectura de Datos`)
+definen **qué** hace cada componente del ecosistema y
 **qué reglas** debe cumplir (fuente única de la verdad, ningún acceso directo a la Base
 Patrimonial, trazabilidad total). Este documento define **cómo** construir esos componentes para
 que el sistema completo sea escalable, modular, resiliente y optimizado — sin comprometer esas
@@ -203,3 +204,58 @@ Este documento no reemplaza los ADR de stack tecnológico pendientes en `core/RE
 `cis/README.md` y `base-patrimonial/README.md` — les da el marco de decisión. El primer ADR de
 stack (CORE + Base Patrimonial) debe declarar explícitamente, por cada pilar de este documento,
 qué tecnología concreta lo satisface, para que quede trazable por qué se eligió.
+
+## 11. Entradas y salidas oficiales del ecosistema (Tomo III Cap.1)
+
+Tomo III Cap.1 ("Arquitectura General del Ecosistema SICSAFT") define, a nivel de todo el
+ecosistema, las fuentes autorizadas de entrada y sus permisos, y las salidas oficiales de
+explotación de información. Complementa el modelo de 6 niveles (§1) y el modelo de permisos de
+[`seguridad/README.md`](seguridad/README.md).
+
+**Entradas oficiales (Tomo III §1.4)**
+
+| Entrada | Función | Permisos | No puede |
+|---|---|---|---|
+| APP QR | Captura vía código QR | Lectura, registro de inventarios/estados, generación de informes | Modificar la Base Patrimonial Oficial |
+| Plataforma WEB | Consulta, dashboards, reportes, administración | Generar configuraciones, asignar usuarios, autorizar procesos | Modificar directamente la Base Patrimonial sin permisos específicos |
+| RFID (referencia de integración: MOVAT) | Recibe eventos RFID — movimientos, alarmas, ubicación, lecturas | Solo lectura de eventos | Nunca modifica la Base Patrimonial |
+| **Administrador Patrimonial** | Único rol autorizado a modificar oficialmente la Base Patrimonial | Incorporar activos, eliminar activos (según permisos), modificar responsables/áreas, actualizar estados oficiales, importar bases contables | — |
+| **Sistema Contable** | Fuente de la que siempre proviene la Base Oficial | Importación, actualización, sincronización de registros oficiales | Nunca elimina información histórica |
+
+Las dos últimas entradas (**Administrador Patrimonial**, **Sistema Contable**) todavía no están
+modeladas en ningún sistema del ecosistema: no existe el rol "Administrador Patrimonial" en
+`seguridad/README.md` (hoy solo hay operadores autenticados vía Zitadel, sin este nivel de
+permiso exclusivo) ni una integración con sistema contable en `integraciones/README.md` (el
+conector `CON-CONTABILIDAD` está listado pero sin iniciar). Quedan como trabajo pendiente, no
+implementado.
+
+**Salidas oficiales (Tomo III §1.5)**
+
+| Salida | Contenido |
+|---|---|
+| Reportes Operacionales | Solo lectura, no modifican información |
+| Dashboard Ejecutivo | Indicadores, gráficos, BI |
+| Alertas | Notificaciones — correo, aplicación, SMS (si se implementa) |
+| Auditoría | Historial, trazabilidad, bitácora, eventos |
+| API | Intercambio de información con otros sistemas, permisos según autenticación/autorización |
+
+Mapea 1:1 con los motores ya definidos en [`core/README.md`](core/README.md) (Motor de Reportes,
+Motor de Alertas, Motor de Auditoría) más el nivel CIP ([`cip/README.md`](cip/README.md)) para el
+Dashboard Ejecutivo.
+
+## 12. Hoja de ruta tecnológica declarada (Tomo III §1.2)
+
+Tomo III Cap.1 declara una hoja de ruta explícita en 5 etapas — evita "desarrollar funciones que
+el mercado aún no demanda", consistente con YAGNI (§9):
+
+1. **Etapa 1 (v1.0)**: APP QR, Plataforma WEB, Integración RFID — converge todo a SICSAFT CORE.
+   Etapa de comercialización inicial. **Es la etapa actual del ecosistema.**
+2. **Etapa 2**: Bluetooth Low Energy (BLE), GPS.
+3. **Etapa 3**: Sensores IoT, cámaras inteligentes.
+4. **Etapa 4**: Inteligencia artificial, machine learning, analítica predictiva.
+5. **Etapa 5**: Integraciones ERP, BI, plataformas externas.
+
+Coincide con el orden de [`README.md`](README.md) (RFID e Integraciones como "fase tardía"), pero
+agrega dos etapas intermedias (BLE/GPS, IoT/cámaras) que hoy no aparecen en ningún roadmap del
+repo — no crear código para ellas todavía, siguiendo la regla explícita de la Etapa 1: "nunca
+desarrollaremos funciones que el mercado aún no demanda".

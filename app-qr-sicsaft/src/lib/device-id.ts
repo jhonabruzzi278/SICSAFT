@@ -1,6 +1,7 @@
-// Identificador de dispositivo — persistido en localStorage, sin mecanismo
-// real de identificación de dispositivo todavía (DOC-002 sección 3, auth
-// bloqueada por HANDOFF sección 6). Mismo patrón que operator.ts.
+// Identificador de dispositivo — persistido en localStorage (no es un secreto, a diferencia del
+// access token, ver oidc/token-store.ts). Se manda en POST /auth/session (DOC-002 §1, "un solo
+// dispositivo por operador") — CIS lo registra y hace supersede del dispositivo anterior si
+// cambia, ver cis/src/device-registry/.
 const DEVICE_ID_KEY = 'qrvault-device-id';
 
 export function getOrCreateDeviceId(): string {

@@ -11,7 +11,7 @@ flowchart LR
     Rules --> Database["Base Patrimonial Central"]
 ```
 
-> **Estado del contrato**: propuesta técnica basada en el flujo oficial ([DOC-001](./DOC-001-flujo-oficial.md)) y en las restricciones ya conocidas del lado APP QR SICSAFT (PWA, posible offline, un solo dispositivo por operador). No existe todavía integración real ni especificación publicada de CIS/SICSAFT CORE en este repositorio — los puntos marcados **⚠️ Pendiente de confirmar con el equipo de SICSAFT CORE** son supuestos de diseño, no hechos verificados, y deben validarse antes de implementar TASK-006/007.
+> **Estado del contrato**: implementado real de punta a punta desde TASK-007 — `cis/src/qr-connector/` sirve exactamente estas 4 rutas (formalizadas del lado de CORE en `core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md`) y `app-qr-sicsaft/src/lib/qr-connector.ts` (`HttpQrConnectorClient`) las consume real. Los puntos que decían **⚠️ Pendiente de confirmar con el equipo de SICSAFT CORE** ya tienen respuesta — se anota la resolución real en cada uno en vez de borrar la pregunta original, para que quede el registro de qué se asumió en el diseño vs. qué resultó ser cierto.
 
 ## 1. Alcance del Conector QR
 
@@ -38,15 +38,16 @@ Propuesta REST/HTTPS sobre JSON, una operación por caso de uso del flujo oficia
 
 `escaneos[]` transporta la clasificación completa definida en DOC-001 (correcto, otra área, otra ubicación, no registrado, inválido, duplicado, ya escaneado, con incidencia), no solo found/missing — así CORE puede aplicar Reglas patrimoniales con el mismo detalle que vio el operador.
 
-⚠️ **Pendiente de confirmar con el equipo de SICSAFT CORE**: si CIS expone estas rutas tal cual, o si el conector debe adaptarse a un contrato ya existente (versión de API, formato de autenticación real, nombres de campo). Esta tabla es el contrato deseado desde el lado de la app, a usar como punto de partida de la negociación, no como API ya acordada.
+✅ **Resuelto (TASK-007)**: CIS expone estas rutas tal cual — sin cambios de nombre de campo ni versión de API. Única corrección real sobre lo propuesto: `POST /auth/session` ya no recibe `operadorId`/`credencial` en el body (ver sección 3, ADR-002 del lado de CIS) — la identidad viene del access token, no de un campo del payload.
 
 ## 3. Autenticación
 
 - El operador se autentica una vez por sesión de trabajo (pantalla 1) contra `POST /auth/session`; el token resultante se usa en todas las llamadas posteriores (`Authorization: Bearer <accessToken>`).
-- El token debe persistirse solo en memoria/IndexedDB local, nunca en `localStorage` sin cifrar (ver regla de seguridad de sesiones — no reutilizar el patrón simple ya usado para `qrvault-theme`).
-- Vencimiento corto (`expiresAt`) + refresh transparente si el operador sigue trabajando; si el token vence en medio de una sesión offline, el envío se reintenta re-autenticando primero (ver sección 4).
+- Vencimiento corto (`expiresAt`) + refresh explícito con refresh token si el operador sigue trabajando; si el token vence en medio de una sesión offline, el envío se reintenta re-autenticando primero (ver sección 4).
 
-⚠️ **Pendiente de confirmar con el equipo de SICSAFT CORE**: mecanismo real (OAuth2 client credentials, JWT propio de SICSAFT, certificado de dispositivo). Se asume aquí un esquema token-based estándar como placeholder de diseño.
+✅ **Resuelto (TASK-007)**: mecanismo real es OIDC (Zitadel) — authorization code + PKCE, app tipo User Agent/SPA sin secreto de cliente (ver ADR-002 del lado de CIS y `devops/local/README.md` "Cliente OIDC real"). Implementado en `app-qr-sicsaft/src/lib/oidc/`.
+
+**Decisión sobre dónde persistir el token** (no estaba resuelta en el diseño original, que solo decía "memoria/IndexedDB local, nunca `localStorage` sin cifrar" sin considerar `sessionStorage`): se usa `sessionStorage` — se pierde al cerrar la pestaña/PWA, el operador re-autentica cada turno en vez de dejar un token vivo indefinidamente en el dispositivo. Decisión confirmada explícitamente con el usuario, ver `app-qr-sicsaft/src/lib/oidc/token-store.ts`.
 
 ## 4. Reintentos e idempotencia
 
@@ -60,18 +61,25 @@ Propuesta REST/HTTPS sobre JSON, una operación por caso de uso del flujo oficia
 
 | Código | Significado | Comportamiento esperado en la app |
 |---|---|---|
-| `401` | Token vencido/ inválido | Re-autenticar automáticamente y reintentar una vez; si falla de nuevo, pedir login |
-| `400` | Payload inválido (ej. escaneo con organización inexistente) | Marcar el inventario como rechazado, mostrar `errores[]` al operador, no reintentar |
-| `409` | Conflicto (ej. `idempotencyKey` ya usada con payload distinto) | Tratar como bug de cliente — loguear con el `correlationId`, no reintentar automáticamente |
-| `5xx` / timeout / sin red | Error transitorio | Encolar localmente y aplicar la política de reintentos de la sección 4 |
+| `401` | Token vencido/ inválido | ✅ Implementado, distinto al texto original: en vez de reaccionar a un 401 de CIS, cada llamada renueva el token *antes* de mandarla si hace falta (`oidcClient.getValidAccessToken()`, refresh token explícito); si igual llega un 401 residual, cae en la misma cola de reintentos de la sección 4 en vez de un retry inmediato — el próximo intento ya vuelve a chequear el token. Si el refresh falla (`AuthenticationRequiredError`), la sesión se limpia y el operador vuelve a la pantalla de login |
+| `400` | Payload inválido (ej. escaneo con organización inexistente) | ✅ Implementado — `RejectedInventarioError`, marca el inventario `syncStatus: 'rejected'`, no reintenta (`sync-queue.ts`) |
+| `409` | Conflicto (ej. `idempotencyKey` ya usada con payload distinto) | ✅ Implementado — mismo camino que 400 (`RejectedInventarioError`) |
+| `5xx` / timeout / sin red | Error transitorio | ✅ Implementado — encola localmente y aplica la política de reintentos de la sección 4, sin cambios |
 
 ## 6. Trazabilidad
 
 - Todo envío lleva un `correlationId` generado en el dispositivo al **iniciar** el inventario (no al enviarlo), para poder correlacionar desde el primer escaneo hasta la confirmación de CORE aunque el envío tarde horas en salir de la cola offline.
 - El `correlationId` se guarda en el registro de auditoría local (TASK-009: operador, fecha/hora, dispositivo, inventario, código leído, resultado, ubicación, incidencia, estado de sincronización) junto a cada operación relacionada.
-- CORE debe devolver el mismo `correlationId` (o uno propio vinculado) en toda respuesta, para que soporte pueda seguir un caso de punta a punta entre logs de la app y logs de CORE.
 
-⚠️ **Pendiente de confirmar con el equipo de SICSAFT CORE**: si CORE ya tiene su propio esquema de correlación/tracing (ej. cabecera estándar tipo `X-Correlation-Id`, integración con un sistema de observabilidad existente) al que el conector deba adaptarse en lugar de proponer uno nuevo.
+✅ **Resuelto (TASK-007)**: CORE sí tiene su propio esquema — un header transversal
+`X-Correlation-Id` (WAF §2, `CorrelationIdMiddleware` en CIS y CORE), independiente del
+`correlationId` de negocio de este contrato. Conviven, no se reemplazan: el header traza la
+request HTTP en logs/tracing de infraestructura; el `correlationId` del payload sigue siendo el
+identificador de negocio del inventario en la auditoría local. **Corrección real sobre lo
+propuesto**: CORE **no** devuelve el `correlationId` de negocio en el body de la respuesta de
+`POST /inventarios` (`PostInventarioResponse` es `{inventarioId, estado, errores?}`, ver DOC-006
+§3) — solo el header `X-Correlation-Id` viaja de vuelta. El punto anterior de esta sección ("CORE
+debe devolver el mismo correlationId... en toda respuesta") no se cumplió tal cual estaba escrito.
 
 ## Dependencias hacia el resto del backlog
 - **TASK-006** (separar frontend del acceso directo a datos) implementa el cliente de este contrato en lugar de las llamadas directas a IndexedDB.

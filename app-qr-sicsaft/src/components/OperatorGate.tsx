@@ -1,54 +1,29 @@
-import { useState } from 'react';
-import { UserIcon } from 'lucide-react';
+import { LogInIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { oidcClient } from '@/lib/oidc/oidc-client';
 
-interface OperatorGateProps {
-  onContinue: (name: string) => void;
-}
-
-export function OperatorGate({ onContinue }: OperatorGateProps) {
-  const [name, setName] = useState('');
-
-  function handleSubmit() {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    onContinue(trimmed);
-  }
-
+// Identificación de operador vía Zitadel (ADR-002, TASK-007) — ya no hay nombre tipeado, el CIS
+// resuelve la identidad real del access token (ver ZitadelAuthGuard, cis/src/common/auth/). El
+// redirect solo se dispara con un gesto explícito del operador (este botón), nunca automático al
+// cargar la página, para no sorprender a alguien reabriendo la PWA.
+export function OperatorGate() {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <UserIcon className="size-5 text-brand" />
+          <LogInIcon className="size-5 text-brand" />
           Identificar operador
         </CardTitle>
-        <CardDescription>Ingresá tu nombre para iniciar un inventario.</CardDescription>
+        <CardDescription>Iniciá sesión con tu cuenta para empezar un inventario.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <Label htmlFor="operator-name-input" className="sr-only">
-          Nombre del operador
-        </Label>
-        <Input
-          id="operator-name-input"
-          data-testid="operator-name-input"
-          placeholder="Ej. Juan Pérez"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSubmit();
-          }}
-          autoComplete="off"
-        />
+      <CardContent>
         <Button
           type="button"
-          onClick={handleSubmit}
-          disabled={!name.trim()}
-          data-testid="operator-continue-btn"
+          onClick={() => oidcClient.startLogin()}
+          data-testid="operator-login-btn"
         >
-          Continuar
+          Iniciar sesión
         </Button>
       </CardContent>
     </Card>

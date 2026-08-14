@@ -9,7 +9,7 @@ import {
   updateSession,
   type ScanSession,
 } from './db';
-import { qrConnector, type InventarioPayload } from './qr-connector';
+import { qrConnector, RejectedInventarioError, type InventarioPayload } from './qr-connector';
 import { logAuditEvent } from './audit-log';
 import { getOrCreateDeviceId } from './device-id';
 
@@ -43,7 +43,30 @@ async function attemptSend(db: IDBDatabase, session: ScanSession): Promise<void>
       areaName: session.areaName,
       locationName: session.locationName,
     });
-  } catch {
+  } catch (error) {
+    // DOC-002 §5: un 400/409 de CORE es un rechazo permanente (payload inválido o
+    // idempotencyKey reutilizada con otro payload) — reintentarlo para siempre nunca lo va a
+    // hacer pasar, así que corta la cola acá en vez de seguir intentando cada 5 minutos.
+    // Cualquier otra falla (5xx, sin red, 401 sin refresh posible) sigue siendo transitoria.
+    if (error instanceof RejectedInventarioError) {
+      await updateSession(db, {
+        ...session,
+        syncStatus: 'rejected',
+        lastAttemptAt: new Date().toISOString(),
+      });
+      await logAuditEvent({
+        event: 'sync_status_changed',
+        correlationId: session.correlationId,
+        operatorName: session.operatorName,
+        deviceId: getOrCreateDeviceId(),
+        syncStatus: 'rejected',
+        organizationName: session.organizationName,
+        areaName: session.areaName,
+        locationName: session.locationName,
+      });
+      return;
+    }
+
     const attempts = syncAttempts + 1;
     const nextRetryAt = new Date(Date.now() + nextRetryDelayMs(syncAttempts)).toISOString();
     await updateSession(db, {

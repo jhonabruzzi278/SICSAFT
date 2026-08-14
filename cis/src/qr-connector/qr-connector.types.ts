@@ -7,9 +7,8 @@ export interface Organizacion {
   id: string;
   nombre: string;
   // Sedes cubiertas por contrato vigente — ver ADR-002 (Organizacion -> Contrato -> Sede).
-  // El mock no modela "Contrato" todavia como entidad propia, solo su resultado (que sedes
-  // quedan habilitadas), para no adelantarse al diseño real que se hace junto con core/ y
-  // base-patrimonial/.
+  // Este tipo no modela "Contrato" como entidad propia en CIS, solo su resultado (que sedes
+  // quedan habilitadas) — la entidad Contrato vive en CORE/base-patrimonial.
   sedes: Sede[];
 }
 

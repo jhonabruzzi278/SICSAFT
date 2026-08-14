@@ -4,23 +4,66 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { QrConnectorService } from './qr-connector.service';
-import { InventarioRequest } from './qr-connector.schemas';
+import { CatalogoQuery, InventarioRequest } from './qr-connector.schemas';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
 import type { CoreClientService } from '../core-client/core-client.service';
-import type { EntitlementsResult } from '../core-client/core-client.types';
+import type { DeviceRegistryService } from '../device-registry/device-registry.service';
+import type {
+  CatalogoResult,
+  EntitlementsResult,
+  InventarioEstadoResult,
+  PostInventarioResult,
+} from '../core-client/core-client.types';
+
+type CoreClientMock = jest.Mocked<
+  Pick<
+    CoreClientService,
+    'getEntitlements' | 'getCatalogo' | 'postInventario' | 'getInventarioEstado'
+  >
+>;
 
 function buildCoreClientService(
-  entitlements: EntitlementsResult = {
-    organizaciones: [
-      {
-        id: 'duoc-uc',
-        nombre: 'DUOC UC',
-        sedes: [{ id: 'melipilla', nombre: 'Melipilla' }],
+  overrides: {
+    entitlements?: EntitlementsResult;
+    catalogo?: CatalogoResult;
+    postInventarioResult?: PostInventarioResult;
+    inventarioEstado?: InventarioEstadoResult;
+  } = {},
+): CoreClientMock {
+  return {
+    getEntitlements: jest.fn().mockResolvedValue(
+      overrides.entitlements ?? {
+        organizaciones: [
+          {
+            id: 'duoc-uc',
+            nombre: 'DUOC UC',
+            sedes: [{ id: 'melipilla', nombre: 'Melipilla' }],
+          },
+        ],
       },
-    ],
-  },
-): jest.Mocked<Pick<CoreClientService, 'getEntitlements'>> {
-  return { getEntitlements: jest.fn().mockResolvedValue(entitlements) };
+    ),
+    getCatalogo: jest
+      .fn()
+      .mockResolvedValue(overrides.catalogo ?? { activos: [], total: 0 }),
+    postInventario: jest.fn().mockResolvedValue(
+      overrides.postInventarioResult ?? {
+        inventarioId: 'inv-1',
+        estado: 'recibido',
+      },
+    ),
+    getInventarioEstado: jest.fn().mockResolvedValue(
+      overrides.inventarioEstado ?? {
+        estado: 'recibido',
+        ultimoIntento: '2026-08-12T10:00:00.000Z',
+      },
+    ),
+  };
+}
+
+function buildDeviceRegistryService(): jest.Mocked<
+  Pick<DeviceRegistryService, 'registerDevice'>
+> {
+  return { registerDevice: jest.fn().mockResolvedValue(undefined) };
 }
 
 function buildAuthContext(
@@ -54,108 +97,168 @@ function buildInventarioRequest(
 
 describe('QrConnectorService', () => {
   let service: QrConnectorService;
-  let coreClientService: jest.Mocked<
-    Pick<CoreClientService, 'getEntitlements'>
+  let coreClientService: CoreClientMock;
+  let deviceRegistryService: jest.Mocked<
+    Pick<DeviceRegistryService, 'registerDevice'>
   >;
 
   beforeEach(() => {
     coreClientService = buildCoreClientService();
-    service = new QrConnectorService(coreClientService as CoreClientService);
+    deviceRegistryService = buildDeviceRegistryService();
+    service = new QrConnectorService(
+      coreClientService as unknown as CoreClientService,
+      deviceRegistryService as unknown as DeviceRegistryService,
+    );
   });
 
   describe('authSession', () => {
     it('devuelve el mismo token del contexto de auth (pass-through) con las organizaciones de CORE', async () => {
       const auth = buildAuthContext();
-      const result = await service.authSession({ deviceId: 'd-1' }, auth);
+      const result = await service.authSession(
+        { deviceId: 'd-1' },
+        auth,
+        'correlation-test',
+      );
 
       expect(result.accessToken).toBe(auth.accessToken);
       expect(result.expiresAt).toBe(auth.expiresAt);
       expect(result.organizaciones.some((org) => org.id === 'duoc-uc')).toBe(
         true,
       );
-      expect(coreClientService.getEntitlements).toHaveBeenCalledWith('op-1');
+      expect(coreClientService.getEntitlements).toHaveBeenCalledWith(
+        'op-1',
+        'correlation-test',
+      );
+    });
+
+    it('registra el deviceId de la request como el dispositivo activo del operador (DOC-002 §1)', async () => {
+      const auth = buildAuthContext({
+        expiresAt: new Date(Date.now() + 900_000).toISOString(),
+      });
+
+      await service.authSession({ deviceId: 'device-nuevo' }, auth, 'corr-1');
+
+      expect(deviceRegistryService.registerDevice).toHaveBeenCalledWith(
+        'op-1',
+        'device-nuevo',
+        expect.any(Number),
+      );
+      const ttlMs = deviceRegistryService.registerDevice.mock.calls[0][2];
+      // TTL calculado desde expiresAt (~900_000ms), con margen por el tiempo real de ejecucion.
+      expect(ttlMs).toBeGreaterThan(800_000);
+      expect(ttlMs).toBeLessThanOrEqual(900_000);
+    });
+
+    it('usa un TTL minimo si el token esta a punto de expirar (evita un PX <= 0 en Redis)', async () => {
+      const auth = buildAuthContext({
+        expiresAt: new Date(Date.now() + 10).toISOString(),
+      });
+
+      await service.authSession({ deviceId: 'device-nuevo' }, auth, 'corr-1');
+
+      const ttlMs = deviceRegistryService.registerDevice.mock.calls[0][2];
+      expect(ttlMs).toBeGreaterThanOrEqual(1_000);
     });
   });
 
+  // CIS es un proxy delgado hacia CORE (DOC-006, Fase 3) — la logica de filtrado/idempotencia/
+  // clasificacion ya no vive acá, se prueba en core/src (unit + e2e). Estos tests solo verifican
+  // que QrConnectorService delega correctamente y propaga resultados/errores tal cual.
   describe('getCatalogo', () => {
-    it('filters by organizacionId', () => {
-      const result = service.getCatalogo({ organizacionId: 'duoc-uc' });
-      expect(result.activos.length).toBeGreaterThan(0);
-      expect(
-        result.activos.every((activo) => activo.organizacionId === 'duoc-uc'),
-      ).toBe(true);
-    });
-
-    it('filters by areaId cuando se especifica', () => {
-      const result = service.getCatalogo({
-        organizacionId: 'duoc-uc',
-        areaId: 'sala-clases',
+    it('delega en CoreClientService y descarta el total (sin paginacion todavia en el contrato de CIS)', async () => {
+      const activos = [
+        {
+          codigoQr: 'QR-0001',
+          nombre: 'Notebook Dell Latitude',
+          organizacionId: 'duoc-uc',
+          areaId: 'laboratorio-informatica',
+          ubicacionId: 'melipilla',
+          estado: 'activo',
+        },
+      ];
+      coreClientService = buildCoreClientService({
+        catalogo: { activos, total: 1 },
       });
-      expect(result.activos).toHaveLength(1);
-      expect(result.activos[0].areaId).toBe('sala-clases');
-    });
+      service = new QrConnectorService(
+        coreClientService as unknown as CoreClientService,
+        deviceRegistryService as unknown as DeviceRegistryService,
+      );
 
-    it('filtra por ubicacionId cuando se especifica', () => {
-      const result = service.getCatalogo({
-        organizacionId: 'duoc-uc',
-        ubicacionId: 'melipilla',
-      });
-      expect(result.activos.length).toBeGreaterThan(0);
-      expect(
-        result.activos.every((activo) => activo.ubicacionId === 'melipilla'),
-      ).toBe(true);
-    });
+      const query: CatalogoQuery = { organizacionId: 'duoc-uc' };
+      const result = await service.getCatalogo(query, 'corr-1');
 
-    it('devuelve vacio para una organizacion inexistente', () => {
-      const result = service.getCatalogo({ organizacionId: 'inexistente' });
-      expect(result.activos).toHaveLength(0);
+      expect(result).toEqual({ activos });
+      expect(coreClientService.getCatalogo).toHaveBeenCalledWith(
+        query,
+        'corr-1',
+      );
     });
   });
 
   describe('postInventario', () => {
-    it('acepta un inventario nuevo y lo marca recibido', () => {
-      const result = service.postInventario(buildInventarioRequest());
-      expect(result.estado).toBe('recibido');
-      expect(result.inventarioId).toBeTruthy();
+    it('delega en CoreClientService y devuelve su resultado tal cual', async () => {
+      const request = buildInventarioRequest();
+      const result = await service.postInventario(request, 'corr-1');
+
+      expect(result).toEqual({ inventarioId: 'inv-1', estado: 'recibido' });
+      expect(coreClientService.postInventario).toHaveBeenCalledWith(
+        request,
+        'corr-1',
+      );
     });
 
-    it('rechaza organizacion inexistente sin reintentar', () => {
-      expect(() =>
+    it('propaga el 400 de CORE (organización inexistente) sin envolverlo', async () => {
+      coreClientService.postInventario.mockRejectedValue(
+        new BadRequestException({
+          message: 'Rechazado: organización inexistente',
+        }),
+      );
+
+      await expect(
         service.postInventario(
           buildInventarioRequest({ organizacionId: 'inexistente' }),
+          'corr-1',
         ),
-      ).toThrow(BadRequestException);
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('es idempotente: misma key + mismo payload devuelve el mismo resultado', () => {
-      const request = buildInventarioRequest();
-      const first = service.postInventario(request);
-      const second = service.postInventario(request);
-      expect(second).toEqual(first);
-    });
+    it('propaga el 409 de CORE (idempotencyKey reutilizada con payload distinto)', async () => {
+      coreClientService.postInventario.mockRejectedValue(
+        new ConflictException({
+          message: 'idempotencyKey ya usada con un payload distinto',
+        }),
+      );
 
-    it('rechaza con 409 si la key se reutiliza con un payload distinto', () => {
-      const request = buildInventarioRequest();
-      service.postInventario(request);
-
-      expect(() =>
-        service.postInventario({ ...request, operadorId: 'otro-operador' }),
-      ).toThrow(ConflictException);
+      await expect(
+        service.postInventario(buildInventarioRequest(), 'corr-1'),
+      ).rejects.toThrow(ConflictException);
     });
   });
 
   describe('getInventarioEstado', () => {
-    it('devuelve el estado de un inventario ya recibido', () => {
-      const posted = service.postInventario(buildInventarioRequest());
-      const estado = service.getInventarioEstado(posted.inventarioId);
-      expect(estado.estado).toBe('recibido');
-      expect(Number.isNaN(Date.parse(estado.ultimoIntento))).toBe(false);
+    it('delega en CoreClientService', async () => {
+      const result = await service.getInventarioEstado('inv-1', 'corr-1');
+
+      expect(result).toEqual({
+        estado: 'recibido',
+        ultimoIntento: '2026-08-12T10:00:00.000Z',
+      });
+      expect(coreClientService.getInventarioEstado).toHaveBeenCalledWith(
+        'inv-1',
+        'corr-1',
+      );
     });
 
-    it('lanza 404 para un inventario que no existe', () => {
-      expect(() => service.getInventarioEstado('no-existe')).toThrow(
-        NotFoundException,
+    it('propaga el 404 de CORE para un inventario que no existe', async () => {
+      coreClientService.getInventarioEstado.mockRejectedValue(
+        new NotFoundException({
+          message: "No existe el inventario 'no-existe'",
+        }),
       );
+
+      await expect(
+        service.getInventarioEstado('no-existe', 'corr-1'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

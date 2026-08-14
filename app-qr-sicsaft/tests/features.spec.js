@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { resetApp, scanCode, selectOrgAreaLocation } from './helpers.js';
+import { resetApp, scanCode } from './helpers.js';
 
 test('entrada manual de código agrega un producto escaneado', async ({ page }) => {
   await resetApp(page);
@@ -27,24 +27,11 @@ test('en mobile, el trigger del sidebar despliega el menú y queda visible (no a
 });
 
 test('el escáner reconoce un código de variante BASE-VARIANTE', async ({ page }) => {
+  // P001 tiene una variante 'M' en el catálogo mockeado del Conector QR (src/mocks/fixtures.ts) —
+  // CatalogPage (catálogo local) está desconectado del catálogo real desde TASK-007, ver HANDOFF §3.
   await resetApp(page);
-
-  await page.click('[data-testid="nav-catalog"]');
-  await page.click('[data-testid="new-product-btn"]');
-  await page.fill('[data-testid="pf-name"]', 'Gorra');
-  await page.fill('[data-testid="pf-code"]', 'V001');
-  await page.click('[data-testid="pf-add-variant"]');
-  await page.fill('[data-testid="pf-variant-code"]', 'm');
-  await page.fill('[data-testid="pf-variant-name"]', 'Mediana');
-  await page.click('[data-testid="pf-submit"]');
-  await expect(page.locator('[data-testid="label-preview-modal"]')).toBeVisible();
-  await expect(page.locator('[data-testid="print-label-code"]')).toHaveText('V001-M');
-  await page.click('[data-testid="label-preview-close-btn"]');
-
-  await page.click('[data-testid="nav-scan"]');
-  await selectOrgAreaLocation(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'v001-m');
+  await scanCode(page, 'p001-m');
 
   await expect(page.locator('[data-testid="scanned-count"]')).toHaveText('1');
   await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('✔ Correcto');

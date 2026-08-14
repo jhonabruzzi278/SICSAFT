@@ -1,0 +1,47 @@
+import { z } from 'zod';
+
+// DOC-006 §3 — mismo schema que inventarioRequestSchema de CIS
+// (cis/src/qr-connector/qr-connector.schemas.ts). Se duplica acá (sin paquete compartido entre
+// CIS y CORE todavia, mismo caso ya documentado para Organizacion/Sede) — si uno cambia, el otro
+// debe actualizarse a mano.
+export const scanResultadoSchema = z.enum([
+  'correcto',
+  'otra_area',
+  'otra_ubicacion',
+  'no_registrado',
+  'invalido',
+  'duplicado',
+  'ya_escaneado',
+  'con_incidencia',
+]);
+
+const escaneoSchema = z.object({
+  codigoQr: z.string().min(1),
+  resultado: scanResultadoSchema,
+});
+
+const incidenciaSchema = z.object({
+  codigoQr: z.string().min(1),
+  descripcion: z.string().min(1),
+});
+
+export const inventarioRequestSchema = z.object({
+  correlationId: z.string().min(1),
+  idempotencyKey: z.string().min(1),
+  operadorId: z.string().min(1),
+  organizacionId: z.string().min(1),
+  areaId: z.string().min(1),
+  ubicacionId: z.string().min(1),
+  fechaInicio: z.string().min(1),
+  fechaCierre: z.string().min(1),
+  escaneos: z.array(escaneoSchema),
+  incidencias: z.array(incidenciaSchema),
+});
+export type InventarioRequestBody = z.infer<typeof inventarioRequestSchema>;
+
+export const inventarioEstadoParamsSchema = z.object({
+  inventarioId: z.string().min(1),
+});
+export type InventarioEstadoParams = z.infer<
+  typeof inventarioEstadoParamsSchema
+>;
