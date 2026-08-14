@@ -237,12 +237,19 @@ entitlements, opcional) y la brecha de cobertura de payload-shape en los mocks M
 en la práctica (no solo en código) — login real, catálogo real, inventario persistido en la Base
 Patrimonial vía CIS→CORE. Todo lo anterior a esto es infraestructura.
 
-## Fase 4 — Administrador Patrimonial y camino de escritura oficial (pieza nueva)
+## Fase 4 — Administrador Patrimonial y camino de escritura oficial 🟡 en diseño
 
 **Por qué acá y no antes**: es el rol que Tomo III §1.4 define como único autorizado a modificar
 oficialmente la Base Patrimonial, y hoy no existe en ningún sistema
 (`seguridad/README.md` § "Rol pendiente"). Antes de la Fase 2 no tenía sobre qué escribir;
 después de la Fase 3 es el bloqueador para que la base tenga activos reales en vez de seeds.
+
+**Diseño completo, sin código todavía**: [`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
+— rol de proyecto en Zitadel y cómo llega el claim al JWT, qué valida CIS vs qué autoriza CORE
+(cero confianza real, no delegada), matriz de las 8 acciones de Gestión de Permisos aplicada a
+`Activo`/`Contrato`, los 4 endpoints nuevos del Motor Patrimonial sobre la máquina de estados ya
+definida en DOC-005 §4, contrato de la importación masiva (idempotente por fila, nunca borra) y
+la escritura de `Contrato` con su evento `contrato.actualizado`.
 
 **Qué se construye**
 1. Rol `administrador-patrimonial` en Zitadel + claim de rol validado en CIS y **autorizado en
@@ -258,8 +265,8 @@ después de la Fase 3 es el bloqueador para que la base tenga activos reales en 
    Entrada 5). Precursor manual y honesto del conector automático (Fase 7).
 5. Escritura de `Contrato` (hoy la tabla solo se lee) y evento `contrato.actualizado` que
    invalida la caché del CIS.
-6. **DOC-012** (detalle de implementación de seguridad) y WAF §11 actualizado marcando la entrada
-   como implementada.
+6. ✅ **DOC-012** (detalle de implementación de seguridad) — falta actualizar WAF §11 marcando la
+   entrada como implementada cuando el código esté listo.
 
 **Done**: usuario sin el rol recibe 403 en toda escritura oficial (test e2e); toda escritura
 queda en Auditoría con usuario/IP/operación/resultado; importar dos veces el mismo archivo no
@@ -396,7 +403,7 @@ Fase 0 (migraciones + correlationId + OIDC real) ✅
   └─ Fase 1 (DOC-005 mínimo) ✅
        └─ Fase 2 (CORE MVP: 4 motores + DOC-006) ✅
             └─ Fase 3 (CIS real + APP QR TASK-007) ✅ verificado real de punta a punta 2026-08-13
-                 ├─ Fase 4 (Administrador Patrimonial + escritura oficial)  [pieza nueva]
+                 ├─ Fase 4 (Administrador Patrimonial + escritura oficial) — diseño ✅ (DOC-012), código pendiente
                  │    ├─ Fase 5 (WEB mínimo) — diseño ✅, código pendiente
                  │    └─ Fase 7 (CON-CONTABILIDAD)   [pieza nueva]
                  └─ Fase 6 (CIP primer dashboard)

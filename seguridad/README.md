@@ -35,7 +35,8 @@ El tomo oficial define un rol que hoy no existe en ningún sistema del ecosistem
 importar bases contables). Ninguna otra entrada (APP QR, Plataforma WEB, RFID) puede hacerlo
 directamente — ver [ARQUITECTURA-WAF.md §11](../ARQUITECTURA-WAF.md#11-entradas-y-salidas-oficiales-del-ecosistema-tomo-iii-cap1)
 para la matriz completa de permisos por entrada. No implementado todavía: no hay rol Zitadel
-dedicado ni endpoint en CORE que distinga este nivel de escritura del resto.
+dedicado ni endpoint en CORE que distinga este nivel de escritura del resto — diseño completo en
+[DOC-012](DOC-012-administrador-patrimonial.md), código pendiente (Fase 4 del ROADMAP).
 
 ## Capacidades previstas
 Autenticación, refresh/expiración de sesión, RBAC, segregación por organización, segregación
@@ -55,8 +56,9 @@ CIS (validar `sedeId`/contrato vigente en cada request — ver ADR-002), CORE (a
 [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (mecanismo de identidad, modelo
 Organización→Contrato→Sede, flujo de login).
 [`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md)
-(modelo de `Contrato` — entidades, estados, invariantes, cómo lo consume CIS). Pendiente: DOC-012
-detalle de implementación.
+(modelo de `Contrato` — entidades, estados, invariantes, cómo lo consume CIS).
+[DOC-012](DOC-012-administrador-patrimonial.md) — diseño del rol Administrador Patrimonial y el
+camino de escritura oficial (Fase 4 del ROADMAP), sin código todavía.
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §3 (cero confianza entre niveles, permisos
 mínimos necesarios, segregación por organización/área validada en el CORE, no solo en el cliente
 — ahora extendida a sede/contrato).
