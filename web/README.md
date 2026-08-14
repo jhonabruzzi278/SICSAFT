@@ -203,12 +203,18 @@ del mismo contrato de CIS/CORE).
 ## Próximo paso sugerido
 Los 6 módulos del MVP de Fase 5 tienen código funcionando, y RF-05/RF-06 ya cerraron su requisito
 por completo (ver `../REQUISITOS.md`, sin filas pendientes en "RF/RNF con estado parcial" para
-WEB). Lo que queda, en orden de valor:
+WEB). Lo que queda:
 1. Verificación real de punta a punta de Auditoría y Áreas/Ubicaciones/Responsables desde el
    navegador (login real, como ya se hizo con Activos/Contratos/Inventarios) — hoy solo están
    probados con e2e de CORE/CIS.
-2. e2e Playwright del flujo de login + alta (anotado como pendiente desde Fase 5 inicial).
 
 ✅ `Dockerfile`/`web-ci.yml`/servicio en el compose local — WEB ya tiene imagen de producción
 (nginx sirviendo el build de Vite, usuario sin privilegios) y corre dentro del stack en
 `http://web.sicsaft.localhost` además de `npm run dev` suelto (ver "Desarrollo local" arriba).
+
+✅ e2e Playwright del flujo de login + alta (`tests/login-alta.spec.js`) — mismo patrón que
+`app-qr-sicsaft/tests/` (MSW mockea CIS en modo `VITE_MOCK_API=true`, `.env.e2e`; el redirect real
+a Zitadel se salta sembrando `sessionStorage` con un JWT sin firmar, `tests/helpers.js`
+`seedAuth()` — CIS es quien valida de verdad server-side, el cliente solo mira si hay tokens
+guardados). Cubre: operador sin sesión redirigido a `/login`, y login + alta de Activo visible de
+inmediato en el mismo catálogo (RF-08). Corre en CI (`web-ci.yml`) y local con `npm run test:e2e`.

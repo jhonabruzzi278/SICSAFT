@@ -32,6 +32,19 @@ jobs:
       - name: Type-check + build
         run: npm run build
 
+      - name: Instalar Chromium (Playwright)
+        run: npx playwright install --with-deps chromium
+
+      - name: Tests e2e
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: web/playwright-report/
+          retention-days: 7
+
       - name: Build de imagen Docker
         run: |
           # Placeholders sin uso real: esta imagen (sicsaft-web:ci) nunca corre ni se publica, solo

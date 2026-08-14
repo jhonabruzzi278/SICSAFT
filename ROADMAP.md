@@ -392,7 +392,9 @@ completo de Área/Ubicación/Responsable, incluida la edición de Área/Ubicaci�
 arriba), ambos verificados con unit + e2e reales contra Postgres (CORE y CIS), sin login real de
 navegador todavía (a diferencia de RF-03/RF-04/RF-07). Los 6 módulos del MVP de Fase 5 quedan con
 sus requisitos cerrados por completo — sin filas pendientes en `REQUISITOS.md` § "RF/RNF con
-estado parcial" para WEB. ⬜ e2e Playwright del flujo de login + alta — sin escribir todavía.
+estado parcial" para WEB. ✅ e2e Playwright del flujo de login + alta (`web/tests/`, MSW mockea
+CIS, mismo patrón que `app-qr-sicsaft/tests/`) — cubre operador sin sesión redirigido a `/login` y
+login + alta de Activo visible de inmediato (RF-08), corre en `web-ci.yml`.
 ✅ Dockerfile/`web-ci.yml`/servicio en el compose local — WEB corre en Docker
 (`http://web.sicsaft.localhost`) además de `npm run dev` suelto. ✅ `web/README.md`,
 `cis/README.md`, `core/README.md`, `README.md`, `REQUISITOS.md` y DOC-013 actualizados.

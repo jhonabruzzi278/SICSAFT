@@ -8,3 +8,8 @@ coverage/
 .env
 .env.*
 !.env.example
+# .env.e2e no tiene secretos — valores dummy para el modo mock de Playwright (ver tests/)
+!.env.e2e
+
+playwright-report/
+test-results/
