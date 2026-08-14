@@ -119,6 +119,17 @@ export interface AuditoriaEntrada {
   observaciones: string | null;
 }
 
+// RF-06 — filtros de GET /admin/auditoria (cierra el gap: el requisito pedia "filtrable por
+// usuario/fecha/operacion"). `usuario`/`operacion` son busqueda parcial (ver
+// core/src/auditoria/auditoria.types.ts), `fechaDesde`/`fechaHasta` son inputs `datetime-local`
+// del navegador — se envian tal cual, CORE los usa directo en un `fecha >= $n`/`fecha <= $n`.
+export interface AuditoriaFiltro {
+  usuario?: string;
+  operacion?: string;
+  fechaDesde?: string;
+  fechaHasta?: string;
+}
+
 // RF-05 — Area/Ubicacion/Responsable (DOC-005 §2/§3).
 export interface Area {
   id: string;
@@ -286,8 +297,14 @@ export const cisClient = {
     return (await res.json()) as SesionInventarioDetalle;
   },
 
-  async getAuditoria(): Promise<AuditoriaEntrada[]> {
-    const res = await authorizedFetch('/admin/auditoria');
+  async getAuditoria(filtro: AuditoriaFiltro): Promise<AuditoriaEntrada[]> {
+    const params = new URLSearchParams();
+    if (filtro.usuario) params.set('usuario', filtro.usuario);
+    if (filtro.operacion) params.set('operacion', filtro.operacion);
+    if (filtro.fechaDesde) params.set('fechaDesde', filtro.fechaDesde);
+    if (filtro.fechaHasta) params.set('fechaHasta', filtro.fechaHasta);
+    const query = params.toString();
+    const res = await authorizedFetch(`/admin/auditoria${query ? `?${query}` : ''}`);
     return (await res.json()) as AuditoriaEntrada[];
   },
 

@@ -321,13 +321,20 @@ después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita e
   `GET /inventarios` (listado por organización) en CORE y CIS — `GET /inventarios/:id/estado`
   (Fase 2/3) ya existía pero exigía conocer el `id` de antemano, sin forma de listar qué sesiones
   hay.
-- ✅ Módulo **Auditoría** completo (consulta, RF-06, solo lectura, sin filtro por organización —
-  gap conocido, ver `web/README.md` § "Gaps"). Primer consumidor real de `AuditoriaRepository`
-  (DOC-011 lo dejaba sin controller, "sin consumidor todavía"): `GET /auditoria` nuevo en CORE
-  (200 entradas más recientes) + `GET /admin/auditoria` puente en CIS, mismo criterio de lectura
-  abierta que `GET /contratos`. Sin filtro por organización porque la tabla `auditoria` (DOC-005
-  §7) audita cualquier operación del ecosistema y no tiene columna `organizacionId` — agregarla es
-  una migración nueva más threading de `organizacionId` por cada llamada a
+- ✅ Módulo **Auditoría** completo, requisito RF-06 cerrado en su totalidad (consulta filtrable
+  por usuario/operación/fecha, sin filtro por organización — gap distinto, conocido y aceptado, ver
+  `web/README.md` § "Gaps"). Primer consumidor real de `AuditoriaRepository` (DOC-011 lo dejaba sin
+  controller, "sin consumidor todavía"): `GET /auditoria` nuevo en CORE (hasta 200 entradas más
+  recientes) + `GET /admin/auditoria` puente en CIS, mismo criterio de lectura abierta que
+  `GET /contratos`. El mismo día se agregaron los filtros que el requisito original pedía y el
+  primer incremento no tenía: `usuario`/`operacion` (`ILIKE '%valor%'`, búsqueda parcial —
+  `operacion` incluye el id del recurso en varias operaciones, ej.
+  `POST /activos/${id}/baja`, un filtro exacto casi nunca matchearía) y rango
+  `fechaDesde`/`fechaHasta` (inclusive), con el formulario correspondiente en `AuditoriaPage`.
+  Verificado con unit + e2e reales contra Postgres, incluido el caso de rango de fecha que excluye
+  entradas fuera del rango. Sin filtro por organización porque la tabla `auditoria` (DOC-005 §7)
+  audita cualquier operación del ecosistema y no tiene columna `organizacionId` — agregarla es una
+  migración nueva más threading de `organizacionId` por cada llamada a
   `AuditoriaRepository.registrar` en `OrquestadorService`, deliberadamente fuera de alcance de
   este incremento.
 - ✅ Módulo **Áreas/Ubicaciones/Responsables** completo (ABM, RF-05, el único módulo del MVP que
@@ -373,13 +380,12 @@ probando el flujo real en el navegador, ninguno lo detectaban los tests unitario
 sesiones de inventario) y RF-07 (alta de Contrato + transición de estado, incluido el invariante
 DOC-004 §4 rechazando sedes ya cubiertas) — verificados real de punta a punta (login real →
 escritura/lectura real → Postgres real → visible en la UI), no solo con mocks. Los 6 módulos del
-MVP de Fase 5 tienen código funcionando, pero **dos quedaron parciales respecto de su propio
-requisito** (ver `REQUISITOS.md` § "RF/RNF con estado parcial" para el detalle completo): ⚠️ RF-06
-(el requisito pide auditoría "filtrable por usuario/fecha/operación" — se construyó solo el
-listado de las 200 entradas más recientes, sin ningún filtro) y ⚠️ RF-05 (el requisito pide "ABM
-completo" de Área/Ubicación/Responsable — se construyó alta + consulta de las 3 entidades y baja
-de Responsable, sin edición de Área/Ubicación ni asignación de
-`responsable_id`/`ubicacion_principal_id`). Ambos verificados con unit + e2e reales contra
+MVP de Fase 5 tienen código funcionando. ✅ RF-06 (auditoría filtrable por usuario/operación/fecha
+— cerrado el mismo día que se detectó el gap, ver más arriba). Solo **RF-05 quedó parcial respecto
+de su propio requisito** (ver `REQUISITOS.md` § "RF/RNF con estado parcial" para el detalle
+completo): pide "ABM completo" de Área/Ubicación/Responsable — se construyó alta + consulta de las
+3 entidades y baja de Responsable, sin edición de Área/Ubicación ni asignación de
+`responsable_id`/`ubicacion_principal_id`. RF-05/RF-06 verificados con unit + e2e reales contra
 Postgres (CORE y CIS), sin login real de navegador todavía (a diferencia de RF-03/RF-04/RF-07).
 ⬜ e2e Playwright del flujo de login + alta — sin escribir todavía. ⬜ Dockerfile/`web-ci.yml`/
 servicio en el compose local — WEB sigue corriendo solo con `npm run dev` fuera de Docker.

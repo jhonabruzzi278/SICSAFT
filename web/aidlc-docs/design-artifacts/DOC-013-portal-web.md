@@ -26,7 +26,7 @@ definir — ver §5, nota abierta).
 | Contratos ✅ | `contratos`/`contrato_sedes` (DOC-004) | ambas | `GET /admin/contratos` (CIS, nuevo, → `GET /contratos` en CORE, también nuevo); alta/estado = `POST /admin/contratos`/`PATCH /admin/contratos/:id` (CIS) → CORE (DOC-012 §7) |
 | Inventarios ✅ | `sesiones_inventario` + `inventarios` (DOC-006 §3) | — (solo lectura) | `GET /inventarios` (listado, CIS+CORE, nuevo) + `GET /inventarios/:id` (detalle, nuevo); `GET /inventarios/:id/estado` (ya existía) |
 | Áreas/Ubicaciones/Responsables ✅ | `areas`/`ubicaciones`/`responsables` (DOC-005) | las tres tablas | `GET/POST /admin/areas`, `GET/POST /admin/ubicaciones`, `GET/POST /admin/responsables` + `PATCH /admin/responsables/:id/estado` (CIS, todos nuevos, → CORE `src/estructura/`, también nuevo) |
-| Auditoría ✅ | `auditoria` (DOC-005) | — (solo lectura) | `GET /admin/auditoria` (CIS, nuevo, → `GET /auditoria` en CORE, también nuevo) |
+| Auditoría ✅ | `auditoria` (DOC-005) | — (solo lectura, filtrable por usuario/operación/fecha) | `GET /admin/auditoria` (CIS, nuevo, → `GET /auditoria` en CORE, también nuevo) |
 
 **Actualización (2026-08-14)**: Activos (consulta + alta), Contratos (consulta + alta +
 transición de estado), Inventarios (consulta de sesiones + detalle de escaneos) y Auditoría
@@ -35,8 +35,10 @@ agregar `GET /contratos` en CORE (no existía) y extender el puente CIS con `PAT
 permitía `GET`/`POST` hasta ese incremento). Inventarios necesitó agregar el listado
 (`GET /inventarios`) en CORE y CIS — el detalle por id ya existía pero exigía conocerlo de
 antemano. Auditoría necesitó el primer controller real sobre `AuditoriaRepository` (DOC-011 lo
-dejaba sin consumidor) — sin filtro por organización, porque `auditoria` no tiene
-`organizacionId` (gap conocido, ver `web/README.md` § "Gaps"). Áreas/Ubicaciones/Responsables
+dejaba sin consumidor); el mismo día se le agregaron filtros por usuario/operación (búsqueda
+parcial) y rango de fecha, cerrando el requisito original — sin filtro por organización, porque
+`auditoria` no tiene `organizacionId` (gap conocido, distinto del anterior, ver `web/README.md`
+§ "Gaps"). Áreas/Ubicaciones/Responsables
 (RF-05) es el módulo que más esfuerzo real requirió — módulo nuevo `core/src/estructura/` con
 `Ubicacion`/`Responsable` cruzando `sedeId`/`areaId` contra `organizacionId` antes de insertar
 (defensa en profundidad, ni `ubicaciones` ni `responsables` tienen columna `organizacionId`

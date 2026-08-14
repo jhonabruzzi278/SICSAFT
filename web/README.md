@@ -8,10 +8,11 @@ negociable de `CLAUDE.md`).
 ## Estado
 🟢 Los 6 módulos del MVP de Fase 5 implementados — login OIDC/PKCE real contra Zitadel +
 **Activos** (consulta + alta), **Contratos** (consulta + alta + cambio de estado),
-**Inventarios** (consulta de sesiones + detalle de escaneos), **Auditoría** (consulta, solo
-lectura, sin filtro por organización — ver "Gaps" abajo) y **Áreas/Ubicaciones/Responsables**
-(ABM, el único que no reusaba infraestructura ya construida). Activos/Contratos/Inventarios
-verificados de punta a punta contra Postgres real (login real de navegador incluido); Auditoría y
+**Inventarios** (consulta de sesiones + detalle de escaneos), **Auditoría** (consulta, filtrable
+por usuario/operación/rango de fecha, sin filtro por organización — ver "Gaps" abajo) y
+**Áreas/Ubicaciones/Responsables** (alta + consulta de las 3 entidades y baja de Responsable, sin
+edición de Área/Ubicación — ver "Gaps" abajo). Activos/Contratos/Inventarios verificados de punta
+a punta contra Postgres real (login real de navegador incluido); Auditoría y
 Áreas/Ubicaciones/Responsables verificados con unit + e2e reales contra Postgres (CORE y CIS), sin
 login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/local/README.md`
 § "Cliente OIDC real (WEB)". Diseño AI-DLC completo en
@@ -43,11 +44,14 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   las consulta). Tabla de sesiones + panel de detalle (escaneos con su resultado) al hacer click
   en una fila. Requirió agregar `GET /inventarios` (listado) tanto en CORE como en CIS — antes
   solo existía `GET /inventarios/:id/estado`, que exige conocer el `id` de antemano.
-- `pages/AuditoriaPage.tsx` — RF-06: solo lectura, tabla de las 200 entradas más recientes
-  (`GET /admin/auditoria`, nuevo en CIS/CORE). Sin selector de organización — a diferencia de
-  Activos/Contratos/Inventarios, no vive dentro del flujo por-organización del hub, sino como link
-  directo en el header (`AppShell`), porque la tabla `auditoria` de CORE no tiene `organizacionId`
-  (ver "Gaps" abajo).
+- `pages/AuditoriaPage.tsx` — RF-06: solo lectura, tabla de las entradas más recientes (tope 200,
+  `GET /admin/auditoria`) filtrables por usuario/operación (búsqueda parcial — `operacion` incluye
+  el id del recurso en varias operaciones, ej. `POST /activos/{id}/baja`, un filtro exacto casi
+  nunca matchearía) y por rango de fecha (`<input type="datetime-local">`, convertido a ISO antes
+  de mandarlo — CORE compara directo contra la columna `timestamptz`). Sin selector de
+  organización — a diferencia de Activos/Contratos/Inventarios, no vive dentro del flujo
+  por-organización del hub, sino como link directo en el header (`AppShell`), porque la tabla
+  `auditoria` de CORE no tiene `organizacionId` (ver "Gaps" abajo).
 - `pages/EstructuraPage.tsx` — RF-05: ABM de Área/Ubicación/Responsable, tres secciones en una
   pantalla (tabla + alta cada una, `GET/POST /admin/areas`, `GET/POST /admin/ubicaciones`,
   `GET/POST /admin/responsables` + `PATCH /admin/responsables/:id/estado`, todos nuevos en
@@ -95,15 +99,23 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   patrón que ya usaban los endpoints de escritura de Activo en CORE, y aplicado preventivamente a
   los nuevos endpoints de Inventarios) y cubierto con un e2e nuevo
   (`cis/test/administrador.e2e-spec.ts`) para que no vuelva a pasar desapercibido.
-- **`GET /auditoria` no filtra por organización** (gap conocido, sin resolver): la tabla
-  `auditoria` de CORE (DOC-005 §7) no tiene columna `organizacionId` — audita cualquier operación
-  del ecosistema, no solo las de una organización. `AuditoriaPage` en WEB muestra las 200 entradas
-  más recientes de **todo** el ecosistema a cualquier operador autenticado con contrato vigente en
-  alguna organización, sin importar cuál. Aceptado para este incremento porque el volumen real es
-  bajo (mismo criterio ya aplicado a `GET /contratos`, que tampoco filtra) — agregar el filtro
-  requiere una migración nueva (columna + índice) y threading de `organizacionId` a través de cada
-  llamada a `AuditoriaRepository.registrar` en `OrquestadorService`, deliberadamente fuera de
-  alcance de este incremento (ver DOC-011).
+- **`GET /auditoria` no filtra por organización** (gap conocido, sin resolver — distinto del
+  filtro por usuario/operación/fecha, ya cerrado, ver abajo): la tabla `auditoria` de CORE
+  (DOC-005 §7) no tiene columna `organizacionId` — audita cualquier operación del ecosistema, no
+  solo las de una organización. `AuditoriaPage` en WEB muestra entradas de **todo** el ecosistema a
+  cualquier operador autenticado con contrato vigente en alguna organización, sin importar cuál.
+  Aceptado para este incremento porque el volumen real es bajo (mismo criterio ya aplicado a
+  `GET /contratos`, que tampoco filtra) — agregar el filtro requiere una migración nueva (columna +
+  índice) y threading de `organizacionId` a través de cada llamada a
+  `AuditoriaRepository.registrar` en `OrquestadorService`, deliberadamente fuera de alcance de este
+  incremento (ver DOC-011).
+- **RF-06 (Auditoría) cerrado (2026-08-14)**: `AuditoriaRepository.listar` ganó filtros opcionales
+  por `usuario`/`operacion` (`ILIKE '%valor%'`, no igualdad exacta — `operacion` incluye el id del
+  recurso en varias operaciones, ej. `POST /activos/{id}/baja`, `PATCH /responsables/{id}/estado`;
+  un filtro exacto casi nunca matchearía más de una fila) y por rango `fechaDesde`/`fechaHasta`
+  (inclusive en ambos extremos). `AuditoriaPage` agrega el formulario correspondiente. Verificado
+  con unit + e2e reales contra Postgres, incluido el caso de rango de fecha que excluye entradas
+  fuera del rango.
 - **RF-05 (Área/Ubicación/Responsable)** no existía ni en CORE ni en CIS — módulo nuevo
   `core/src/estructura/` (repositories + `EscrituraEstructuraService`, invocado desde
   `OrquestadorService` con el mismo patrón de autorización+auditoría que Activo/Contrato) y puente
@@ -115,9 +127,9 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
 
 ## Módulos previstos
 6 en el MVP de Fase 5 (ver [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)), los 6
-con código funcionando: Activos (🟢), Contratos (🟢), Inventarios (🟢), hub (🟢), Auditoría (🟡,
-sin ningún filtro — el requisito RF-06 pide filtrar por usuario/fecha/operación, ver "Gaps"
-arriba), Áreas/Ubicaciones/Responsables (🟡, sin edición de Área/Ubicación ni asignación de
+con código funcionando: Activos (🟢), Contratos (🟢), Inventarios (🟢), hub (🟢), Auditoría (🟢,
+filtrable por usuario/operación/fecha — RF-06 cerrado, ver "Gaps" arriba), Áreas/Ubicaciones/
+Responsables (🟡, sin edición de Área/Ubicación ni asignación de
 `responsable_id`/`ubicacion_principal_id` — el requisito RF-05 pide ABM completo, ver "Qué existe
 hoy"). El resto — Dashboard, Incidencias, Movimientos, QR, RFID, Documentos, Reportes, Usuarios,
 Roles, Configuración, Integraciones — queda para después, sin diseñar todavía (sin consumidor
@@ -153,17 +165,14 @@ Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §8 (WEB y APP QR son clientes
 del mismo contrato de CIS/CORE).
 
 ## Próximo paso sugerido
-Los 6 módulos del MVP de Fase 5 tienen código funcionando, pero RF-05 y RF-06 quedaron parciales
-respecto de su propio requisito (ver `../REQUISITOS.md` § "RF/RNF con estado parcial"). En orden
-de valor:
-1. **Cerrar RF-06**: `GET /auditoria` no tiene ningún filtro (usuario/fecha/operación), y el
-   requisito lo pide explícito — agregar query params a `AuditoriaRepository.listar` (CORE) y los
-   controles correspondientes en `AuditoriaPage`.
-2. **Cerrar RF-05**: falta `PATCH /areas/:id`/`PATCH /ubicaciones/:id` (edición) y la asignación de
+Los 6 módulos del MVP de Fase 5 tienen código funcionando; RF-06 (Auditoría) ya cerró su requisito
+por completo. Solo RF-05 queda parcial respecto de lo que pide (ver `../REQUISITOS.md`
+§ "RF/RNF con estado parcial"). En orden de valor:
+1. **Cerrar RF-05**: falta `PATCH /areas/:id`/`PATCH /ubicaciones/:id` (edición) y la asignación de
    `responsable_id`/`ubicacion_principal_id` a un Área ya creada — hoy solo hay alta + consulta.
-3. Verificación real de punta a punta de Auditoría y Áreas/Ubicaciones/Responsables desde el
+2. Verificación real de punta a punta de Auditoría y Áreas/Ubicaciones/Responsables desde el
    navegador (login real, como ya se hizo con Activos/Contratos/Inventarios) — hoy solo están
    probados con e2e de CORE/CIS.
-4. e2e Playwright del flujo de login + alta (anotado como pendiente desde Fase 5 inicial).
-5. Dockerfile/`web-ci.yml`/servicio en el compose local — WEB sigue corriendo solo con
+3. e2e Playwright del flujo de login + alta (anotado como pendiente desde Fase 5 inicial).
+4. Dockerfile/`web-ci.yml`/servicio en el compose local — WEB sigue corriendo solo con
    `npm run dev` fuera de Docker.
