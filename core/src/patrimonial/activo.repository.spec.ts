@@ -207,6 +207,27 @@ describe('ActivoRepository', () => {
     });
   });
 
+  describe('findByCodigoPatrimonial', () => {
+    it('devuelve el activo mapeado cuando existe', async () => {
+      const pool = buildPool(() => ({ rows: [FILA_BASE] }));
+      const repository = new ActivoRepository(pool);
+
+      const activo =
+        await repository.findByCodigoPatrimonial('AFT-2026-000001');
+
+      expect(activo?.codigoPatrimonial).toBe('AFT-2026-000001');
+    });
+
+    it('devuelve null cuando no existe', async () => {
+      const pool = buildPool(() => ({ rows: [] }));
+      const repository = new ActivoRepository(pool);
+
+      await expect(
+        repository.findByCodigoPatrimonial('AFT-NOPE'),
+      ).resolves.toBeNull();
+    });
+  });
+
   describe('findById', () => {
     it('devuelve el activo cuando existe', async () => {
       const pool = buildPool(() => ({ rows: [FILA_BASE] }));

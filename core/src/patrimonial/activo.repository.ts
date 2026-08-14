@@ -150,6 +150,19 @@ export class ActivoRepository {
     };
   }
 
+  // DOC-012 §6 — busca por codigoPatrimonial (clave de idempotencia de la importacion masiva:
+  // "cada fila trae su propio codigoPatrimonial", nunca duplica al reintentar la misma fila).
+  async findByCodigoPatrimonial(
+    codigoPatrimonial: string,
+  ): Promise<Activo | null> {
+    const result = await this.pool.query<ActivoRow>(
+      `${SELECT_ACTIVO_SQL} WHERE a.codigo_patrimonial = $1`,
+      [codigoPatrimonial],
+    );
+    const row = result.rows[0];
+    return row ? this.toActivo(row) : null;
+  }
+
   // DOC-012 §5 — busca por id (no por codigoQr como findByCodigoQr, ese es el camino de lectura
   // de APP QR). Usado por las 4 operaciones de escritura oficial para resolver 404 vs 400 antes
   // de decidir la transicion.

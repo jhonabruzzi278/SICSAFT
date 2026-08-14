@@ -24,3 +24,13 @@ export interface Contrato {
   estado: EstadoContrato;
   modulosContratados: ModuloContratado[];
 }
+
+// DOC-012 §7 — POST /contratos (alta). CORE decide `estado` ('vigente') — nunca se confia ese
+// campo desde el cliente (mismo criterio que NuevoActivoInput/DOC-012 §5).
+export interface NuevoContratoInput {
+  organizacionId: string;
+  sedeIds: string[];
+  vigenciaDesde: string;
+  vigenciaHasta?: string | null;
+  modulosContratados: ModuloContratado[];
+}
