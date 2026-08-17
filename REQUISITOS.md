@@ -31,7 +31,7 @@ pidió). Priorizados por severidad:
 | Sistema | ID | Qué falta | Por qué importa |
 |---|---|---|---|
 | CORE | RF-05 | Traslado y cambio de ubicación/estado de Activo — **ni el método en `ActivoRepository` ni el controller existen** (corregido 2026-08-14: la documentación decía "el repository ya tiene los métodos", verificado contra el código que no) | Deliberadamente YAGNI — sin consumidor real (ningún cliente pide trasladar un activo hoy), construir el método+controller sin quien los llame sería especulativo. **No se recomienda cerrar este ítem con código** — se cierra solo, naturalmente, cuando aparezca un consumidor real (mismo criterio que el propio ROADMAP.md ya aplica a otros motores) |
-| APP QR | RNF-01/RNF-02 | Sin validar en dispositivo Android físico (offline real, PWA instalable) | Fuera de alcance de este repositorio — requiere una persona con un teléfono real; ningún cambio de código lo cierra. Queda anotado como bloqueado en acción humana, no como deuda técnica |
+| APP QR | RNF-01/RNF-02 | Sin validar en dispositivo Android físico ni iOS físico (offline real, PWA instalable). La PWA es multiplataforma por diseño (Android/iOS/Windows/Mac, un solo código) — no falta reconstrucción, falta la prueba real en ambos | Fuera de alcance de este repositorio — requiere una persona con un teléfono/tablet real de cada plataforma; ningún cambio de código lo cierra. Queda anotado como bloqueado en acción humana, no como deuda técnica |
 
 **Cerrado 2026-08-14**:
 - ~~WEB RF-06 — `GET /auditoria` sin filtro~~. `AuditoriaRepository.listar` (CORE) ganó filtros por
