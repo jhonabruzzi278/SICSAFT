@@ -73,6 +73,9 @@ export interface CatalogoFiltro {
 // y GET /catalogo no exponia hasta ahora ningun campo crudo de categoria, solo el `nombre` ya
 // compuesto.
 export interface ActivoCatalogo {
+  // DOC-021 3 — necesario para que WEB pueda ofrecer baja/reincorporación/cambio de responsable/
+  // descripción por fila (esos endpoints son por :id, no por codigoQr) sin un lookup adicional.
+  id: string;
   codigoQr: string;
   nombre: string;
   familia: string;
