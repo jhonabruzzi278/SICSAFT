@@ -146,6 +146,7 @@ describe('ActivoRepository', () => {
         total: 1,
         activos: [
           {
+            id: 'activo-notebook-001',
             codigoQr: 'QR-000001',
             nombre: 'Dell Latitude 5440',
             familia: 'Informática',
@@ -453,6 +454,71 @@ describe('ActivoRepository', () => {
           'resp-2',
         ),
       ).rejects.toBe(error);
+    });
+  });
+
+  describe('actualizarDescripcion', () => {
+    it('actualiza la descripcion y devuelve el activo', async () => {
+      const query = jest
+        .fn()
+        .mockResolvedValueOnce({ rows: [FILA_BASE] }) // findById
+        .mockResolvedValueOnce({ rows: [] }); // UPDATE
+      const pool = { query } as unknown as jest.Mocked<Pool>;
+      const repository = new ActivoRepository(pool);
+
+      const activo = await repository.actualizarDescripcion(
+        'activo-notebook-001',
+        'duoc-uc',
+        'Notebook nuevo',
+      );
+
+      expect(activo.descripcion).toBe('Notebook nuevo');
+      expect(query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining('UPDATE activos SET descripcion'),
+        ['Notebook nuevo', 'activo-notebook-001'],
+      );
+    });
+
+    it('acepta null para limpiar la descripcion', async () => {
+      const query = jest
+        .fn()
+        .mockResolvedValueOnce({ rows: [FILA_BASE] }) // findById
+        .mockResolvedValueOnce({ rows: [] }); // UPDATE
+      const pool = { query } as unknown as jest.Mocked<Pool>;
+      const repository = new ActivoRepository(pool);
+
+      const activo = await repository.actualizarDescripcion(
+        'activo-notebook-001',
+        'duoc-uc',
+        null,
+      );
+
+      expect(activo.descripcion).toBeNull();
+    });
+
+    it('lanza 404 si el activo no existe', async () => {
+      const pool = buildPool(() => ({ rows: [] }));
+      const repository = new ActivoRepository(pool);
+
+      await expect(
+        repository.actualizarDescripcion('no-existe', 'duoc-uc', 'texto'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('lanza 404 si el activo existe pero pertenece a otra organizacion', async () => {
+      const pool = buildPool(() => ({
+        rows: [{ ...FILA_BASE, organizacionId: 'otra-org' }],
+      }));
+      const repository = new ActivoRepository(pool);
+
+      await expect(
+        repository.actualizarDescripcion(
+          'activo-notebook-001',
+          'duoc-uc',
+          'texto',
+        ),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

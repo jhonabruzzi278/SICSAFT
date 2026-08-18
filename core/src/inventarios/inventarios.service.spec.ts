@@ -21,6 +21,7 @@ const ACTIVO: Activo = {
   areaId: 'area-biblioteca',
   ubicacionId: 'ubicacion-biblioteca-101',
   estado: 'activo',
+  descripcion: null,
   catalogo: {
     tipo: 'Equipo Computacional',
     familia: 'Informática',

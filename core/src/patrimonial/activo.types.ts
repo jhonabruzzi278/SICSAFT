@@ -36,6 +36,8 @@ export interface Activo {
   // necesita (alta con responsable, cambio de responsable).
   responsableId: string | null;
   estado: EstadoActivo;
+  // DOC-021 3 (gap "descripciones") — libre, editable via PATCH /activos/:id/descripcion.
+  descripcion: string | null;
   catalogo: CatalogoActivoInfo;
 }
 
@@ -52,6 +54,7 @@ export interface NuevoActivoInput {
   areaId?: string;
   ubicacionId?: string;
   valorPatrimonial?: number;
+  descripcion?: string;
 }
 
 export interface CatalogoFiltro {
@@ -70,6 +73,9 @@ export interface CatalogoFiltro {
 // y GET /catalogo no exponia hasta ahora ningun campo crudo de categoria, solo el `nombre` ya
 // compuesto.
 export interface ActivoCatalogo {
+  // DOC-021 3 — necesario para que WEB pueda ofrecer baja/reincorporación/cambio de responsable/
+  // descripción por fila (esos endpoints son por :id, no por codigoQr) sin un lookup adicional.
+  id: string;
   codigoQr: string;
   nombre: string;
   familia: string;

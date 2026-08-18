@@ -5,7 +5,10 @@ import { InventariosService } from '../inventarios/inventarios.service';
 import { EscrituraActivoService } from '../patrimonial/escritura-activo.service';
 import { ImportacionContableService } from '../patrimonial/importacion-contable.service';
 import { EscrituraContratoService } from '../entitlements/escritura-contrato.service';
+import { EscrituraOrganizacionService } from '../entitlements/escritura-organizacion.service';
 import { EscrituraEstructuraService } from '../estructura/escritura-estructura.service';
+import { EscrituraDocumentoActivoService } from '../patrimonial/escritura-documento-activo.service';
+import { CatalogoTipoActivoRepository } from '../patrimonial/catalogo-tipo-activo.repository';
 import { AuditoriaRepository } from '../auditoria/auditoria.repository';
 import type { InventarioRequest } from '../inventarios/inventarios.types';
 import type { AltaActivoBody } from '../patrimonial/activo.schemas';
@@ -13,6 +16,15 @@ import type { Activo } from '../patrimonial/activo.types';
 import type { ImportacionContableResultado } from '../patrimonial/importacion-contable.types';
 import type { AltaContratoBody } from '../entitlements/contrato.schemas';
 import type { Contrato } from '../entitlements/contrato.types';
+import type { AltaCatalogoTipoBody } from '../patrimonial/catalogo-tipo-activo.schemas';
+import type { CatalogoTipoActivo } from '../patrimonial/catalogo-tipo-activo.types';
+import type {
+  AltaDocumentoActivoBody,
+  EliminarDocumentoActivoBody,
+} from '../patrimonial/documento-activo.schemas';
+import type { DocumentoActivo } from '../patrimonial/documento-activo.types';
+import type { AltaOrganizacionBody } from '../entitlements/organizacion.schemas';
+import type { Organizacion } from '../entitlements/organizacion.types';
 import type {
   AltaAreaBody,
   AltaResponsableBody,
@@ -38,6 +50,7 @@ const ACTIVO: Activo = {
   ubicacionId: null,
   responsableId: null,
   estado: 'activo',
+  descripcion: null,
   catalogo: {
     tipo: 'Equipo Computacional',
     familia: 'Informática',
@@ -46,6 +59,32 @@ const ACTIVO: Activo = {
     modelo: null,
   },
 };
+
+const CATALOGO_TIPO: CatalogoTipoActivo = {
+  id: 'catalogo-notebook',
+  tipo: 'Equipo Computacional',
+  familia: 'Informática',
+  subfamilia: null,
+  marca: null,
+  modelo: null,
+  fabricante: null,
+  vidaUtilMeses: null,
+  criticidad: 'alta',
+  tecnologiaIdentificacion: 'qr',
+};
+
+const DOCUMENTO: DocumentoActivo = {
+  id: 'documento-1',
+  activoId: 'activo-1',
+  organizacionId: 'duoc-uc',
+  tipo: 'documento',
+  url: 'https://example.com/doc.pdf',
+  descripcion: 'Factura de compra',
+  creadoEn: '2026-01-01T00:00:00.000Z',
+  creadoPor: 'op-admin',
+};
+
+const ORGANIZACION: Organizacion = { id: 'duoc-uc', nombre: 'DUOC UC' };
 
 function buildPayload(): InventarioRequest {
   return {
@@ -86,6 +125,7 @@ function buildService() {
     baja: jest.fn(),
     reincorporacion: jest.fn(),
     cambioResponsable: jest.fn(),
+    actualizarDescripcion: jest.fn(),
   } as unknown as jest.Mocked<EscrituraActivoService>;
   const importacionContableService = {
     procesar: jest.fn(),
@@ -102,6 +142,17 @@ function buildService() {
     altaResponsable: jest.fn(),
     actualizarEstadoResponsable: jest.fn(),
   } as unknown as jest.Mocked<EscrituraEstructuraService>;
+  const escrituraOrganizacionService = {
+    crear: jest.fn(),
+  } as unknown as jest.Mocked<EscrituraOrganizacionService>;
+  const escrituraDocumentoActivoService = {
+    crear: jest.fn(),
+    eliminar: jest.fn(),
+  } as unknown as jest.Mocked<EscrituraDocumentoActivoService>;
+  const catalogoTipoActivoRepository = {
+    listar: jest.fn(),
+    crear: jest.fn(),
+  } as unknown as jest.Mocked<CatalogoTipoActivoRepository>;
   const auditoriaRepository = {
     registrar: jest.fn().mockResolvedValue(undefined),
   } as unknown as jest.Mocked<AuditoriaRepository>;
@@ -112,6 +163,9 @@ function buildService() {
     importacionContableService,
     escrituraContratoService,
     escrituraEstructuraService,
+    escrituraOrganizacionService,
+    escrituraDocumentoActivoService,
+    catalogoTipoActivoRepository,
     auditoriaRepository,
   );
 
@@ -122,6 +176,9 @@ function buildService() {
     importacionContableService,
     escrituraContratoService,
     escrituraEstructuraService,
+    escrituraOrganizacionService,
+    escrituraDocumentoActivoService,
+    catalogoTipoActivoRepository,
     auditoriaRepository,
   };
 }
@@ -394,6 +451,289 @@ describe('OrquestadorService', () => {
         usuario: 'op-admin',
         operacion: 'POST /activos/activo-1/responsable',
         resultado: 'activo',
+      });
+    });
+  });
+
+  describe('procesarActualizarDescripcionActivo', () => {
+    it('actualiza la descripcion, audita el resultado y la devuelve', async () => {
+      const { service, escrituraActivoService, auditoriaRepository } =
+        buildService();
+      const conDescripcion = { ...ACTIVO, descripcion: 'Notebook nuevo' };
+      escrituraActivoService.actualizarDescripcion.mockResolvedValue(
+        conDescripcion,
+      );
+
+      const activo = await service.procesarActualizarDescripcionActivo(
+        'activo-1',
+        {
+          correlationId: 'corr-1',
+          operadorId: 'op-admin',
+          organizacionId: 'duoc-uc',
+          rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
+          descripcion: 'Notebook nuevo',
+        },
+      );
+
+      expect(activo).toBe(conDescripcion);
+      expect(escrituraActivoService.actualizarDescripcion).toHaveBeenCalledWith(
+        'activo-1',
+        'duoc-uc',
+        'Notebook nuevo',
+        'op-admin',
+      );
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'PATCH /activos/activo-1/descripcion',
+        resultado: 'activo',
+      });
+    });
+
+    it('rechaza con 403 y audita sin llamar al servicio si falta el rol', async () => {
+      const { service, escrituraActivoService, auditoriaRepository } =
+        buildService();
+
+      await expect(
+        service.procesarActualizarDescripcionActivo('activo-1', {
+          correlationId: 'corr-1',
+          operadorId: 'op-admin',
+          organizacionId: 'duoc-uc',
+          rolesPorOrganizacion: {},
+          descripcion: 'Notebook nuevo',
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(
+        escrituraActivoService.actualizarDescripcion,
+      ).not.toHaveBeenCalled();
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'PATCH /activos/activo-1/descripcion',
+        resultado: 'rechazado:403',
+      });
+    });
+  });
+
+  describe('procesarAltaCatalogoTipo', () => {
+    const payload: AltaCatalogoTipoBody = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
+      tipo: 'Equipo Computacional',
+      familia: 'Informática',
+      criticidad: 'alta',
+      tecnologiaIdentificacion: 'qr',
+    };
+
+    it('crea el tipo de catalogo, audita el resultado (id) y lo devuelve', async () => {
+      const { service, catalogoTipoActivoRepository, auditoriaRepository } =
+        buildService();
+      catalogoTipoActivoRepository.crear.mockResolvedValue(CATALOGO_TIPO);
+
+      await expect(service.procesarAltaCatalogoTipo(payload)).resolves.toBe(
+        CATALOGO_TIPO,
+      );
+      expect(catalogoTipoActivoRepository.crear).toHaveBeenCalledWith(payload);
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /catalogo-tipos',
+        resultado: 'catalogo-notebook',
+      });
+    });
+
+    it('rechaza con 403 y audita sin llamar al repository si falta el rol', async () => {
+      const { service, catalogoTipoActivoRepository, auditoriaRepository } =
+        buildService();
+
+      await expect(
+        service.procesarAltaCatalogoTipo({
+          ...payload,
+          rolesPorOrganizacion: {},
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(catalogoTipoActivoRepository.crear).not.toHaveBeenCalled();
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /catalogo-tipos',
+        resultado: 'rechazado:403',
+      });
+    });
+  });
+
+  describe('procesarAltaDocumentoActivo', () => {
+    const payload: AltaDocumentoActivoBody = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
+      tipo: 'documento',
+      url: 'https://example.com/doc.pdf',
+      descripcion: 'Factura de compra',
+    };
+
+    it('crea el documento, audita el resultado (id) y lo devuelve', async () => {
+      const { service, escrituraDocumentoActivoService, auditoriaRepository } =
+        buildService();
+      escrituraDocumentoActivoService.crear.mockResolvedValue(DOCUMENTO);
+
+      await expect(
+        service.procesarAltaDocumentoActivo('activo-1', payload),
+      ).resolves.toBe(DOCUMENTO);
+      expect(escrituraDocumentoActivoService.crear).toHaveBeenCalledWith({
+        activoId: 'activo-1',
+        organizacionId: 'duoc-uc',
+        tipo: 'documento',
+        url: 'https://example.com/doc.pdf',
+        descripcion: 'Factura de compra',
+        creadoPor: 'op-admin',
+      });
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /activos/activo-1/documentos',
+        resultado: 'documento-1',
+      });
+    });
+
+    it('rechaza con 403 y audita sin llamar al servicio si falta el rol', async () => {
+      const { service, escrituraDocumentoActivoService, auditoriaRepository } =
+        buildService();
+
+      await expect(
+        service.procesarAltaDocumentoActivo('activo-1', {
+          ...payload,
+          rolesPorOrganizacion: {},
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(escrituraDocumentoActivoService.crear).not.toHaveBeenCalled();
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /activos/activo-1/documentos',
+        resultado: 'rechazado:403',
+      });
+    });
+  });
+
+  describe('procesarEliminarDocumentoActivo', () => {
+    const payload: EliminarDocumentoActivoBody = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
+    };
+
+    it('elimina el documento, audita el resultado (documentoId) y no devuelve nada', async () => {
+      const { service, escrituraDocumentoActivoService, auditoriaRepository } =
+        buildService();
+      escrituraDocumentoActivoService.eliminar.mockResolvedValue(undefined);
+
+      await expect(
+        service.procesarEliminarDocumentoActivo(
+          'activo-1',
+          'documento-1',
+          payload,
+        ),
+      ).resolves.toBeUndefined();
+      expect(escrituraDocumentoActivoService.eliminar).toHaveBeenCalledWith(
+        'documento-1',
+        'activo-1',
+        'duoc-uc',
+      );
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'DELETE /activos/activo-1/documentos/documento-1',
+        resultado: 'documento-1',
+      });
+    });
+
+    it('rechaza con 403 y audita sin llamar al servicio si falta el rol', async () => {
+      const { service, escrituraDocumentoActivoService, auditoriaRepository } =
+        buildService();
+
+      await expect(
+        service.procesarEliminarDocumentoActivo('activo-1', 'documento-1', {
+          ...payload,
+          rolesPorOrganizacion: {},
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(escrituraDocumentoActivoService.eliminar).not.toHaveBeenCalled();
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'DELETE /activos/activo-1/documentos/documento-1',
+        resultado: 'rechazado:403',
+      });
+    });
+  });
+
+  describe('procesarAltaOrganizacion', () => {
+    const payload: AltaOrganizacionBody = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
+      id: 'duoc-uc',
+      nombre: 'DUOC UC',
+    };
+
+    it('crea la organizacion, audita el resultado (id) y la devuelve', async () => {
+      const { service, escrituraOrganizacionService, auditoriaRepository } =
+        buildService();
+      escrituraOrganizacionService.crear.mockResolvedValue(ORGANIZACION);
+
+      await expect(service.procesarAltaOrganizacion(payload)).resolves.toBe(
+        ORGANIZACION,
+      );
+      expect(escrituraOrganizacionService.crear).toHaveBeenCalledWith({
+        id: 'duoc-uc',
+        nombre: 'DUOC UC',
+      });
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /organizaciones',
+        resultado: 'duoc-uc',
+      });
+    });
+
+    // DOC-021 4 — a diferencia de Activo/Catalogo/Documento (solo administrador-patrimonial),
+    // Organizacion solo acepta administrador-sistema: administrador-patrimonial no alcanza.
+    it('rechaza con 403 y audita sin llamar al servicio si el operador solo tiene administrador-patrimonial', async () => {
+      const { service, escrituraOrganizacionService, auditoriaRepository } =
+        buildService();
+
+      await expect(
+        service.procesarAltaOrganizacion({
+          ...payload,
+          rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(escrituraOrganizacionService.crear).not.toHaveBeenCalled();
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /organizaciones',
+        resultado: 'rechazado:403',
+      });
+    });
+
+    it('rechaza con 403 y audita sin llamar al servicio si falta el rol', async () => {
+      const { service, escrituraOrganizacionService, auditoriaRepository } =
+        buildService();
+
+      await expect(
+        service.procesarAltaOrganizacion({
+          ...payload,
+          rolesPorOrganizacion: {},
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(escrituraOrganizacionService.crear).not.toHaveBeenCalled();
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /organizaciones',
+        resultado: 'rechazado:403',
       });
     });
   });

@@ -36,6 +36,7 @@ const SELECT_ACTIVO_SQL = `
     a.ubicacion_id AS "ubicacionId",
     a.responsable_id AS "responsableId",
     a.estado,
+    a.descripcion,
     c.tipo,
     c.familia,
     c.subfamilia,
@@ -54,6 +55,7 @@ interface ActivoRow {
   ubicacionId: string | null;
   responsableId: string | null;
   estado: EstadoActivo;
+  descripcion: string | null;
   tipo: string;
   familia: string;
   subfamilia: string | null;
@@ -183,8 +185,8 @@ export class ActivoRepository {
       await this.pool.query(
         `INSERT INTO activos
            (id, codigo_patrimonial, codigo_qr, organizacion_id, catalogo_id, serie, estado,
-            responsable_id, area_id, ubicacion_id, valor_patrimonial, fecha_alta)
-         VALUES ($1, $2, $3, $4, $5, $6, 'activo', $7, $8, $9, $10, CURRENT_DATE)`,
+            responsable_id, area_id, ubicacion_id, valor_patrimonial, fecha_alta, descripcion)
+         VALUES ($1, $2, $3, $4, $5, $6, 'activo', $7, $8, $9, $10, CURRENT_DATE, $11)`,
         [
           id,
           input.codigoPatrimonial,
@@ -196,6 +198,7 @@ export class ActivoRepository {
           input.areaId ?? null,
           input.ubicacionId ?? null,
           input.valorPatrimonial ?? null,
+          input.descripcion ?? null,
         ],
       );
     } catch (error: unknown) {
@@ -274,6 +277,24 @@ export class ActivoRepository {
     return { ...actual, responsableId };
   }
 
+  // DOC-021 3 — PATCH /activos/:id/descripcion. Mismo cruce por organizacionId que
+  // actualizarResponsable, mismo motivo (defensa en profundidad).
+  async actualizarDescripcion(
+    id: string,
+    organizacionId: string,
+    descripcion: string | null,
+  ): Promise<Activo> {
+    const actual = await this.findById(id);
+    if (!actual || actual.organizacionId !== organizacionId) {
+      throw new NotFoundException({ message: `No existe el activo '${id}'` });
+    }
+    await this.pool.query('UPDATE activos SET descripcion = $1 WHERE id = $2', [
+      descripcion,
+      id,
+    ]);
+    return { ...actual, descripcion };
+  }
+
   private toActivo(row: ActivoRow): Activo {
     return {
       id: row.id,
@@ -284,6 +305,7 @@ export class ActivoRepository {
       ubicacionId: row.ubicacionId,
       responsableId: row.responsableId,
       estado: row.estado,
+      descripcion: row.descripcion,
       catalogo: {
         tipo: row.tipo,
         familia: row.familia,
@@ -296,6 +318,7 @@ export class ActivoRepository {
 
   private toActivoCatalogo(row: ActivoRow): ActivoCatalogo {
     return {
+      id: row.id,
       codigoQr: row.codigoQr,
       nombre: construirNombreActivo(row),
       familia: row.familia,
