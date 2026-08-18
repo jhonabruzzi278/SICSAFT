@@ -1035,6 +1035,452 @@ describe('CoreClientService', () => {
     });
   });
 
+  describe('Activo — estados/responsable/descripcion (DOC-021 3)', () => {
+    const escrituraRequest = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+    };
+    const activo = {
+      id: 'activo-1',
+      codigoPatrimonial: 'AFT-1',
+      codigoQr: 'QR-1',
+      organizacionId: 'duoc-uc',
+      areaId: null,
+      ubicacionId: null,
+      responsableId: null,
+      estado: 'dado_de_baja',
+      descripcion: null,
+      catalogo: {
+        tipo: 'Equipo Computacional',
+        familia: 'Informática',
+        subfamilia: null,
+        marca: null,
+        modelo: null,
+      },
+    };
+
+    it('postActivoBaja llama a POST {baseUrl}/activos/:id/baja y devuelve el activo dado de baja', async () => {
+      axiosPost.mockResolvedValue(buildAxiosResponse(activo));
+
+      await expect(
+        service.postActivoBaja('activo-1', escrituraRequest, 'corr-1'),
+      ).resolves.toEqual(activo);
+      expect(axiosPost).toHaveBeenCalledWith(
+        'http://core:3001/activos/activo-1/baja',
+        escrituraRequest,
+        expect.anything(),
+      );
+    });
+
+    it('postActivoBaja propaga un 404 de CORE como NotFoundException, sin reintentar', async () => {
+      axiosPost.mockRejectedValue(
+        buildAxiosError(404, { message: "No existe el activo 'x'" }),
+      );
+
+      await expect(
+        service.postActivoBaja('no-existe', escrituraRequest, 'corr-1'),
+      ).rejects.toThrow(NotFoundException);
+      expect(axiosPost).toHaveBeenCalledTimes(1);
+    });
+
+    it('postActivoReincorporacion llama a POST {baseUrl}/activos/:id/reincorporacion y devuelve el activo reincorporado', async () => {
+      const reincorporado = { ...activo, estado: 'activo' };
+      axiosPost.mockResolvedValue(buildAxiosResponse(reincorporado));
+
+      await expect(
+        service.postActivoReincorporacion(
+          'activo-1',
+          escrituraRequest,
+          'corr-1',
+        ),
+      ).resolves.toEqual(reincorporado);
+      expect(axiosPost).toHaveBeenCalledWith(
+        'http://core:3001/activos/activo-1/reincorporacion',
+        escrituraRequest,
+        expect.anything(),
+      );
+    });
+
+    it('postActivoReincorporacion propaga un 409 de CORE como ConflictException, sin reintentar', async () => {
+      axiosPost.mockRejectedValue(
+        buildAxiosError(409, { message: 'ya esta activo' }),
+      );
+
+      await expect(
+        service.postActivoReincorporacion(
+          'activo-1',
+          escrituraRequest,
+          'corr-1',
+        ),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('patchActivoResponsable llama a PATCH {baseUrl}/activos/:id/responsable y devuelve el activo actualizado', async () => {
+      const conResponsable = { ...activo, responsableId: 'responsable-1' };
+      axiosPatch.mockResolvedValue(buildAxiosResponse(conResponsable));
+      const request = { ...escrituraRequest, responsableId: 'responsable-1' };
+
+      await expect(
+        service.patchActivoResponsable('activo-1', request, 'corr-1'),
+      ).resolves.toEqual(conResponsable);
+      expect(axiosPatch).toHaveBeenCalledWith(
+        'http://core:3001/activos/activo-1/responsable',
+        request,
+        expect.anything(),
+      );
+    });
+
+    it('patchActivoResponsable propaga un 400 de CORE como BadRequestException, sin reintentar', async () => {
+      axiosPatch.mockRejectedValue(
+        buildAxiosError(400, { message: "responsableId 'x' inexistente" }),
+      );
+
+      await expect(
+        service.patchActivoResponsable(
+          'activo-1',
+          { ...escrituraRequest, responsableId: 'no-existe' },
+          'corr-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('patchActivoDescripcion llama a PATCH {baseUrl}/activos/:id/descripcion y devuelve el activo actualizado', async () => {
+      const conDescripcion = { ...activo, descripcion: 'Con rayón' };
+      axiosPatch.mockResolvedValue(buildAxiosResponse(conDescripcion));
+      const request = { ...escrituraRequest, descripcion: 'Con rayón' };
+
+      await expect(
+        service.patchActivoDescripcion('activo-1', request, 'corr-1'),
+      ).resolves.toEqual(conDescripcion);
+      expect(axiosPatch).toHaveBeenCalledWith(
+        'http://core:3001/activos/activo-1/descripcion',
+        request,
+        expect.anything(),
+      );
+    });
+
+    it('patchActivoDescripcion propaga un 403 de CORE como ForbiddenException, sin reintentar', async () => {
+      axiosPatch.mockRejectedValue(
+        buildAxiosError(403, { message: 'sin permiso' }),
+      );
+
+      await expect(
+        service.patchActivoDescripcion(
+          'activo-1',
+          { ...escrituraRequest, descripcion: null },
+          'corr-1',
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('Catalogo de tipos (DOC-021 4)', () => {
+    const catalogoTipo = {
+      id: 'catalogo-1',
+      tipo: 'Equipo Computacional',
+      familia: 'Informática',
+      subfamilia: null,
+      marca: null,
+      modelo: null,
+      fabricante: null,
+      vidaUtilMeses: null,
+      criticidad: 'media',
+      tecnologiaIdentificacion: 'qr',
+    };
+    const postCatalogoTipoRequest = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
+      tipo: 'Equipo Computacional',
+      familia: 'Informática',
+      criticidad: 'media' as const,
+      tecnologiaIdentificacion: 'qr' as const,
+    };
+
+    it('getCatalogoTipos llama a GET {baseUrl}/catalogo-tipos y devuelve el listado', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse([catalogoTipo]));
+
+      await expect(service.getCatalogoTipos('corr-1')).resolves.toEqual([
+        catalogoTipo,
+      ]);
+      expect(axiosGet).toHaveBeenCalledWith('http://core:3001/catalogo-tipos', {
+        params: undefined,
+        headers: {
+          'x-internal-service-token': 'secreto-compartido',
+          'x-correlation-id': 'corr-1',
+        },
+      });
+    });
+
+    it('postCatalogoTipo llama a POST {baseUrl}/catalogo-tipos y devuelve el tipo creado', async () => {
+      axiosPost.mockResolvedValue(buildAxiosResponse(catalogoTipo));
+
+      await expect(
+        service.postCatalogoTipo(postCatalogoTipoRequest, 'corr-1'),
+      ).resolves.toEqual(catalogoTipo);
+      expect(axiosPost).toHaveBeenCalledWith(
+        'http://core:3001/catalogo-tipos',
+        postCatalogoTipoRequest,
+        expect.anything(),
+      );
+    });
+
+    it('postCatalogoTipo propaga un 409 de CORE como ConflictException, sin reintentar', async () => {
+      axiosPost.mockRejectedValue(
+        buildAxiosError(409, { message: 'ya existe ese tipo' }),
+      );
+
+      await expect(
+        service.postCatalogoTipo(postCatalogoTipoRequest, 'corr-1'),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('Documentos de Activo (DOC-021 3)', () => {
+    const documento = {
+      id: 'documento-1',
+      activoId: 'activo-1',
+      organizacionId: 'duoc-uc',
+      tipo: 'documento',
+      url: 'https://ejemplo.cl/documento.pdf',
+      descripcion: null,
+      creadoEn: '2026-01-01T00:00:00.000Z',
+      creadoPor: 'op-1',
+    };
+    const postDocumentoRequest = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+      tipo: 'documento' as const,
+      url: 'https://ejemplo.cl/documento.pdf',
+    };
+
+    it('getDocumentosActivo llama a GET {baseUrl}/activos/:id/documentos con organizacionId', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse([documento]));
+
+      await expect(
+        service.getDocumentosActivo('activo-1', 'duoc-uc', 'corr-1'),
+      ).resolves.toEqual([documento]);
+      expect(axiosGet).toHaveBeenCalledWith(
+        'http://core:3001/activos/activo-1/documentos',
+        {
+          params: { organizacionId: 'duoc-uc' },
+          headers: {
+            'x-internal-service-token': 'secreto-compartido',
+            'x-correlation-id': 'corr-1',
+          },
+        },
+      );
+    });
+
+    it('postDocumentoActivo llama a POST {baseUrl}/activos/:id/documentos y devuelve el documento creado', async () => {
+      axiosPost.mockResolvedValue(buildAxiosResponse(documento));
+
+      await expect(
+        service.postDocumentoActivo('activo-1', postDocumentoRequest, 'corr-1'),
+      ).resolves.toEqual(documento);
+      expect(axiosPost).toHaveBeenCalledWith(
+        'http://core:3001/activos/activo-1/documentos',
+        postDocumentoRequest,
+        expect.anything(),
+      );
+    });
+
+    it('postDocumentoActivo propaga un 404 de CORE como NotFoundException (activo inexistente), sin reintentar', async () => {
+      axiosPost.mockRejectedValue(
+        buildAxiosError(404, { message: "No existe el activo 'x'" }),
+      );
+
+      await expect(
+        service.postDocumentoActivo(
+          'no-existe',
+          postDocumentoRequest,
+          'corr-1',
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('deleteDocumentoActivo llama a DELETE {baseUrl}/activos/:id/documentos/:documentoId con el body en options.data', async () => {
+      const axiosDelete = jest
+        .fn()
+        .mockResolvedValue(buildAxiosResponse(undefined));
+      (httpService.axiosRef as unknown as { delete: jest.Mock }).delete =
+        axiosDelete;
+      const escrituraRequest = {
+        correlationId: 'corr-1',
+        operadorId: 'op-admin',
+        organizacionId: 'duoc-uc',
+        rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+      };
+
+      await service.deleteDocumentoActivo(
+        'activo-1',
+        'documento-1',
+        escrituraRequest,
+        'corr-1',
+      );
+
+      expect(axiosDelete).toHaveBeenCalledWith(
+        'http://core:3001/activos/activo-1/documentos/documento-1',
+        {
+          data: escrituraRequest,
+          headers: {
+            'x-internal-service-token': 'secreto-compartido',
+            'x-correlation-id': 'corr-1',
+          },
+        },
+      );
+    });
+
+    it('deleteDocumentoActivo propaga un 400 de CORE como BadRequestException, sin reintentar', async () => {
+      const axiosDelete = jest
+        .fn()
+        .mockRejectedValue(buildAxiosError(400, { message: 'invalido' }));
+      (httpService.axiosRef as unknown as { delete: jest.Mock }).delete =
+        axiosDelete;
+
+      await expect(
+        service.deleteDocumentoActivo(
+          'activo-1',
+          'documento-1',
+          {
+            correlationId: 'corr-1',
+            operadorId: 'op-admin',
+            organizacionId: 'duoc-uc',
+            rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+          },
+          'corr-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(axiosDelete).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Organizaciones e indicadores (DOC-021 4)', () => {
+    const organizacion = { id: 'duoc-uc', nombre: 'DUOC UC' };
+    const postOrganizacionRequest = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
+      id: 'zitadel-org-nueva',
+      nombre: 'Nueva Organización',
+    };
+
+    it('getOrganizaciones llama a GET {baseUrl}/organizaciones y devuelve el listado', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse([organizacion]));
+
+      await expect(service.getOrganizaciones('corr-1')).resolves.toEqual([
+        organizacion,
+      ]);
+      expect(axiosGet).toHaveBeenCalledWith('http://core:3001/organizaciones', {
+        params: undefined,
+        headers: {
+          'x-internal-service-token': 'secreto-compartido',
+          'x-correlation-id': 'corr-1',
+        },
+      });
+    });
+
+    it('postOrganizacion llama a POST {baseUrl}/organizaciones y devuelve la organizacion creada', async () => {
+      axiosPost.mockResolvedValue(buildAxiosResponse(organizacion));
+
+      await expect(
+        service.postOrganizacion(postOrganizacionRequest, 'corr-1'),
+      ).resolves.toEqual(organizacion);
+      expect(axiosPost).toHaveBeenCalledWith(
+        'http://core:3001/organizaciones',
+        postOrganizacionRequest,
+        expect.anything(),
+      );
+    });
+
+    it('postOrganizacion propaga un 409 de CORE como ConflictException, sin reintentar', async () => {
+      axiosPost.mockRejectedValue(
+        buildAxiosError(409, { message: 'ya existe' }),
+      );
+
+      await expect(
+        service.postOrganizacion(postOrganizacionRequest, 'corr-1'),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('getIndicadores llama a GET {baseUrl}/indicadores y devuelve los indicadores', async () => {
+      const indicadores = {
+        totalOrganizaciones: 1,
+        totalSedes: 1,
+        contratosPorEstado: {
+          vigente: 1,
+          suspendido: 0,
+          vencido: 0,
+          cancelado: 0,
+        },
+      };
+      axiosGet.mockResolvedValue(buildAxiosResponse(indicadores));
+
+      await expect(service.getIndicadores('corr-1')).resolves.toEqual(
+        indicadores,
+      );
+      expect(axiosGet).toHaveBeenCalledWith('http://core:3001/indicadores', {
+        params: undefined,
+        headers: {
+          'x-internal-service-token': 'secreto-compartido',
+          'x-correlation-id': 'corr-1',
+        },
+      });
+    });
+  });
+
+  describe('postImportacionContable (DOC-012 6)', () => {
+    const request = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+      filas: [
+        {
+          codigoPatrimonial: 'AFT-1',
+          codigoQr: 'QR-1',
+          catalogoId: 'catalogo-notebook',
+        },
+      ],
+    };
+    const resultado = {
+      filas: [{ codigoPatrimonial: 'AFT-1', resultado: 'creado' }],
+      creados: 1,
+      yaImportados: 0,
+      conflictos: 0,
+    };
+
+    it('llama a POST {baseUrl}/importaciones/contable con el body completo', async () => {
+      axiosPost.mockResolvedValue(buildAxiosResponse(resultado));
+
+      await expect(
+        service.postImportacionContable(request, 'corr-1'),
+      ).resolves.toEqual(resultado);
+      expect(axiosPost).toHaveBeenCalledWith(
+        'http://core:3001/importaciones/contable',
+        request,
+        expect.anything(),
+      );
+    });
+
+    it('propaga un 400 de CORE como BadRequestException, sin reintentar', async () => {
+      axiosPost.mockRejectedValue(
+        buildAxiosError(400, { message: 'fila invalida' }),
+      );
+
+      await expect(
+        service.postImportacionContable(request, 'corr-1'),
+      ).rejects.toThrow(BadRequestException);
+      expect(axiosPost).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('circuit breaker', () => {
     it('cuando el circuito esta abierto, lanza 502 sin llamar a axios', async () => {
       const breakerAbierto = {

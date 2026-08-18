@@ -15,10 +15,16 @@ import type {
   ActivoResult,
   AreaResult,
   AuditoriaEntradaResult,
+  CatalogoTipoResult,
   ContratoResult,
+  DocumentoActivoResult,
+  ImportacionContableResult,
+  IndicadoresResult,
+  OrganizacionResult,
   ResponsableResult,
   UbicacionResult,
 } from '../core-client/core-client.types';
+import type { GrantUsuario } from '../zitadel-admin/zitadel-admin.types';
 import type {
   ActualizarAreaBody,
   ActualizarContratoBody,
@@ -26,9 +32,15 @@ import type {
   ActualizarUbicacionBody,
   AltaActivoBody,
   AltaAreaBody,
+  AltaCatalogoTipoBody,
   AltaContratoBody,
+  AltaDocumentoActivoBody,
+  AltaOrganizacionBody,
   AltaResponsableBody,
   AltaUbicacionBody,
+  CambioResponsableActivoBody,
+  EscrituraOficialActivoBody,
+  ImportacionContableBody,
 } from './administrador.schemas';
 
 const CORRELATION_ID = 'correlation-test';
@@ -492,6 +504,290 @@ describe('AdministradorController', () => {
     expect(service.asignarUsuarioOrganizacion).toHaveBeenCalledWith(
       'duoc-uc',
       body,
+      CORRELATION_ID,
+    );
+  });
+
+  // DOC-021 3 (gap "estados").
+  it('bajaActivo delega en el service con el id, el body, el auth del guard y el correlationId', async () => {
+    const dadoDeBaja = { ...ACTIVO, estado: 'dado_de_baja' as const };
+    service.bajaActivo.mockResolvedValue(dadoDeBaja);
+    const body: EscrituraOficialActivoBody = { organizacionId: 'duoc-uc' };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(
+      controller.bajaActivo('activo-1', body, request),
+    ).resolves.toBe(dadoDeBaja);
+    expect(service.bajaActivo).toHaveBeenCalledWith(
+      'activo-1',
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  it('reincorporarActivo delega en el service con el id, el body, el auth del guard y el correlationId', async () => {
+    service.reincorporarActivo.mockResolvedValue(ACTIVO);
+    const body: EscrituraOficialActivoBody = { organizacionId: 'duoc-uc' };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(
+      controller.reincorporarActivo('activo-1', body, request),
+    ).resolves.toBe(ACTIVO);
+    expect(service.reincorporarActivo).toHaveBeenCalledWith(
+      'activo-1',
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  it('cambiarResponsableActivo delega en el service con el id, el body, el auth del guard y el correlationId', async () => {
+    const conResponsable = { ...ACTIVO, responsableId: 'responsable-1' };
+    service.cambiarResponsableActivo.mockResolvedValue(conResponsable);
+    const body: CambioResponsableActivoBody = {
+      organizacionId: 'duoc-uc',
+      responsableId: 'responsable-1',
+    };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(
+      controller.cambiarResponsableActivo('activo-1', body, request),
+    ).resolves.toBe(conResponsable);
+    expect(service.cambiarResponsableActivo).toHaveBeenCalledWith(
+      'activo-1',
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  const CATALOGO_TIPO: CatalogoTipoResult = {
+    id: 'catalogo-1',
+    tipo: 'Equipo Computacional',
+    familia: 'Informática',
+    subfamilia: null,
+    marca: null,
+    modelo: null,
+    fabricante: null,
+    vidaUtilMeses: null,
+    criticidad: 'media',
+    tecnologiaIdentificacion: 'qr',
+  };
+
+  // DOC-021 4 (gap "familias/categorías").
+  it('getCatalogoTipos delega en el service con el correlationId', async () => {
+    service.getCatalogoTipos.mockResolvedValue([CATALOGO_TIPO]);
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+
+    await expect(controller.getCatalogoTipos(request)).resolves.toEqual([
+      CATALOGO_TIPO,
+    ]);
+    expect(service.getCatalogoTipos).toHaveBeenCalledWith(CORRELATION_ID);
+  });
+
+  it('altaCatalogoTipo delega en el service con el body, el auth del guard y el correlationId', async () => {
+    service.altaCatalogoTipo.mockResolvedValue(CATALOGO_TIPO);
+    const body: AltaCatalogoTipoBody = {
+      organizacionId: 'duoc-uc',
+      tipo: 'Equipo Computacional',
+      familia: 'Informática',
+      criticidad: 'media',
+      tecnologiaIdentificacion: 'qr',
+    };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(controller.altaCatalogoTipo(body, request)).resolves.toBe(
+      CATALOGO_TIPO,
+    );
+    expect(service.altaCatalogoTipo).toHaveBeenCalledWith(
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  const DOCUMENTO_ACTIVO: DocumentoActivoResult = {
+    id: 'documento-1',
+    activoId: 'activo-1',
+    organizacionId: 'duoc-uc',
+    tipo: 'documento',
+    url: 'https://ejemplo.cl/documento.pdf',
+    descripcion: null,
+    creadoEn: '2026-01-01T00:00:00.000Z',
+    creadoPor: 'op-1',
+  };
+
+  // DOC-021 3 (gap "documentación y fotografías").
+  it('getDocumentosActivo delega en el service con el id, organizacionId y el correlationId', async () => {
+    service.getDocumentosActivo.mockResolvedValue([DOCUMENTO_ACTIVO]);
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+
+    await expect(
+      controller.getDocumentosActivo(
+        'activo-1',
+        { organizacionId: 'duoc-uc' },
+        request,
+      ),
+    ).resolves.toEqual([DOCUMENTO_ACTIVO]);
+    expect(service.getDocumentosActivo).toHaveBeenCalledWith(
+      'activo-1',
+      'duoc-uc',
+      CORRELATION_ID,
+    );
+  });
+
+  it('altaDocumentoActivo delega en el service con el id, el body, el auth del guard y el correlationId', async () => {
+    service.altaDocumentoActivo.mockResolvedValue(DOCUMENTO_ACTIVO);
+    const body: AltaDocumentoActivoBody = {
+      organizacionId: 'duoc-uc',
+      tipo: 'documento',
+      url: 'https://ejemplo.cl/documento.pdf',
+    };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(
+      controller.altaDocumentoActivo('activo-1', body, request),
+    ).resolves.toBe(DOCUMENTO_ACTIVO);
+    expect(service.altaDocumentoActivo).toHaveBeenCalledWith(
+      'activo-1',
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  it('eliminarDocumentoActivo delega en el service con el id, documentoId, el body, el auth del guard y el correlationId', async () => {
+    service.eliminarDocumentoActivo.mockResolvedValue(undefined);
+    const body: EscrituraOficialActivoBody = { organizacionId: 'duoc-uc' };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await controller.eliminarDocumentoActivo(
+      'activo-1',
+      'documento-1',
+      body,
+      request,
+    );
+
+    expect(service.eliminarDocumentoActivo).toHaveBeenCalledWith(
+      'activo-1',
+      'documento-1',
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  // DOC-012 6 (gap "importaciones controladas").
+  it('importarContable delega en el service con el body, el auth del guard y el correlationId', async () => {
+    const resultado: ImportacionContableResult = {
+      filas: [{ codigoPatrimonial: 'AFT-1', resultado: 'creado' }],
+      creados: 1,
+      yaImportados: 0,
+      conflictos: 0,
+    };
+    service.importarContable.mockResolvedValue(resultado);
+    const body: ImportacionContableBody = {
+      organizacionId: 'duoc-uc',
+      filas: [
+        {
+          codigoPatrimonial: 'AFT-1',
+          codigoQr: 'QR-1',
+          catalogoId: 'catalogo-notebook',
+        },
+      ],
+    };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(controller.importarContable(body, request)).resolves.toBe(
+      resultado,
+    );
+    expect(service.importarContable).toHaveBeenCalledWith(
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  const ORGANIZACION: OrganizacionResult = { id: 'duoc-uc', nombre: 'DUOC UC' };
+
+  // DOC-021 4 (Administrador del Sistema).
+  it('getOrganizaciones delega en el service con el correlationId', async () => {
+    service.getOrganizaciones.mockResolvedValue([ORGANIZACION]);
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+
+    await expect(controller.getOrganizaciones(request)).resolves.toEqual([
+      ORGANIZACION,
+    ]);
+    expect(service.getOrganizaciones).toHaveBeenCalledWith(CORRELATION_ID);
+  });
+
+  it('altaOrganizacion delega en el service con el body, el auth del guard y el correlationId', async () => {
+    service.altaOrganizacion.mockResolvedValue(ORGANIZACION);
+    const body: AltaOrganizacionBody = {
+      organizacionId: 'duoc-uc',
+      id: 'zitadel-org-nueva',
+      nombre: 'Nueva Organización',
+    };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(controller.altaOrganizacion(body, request)).resolves.toBe(
+      ORGANIZACION,
+    );
+    expect(service.altaOrganizacion).toHaveBeenCalledWith(
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  it('getIndicadores delega en el service con el correlationId', async () => {
+    const indicadores: IndicadoresResult = {
+      totalOrganizaciones: 1,
+      totalSedes: 1,
+      contratosPorEstado: {
+        vigente: 1,
+        suspendido: 0,
+        vencido: 0,
+        cancelado: 0,
+      },
+    };
+    service.getIndicadores.mockResolvedValue(indicadores);
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+
+    await expect(controller.getIndicadores(request)).resolves.toEqual(
+      indicadores,
+    );
+    expect(service.getIndicadores).toHaveBeenCalledWith(CORRELATION_ID);
+  });
+
+  it('getUsuariosOrganizacion delega en el service con el orgId y el correlationId', async () => {
+    const grants: GrantUsuario[] = [
+      {
+        userId: 'usuario-1',
+        email: 'usuario@duoc.cl',
+        displayName: 'Usuario Uno',
+        roles: ['administrador-patrimonial'],
+      },
+    ];
+    service.listarUsuariosOrganizacion.mockResolvedValue(grants);
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+
+    await expect(
+      controller.getUsuariosOrganizacion('duoc-uc', request),
+    ).resolves.toEqual(grants);
+    expect(service.listarUsuariosOrganizacion).toHaveBeenCalledWith(
+      'duoc-uc',
       CORRELATION_ID,
     );
   });

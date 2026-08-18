@@ -681,6 +681,15 @@ export class CoreClientService {
     if (status === 403) {
       return new ForbiddenException(body);
     }
+    // 404 se incluyo explicitamente en passthroughStatuses para varios endpoints nuevos de
+    // DOC-021 3 (activos/:id/baja, /reincorporacion, /responsable, /descripcion, /documentos) —
+    // sin este caso, cualquiera de esos 404 caia en el default de abajo y se propagaba como
+    // ConflictException (409), un bug real encontrado al escribir la cobertura unitaria de estos
+    // endpoints (a diferencia de patchContrato/patchResponsableEstado, que no listan 404 en
+    // passthroughStatuses y dependen del chequeo explicito de 404 mas abajo en callCore).
+    if (status === 404) {
+      return new NotFoundException(body);
+    }
     return new ConflictException(body);
   }
 
