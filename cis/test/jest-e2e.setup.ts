@@ -19,3 +19,7 @@ process.env.CIP_SERVICE_TOKEN ??= 'secreto-compartido-cip';
 process.env.REDIS_URL ??= 'redis://localhost:6379'; // NOSONAR
 // DOC-012 5 (Fase 5) — ver src/administrador/organizacion-mapping.config.ts.
 process.env.ZITADEL_ORG_ID_MAP ??= '{"386029528616558597":"duoc-uc"}';
+// DOC-021 4 (Administrador del Sistema) — igual criterio que CORE_URL arriba: ZitadelAdminModule
+// exige esta config al arrancar aunque el test no le hable a Zitadel de verdad.
+process.env.ZITADEL_ADMIN_TOKEN ??= 'pat-e2e-fake';
+process.env.ZITADEL_PROJECT_ID ??= 'proyecto-cis-fake';

@@ -193,6 +193,7 @@ describe('QrConnectorService', () => {
     it('delega en CoreClientService y descarta el total (sin paginacion todavia en el contrato de CIS)', async () => {
       const activos = [
         {
+          id: 'activo-1',
           codigoQr: 'QR-0001',
           nombre: 'Notebook Dell Latitude',
           organizacionId: 'duoc-uc',
