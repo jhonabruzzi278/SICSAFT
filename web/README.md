@@ -228,10 +228,10 @@ WEB). Lo que queda:
    `esAdministradorPatrimonial()`, hoy sin consumidor hasta este incremento) + bifurcación en
    `HubPage.tsx` — un Directivo puro aterriza directo en `/dashboard` sin pasar por el hub, el caso
    mixto (Directivo + administrador-patrimonial) ve el hub operativo completo, y el profesional de
-   AFT (sin rol especial) no tiene cambios. Verificado en el navegador (modo mock) para los 3
-   casos; el rol `directivo` en sí es config pura de Zitadel (`devops/local/README.md` § "Rol
-   `directivo`"), pendiente crearlo en el Zitadel local para verificación de punta a punta contra
-   Docker real.
+   AFT (sin rol especial) no tiene cambios. Verificado real de punta a punta: rol `directivo`
+   creado en el proyecto CIS de Zitadel (`devops/local/README.md` § "Rol `directivo`"), usuario de
+   prueba autorizado solo con ese rol, login real → redirect automático a `/dashboard` confirmado
+   en el navegador.
 
 ✅ `Dockerfile`/`web-ci.yml`/servicio en el compose local — WEB ya tiene imagen de producción
 (nginx sirviendo el build de Vite, usuario sin privilegios) y corre dentro del stack en
