@@ -19,6 +19,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link to="/auditoria" className="hover:text-text">
                 Auditoría
               </Link>
+              {/* DOC-021 4 — mismo criterio que Auditoría: Administración no vive dentro del
+                  flujo por-organización del hub (un Administrador del Sistema puede no tener
+                  contrato vigente en ninguna organización todavía). */}
+              {oidcClient.esAdministradorSistema() && (
+                <Link to="/admin" className="hover:text-text">
+                  Administración
+                </Link>
+              )}
               {nombre && <span>{nombre}</span>}
               <Button
                 variant="ghost"

@@ -13,6 +13,9 @@ const MODULOS: { path: string; nombre: string }[] = [
   { path: 'contratos', nombre: 'Contratos' },
   { path: 'inventarios', nombre: 'Inventarios' },
   { path: 'estructura', nombre: 'Áreas, ubicaciones y responsables' },
+  // RF-14 (DOC-021, gap "importaciones controladas") — por organización, como el resto (a
+  // diferencia de "Administración", que es transversal — ver AppShell).
+  { path: 'importaciones', nombre: 'Importaciones' },
   { path: 'dashboard', nombre: 'Dashboard' },
 ];
 

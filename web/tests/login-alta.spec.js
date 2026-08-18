@@ -31,7 +31,9 @@ test.describe('Login + alta de activo (RF-01/RF-03/RF-08)', () => {
 
     await page.getByLabel('Código patrimonial').fill('PAT-E2E-001');
     await page.getByLabel('Código QR').fill('QR-E2E-001');
-    await page.getByLabel('Catálogo (id)').fill('catalogo-notebook');
+    // RF-12 (DOC-021, gap "familias/categorías") — selector real alimentado por
+    // GET /admin/catalogo-tipos, ya no texto libre.
+    await page.getByLabel('Catálogo (tipo)').selectOption('catalogo-notebook');
     await page.getByRole('button', { name: 'Crear activo' }).click();
 
     // RF-08 — el alta debe verse en el mismo catálogo sin recargar la página a mano.
