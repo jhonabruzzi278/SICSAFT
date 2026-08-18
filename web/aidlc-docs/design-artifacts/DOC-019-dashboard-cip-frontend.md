@@ -6,6 +6,11 @@ No repite el diseño de agregación/ingesta de CIP — se centra en cómo un ope
 ver esos datos. Resuelve las dos decisiones abiertas que DOC-014 §7.1/§7.2 dejó pendientes para
 "cuando se diseñe el frontend".
 
+> **Estado: implementado (2026-08-18)** — `cis/src/cip-client/` + `cis/src/dashboard-connector/`
+> (proxy CIS→CIP) y `web/src/pages/DashboardPage.tsx` con código funcionando, verificado en el
+> navegador contra MSW (`web/src/mocks/handlers.ts`). Pendiente: verificación real de punta a
+> punta (WEB→CIS→CIP→Postgres) dentro de Docker, igual que Fase 6 backend ya hizo.
+
 ## 1. Decisión: sección nueva dentro de WEB, no una app propia (resuelve DOC-014 §7.2)
 
 CIP no gana una app propia — se agrega como séptimo módulo del Portal WEB (`web/`, SYS-05).
@@ -58,27 +63,33 @@ Mismo patrón que `qr-connector.module.ts` (proxy transparente hacia un backend,
 negocio propia) pero apuntando a CIP en vez de CORE:
 
 ```
-cis/src/dashboard-connector/
-  dashboard-connector.module.ts     — registra el controller + DashboardCipClientService
-  dashboard-connector.controller.ts — @Controller('dashboard') @UseGuards(ZitadelAuthGuard, RateLimitGuard)
-  dashboard-connector.service.ts    — construye la URL hacia CIP, agrega organizacionId del auth context
-  dashboard-connector.schemas.ts    — zod, un query schema por endpoint (mismo shape que DOC-018 §6)
-  dashboard-connector.types.ts      — copia local de los 8 tipos de respuesta de `cip/src/dashboard/dashboard.types.ts`
+cis/src/cip-client/                 — cliente hacia CIP (mismo rol que core-client/ hacia CORE)
+  cip-client.config.ts               CIP_URL + CIP_SERVICE_TOKEN
+  cip-client.constants.ts            símbolos DI
+  cip-client.types.ts                zod schemas + tipos, copia local de cip/src/dashboard/dashboard.types.ts
+  cip-client.service.ts              8 métodos GET, reusa CircuitBreaker/withRetry de core-client/
+  cip-client.module.ts
+cis/src/dashboard-connector/         — proxy delgado hacia CipClientService (mismo rol que qr-connector/)
+  dashboard-connector.schemas.ts     zod, un query schema por endpoint (mismo shape que DOC-018 §6)
+  dashboard-connector.service.ts     delega en CipClientService, sin lógica propia
+  dashboard-connector.controller.ts  @Controller('dashboard') @UseGuards(ZitadelAuthGuard, RateLimitGuard)
+  dashboard-connector.module.ts
 ```
 
-- `organizacionId` **no** viene del query param del cliente (a diferencia de CIP, que sí lo exige
-  como parámetro libre porque no valida identidad) — WEB nunca debe poder pedir el dashboard de una
-  organización a la que el operador no pertenece. `DashboardConnectorService` toma la organización
-  del `AuthenticatedRequest.auth` que `ZitadelAuthGuard` ya validó (mismo patrón que
-  `QrConnectorService.getCatalogo` — a confirmar contra el código real de `qr-connector.service.ts`
-  al construir esto, si ese método ya recibe la organización del auth context o del query; si hoy
-  confía en el query param, este módulo es la primera vez que hace falta la validación cruzada
-  explícita "el organizacionId pedido debe estar entre las organizaciones con contrato vigente del
-  operador" — mismo criterio de defensa en profundidad que `ActivoRepository.cambiarEstado`,
-  DOC-012 §3).
-- Reusa `CoreClientService`-style config pero hacia CIP: nueva var `CIP_URL` (mismo patrón que
-  `CORE_URL`) + `CIP_SERVICE_TOKEN` (ya reservado en `.env.example` desde DOC-018, hoy sin
-  consumidor — este módulo es su primer consumidor real).
+- **Corrección sobre el diseño inicial de este documento**: `organizacionId` sí viene del query
+  param del cliente, sin cruzarlo contra `rolesPorOrganizacion`/entitlements del operador —
+  verificado contra el código real de `qr-connector.schemas.ts`/`qr-connector.service.ts` al
+  construir esto: `catalogoQuerySchema`/`inventariosQuerySchema` ya aceptan `organizacionId` como
+  parámetro libre sin ninguna validación cruzada del lado de CIS, y `dashboard-connector` sigue el
+  mismo criterio de lectura abierta por consistencia (el cliente ya obtuvo la lista de
+  organizaciones con contrato vigente vía `POST /auth/session`). Una validación cruzada explícita
+  sería una defensa nueva no presente en ningún otro módulo de lectura de CIS hoy — fuera de
+  alcance de este incremento, no una regresión de seguridad respecto al resto del sistema.
+- Reusa `CoreClientService`-style config pero hacia CIP: `src/cip-client/` (config/constants/
+  types/service/module propios, mismos `CircuitBreaker`/`withRetry` genéricos de `core-client/`
+  reutilizados sin duplicar) con nueva var `CIP_URL` (mismo patrón que `CORE_URL`) +
+  `CIP_SERVICE_TOKEN` (ya reservado en `.env.example` desde DOC-018, sin consumidor hasta este
+  módulo — su primer consumidor real).
 - Los 8 endpoints son un mapeo 1:1 de DOC-018 §6 bajo el mismo prefijo `/dashboard/...` (sin
   `/admin`, ver §2): `cobertura`, `areas`, `sesiones`, `fuera-de-area`, `no-localizados`,
   `incidencias`, `estado-activos`, `categorias`.

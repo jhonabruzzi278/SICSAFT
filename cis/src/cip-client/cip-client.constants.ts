@@ -1,0 +1,2 @@
+export const CIP_CLIENT_CONFIG = Symbol('CIP_CLIENT_CONFIG');
+export const CIP_CIRCUIT_BREAKER = Symbol('CIP_CIRCUIT_BREAKER');

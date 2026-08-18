@@ -10,6 +10,7 @@ import { ContratosPage } from '@/pages/ContratosPage';
 import { InventariosPage } from '@/pages/InventariosPage';
 import { AuditoriaPage } from '@/pages/AuditoriaPage';
 import { EstructuraPage } from '@/pages/EstructuraPage';
+import { DashboardPage } from '@/pages/DashboardPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   if (!oidcClient.isAuthenticated()) {
@@ -69,6 +70,14 @@ export default function App() {
           element={
             <RequireAuth>
               <AuditoriaPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth>
+              <DashboardPage />
             </RequireAuth>
           }
         />

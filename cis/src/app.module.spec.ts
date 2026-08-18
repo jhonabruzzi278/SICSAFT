@@ -14,6 +14,8 @@ describe('AppModule', () => {
       ZITADEL_AUDIENCE: 'cis-api',
       CORE_URL: 'http://core:3001',
       CORE_SERVICE_TOKEN: 'secreto-compartido',
+      CIP_URL: 'http://cip:3002',
+      CIP_SERVICE_TOKEN: 'secreto-compartido-cip',
       REDIS_URL: 'redis://localhost:6379',
       ZITADEL_ORG_ID_MAP: '{"386029528616558597":"duoc-uc"}',
     };

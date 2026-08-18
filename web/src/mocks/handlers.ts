@@ -5,7 +5,7 @@
 // app-qr-sicsaft/src/mocks/handlers.ts.
 import { http, HttpResponse } from 'msw';
 import type { Activo, ActivoCatalogo } from '@/lib/cis-client';
-import { MOCK_CATALOGO, MOCK_ORGANIZACIONES } from './fixtures';
+import { MOCK_CATALOGO, MOCK_ORGANIZACIONES, MOCK_SYNC } from './fixtures';
 
 const CIS_URL = import.meta.env.VITE_CIS_URL;
 
@@ -60,4 +60,64 @@ export const defaultHandlers = [
     };
     return HttpResponse.json(activo, { status: 201 });
   }),
+
+  // DOC-019 §4 — solo para verificación manual en el navegador, no ejercitado por el e2e existente.
+  http.get(`${CIS_URL}/dashboard/cobertura`, () =>
+    HttpResponse.json({
+      activosRegistrados: 3,
+      activosEscaneados: 1,
+      porcentajeCobertura: 0.333,
+      ...MOCK_SYNC,
+    }),
+  ),
+  http.get(`${CIS_URL}/dashboard/areas`, () =>
+    HttpResponse.json({
+      areas: [
+        { areaId: 'area-informatica', controladaEnPeriodo: true, ultimaSesionEn: '2026-08-18T09:00:00.000Z' },
+        { areaId: 'area-biblioteca', controladaEnPeriodo: false, ultimaSesionEn: null },
+      ],
+      ...MOCK_SYNC,
+    }),
+  ),
+  http.get(`${CIS_URL}/dashboard/sesiones`, () =>
+    HttpResponse.json({
+      items: [
+        {
+          sesionId: 'sesion-1',
+          areaId: 'area-informatica',
+          veredicto: 'exitoso',
+          fechaCierre: '2026-08-18T09:00:00.000Z',
+        },
+      ],
+      total: 1,
+      ...MOCK_SYNC,
+    }),
+  ),
+  http.get(`${CIS_URL}/dashboard/fuera-de-area`, () =>
+    HttpResponse.json({ items: [], total: 0, ...MOCK_SYNC }),
+  ),
+  http.get(`${CIS_URL}/dashboard/no-localizados`, () =>
+    HttpResponse.json({ items: [], total: 0, ...MOCK_SYNC }),
+  ),
+  http.get(`${CIS_URL}/dashboard/incidencias`, () =>
+    HttpResponse.json({ items: [], total: 0, ...MOCK_SYNC }),
+  ),
+  http.get(`${CIS_URL}/dashboard/estado-activos`, () =>
+    HttpResponse.json({
+      estados: [
+        { estado: 'activo', cantidad: 3 },
+        { estado: 'mantenimiento', cantidad: 1 },
+      ],
+      ...MOCK_SYNC,
+    }),
+  ),
+  http.get(`${CIS_URL}/dashboard/categorias`, () =>
+    HttpResponse.json({
+      categorias: [
+        { areaId: 'area-informatica', familia: 'Informática', cantidad: 2 },
+        { areaId: 'area-informatica', familia: 'Mobiliario', cantidad: 1 },
+      ],
+      ...MOCK_SYNC,
+    }),
+  ),
 ];

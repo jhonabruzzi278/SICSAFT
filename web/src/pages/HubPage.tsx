@@ -12,6 +12,7 @@ const MODULOS: { path: string; nombre: string }[] = [
   { path: 'contratos', nombre: 'Contratos' },
   { path: 'inventarios', nombre: 'Inventarios' },
   { path: 'estructura', nombre: 'Áreas, ubicaciones y responsables' },
+  { path: 'dashboard', nombre: 'Dashboard' },
 ];
 
 export function HubPage() {
