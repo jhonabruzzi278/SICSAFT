@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -19,35 +22,55 @@ import {
 import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 import { AdministradorService } from './administrador.service';
+import { AdministradorSistemaGuard } from './administrador-sistema.guard';
+import type { GrantUsuario } from '../zitadel-admin/zitadel-admin.types';
 import {
   actualizarAreaSchema,
   actualizarContratoSchema,
+  actualizarDescripcionActivoSchema,
   actualizarEstadoResponsableSchema,
   actualizarUbicacionSchema,
   altaActivoSchema,
   altaAreaSchema,
+  altaCatalogoTipoSchema,
   altaContratoSchema,
+  altaDocumentoActivoSchema,
+  altaOrganizacionSchema,
   altaResponsableSchema,
   altaUbicacionSchema,
   areasQuerySchema,
+  asignarUsuarioOrganizacionSchema,
   auditoriaQuerySchema,
+  cambioResponsableActivoSchema,
   contratosQuerySchema,
+  documentosActivoQuerySchema,
+  escrituraOficialActivoSchema,
+  importacionContableSchema,
   responsablesQuerySchema,
   ubicacionesQuerySchema,
 } from './administrador.schemas';
 import type {
   ActualizarAreaBody,
   ActualizarContratoBody,
+  ActualizarDescripcionActivoBody,
   ActualizarEstadoResponsableBody,
   ActualizarUbicacionBody,
   AltaActivoBody,
   AltaAreaBody,
+  AltaCatalogoTipoBody,
   AltaContratoBody,
+  AltaDocumentoActivoBody,
+  AltaOrganizacionBody,
   AltaResponsableBody,
   AltaUbicacionBody,
   AreasQuery,
+  AsignarUsuarioOrganizacionBody,
   AuditoriaQuery,
+  CambioResponsableActivoBody,
   ContratosQuery,
+  DocumentosActivoQuery,
+  EscrituraOficialActivoBody,
+  ImportacionContableBody,
   ResponsablesQuery,
   UbicacionesQuery,
 } from './administrador.schemas';
@@ -56,8 +79,13 @@ import type {
   AreasPaginaResult,
   AuditoriaPaginaResult,
   AreaResult,
+  CatalogoTipoResult,
   ContratoResult,
   ContratosPaginaResult,
+  DocumentoActivoResult,
+  ImportacionContableResult,
+  IndicadoresResult,
+  OrganizacionResult,
   ResponsableResult,
   ResponsablesPaginaResult,
   UbicacionResult,
@@ -83,6 +111,214 @@ export class AdministradorController {
     return this.administradorService.altaActivo(
       body,
       requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-021 3 (gap "estados") — pipe por parametro (mismo motivo que actualizarEstadoContrato).
+  @Post('activos/:id/baja')
+  bajaActivo(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(escrituraOficialActivoSchema))
+    body: EscrituraOficialActivoBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<ActivoResult> {
+    return this.administradorService.bajaActivo(
+      id,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  @Post('activos/:id/reincorporacion')
+  reincorporarActivo(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(escrituraOficialActivoSchema))
+    body: EscrituraOficialActivoBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<ActivoResult> {
+    return this.administradorService.reincorporarActivo(
+      id,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  @Patch('activos/:id/responsable')
+  cambiarResponsableActivo(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(cambioResponsableActivoSchema))
+    body: CambioResponsableActivoBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<ActivoResult> {
+    return this.administradorService.cambiarResponsableActivo(
+      id,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-021 3 (gap "descripciones").
+  @Patch('activos/:id/descripcion')
+  actualizarDescripcionActivo(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(actualizarDescripcionActivoSchema))
+    body: ActualizarDescripcionActivoBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<ActivoResult> {
+    return this.administradorService.actualizarDescripcionActivo(
+      id,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-021 4 (gap "familias/categorías") — lectura abierta, mismo criterio que getContratos.
+  @Get('catalogo-tipos')
+  getCatalogoTipos(
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<CatalogoTipoResult[]> {
+    return this.administradorService.getCatalogoTipos(request.correlationId);
+  }
+
+  @Post('catalogo-tipos')
+  @UsePipes(new ZodValidationPipe(altaCatalogoTipoSchema))
+  altaCatalogoTipo(
+    @Body() body: AltaCatalogoTipoBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<CatalogoTipoResult> {
+    return this.administradorService.altaCatalogoTipo(
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-021 3 (gap "documentación y fotografías").
+  @Get('activos/:id/documentos')
+  getDocumentosActivo(
+    @Param('id') id: string,
+    @Query(new ZodValidationPipe(documentosActivoQuerySchema))
+    query: DocumentosActivoQuery,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<DocumentoActivoResult[]> {
+    return this.administradorService.getDocumentosActivo(
+      id,
+      query.organizacionId,
+      request.correlationId,
+    );
+  }
+
+  @Post('activos/:id/documentos')
+  altaDocumentoActivo(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(altaDocumentoActivoSchema))
+    body: AltaDocumentoActivoBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<DocumentoActivoResult> {
+    return this.administradorService.altaDocumentoActivo(
+      id,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  @Delete('activos/:id/documentos/:documentoId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  eliminarDocumentoActivo(
+    @Param('id') id: string,
+    @Param('documentoId') documentoId: string,
+    @Body(new ZodValidationPipe(escrituraOficialActivoSchema))
+    body: EscrituraOficialActivoBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<void> {
+    return this.administradorService.eliminarDocumentoActivo(
+      id,
+      documentoId,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-012 6 (gap "importaciones controladas").
+  @Post('importaciones/contable')
+  @UsePipes(new ZodValidationPipe(importacionContableSchema))
+  importarContable(
+    @Body() body: ImportacionContableBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<ImportacionContableResult> {
+    return this.administradorService.importarContable(
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-021 4 (Administrador del Sistema) — lectura abierta, mismo criterio que getContratos.
+  @Get('organizaciones')
+  getOrganizaciones(
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<OrganizacionResult[]> {
+    return this.administradorService.getOrganizaciones(request.correlationId);
+  }
+
+  @Post('organizaciones')
+  @UsePipes(new ZodValidationPipe(altaOrganizacionSchema))
+  altaOrganizacion(
+    @Body() body: AltaOrganizacionBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<OrganizacionResult> {
+    return this.administradorService.altaOrganizacion(
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-021 4 — lectura abierta, sin auditoria (CORE tampoco la exige).
+  @Get('indicadores')
+  getIndicadores(
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<IndicadoresResult> {
+    return this.administradorService.getIndicadores(request.correlationId);
+  }
+
+  // DOC-021 4 — asignar usuarios a organizaciones (integración real con Zitadel). A diferencia
+  // del resto de este controller, acá SÍ hace falta un guard explícito (AdministradorSistemaGuard,
+  // ver ese archivo para por qué no sigue el patrón "verificar dentro del Orquestador" del resto)
+  // — esto nunca pasa por CORE, así que no hay otro punto donde autorizar.
+  @Get('organizaciones/:orgId/usuarios')
+  @UseGuards(AdministradorSistemaGuard)
+  getUsuariosOrganizacion(
+    @Param('orgId') orgId: string,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<GrantUsuario[]> {
+    return this.administradorService.listarUsuariosOrganizacion(
+      orgId,
+      request.correlationId,
+    );
+  }
+
+  // Pipe por parametro, no @UsePipes de metodo (mismo motivo que actualizarEstadoContrato mas
+  // arriba: @UsePipes valida TAMBIEN @Param('orgId'), un string, contra un schema que espera un
+  // objeto — bug real ya encontrado una vez en este mismo archivo, DOC-012 5).
+  @Post('organizaciones/:orgId/usuarios')
+  @UseGuards(AdministradorSistemaGuard)
+  asignarUsuarioOrganizacion(
+    @Param('orgId') orgId: string,
+    @Body(new ZodValidationPipe(asignarUsuarioOrganizacionSchema))
+    body: AsignarUsuarioOrganizacionBody,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<void> {
+    return this.administradorService.asignarUsuarioOrganizacion(
+      orgId,
+      body,
       request.correlationId,
     );
   }

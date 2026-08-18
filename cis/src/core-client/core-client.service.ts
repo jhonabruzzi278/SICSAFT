@@ -23,10 +23,18 @@ import {
   areasPaginaResponseSchema,
   auditoriaPaginaResponseSchema,
   catalogoResponseSchema,
+  catalogoTipoResponseSchema,
+  catalogoTiposResponseSchema,
   contratoResponseSchema,
   contratosPaginaResponseSchema,
+  documentoActivoResponseSchema,
+  documentosActivoResponseSchema,
   entitlementsResponseSchema,
+  importacionContableResponseSchema,
+  indicadoresResponseSchema,
   inventarioEstadoResponseSchema,
+  organizacionResponseSchema,
+  organizacionesResponseSchema,
   postInventarioResponseSchema,
   responsableResponseSchema,
   responsablesPaginaResponseSchema,
@@ -40,19 +48,31 @@ import {
   type AuditoriaFiltro,
   type AuditoriaPaginaResult,
   type CatalogoResult,
+  type CatalogoTipoResult,
   type ContratoResult,
   type ContratosPaginaResult,
+  type DocumentoActivoResult,
   type EntitlementsResult,
+  type EscrituraOficialRequest,
+  type ImportacionContableResult,
+  type IndicadoresResult,
   type InventarioEstadoResult,
+  type OrganizacionResult,
   type Paginacion,
+  type PatchActivoDescripcionRequest,
+  type PatchActivoResponsableRequest,
   type PatchAreaRequest,
   type PatchContratoRequest,
   type PatchResponsableEstadoRequest,
   type PatchUbicacionRequest,
   type PostActivoRequest,
   type PostAreaRequest,
+  type PostCatalogoTipoRequest,
   type PostContratoRequest,
+  type PostDocumentoActivoRequest,
+  type PostImportacionContableRequest,
   type PostInventarioResult,
+  type PostOrganizacionRequest,
   type PostResponsableRequest,
   type PostUbicacionRequest,
   type ResponsableResult,
@@ -135,6 +155,168 @@ export class CoreClientService {
       passthroughStatuses: [400, 403, 409],
     });
     return this.parse(activoResponseSchema, data, 'activos');
+  }
+
+  // DOC-021 3 (gap "estados") — proxy hacia POST /activos/:id/baja y /reincorporacion de CORE.
+  async postActivoBaja(
+    activoId: string,
+    request: EscrituraOficialRequest,
+    correlationId: string,
+  ): Promise<ActivoResult> {
+    const data = await this.post(
+      `/activos/${encodeURIComponent(activoId)}/baja`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 404, 409] },
+    );
+    return this.parse(activoResponseSchema, data, 'activos');
+  }
+
+  async postActivoReincorporacion(
+    activoId: string,
+    request: EscrituraOficialRequest,
+    correlationId: string,
+  ): Promise<ActivoResult> {
+    const data = await this.post(
+      `/activos/${encodeURIComponent(activoId)}/reincorporacion`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 404, 409] },
+    );
+    return this.parse(activoResponseSchema, data, 'activos');
+  }
+
+  async patchActivoResponsable(
+    activoId: string,
+    request: PatchActivoResponsableRequest,
+    correlationId: string,
+  ): Promise<ActivoResult> {
+    const data = await this.patch(
+      `/activos/${encodeURIComponent(activoId)}/responsable`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 404, 409] },
+    );
+    return this.parse(activoResponseSchema, data, 'activos');
+  }
+
+  // DOC-021 3 (gap "descripciones").
+  async patchActivoDescripcion(
+    activoId: string,
+    request: PatchActivoDescripcionRequest,
+    correlationId: string,
+  ): Promise<ActivoResult> {
+    const data = await this.patch(
+      `/activos/${encodeURIComponent(activoId)}/descripcion`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 404, 409] },
+    );
+    return this.parse(activoResponseSchema, data, 'activos');
+  }
+
+  // DOC-021 4 (gap "familias/categorías") — lectura abierta, mismo criterio que getCatalogo.
+  async getCatalogoTipos(correlationId: string): Promise<CatalogoTipoResult[]> {
+    const data = await this.get('/catalogo-tipos', undefined, correlationId);
+    return this.parse(catalogoTiposResponseSchema, data, 'catalogo-tipos');
+  }
+
+  async postCatalogoTipo(
+    request: PostCatalogoTipoRequest,
+    correlationId: string,
+  ): Promise<CatalogoTipoResult> {
+    const data = await this.post('/catalogo-tipos', request, correlationId, {
+      passthroughStatuses: [400, 403, 409],
+    });
+    return this.parse(catalogoTipoResponseSchema, data, 'catalogo-tipos');
+  }
+
+  // DOC-021 3 (gap "documentación y fotografías").
+  async getDocumentosActivo(
+    activoId: string,
+    organizacionId: string,
+    correlationId: string,
+  ): Promise<DocumentoActivoResult[]> {
+    const data = await this.get(
+      `/activos/${encodeURIComponent(activoId)}/documentos`,
+      { organizacionId },
+      correlationId,
+    );
+    return this.parse(documentosActivoResponseSchema, data, 'documentos');
+  }
+
+  async postDocumentoActivo(
+    activoId: string,
+    request: PostDocumentoActivoRequest,
+    correlationId: string,
+  ): Promise<DocumentoActivoResult> {
+    const data = await this.post(
+      `/activos/${encodeURIComponent(activoId)}/documentos`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 404, 409] },
+    );
+    return this.parse(documentoActivoResponseSchema, data, 'documentos');
+  }
+
+  async deleteDocumentoActivo(
+    activoId: string,
+    documentoId: string,
+    request: EscrituraOficialRequest,
+    correlationId: string,
+  ): Promise<void> {
+    await this.delete(
+      `/activos/${encodeURIComponent(activoId)}/documentos/${encodeURIComponent(documentoId)}`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 404] },
+    );
+  }
+
+  // DOC-021 4 (Administrador del Sistema) — GET /organizaciones es lectura abierta a proposito
+  // (a diferencia de GET /entitlements, que filtra por contrato vigente): necesita ver TODAS las
+  // organizaciones, incluidas las que todavia no tienen contrato, para poder crearles el primero.
+  async getOrganizaciones(
+    correlationId: string,
+  ): Promise<OrganizacionResult[]> {
+    const data = await this.get('/organizaciones', undefined, correlationId);
+    return this.parse(organizacionesResponseSchema, data, 'organizaciones');
+  }
+
+  async postOrganizacion(
+    request: PostOrganizacionRequest,
+    correlationId: string,
+  ): Promise<OrganizacionResult> {
+    const data = await this.post('/organizaciones', request, correlationId, {
+      passthroughStatuses: [400, 403, 409],
+    });
+    return this.parse(organizacionResponseSchema, data, 'organizaciones');
+  }
+
+  // DOC-021 4 — lectura abierta, sin auditoria (CORE tampoco la exige).
+  async getIndicadores(correlationId: string): Promise<IndicadoresResult> {
+    const data = await this.get('/indicadores', undefined, correlationId);
+    return this.parse(indicadoresResponseSchema, data, 'indicadores');
+  }
+
+  // DOC-012 6 (gap "importaciones controladas") — proxy hacia POST /importaciones/contable de
+  // CORE, idempotente por fila (nunca 409 a nivel de request completo, ver
+  // ImportacionContableService).
+  async postImportacionContable(
+    request: PostImportacionContableRequest,
+    correlationId: string,
+  ): Promise<ImportacionContableResult> {
+    const data = await this.post(
+      '/importaciones/contable',
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403] },
+    );
+    return this.parse(
+      importacionContableResponseSchema,
+      data,
+      'importaciones/contable',
+    );
   }
 
   // DOC-012 4/7 — GET /contratos es lectura abierta (mismo criterio que getCatalogo), sin
@@ -409,6 +591,27 @@ export class CoreClientService {
       correlationId,
       () =>
         this.httpService.axiosRef.patch(`${this.config.baseUrl}${path}`, body, {
+          headers: this.headers(correlationId),
+        }),
+      options,
+    );
+  }
+
+  // DOC-021 3 — primer DELETE de este cliente (documentos_activo admite baja real, a diferencia
+  // del resto de recursos oficiales). El body va en `options.data` (axios), mismo patron que
+  // post/patch para transportar operadorId/rolesPorOrganizacion.
+  private async delete(
+    path: string,
+    body: unknown,
+    correlationId: string,
+    options: { passthroughStatuses: number[] },
+  ): Promise<unknown> {
+    return this.callCore(
+      path,
+      correlationId,
+      () =>
+        this.httpService.axiosRef.delete(`${this.config.baseUrl}${path}`, {
+          data: body,
           headers: this.headers(correlationId),
         }),
       options,

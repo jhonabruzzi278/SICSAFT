@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { AdministradorController } from './administrador.controller';
 import { AdministradorService } from './administrador.service';
+import { AdministradorSistemaGuard } from './administrador-sistema.guard';
 import {
   ZitadelAuthGuard,
   type AuthenticatedRequest,
@@ -49,6 +50,7 @@ const ACTIVO: ActivoResult = {
   ubicacionId: null,
   responsableId: null,
   estado: 'activo',
+  descripcion: null,
   catalogo: {
     tipo: 'Equipo Computacional',
     familia: 'Informática',
@@ -83,6 +85,21 @@ describe('AdministradorController', () => {
             getResponsables: jest.fn(),
             altaResponsable: jest.fn(),
             actualizarEstadoResponsable: jest.fn(),
+            bajaActivo: jest.fn(),
+            reincorporarActivo: jest.fn(),
+            cambiarResponsableActivo: jest.fn(),
+            actualizarDescripcionActivo: jest.fn(),
+            getCatalogoTipos: jest.fn(),
+            altaCatalogoTipo: jest.fn(),
+            getDocumentosActivo: jest.fn(),
+            altaDocumentoActivo: jest.fn(),
+            eliminarDocumentoActivo: jest.fn(),
+            importarContable: jest.fn(),
+            getOrganizaciones: jest.fn(),
+            altaOrganizacion: jest.fn(),
+            getIndicadores: jest.fn(),
+            listarUsuariosOrganizacion: jest.fn(),
+            asignarUsuarioOrganizacion: jest.fn(),
           },
         },
       ],
@@ -90,6 +107,8 @@ describe('AdministradorController', () => {
       .overrideGuard(ZitadelAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RateLimitGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(AdministradorSistemaGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
@@ -433,6 +452,46 @@ describe('AdministradorController', () => {
       'responsable-1',
       body,
       AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  // DOC-021 3 (gap "descripciones").
+  it('actualizarDescripcionActivo delega en el service con el id, el body, el auth del guard y el correlationId', async () => {
+    const conDescripcion = { ...ACTIVO, descripcion: 'Con rayón' };
+    service.actualizarDescripcionActivo.mockResolvedValue(conDescripcion);
+    const body = { organizacionId: 'duoc-uc', descripcion: 'Con rayón' };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(
+      controller.actualizarDescripcionActivo('activo-1', body, request),
+    ).resolves.toBe(conDescripcion);
+    expect(service.actualizarDescripcionActivo).toHaveBeenCalledWith(
+      'activo-1',
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  // DOC-021 4 (Administrador del Sistema) — estos 2 endpoints usan AdministradorSistemaGuard, no
+  // ZitadelAuthGuard+requireAuthContext como el resto (el guard ya valida el rol antes de llegar
+  // acá), por eso el controller les pasa `request` completo, no `requireAuthContext(request)`.
+  it('asignarUsuarioOrganizacion delega en el service con el orgId, el body y el correlationId', async () => {
+    service.asignarUsuarioOrganizacion.mockResolvedValue(undefined);
+    const body = {
+      email: 'nuevo@duoc.cl',
+      rol: 'administrador-patrimonial' as const,
+    };
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+
+    await controller.asignarUsuarioOrganizacion('duoc-uc', body, request);
+
+    expect(service.asignarUsuarioOrganizacion).toHaveBeenCalledWith(
+      'duoc-uc',
+      body,
       CORRELATION_ID,
     );
   });

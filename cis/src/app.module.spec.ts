@@ -18,6 +18,8 @@ describe('AppModule', () => {
       CIP_SERVICE_TOKEN: 'secreto-compartido-cip',
       REDIS_URL: 'redis://localhost:6379',
       ZITADEL_ORG_ID_MAP: '{"386029528616558597":"duoc-uc"}',
+      ZITADEL_ADMIN_TOKEN: 'pat-e2e-fake',
+      ZITADEL_PROJECT_ID: 'proyecto-cis-fake',
     };
   });
 

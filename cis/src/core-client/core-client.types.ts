@@ -69,6 +69,7 @@ export interface PostActivoRequest {
   areaId?: string;
   ubicacionId?: string;
   valorPatrimonial?: number;
+  descripcion?: string;
 }
 
 // Contrato de POST /contratos y PATCH /contratos/:id de CORE — DOC-012 7. Mismo criterio que
@@ -324,6 +325,8 @@ export const activoResponseSchema = z.object({
   ubicacionId: z.string().nullable(),
   responsableId: z.string().nullable(),
   estado: z.enum(['activo', 'en_transito', 'extraviado', 'dado_de_baja']),
+  // DOC-021 3 (gap "descripciones").
+  descripcion: z.string().nullable(),
   catalogo: z.object({
     tipo: z.string(),
     familia: z.string(),
@@ -333,3 +336,136 @@ export const activoResponseSchema = z.object({
   }),
 });
 export type ActivoResult = z.infer<typeof activoResponseSchema>;
+
+// DOC-021 3 (gap "estados" de Activo) — base compartida por baja/reincorporacion (identica a
+// EscrituraOficialRequest de CORE, activo.schemas.ts: sin campos propios mas alla del contexto de
+// autorizacion).
+export interface EscrituraOficialRequest {
+  correlationId: string;
+  operadorId: string;
+  organizacionId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
+}
+
+export interface PatchActivoResponsableRequest extends EscrituraOficialRequest {
+  responsableId: string;
+}
+
+// `descripcion: null` limpia el campo (a diferencia de omitirlo) — mismo criterio que CORE.
+export interface PatchActivoDescripcionRequest extends EscrituraOficialRequest {
+  descripcion: string | null;
+}
+
+// DOC-021 4 (gap "familias/categorías") — catalogo_activos, no ActivoCatalogo (activoCatalogoSchema
+// arriba, listado de activos que consume APP QR).
+export const catalogoTipoResponseSchema = z.object({
+  id: z.string(),
+  tipo: z.string(),
+  familia: z.string(),
+  subfamilia: z.string().nullable(),
+  marca: z.string().nullable(),
+  modelo: z.string().nullable(),
+  fabricante: z.string().nullable(),
+  vidaUtilMeses: z.number().nullable(),
+  criticidad: z.enum(['baja', 'media', 'alta']),
+  tecnologiaIdentificacion: z.enum(['qr', 'rfid', 'qr_rfid']),
+});
+export type CatalogoTipoResult = z.infer<typeof catalogoTipoResponseSchema>;
+export const catalogoTiposResponseSchema = z.array(catalogoTipoResponseSchema);
+
+export interface PostCatalogoTipoRequest extends EscrituraOficialRequest {
+  tipo: string;
+  familia: string;
+  subfamilia?: string;
+  marca?: string;
+  modelo?: string;
+  fabricante?: string;
+  vidaUtilMeses?: number;
+  criticidad: 'baja' | 'media' | 'alta';
+  tecnologiaIdentificacion: 'qr' | 'rfid' | 'qr_rfid';
+}
+
+// DOC-021 3 (gap "documentación y fotografías", version minima — url externa, sin bucket/OCR
+// propio todavia, ver ROADMAP.md Fase 7).
+export const documentoActivoResponseSchema = z.object({
+  id: z.string(),
+  activoId: z.string(),
+  organizacionId: z.string(),
+  tipo: z.enum(['documento', 'fotografia']),
+  url: z.string(),
+  descripcion: z.string().nullable(),
+  creadoEn: z.string(),
+  creadoPor: z.string(),
+});
+export type DocumentoActivoResult = z.infer<
+  typeof documentoActivoResponseSchema
+>;
+export const documentosActivoResponseSchema = z.array(
+  documentoActivoResponseSchema,
+);
+
+export interface PostDocumentoActivoRequest extends EscrituraOficialRequest {
+  tipo: 'documento' | 'fotografia';
+  url: string;
+  descripcion?: string;
+}
+
+// DOC-021 4 (Administrador del Sistema) — `organizaciones` ya existia (Fase 0), sin
+// repository/endpoint propio hasta este incremento.
+export const organizacionResponseSchema = z.object({
+  id: z.string(),
+  nombre: z.string(),
+});
+export type OrganizacionResult = z.infer<typeof organizacionResponseSchema>;
+export const organizacionesResponseSchema = z.array(organizacionResponseSchema);
+
+export interface PostOrganizacionRequest extends EscrituraOficialRequest {
+  id: string;
+  nombre: string;
+}
+
+// DOC-021 4 — conteos de plataforma, sin auditoria (lectura abierta en CORE).
+export const indicadoresResponseSchema = z.object({
+  totalOrganizaciones: z.number(),
+  totalSedes: z.number(),
+  contratosPorEstado: z.object({
+    vigente: z.number(),
+    suspendido: z.number(),
+    vencido: z.number(),
+    cancelado: z.number(),
+  }),
+});
+export type IndicadoresResult = z.infer<typeof indicadoresResponseSchema>;
+
+// DOC-012 6 (gap "importaciones controladas") — CORE ya lo implementaba, sin puente en CIS hasta
+// este incremento.
+export interface FilaImportacionContable {
+  codigoPatrimonial: string;
+  codigoQr: string;
+  catalogoId: string;
+  serie?: string;
+  responsableId?: string;
+  areaId?: string;
+  ubicacionId?: string;
+  valorPatrimonial?: number;
+}
+
+export interface PostImportacionContableRequest extends EscrituraOficialRequest {
+  filas: FilaImportacionContable[];
+}
+
+const resultadoFilaImportacionSchema = z.object({
+  codigoPatrimonial: z.string(),
+  resultado: z.enum(['creado', 'ya_importado', 'conflicto']),
+  motivo: z.string().optional(),
+});
+
+export const importacionContableResponseSchema = z.object({
+  filas: z.array(resultadoFilaImportacionSchema),
+  creados: z.number(),
+  yaImportados: z.number(),
+  conflictos: z.number(),
+});
+export type ImportacionContableResult = z.infer<
+  typeof importacionContableResponseSchema
+>;

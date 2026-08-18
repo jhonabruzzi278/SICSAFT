@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method -- jest.fn() mocks no usan `this`. */
 import { AdministradorService } from './administrador.service';
 import { CoreClientService } from '../core-client/core-client.service';
+import { ZitadelAdminService } from '../zitadel-admin/zitadel-admin.service';
 import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
 import type {
   ActivoResult,
@@ -31,6 +32,7 @@ const ACTIVO: ActivoResult = {
   ubicacionId: null,
   responsableId: null,
   estado: 'activo',
+  descripcion: null,
   catalogo: {
     tipo: 'Equipo Computacional',
     familia: 'Informática',
@@ -68,8 +70,17 @@ function buildService(mapping: Record<string, string>) {
     postResponsable: jest.fn(),
     patchResponsableEstado: jest.fn(),
   } as unknown as jest.Mocked<CoreClientService>;
-  const service = new AdministradorService(coreClientService, mapping);
-  return { service, coreClientService };
+  const zitadelAdminService = {
+    buscarUsuarioPorEmail: jest.fn(),
+    listarGrants: jest.fn(),
+    crearGrant: jest.fn(),
+  } as unknown as jest.Mocked<ZitadelAdminService>;
+  const service = new AdministradorService(
+    coreClientService,
+    zitadelAdminService,
+    mapping,
+  );
+  return { service, coreClientService, zitadelAdminService };
 }
 
 const AUTH: ZitadelAuthContext = {

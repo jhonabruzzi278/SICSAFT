@@ -24,8 +24,105 @@ export const altaActivoSchema = z.object({
   areaId: z.string().min(1).optional(),
   ubicacionId: z.string().min(1).optional(),
   valorPatrimonial: z.number().nonnegative().optional(),
+  descripcion: z.string().min(1).optional(),
 });
 export type AltaActivoBody = z.infer<typeof altaActivoSchema>;
+
+// DOC-021 3 (gap "estados") — lo que WEB manda a CIS para baja/reincorporacion/responsable. Sin
+// payload propio mas alla de organizacionId — mismo criterio que escrituraOficialSchema en CORE.
+export const escrituraOficialActivoSchema = z.object({
+  organizacionId: z.string().min(1),
+});
+export type EscrituraOficialActivoBody = z.infer<
+  typeof escrituraOficialActivoSchema
+>;
+
+export const cambioResponsableActivoSchema = z.object({
+  organizacionId: z.string().min(1),
+  responsableId: z.string().min(1),
+});
+export type CambioResponsableActivoBody = z.infer<
+  typeof cambioResponsableActivoSchema
+>;
+
+// `descripcion: null` limpia el campo.
+export const actualizarDescripcionActivoSchema = z.object({
+  organizacionId: z.string().min(1),
+  descripcion: z.string().min(1).nullable(),
+});
+export type ActualizarDescripcionActivoBody = z.infer<
+  typeof actualizarDescripcionActivoSchema
+>;
+
+// DOC-021 4 (gap "familias/categorías").
+export const altaCatalogoTipoSchema = z.object({
+  organizacionId: z.string().min(1),
+  tipo: z.string().min(1),
+  familia: z.string().min(1),
+  subfamilia: z.string().min(1).optional(),
+  marca: z.string().min(1).optional(),
+  modelo: z.string().min(1).optional(),
+  fabricante: z.string().min(1).optional(),
+  vidaUtilMeses: z.number().int().positive().optional(),
+  criticidad: z.enum(['baja', 'media', 'alta']),
+  tecnologiaIdentificacion: z.enum(['qr', 'rfid', 'qr_rfid']),
+});
+export type AltaCatalogoTipoBody = z.infer<typeof altaCatalogoTipoSchema>;
+
+// DOC-021 3 (gap "documentación y fotografías").
+export const altaDocumentoActivoSchema = z.object({
+  organizacionId: z.string().min(1),
+  tipo: z.enum(['documento', 'fotografia']),
+  url: z.string().url(),
+  descripcion: z.string().min(1).optional(),
+});
+export type AltaDocumentoActivoBody = z.infer<typeof altaDocumentoActivoSchema>;
+
+export const documentosActivoQuerySchema = z.object({
+  organizacionId: z.string().min(1),
+});
+export type DocumentosActivoQuery = z.infer<typeof documentosActivoQuerySchema>;
+
+// DOC-012 6 (gap "importaciones controladas").
+const filaImportacionContableSchema = z.object({
+  codigoPatrimonial: z.string().min(1),
+  codigoQr: z.string().min(1),
+  catalogoId: z.string().min(1),
+  serie: z.string().min(1).optional(),
+  responsableId: z.string().min(1).optional(),
+  areaId: z.string().min(1).optional(),
+  ubicacionId: z.string().min(1).optional(),
+  valorPatrimonial: z.number().nonnegative().optional(),
+});
+export const importacionContableSchema = z.object({
+  organizacionId: z.string().min(1),
+  filas: z.array(filaImportacionContableSchema).min(1),
+});
+export type ImportacionContableBody = z.infer<typeof importacionContableSchema>;
+
+// DOC-021 4 (Administrador del Sistema) — `id` es el org_id real de Zitadel (ver
+// core/src/entitlements/organizacion.schemas.ts).
+export const altaOrganizacionSchema = z.object({
+  organizacionId: z.string().min(1),
+  id: z.string().min(1),
+  nombre: z.string().min(1),
+});
+export type AltaOrganizacionBody = z.infer<typeof altaOrganizacionSchema>;
+
+// DOC-021 4 (Administrador del Sistema) — asignar un usuario a una organizacion. Enum cerrado de
+// roles asignables (los 3 roles de Proyecto que existen hoy en Zitadel, DOC-020/DOC-012/DOC-021
+// 1) — evita que un typo en el body cree un grant con un rol que no existe en el proyecto.
+export const asignarUsuarioOrganizacionSchema = z.object({
+  email: z.string().email(),
+  rol: z.enum([
+    'administrador-patrimonial',
+    'directivo',
+    'administrador-sistema',
+  ]),
+});
+export type AsignarUsuarioOrganizacionBody = z.infer<
+  typeof asignarUsuarioOrganizacionSchema
+>;
 
 // DOC-012 7 — lo que WEB manda a CIS para POST /contratos / PATCH /contratos/:id. Mismo criterio
 // que altaActivoSchema: operadorId/rolesPorOrganizacion los resuelve CIS, nunca el body.
