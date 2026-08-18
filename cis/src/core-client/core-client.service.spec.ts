@@ -163,6 +163,7 @@ describe('CoreClientService', () => {
     it('devuelve activos cuando CORE responde una forma valida', async () => {
       const activos = [
         {
+          id: 'activo-1',
           codigoQr: 'QR-000001',
           nombre: 'Dell Latitude 5440',
           organizacionId: 'duoc-uc',

@@ -24,6 +24,9 @@ export type EntitlementsResult = z.infer<typeof entitlementsResponseSchema>;
 // 2. CORE pagina (`total`), pero el contrato ya construido con APP QR (DOC-002) no expone
 // paginacion todavia — CoreClientService devuelve solo `activos`, sin cambiar CatalogoResponse.
 const activoCatalogoSchema = z.object({
+  // DOC-021 3 — necesario para las acciones nuevas por fila en WEB (baja/reincorporación/
+  // responsable/descripción son por :id, no por codigoQr).
+  id: z.string(),
   codigoQr: z.string(),
   nombre: z.string(),
   organizacionId: z.string(),
