@@ -163,8 +163,13 @@ ciclo (RNF-03 de DOC-014), sin perderlos. Verificado real de punta a punta: `doc
 `POST /inventarios` contra el contenedor `core` corriendo en `devops/local/docker-compose.yml`,
 confirmando la fila en `eventos_outbox` (`publicado = true`) y el job aparecido en
 `bull:cip-eventos:*` de Redis — no solo con mocks. Unit 100% stmts/lines/funcs + e2e reales contra
-Postgres. **Pendiente**: el worker de agregación y la API de lectura de `cip/` (servicio nuevo,
-sin código todavía) que consuman esta cola — ver `cip/README.md`.
+Postgres. **Segundo incremento (mismo día) — completo**: migración `1755600000000` agrega
+`eventos_outbox.organizacion_id` (resuelto por el trigger vía `LEFT JOIN` contra `activos` — el
+worker de CIP la necesita y no puede leer la base `core` directamente, RNF-01) y `ActivoCatalogo`
+(`GET /catalogo`) gana `familia` (extensión aditiva, no rompe a WEB) — ambas encontradas al
+diseñar `cip/`, ver
+[DOC-018](../cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md) §2.5/§2.6. El worker
+de agregación y la API de lectura ya existen y corren reales en `cip/` — ver `cip/README.md`.
 
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —

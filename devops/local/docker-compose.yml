@@ -218,6 +218,60 @@ services:
     # de contenedores (ver README raíz — "todo pasa por CIS → CORE"), nunca un navegador
     # directo. Se agrega un router acá si esa regla cambia alguna vez.
 
+  # Migraciones de CIP (node-pg-migrate, ver cip/migrations/) — mismo patron que core-migrate.
+  cip-migrate:
+    build:
+      context: ../../cip
+      dockerfile: Dockerfile
+    command: ["node", "scripts/migrate.js", "up"]
+    environment:
+      CIP_DB_HOST: postgres
+      CIP_DB_PORT: 5432
+      CIP_DB_NAME: cip
+      CIP_DB_USER: ${CIP_DB_USER}
+      CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # Fase 6 (DOC-018) — worker de agregacion (consume `cip-eventos`) + API de lectura del
+  # dashboard, base propia `cip` separada de `core` (RNF-01/RNF-05, DOC-014).
+  cip:
+    build:
+      context: ../../cip
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3002
+      CIP_DB_HOST: postgres
+      CIP_DB_PORT: 5432
+      CIP_DB_NAME: cip
+      CIP_DB_USER: ${CIP_DB_USER}
+      CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
+      # API de lectura de CIP — secreto propio, no reusa CORE_SERVICE_TOKEN (DOC-018 §3).
+      CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
+      # CIP como cliente de CORE (GET /catalogo, GET /inventarios/:id) — mismo
+      # CORE_SERVICE_TOKEN que ya usa `cis`.
+      CORE_URL: http://core:3001
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+      cip-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      core:
+        condition: service_started
+    restart: unless-stopped
+    # Sin router en traefik/dynamic.yml a propósito, mismo criterio que `core`: sin frontend
+    # todavia, ningun consumidor externo real (DOC-018 §7.2 — decision abierta).
+
   web:
     build:
       context: ../../web

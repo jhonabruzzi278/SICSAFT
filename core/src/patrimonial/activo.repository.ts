@@ -298,6 +298,7 @@ export class ActivoRepository {
     return {
       codigoQr: row.codigoQr,
       nombre: construirNombreActivo(row),
+      familia: row.familia,
       organizacionId: row.organizacionId,
       // Seguro: findCatalogo ya filtra area_id/ubicacion_id IS NOT NULL.
       areaId: row.areaId as string,

@@ -12,6 +12,8 @@ todavía (ver `ROADMAP.md` Fase 6, `cip/README.md` § Estado: 🔲 No iniciado).
 - Arquitectura: [`design-artifacts/ARCHITECTURE.md`](design-artifacts/ARCHITECTURE.md)
 - Contrato formal: [`design-artifacts/DOC-014-cip-dashboard.md`](design-artifacts/DOC-014-cip-dashboard.md)
   (número ya reservado en `cip/README.md`/`ROADMAP.md`)
+- Contrato de implementación del segundo incremento (servicio `cip/`, migraciones, worker, API):
+  [`design-artifacts/DOC-018-cip-servicio-nestjs.md`](design-artifacts/DOC-018-cip-servicio-nestjs.md)
 - Estrategia de testing: [`testing/TEST_STRATEGY.md`](testing/TEST_STRATEGY.md)
 
 ## Checklist de Inception

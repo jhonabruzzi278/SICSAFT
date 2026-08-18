@@ -56,7 +56,9 @@ describe('EventosOutboxModule (e2e)', () => {
     const sesionId = (res.body as PostInventarioResponse).inventarioId;
 
     const pendientesAntes = await repository.findPendientes(1000);
-    expect(pendientesAntes.some((p) => p.sesionId === sesionId)).toBe(true);
+    const propio = pendientesAntes.find((p) => p.sesionId === sesionId);
+    expect(propio).toBeDefined();
+    expect(propio?.organizacionId).toBe('duoc-uc');
 
     await dispatcher.despachar();
 

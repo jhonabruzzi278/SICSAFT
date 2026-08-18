@@ -77,6 +77,7 @@ export class EventosOutboxDispatcher {
         kind: 'evento',
         eventoId: evento.eventoId,
         tipo: evento.tipo,
+        organizacionId: evento.organizacionId,
       });
       if (!publicado) {
         return publicadosIds;

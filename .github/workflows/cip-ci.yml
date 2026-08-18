@@ -1,0 +1,86 @@
+name: CIP CI
+
+on:
+  pull_request:
+    paths:
+      - "cip/**"
+      - ".github/workflows/cip-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "cip/**"
+      - ".github/workflows/cip-ci.yml"
+
+defaults:
+  run:
+    working-directory: cip
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # Base real para las tablas de agregados (DOC-018 §4), separada de `core` (RNF-01).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cip
+          POSTGRES_PASSWORD: cip
+          POSTGRES_DB: cip
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      # Sin password — mismo criterio que core-ci.yml (services: de GitHub Actions no soporta
+      # pasar --requirepass sin una imagen custom).
+      redis:
+        image: redis:7-alpine
+        ports:
+          - "6379:6379"
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CIP_DB_HOST: localhost
+      CIP_DB_PORT: "5432"
+      CIP_DB_NAME: cip
+      CIP_DB_USER: cip
+      CIP_DB_PASSWORD: cip
+      # CIP_SERVICE_TOKEN/CORE_SERVICE_TOKEN/REDIS_URL: sin fijar acá a propósito — mismo criterio
+      # que core-ci.yml con CORE_SERVICE_TOKEN. test/jest-e2e.setup.ts ya define un default
+      # ('secreto-compartido-e2e') que test/support/e2e-app.ts usa como SERVICE_TOKEN — fijarlos
+      # acá los desincroniza (hallazgo real: rompió los e2e con 401 en la primera corrida de este
+      # workflow).
+      CORE_URL: http://localhost:3001
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: cip/package-lock.json
+
+      - run: npm ci --ignore-scripts
+
+      - name: Lint
+        run: npm run lint:ci
+
+      - name: Unit tests + cobertura
+        run: npm run test:cov
+
+      - name: Aplicar migraciones (mismo runner que docker-compose local)
+        run: npm run migrate:up
+
+      - name: Tests e2e
+        run: npm run test:e2e
+
+      - name: Build
+        run: npm run build
+
+      - name: Build de imagen Docker
+        run: docker build -t sicsaft-cip:ci .
