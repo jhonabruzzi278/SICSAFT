@@ -313,6 +313,15 @@ modelar: no hay integración con un sistema contable real en `integraciones/READ
 conector está listado pero sin iniciar, Fase 7 del ROADMAP) — la importación manual del
 Administrador Patrimonial cubre el 80% del valor mientras tanto.
 
+**Plataforma WEB** — las columnas "Permisos" (generar configuraciones, asignar usuarios, autorizar
+procesos) ya están implementadas: es exactamente el alcance del rol Administrador del Sistema
+(`administrador-sistema`, [DOC-021](web/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
+2026-08-18) — crea organizaciones y contratos, asigna usuarios a organizaciones (integración real
+con la API de administración de Zitadel), ve indicadores de plataforma. Nunca modifica la Base
+Patrimonial directamente (columna "No puede" de esta fila), simétrico con que el Administrador
+Patrimonial nunca administra la plataforma — ver `seguridad/README.md` "Administrador del
+Sistema" para el detalle de los dos niveles de autorización server-side que usa esta entrada.
+
 **Decisión de producto sobre esta entrada**: SICSAFT nunca se conecta directamente (API/DB) al
 sistema contable del cliente — la frontera de responsabilidad termina antes de esa integración.
 `CON-CONTABILIDAD`, cuando se construya, debe seguir siendo una importación controlada (archivo
