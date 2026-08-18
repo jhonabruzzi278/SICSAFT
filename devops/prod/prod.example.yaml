@@ -1,0 +1,43 @@
+# Plantilla en texto plano — NUNCA se commitea con valores reales rellenados. Copiar a
+# `prod.enc.yaml`, completar los valores reales, cifrar con `sops -e -i prod.enc.yaml`
+# (ver ../README.md § "Flujo") y recién ahí el archivo resultante sí se commitea (ya cifrado).
+# Nombre sin la palabra "secret" a propósito — `.gitignore` raíz tiene un patrón defensivo
+# `*secret*` que de otro modo ignoraría también el archivo cifrado, no solo esta plantilla.
+#
+# Mismas variables que devops/local/.env.example (ver ese archivo para qué es cada una) — acá
+# viven todas juntas en un solo YAML cifrado, no un .env por servicio, porque SOPS opera sobre
+# archivos completos: un secreto por servicio en archivos separados multiplicaría los recipients
+# a mantener sincronizados sin ganar nada (ningún servicio de este ecosistema corre en un host
+# separado del resto, todos comparten el mismo VPS — ver devops/README.md).
+
+# --- Postgres ---
+POSTGRES_ADMIN_USER: sicsaft_admin
+POSTGRES_ADMIN_PASSWORD: cambiar-esta-clave-produccion
+
+# --- Redis ---
+REDIS_PASSWORD: cambiar-esta-clave-produccion
+
+# --- Zitadel ---
+ZITADEL_MASTERKEY: cambiar-por-32-caracteres-random
+ZITADEL_DB_USER: zitadel
+ZITADEL_DB_PASSWORD: cambiar-esta-clave-produccion
+ZITADEL_ADMIN_USERNAME: admin@sicsaft.cl
+ZITADEL_ADMIN_PASSWORD: cambiar-esta-clave-produccion
+
+# --- CIS (auth OIDC) ---
+CIS_ZITADEL_AUDIENCE: cambiar-por-el-resource-id-del-proyecto-zitadel-de-produccion
+
+# --- Auth servicio-a-servicio CIS -> CORE ---
+CORE_SERVICE_TOKEN: cambiar-por-64-caracteres-hex-random
+
+# --- Base de datos de CORE / Base Patrimonial ---
+CORE_DB_USER: core
+CORE_DB_PASSWORD: cambiar-esta-clave-produccion
+
+# --- CIP ---
+CIP_DB_USER: cip
+CIP_DB_PASSWORD: cambiar-esta-clave-produccion
+CIP_SERVICE_TOKEN: cambiar-por-64-caracteres-hex-random
+
+# --- WEB ---
+WEB_VITE_ZITADEL_CLIENT_ID: cambiar-por-el-client-id-de-la-app-oidc-web-de-produccion

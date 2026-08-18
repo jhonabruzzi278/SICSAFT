@@ -228,10 +228,11 @@ WEB). Lo que queda:
    `esAdministradorPatrimonial()`, hoy sin consumidor hasta este incremento) + bifurcación en
    `HubPage.tsx` — un Directivo puro aterriza directo en `/dashboard` sin pasar por el hub, el caso
    mixto (Directivo + administrador-patrimonial) ve el hub operativo completo, y el profesional de
-   AFT (sin rol especial) no tiene cambios. Verificado real de punta a punta: rol `directivo`
-   creado en el proyecto CIS de Zitadel (`devops/local/README.md` § "Rol `directivo`"), usuario de
-   prueba autorizado solo con ese rol, login real → redirect automático a `/dashboard` confirmado
-   en el navegador.
+   AFT (sin rol especial) no tiene cambios. Verificado real de punta a punta con los 3 casos: rol
+   `directivo` creado en el proyecto CIS de Zitadel (`devops/local/README.md` § "Rol `directivo`"),
+   tres usuarios de prueba (solo `directivo` → redirect a `/dashboard`; `directivo` +
+   `administrador-patrimonial` → hub completo; solo `administrador-patrimonial` → hub completo sin
+   cambios), cada login confirmado con el claim real del JWT.
 
 ✅ `Dockerfile`/`web-ci.yml`/servicio en el compose local — WEB ya tiene imagen de producción
 (nginx sirviendo el build de Vite, usuario sin privilegios) y corre dentro del stack en

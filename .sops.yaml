@@ -1,0 +1,16 @@
+# Config de SOPS (https://github.com/getsops/sops) — decisión cerrada en devops/README.md
+# § "Cyberseguridad del VPS": SOPS + age para secretos de producción versionados y cifrados en
+# git (nunca un gestor dedicado nuevo mientras el equipo sea de una persona, ver devops/prod/README.md
+# § "Por qué SOPS+age y no un gestor dedicado").
+#
+# `age` acá es la implementación `rage` (github.com/str4d/rage) — mismo formato de clave y mismo
+# protocolo que el `age` de FiloSottile, intercambiables. `sops` no distingue entre ambas.
+#
+# Recipients: reemplazar por la clave pública age real de quien administre el VPS (generada con
+# `rage-keygen -o key.txt`, NUNCA la clave privada acá). Puede haber más de un recipient (ej. un
+# segundo operador, o una clave de backup guardada aparte) — sops cifra para todos los que estén
+# listados, cualquiera de ellos puede descifrar.
+creation_rules:
+  - path_regex: devops[/\\]prod[/\\].*\.enc\.(yaml|yml|json|env)$
+    age: >-
+      age1REEMPLAZAR_POR_LA_CLAVE_PUBLICA_REAL_DEL_OPERADOR_DEL_VPS

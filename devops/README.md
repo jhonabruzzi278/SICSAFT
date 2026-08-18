@@ -6,8 +6,10 @@ todos los sistemas del ecosistema (APP QR, CIS, CORE, WEB, CIP, RFID, Integracio
 
 ## Estado
 🟡 Stack local funcionando (`devops/local/`: Traefik + Postgres + Redis + Zitadel + CIS + CORE en
-Docker Compose, ver su README para cómo levantarlo). Producción (VPS real, dominios `sicsaft.cl`,
-CI/CD) sigue sin implementar — ver [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) y
+Docker Compose, ver su README para cómo levantarlo). Gestión de secretos de producción resuelta
+(SOPS + age, ver [`devops/prod/README.md`](prod/README.md)) — herramientas y flujo listos, falta
+generar la clave real del operador del VPS. Producción (VPS real, dominios `sicsaft.cl`, CI/CD)
+sigue sin implementar — ver [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) y
 [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) para el stack ya decidido.
 
 ## Modelo de despliegue: VPS propio, Docker Compose
@@ -27,6 +29,10 @@ sicsaft-vps/
 ├── web/Dockerfile
 └── backups/                        # restic/borgbackup, destino EXTERNO al VPS
 ```
+
+Secretos de este árbol (contraseñas de Postgres/Redis, `ZITADEL_MASTERKEY`, tokens
+servicio-a-servicio) viven cifrados en el propio repo — ver [`devops/prod/`](prod/README.md), SOPS
++ age.
 
 - **Traefik** como único punto de entrada (80/443), enruta por subdominio y renueva TLS solo.
 - Red Docker interna aislada por ambiente; solo Traefik expone puertos al host.
@@ -84,8 +90,10 @@ para el ciclo de feedback normal.
 - Solo 80/443 públicos; SSH por clave únicamente, IP allowlist o VPN (Tailscale/WireGuard) para
   administración.
 - `ufw` + `fail2ban`, actualizaciones de SO automáticas (`unattended-upgrades`).
-- Secretos fuera de git: SOPS + age (cifrado, versionable) o un gestor de secretos dedicado —
-  nunca hardcodeados (ya reforzado en el `.gitignore` raíz).
+- Secretos fuera de git en texto plano: **SOPS + age** (decisión cerrada, ver
+  [`devops/prod/README.md`](prod/README.md) para el flujo completo y por qué no un gestor
+  dedicado) — el archivo cifrado sí se commitea, la clave privada nunca. Nunca hardcodeados (ya
+  reforzado en el `.gitignore` raíz).
 - Observabilidad self-hosted: Prometheus + Grafana + Loki + Alertmanager — mismas "tres señales"
   de [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §2 (métricas, logs estructurados con
   `correlationId`, trazas).
@@ -115,6 +123,7 @@ APP QR (hoy en Vercel).
 [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) — pilar de Excelencia Operacional (§2) y de
 Seguridad (§3). [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack).
 [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (identidad/SSO/dominios).
+[`devops/prod/README.md`](prod/README.md) (gestión de secretos, SOPS + age).
 
 ## Próximo paso sugerido
 Levantar el `docker-compose.yml` base (Traefik + Postgres + Redis + Zitadel) en el VPS como
