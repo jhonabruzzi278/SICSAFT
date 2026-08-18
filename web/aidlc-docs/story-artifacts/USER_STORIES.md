@@ -65,3 +65,13 @@ estado patrimonial real sin tener que cruzar manualmente sesiones de inventario 
 - **Criterio de aceptación**: el dashboard muestra explícitamente cuándo sus datos no están al día
   (`alDia = false` de CIP, RF-10) en vez de mostrar un número desactualizado sin avisar — mismo
   criterio de degradación visible que el resto del ecosistema (`ARQUITECTURA-WAF.md` §8).
+
+## Vista ejecutiva directa (Directivo)
+
+**Como** Directivo, **quiero** llegar directo al Dashboard de mi organización al loguearme, sin
+tener que navegar un hub con tarjetas de módulos operativos (Activos, Contratos, Inventarios,
+Estructura) que no me corresponden, **para** ver el estado patrimonial agregado sin pasos de más.
+
+- **Criterio de aceptación**: un operador con el rol Zitadel `directivo` en una sola organización
+  es redirigido a `/dashboard?organizacionId=...` inmediatamente tras el login — nunca ve el hub de
+  7 tarjetas que sí ve el profesional de AFT (RF-10).

@@ -150,11 +150,13 @@ const ZITADEL_PROJECT_ROLES_CLAIM = 'urn:zitadel:iam:org:project:roles';
 
 // Solo para UI (mostrar/ocultar el boton de alta, DOC-013 §4 — "ocultar un item del menu no es
 // autorizacion", el 403 real lo aplica CORE). Forma del claim: {"<rol>": {"<orgId>": "<nombre>"}}.
-function tieneRolAdministradorPatrimonial(claims: Record<string, unknown> | null): boolean {
+// Generico por nombre de rol — DOC-020 reusa esto para `directivo`, mismo criterio que
+// `administrador-patrimonial` (rol de Proyecto en Zitadel, sin cambios de codigo para agregarlo).
+function tieneRol(claims: Record<string, unknown> | null, rol: string): boolean {
   if (!claims) return false;
   const rolesClaim = claims[ZITADEL_PROJECT_ROLES_CLAIM];
   if (!rolesClaim || typeof rolesClaim !== 'object') return false;
-  return 'administrador-patrimonial' in rolesClaim;
+  return rol in rolesClaim;
 }
 
 function getCurrentOperatorDisplayName(): string | null {
@@ -168,7 +170,16 @@ function getCurrentOperatorDisplayName(): string | null {
 function esAdministradorPatrimonial(): boolean {
   const tokens = loadTokens();
   if (!tokens) return false;
-  return tieneRolAdministradorPatrimonial(decodeJwtClaims(tokens.accessToken));
+  return tieneRol(decodeJwtClaims(tokens.accessToken), 'administrador-patrimonial');
+}
+
+// DOC-020 §4 — Directivo: rol nuevo, mismo mecanismo que esAdministradorPatrimonial (solo UI,
+// sin enforcement server-side propio porque no habilita ninguna escritura — un Directivo sin
+// administrador-patrimonial ya recibe 403 de CORE ante cualquier intento, DOC-020 §7).
+function esDirectivo(): boolean {
+  const tokens = loadTokens();
+  if (!tokens) return false;
+  return tieneRol(decodeJwtClaims(tokens.accessToken), 'directivo');
 }
 
 function isAuthenticated(): boolean {
@@ -186,6 +197,7 @@ export const oidcClient = {
   getValidAccessToken,
   getCurrentOperatorDisplayName,
   esAdministradorPatrimonial,
+  esDirectivo,
   isAuthenticated,
   logout,
 };

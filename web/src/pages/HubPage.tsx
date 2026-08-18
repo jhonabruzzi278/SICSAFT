@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { cisClient, type Organizacion } from '@/lib/cis-client';
+import { oidcClient } from '@/lib/oidc/oidc-client';
 import { Alert, Card } from '@/components/ui';
 
 // RF-02 — hub post-login. DOC-013 §5 deja abierto si el resto de los módulos WEB necesita su
@@ -12,6 +13,11 @@ const MODULOS: { path: string; nombre: string }[] = [
   { path: 'contratos', nombre: 'Contratos' },
   { path: 'inventarios', nombre: 'Inventarios' },
   { path: 'estructura', nombre: 'Áreas, ubicaciones y responsables' },
+  { path: 'dashboard', nombre: 'Dashboard' },
+];
+
+// DOC-020 §1 — vista ejecutiva: el Directivo solo ve el Dashboard, no las herramientas operativas.
+const MODULOS_DIRECTIVO: { path: string; nombre: string }[] = [
   { path: 'dashboard', nombre: 'Dashboard' },
 ];
 
@@ -34,6 +40,20 @@ export function HubPage() {
     };
   }, []);
 
+  // DOC-020 §5 — el caso mixto (Directivo + administrador-patrimonial) gana la vista operativa
+  // completa: ese operador necesita actuar, no solo mirar.
+  const esVistaEjecutiva = oidcClient.esDirectivo() && !oidcClient.esAdministradorPatrimonial();
+
+  // DOC-020 §2 — Directivo con una sola organización: directo al Dashboard, sin parada en el hub.
+  if (esVistaEjecutiva && organizaciones?.length === 1) {
+    const [unicaOrg] = organizaciones;
+    return (
+      <Navigate to={`/dashboard?organizacionId=${encodeURIComponent(unicaOrg.id)}`} replace />
+    );
+  }
+
+  const modulos = esVistaEjecutiva ? MODULOS_DIRECTIVO : MODULOS;
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-accent-strong">Organizaciones</h1>
@@ -52,7 +72,7 @@ export function HubPage() {
               </span>
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              {MODULOS.map((modulo) => (
+              {modulos.map((modulo) => (
                 <Link
                   key={modulo.path}
                   to={`/${modulo.path}?organizacionId=${encodeURIComponent(org.id)}`}

@@ -158,8 +158,8 @@ el contrato tiene *algún* módulo habilitado (provisional, ya documentado como 
 - Informe diario automático a hora fija (`requirements/INTENT.md` de `cip/`, requiere scheduler +
   canal de entrega — sin consumidor real todavía).
 - Motor de Alertas (sin consumidor real).
-- Rol "Directivo" dedicado con acceso exclusivo al dashboard (§2 lo deja abierto para más adelante,
-  no bloquea este incremento).
+- ~~Rol "Directivo" dedicado con acceso exclusivo al dashboard~~ — **diseñado** en
+  [DOC-020](DOC-020-segmentacion-por-rol-directivo.md), sin construir todavía.
 - Selector de sede en el drill-down — sigue cayéndose por el mismo motivo que DOC-018 §2.7
   (`sedeId` no resoluble desde las APIs de lectura de CORE disponibles hoy).
 
