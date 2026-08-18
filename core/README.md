@@ -171,6 +171,38 @@ diseñar `cip/`, ver
 [DOC-018](../cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md) 2.5/2.6. El worker
 de agregación y la API de lectura ya existen y corren reales en `cip/` — ver `cip/README.md`.
 
+**Cierre de 5 gaps del CCP + rol Administrador del Sistema (2026-08-18,
+[DOC-021](../web/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
+migración `1755800000000` agrega `activos.descripcion` (nullable) y la tabla `documentos_activo`
+(URL + metadata, sin bucket/OCR propio todavía — versión mínima; a diferencia de `activos`, esta
+tabla no es BPI oficial y sí admite `DELETE` real). `PATCH /activos/:id/descripcion`
+(`escritura-activo.service.ts`) cierra el gap "descripciones". Módulo nuevo
+`catalogo-tipo-activo.*` (no confundir con `GET /catalogo`, el listado de activos) expone
+`GET/POST /catalogo-tipos` sobre la tabla `catalogo_activos` ya existente, cerrando el gap
+"familias/categorías". `documento-activo.*` expone `GET/POST/DELETE /activos/:id/documentos`,
+cruzando `organizacionId` contra el Activo real antes de escribir (mismo criterio de defensa en
+profundidad que el resto de `activo.repository.ts`), cerrando el gap "documentación y
+fotografías". Los gaps "ciclo de vida" (baja/reincorporación/responsable) e "importaciones" ya
+tenían endpoint en CORE desde Fase 4 — solo faltaba el puente CIS/WEB (ver `../cis/README.md`,
+`../web/README.md`). Segundo rol de Proyecto en Zitadel, `administrador-sistema`
+(`src/entitlements/organizacion.repository.ts` + `organizacion-escritura.controller.ts`,
+`POST /organizaciones`) — administra la plataforma (organizaciones, y ahora también `Contrato`
+junto al Profesional de AFT), nunca información patrimonial. Esto exigió generalizar
+`verificarRolAdministradorPatrimonial` (`common/auth/administrador-patrimonial.guard.ts`), que
+tenía el rol hardcodeado dentro de `OrquestadorService.ejecutarOperacionOficial`: ahora
+`verificarRolesPermitidos(roles, orgId, rolesPermitidos[])` recibe la lista de roles aceptados,
+con un default que preserva el comportamiento anterior para los ~15 callers existentes —
+`procesarAltaContrato`/`procesarActualizacionContrato` son los únicos que pasan un verificador
+que acepta ambos roles. Módulo nuevo `src/indicadores/` (`GET /indicadores`, sin
+`OrquestadorService` de por medio — es una vista de plataforma, no una escritura oficial) cuenta
+organizaciones/sedes/contratos-por-estado para el dashboard del Administrador del Sistema en WEB.
+Verificado real contra Postgres (unit 100% stmts/lines/funcs, 87.73% branches, + e2e en
+`test/gaps-ccp-admin-sistema.e2e-spec.ts` cubriendo los límites de rol: `administrador-sistema`
+no puede escribir Activo/Catálogo/Documento, `administrador-patrimonial` no puede crear
+Organización). **Pendiente**: verificación real de punta a punta contra Zitadel (crear el rol y
+el service user PAT, ver `../devops/local/README.md`) — hecho solo con Docker/Postgres reales,
+no con un Zitadel real corriendo.
+
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
 `docker compose up -d` desde `../devops/local` ya lo hace solo (el servicio `core-migrate` corre

@@ -129,6 +129,28 @@ propagan `limit`/`offset` end-to-end (`administrador.schemas.ts` agrega un fragm
 `paginacionSchema` compartido, mismo patrón que `core/src/estructura/estructura.schemas.ts`) y
 devuelven el envelope `{ <entidad>, total }` tal cual, sin reinterpretarlo.
 
+**Cierre de 5 gaps del CCP + rol Administrador del Sistema (2026-08-18,
+[DOC-021](../web/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
+`AdministradorController`/`AdministradorService` suman ~15 endpoints nuevos, mismo patrón puente
+que el resto del módulo — `POST/baja/reincorporacion/PATCH responsable/descripcion` de Activo,
+`GET/POST /admin/catalogo-tipos`, `GET/POST/DELETE /admin/activos/:id/documentos`,
+`POST /admin/importaciones/contable`, `GET/POST /admin/organizaciones`, `GET /admin/indicadores`.
+Módulo nuevo `src/zitadel-admin/` (mismo esqueleto que `core-client`/`cip-client`: config, circuit
+breaker, reintentos) — integración real con la API de administración de Zitadel
+(`ZitadelAdminService.buscarUsuarioPorEmail`/`listarGrants`/`crearGrant`, autenticada con un
+Personal Access Token de un service user, header `x-zitadel-orgid` para escribir en
+organizaciones distintas a la del service user) para `GET/POST /admin/organizaciones/:orgId/
+usuarios` — **los shapes de la API de Zitadel están armados solo contra su documentación
+pública, sin verificar todavía contra una instancia real** (ver comentario en
+`zitadel-admin.types.ts` y `../devops/local/README.md`). `AdministradorSistemaGuard`
+(`src/administrador/administrador-sistema.guard.ts`) es el único endpoint de este módulo que NO
+sigue el patrón "verificar dentro del Orquestador de CORE" — un guard normal de CIS alcanza
+porque asignar usuarios en Zitadel no toca CORE ni el Motor de Auditoría de Tomo IV (WAF 3 sigue
+aplicando: CORE re-verifica el rol para todo lo que sí escribe BPI). Bug real encontrado con el
+nuevo e2e (`test/gaps-ccp-admin-sistema.e2e-spec.ts`, no en unit con mocks): `POST /admin/
+organizaciones/:orgId/usuarios` usaba `@UsePipes()` de método — mismo hallazgo ya documentado
+arriba para `actualizarEstadoContrato`, corregido al mismo patrón de pipe por parámetro.
+
 **Umbral de cobertura de branches en 84%, no 85% (DOC-021, 2026-08-18)**: `AdministradorController`
 sumó 30 endpoints nuevos (gaps del CCP + Administrador del Sistema); cada firma de método
 multilínea con decoradores (`@Body()`/`@Param()`/`@Req()`) genera una rama `cond-expr` marcada
