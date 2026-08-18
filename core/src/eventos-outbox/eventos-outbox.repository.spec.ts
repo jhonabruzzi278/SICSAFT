@@ -12,12 +12,19 @@ describe('EventosOutboxRepository', () => {
   describe('findPendientes', () => {
     it('mapea las filas a camelCase', async () => {
       const pool = buildPool([
-        { id: 'ob-1', evento_id: 'ev-1', tipo: 'alta', sesion_id: null },
+        {
+          id: 'ob-1',
+          evento_id: 'ev-1',
+          tipo: 'alta',
+          sesion_id: null,
+          organizacion_id: 'org-1',
+        },
         {
           id: 'ob-2',
           evento_id: 'ev-2',
           tipo: 'escaneo_qr',
           sesion_id: 'ses-1',
+          organizacion_id: 'org-1',
         },
       ]);
       const repository = new EventosOutboxRepository(pool);
@@ -25,10 +32,39 @@ describe('EventosOutboxRepository', () => {
       const pendientes = await repository.findPendientes(200);
 
       expect(pendientes).toEqual([
-        { id: 'ob-1', eventoId: 'ev-1', tipo: 'alta', sesionId: null },
-        { id: 'ob-2', eventoId: 'ev-2', tipo: 'escaneo_qr', sesionId: 'ses-1' },
+        {
+          id: 'ob-1',
+          eventoId: 'ev-1',
+          tipo: 'alta',
+          sesionId: null,
+          organizacionId: 'org-1',
+        },
+        {
+          id: 'ob-2',
+          eventoId: 'ev-2',
+          tipo: 'escaneo_qr',
+          sesionId: 'ses-1',
+          organizacionId: 'org-1',
+        },
       ]);
       expect(pool.query).toHaveBeenCalledWith(expect.any(String), [200]);
+    });
+
+    it('mapea organizacion_id null cuando el evento no resolvió ningún activo', async () => {
+      const pool = buildPool([
+        {
+          id: 'ob-1',
+          evento_id: 'ev-1',
+          tipo: 'alta',
+          sesion_id: null,
+          organizacion_id: null,
+        },
+      ]);
+      const repository = new EventosOutboxRepository(pool);
+
+      const pendientes = await repository.findPendientes(200);
+
+      expect(pendientes[0].organizacionId).toBeNull();
     });
 
     it('devuelve vacío si no hay pendientes', async () => {

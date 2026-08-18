@@ -467,7 +467,7 @@ login + alta de Activo visible de inmediato (RF-08), corre en `web-ci.yml`.
 (`http://web.sicsaft.localhost`) además de `npm run dev` suelto. ✅ `web/README.md`,
 `cis/README.md`, `core/README.md`, `README.md`, `REQUISITOS.md` y DOC-013 actualizados.
 
-## Fase 6 — CIP: primer dashboard 🟡 diseño completo (Inception), sin código todavía
+## Fase 6 — CIP: primer dashboard ✅ completa
 
 **Por qué acá**: `cip/README.md` pide "definir qué métricas del MVP de CORE ya están
 disponibles" — recién después de la Fase 3/4 hay inventarios y eventos reales que medir.
@@ -482,9 +482,22 @@ el contrato de escritura de CORE — ver DOC-014 §5.
 
 **Construction, primer incremento (2026-08-18) — lado de CORE, ✅ completo**: migración
 `eventos_outbox` + trigger, `EventosOutboxDispatcher` (Redis/BullMQ), ver `core/README.md` §
-"Outbox transaccional hacia CIP". Verificado real contra el stack de `devops/local/` (no solo
-mocks/unit). **Pendiente, segundo incremento**: el servicio `cip/` en sí (worker de agregación +
-base de datos propia + API de lectura) — sin código todavía, ver `cip/README.md`.
+"Outbox transaccional hacia CIP".
+
+**Construction, segundo incremento (2026-08-18) — servicio `cip/`, ✅ completo**: esqueleto
+NestJS propio (`cip/src/`), base de datos `cip` separada de `core` con 8 tablas de agregados,
+`EventosOutboxWorker` (consume `cip-eventos`) + `AgregacionService` (recalcula veredicto de
+sesión, cobertura, fuera de área, incidencias, estado/categoría de activos), `SyncEstadoWatcher`
+(RF-10) y `DashboardModule` con los 8 endpoints de lectura — ver `cip/README.md` y
+[DOC-018](cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md). Encontró y corrigió 4
+brechas reales del diseño inicial durante la implementación (`eventos_outbox` necesitaba
+`organizacion_id`, CIP no puede usar `activoId` solo `codigoQr`, `GET /catalogo` no exponía
+`familia` cruda, `control_area` no podía resolver `sedeId`) — todas documentadas en DOC-018 §2.
+**Verificado real de punta a punta**: `docker build` de ambas imágenes, stack completo levantado
+en `devops/local/docker-compose.yml`, un `POST /inventarios` real disparado dentro de la red
+Docker confirmado en `GET /dashboard/cobertura`/`GET /dashboard/sesiones` de CIP con los valores
+calculados correctos — no solo con mocks/unit. Unit 100% stmts/lines/funcs en ambos sistemas + e2e
+reales contra Postgres.
 
 **Qué se construye**
 - Métricas ya listadas en `cip/README.md` (cobertura de inventario, activos fuera de área, no

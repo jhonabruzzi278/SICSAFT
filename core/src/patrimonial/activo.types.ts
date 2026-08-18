@@ -64,10 +64,15 @@ export interface CatalogoFiltro {
 
 // Forma que ya espera CIS (cis/src/qr-connector/qr-connector.types.ts, ActivoCatalogo) — DOC-006
 // §2. `nombre` no es un campo propio de catalogo_activos, se compone (ver
-// construirNombreActivo en activo.repository.ts).
+// construirNombreActivo en activo.repository.ts). `familia` se agrega en Fase 6 (extension
+// aditiva, mismo criterio que `estadoDeclarado`/`bajaSugerida` en Fase 3.1) — el worker de CIP
+// la necesita para RF-09 (categoria_activo_resumen, cip/aidlc-docs/design-artifacts/DOC-018)
+// y GET /catalogo no exponia hasta ahora ningun campo crudo de categoria, solo el `nombre` ya
+// compuesto.
 export interface ActivoCatalogo {
   codigoQr: string;
   nombre: string;
+  familia: string;
   organizacionId: string;
   areaId: string;
   ubicacionId: string;

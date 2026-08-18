@@ -33,9 +33,27 @@ describe('EventosOutboxDispatcher', () => {
 
   it('agrupa varios escaneos de la misma sesión en un solo mensaje sesion-cerrada', async () => {
     const repository = buildRepository([
-      { id: 'ob-1', eventoId: 'ev-1', tipo: 'escaneo_qr', sesionId: 'ses-1' },
-      { id: 'ob-2', eventoId: 'ev-2', tipo: 'escaneo_qr', sesionId: 'ses-1' },
-      { id: 'ob-3', eventoId: 'ev-3', tipo: 'escaneo_qr', sesionId: 'ses-1' },
+      {
+        id: 'ob-1',
+        eventoId: 'ev-1',
+        tipo: 'escaneo_qr',
+        sesionId: 'ses-1',
+        organizacionId: 'org-1',
+      },
+      {
+        id: 'ob-2',
+        eventoId: 'ev-2',
+        tipo: 'escaneo_qr',
+        sesionId: 'ses-1',
+        organizacionId: 'org-1',
+      },
+      {
+        id: 'ob-3',
+        eventoId: 'ev-3',
+        tipo: 'escaneo_qr',
+        sesionId: 'ses-1',
+        organizacionId: 'org-1',
+      },
     ]);
     const queue = buildQueue();
     const dispatcher = new EventosOutboxDispatcher(repository, queue);
@@ -54,10 +72,22 @@ describe('EventosOutboxDispatcher', () => {
     ]);
   });
 
-  it('publica un mensaje evento por cada pendiente sin sesionId', async () => {
+  it('publica un mensaje evento (con organizacionId) por cada pendiente sin sesionId', async () => {
     const repository = buildRepository([
-      { id: 'ob-1', eventoId: 'ev-1', tipo: 'alta', sesionId: null },
-      { id: 'ob-2', eventoId: 'ev-2', tipo: 'baja', sesionId: null },
+      {
+        id: 'ob-1',
+        eventoId: 'ev-1',
+        tipo: 'alta',
+        sesionId: null,
+        organizacionId: 'org-1',
+      },
+      {
+        id: 'ob-2',
+        eventoId: 'ev-2',
+        tipo: 'baja',
+        sesionId: null,
+        organizacionId: null,
+      },
     ]);
     const queue = buildQueue();
     const dispatcher = new EventosOutboxDispatcher(repository, queue);
@@ -69,19 +99,33 @@ describe('EventosOutboxDispatcher', () => {
       kind: 'evento',
       eventoId: 'ev-1',
       tipo: 'alta',
+      organizacionId: 'org-1',
     });
     expect(queue.add).toHaveBeenCalledWith('evento', {
       kind: 'evento',
       eventoId: 'ev-2',
       tipo: 'baja',
+      organizacionId: null,
     });
     expect(repository.marcarPublicados).toHaveBeenCalledWith(['ob-1', 'ob-2']);
   });
 
   it('mezcla sesiones agrupadas y eventos individuales en el mismo ciclo', async () => {
     const repository = buildRepository([
-      { id: 'ob-1', eventoId: 'ev-1', tipo: 'escaneo_qr', sesionId: 'ses-1' },
-      { id: 'ob-2', eventoId: 'ev-2', tipo: 'mantenimiento', sesionId: null },
+      {
+        id: 'ob-1',
+        eventoId: 'ev-1',
+        tipo: 'escaneo_qr',
+        sesionId: 'ses-1',
+        organizacionId: 'org-1',
+      },
+      {
+        id: 'ob-2',
+        eventoId: 'ev-2',
+        tipo: 'mantenimiento',
+        sesionId: null,
+        organizacionId: 'org-1',
+      },
     ]);
     const queue = buildQueue();
     const dispatcher = new EventosOutboxDispatcher(repository, queue);
@@ -94,8 +138,20 @@ describe('EventosOutboxDispatcher', () => {
 
   it('si la cola falla, solo marca como publicado lo que sí se encoló antes del fallo', async () => {
     const repository = buildRepository([
-      { id: 'ob-1', eventoId: 'ev-1', tipo: 'alta', sesionId: null },
-      { id: 'ob-2', eventoId: 'ev-2', tipo: 'baja', sesionId: null },
+      {
+        id: 'ob-1',
+        eventoId: 'ev-1',
+        tipo: 'alta',
+        sesionId: null,
+        organizacionId: 'org-1',
+      },
+      {
+        id: 'ob-2',
+        eventoId: 'ev-2',
+        tipo: 'baja',
+        sesionId: null,
+        organizacionId: 'org-1',
+      },
     ]);
     const queue = buildQueue();
     queue.add
@@ -110,9 +166,27 @@ describe('EventosOutboxDispatcher', () => {
 
   it('si falla en el grupo de una sesión, no publica las sesiones siguientes ni los individuales', async () => {
     const repository = buildRepository([
-      { id: 'ob-1', eventoId: 'ev-1', tipo: 'escaneo_qr', sesionId: 'ses-1' },
-      { id: 'ob-2', eventoId: 'ev-2', tipo: 'escaneo_qr', sesionId: 'ses-2' },
-      { id: 'ob-3', eventoId: 'ev-3', tipo: 'alta', sesionId: null },
+      {
+        id: 'ob-1',
+        eventoId: 'ev-1',
+        tipo: 'escaneo_qr',
+        sesionId: 'ses-1',
+        organizacionId: 'org-1',
+      },
+      {
+        id: 'ob-2',
+        eventoId: 'ev-2',
+        tipo: 'escaneo_qr',
+        sesionId: 'ses-2',
+        organizacionId: 'org-1',
+      },
+      {
+        id: 'ob-3',
+        eventoId: 'ev-3',
+        tipo: 'alta',
+        sesionId: null,
+        organizacionId: 'org-1',
+      },
     ]);
     const queue = buildQueue();
     queue.add
@@ -128,7 +202,13 @@ describe('EventosOutboxDispatcher', () => {
 
   it('si falla desde el primer mensaje, marca con una lista vacía', async () => {
     const repository = buildRepository([
-      { id: 'ob-1', eventoId: 'ev-1', tipo: 'alta', sesionId: null },
+      {
+        id: 'ob-1',
+        eventoId: 'ev-1',
+        tipo: 'alta',
+        sesionId: null,
+        organizacionId: 'org-1',
+      },
     ]);
     const queue = buildQueue();
     queue.add.mockRejectedValueOnce(new Error('Redis caído'));
@@ -141,7 +221,13 @@ describe('EventosOutboxDispatcher', () => {
 
   it('propaga un error no-Error de la cola sin romper el ciclo (mensaje por defecto)', async () => {
     const repository = buildRepository([
-      { id: 'ob-1', eventoId: 'ev-1', tipo: 'alta', sesionId: null },
+      {
+        id: 'ob-1',
+        eventoId: 'ev-1',
+        tipo: 'alta',
+        sesionId: null,
+        organizacionId: 'org-1',
+      },
     ]);
     const queue = buildQueue();
     queue.add.mockRejectedValueOnce('fallo-string');

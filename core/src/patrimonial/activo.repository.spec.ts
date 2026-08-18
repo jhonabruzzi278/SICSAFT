@@ -148,6 +148,7 @@ describe('ActivoRepository', () => {
           {
             codigoQr: 'QR-000001',
             nombre: 'Dell Latitude 5440',
+            familia: 'Informática',
             organizacionId: 'duoc-uc',
             areaId: 'area-biblioteca',
             ubicacionId: 'ubicacion-biblioteca-101',

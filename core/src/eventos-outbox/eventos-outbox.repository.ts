@@ -16,8 +16,9 @@ export class EventosOutboxRepository {
       evento_id: string;
       tipo: string;
       sesion_id: string | null;
+      organizacion_id: string | null;
     }>(
-      `SELECT id, evento_id, tipo, sesion_id
+      `SELECT id, evento_id, tipo, sesion_id, organizacion_id
        FROM eventos_outbox
        WHERE publicado = false
        ORDER BY creado_en
@@ -30,6 +31,7 @@ export class EventosOutboxRepository {
       eventoId: fila.evento_id,
       tipo: fila.tipo,
       sesionId: fila.sesion_id,
+      organizacionId: fila.organizacion_id,
     }));
   }
 

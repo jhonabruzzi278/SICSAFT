@@ -64,7 +64,7 @@ erDiagram
     CONTROL_AREA {
         string areaId PK
         string organizacionId FK
-        string sedeId FK
+        string sedeId FK "eliminado en DOC-018 §2.7 — sin forma de resolverlo desde las APIs de CORE disponibles hoy"
         boolean controladaEnPeriodo
         datetime ultimaSesionEn "nullable"
     }
@@ -76,21 +76,21 @@ erDiagram
         datetime fechaCierre
     }
     ACTIVO_FUERA_DE_AREA {
-        string activoId PK
+        string codigoQr PK "no activoId — GET /catalogo y GET /inventarios/:id de CORE no exponen el id interno del activo, ver DOC-018 §2.5"
         string organizacionId FK
         string areaRealId FK
         string areaEsperadaId FK
         datetime detectadoEn
     }
     ACTIVO_NO_LOCALIZADO {
-        string activoId PK
+        string codigoQr PK
         string organizacionId FK
         datetime desdeEn
     }
     INCIDENCIA {
         string inventarioId PK
         string organizacionId FK
-        string activoId FK "nullable"
+        string codigoQr "nullable"
         string observaciones
         datetime fecha
     }
