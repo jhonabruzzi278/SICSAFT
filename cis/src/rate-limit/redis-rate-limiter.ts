@@ -12,7 +12,7 @@ end
 return count
 `;
 
-// WAF §4 "rate limiting hacia el CORE" + pilar de resiliencia "aislamiento de fallos": si Redis
+// WAF 4 "rate limiting hacia el CORE" + pilar de resiliencia "aislamiento de fallos": si Redis
 // no responde, el rate limiter no debe tumbar el flujo real Captura -> CIS -> CORE. Falla abierto
 // (deja pasar la request) en vez de cerrado — un Redis caido nunca debe bloquear operadores
 // legitimos, la proteccion que se pierde es aceptable frente a bloquear el ecosistema completo.

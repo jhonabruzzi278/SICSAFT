@@ -72,13 +72,13 @@ import type {
 // compartido entre CIS y CORE todavia (mismo caso que Organizacion/Sede en core-client.types.ts).
 const SERVICE_TOKEN_HEADER = 'x-internal-service-token';
 
-// WAF §4: parametros conservadores para el trafico actual, igual criterio que
+// WAF 4: parametros conservadores para el trafico actual, igual criterio que
 // CORE_CIRCUIT_BREAKER en core-client.module.ts. 3 intentos totales, 200ms/400ms de backoff.
 const CORE_RETRY_MAX_ATTEMPTS = 3;
 const CORE_RETRY_BASE_DELAY_MS = 200;
 
 // Solo reintenta lo transitorio: sin respuesta (red caida/timeout) o 5xx. Un 400/404/409 es un
-// rechazo permanente del lado de CORE (DOC-002 §5) — reintentarlo no cambia el resultado.
+// rechazo permanente del lado de CORE (DOC-002 5) — reintentarlo no cambia el resultado.
 function isTransientCoreError(error: unknown): boolean {
   if (!(error instanceof AxiosError)) {
     return false;
@@ -102,7 +102,7 @@ export class CoreClientService {
     return this.parse(entitlementsResponseSchema, data, 'entitlements');
   }
 
-  // DOC-006 §2 — reemplaza SEED_CATALOGO (ROADMAP.md Fase 3).
+  // DOC-006 2 — reemplaza SEED_CATALOGO (ROADMAP.md Fase 3).
   async getCatalogo(
     query: CatalogoQuery,
     correlationId: string,
@@ -111,9 +111,9 @@ export class CoreClientService {
     return this.parse(catalogoResponseSchema, data, 'catalogo');
   }
 
-  // DOC-006 §3 — reemplaza los Map en memoria de QrConnectorService. A diferencia de
+  // DOC-006 3 — reemplaza los Map en memoria de QrConnectorService. A diferencia de
   // getEntitlements/getCatalogo, acá SI se propaga el error de CORE (400/409) tal cual en vez de
-  // colapsarlo a 502 — DOC-002 §5 exige que el cliente pueda distinguir "rechazado, no
+  // colapsarlo a 502 — DOC-002 5 exige que el cliente pueda distinguir "rechazado, no
   // reintentar" (400/409) de "transitorio, reintentar" (5xx/timeout/circuito abierto).
   async postInventario(
     request: InventarioRequest,
@@ -123,9 +123,9 @@ export class CoreClientService {
     return this.parse(postInventarioResponseSchema, data, 'inventarios');
   }
 
-  // DOC-012 §5 — proxy hacia POST /activos de CORE (escritura oficial). A diferencia de
+  // DOC-012 5 — proxy hacia POST /activos de CORE (escritura oficial). A diferencia de
   // postInventario, acá se propaga tambien un 403 (falta el rol administrador-patrimonial en esa
-  // organizacion) ademas de 400/409 — DOC-012 §8 exige que el 403 llegue tal cual, no colapsado a
+  // organizacion) ademas de 400/409 — DOC-012 8 exige que el 403 llegue tal cual, no colapsado a
   // 502, para que WEB pueda distinguir "sin permiso" de "CORE caido".
   async postActivo(
     request: PostActivoRequest,
@@ -137,7 +137,7 @@ export class CoreClientService {
     return this.parse(activoResponseSchema, data, 'activos');
   }
 
-  // DOC-012 §4/§7 — GET /contratos es lectura abierta (mismo criterio que getCatalogo), sin
+  // DOC-012 4/7 — GET /contratos es lectura abierta (mismo criterio que getCatalogo), sin
   // passthroughStatuses especiales: no hay 403 posible en este endpoint (CORE no exige el rol
   // para leer). Paginado (RNF-01, cierra el gap).
   async getContratos(
@@ -152,7 +152,7 @@ export class CoreClientService {
     return this.parse(contratosPaginaResponseSchema, data, 'contratos');
   }
 
-  // DOC-012 §7 — proxy hacia POST /contratos de CORE (escritura oficial), mismo criterio de
+  // DOC-012 7 — proxy hacia POST /contratos de CORE (escritura oficial), mismo criterio de
   // passthroughStatuses que postActivo (400/403/409).
   async postContrato(
     request: PostContratoRequest,
@@ -164,9 +164,9 @@ export class CoreClientService {
     return this.parse(contratoResponseSchema, data, 'contratos');
   }
 
-  // DOC-012 §7 — proxy hacia PATCH /contratos/:id de CORE. A diferencia de postActivo, acá
+  // DOC-012 7 — proxy hacia PATCH /contratos/:id de CORE. A diferencia de postActivo, acá
   // también se propaga un 404 legítimo del negocio (contrato inexistente o de otra organización,
-  // ver DOC-012 §3.2) — el 404 ya se propaga sin pedirlo explícito (ver callCore), pero se lista
+  // ver DOC-012 3.2) — el 404 ya se propaga sin pedirlo explícito (ver callCore), pero se lista
   // en passthroughStatuses igual para que quede documentado junto al resto de esta llamada.
   async patchContrato(
     contratoId: string,
@@ -423,11 +423,11 @@ export class CoreClientService {
   }
 
   // Unico punto por el que CIS le habla a CORE — pasa siempre por reintentos con backoff y luego
-  // por el circuit breaker (WAF §4: "reintentos con backoff exponencial + limite de intentos" +
+  // por el circuit breaker (WAF 4: "reintentos con backoff exponencial + limite de intentos" +
   // "si un sistema externo empieza a fallar, el CIS deja de insistir temporalmente"). Reintentar
   // es seguro para las 4 operaciones, incluido POST /inventarios: CORE dedupea por
-  // idempotencyKey (DOC-006 §3, sesiones_inventario.idempotency_key UNIQUE) — reintentar una
-  // request ya aceptada devuelve la misma fila, nunca duplica (WAF §4: "reintentar una operacion
+  // idempotencyKey (DOC-006 3, sesiones_inventario.idempotency_key UNIQUE) — reintentar una
+  // request ya aceptada devuelve la misma fila, nunca duplica (WAF 4: "reintentar una operacion
   // de red nunca duplica un alta"). El breaker envuelve la secuencia completa de reintentos: cada
   // request logica cuenta una sola vez para el umbral de fallos consecutivos, no una vez por
   // intento interno.
@@ -462,7 +462,7 @@ export class CoreClientService {
       if (error instanceof AxiosError && error.response?.status === 404) {
         throw new NotFoundException(error.response.data);
       }
-      // DOC-002 §5: 5xx/timeout/sin red es transitorio, no un bug del cliente — se propaga como
+      // DOC-002 5: 5xx/timeout/sin red es transitorio, no un bug del cliente — se propaga como
       // 502 para que quien llamo a CIS lo trate igual que cualquier otro error transitorio (la
       // causa exacta no se expone, mismo criterio que ZitadelAuthGuard con el 401).
       throw new BadGatewayException({

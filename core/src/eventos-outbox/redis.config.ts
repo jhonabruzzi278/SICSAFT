@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Fase 6 — mismo mecanismo que ya usa CIS (cis/src/redis/redis.config.ts) para su rate limiter:
 // URL de conexion a Redis (devops/local/docker-compose.yml, servicio `redis`), ya provisionado
 // desde ADR-001 pero sin consumidor todavia en CORE. Config propia de CORE (no se comparte el
-// modulo de CIS entre desplegables distintos, WAF §1 — cada sistema es su propio desplegable).
+// modulo de CIS entre desplegables distintos, WAF 1 — cada sistema es su propio desplegable).
 const redisEnvSchema = z.object({
   REDIS_URL: z.string().min(1, 'es requerido'),
 });

@@ -33,8 +33,8 @@ import type {
   VeredictoSesionResponse,
 } from './dashboard.types';
 
-// DOC-018 §6 — RF-01 a RF-09. Todos exigen ServiceTokenGuard (CIP_SERVICE_TOKEN, decisión
-// provisional hasta que exista un frontend con su propio modelo de auth, DOC-014 §7.1) y
+// DOC-018 6 — RF-01 a RF-09. Todos exigen ServiceTokenGuard (CIP_SERVICE_TOKEN, decisión
+// provisional hasta que exista un frontend con su propio modelo de auth, DOC-014 7.1) y
 // devuelven la info de sync (actualizadoEn/alDia) en el body — RF-10.
 @Controller('dashboard')
 @UseGuards(ServiceTokenGuard)

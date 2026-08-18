@@ -8,7 +8,7 @@ Base Patrimonial Central ni al CORE — todo pasa por acá.
 
 ## Estado
 🟢 Esqueleto NestJS + **Conector QR real, proxy delgado hacia CORE** (contrato DOC-002, resuelto
-contra DOC-006 §2-§4) + **auth real vía Zitadel** (ADR-002) + **circuit breaker propio** (WAF §4):
+contra DOC-006 2-4) + **auth real vía Zitadel** (ADR-002) + **circuit breaker propio** (WAF 4):
 los 4 endpoints exigen `Authorization: Bearer <token>` y `ZitadelAuthGuard` valida
 firma/issuer/audience/vencimiento contra el JWKS de Zitadel — el CIS ya no acepta
 `operadorId`/`credencial` en el body, la identidad viene del token. `QrConnectorService` ya no
@@ -19,15 +19,15 @@ distinto, no se asume su forma) y devuelve 502 ante cualquier falla (red, timeou
 inválido, forma inesperada) — nunca datos a medias. `CoreClientService` manda el secreto
 compartido de auth servicio-a-servicio (`x-internal-service-token`, ver `../core/README.md`) —
 CORE ya no acepta llamadas sin él. Todo llamado a CORE pasa primero por reintentos con backoff
-exponencial (`src/core-client/retry.ts`, WAF §4: "reintentos con backoff exponencial + límite de
+exponencial (`src/core-client/retry.ts`, WAF 4: "reintentos con backoff exponencial + límite de
 intentos, nunca reintento inmediato en bucle") y luego por un `CircuitBreaker` propio
 (`src/core-client/circuit-breaker.ts`): 3 intentos totales (200ms/400ms de backoff) solo para
-fallos transitorios — sin respuesta o 5xx, nunca un 400/404/409 (rechazo permanente, DOC-002 §5);
+fallos transitorios — sin respuesta o 5xx, nunca un 400/404/409 (rechazo permanente, DOC-002 5);
 si los 3 intentos fallan, cuenta como **un** fallo para el circuito, que abre a los 5 consecutivos
 y sondea de nuevo (half-open) a los 30s — mientras está abierto, `CoreClientService` devuelve 502
 sin ni siquiera intentar la llamada HTTP. Reintentar es seguro para las 4 operaciones, incluido
-`POST /inventarios`: CORE dedupea por `idempotencyKey` (DOC-006 §3), reintentar una request ya
-aceptada devuelve la misma fila, nunca duplica. Idempotencia de inventarios (DOC-002 §4/§5),
+`POST /inventarios`: CORE dedupea por `idempotencyKey` (DOC-006 3), reintentar una request ya
+aceptada devuelve la misma fila, nunca duplica. Idempotencia de inventarios (DOC-002 4/5),
 validación de organización/área/ubicación y clasificación de escaneos ya no viven en CIS — se
 resolvieron en CORE (`sesiones_inventario`, Motor de Reglas, Fase 2 de ROADMAP.md); CIS solo
 propaga el 400/409 que CORE produce.
@@ -40,15 +40,15 @@ Docker real para catálogo/inventarios (el mecanismo es el mismo `CoreClientServ
 pero no se corrió ese `docker exec` específico todavía). Toda ruta pasa por
 `CorrelationIdMiddleware` (`src/common/correlation-id/`, ROADMAP.md Fase 0), que propaga
 `X-Correlation-Id` hasta `CoreClientService` — sin logging estructurado que lo use todavía (WAF
-§2, pendiente). Los 4 endpoints también están detrás de `RateLimitGuard`
-(`src/rate-limit/`, WAF §4 "rate limiting hacia el CORE"), por operador: 30 requests cada 10s
+2, pendiente). Los 4 endpoints también están detrás de `RateLimitGuard`
+(`src/rate-limit/`, WAF 4 "rate limiting hacia el CORE"), por operador: 30 requests cada 10s
 respaldado en Redis (ventana fija atómica vía Lua, `INCR`+`PEXPIRE`) — primer consumidor de Redis
 en el código del ecosistema (ya estaba en el stack decidido, ADR-001). Elegido sobre un limiter en
-memoria de proceso porque WAF §4 exige "multi-instancia sin estado en memoria compartido"; si
+memoria de proceso porque WAF 4 exige "multi-instancia sin estado en memoria compartido"; si
 Redis no responde, el limiter **falla abierto** (deja pasar la request) en vez de bloquear el
 flujo real Captura→CIS→CORE por una caída de un componente de protección secundario.
 `auth/session` también registra en Redis el `deviceId` de la request como dispositivo activo del
-operador (`src/device-registry/`, DOC-002 §1 "un solo dispositivo por operador"): un dispositivo
+operador (`src/device-registry/`, DOC-002 1 "un solo dispositivo por operador"): un dispositivo
 nuevo **reemplaza** al anterior (nunca se rechaza) — no existe todavía un rol Administrador
 (ROADMAP.md Fase 4) para destrabar manualmente a un operador, así que rechazar dejaría varado a
 cualquiera que pierda o cambie de celular; el registro expira solo, con el mismo TTL que le queda
@@ -66,26 +66,26 @@ app OIDC en el dashboard de Zitadel, ver `../devops/local/README.md`).
 
 **Fase 5 (Portal WEB) — `AdministradorModule` nuevo**: `POST /admin/activos`
 (`src/administrador/`) es el puente real WEB→CIS→CORE para la escritura oficial de `Activo`
-(DOC-012 §5) — mismos guards que el Conector QR (`ZitadelAuthGuard` + `RateLimitGuard`).
+(DOC-012 5) — mismos guards que el Conector QR (`ZitadelAuthGuard` + `RateLimitGuard`).
 `AdministradorService` traduce `rolesPorOrganizacion` (que Zitadel firma con SU id de
 organización, ej. `386029528616558597`) al `organizacionId` de texto que CORE entiende (`duoc-uc`)
 usando un mapeo explícito por env (`ZITADEL_ORG_ID_MAP`, `src/administrador/
 organizacion-mapping.config.ts`) — sin este mapeo, un token real de Zitadel nunca podría autorizar
 una escritura oficial, porque `verificarRolAdministradorPatrimonial` en CORE compara contra su
-propio id, que nunca coincide con la clave que Zitadel firma (mismo gap que DOC-004 §7, resuelto
+propio id, que nunca coincide con la clave que Zitadel firma (mismo gap que DOC-004 7, resuelto
 acá solo para el camino de escritura). `CoreClientService.postActivo` extiende el cliente de CORE
 existente, propagando también un 403 (además de 400/409) para que WEB pueda distinguir "sin
-permiso" de "CORE caído" (DOC-012 §8). **Verificado real de punta a punta el 2026-08-14**: rol
+permiso" de "CORE caído" (DOC-012 8). **Verificado real de punta a punta el 2026-08-14**: rol
 `administrador-patrimonial` creado en Zitadel (proyecto "CIS", org "DUOC UC"), usuario de prueba
 con ese rol, login OIDC/PKCE real desde `web/` → JWT real con el claim de rol → CIS lo valida y
 traduce → CORE crea el activo en Postgres → visible de inmediato en `GET /catalogo` (mismo
-catálogo que consume APP QR, confirma WAF §8). Detalle completo en
-`../devops/local/README.md` § "Cliente OIDC real (WEB)".
+catálogo que consume APP QR, confirma WAF 8). Detalle completo en
+`../devops/local/README.md` "Cliente OIDC real (WEB)".
 
 **Extensión a Contrato (2026-08-14)**: mismo módulo, `GET/POST /admin/contratos` y
 `PATCH /admin/contratos/:id` — puente hacia `GET/POST /contratos` y `PATCH /contratos/:id` de
-CORE (DOC-012 §7; `GET /contratos` en CORE también es nuevo, ver `../core/README.md`). Lectura
-(`getContratos`) no traduce `rolesPorOrganizacion` — CORE no exige el rol para leer (DOC-012 §4).
+CORE (DOC-012 7; `GET /contratos` en CORE también es nuevo, ver `../core/README.md`). Lectura
+(`getContratos`) no traduce `rolesPorOrganizacion` — CORE no exige el rol para leer (DOC-012 4).
 Dos bugs reales encontrados probando el flujo completo desde el navegador, no en tests
 unitarios/e2e con mocks: (1) CORS de `src/main.ts` solo permitía `GET`/`POST`, el navegador
 bloqueaba el `PATCH` en el preflight — se agregó `PATCH` a `methods`; (2)
@@ -119,7 +119,7 @@ organización — la tabla `auditoria` de CORE no tiene ese dato todavía (ver `
 abiertas). Los dos `PATCH` de edición (Área/Ubicación) validan con `@Body(new
 ZodValidationPipe(...))` por parámetro, no `@UsePipes()` de método — mismo cuidado preventivo que
 ya se aplicó a Inventarios tras el hallazgo real en `actualizarEstadoContrato`. Último módulo del
-MVP de WEB en tener endpoint — ver `../core/README.md` § `src/estructura/` para el detalle de la
+MVP de WEB en tener endpoint — ver `../core/README.md` `src/estructura/` para el detalle de la
 escritura oficial nueva en CORE.
 
 **Paginación en `getContratos`/`getAuditoria`/`getAreas`/`getUbicaciones`/`getResponsables`
@@ -150,12 +150,12 @@ arranca sin ellas):
 - `ZITADEL_ISSUER`: el `iss` que Zitadel pone en el token (`ZITADEL_EXTERNALDOMAIN` del compose,
   ej. `http://id.sicsaft.localhost`).
 - `ZITADEL_AUDIENCE`: Client ID / Resource ID de la app OIDC del CIS en Zitadel — se crea a mano
-  en el dashboard, ver `../devops/local/README.md` § "Cliente OIDC real".
+  en el dashboard, ver `../devops/local/README.md` "Cliente OIDC real".
 - `ZITADEL_JWKS_URI` (opcional, default `${ZITADEL_ISSUER}/oauth/v2/keys`): solo hace falta
   sobreescribirla si alguna vez la URL para *descargar* las llaves deja de ser la misma que el
   `iss` — en Docker Compose local ya no es el caso: el servicio `traefik` tiene un alias de red
   `id.sicsaft.localhost`, así que ese dominio resuelve igual adentro y afuera de la red de
-  contenedores (ver `docker-compose.yml` de `devops/local/` y su § "Cliente OIDC real").
+  contenedores (ver `docker-compose.yml` de `devops/local/` y su "Cliente OIDC real").
 - `CORE_URL`: URL base de SICSAFT CORE (`../core/`), ej. `http://core:3001` dentro de Docker
   Compose. Ver `src/core-client/core-client.config.ts` — el proceso tampoco arranca sin esta.
 - `CORE_SERVICE_TOKEN`: secreto compartido de auth servicio-a-servicio hacia CORE — debe ser
@@ -205,7 +205,7 @@ detrás de `ZitadelAuthGuard` (`src/common/auth/zitadel-auth.guard.ts`, sin
 ```
 POST /auth/session                          -> valida el token, devuelve el mismo token (pass-through) + organizaciones/sedes reales via GET {CORE_URL}/entitlements
 GET  /catalogo?organizacionId=&areaId=&ubicacionId=  -> catálogo real via GET {CORE_URL}/catalogo
-POST /inventarios                            -> proxy a POST {CORE_URL}/inventarios; idempotente por idempotencyKey (DOC-002 §4), 400 si la organización no existe, 409 si la key se reutiliza con payload distinto (DOC-002 §5) — los tres resueltos por CORE, no por CIS
+POST /inventarios                            -> proxy a POST {CORE_URL}/inventarios; idempotente por idempotencyKey (DOC-002 4), 400 si la organización no existe, 409 si la key se reutiliza con payload distinto (DOC-002 5) — los tres resueltos por CORE, no por CIS
 GET  /inventarios/{id}/estado                -> proxy a GET {CORE_URL}/inventarios/{id}/estado; 404 si no existe
 ```
 
@@ -220,16 +220,16 @@ contra CORE, ver `src/core-client/`).
 `postInventario`/`getInventarioEstado`, todas contra `{CORE_URL}` con el header
 `x-internal-service-token` (secreto compartido, ver arriba) y validación de la respuesta con Zod
 (`core-client.types.ts`). `postInventario` distingue explícitamente 400/409 (rechazo permanente,
-DOC-002 §5) de cualquier otra falla transitoria (502) — ver `callCore`/`passthroughStatuses` en
+DOC-002 5) de cualquier otra falla transitoria (502) — ver `callCore`/`passthroughStatuses` en
 `core-client.service.ts`.
 
 **`DeviceRegistryService` (`src/device-registry/`)**: `un solo dispositivo por operador`
-(DOC-002 §1) enforced en `auth/session` — ver arriba, sección Estado, para el criterio de
+(DOC-002 1) enforced en `auth/session` — ver arriba, sección Estado, para el criterio de
 supersede-en-vez-de-rechazo y el TTL atado al token.
 
 ## Depende de
 - Más datos reales de Contrato en `../core/` (hoy solo un caso precargado sobre Postgres, ver
-  [DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §7 — sin mapeo operador→organización
+  [DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) 7 — sin mapeo operador→organización
   real todavía).
 
 ## Bloquea
@@ -237,7 +237,7 @@ supersede-en-vez-de-rechazo y el TTL atado al token.
   contra estos 4 endpoints, con CORS habilitado acá (`CIS_CORS_ORIGIN`) — primera vez que un
   navegador le habla directo a CIS. Falta la verificación en vivo (crear la app OIDC en el
   dashboard de Zitadel, recorrido manual), no código de CIS — ver
-  `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §7.
+  `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` 7.
 
 ## Documentos relacionados
 - [DOC-002](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md) (contrato
@@ -250,14 +250,14 @@ supersede-en-vez-de-rechazo y el TTL atado al token.
 - [`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
   — diseño del rol Administrador Patrimonial; `src/administrador/` es el lado CIS del camino de
   escritura oficial que DOC-012 define.
-- Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §4 (circuit breaker + reintentos con backoff +
+- Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 4 (circuit breaker + reintentos con backoff +
   rate limiting — implementados en `src/core-client/circuit-breaker.ts`, `src/core-client/retry.ts`
-  y `src/rate-limit/`) y §3 (el CIS es el único punto que valida identidad de fuentes de captura).
+  y `src/rate-limit/`) y 3 (el CIS es el único punto que valida identidad de fuentes de captura).
 
 ## Próximo paso sugerido
-Verificación en vivo de TASK-007 (`app-qr-sicsaft/`, ver su `HANDOFF-APP-QR-SICSAFT.md` §7): crear
+Verificación en vivo de TASK-007 (`app-qr-sicsaft/`, ver su `HANDOFF-APP-QR-SICSAFT.md` 7): crear
 la app OIDC real en el dashboard de Zitadel con `offline_access` habilitado
-(`../devops/local/README.md` § "Cliente OIDC real"), decidir la estrategia de e2e de Playwright de
+(`../devops/local/README.md` "Cliente OIDC real"), decidir la estrategia de e2e de Playwright de
 APP QR, y un recorrido manual de punta a punta — lo que queda de ROADMAP.md Fase 3 que no es
 opcional (la caché de entitlements invalidada por evento está explícitamente marcada como
 diferible).

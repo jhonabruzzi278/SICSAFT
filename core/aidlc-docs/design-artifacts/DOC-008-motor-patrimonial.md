@@ -3,15 +3,15 @@
 > **Actualización (Fase 4)**: alta/baja/reincorporación/cambio de responsable, dejadas fuera de
 > esta fase a propósito (ver abajo), **ya están implementadas** —
 > [`seguridad/DOC-012-administrador-patrimonial.md`](../../../seguridad/DOC-012-administrador-patrimonial.md)
-> §5, `src/patrimonial/activo-escritura.controller.ts`. Esta sección queda como registro de la
+> 5, `src/patrimonial/activo-escritura.controller.ts`. Esta sección queda como registro de la
 > decisión original de alcance, no como estado actual — ver DOC-012 para el diseño real de esas
 > 4 operaciones.
 
 ## Alcance de esta fase
 
 Consulta, catálogo, verificación por inventario, cambio de ubicación/estado, traslado — **no**
-alta/baja/reincorporación/cambio de responsable (Tomo III §4.15, esas son del Administrador
-Patrimonial, Fase 4, único autorizado a escribir oficialmente la base, Tomo III §1.4).
+alta/baja/reincorporación/cambio de responsable (Tomo III 4.15, esas son del Administrador
+Patrimonial, Fase 4, único autorizado a escribir oficialmente la base, Tomo III 1.4).
 
 ## Contrato del repository
 
@@ -50,13 +50,13 @@ ni el scaffold — cuando aparezca uno, se construye el método y el controller 
 ## Invariantes que valida (antes de escribir, no solo con un CHECK de Postgres)
 
 - `estado` solo transiciona según el diagrama de `base-patrimonial/DOC-005-modelo-patrimonial.md`
-  §4 — un intento de mover `dado_de_baja → activo` sin pasar por Fase 4 (Administrador
+  4 — un intento de mover `dado_de_baja → activo` sin pasar por Fase 4 (Administrador
   Patrimonial) se rechaza con `400`, no con una excepción de constraint SQL sin contexto.
 - Todo cambio de ubicación/estado genera un evento (`traslado` o `movimiento`, DOC-010) — nunca
-  se actualiza `activos` sin dejar rastro en `eventos` (Tomo III §4.10, historial nunca se pierde).
+  se actualiza `activos` sin dejar rastro en `eventos` (Tomo III 4.10, historial nunca se pierde).
 
 ## Documentos relacionados
 
-[DOC-005](../../../base-patrimonial/DOC-005-modelo-patrimonial.md) §4 — máquina de estados de
+[DOC-005](../../../base-patrimonial/DOC-005-modelo-patrimonial.md) 4 — máquina de estados de
 `Activo` que este motor aplica. [DOC-009](DOC-009-motor-reglas.md) — quién invoca
 `findByCodigoQr`.

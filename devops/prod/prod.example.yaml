@@ -1,6 +1,6 @@
 # Plantilla en texto plano — NUNCA se commitea con valores reales rellenados. Copiar a
 # `prod.enc.yaml`, completar los valores reales, cifrar con `sops -e -i prod.enc.yaml`
-# (ver ../README.md § "Flujo") y recién ahí el archivo resultante sí se commitea (ya cifrado).
+# (ver ../README.md "Flujo") y recién ahí el archivo resultante sí se commitea (ya cifrado).
 # Nombre sin la palabra "secret" a propósito — `.gitignore` raíz tiene un patrón defensivo
 # `*secret*` que de otro modo ignoraría también el archivo cifrado, no solo esta plantilla.
 #

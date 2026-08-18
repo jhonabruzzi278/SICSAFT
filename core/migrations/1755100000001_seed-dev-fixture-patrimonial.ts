@@ -3,7 +3,7 @@ import type { MigrationBuilder } from 'node-pg-migrate';
 // Datos de desarrollo/CI — mismo caso de negocio que 1755000000001 (DUOC UC / Melipilla), ahora
 // con un area, un responsable, una ubicacion, dos activos reales y su alta correspondiente. NO
 // es el mecanismo de carga de datos de produccion (eso es la Fase 4 del ROADMAP: importacion via
-// el rol Administrador Patrimonial, Tomo III §1.4). Sin fuente TS reusable todavia (a diferencia
+// el rol Administrador Patrimonial, Tomo III 1.4). Sin fuente TS reusable todavia (a diferencia
 // del seed de Contrato) porque no existe consumidor de este dominio hasta el Motor Patrimonial
 // (Fase 2) — cuando exista, este seed se debe mover a un modulo TS y referenciarse desde acá,
 // mismo patron que contrato.seed.ts.

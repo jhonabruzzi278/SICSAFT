@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { escrituraOficialSchema } from '../patrimonial/activo.schemas';
 import { paginacionSchema } from '../common/paginacion.schemas';
 
-// DOC-012 §7 — POST /contratos (alta). CORE decide `estado` ('vigente') y `id` — nunca se
+// DOC-012 7 — POST /contratos (alta). CORE decide `estado` ('vigente') y `id` — nunca se
 // confian esos dos campos desde el cliente (mismo criterio que altaActivoSchema).
 export const altaContratoSchema = escrituraOficialSchema.extend({
   sedeIds: z.array(z.string().min(1)).min(1),
@@ -12,8 +12,8 @@ export const altaContratoSchema = escrituraOficialSchema.extend({
 });
 export type AltaContratoBody = z.infer<typeof altaContratoSchema>;
 
-// DOC-012 §7 — PATCH /contratos/:id. Solo transiciones validas de la maquina de estados de
-// DOC-004 §3 (vigente ⇄ suspendido, vigente → vencido|cancelado) — la validacion de CUALES
+// DOC-012 7 — PATCH /contratos/:id. Solo transiciones validas de la maquina de estados de
+// DOC-004 3 (vigente ⇄ suspendido, vigente → vencido|cancelado) — la validacion de CUALES
 // transiciones son validas vive en escritura-contrato.service.ts, no acá (este schema solo
 // valida la forma, igual que escrituraOficialSchema).
 export const actualizarContratoSchema = escrituraOficialSchema.extend({
@@ -21,7 +21,7 @@ export const actualizarContratoSchema = escrituraOficialSchema.extend({
 });
 export type ActualizarContratoBody = z.infer<typeof actualizarContratoSchema>;
 
-// RNF-01 (cierra el gap) — mismos defaults que catalogoQuerySchema (DOC-006 §2): 20 por pagina,
+// RNF-01 (cierra el gap) — mismos defaults que catalogoQuerySchema (DOC-006 2): 20 por pagina,
 // tope 100.
 export const contratosQuerySchema = z.object({
   ...paginacionSchema,

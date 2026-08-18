@@ -17,7 +17,7 @@ export const SERVICE_TOKEN_HEADER = 'x-internal-service-token';
 
 export interface ServiceAuthenticatedRequest extends Request {
   // Seteado por este guard cuando el secreto compartido es valido — otros guards que autorizan
-  // sobre datos que CIS reenvía en el body (ej. `AdministradorPatrimonialGuard`, DOC-012 §3.2)
+  // sobre datos que CIS reenvía en el body (ej. `AdministradorPatrimonialGuard`, DOC-012 3.2)
   // lo exigen para fallar cerrado si alguna vez se los usa sin este guard antes en la cadena.
   serviceAuthenticated?: boolean;
 }

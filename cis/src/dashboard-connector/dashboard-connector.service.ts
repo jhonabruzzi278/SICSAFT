@@ -11,7 +11,7 @@ import type {
   SesionesResult,
 } from '../cip-client/cip-client.types';
 
-// DOC-019 §3.1 — proxy delgado hacia CIP, mismo criterio que QrConnectorService hacia CORE: sin
+// DOC-019 3.1 — proxy delgado hacia CIP, mismo criterio que QrConnectorService hacia CORE: sin
 // lógica propia, CIP ya resuelve la agregación completa.
 @Injectable()
 export class DashboardConnectorService {

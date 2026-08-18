@@ -31,7 +31,7 @@ no de escritura (RNF-01), así que no reabre la matriz de permisos de DOC-012.
 **Criterios de aceptación**
 - Conteo por veredicto (exitoso/aceptable/defectuoso), calculado por CIP a partir de los escaneos
   reales de cada sesión — no depende de que APP QR lo haya enviado (ver
-  `design-artifacts/ARCHITECTURE.md` § "Veredicto: recalculado, no reenviado") (RF-03).
+  `design-artifacts/ARCHITECTURE.md` "Veredicto: recalculado, no reenviado") (RF-03).
 
 ## US-04 — Ver activos fuera de área
 **Como** Administrador Patrimonial

@@ -33,7 +33,7 @@ import type {
   SesionResumen,
 } from './inventarios.types';
 
-// DOC-006 §3/§4. POST pasa por el Orquestador (DOC-007, audita siempre) — GET es solo lectura,
+// DOC-006 3/4. POST pasa por el Orquestador (DOC-007, audita siempre) — GET es solo lectura,
 // no necesita orquestacion ni auditoria (el propio DOC-007 lo deja explicito: un unico metodo
 // publico, procesarInventario).
 @Controller()
@@ -66,7 +66,7 @@ export class InventariosController {
 
   // RF-04 (Fase 5, WEB) — listado y detalle de sesiones. Pipe a nivel de parámetro (no
   // @UsePipes de método): `getInventarioDetalle` combina @Param con @Query en potencia futura y
-  // ya se probó en DOC-012 §5 (Fase 5) que @UsePipes de método valida TODOS los parámetros del
+  // ya se probó en DOC-012 5 (Fase 5) que @UsePipes de método valida TODOS los parámetros del
   // handler, rompiendo con cualquier @Param que no sea el body.
   @Get('inventarios')
   getInventarios(

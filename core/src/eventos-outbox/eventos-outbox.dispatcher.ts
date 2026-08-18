@@ -11,7 +11,7 @@ import type {
   EventosOutboxMensaje,
 } from './eventos-outbox.types';
 
-// Fase 6 / ARCHITECTURE.md §2-§4 — proceso de polling separado del camino sincrono de
+// Fase 6 / ARCHITECTURE.md 2-4 — proceso de polling separado del camino sincrono de
 // POST /inventarios: si Redis esta caido, `queue.add` tira, este metodo no marca nada como
 // publicado y simplemente reintenta en el proximo ciclo (RNF-03) — el resto de CORE sigue
 // funcionando normal, no depende de esto.
@@ -39,7 +39,7 @@ export class EventosOutboxDispatcher {
     await this.repository.marcarPublicados(publicadosIds);
   }
 
-  // Agrupa por sesionId (ARCHITECTURE.md §4 — un solo mensaje `sesion-cerrada` por sesion, no uno
+  // Agrupa por sesionId (ARCHITECTURE.md 4 — un solo mensaje `sesion-cerrada` por sesion, no uno
   // por escaneo) y publica el resto individualmente. Publica lo que pueda: si Redis falla a mitad
   // de camino, devuelve solo los ids que sí llegaron a la cola — el resto queda pendiente para el
   // proximo ciclo (at-least-once, el worker de CIP debe ser idempotente ante un mensaje repetido,

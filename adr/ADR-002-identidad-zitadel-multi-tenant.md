@@ -6,7 +6,7 @@ Aceptado
 ## Context
 `seguridad/README.md` (SEC) define el modelo `Usuario → Rol → Permisos → Organización → Área →
 Acción` pero está bloqueado porque el mecanismo real de autenticación depende de SICSAFT CORE —
-una de las 4 preguntas abiertas sin responder en `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §6.
+una de las 4 preguntas abiertas sin responder en `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` 6.
 
 El modelo de negocio del usuario agrega un requisito que el modelo actual no cubre: el acceso no
 se otorga por organización completa, sino por **organización + sede específica, según contrato
@@ -50,8 +50,8 @@ Organización (tenant, ej. "DUOC UC")
 `user_id`/`org_id`/`roles[]`, vida corta (~15 min) + refresh — **no** codifica la lista de sedes
 habilitadas dentro del token. La cobertura de sede se resuelve en cada request contra un caché de
 entitlements en el CIS (invalidado por evento cuando un contrato cambia, no por TTL fijo — mismo
-patrón de caché de catálogos que recomienda `ARQUITECTURA-WAF.md` §5). Esto extiende la regla ya
-existente en `ARQUITECTURA-WAF.md` §3 ("el CORE nunca confía en un `organizacionId`/`areaId` que no
+patrón de caché de catálogos que recomienda `ARQUITECTURA-WAF.md` 5). Esto extiende la regla ya
+existente en `ARQUITECTURA-WAF.md` 3 ("el CORE nunca confía en un `organizacionId`/`areaId` que no
 haya sido validado ya por el CIS") a `sedeId`/vigencia de contrato.
 
 Si un usuario pertenece a una organización sin contrato vigente para su sede, el login funciona

@@ -1,7 +1,7 @@
 // Copia local de los tipos de respuesta de CORE que CIP consume (core/src/patrimonial/activo.types.ts,
 // core/src/inventarios/inventarios.types.ts, core/src/inventarios/sesion-inventario.repository.ts)
 // — mismo criterio ya aceptado entre CIS y CORE (cis/src/core-client/core-client.types.ts): no
-// hay paquete compartido entre desplegables todavia (WAF §1, cada nivel es su propio
+// hay paquete compartido entre desplegables todavia (WAF 1, cada nivel es su propio
 // desplegable).
 
 export type EstadoActivo =
@@ -12,7 +12,7 @@ export type EstadoActivo =
   | 'inactivo'
   | 'dado_de_baja';
 
-// DOC-018 §2.6 — `familia` es la extension aditiva que este mismo incremento agrega a CORE
+// DOC-018 2.6 — `familia` es la extension aditiva que este mismo incremento agrega a CORE
 // (core/src/patrimonial/activo.types.ts), necesaria para RF-09.
 export interface ActivoCatalogo {
   codigoQr: string;
@@ -39,7 +39,7 @@ export type ScanResultado =
   | 'ya_escaneado'
   | 'con_incidencia';
 
-// DOC-018 §2.5 — sin `activoId`: GET /inventarios/:id no lo expone, CIP identifica activos por
+// DOC-018 2.5 — sin `activoId`: GET /inventarios/:id no lo expone, CIP identifica activos por
 // `codigoQr`.
 export interface EscaneoDetalle {
   codigoQr: string;

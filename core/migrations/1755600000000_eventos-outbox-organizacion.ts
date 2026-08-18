@@ -1,6 +1,6 @@
 import type { MigrationBuilder } from 'node-pg-migrate';
 
-// cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md §2 — encontrado al diseñar el
+// cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md 2 — encontrado al diseñar el
 // worker de CIP: el mensaje `{ kind: 'evento', eventoId, tipo }` no alcanza, el worker necesita
 // `organizacionId` para recalcular agregados y CIP no puede leer la base `core` directamente
 // (RNF-01, DOC-014). No se edita la migracion 1755500000000 ya mergeada (PR #8) — se agrega la

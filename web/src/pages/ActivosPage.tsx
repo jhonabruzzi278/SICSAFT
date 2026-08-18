@@ -13,7 +13,7 @@ import { Alert, Button, Card, FieldError, Input, Label } from '@/components/ui';
 const altaSchema = z.object({
   codigoPatrimonial: z.string().min(1, 'Requerido'),
   codigoQr: z.string().min(1, 'Requerido'),
-  // Sin endpoint de lectura de catalogo_activos todavía (DOC-013 §3 lo deja como gap conocido) —
+  // Sin endpoint de lectura de catalogo_activos todavía (DOC-013 3 lo deja como gap conocido) —
   // se escribe el id a mano; los ids del seed de desarrollo son 'catalogo-notebook' y
   // 'catalogo-proyector' (ver core/migrations/..._seed-dev-fixture-patrimonial.ts).
   catalogoId: z.string().min(1, 'Requerido'),

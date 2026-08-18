@@ -1,7 +1,7 @@
-// WAF §4: "reintentos con backoff exponencial + límite de intentos, nunca reintento inmediato en
+// WAF 4: "reintentos con backoff exponencial + límite de intentos, nunca reintento inmediato en
 // bucle" — evita la estampida sobre un CORE que ya está degradado. Solo tiene sentido reintentar
 // fallos transitorios (sin respuesta / 5xx); un 400/404/409 es un rechazo permanente (DOC-002
-// §5) y reintentarlo no cambia el resultado — por eso `shouldRetry` es responsabilidad de quien
+// 5) y reintentarlo no cambia el resultado — por eso `shouldRetry` es responsabilidad de quien
 // llama, no de este helper.
 export interface RetryOptions {
   // Intentos totales, incluido el primero.

@@ -1,6 +1,6 @@
 # Architecture — CORE Fase 2
 
-## Mapa de módulos (Nest, dentro del mismo desplegable — `ARQUITECTURA-WAF.md` §1/§9)
+## Mapa de módulos (Nest, dentro del mismo desplegable — `ARQUITECTURA-WAF.md` 1/9)
 
 ```
 core/src/
@@ -30,7 +30,7 @@ core/src/
 ```
 
 `reglas/`, `eventos/`, `auditoria/` no exponen controllers propios en esta fase — son módulos que
-el Orquestador y `inventarios.service.ts` invocan directamente (Tomo IV §2.4: "toda operación pasa
+el Orquestador y `inventarios.service.ts` invocan directamente (Tomo IV 2.4: "toda operación pasa
 primero por [el Orquestador]"). Mismo patrón que ya usa `core/src/entitlements/` (repository +
 service + controller + schemas Zod) — sin introducir un patrón nuevo (RNF-05).
 
@@ -81,7 +81,7 @@ sequenceDiagram
 Puntos clave que este diagrama fija (y que el código de Fase 2 debe respetar):
 
 1. **La auditoría se registra siempre**, incluso en la rama `409`/rechazo — no solo en el camino
-   feliz (RF-04, Tomo IV §2.9).
+   feliz (RF-04, Tomo IV 2.9).
 2. **La idempotencia se resuelve antes de invocar el Motor de Reglas** — un reintento legítimo no
    vuelve a clasificar el escaneo, devuelve el resultado ya persistido (evita reclasificar un
    escaneo como `ya_escaneado` en su propio reintento).

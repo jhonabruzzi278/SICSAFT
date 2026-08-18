@@ -7,7 +7,7 @@ import {
 } from '@/lib/cis-client';
 import { Alert, Badge, Card } from '@/components/ui';
 
-// RF-04 — módulo Inventarios: solo lectura (estado y detalle de sesiones, DOC-006 §3/§4). Sin
+// RF-04 — módulo Inventarios: solo lectura (estado y detalle de sesiones, DOC-006 3/4). Sin
 // escritura acá — las sesiones se crean desde APP QR (`POST /inventarios`), WEB solo las
 // consulta. Lista a la izquierda + detalle (escaneos) a la derecha al hacer click en una fila.
 

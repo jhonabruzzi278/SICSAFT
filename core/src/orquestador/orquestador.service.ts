@@ -36,7 +36,7 @@ import type { Ubicacion } from '../estructura/ubicacion.types';
 import type { Responsable } from '../estructura/responsable.types';
 import { buildContextoOperacion } from './contexto-operacion';
 
-// DOC-007 — unico punto de entrada a los motores (Tomo IV §2.4). Generalizado en DOC-012 (Fase 4)
+// DOC-007 — unico punto de entrada a los motores (Tomo IV 2.4). Generalizado en DOC-012 (Fase 4)
 // con los demas casos de uso reales: escritura oficial de Activo, importacion masiva y escritura
 // de Contrato — todos comparten el mismo patron de autorizacion+auditoria (ver
 // ejecutarOperacionOficial).
@@ -67,7 +67,7 @@ export class OrquestadorService {
       return resultado;
     } catch (error: unknown) {
       // RF-04 / DOC-007: la auditoria se registra siempre, exito o rechazo — nunca solo en el
-      // camino feliz. La transaccion se cancela de forma controlada (Tomo IV §2.16).
+      // camino feliz. La transaccion se cancela de forma controlada (Tomo IV 2.16).
       await this.auditoriaRepository.registrar({
         usuario: contexto.operadorId,
         operacion: 'POST /inventarios',
@@ -77,7 +77,7 @@ export class OrquestadorService {
     }
   }
 
-  // DOC-012 §5 — POST /activos (alta).
+  // DOC-012 5 — POST /activos (alta).
   procesarAltaActivo(payload: AltaActivoBody): Promise<Activo> {
     return this.ejecutarEscrituraOficial(
       'POST /activos',
@@ -88,7 +88,7 @@ export class OrquestadorService {
     );
   }
 
-  // DOC-012 §5 — POST /activos/:id/baja.
+  // DOC-012 5 — POST /activos/:id/baja.
   procesarBajaActivo(
     activoId: string,
     payload: EscrituraOficialBody,
@@ -107,7 +107,7 @@ export class OrquestadorService {
     );
   }
 
-  // DOC-012 §5 — POST /activos/:id/reincorporacion.
+  // DOC-012 5 — POST /activos/:id/reincorporacion.
   procesarReincorporacionActivo(
     activoId: string,
     payload: EscrituraOficialBody,
@@ -126,7 +126,7 @@ export class OrquestadorService {
     );
   }
 
-  // DOC-012 §5 — PATCH /activos/:id/responsable.
+  // DOC-012 5 — PATCH /activos/:id/responsable.
   procesarCambioResponsable(
     activoId: string,
     payload: CambioResponsableBody,
@@ -146,7 +146,7 @@ export class OrquestadorService {
     );
   }
 
-  // DOC-012 §6 — POST /importaciones/contable. Idempotente por fila (no atomico por request como
+  // DOC-012 6 — POST /importaciones/contable. Idempotente por fila (no atomico por request como
   // POST /inventarios) — el resultado siempre es 200 con el detalle de cada fila, el 403 por
   // falta de rol es el unico rechazo de todo el request.
   procesarImportacionContable(
@@ -168,7 +168,7 @@ export class OrquestadorService {
     );
   }
 
-  // DOC-012 §7 — POST /contratos (alta).
+  // DOC-012 7 — POST /contratos (alta).
   procesarAltaContrato(payload: AltaContratoBody): Promise<Contrato> {
     return this.ejecutarEscrituraOficial(
       'POST /contratos',
@@ -179,7 +179,7 @@ export class OrquestadorService {
     );
   }
 
-  // DOC-012 §7 — PATCH /contratos/:id.
+  // DOC-012 7 — PATCH /contratos/:id.
   procesarActualizacionContrato(
     contratoId: string,
     payload: ActualizarContratoBody,
@@ -313,7 +313,7 @@ export class OrquestadorService {
     );
   }
 
-  // DOC-012 §8 — la autorizacion de rol (verificarRolAdministradorPatrimonial) corre acá adentro,
+  // DOC-012 8 — la autorizacion de rol (verificarRolAdministradorPatrimonial) corre acá adentro,
   // no en un @UseGuards() a nivel de controller: asi un 403 por falta de rol pasa por el mismo
   // try/catch que cualquier otro rechazo de negocio y queda auditado (a diferencia de
   // ServiceTokenGuard, que sigue cortando antes del Orquestador porque autentica la conexion

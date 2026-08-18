@@ -4,7 +4,7 @@ import { REDIS_CLIENT } from '../redis/redis.constants';
 
 const DEVICE_KEY_PREFIX = 'device:operador:';
 
-// DOC-002 §1: "un solo dispositivo por operador". El contrato de APP QR solo manda `deviceId` en
+// DOC-002 1: "un solo dispositivo por operador". El contrato de APP QR solo manda `deviceId` en
 // POST /auth/session (no en catalogo/inventarios/estado) — ahí es el único punto donde CIS puede
 // registrar o comparar el dispositivo activo; las otras 3 rutas siguen dependiendo solo del
 // access token de Zitadel, que no lleva `deviceId`.
@@ -16,7 +16,7 @@ const DEVICE_KEY_PREFIX = 'device:operador:';
 // registro expira solo (TTL = vigencia del token, ver QrConnectorService.authSession) — no hace
 // falta un logout explícito.
 //
-// Mismo criterio de resiliencia que RedisRateLimiter (WAF §4, aislamiento de fallos): esto es una
+// Mismo criterio de resiliencia que RedisRateLimiter (WAF 4, aislamiento de fallos): esto es una
 // restricción de negocio complementaria, no un control de seguridad — Zitadel ya es quien
 // autentica. Si Redis falla, no vale la pena bloquear auth/session por perder el tracking de
 // dispositivo.

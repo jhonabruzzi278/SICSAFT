@@ -27,7 +27,7 @@ export class EventoRepository {
     );
   }
 
-  // DOC-012 §7 — evento sin activo asociado (eventos.activo_id nullable desde la migracion
+  // DOC-012 7 — evento sin activo asociado (eventos.activo_id nullable desde la migracion
   // 1755300000000).
   async registrarContrato(input: RegistrarEventoContratoInput): Promise<void> {
     await this.pool.query(

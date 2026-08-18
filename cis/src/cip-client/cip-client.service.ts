@@ -34,9 +34,9 @@ import { CORRELATION_ID_HEADER } from '../common/correlation-id/correlation-id.c
 // aceptado en core-client.service.ts (sin paquete compartido entre servicios todavía).
 const SERVICE_TOKEN_HEADER = 'x-internal-service-token';
 
-// Mismos parámetros conservadores que CoreClientService (WAF §4) — CIS→CIP es, igual que CIS→CORE,
-// una llamada síncrona dentro del camino de respuesta a un operador de WEB (DOC-019 §3), a
-// diferencia de CIP→CORE (DOC-018 §3, deliberadamente sin retry/breaker porque ahí el llamador es
+// Mismos parámetros conservadores que CoreClientService (WAF 4) — CIS→CIP es, igual que CIS→CORE,
+// una llamada síncrona dentro del camino de respuesta a un operador de WEB (DOC-019 3), a
+// diferencia de CIP→CORE (DOC-018 3, deliberadamente sin retry/breaker porque ahí el llamador es
 // un worker BullMQ que ya reintenta el job completo).
 const CIP_RETRY_MAX_ATTEMPTS = 3;
 const CIP_RETRY_BASE_DELAY_MS = 200;
@@ -208,7 +208,7 @@ export class CipClientService {
   }
 
   // Único punto por el que CIS le habla a CIP — mismo criterio de reintentos + circuit breaker
-  // que CoreClientService.callCore (WAF §4). Todos los endpoints de CIP son lectura pura (RF-09
+  // que CoreClientService.callCore (WAF 4). Todos los endpoints de CIP son lectura pura (RF-09
   // de web/, sin escritura), así que no hay passthroughStatuses que distinguir: cualquier error de
   // CIP se colapsa a 502, igual que CoreClientService hace por default para getEntitlements/
   // getCatalogo.
@@ -232,7 +232,7 @@ export class CipClientService {
           message: `CIP no disponible (circuito abierto) al pedir ${path}`,
         });
       }
-      // DOC-014 §8 / ARQUITECTURA-WAF.md §8: CIP puede degradar (alDia=false) o estar caído sin
+      // DOC-014 8 / ARQUITECTURA-WAF.md 8: CIP puede degradar (alDia=false) o estar caído sin
       // afectar la disponibilidad del resto del ecosistema — un fallo acá siempre es un 502
       // aislado al módulo Dashboard, nunca se expone el detalle interno.
       throw new BadGatewayException({

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// DOC-012 §3.3 — CIS reenvia operadorId + rolesPorOrganizacion en el body de cada llamada de
+// DOC-012 3.3 — CIS reenvia operadorId + rolesPorOrganizacion en el body de cada llamada de
 // escritura oficial (mismo canal service-to-service ya protegido por ServiceTokenGuard).
 // `organizacionId` es obligatorio en TODOS los endpoints de escritura oficial, no solo en alta:
 // es contra qué organizacion se verifica el rol (verificarRolAdministradorPatrimonial exige
@@ -18,7 +18,7 @@ export const escrituraOficialSchema = z.object({
 });
 export type EscrituraOficialBody = z.infer<typeof escrituraOficialSchema>;
 
-// DOC-012 §5 — POST /activos (alta). CORE decide `estado` ('activo') y `fechaAlta` (hoy) — nunca
+// DOC-012 5 — POST /activos (alta). CORE decide `estado` ('activo') y `fechaAlta` (hoy) — nunca
 // se confian esos dos campos desde el cliente.
 export const altaActivoSchema = escrituraOficialSchema.extend({
   codigoPatrimonial: z.string().min(1),
@@ -32,7 +32,7 @@ export const altaActivoSchema = escrituraOficialSchema.extend({
 });
 export type AltaActivoBody = z.infer<typeof altaActivoSchema>;
 
-// DOC-012 §5 — PATCH /activos/:id/responsable.
+// DOC-012 5 — PATCH /activos/:id/responsable.
 export const cambioResponsableSchema = escrituraOficialSchema.extend({
   responsableId: z.string().min(1),
 });

@@ -1,4 +1,4 @@
-// DOC-018 §6 — formas de respuesta de la API de lectura de CIP.
+// DOC-018 6 — formas de respuesta de la API de lectura de CIP.
 
 export interface SyncInfo {
   actualizadoEn: string | null;

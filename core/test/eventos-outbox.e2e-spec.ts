@@ -12,7 +12,7 @@ import type { PostInventarioResponse } from './../src/inventarios/inventarios.ty
 import { crearAppE2e, SERVICE_TOKEN } from './support/e2e-app';
 
 // Fase 6 — prueba el trigger de la migracion 1755500000000 de verdad (no un mock de el, ver
-// cip/aidlc-docs/testing/TEST_STRATEGY.md §1): un POST /inventarios real contra el seed de
+// cip/aidlc-docs/testing/TEST_STRATEGY.md 1): un POST /inventarios real contra el seed de
 // DOC-005 (duoc-uc / QR-000001) debe dejar una fila en eventos_outbox, y el dispatcher debe
 // publicarla a la cola real y marcarla — de punta a punta, sin mocks de Postgres ni de Redis.
 function buildInventarioPayload(): Record<string, unknown> {

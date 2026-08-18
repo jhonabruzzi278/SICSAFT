@@ -77,7 +77,7 @@ describe('ContratoRepository', () => {
     expect(contrato.vigenciaHasta).toBe('2026-12-31T00:00:00.000Z');
   });
 
-  it('lanza si los datos leidos violan el invariante DOC-004 §4 (sede con mas de un contrato vigente)', async () => {
+  it('lanza si los datos leidos violan el invariante DOC-004 4 (sede con mas de un contrato vigente)', async () => {
     const filaBase = {
       organizacionId: 'org-x',
       organizacionNombre: 'Org X',
@@ -190,7 +190,7 @@ describe('ContratoRepository', () => {
       expect(client.release).toHaveBeenCalled();
     });
 
-    it('lanza 409 (DOC-004 §4) si alguna sede ya esta cubierta por un contrato vigente', async () => {
+    it('lanza 409 (DOC-004 4) si alguna sede ya esta cubierta por un contrato vigente', async () => {
       const pool = {
         query: jest.fn().mockResolvedValue({ rows: [{ sedeId: 'melipilla' }] }),
         connect: jest.fn(),

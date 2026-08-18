@@ -28,7 +28,7 @@ const altaAreaSchema = z.object({
 type AltaAreaForm = z.infer<typeof altaAreaSchema>;
 
 // RF-05 (cierra el gap "ABM completo") — edición de Área, incluida la asignación de
-// responsableId/ubicacionPrincipalId (DOC-005 §2, el ciclo que el alta dejaba abierto a propósito).
+// responsableId/ubicacionPrincipalId (DOC-005 2, el ciclo que el alta dejaba abierto a propósito).
 // Ids en texto libre, mismo criterio que "Área (id)" en el formulario de Ubicaciones — esta
 // sección no tiene cargadas las listas de Responsables/Ubicaciones de las otras (viven con su
 // propio scope de sede/área), agregar un selector cruzado es más alcance del que este incremento

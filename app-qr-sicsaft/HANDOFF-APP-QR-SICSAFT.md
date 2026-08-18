@@ -48,7 +48,7 @@ Rename QR Vault → APP QR SICSAFT en dos fases:
 | Seleccionar ubicación | ✅ Existe | `AreaLocationPicker.tsx`, cascada área→ubicación |
 | Iniciar inventario | ✅ Existe | `startScanning()` en `ScanPage.tsx` reutiliza el catálogo ya traído al elegir organización, genera `correlationId` |
 | Escanear QR | ✅ Existe | `QrScanner.tsx` (`html5-qrcode`) |
-| Validar activos | ✅ Existe | `scan-resolve.ts` — 6 de las 8 categorías de DOC-001 sección 3. `duplicate` sigue sin ser alcanzable: `POST /inventarios` no devuelve reclasificación por escaneo, solo el estado de la sesión completa (DOC-006 §3) — requeriría un cambio de contrato, no algo que TASK-007 pudiera resolver sola |
+| Validar activos | ✅ Existe | `scan-resolve.ts` — 6 de las 8 categorías de DOC-001 sección 3. `duplicate` sigue sin ser alcanzable: `POST /inventarios` no devuelve reclasificación por escaneo, solo el estado de la sesión completa (DOC-006 3) — requeriría un cambio de contrato, no algo que TASK-007 pudiera resolver sola |
 | Registrar incidencias | ✅ Existe | `IncidentDialog.tsx` |
 | Finalizar inventario | ✅ Existe | `finishScanning()` para la cámara y muestra el resumen — **ya no envía** (ver TASK-010) |
 | Enviar a SICSAFT CORE | ✅ Existe | Botón "Confirmar y enviar" (`confirmAndSend()`, TASK-010) → `syncQueue.submitInventario()` → `qr-connector.ts` envía HTTP real (`HttpQrConnectorClient.postInventario`); sin conexión o 5xx queda en cola con reintentos (`sync-queue.ts`, TASK-008); un 400/409 real de CORE ahora sí puede ocurrir y corta la cola con `syncStatus: 'rejected'` en vez de reintentar para siempre (TASK-007) |
@@ -61,7 +61,7 @@ Rename QR Vault → APP QR SICSAFT en dos fases:
 
 **12 pantallas mínimas — las 12 están cubiertas.** Pantalla 10 (resumen del inventario) muestra esperados/faltantes/correctos/fuera de lugar/no registrados/externos/incidencias (TASK-010). Pantalla 11 (confirmación y envío) es el botón "Confirmar y enviar" (`confirmAndSend()` en `ScanPage.tsx`, TASK-010) — separado de "Finalizar", matchea el diagrama de DOC-001 (`Finalizar → Resumen → Confirmar y enviar`). Pantalla 12 (estado de sincronización) se resolvió como parte de `HistoryPage.tsx` en vez de una ruta propia (badge de `syncStatus` + botón "Ver auditoría", TASK-008/009) — DOC-001 la describe como estado por inventario, no como pantalla de contenido propio.
 
-**Clasificación de resultados de escaneo** (8 categorías, `scan-resolve.ts`): correcto, otra área, otra ubicación, no registrado, código inválido, ya escaneado — implementadas y testeadas (TASK-005). "Duplicado" sigue reservada en el type sin ser alcanzable: aunque ahora hay backend real, `POST /inventarios` (DOC-006 §3) solo devuelve el estado de la sesión completa, no una reclasificación por escaneo — CORE sí reclasifica internamente (Motor de Reglas) pero ese detalle no vuelve al cliente con el contrato actual. Activarla requeriría negociar un campo nuevo en la respuesta, fuera de alcance de TASK-007. "Con incidencia" se resolvió como una acción disponible sobre cualquier ítem escaneado, no como categoría excluyente.
+**Clasificación de resultados de escaneo** (8 categorías, `scan-resolve.ts`): correcto, otra área, otra ubicación, no registrado, código inválido, ya escaneado — implementadas y testeadas (TASK-005). "Duplicado" sigue reservada en el type sin ser alcanzable: aunque ahora hay backend real, `POST /inventarios` (DOC-006 3) solo devuelve el estado de la sesión completa, no una reclasificación por escaneo — CORE sí reclasifica internamente (Motor de Reglas) pero ese detalle no vuelve al cliente con el contrato actual. Activarla requeriría negociar un campo nuevo en la respuesta, fuera de alcance de TASK-007. "Con incidencia" se resolvió como una acción disponible sobre cualquier ítem escaneado, no como categoría excluyente.
 
 ## 5. Contrato del Conector QR — DOC-002
 
@@ -73,7 +73,7 @@ Rename QR Vault → APP QR SICSAFT en dos fases:
 |---|---|---|
 | `authSession` | — | Real: `POST {CIS_URL}/auth/session` con el access token de Zitadel (`Authorization: Bearer`) y `deviceId`; devuelve `organizaciones` reales (`{id, nombre, sedes}[]`, forma de CIS — no el árbol de 3 niveles que usaba el stub) |
 | `getCatalogo(organizacionId, areaId?, ubicacionId?)` | — | Real: `GET {CIS_URL}/catalogo`. área/ubicación ahora son opcionales — se llama sin ellas al elegir organización para traer el catálogo completo y derivar el árbol área/ubicación que la UI necesita (`buildOrganizationTree`, ver nota abajo) |
-| `postInventario(session)` | — | Real: `POST {CIS_URL}/inventarios`. Un 400/409 real (DOC-002 §5) lanza `RejectedInventarioError`, que `sync-queue.ts` distingue de una falla transitoria para no reintentar un payload que CORE nunca va a aceptar (`syncStatus: 'rejected'`, activado por primera vez) |
+| `postInventario(session)` | — | Real: `POST {CIS_URL}/inventarios`. Un 400/409 real (DOC-002 5) lanza `RejectedInventarioError`, que `sync-queue.ts` distingue de una falla transitoria para no reintentar un payload que CORE nunca va a aceptar (`syncStatus: 'rejected'`, activado por primera vez) |
 | `getInventarioEstado` | — | Real: `GET {CIS_URL}/inventarios/{id}/estado`. Sigue sin caller (pantalla 12 resuelta de otra forma, ver sección 4) |
 
 **Hallazgo no anticipado por las 4 preguntas de la sección 6 (ahora resuelto):** CIS/CORE no modelan "área" como entidad con nombre propio — `GET /entitlements` solo da `organización→sedes` (2 niveles), y `activos[].areaId` en el catálogo es un id suelto sin nombre. El árbol de 3 niveles que la UI necesita (`OrganizationPicker`/`AreaLocationPicker`) ya no viene de datos semilla (`organizations-data.ts` perdió su array `ORGANIZATIONS`, solo quedan los tipos) — se deriva en runtime del catálogo completo de la organización (`buildOrganizationTree` en `qr-connector.ts`): el nombre de área se muestra como su id (no hay otro dato), el de ubicación se resuelve contra `sedes[]` cuando el id calza. Decisión confirmada explícitamente con el usuario — no había otra forma de poblar el picker sin inventar un endpoint nuevo en CIS/CORE.
@@ -90,8 +90,8 @@ Las 4 preguntas originales, con la respuesta concreta que dio el trabajo de `cis
 
 1. **¿CIS expone las 4 rutas propuestas?** Sí, exactamente esas — `POST /auth/session`, `GET /catalogo`, `POST /inventarios`, `GET /inventarios/:id/estado` (DOC-006, `cis/src/qr-connector/`).
 2. **¿Mecanismo real de autenticación?** OIDC (Zitadel) con authorization code + PKCE — app tipo User Agent/SPA sin secreto de cliente, ya provisionada (ver `devops/local/README.md` "Cliente OIDC real"). CIS valida el JWT vía `ZitadelAuthGuard`.
-3. **¿Esquema de correlación propio de CORE?** No reemplaza al `correlationId` de negocio de DOC-002 §6 — conviven: CIS agrega un header transversal `X-Correlation-Id` (WAF §2) que es independiente del `correlationId` que ya viaja en el payload de `POST /inventarios`.
-4. **¿Semántica de idempotencia compatible?** Sí, idéntica a la propuesta — CORE persiste `idempotencyKey` en `sesiones_inventario` (DOC-006 §3): mismo key + mismo payload devuelve el resultado ya procesado, distinto payload da 409.
+3. **¿Esquema de correlación propio de CORE?** No reemplaza al `correlationId` de negocio de DOC-002 6 — conviven: CIS agrega un header transversal `X-Correlation-Id` (WAF 2) que es independiente del `correlationId` que ya viaja en el payload de `POST /inventarios`.
+4. **¿Semántica de idempotencia compatible?** Sí, idéntica a la propuesta — CORE persiste `idempotencyKey` en `sesiones_inventario` (DOC-006 3): mismo key + mismo payload devuelve el resultado ya procesado, distinto payload da 409.
 
 Con esto TASK-007 se implementó completa (ver sección 5) y **se verificó real de punta a punta el 2026-08-13** (ver sección 7) — login OIDC real, catálogo real, escaneo y envío persistido en Postgres vía CIS→CORE.
 
@@ -135,7 +135,7 @@ dependen de la imagen Docker):
    `sync-queue.ts` atrapa el error y marca la sesión como `rejected` sin relanzarlo, así que la UI
    mostraba "Enviado ✔" con la base de datos vacía. Corregido con `toInventarioRequest()` (mismo
    archivo): mapea `ScanCategory → ScanResultado` y usa `correlationId` también como
-   `idempotencyKey` (ya es estable por sesión, cumple el invariante de DOC-002 §4 sin agregar un
+   `idempotencyKey` (ya es estable por sesión, cumple el invariante de DOC-002 4 sin agregar un
    campo nuevo a `ScanSession`). Confirma que `test:e2e` en verde con mocks **no es evidencia** de
    que el contrato real esté bien implementado — falta cubrir la forma del payload saliente en el
    mock o en un test de contrato aparte (no hecho todavía, ver "Hallazgo documentado de paso" más

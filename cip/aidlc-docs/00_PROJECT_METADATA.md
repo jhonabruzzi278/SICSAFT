@@ -2,7 +2,7 @@
 
 ## Fase AI-DLC actual
 **Inception** — requirements, historias, modelo de dominio y arquitectura en diseño. Sin código
-todavía (ver `ROADMAP.md` Fase 6, `cip/README.md` § Estado: 🔲 No iniciado).
+todavía (ver `ROADMAP.md` Fase 6, `cip/README.md` Estado: 🔲 No iniciado).
 
 ## Quick links
 - Intent: [`requirements/INTENT.md`](requirements/INTENT.md)
@@ -29,8 +29,8 @@ todavía (ver `ROADMAP.md` Fase 6, `cip/README.md` § Estado: 🔲 No iniciado).
   incremento).
 - `PROCESO MODULAR DE APLICACION SICSAFT, SOFTWARE.ppt` (spec funcional, fuera de git, 2026-08-17)
   — confirma gráfico circular por categoría de AFT y el informe diario automático.
-- [`ARQUITECTURA-WAF.md`](../../ARQUITECTURA-WAF.md) §5 (rendimiento — separar lectura analítica
-  de la transaccional), §8 (contrato de módulo aplicado a CIP), §9 (anti-sobre-ingeniería — no
+- [`ARQUITECTURA-WAF.md`](../../ARQUITECTURA-WAF.md) 5 (rendimiento — separar lectura analítica
+  de la transaccional), 8 (contrato de módulo aplicado a CIP), 9 (anti-sobre-ingeniería — no
   elegir motor analítico antes de tener el modelo de CORE estable).
 - [`ROADMAP.md`](../../ROADMAP.md) Fase 6.
 - [`cip/README.md`](../README.md).

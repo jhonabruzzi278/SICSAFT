@@ -39,6 +39,6 @@ export const MOCK_CATALOGO: ConnectorAsset[] = FULL_CATALOG.filter(
 
 // P001 con una variante — ejercita la resolución de códigos "BASE-VARIANTE" (labels.ts,
 // scan-resolve.ts) contra el catálogo real del Conector QR, no contra el catálogo local de
-// CatalogPage (desconectado a propósito desde TASK-007, ver HANDOFF §3).
+// CatalogPage (desconectado a propósito desde TASK-007, ver HANDOFF 3).
 const p001 = MOCK_CATALOGO.find((a) => a.codigoQr === 'P001');
 if (p001) p001.variants = [{ code: 'M', name: 'Mediana', stock: 0 }];

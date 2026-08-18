@@ -150,7 +150,7 @@ describe('RF-05 — escritura oficial de Area/Ubicacion/Responsable (e2e)', () =
       expect(area.centroCosto).toBe('CC-100');
     });
 
-    it('asigna responsableId y ubicacionPrincipalId (cierra el ciclo que DOC-005 §2 dejaba abierto)', async () => {
+    it('asigna responsableId y ubicacionPrincipalId (cierra el ciclo que DOC-005 2 dejaba abierto)', async () => {
       const areaId = await crearArea();
       const resResponsable = await request(app.getHttpServer())
         .post('/responsables')

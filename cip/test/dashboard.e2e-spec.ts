@@ -11,7 +11,7 @@ import type {
 } from './../src/dashboard/dashboard.types';
 import { crearAppE2e, SERVICE_TOKEN } from './support/e2e-app';
 
-// DOC-018 §6 — API de lectura contra la base `cip` real (migracion 1755700000000 ya aplicada,
+// DOC-018 6 — API de lectura contra la base `cip` real (migracion 1755700000000 ya aplicada,
 // ver README de desarrollo local). No usa el seed de CORE: inserta directo en las tablas de
 // agregados, que es exactamente lo que haría el worker — este spec prueba la API, no el worker
 // (eso ya lo cubre agregacion/*.spec.ts con mocks + el e2e de CORE que prueba el trigger real).

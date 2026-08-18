@@ -10,7 +10,7 @@ export interface ClasificarEscaneoInput {
   // El activo ya viene resuelto y acotado a la organizacion de la sesion (ActivoRepository) —
   // null cubre tanto "no existe" como "existe en otra organizacion" (DOC-008).
   activo: Activo | null;
-  // DOC-009 §2: casi siempre false — activos.codigo_qr es UNIQUE. Solo puede dar true si una
+  // DOC-009 2: casi siempre false — activos.codigo_qr es UNIQUE. Solo puede dar true si una
   // importacion masiva (Fase 7) inserta datos sin pasar por esa validacion.
   duplicado: boolean;
   yaClasificados: ReadonlySet<string>;

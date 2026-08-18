@@ -61,7 +61,7 @@ interface ActivoRow {
   modelo: string | null;
 }
 
-// DOC-006 §2: `nombre` no es un campo propio de catalogo_activos — se compone. Prioridad:
+// DOC-006 2: `nombre` no es un campo propio de catalogo_activos — se compone. Prioridad:
 // marca+modelo (mas especifico) > subfamilia > "tipo — familia" (siempre disponibles, ultimo
 // recurso).
 export function construirNombreActivo(row: {
@@ -99,7 +99,7 @@ export class ActivoRepository {
     return row ? this.toActivo(row) : null;
   }
 
-  // DOC-009 nota §2: el UNIQUE de activos.codigo_qr ya impide duplicados por el camino normal de
+  // DOC-009 nota 2: el UNIQUE de activos.codigo_qr ya impide duplicados por el camino normal de
   // alta — este metodo es defensivo, para cuando una importacion masiva (Fase 7,
   // CON-CONTABILIDAD) inserte datos sin pasar por esa validacion de aplicacion.
   async existeMasDeUnActivoConCodigoQr(codigoQr: string): Promise<boolean> {
@@ -112,7 +112,7 @@ export class ActivoRepository {
 
   // RNF-01: paginado, nunca un dataset completo sin limite. Solo activos con area/ubicacion
   // asignada — uno sin asignar no esta listo para aparecer en un catalogo operativo de escaneo
-  // (DOC-006 §2, ActivoCatalogo exige areaId/ubicacionId no nulos).
+  // (DOC-006 2, ActivoCatalogo exige areaId/ubicacionId no nulos).
   async findCatalogo(filtro: CatalogoFiltro): Promise<CatalogoPagina> {
     const condiciones = [
       'a.organizacion_id = $1',
@@ -150,7 +150,7 @@ export class ActivoRepository {
     };
   }
 
-  // DOC-012 §6 — busca por codigoPatrimonial (clave de idempotencia de la importacion masiva:
+  // DOC-012 6 — busca por codigoPatrimonial (clave de idempotencia de la importacion masiva:
   // "cada fila trae su propio codigoPatrimonial", nunca duplica al reintentar la misma fila).
   async findByCodigoPatrimonial(
     codigoPatrimonial: string,
@@ -163,7 +163,7 @@ export class ActivoRepository {
     return row ? this.toActivo(row) : null;
   }
 
-  // DOC-012 §5 — busca por id (no por codigoQr como findByCodigoQr, ese es el camino de lectura
+  // DOC-012 5 — busca por id (no por codigoQr como findByCodigoQr, ese es el camino de lectura
   // de APP QR). Usado por las 4 operaciones de escritura oficial para resolver 404 vs 400 antes
   // de decidir la transicion.
   async findById(id: string): Promise<Activo | null> {
@@ -175,7 +175,7 @@ export class ActivoRepository {
     return row ? this.toActivo(row) : null;
   }
 
-  // DOC-012 §5 — POST /activos (alta, [*] -> activo). `estado`/`fecha_alta` los decide CORE, no
+  // DOC-012 5 — POST /activos (alta, [*] -> activo). `estado`/`fecha_alta` los decide CORE, no
   // el cliente (CIS no confia datos crudos, mismo criterio que el resto del ecosistema).
   async crear(input: NuevoActivoInput): Promise<Activo> {
     const id = randomUUID();
@@ -216,7 +216,7 @@ export class ActivoRepository {
     return (await this.findById(id)) as Activo;
   }
 
-  // DOC-012 §5 — POST /activos/:id/baja (-> dado_de_baja) y POST /activos/:id/reincorporacion
+  // DOC-012 5 — POST /activos/:id/baja (-> dado_de_baja) y POST /activos/:id/reincorporacion
   // (extraviado -> activo) comparten esta transicion generica: valida el estado de origen antes
   // de escribir (400 si no coincide, 404 si el activo no existe) en vez de dejar que un UPDATE
   // sin match silencioso pase desapercibido. `organizacionId` es la organizacion donde
@@ -247,7 +247,7 @@ export class ActivoRepository {
     return { ...actual, estado: estadoNuevo };
   }
 
-  // DOC-012 §5 — PATCH /activos/:id/responsable. Sin cambio de estado (a diferencia de
+  // DOC-012 5 — PATCH /activos/:id/responsable. Sin cambio de estado (a diferencia de
   // cambiarEstado arriba). Mismo cruce por organizacionId que cambiarEstado, mismo motivo.
   async actualizarResponsable(
     id: string,

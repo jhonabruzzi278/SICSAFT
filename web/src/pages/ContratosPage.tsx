@@ -12,9 +12,9 @@ import {
 import { Alert, Badge, Button, Card, FieldError, Input, Label } from '@/components/ui';
 
 // RF-07 — módulo Contratos: primer cliente que escribe la tabla `contratos` (antes solo se leía,
-// DOC-004 §7). Mismo patrón que ActivosPage: tabla de lectura (GET /admin/contratos, nuevo en
+// DOC-004 7). Mismo patrón que ActivosPage: tabla de lectura (GET /admin/contratos, nuevo en
 // este incremento) + formulario de alta, más botones de transición de estado por fila
-// (PATCH /admin/contratos/:id) — solo se ofrecen las transiciones válidas de DOC-004 §3
+// (PATCH /admin/contratos/:id) — solo se ofrecen las transiciones válidas de DOC-004 3
 // (`TRANSICIONES_VALIDAS_CONTRATO`), la validación real siempre vuelve a correr en CORE.
 
 const altaSchema = z.object({

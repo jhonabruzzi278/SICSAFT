@@ -10,11 +10,11 @@ const AUDIENCE = 'cis-api';
 
 const SYNC_INFO = { actualizadoEn: '2026-08-18T10:00:00.000Z', alDia: true };
 
-// DOC-019 §3.1/§4 — prueba DashboardConnectorController + guard de punta a punta vía HTTP real,
+// DOC-019 3.1/4 — prueba DashboardConnectorController + guard de punta a punta vía HTTP real,
 // mismo patrón que qr-connector.e2e-spec.ts: CipClientService se reemplaza por un stub (ya tiene
 // su propia cobertura unitaria contra HttpService mockeado, ver cip-client.service.spec.ts) — acá
 // se prueba que el controller exige el mismo ZitadelAuthGuard que Activos/Inventarios (sin rol
-// adicional, DOC-019 §2) y que delega correctamente en el cliente de CIP.
+// adicional, DOC-019 2) y que delega correctamente en el cliente de CIP.
 describe('Dashboard (e2e) — DOC-019, proxy CIS→CIP', () => {
   let app: INestApplication<App>;
   let bearerToken: string;
@@ -248,7 +248,7 @@ describe('Dashboard (e2e) — DOC-019, proxy CIS→CIP', () => {
       .expect(502);
   });
 
-  it('devuelve 429 cuando el operador supera el límite de requests (RateLimitGuard, WAF §4)', async () => {
+  it('devuelve 429 cuando el operador supera el límite de requests (RateLimitGuard, WAF 4)', async () => {
     redisClient.eval.mockResolvedValue(31);
     redisClient.pttl.mockResolvedValue(4_000);
 

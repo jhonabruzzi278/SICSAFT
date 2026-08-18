@@ -23,10 +23,10 @@ import type {
 } from './activo.schemas';
 import type { Activo } from './activo.types';
 
-// DOC-012 §5 — escritura oficial de Activo (alta/baja/reincorporacion/cambio de responsable).
+// DOC-012 5 — escritura oficial de Activo (alta/baja/reincorporacion/cambio de responsable).
 // Solo ServiceTokenGuard acá: la autorizacion de rol (AdministradorPatrimonialGuard) se resuelve
 // dentro de OrquestadorService, no como @UseGuards(), para que un 403 por falta de rol tambien
-// quede auditado (DOC-012 §8) en vez de cortar antes de llegar al Orquestador.
+// quede auditado (DOC-012 8) en vez de cortar antes de llegar al Orquestador.
 @Controller('activos')
 @UseGuards(ServiceTokenGuard)
 export class ActivoEscrituraController {

@@ -45,8 +45,8 @@ export type ScanCategory =
   | 'already-scanned'
   | 'duplicate';
 
-// Fase 3.1/DOC-017 §3, DOC-012 §5.1 — declarable por cualquier operador, sin rol
-// administrador-patrimonial (Tomo III §1.4 ya se lo concede a APP QR). 'activo' es el estado por
+// Fase 3.1/DOC-017 3, DOC-012 5.1 — declarable por cualquier operador, sin rol
+// administrador-patrimonial (Tomo III 1.4 ya se lo concede a APP QR). 'activo' es el estado por
 // defecto (no-op si el activo ya está así); CORE aplica la transición real y la ignora en
 // silencio si el activo no está en un estado operativo compatible (ver core InventariosService).
 export type EstadoOperativoDeclarable = 'activo' | 'mantenimiento' | 'inactivo';
@@ -60,7 +60,7 @@ export interface ScannedSessionItem {
   externalFind?: boolean;
   // Fase 3.1 — ambos opcionales, nunca tocan Base Patrimonial directo (CORE los aplica/registra
   // como informe, no como escritura oficial). `bajaSugerida` es solo el motivo: nunca ejecuta la
-  // baja, la revisa el Administrador Patrimonial desde WEB (DOC-012 §5.1).
+  // baja, la revisa el Administrador Patrimonial desde WEB (DOC-012 5.1).
   estadoDeclarado?: EstadoOperativoDeclarable;
   bajaSugerida?: string;
 }
@@ -88,7 +88,7 @@ export interface ScanSession {
   unregistered: number;
   invalid: number;
   incidents: number;
-  // Fase 3.1/DOC-017 §2 y §4 — `missing` no se derivaba de nada guardado en la sesión (solo se
+  // Fase 3.1/DOC-017 2 y 4 — `missing` no se derivaba de nada guardado en la sesión (solo se
   // calculaba al vuelo contra el catálogo en ScanPage); se persiste acá para que
   // calcularVeredicto pueda recalcularse después (ej. HistoryPage) sin necesitar el catálogo
   // completo de nuevo. `verdict` se calcula una sola vez al confirmar el envío — ver lib/verdict.ts.

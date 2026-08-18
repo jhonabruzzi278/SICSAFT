@@ -1,17 +1,17 @@
 # DOC-018 — CIP: servicio NestJS, migraciones, worker y API de lectura (segundo incremento, Fase 6)
 
 Contrato de implementación del segundo incremento de Construction de Fase 6. El primer incremento
-(outbox transaccional del lado de CORE, DOC-014 §1/§6) ya está mergeado
+(outbox transaccional del lado de CORE, DOC-014 1/6) ya está mergeado
 ([PR #8](https://github.com/jhonabruzzi278/SICSAFT/pull/8)). Este documento no repite las
 decisiones ya tomadas en [DOC-014](DOC-014-cip-dashboard.md)/[ARCHITECTURE.md](ARCHITECTURE.md) —
 las hace concretas: nombres de archivo, columnas exactas, contrato del worker, endpoints.
 
 ## 1. Alcance de este incremento
 
-- Esqueleto NestJS de `cip/` (mismo patrón que `core/`/`cis/`, `CLAUDE.md` § "Al agregar un
+- Esqueleto NestJS de `cip/` (mismo patrón que `core/`/`cis/`, `CLAUDE.md` "Al agregar un
   sistema nuevo").
 - Base de datos `cip` propia, migraciones node-pg-migrate para las 7 tablas de agregados +
-  `sync_estado` (`DOMAIN_MODEL.md` §2).
+  `sync_estado` (`DOMAIN_MODEL.md` 2).
 - Worker consumidor de la cola `cip-eventos` (BullMQ) — recalcula agregados llamando a las APIs de
   lectura de CORE.
 - API de lectura (`GET /dashboard/...`) — RF-01 a RF-09.
@@ -20,7 +20,7 @@ las hace concretas: nombres de archivo, columnas exactas, contrato del worker, e
 
 ## 2. Corrección encontrada sobre la migración ya mergeada: falta `organizacion_id`
 
-Al diseñar el worker (§5) se encontró que el mensaje `{ kind: 'evento', eventoId, tipo }`
+Al diseñar el worker (5) se encontró que el mensaje `{ kind: 'evento', eventoId, tipo }`
 (`core/src/eventos-outbox/eventos-outbox.types.ts`, ya mergeado) no alcanza: el worker necesita
 saber la `organizacionId` del activo para recalcular `ESTADO_ACTIVO_RESUMEN`/
 `CATEGORIA_ACTIVO_RESUMEN`/`COBERTURA_ORGANIZACION`, y **CIP no puede resolverlo consultando la
@@ -53,7 +53,7 @@ documento pide.
 
 ## 2.5 Segunda corrección encontrada: CIP no puede usar `activoId`, solo `codigoQr`
 
-Al diseñar el contrato de `CoreClientService` (§3) se encontró que **ninguna** API de lectura de
+Al diseñar el contrato de `CoreClientService` (3) se encontró que **ninguna** API de lectura de
 CORE que CIP puede usar expone el `id` interno del activo:
 - `GET /catalogo` (`ActivoCatalogo`, `core/src/patrimonial/activo.types.ts`) trae `codigoQr`,
   `areaId`, `estado`, `organizacionId` — sin `id`.
@@ -64,14 +64,14 @@ Agregar `id` a esos DTOs es un cambio de contrato de CORE que también afecta a 
 `ActivoCatalogo` que ya consume `web/`, Fase 5) — fuera de alcance de este incremento, y
 innecesario: **`codigoQr` ya es único por activo** (constraint `UNIQUE` en `activos.codigo_qr`,
 migración `1755100000000`) y es el identificador que ya cruza la frontera CORE↔CIS↔APP QR en todo
-el ecosistema. Todas las tablas de agregados de §4 que en `DOMAIN_MODEL.md` decían `activoId` se
+el ecosistema. Todas las tablas de agregados de 4 que en `DOMAIN_MODEL.md` decían `activoId` se
 corrigen acá a `codigoQr` — ver `DOMAIN_MODEL.md` (ya actualizado). Ninguna otra decisión de
 `ARCHITECTURE.md`/DOC-014 cambia.
 
-Consecuencia sobre el worker (§5.1): para saber el **área esperada** de un `codigoQr` fuera de
+Consecuencia sobre el worker (5.1): para saber el **área esperada** de un `codigoQr` fuera de
 lugar, el handler de `sesion-cerrada` necesita el catálogo completo de la organización (no solo el
 detalle de la sesión) — llama al mismo `obtenerCatalogoCompleto(organizacionId)` que ya usa el
-handler de `evento` (§5.2), construye un `Map<codigoQr, ActivoCatalogo>` y cruza contra los
+handler de `evento` (5.2), construye un `Map<codigoQr, ActivoCatalogo>` y cruza contra los
 escaneos de la sesión.
 
 ## 2.6 Tercera corrección encontrada: `GET /catalogo` no exponía `familia` cruda
@@ -93,21 +93,21 @@ dirección inversa). Agregar ese endpoint es una extensión real de CORE, no una
 como las anteriores — se deja fuera de este incremento (YAGNI: RF-02 solo pide "áreas controladas
 vs. pendientes", agrupar por sede es un enriquecimiento de UI que el frontend puede resolver más
 adelante cruzando contra `GET /areas` de CORE si hace falta). `control_area.sede_id` se elimina de
-`DOMAIN_MODEL.md` §2 y de la migración de §4.
+`DOMAIN_MODEL.md` 2 y de la migración de 4.
 
 ## 3. Esqueleto del servicio `cip/`
 
 Mismo stack que CORE (ADR-001: NestJS/TypeScript, `node-pg-migrate`, `pg`, `zod`) — **sin
-Zitadel**: CIP no valida identidad de operador (mismo razonamiento que CORE, DOC-014 §4). Reusa el
+Zitadel**: CIP no valida identidad de operador (mismo razonamiento que CORE, DOC-014 4). Reusa el
 patrón `ServiceTokenGuard`/`ServiceTokenModule` **dos veces**, con roles distintos:
 - Como **cliente**: `CoreClientService` (`src/core-client/`) llama a CORE con el header
   `x-internal-service-token: ${CORE_SERVICE_TOKEN}` — mismo mecanismo que ya usa CIS
   (`cis/src/core-client/`), CIP es un segundo consumidor del mismo contrato.
-- Como **servidor**: la API de lectura de CIP (§6) exige su propio `x-internal-service-token:
+- Como **servidor**: la API de lectura de CIP (6) exige su propio `x-internal-service-token:
   ${CIP_SERVICE_TOKEN}` (secreto nuevo, no reusar `CORE_SERVICE_TOKEN`) — hasta que exista un
   frontend con su propio modelo de auth, cualquier llamador interno del ecosistema (ej. WEB/CIS si
   algún día necesitan mostrar el dashboard) se autentica igual que CIS↔CORE. Decisión provisional,
-  ya anotada como abierta en DOC-014 §7.1 — no bloquea este incremento.
+  ya anotada como abierta en DOC-014 7.1 — no bloquea este incremento.
 
 ```
 cip/
@@ -117,9 +117,9 @@ cip/
     database/              DatabaseModule (pool hacia la base `cip`, mismo patron que core/src/database/)
     common/auth/            ServiceTokenGuard (servidor) — copiado/adaptado de core/src/common/auth
     core-client/             CoreClientService (cliente hacia CORE) — adaptado de cis/src/core-client
-    agregacion/              Worker BullMQ + logica de recalculo por tipo de evento (§5)
-      veredicto.ts            Puerto de app-qr-sicsaft/src/lib/verdict.ts (ARCHITECTURE.md §5)
-    dashboard/               Controller + repository de lectura (§6)
+    agregacion/              Worker BullMQ + logica de recalculo por tipo de evento (5)
+      veredicto.ts            Puerto de app-qr-sicsaft/src/lib/verdict.ts (ARCHITECTURE.md 5)
+    dashboard/               Controller + repository de lectura (6)
   migrations/                node-pg-migrate, mismo mecanismo que core/migrations/
   scripts/migrate.js          copiado de core/scripts/migrate.js sin cambios
   test/                       e2e (mismo patron que core/test/)
@@ -133,7 +133,7 @@ Base Postgres separada de `core`, mismo Postgres compartido del stack local (nue
 `devops/local/postgres/init/03-cip.sh`, mismo patrón que `02-core.sh`: `CIP_DB_USER`/
 `CIP_DB_PASSWORD` nuevos en `.env`/`.env.example`).
 
-`cip/migrations/<ts>_schema-agregados.ts` — traduce `DOMAIN_MODEL.md` §2 a columnas reales:
+`cip/migrations/<ts>_schema-agregados.ts` — traduce `DOMAIN_MODEL.md` 2 a columnas reales:
 
 ```ts
 pgm.createTable('cobertura_organizacion', {
@@ -200,7 +200,7 @@ pgm.addConstraint('estado_activo_resumen', 'estado_activo_resumen_pkey', { prima
 
 pgm.createTable('categoria_activo_resumen', {
   organizacion_id: { type: 'text', notNull: true },
-  // area_id NULL = total sin filtrar (DOMAIN_MODEL.md §2) — text vacio no sirve como parte de una
+  // area_id NULL = total sin filtrar (DOMAIN_MODEL.md 2) — text vacio no sirve como parte de una
   // PK compuesta consistente, se usa el literal '(todas)' como valor de esa fila.
   area_id: { type: 'text', notNull: true, default: '(todas)' },
   familia: { type: 'text', notNull: true },
@@ -210,8 +210,8 @@ pgm.addConstraint('categoria_activo_resumen', 'categoria_activo_resumen_pkey', {
   primaryKey: ['organizacion_id', 'area_id', 'familia'],
 });
 
-// Auxiliar para el conteo incremental de cobertura (§5.1 punto 4) — no forma parte del modelo de
-// lectura expuesto por la API (§6), es contabilidad interna del worker.
+// Auxiliar para el conteo incremental de cobertura (5.1 punto 4) — no forma parte del modelo de
+// lectura expuesto por la API (6), es contabilidad interna del worker.
 pgm.createTable('activo_escaneado_alguna_vez', {
   codigo_qr: { type: 'text', primaryKey: true },
   organizacion_id: { type: 'text', notNull: true },
@@ -229,7 +229,7 @@ pgm.sql(`INSERT INTO sync_estado (singleton) VALUES ('global');`);
 Nota de diseño sobre `estado_activo_resumen`/`categoria_activo_resumen`: no son "agregados que se
 incrementan/decrementan por evento" — el worker los **reescribe completos** por organización en
 cada recálculo (`DELETE ... WHERE organizacion_id = $1` + `INSERT` desde el catálogo recién leído,
-en una transacción). Decisión deliberada (§5): evita bugs de contador desincronizado (un evento
+en una transacción). Decisión deliberada (5): evita bugs de contador desincronizado (un evento
 perdido/duplicado no deja el conteo mal para siempre, se autocorrige en el próximo recálculo) a
 costa de recalcular sobre el catálogo completo de la organización — aceptable al volumen de este
 MVP (mismo criterio que ya aceptó `ContratoRepository.findPagina` paginando en memoria,
@@ -244,7 +244,7 @@ MVP (mismo criterio que ya aceptó `ContratoRepository.findPagina` paginando en 
 
 1. En paralelo: `GET /inventarios/:sesionId` en CORE (trae `organizacionId`, `areaId`,
    `ubicacionId`, `fechaCierre`, `escaneos[]` con `resultado`/`codigoQr`/`observaciones` — sin
-   `activoId`, ver §2.5) y `obtenerCatalogoCompleto(organizacionId)` (mismo método que usa §5.2,
+   `activoId`, ver 2.5) y `obtenerCatalogoCompleto(organizacionId)` (mismo método que usa 5.2,
    necesario para resolver el área esperada de cada `codigoQr` fuera de lugar).
 2. Calcular veredicto con `agregacion/veredicto.ts` (puerto de
    `app-qr-sicsaft/src/lib/verdict.ts` — mismos 2 parámetros: cantidad de faltantes, cantidad de
@@ -276,14 +276,14 @@ MVP (mismo criterio que ya aceptó `ContratoRepository.findPagina` paginando en 
 4. `activo_no_localizado`: mismo patrón `DELETE FROM ... WHERE organizacion_id = $1` + `INSERT`
    de los `codigoQr` con `estado = 'extraviado'` en el catálogo recién leído — **sin condicionar
    por `tipo`** (a diferencia de un borrador anterior de este documento): `'extraviado'` no es un
-   valor de `eventos.tipo` (DOC-005 §6), así que no hay forma de saber por el tipo de evento si
+   valor de `eventos.tipo` (DOC-005 6), así que no hay forma de saber por el tipo de evento si
    cambió; recalcularlo siempre en este handler es más simple y correcto que intentar adivinar
    cuándo hace falta.
 
 ### 5.3 Idempotencia del worker
 
 BullMQ entrega **at-least-once** (`EventosOutboxDispatcher` puede reintentar un mensaje ya
-publicado si el proceso murió antes de marcarlo, ARCHITECTURE.md §2). Todas las escrituras de
+publicado si el proceso murió antes de marcarlo, ARCHITECTURE.md 2). Todas las escrituras de
 arriba son upserts o `DELETE`+`INSERT` completos por clave — reprocesar el mismo mensaje dos veces
 dejando el mismo resultado final, no hace falta una tabla de deduplicación explícita.
 
@@ -292,13 +292,13 @@ dejando el mismo resultado final, no hace falta una tabla de deduplicación expl
 Al final de **cada** mensaje procesado (haya tocado agregados o no): `UPDATE sync_estado SET
 ultimo_evento_procesado_en = now(), al_dia = true`. Un job separado (`@Interval`, mismo mecanismo
 que `EventosOutboxDispatcher`) marca `al_dia = false` si pasaron más de
-`CIP_UMBRAL_ATRASO_MINUTOS` (default 15, configurable — DOC-014 §7.3) desde
+`CIP_UMBRAL_ATRASO_MINUTOS` (default 15, configurable — DOC-014 7.3) desde
 `ultimo_evento_procesado_en` **y** hay mensajes esperando en la cola (`queue.getWaitingCount() >
 0`) — si la cola está vacía, no hay nada atrasado, silencio no es lo mismo que atraso.
 
 ## 6. API de lectura
 
-Todos los endpoints exigen `x-internal-service-token: ${CIP_SERVICE_TOKEN}` (§3) y
+Todos los endpoints exigen `x-internal-service-token: ${CIP_SERVICE_TOKEN}` (3) y
 `organizacionId` obligatorio por query param; devuelven `actualizadoEn`/`alDia` de `sync_estado`
 en el body (RF-10). Los que devuelven listas aceptan `limit`/`offset` (default 20, tope 100 —
 mismo contrato que `GET /catalogo`, RNF-02).
@@ -316,11 +316,11 @@ mismo contrato que `GET /catalogo`, RNF-02).
 
 Drill-down de RF-08 (Sede→Área→Ubicación→Categoría→Activo): resuelto por composición de los
 filtros de arriba (`areaId` ya cubre Área/Ubicación vía las tablas que lo indexan); "hasta
-Activo" del último nivel remite a `GET /inventarios/:id` de CORE directamente (DOMAIN_MODEL.md §3
+Activo" del último nivel remite a `GET /inventarios/:id` de CORE directamente (DOMAIN_MODEL.md 3
 — no se duplica el detalle completo en CIP).
 
-`GET /dashboard/incidencias` es la única tabla sin escritor identificado en §5 todavía — se llena
-igual que `activo_fuera_de_area`, dentro del procesamiento de `sesion-cerrada` (§5.1, un paso más:
+`GET /dashboard/incidencias` es la única tabla sin escritor identificado en 5 todavía — se llena
+igual que `activo_fuera_de_area`, dentro del procesamiento de `sesion-cerrada` (5.1, un paso más:
 upsert por cada escaneo con `resultado = 'con_incidencia'` de la sesión).
 
 ## 7. Docker / CI
@@ -338,14 +338,14 @@ upsert por cada escaneo con `resultado = 'con_incidencia'` de la sesión).
 
 ## 8. Orden de construcción sugerido
 
-1. Migración `1755600000000` en CORE (§2) — desbloquea todo lo demás, es la única pieza que toca
+1. Migración `1755600000000` en CORE (2) — desbloquea todo lo demás, es la única pieza que toca
    código ya mergeado.
-2. Esqueleto `cip/` + `DatabaseModule` + migraciones de agregados (§3/§4) — sin lógica de negocio
+2. Esqueleto `cip/` + `DatabaseModule` + migraciones de agregados (3/4) — sin lógica de negocio
    todavía, solo que levante y migre.
-3. `CoreClientService` (§3) — copiar/adaptar el de CIS, con sus propios tests.
-4. Worker (§5) — la pieza más grande, TDD por tipo de mensaje.
-5. API de lectura (§6).
-6. Docker/CI/compose (§7) — verificación real de punta a punta, mismo criterio que el incremento 1
+3. `CoreClientService` (3) — copiar/adaptar el de CIS, con sus propios tests.
+4. Worker (5) — la pieza más grande, TDD por tipo de mensaje.
+5. API de lectura (6).
+6. Docker/CI/compose (7) — verificación real de punta a punta, mismo criterio que el incremento 1
    (`docker build` + contenedor real + evento real disparado desde CORE llegando a un agregado
    consultable por la API).
 

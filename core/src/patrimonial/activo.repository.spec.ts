@@ -255,7 +255,7 @@ describe('ActivoRepository', () => {
       catalogoId: 'catalogo-notebook',
     };
 
-    it('inserta el activo y devuelve el registro creado (DOC-012 §5)', async () => {
+    it('inserta el activo y devuelve el registro creado (DOC-012 5)', async () => {
       const query = jest
         .fn()
         .mockResolvedValueOnce({ rows: [] }) // INSERT

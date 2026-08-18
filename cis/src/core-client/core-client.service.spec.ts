@@ -108,7 +108,7 @@ describe('CoreClientService', () => {
       await jest.advanceTimersByTimeAsync(400); // backoff del 2do reintento (exponencial)
       await assertion;
 
-      // WAF §4: reintentos con backoff, nunca reintento inmediato en bucle — 3 intentos totales.
+      // WAF 4: reintentos con backoff, nunca reintento inmediato en bucle — 3 intentos totales.
       expect(axiosGet).toHaveBeenCalledTimes(3);
     });
 
@@ -236,7 +236,7 @@ describe('CoreClientService', () => {
         expect(error).toBeInstanceOf(BadRequestException);
         expect((error as BadRequestException).getResponse()).toEqual(cuerpo);
       }
-      // Rechazo permanente (DOC-002 §5) — un solo intento, nunca se reintenta un 400.
+      // Rechazo permanente (DOC-002 5) — un solo intento, nunca se reintenta un 400.
       expect(axiosPost).toHaveBeenCalledTimes(1);
     });
 

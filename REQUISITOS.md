@@ -16,7 +16,7 @@
 
 **CIS nunca tuvo su propio `REQUIREMENTS.md`** — se construyó antes de que el proyecto adoptara la
 metodología AI-DLC completa (`app-qr-sicsaft/` fue el primer sistema en usarla, `core/` el
-segundo, ver `CLAUDE.md` § "Metodología AI-DLC"). Su capacidad real (rate limiting, circuit
+segundo, ver `CLAUDE.md` "Metodología AI-DLC"). Su capacidad real (rate limiting, circuit
 breaker, deviceId enforcement, puente de escritura oficial `src/administrador/`) está documentada
 en `cis/README.md` y en `seguridad/DOC-012-administrador-patrimonial.md`, sin RF/RNF numerados.
 Formalizarlo retroactivamente no está en alcance de este índice — se anota como deuda de
@@ -46,7 +46,7 @@ pidió). Priorizados por severidad:
   `/ubicaciones`, `/responsables` devuelven ahora `{ <entidad>, total }` con `limit`/`offset`
   (default 20, tope 100), mismo criterio que `GET /catalogo`. `ContratoRepository.findPagina`
   reusa `findAll()` internamente para no romper la invariante de contrato vigente único por sede
-  (DOC-004 §4), que se valida contra el dataset completo; los otros 4 repositorios paginan con
+  (DOC-004 4), que se valida contra el dataset completo; los otros 4 repositorios paginan con
   `COUNT(*)` + `LIMIT`/`OFFSET` en SQL. CIS propaga `limit`/`offset` end-to-end
   (`administrador.schemas.ts`, `core-client.types.ts`). WEB no tiene UI de paginación (ningún RF
   la pide) — `cis-client.ts` pide el tope de página (100) para no perder filas silenciosamente
@@ -62,7 +62,7 @@ pidió). Priorizados por severidad:
 ## Requisitos nuevos identificados en spec funcional (pptx), sin formalizar todavía
 
 Fuente: `PROCESO MODULAR DE APLICACION SICSAFT, SOFTWARE.ppt` (fuera de git, revisado 2026-08-17
-— ver [`ROADMAP.md`](ROADMAP.md) § "Fuente nueva: spec funcional de flujo por pantallas"). Describe
+— ver [`ROADMAP.md`](ROADMAP.md) "Fuente nueva: spec funcional de flujo por pantallas"). Describe
 el flujo pantalla-a-pantalla completo de los 3 modos de producto (QR / QR+WEB / QR+WEB+RFID).
 Comparado contra el código real, aporta requisitos que **todavía no tienen ID formal en ningún
 `REQUIREMENTS.md`** porque no fueron diseñados con metodología AI-DLC todavía — se listan acá para
@@ -72,8 +72,8 @@ no perderlos, con ID definitivo pendiente de asignar cuando se diseñe cada incr
 |---|---|---|---|---|
 | Selector de modo 1/2/3 | APP QR | Pantalla para elegir QR / QR+WEB / QR+WEB+RFID antes del control | ✅ Implementado — `lib/scan-mode.ts`, verificado e2e | Fase 3.1 |
 | Declaración de resultado de sesión (EXITOSO/ACEPTABLE/DEFECTUOSO) | APP QR | Veredicto agregado del control, distinto de las 8 categorías de escaneo por ítem ya implementadas (DOC-009) | ✅ Implementado — `lib/verdict.ts`, verificado e2e y contra Postgres real | Fase 3.1 |
-| Estado del AFT declarado durante el control: en servicio/mantenimiento/inactivo | APP QR + CORE | Marcar el estado (no destructivo) de cada activo al escanearlo | ✅ Implementado — migración `1755400000000`, `POST /inventarios` extendido, sin rol nuevo (Tomo III §1.4), verificado e2e contra Postgres real | Fase 3.1 |
-| Estado del AFT declarado durante el control: baja sugerida | APP QR + CORE | El operador sugiere la baja (dato informativo); el Administrador Patrimonial la revisa y ejecuta desde WEB | ✅ Implementado — evento `baja_sugerida`, no toca `Activo.estado`, sin conflicto con Tomo III §1.4 | Fase 3.1 |
+| Estado del AFT declarado durante el control: en servicio/mantenimiento/inactivo | APP QR + CORE | Marcar el estado (no destructivo) de cada activo al escanearlo | ✅ Implementado — migración `1755400000000`, `POST /inventarios` extendido, sin rol nuevo (Tomo III 1.4), verificado e2e contra Postgres real | Fase 3.1 |
+| Estado del AFT declarado durante el control: baja sugerida | APP QR + CORE | El operador sugiere la baja (dato informativo); el Administrador Patrimonial la revisa y ejecuta desde WEB | ✅ Implementado — evento `baja_sugerida`, no toca `Activo.estado`, sin conflicto con Tomo III 1.4 | Fase 3.1 |
 | Lista de AFT fuera de área con su área real | APP QR | Agregado del informe de control; dato ya disponible en la clasificación existente | ✅ Implementado — sección agrupada en `ScanPage.tsx`, verificado e2e | Fase 3.1 |
 | Gráfico circular por categoría de AFT | CIP | Visualización por área (informática, mobiliario, equipos varios, enseres de cocina, etc.) | ✅ Implementado — `GET /dashboard/categorias` (dato real, agregado por área/familia) + gráfico circular SVG en `DashboardPage` (WEB, DOC-019), filtrable por área | Fase 6 |
 | Informe diario automático a hora fija | CIP | Resumen de toda la organización: cobertura, control exitoso/aceptable/defectuoso, AFT por estado | 🔲 No implementado — requiere scheduler + canal de entrega, deliberadamente fuera de alcance (`cip/aidlc-docs/requirements/INTENT.md`) | Fase 6 |
@@ -90,7 +90,7 @@ contable, con responsabilidad de actualizar diariamente" ya está documentado en
 - **Para trabajar en un sistema**: leer su `REQUIREMENTS.md` completo — este índice es un resumen
   de navegación, no la fuente de verdad.
 - **Para saber qué falta del roadmap**: cruzar la tabla de gaps de arriba con
-  [`ROADMAP.md`](ROADMAP.md) § "Próximo paso sugerido" de cada sistema — los dos deberían decir lo
+  [`ROADMAP.md`](ROADMAP.md) "Próximo paso sugerido" de cada sistema — los dos deberían decir lo
   mismo; si divergen, uno de los dos quedó desactualizado.
 - **Al cerrar un gap**: actualizar el estado en el `REQUIREMENTS.md` del sistema correspondiente
   (no solo acá) y quitar la fila de la tabla de gaps si ya no aplica.

@@ -18,7 +18,7 @@ export const SEED_CONTRATOS: readonly Contrato[] = [
   },
 ];
 
-// DOC-004 §4: una sede no puede estar cubierta por mas de un contrato vigente a la vez. Se
+// DOC-004 4: una sede no puede estar cubierta por mas de un contrato vigente a la vez. Se
 // valida al cargar el modulo (no en cada request) — si alguien agrega un contrato al seed que
 // viola el invariante, falla rapido en vez de servir datos ambiguos silenciosamente.
 export function assertInvarianteSedeUnContratoVigente(
@@ -32,7 +32,7 @@ export function assertInvarianteSedeUnContratoVigente(
     for (const sede of contrato.sedes) {
       if (sedesVistas.has(sede.id)) {
         throw new Error(
-          `Invariante violado (DOC-004 §4): la sede '${sede.id}' esta cubierta por mas de un contrato vigente`,
+          `Invariante violado (DOC-004 4): la sede '${sede.id}' esta cubierta por mas de un contrato vigente`,
         );
       }
       sedesVistas.add(sede.id);

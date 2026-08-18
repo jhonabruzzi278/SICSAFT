@@ -12,9 +12,9 @@ import { CIP_EVENTOS_QUEUE_NAME } from './eventos-outbox.constants';
 import { loadRedisConfig } from './redis.config';
 import type { MensajeAgregacion } from './agregacion.service';
 
-// DOC-018 §5 — consumidor BullMQ de la cola que ya publica EventosOutboxDispatcher del lado de
+// DOC-018 5 — consumidor BullMQ de la cola que ya publica EventosOutboxDispatcher del lado de
 // CORE (core/src/eventos-outbox/, PR #8). Un mensaje que falla queda a cargo de los reintentos
-// propios de BullMQ (at-least-once, ver DOC-018 §5.3) — este worker no implementa su propia
+// propios de BullMQ (at-least-once, ver DOC-018 5.3) — este worker no implementa su propia
 // logica de reintento.
 @Injectable()
 export class EventosOutboxWorker implements OnModuleInit, OnModuleDestroy {

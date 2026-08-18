@@ -1,10 +1,10 @@
 import type { MigrationBuilder } from 'node-pg-migrate';
 
-// cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md §4 — modelo de lectura de CIP.
+// cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md 4 — modelo de lectura de CIP.
 // Ninguna de estas tablas se escribe desde un cliente externo: solo el worker de agregacion
 // (src/agregacion/) las alimenta, consumiendo la cola `cip-eventos` que ya publica CORE
 // (core/src/eventos-outbox/, PR #8). Claves por `codigo_qr`, no `activo_id` — GET /catalogo y
-// GET /inventarios/:id de CORE no exponen el id interno del activo (DOC-018 §2.5).
+// GET /inventarios/:id de CORE no exponen el id interno del activo (DOC-018 2.5).
 
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable('cobertura_organizacion', {
@@ -89,7 +89,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 
   pgm.createTable('categoria_activo_resumen', {
     organizacion_id: { type: 'text', notNull: true },
-    // '(todas)' = total sin filtrar por area (DOMAIN_MODEL.md §2) — NULL no sirve como parte de
+    // '(todas)' = total sin filtrar por area (DOMAIN_MODEL.md 2) — NULL no sirve como parte de
     // una PK compuesta consistente.
     area_id: { type: 'text', notNull: true, default: '(todas)' },
     familia: { type: 'text', notNull: true },
@@ -101,7 +101,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     { primaryKey: ['organizacion_id', 'area_id', 'familia'] },
   );
 
-  // Auxiliar para el conteo incremental de cobertura (DOC-018 §5.1 punto 4) — no forma parte del
+  // Auxiliar para el conteo incremental de cobertura (DOC-018 5.1 punto 4) — no forma parte del
   // modelo de lectura expuesto por la API, es contabilidad interna del worker.
   pgm.createTable('activo_escaneado_alguna_vez', {
     codigo_qr: { type: 'text', primaryKey: true },

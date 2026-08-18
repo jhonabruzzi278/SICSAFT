@@ -18,7 +18,7 @@ defaults:
 jobs:
   test:
     runs-on: ubuntu-latest
-    # Base real para las tablas de agregados (DOC-018 §4), separada de `core` (RNF-01).
+    # Base real para las tablas de agregados (DOC-018 4), separada de `core` (RNF-01).
     services:
       postgres:
         image: postgres:16-alpine

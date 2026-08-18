@@ -30,7 +30,7 @@ test('clasifica un activo de otra ubicación', async ({ page }) => {
   await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('⚠ Otra ubicación');
   // scan-resolve.ts usa el ubicacionId crudo del activo para expectedLocationName, no lo resuelve
   // contra sedes[] como sí hace buildOrganizationTree para el picker (hallazgo del plan de e2e,
-  // HANDOFF §7) — se afirma el comportamiento real, no el nombre bonito de la ubicación.
+  // HANDOFF 7) — se afirma el comportamiento real, no el nombre bonito de la ubicación.
   await expect(page.locator('[data-testid="scanned-item-expected"]')).toContainText('loc-002');
 });
 

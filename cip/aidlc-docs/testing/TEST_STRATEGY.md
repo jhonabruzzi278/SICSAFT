@@ -1,13 +1,13 @@
 # Test Strategy — CIP: primer dashboard (Fase 6)
 
 Mismo umbral de cobertura vigente en el ecosistema (unit 100% stmts/lines/funcs en CORE — CIP
-adopta el mismo estándar por ser un sistema Nest nuevo, ver `CLAUDE.md` § CI/calidad). Sin bajar
+adopta el mismo estándar por ser un sistema Nest nuevo, ver `CLAUDE.md` CI/calidad). Sin bajar
 el umbral por ser un sistema nuevo.
 
 ## 1. CORE — outbox
 - **Unit**: el trigger de Postgres no es testeable con Jest — se prueba con un e2e real (abajo).
   `EventosOutboxDispatcher` sí: mock del `Pool`/cliente Redis, casos: publica pendientes, no
-  publica ya publicados, agrupa por `sesionId` (§4 de ARCHITECTURE.md — un solo mensaje por
+  publica ya publicados, agrupa por `sesionId` (4 de ARCHITECTURE.md — un solo mensaje por
   sesión, no uno por evento), no revienta si Redis no responde (deja pendiente, no marca
   `publicado`).
 - **e2e (Postgres real)**: insertar en `eventos` vía el flujo real (`POST /inventarios`,
@@ -19,19 +19,19 @@ el umbral por ser un sistema nuevo.
   trigger nuevo encima).
 
 ## 2. CIP — worker de agregación
-- **Unit**: lógica de recalculo por tipo de agregado (`ARCHITECTURA.md` §3), con datos de CORE
+- **Unit**: lógica de recalculo por tipo de agregado (`ARCHITECTURA.md` 3), con datos de CORE
   mockeados (respuestas de `GET /catalogo`/`GET /inventarios/:id`) — no contra Postgres real, es
   lógica pura de transformación.
 - **Unit — veredicto recalculado**: portar los casos de
   `app-qr-sicsaft/tests/fase-3.1.spec.js` (exitoso/aceptable/defectuoso) como unit tests de la
-  función de veredicto propia de CIP (`ARCHITECTURE.md` §5) — mismos 3 casos, misma tabla de
+  función de veredicto propia de CIP (`ARCHITECTURE.md` 5) — mismos 3 casos, misma tabla de
   verdad, implementación independiente pero comportamiento idéntico verificado.
 - **Integration**: consumidor BullMQ real contra un Redis de test (mismo patrón que
-  Testcontainers-style ya usa CI para Postgres, `CLAUDE.md` § CI/calidad) — publica un mensaje
+  Testcontainers-style ya usa CI para Postgres, `CLAUDE.md` CI/calidad) — publica un mensaje
   `sesion-cerrada`, verifica que el worker escribe los agregados esperados en la base `cip` real.
 
 ## 3. CIP — API de lectura
-- **e2e (Postgres real, base `cip`)**: cada endpoint de `ARCHITECTURE.md` §6 contra datos ya
+- **e2e (Postgres real, base `cip`)**: cada endpoint de `ARCHITECTURE.md` 6 contra datos ya
   agregados (seed de test) — incluye el caso RF-10: `SYNC_ESTADO.alDia = false` cuando
   `ultimoEventoProcesadoEn` supera el umbral, la API igual responde 200 con los datos + el
   timestamp.

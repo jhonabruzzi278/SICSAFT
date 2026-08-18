@@ -3,13 +3,13 @@
 > **Estado**: los 4 ítems de código de esta fase están implementados y verificados (unit + e2e
 > contra Postgres real) — ítem 1 (rol + claim + autorización), ítem 3 (Motor Patrimonial: alta/
 > baja/reincorporación/cambio de responsable), ítem 4 (importación masiva idempotente de base
-> contable) e ítem 5 (escritura de `Contrato`). **§5.1 agregado 2026-08-17, sin implementar
+> contable) e ítem 5 (escritura de `Contrato`). **5.1 agregado 2026-08-17, sin implementar
 > todavía** (Fase 3.1/DOC-017, en Inception, confirmado con el usuario) — registro de estado
 > operativo y "baja sugerida" por APP QR sin rol nuevo, sin tocar `Activo.estado` en el caso de
 > baja (la ejecuta el Administrador Patrimonial). Formaliza el
-> rol que Tomo III §1.4 Entrada 4 define como único autorizado a modificar oficialmente la Base
+> rol que Tomo III 1.4 Entrada 4 define como único autorizado a modificar oficialmente la Base
 > Patrimonial — hoy no existe en ningún sistema del ecosistema
-> ([`seguridad/README.md`](README.md) § "Rol pendiente"). Complementa
+> ([`seguridad/README.md`](README.md) "Rol pendiente"). Complementa
 > [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (mecanismo de identidad),
 > [DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) (modelo de `Contrato`, hoy solo se
 > lee), [DOC-005](../base-patrimonial/DOC-005-modelo-patrimonial.md) (modelo de `Activo` y su
@@ -23,20 +23,20 @@ técnico** del rol — el **nombre funcional/oficial** con el que el negocio ide
 ejerce es **Profesional de AFT**: el usuario principal autorizado a acceder al CCP (Portal WEB,
 `web/`) y cargar/actualizar/mantener la información patrimonial necesaria para la operación del
 sistema. Aclaración provista por el usuario del proyecto (2026-08-18), no cita textual de un tomo
-con sección específica — se documenta como tal, sin inventar una referencia `§x.y` que no fue
+con sección específica — se documenta como tal, sin inventar una referencia `x.y` que no fue
 dada.
 
 Alcance funcional del Profesional de AFT dentro del CCP, según sus permisos (mapea 1:1 a las
-acciones ya implementadas en §4/§5/§6/§7 de este documento): activos; códigos patrimoniales;
+acciones ya implementadas en 4/5/6/7 de este documento): activos; códigos patrimoniales;
 descripciones; familias/categorías; áreas; ubicaciones; responsables; estados; documentación y
 fotografías cuando corresponda; información para preparar inventarios; importaciones controladas
 desde archivos autorizados. El CCP nunca escribe directo a la base — toda creación/modificación
 pasa por CORE, que valida y actualiza la BPI (regla no negociable de `CLAUDE.md`, ya reflejada en
-§3 de este documento).
+3 de este documento).
 
 **Nivel 1 vs. perfiles futuros**: el Profesional de AFT es el único perfil de Nivel 1 responsable
 de la carga y mantenimiento de la información patrimonial — no necesariamente el único que podrá
-entrar al CCP más adelante. `web/README.md` § "Roles previstos" ya anota Supervisor, Auditor y
+entrar al CCP más adelante. `web/README.md` "Roles previstos" ya anota Supervisor, Auditor y
 Administrador como perfiles futuros con permisos distintos (sin diseño ni rol de Zitadel todavía,
 sin consumidor real) — esta aclaración no les da alcance, solo da nombre explícito a la relación
 con el Profesional de AFT.
@@ -46,7 +46,7 @@ con el Profesional de AFT.
 Antes de la Fase 2 no había motores sobre los que escribir; después de la Fase 3 (CIS real + APP
 QR verificado) es el bloqueador real: **hoy no hay ninguna forma legítima de meter un activo real
 al sistema** — todo lo que existe en Postgres es seed de desarrollo (`1755100000001_seed-dev-fixture-patrimonial.ts`). APP QR y RFID solo pueden *leer* el catálogo y *registrar inventarios*
-(Tomo III §1.4: "no puede modificar la Base Patrimonial Oficial") — el único camino de entrada
+(Tomo III 1.4: "no puede modificar la Base Patrimonial Oficial") — el único camino de entrada
 oficial es este rol y, más adelante (Fase 7), el conector CON-CONTABILIDAD.
 
 ## 2. Rol en Zitadel
@@ -71,7 +71,7 @@ claim tiene esta forma (verificado contra la documentación de Zitadel, no supue
 }
 ```
 
-## 3. Qué valida CIS vs qué autoriza CORE (WAF §3 — cero confianza entre niveles)
+## 3. Qué valida CIS vs qué autoriza CORE (WAF 3 — cero confianza entre niveles)
 
 Ninguno de los dos niveles delega ciegamente en el otro:
 
@@ -88,7 +88,7 @@ Ninguno de los dos niveles delega ciegamente en el otro:
    certifica "Zitadel firmó un token que dice que este usuario tiene este rol en esta
    organización".
 2. **CORE es quien autoriza cada escritura, siempre, contra la organización del recurso.** Los
-   endpoints de escritura oficial (§5) invocan `verificarRolAdministradorPatrimonial(
+   endpoints de escritura oficial (5) invocan `verificarRolAdministradorPatrimonial(
    rolesPorOrganizacion, organizacionId)` — nunca "¿tiene el rol en algún lado?", siempre "¿tiene
    el rol en *esta* organización?" — el mismo patrón de "cero confianza" que ya existe entre
    CIS→CORE hoy (`ServiceTokenGuard`, secreto compartido `CORE_SERVICE_TOKEN`): el secreto de
@@ -102,39 +102,39 @@ Ninguno de los dos niveles delega ciegamente en el otro:
    escritura"*.
 3. **CIS reenvía `operadorId` + `organizacionId` + `rolesPorOrganizacion` en el body de cada
    llamada de escritura oficial hacia CORE** (mismo mecanismo que ya usa para
-   `organizacionId`/`areaId` en `POST /inventarios`, ver DOC-006 §3) — no hay canal nuevo que
+   `organizacionId`/`areaId` en `POST /inventarios`, ver DOC-006 3) — no hay canal nuevo que
    inventar, es el mismo canal service-to-service ya protegido por `CORE_SERVICE_TOKEN`.
    `organizacionId` es obligatorio en **todos** los endpoints de escritura oficial, no solo en
    alta — es contra qué organización se verifica el rol.
 
-## 4. Gestión de Permisos — las 8 acciones (Tomo IV §2.14)
+## 4. Gestión de Permisos — las 8 acciones (Tomo IV 2.14)
 
 Alcance mínimo para esta fase: aplicar las 8 acciones (`Consultar, Crear, Modificar, Eliminar,
 Autorizar, Exportar, Administrar, Configurar`) solo al recurso `Activo` y `Contrato`, no a los 11
-dominios completos de DOC-005 (mismo criterio YAGNI que recortó DOC-005 §8).
+dominios completos de DOC-005 (mismo criterio YAGNI que recortó DOC-005 8).
 
-| Acción | Recurso | Endpoint (§5–§7) | Quién más puede |
+| Acción | Recurso | Endpoint (5–7) | Quién más puede |
 |---|---|---|---|
 | Crear | Activo | `POST /activos` (alta) | Nadie — solo Administrador Patrimonial |
 | Eliminar | Activo | `POST /activos/:id/baja` | Nadie |
 | Modificar | Activo | `POST /activos/:id/reincorporacion`, `PATCH /activos/:id/responsable` | Nadie |
 | Crear | Activo (masivo) | `POST /importaciones/contable` | Nadie (Fase 7 lo automatiza, no lo reemplaza) |
 | Crear/Modificar | Contrato | `POST /contratos`, `PATCH /contratos/:id` | Nadie |
-| Consultar | Activo/Contrato | `GET /catalogo`, `GET /entitlements` (ya existen) | APP QR, WEB, RFID (Tomo III §1.4 ya se lo permite) |
-| Modificar (estado operativo) | Activo | `POST /inventarios`, extendido — ver §5.1 (pendiente, Fase 3.1) | **APP QR, sin rol nuevo** — Tomo III §1.4 ya le concede "registro de inventarios/estados" a esta entrada, distinto de "modificar la Base Patrimonial Oficial" |
+| Consultar | Activo/Contrato | `GET /catalogo`, `GET /entitlements` (ya existen) | APP QR, WEB, RFID (Tomo III 1.4 ya se lo permite) |
+| Modificar (estado operativo) | Activo | `POST /inventarios`, extendido — ver 5.1 (pendiente, Fase 3.1) | **APP QR, sin rol nuevo** — Tomo III 1.4 ya le concede "registro de inventarios/estados" a esta entrada, distinto de "modificar la Base Patrimonial Oficial" |
 | Autorizar/Exportar/Administrar/Configurar | — | Sin endpoint todavía | Fuera de alcance de esta fase — sin consumidor real (WEB Fase 5 los va a necesitar para su propio ABM, no antes) |
 
-**Matriz WAF §11 sin excepciones**: APP QR y RFID conservan exactamente los mismos permisos de
+**Matriz WAF 11 sin excepciones**: APP QR y RFID conservan exactamente los mismos permisos de
 hoy (lectura + registro de inventarios) — ningún cambio de esta fase les da acceso de escritura
 oficial, ni siquiera si el operador tuviera el rol (el rol solo existe/se valida en los endpoints
 nuevos, las 4 rutas de DOC-006 no lo piden ni lo aceptan).
 
 ## 5. Extensión del Motor Patrimonial — ciclo de vida de `Activo` ✅ implementado
 
-Implementa la máquina de estados **ya documentada** en DOC-005 §4 "Estados de `Activo`"
+Implementa la máquina de estados **ya documentada** en DOC-005 4 "Estados de `Activo`"
 (`stateDiagram-v2`):
 `[*] → activo → en_transito → activo`, `activo → extraviado → activo|dado_de_baja`,
-`activo → dado_de_baja` (terminal, la fila nunca se borra — Tomo III §4.10). Traslado
+`activo → dado_de_baja` (terminal, la fila nunca se borra — Tomo III 4.10). Traslado
 (`activo ⇄ en_transito`) queda fuera de esta fase (DOC-008 ya lo marca sin consumidor real,
 YAGNI) — se implementan las 4 transiciones que sí tienen consumidor inmediato:
 
@@ -147,7 +147,7 @@ YAGNI) — se implementan las 4 transiciones que sí tienen consumidor inmediato
 
 Cada transición inserta una fila en `eventos` (tipo `alta`/`baja`/`reincorporacion`/
 `cambio_responsable`, mismo patrón que el seed de Fase 1) — `Historial` sigue sin ser tabla
-propia, es la lectura cronológica de `eventos` por activo (DOC-005 §1, sin cambios).
+propia, es la lectura cronológica de `eventos` por activo (DOC-005 1, sin cambios).
 
 ### 5.1 Registro de estado operativo durante el control (APP QR, sin rol nuevo) — ⬜ pendiente
 
@@ -156,8 +156,8 @@ propia, es la lectura cronológica de `eventos` por activo (DOC-005 §1, sin cam
 controlador de AFT quiere declarar el estado de cada activo (en servicio/mantenimiento/inactivo)
 durante el mismo control de inventario, sin salir a WEB.
 
-**Por qué no necesita el rol `administrador-patrimonial`**: Tomo III §1.4 (tabla completa en
-`ARQUITECTURA-WAF.md` §11) le concede a la entrada APP QR *"Lectura, registro de
+**Por qué no necesita el rol `administrador-patrimonial`**: Tomo III 1.4 (tabla completa en
+`ARQUITECTURA-WAF.md` 11) le concede a la entrada APP QR *"Lectura, registro de
 inventarios/**estados**, generación de informes"* — "registro de estados" es un permiso ya
 otorgado por el tomo a **cualquier** operador autenticado de APP QR, no una capacidad exclusiva de
 Administrador Patrimonial. Es distinto de "modificar la Base Patrimonial Oficial" (lo que APP QR
@@ -165,13 +165,13 @@ explícitamente **no puede**): declarar que un activo está en mantenimiento no 
 identidad, ubicación, responsable ni lo elimina — es información operativa de estado, análoga a
 "con_incidencia" en las 8 categorías de escaneo que ya se registran hoy sin rol especial.
 
-**Diseño propuesto**: extender el payload de `POST /inventarios` (DOC-006 §3) con un campo
+**Diseño propuesto**: extender el payload de `POST /inventarios` (DOC-006 3) con un campo
 opcional por escaneo, `estadoDeclarado?: 'activo' | 'mantenimiento' | 'inactivo'` — **nunca**
 `dado_de_baja` (ver conflicto abajo). CORE aplica la transición dentro del mismo
-`OrquestadorService.ejecutarEscrituraOficial` que ya usa el Motor Patrimonial (§5), sin
+`OrquestadorService.ejecutarEscrituraOficial` que ya usa el Motor Patrimonial (5), sin
 `verificarRolAdministradorPatrimonial` — mismo nivel de autorización que el resto de
 `POST /inventarios` hoy (operador autenticado vía Zitadel, sin claim de rol adicional). Cada
-transición genera su evento (`tipo: 'mantenimiento'` ya existe en el vocabulario de DOC-005 §6;
+transición genera su evento (`tipo: 'mantenimiento'` ya existe en el vocabulario de DOC-005 6;
 `inactivo` es evento nuevo, mismo patrón).
 
 **"Baja sugerida" — resuelto 2026-08-17, sin delegar la escritura oficial**: el operador de
@@ -182,7 +182,7 @@ incidencia) — **no** ejecuta ninguna transición de `Activo.estado`, no invoca
 la sugerencia al revisar el inventario/informe (mismo lugar donde ya revisa auditoría hoy) y, si
 la valida, ejecuta él mismo `POST /activos/:id/baja` desde WEB — el único camino que de verdad
 cambia `Activo.estado` a `dado_de_baja` sigue siendo exclusivo de ese rol, sin cambios respecto a
-§5. Esto respeta Tomo III §1.4 sin ambigüedad: "generación de informes" (que el tomo ya le concede
+5. Esto respeta Tomo III 1.4 sin ambigüedad: "generación de informes" (que el tomo ya le concede
 a APP QR) incluye señalar una sugerencia; "eliminar activos" (reservado a Administrador
 Patrimonial) sigue siendo un acto exclusivo y explícito de ese rol.
 
@@ -202,9 +202,9 @@ ecosistema).
   nunca sobrescribe en silencio. Una fila invalida (ej. `catalogoId` inexistente) tampoco aborta
   el resto del archivo — cada fila se resuelve independiente, el response siempre es 200 con el
   detalle por fila (`creados`/`yaImportados`/`conflictos`).
-- **Nunca elimina** (Tomo III §1.4 Entrada 5: "Nunca elimina información histórica") — una fila
+- **Nunca elimina** (Tomo III 1.4 Entrada 5: "Nunca elimina información histórica") — una fila
   que ya no aparece en un archivo posterior no da de baja el activo; dar de baja es un acto
-  explícito (§5), no una inferencia de ausencia.
+  explícito (5), no una inferencia de ausencia.
 - Cada fila creada registra un evento `alta` (`detalle.origen: 'importacion_contable'`) — mismo
   motor de eventos de la Fase 2, sin mecanismo nuevo.
 - Precursor manual y honesto del conector automático `CON-CONTABILIDAD` (Fase 7) — mismo shape de
@@ -216,13 +216,13 @@ ecosistema).
 
 `ContratoRepository` (`core/src/entitlements/`) ya no solo lee:
 
-- `POST /contratos` — alta, valida el invariante de DOC-004 §4 ("una sede, un contrato `vigente`
+- `POST /contratos` — alta, valida el invariante de DOC-004 4 ("una sede, un contrato `vigente`
   a la vez") con una consulta previa (`contrato_sedes` × `contratos.estado = 'vigente'`) antes de
   insertar dentro de una transacción real (`BEGIN`/`COMMIT`/`ROLLBACK` vía `pool.connect()`) —
   necesaria para que un `contrato_sedes` invalido no deje una fila de `contratos` huérfana sin
   ninguna sede (hallazgo real encontrado corriendo el e2e contra Postgres real durante este mismo
   incremento, antes de la transacción un FK fallido a mitad de camino sí la dejaba).
-- `PATCH /contratos/:id` — solo transiciones válidas de la máquina de estados de DOC-004 §3
+- `PATCH /contratos/:id` — solo transiciones válidas de la máquina de estados de DOC-004 3
   (`vigente ⇄ suspendido`, `vigente → vencido|cancelado`, ambos terminales sin transición de
   salida) — cualquier otra combinación es 400 (`ContratoRepository.actualizarEstado`, tabla
   `TRANSICIONES_VALIDAS`). Mismo cruce de `organizacionId` contra la organización real del
@@ -238,7 +238,7 @@ ecosistema).
 ## 8. Auditoría de escritura ✅ implementado (sin mecanismo nuevo — reusa el de Fase 2)
 
 El Motor de Auditoría (Fase 2, `core/src/auditoria/`) ya audita "éxito o rechazo" (Tomo IV
-§2.15–16) a través del Orquestador Central — los endpoints nuevos de este documento se registran
+2.15–16) a través del Orquestador Central — los endpoints nuevos de este documento se registran
 en el mismo Orquestador, no necesitan un mecanismo de auditoría propio. Lo único nuevo es que un
 **403 por falta de rol** también pasa por el Orquestador antes de cortar la request (para que
 quede en `auditoria` con `resultado: 'rechazado:403'`), no corta directo en un guard sin auditar
@@ -270,21 +270,21 @@ autentica la conexión CIS↔CORE, no una acción de negocio auditable por usuar
   `PATCH /contratos/:id`) — cubierto por test e2e por endpoint contra Postgres real
   (`core/test/activo-escritura.e2e-spec.ts`, `contrato-escritura.e2e-spec.ts`,
   `importacion-contable.e2e-spec.ts`), incluido el caso de rol válido en otra organización.
-- ✅ Toda escritura de §5/§6/§7 (éxito o rechazo) queda en `auditoria` con
+- ✅ Toda escritura de 5/6/7 (éxito o rechazo) queda en `auditoria` con
   usuario/operación/resultado.
-- ✅ Importar el mismo archivo dos veces no duplica ni borra ningún activo (§6) — verificado e2e
+- ✅ Importar el mismo archivo dos veces no duplica ni borra ningún activo (6) — verificado e2e
   contra Postgres real: mismo contenido reporta `ya_importado` sin reescribir, contenido distinto
   reporta `conflicto` sin sobrescribir.
-- ✅ `seguridad/README.md` y `ARQUITECTURA-WAF.md` §11 actualizados marcando la entrada
+- ✅ `seguridad/README.md` y `ARQUITECTURA-WAF.md` 11 actualizados marcando la entrada
   Administrador Patrimonial como implementada — el rol ya puede hacer las 3 operaciones que Tomo
-  III §1.4 le exige (incorporar activos, importar bases contables, actualizar estados/contratos).
+  III 1.4 le exige (incorporar activos, importar bases contables, actualizar estados/contratos).
 
 ## 11. Documentos relacionados
 
 [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (identidad/Zitadel),
-[DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) (`Contrato`, máquina de estados §3,
-invariante §4), [DOC-005](../base-patrimonial/DOC-005-modelo-patrimonial.md) (`Activo`, máquina de
-estados §4), [DOC-006](../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md) (convenciones
+[DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) (`Contrato`, máquina de estados 3,
+invariante 4), [DOC-005](../base-patrimonial/DOC-005-modelo-patrimonial.md) (`Activo`, máquina de
+estados 4), [DOC-006](../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md) (convenciones
 de API CIS↔CORE que este documento extiende — `correlationId`, `idempotencyKey`, formato de
-error), [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §3 (cero confianza, permisos mínimos) y §11
+error), [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 3 (cero confianza, permisos mínimos) y 11
 (matriz de entradas oficiales, Tomo III Cap.1).

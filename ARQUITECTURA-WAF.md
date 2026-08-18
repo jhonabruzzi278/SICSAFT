@@ -34,7 +34,7 @@ NIVEL 5  CIP                    Dashboards · BI · Reportes · Alertas
 NIVEL 6  Usuarios y decisión    Dirección · Finanzas · Patrimonio · Auditoría
 ```
 
-**Regla de modularidad no negociable** (Tomo IV §1.7): *"Nunca existirán comunicaciones directas
+**Regla de modularidad no negociable** (Tomo IV 1.7): *"Nunca existirán comunicaciones directas
 entre las fuentes de captura y la Base Patrimonial Central."* Todo cruce de nivel pasa por el
 nivel inmediatamente inferior. Esto es lo que permite que RFID, WEB o un futuro ERP se agreguen
 sin tocar el CORE ni la Base Patrimonial: solo agregan un conector nuevo en el CIS.
@@ -42,7 +42,7 @@ sin tocar el CORE ni la Base Patrimonial: solo agregan un conector nuevo en el C
 **Cómo se traduce en código:**
 - Cada nivel = un repositorio o paquete desplegable propio, con su propio ciclo de release.
 - Los "9 motores" del CORE (Orquestador, Patrimonial, Reglas, Eventos, Auditoría, Alertas,
-  Reportes, Gestión Documental, Gestión de Usuarios, Gestión de Permisos — Tomo IV §2.4) son
+  Reportes, Gestión Documental, Gestión de Usuarios, Gestión de Permisos — Tomo IV 2.4) son
   módulos internos del CORE, no microservicios separados en el MVP: separarlos prematuramente
   antes de tener carga real es sobre-ingeniería. Se separan cuando un motor concreto necesite
   escalar o desplegarse independientemente (regla de YAGNI aplicada a este dominio).
@@ -60,7 +60,7 @@ no una pieza distinta.
 
 ```mermaid
 flowchart TD
-    subgraph N1["Nivel 1 — Fuentes oficiales de captura (Tomo III §1.2)"]
+    subgraph N1["Nivel 1 — Fuentes oficiales de captura (Tomo III 1.2)"]
         direction LR
         QR["📱 QR<br/>APP QR SICSAFT"]
         WEBC["💻 WEB / CCP<br/>Centro de Control Patrimonial"]
@@ -116,22 +116,22 @@ flowchart TD
     end
 
     N1 --> N2 --> N3 --> N4 --> N5 --> N6
-    N5 -.->|"nuevos conectores y servicios<br/>(evolución tecnológica, ver §12)"| N2
+    N5 -.->|"nuevos conectores y servicios<br/>(evolución tecnológica, ver 12)"| N2
 
     style N4 fill:#e8f5e9,stroke:#2e7d32
 ```
 
-**Regla de oro** (Tomo IV §1.7, ya citada arriba): ningún sistema, usuario o dispositivo modifica
+**Regla de oro** (Tomo IV 1.7, ya citada arriba): ningún sistema, usuario o dispositivo modifica
 la Base Patrimonial Central directamente — toda operación pasa por SICSAFT CORE. Los nuevos
-sensores/protocolos de la hoja de ruta tecnológica (BLE, GPS, IoT, cámaras, IA, ERP — ver §12 y
-`ROADMAP.md` § YAGNI) se incorporan como conectores nuevos en el CIS (flecha punteada de vuelta al
+sensores/protocolos de la hoja de ruta tecnológica (BLE, GPS, IoT, cámaras, IA, ERP — ver 12 y
+`ROADMAP.md` YAGNI) se incorporan como conectores nuevos en el CIS (flecha punteada de vuelta al
 Nivel 2), sin tocar CORE ni Base Patrimonial — la arquitectura no cambia, solo se agregan
 conectores.
 
 ## 2. Pilar: Excelencia Operacional
 
 Objetivo: operar el ecosistema con cambios frecuentes y bajo riesgo, con visibilidad completa de
-qué pasó en cada transacción (exigido por Tomo IV §2.9 — Motor de Auditoría).
+qué pasó en cada transacción (exigido por Tomo IV 2.9 — Motor de Auditoría).
 
 - **Infraestructura como código**: todo ambiente (CIS, CORE, Base Patrimonial, CIP) definido en
   archivos versionados en git, no configurado a mano. Reproducible en cualquier proveedor.
@@ -139,7 +139,7 @@ qué pasó en cada transacción (exigido por Tomo IV §2.9 — Motor de Auditor�
   independiente de los demás — ya es la intención declarada en `devops/README.md`.
 - **Observabilidad de extremo a extremo con `correlationId`**: todo evento que cruza un nivel
   (Captura → CIS → CORE → Base Patrimonial → CIP) lleva el mismo `correlationId` generado en el
-  Nivel 1 (ya definido en DOC-002 §6). Sin esto, "trazabilidad total" (Tomo IV §2.9) es
+  Nivel 1 (ya definido en DOC-002 6). Sin esto, "trazabilidad total" (Tomo IV 2.9) es
   imposible de verificar en producción.
 - **Tres señales por sistema**: métricas (tasa de éxito, latencia, saturación), logs
   estructurados (JSON, correlacionables por `correlationId`), trazas distribuidas (un trace por
@@ -151,14 +151,14 @@ qué pasó en cada transacción (exigido por Tomo IV §2.9 — Motor de Auditor�
 
 ## 3. Pilar: Seguridad
 
-Objetivo: cumplir el Modelo de Responsabilidades (Tomo IV §1.8) y el modelo Usuario → Rol →
+Objetivo: cumplir el Modelo de Responsabilidades (Tomo IV 1.8) y el modelo Usuario → Rol →
 Permisos → Organización → Área → Acción ya definido en `seguridad/README.md`.
 
 - **Cero confianza entre niveles**: cada llamada Nivel N → Nivel N-1 se autentica y autoriza
   explícitamente (credenciales de servicio, no solo "viene de la red interna"). El CIS es el
-  único punto que valida identidad de fuentes de captura (Tomo IV §1.8); el CORE nunca confía en
+  único punto que valida identidad de fuentes de captura (Tomo IV 1.8); el CORE nunca confía en
   un `organizacionId`/`areaId` que no haya sido validado ya por el CIS.
-- **Permisos mínimos necesarios** (Tomo IV §2.14): cada rol tiene exactamente las acciones que
+- **Permisos mínimos necesarios** (Tomo IV 2.14): cada rol tiene exactamente las acciones que
   necesita — Consultar/Crear/Modificar/Eliminar/Autorizar/Exportar/Administrar/Configurar — nunca
   un rol "administrador de todo" salvo el estrictamente necesario.
 - **Segregación por organización y por área**: toda consulta a la Base Patrimonial se filtra por
@@ -168,7 +168,7 @@ Permisos → Organización → Área → Acción ya definido en `seguridad/READM
   hardcodeados (ya reforzado en el `.gitignore` raíz del repo).
 - **Cifrado en tránsito siempre** (TLS de extremo a extremo) y **en reposo** para todo dato
   patrimonial, documental y de auditoría.
-- **La auditoría es en sí un control de seguridad**: el Motor de Auditoría (Tomo IV §2.9) registra
+- **La auditoría es en sí un control de seguridad**: el Motor de Auditoría (Tomo IV 2.9) registra
   usuario, fecha, hora, operación, resultado, equipo, IP y tiempo de ejecución — es lo que permite
   detectar abuso de permisos después del hecho, no solo prevenirlo antes.
 
@@ -178,7 +178,7 @@ Objetivo: que la caída de una fuente de captura o de un sistema externo (ERP, C
 tumbe el CORE ni corrompa la Base Patrimonial.
 
 - **Idempotencia end-to-end**: toda escritura hacia el CORE lleva una `idempotencyKey` (ya
-  definida en DOC-002 §4). Reintentar una operación de red nunca duplica un alta, un movimiento
+  definida en DOC-002 4). Reintentar una operación de red nunca duplica un alta, un movimiento
   ni un evento.
 - **Colas para desacoplar captura de procesamiento**: el Nivel 1 (fuentes de captura) escribe a
   una cola/buffer, no llama sincrónicamente al CORE. Si el CORE está saturado o caído, los
@@ -189,10 +189,10 @@ tumbe el CORE ni corrompa la Base Patrimonial.
 - **Circuit breaker en el CIS** hacia el CORE y hacia integraciones externas (ERP, BI): si un
   sistema externo empieza a fallar, el CIS deja de insistir temporalmente en vez de propagar la
   falla hacia arriba.
-- **Aislamiento de fallos por integración**: una integración externa caída (Tomo III §4.13:
+- **Aislamiento de fallos por integración**: una integración externa caída (Tomo III 4.13:
   ERP, Contabilidad, RRHH, Correo, Power BI, Cloud, RFID, APIs) nunca bloquea el flujo interno
   Captura → CIS → CORE → Base Patrimonial. Se degrada esa integración puntual, no el ecosistema.
-- **Historial que nunca se pierde** (Tomo III §4.10: "nunca se elimina, nunca se reinicia"):
+- **Historial que nunca se pierde** (Tomo III 4.10: "nunca se elimina, nunca se reinicia"):
   requiere respaldos verificados con restauración probada periódicamente, no solo backups que
   nadie restauró nunca.
 - **Multi-instancia sin estado en memoria compartido**: cualquier nivel debe poder correr en más
@@ -208,18 +208,18 @@ Objetivo: que el CIP (Nivel 5) sirva dashboards e indicadores sin degradar el CO
 - **Separar lectura transaccional de lectura analítica**: el CIP nunca consulta directamente la
   Base Patrimonial transaccional. Consume una réplica de solo lectura o un almacén optimizado
   para reportes, alimentado de forma asíncrona por el Motor de Eventos del CORE.
-- **Caché en el nivel que más se repite la consulta**: catálogos (Tomo III §4.4), áreas y
+- **Caché en el nivel que más se repite la consulta**: catálogos (Tomo III 4.4), áreas y
   ubicaciones cambian poco y se consultan mucho — son candidatos naturales a caché con
   invalidación por evento, no por tiempo fijo arbitrario.
 - **Paginación y proyección obligatorias**: ninguna API del CIS/CORE devuelve un dataset completo
   sin límite — todo listado (activos, eventos, auditoría) es paginado desde el diseño, no
   parcheado después de que el catálogo crezca.
 - **Elegir el motor de datos por patrón de acceso, no por costumbre**: relacional para el modelo
-  transaccional de 11 dominios con relaciones fuertes (Tomo III §4.14); un almacén
+  transaccional de 11 dominios con relaciones fuertes (Tomo III 4.14); un almacén
   columnar/analítico para el CIP; una cola para eventos; ninguna decisión de motor de base de
   datos es "una para todo el ecosistema".
 - **Procesamiento asíncrono para todo lo que no bloquea al usuario**: generación de reportes
-  (Tomo IV §2.11), recálculo de indicadores del CIP, envío de alertas — nunca en el camino
+  (Tomo IV 2.11), recálculo de indicadores del CIP, envío de alertas — nunca en el camino
   síncrono de una transacción patrimonial.
 
 ## 6. Pilar: Optimización de Costos
@@ -229,14 +229,14 @@ proveedor.
 
 - **Escalar cada nivel de forma independiente**: si RFID (Nivel 1, fase tardía) no tiene tráfico
   todavía, no debe correr con la misma capacidad reservada que el CORE. El límite de módulo del
-  §1 es lo que hace esto posible.
+  1 es lo que hace esto posible.
 - **Autoscaling basado en demanda real**, no capacidad fija dimensionada "por si acaso" —
   especialmente relevante en Nivel 1 (picos de escaneo QR en cierre de inventario) y Nivel 5
   (picos de consulta de dashboards a fin de mes).
 - **Apagar/reducir a cero lo que no tiene tráfico**: entornos de desarrollo y sistemas de fase
   tardía (RFID, Integraciones) no necesitan estar corriendo permanentemente antes de tener uso
   real.
-- **Formatos de exportación livianos por defecto** (Tomo IV §2.11 ya define PDF/Excel/CSV/JSON):
+- **Formatos de exportación livianos por defecto** (Tomo IV 2.11 ya define PDF/Excel/CSV/JSON):
   generarlos bajo demanda, no precalcular y almacenar todas las combinaciones posibles.
 - **Medir antes de sobre-aprovisionar**: ninguna decisión de capacidad para CORE/CIS se toma sin
   datos reales de carga — evita pagar por picos que nunca ocurren.
@@ -287,17 +287,17 @@ qué tecnología concreta lo satisface, para que quede trazable por qué se elig
 
 Tomo III Cap.1 ("Arquitectura General del Ecosistema SICSAFT") define, a nivel de todo el
 ecosistema, las fuentes autorizadas de entrada y sus permisos, y las salidas oficiales de
-explotación de información. Complementa el modelo de 6 niveles (§1) y el modelo de permisos de
+explotación de información. Complementa el modelo de 6 niveles (1) y el modelo de permisos de
 [`seguridad/README.md`](seguridad/README.md).
 
-**Entradas oficiales (Tomo III §1.4)**
+**Entradas oficiales (Tomo III 1.4)**
 
 | Entrada | Función | Permisos | No puede |
 |---|---|---|---|
 | APP QR | Captura vía código QR | Lectura, registro de inventarios/estados, generación de informes | Modificar la Base Patrimonial Oficial |
 | Plataforma WEB | Consulta, dashboards, reportes, administración | Generar configuraciones, asignar usuarios, autorizar procesos | Modificar directamente la Base Patrimonial sin permisos específicos |
 | RFID (referencia de integración: MOVAT) | Recibe eventos RFID — movimientos, alarmas, ubicación, lecturas | Solo lectura de eventos | Nunca modifica la Base Patrimonial |
-| **Administrador Patrimonial** ✅ (nombre funcional: Profesional de AFT, ver [DOC-012](seguridad/DOC-012-administrador-patrimonial.md) § "Nomenclatura") | Único rol autorizado a modificar oficialmente la Base Patrimonial | Incorporar activos, eliminar activos (según permisos), modificar responsables/áreas, actualizar estados oficiales, importar bases contables | — |
+| **Administrador Patrimonial** ✅ (nombre funcional: Profesional de AFT, ver [DOC-012](seguridad/DOC-012-administrador-patrimonial.md) "Nomenclatura") | Único rol autorizado a modificar oficialmente la Base Patrimonial | Incorporar activos, eliminar activos (según permisos), modificar responsables/áreas, actualizar estados oficiales, importar bases contables | — |
 | **Sistema Contable** | Fuente de la que siempre proviene la Base Oficial | Importación, actualización, sincronización de registros oficiales | Nunca elimina información histórica |
 
 **Administrador Patrimonial** ya está implementado de punta a punta (ROADMAP.md Fase 4,
@@ -307,7 +307,7 @@ alta/baja/reincorporación/cambio de responsable de `Activo`
 (`core/src/patrimonial/activo-escritura.controller.ts`), importación masiva idempotente de base
 contable (`POST /importaciones/contable`, precursor manual de `CON-CONTABILIDAD`) y escritura de
 `Contrato` (`POST /contratos`, `PATCH /contratos/:id`,
-`core/src/entitlements/contrato-escritura.controller.ts`) — las 3 operaciones que Tomo III §1.4 le
+`core/src/entitlements/contrato-escritura.controller.ts`) — las 3 operaciones que Tomo III 1.4 le
 exige a esta entrada. **Sistema Contable** (conector automático `CON-CONTABILIDAD`) sigue sin
 modelar: no hay integración con un sistema contable real en `integraciones/README.md` (el
 conector está listado pero sin iniciar, Fase 7 del ROADMAP) — la importación manual del
@@ -319,10 +319,10 @@ sistema contable del cliente — la frontera de responsabilidad termina antes de
 intermedio validado por el especialista contable, no una conexión en vivo), con flujo
 recibido → validado → comparado → aprobado → procesado → auditado antes de que CORE aplique
 cualquier cambio a la Base Patrimonial — nunca sobrescritura silenciosa de un campo patrimonial ya
-existente. Esto no cambia los permisos que le exige Tomo III §1.4 (importación, actualización,
+existente. Esto no cambia los permisos que le exige Tomo III 1.4 (importación, actualización,
 sincronización de registros oficiales); acota *cómo* se implementan.
 
-**Salidas oficiales (Tomo III §1.5)**
+**Salidas oficiales (Tomo III 1.5)**
 
 | Salida | Contenido |
 |---|---|
@@ -336,10 +336,10 @@ Mapea 1:1 con los motores ya definidos en [`core/README.md`](core/README.md) (Mo
 Motor de Alertas, Motor de Auditoría) más el nivel CIP ([`cip/README.md`](cip/README.md)) para el
 Dashboard Ejecutivo.
 
-## 12. Hoja de ruta tecnológica declarada (Tomo III §1.2)
+## 12. Hoja de ruta tecnológica declarada (Tomo III 1.2)
 
 Tomo III Cap.1 declara una hoja de ruta explícita en 5 etapas — evita "desarrollar funciones que
-el mercado aún no demanda", consistente con YAGNI (§9):
+el mercado aún no demanda", consistente con YAGNI (9):
 
 1. **Etapa 1 (v1.0)**: APP QR, Plataforma WEB, Integración RFID — converge todo a SICSAFT CORE.
    Etapa de comercialización inicial. **Es la etapa actual del ecosistema.**

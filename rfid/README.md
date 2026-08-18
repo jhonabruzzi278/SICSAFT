@@ -25,7 +25,7 @@ Nada.
 
 ## Documentos relacionados
 Pendiente: DOC-015 Arquitectura RFID.
-Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §1 (RFID entra como un conector nuevo en el
+Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 1 (RFID entra como un conector nuevo en el
 CIS, sin tocar CORE ni Base Patrimonial — así está diseñado el límite de módulo).
 
 ## Próximo paso sugerido

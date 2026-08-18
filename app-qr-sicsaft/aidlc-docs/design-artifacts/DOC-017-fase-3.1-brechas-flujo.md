@@ -1,15 +1,15 @@
 # DOC-017 — Fase 3.1: brechas de flujo APP QR encontradas en el spec funcional (pptx)
 
-> Diseño antes que código (`CLAUDE.md` § Metodología AI-DLC). Este documento cubre Inception para
-> los 4 ítems de `ROADMAP.md` § Fase 3.1. **Estado 2026-08-17**: los 4 ítems confirmados con el
+> Diseño antes que código (`CLAUDE.md` Metodología AI-DLC). Este documento cubre Inception para
+> los 4 ítems de `ROADMAP.md` Fase 3.1. **Estado 2026-08-17**: los 4 ítems confirmados con el
 > usuario, listos para Construction — sin preguntas abiertas.
 
 ## 0. Origen y alcance
 
 Fuente: `PROCESO MODULAR DE APLICACION SICSAFT, SOFTWARE.ppt` (fuera de git, revisado
 2026-08-17), comparado contra el código real de `app-qr-sicsaft/` y `core/`. Detalle de cada ítem
-y su estado: [`REQUISITOS.md`](../../../REQUISITOS.md) § "Requisitos nuevos identificados en spec
-funcional (pptx)". Plan de fase: [`ROADMAP.md`](../../../ROADMAP.md) § Fase 3.1.
+y su estado: [`REQUISITOS.md`](../../../REQUISITOS.md) "Requisitos nuevos identificados en spec
+funcional (pptx)". Plan de fase: [`ROADMAP.md`](../../../ROADMAP.md) Fase 3.1.
 
 Cuatro ítems, ninguno requiere tocar CIS o el contrato DOC-006 (API CIS↔CORE) — los tres primeros
 son puramente de cliente (APP QR), el cuarto depende de una decisión de modelo en
@@ -71,21 +71,21 @@ APP QR se lo mande a CORE todavía (sin consumidor real en backend hoy, YAGNI).
 
 **Riesgo declarado**: la interpretación de la tabla es mi lectura del texto del pptx, que en la
 frase de ACEPTABLE mezcla dos ideas en una oración sin puntuación clara. **Confirmado correcto
-por el usuario 2026-08-17** — ver §7.
+por el usuario 2026-08-17** — ver 7.
 
 ## 3. Estado del AFT declarado durante el control (en servicio/mantenimiento/inactivo/baja)
 
 **Qué pide el pptx**: el controlador marca el estado de cada AFT escaneado durante el control.
 
 **Resuelto 2026-08-17** (confirmado con el usuario — DOC-005 reabierto):
-`base-patrimonial/DOC-005-modelo-patrimonial.md` §4 ahora modela `activo | en_transito |
+`base-patrimonial/DOC-005-modelo-patrimonial.md` 4 ahora modela `activo | en_transito |
 extraviado | mantenimiento | inactivo | dado_de_baja` para `Activo`, con
 `activo ⇄ mantenimiento` y `activo ⇄ inactivo` nuevas. "En servicio" del pptx mapea a `activo`
 (ya existía, no-op).
 
-**Quién puede declarar qué** (`seguridad/DOC-012-administrador-patrimonial.md` §5.1):
+**Quién puede declarar qué** (`seguridad/DOC-012-administrador-patrimonial.md` 5.1):
 - **`mantenimiento`/`inactivo`/`activo`** → **cualquier operador de APP QR, sin rol nuevo**. Tomo
-  III §1.4 ya le concede a APP QR "registro de inventarios/**estados**" — es una extensión del
+  III 1.4 ya le concede a APP QR "registro de inventarios/**estados**" — es una extensión del
   payload de `POST /inventarios` (campo `estadoDeclarado` por escaneo), no un endpoint nuevo ni
   una autorización nueva.
 - **`dado_de_baja`** → **sigue exclusivo de Administrador Patrimonial**, sin cambios.
@@ -100,7 +100,7 @@ el informe (mismo lugar donde ya revisa inventarios/auditoría) y, si correspond
 real él mismo desde WEB con `POST /activos/:id/baja` (ya implementado, Fase 4) — la Base
 Patrimonial nunca se modifica sin que ese rol la ejecute explícitamente.
 
-**Por qué esto ya no choca con el tomo**: Tomo III §1.4 solo prohíbe que APP QR *modifique* la
+**Por qué esto ya no choca con el tomo**: Tomo III 1.4 solo prohíbe que APP QR *modifique* la
 Base Patrimonial Oficial — una sugerencia que no cambia ningún estado, ni siquiera
 `Activo.estado`, no es una modificación. Es el mismo tipo de dato que "generación de informes",
 que el tomo sí le concede a APP QR explícitamente. No hay conflicto que resolver ni pregunta
@@ -119,7 +119,7 @@ pertenece un activo fuera de lugar, y ya se usa para el toast (`⚠ ${code} — 
 agrupados por `expectedAreaName`.
 
 **Diseño propuesto**: sin cambios de datos ni de contrato — es una vista nueva sobre datos que ya
-llegan al cliente. El único ítem de los 4 sin pregunta abierta (§7); puede construirse
+llegan al cliente. El único ítem de los 4 sin pregunta abierta (7); puede construirse
 independiente de que se resuelvan los ítems 1–3.
 
 ## 5. Qué NO resuelve este documento
@@ -131,7 +131,7 @@ independiente de que se resuelvan los ítems 1–3.
   no de entrada (YAGNI).
 - RFID real (Modo 3) — Fase 8, hardware no disponible.
 - Migración real de la constraint `estado IN (...)` de `activos` (aditiva, sin escribir todavía —
-  ver DOC-005 §8) ni la extensión real del payload `POST /inventarios`/DOC-006 (sin código hasta
+  ver DOC-005 8) ni la extensión real del payload `POST /inventarios`/DOC-006 (sin código hasta
   cerrar Construction).
 - Cualquier otro cambio al contrato DOC-006 fuera del campo `estadoDeclarado` — los 4 ítems son de
   cliente, cálculo derivado, o extensión aditiva de un endpoint ya existente; ninguno necesita un
@@ -141,7 +141,7 @@ independiente de que se resuelvan los ítems 1–3.
 
 - Selector de modo: test de UI verificando que Modo 3 está deshabilitado y Modo 1/2 llevan al
   mismo `ScanPage`.
-- Veredicto de sesión: unit tests puros sobre la función de cálculo (tabla de verdad de §2 con
+- Veredicto de sesión: unit tests puros sobre la función de cálculo (tabla de verdad de 2 con
   `missingAssets.length`/`outOfPlaceCount` en 0, uno, o ambos > 0) — mismo patrón que
   `scan-resolve.spec.ts` ya usa para las categorías existentes.
 - Registro de estado operativo (`mantenimiento`/`inactivo`/`activo`): unit en CORE sobre la nueva
@@ -158,11 +158,11 @@ independiente de que se resuelvan los ítems 1–3.
 ## 7. Preguntas abiertas — ninguna, todo confirmado
 
 **Resuelto 2026-08-17, confirmado con el usuario**:
-- §1 selector de modo — informativo, Modo 3 deshabilitado hasta Fase 8 (opción recomendada).
-- §2 tabla EXITOSO/ACEPTABLE/DEFECTUOSO — interpretación confirmada correcta.
-- §3 estados mantenimiento/inactivo — DOC-005 reabierto y modelado; autorización resuelta vía
-  Tomo III §1.4 sin rol nuevo, ver DOC-012 §5.1.
-- §3 baja — el operador la sugiere (dato informativo, sin tocar `Activo.estado`), el Administrador
-  Patrimonial la ejecuta desde WEB tras revisar — sin conflicto con el tomo, ver DOC-012 §5.1.
+- 1 selector de modo — informativo, Modo 3 deshabilitado hasta Fase 8 (opción recomendada).
+- 2 tabla EXITOSO/ACEPTABLE/DEFECTUOSO — interpretación confirmada correcta.
+- 3 estados mantenimiento/inactivo — DOC-005 reabierto y modelado; autorización resuelta vía
+  Tomo III 1.4 sin rol nuevo, ver DOC-012 5.1.
+- 3 baja — el operador la sugiere (dato informativo, sin tocar `Activo.estado`), el Administrador
+  Patrimonial la ejecuta desde WEB tras revisar — sin conflicto con el tomo, ver DOC-012 5.1.
 
 Los 4 ítems pasan a Construction.

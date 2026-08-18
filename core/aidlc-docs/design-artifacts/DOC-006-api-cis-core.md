@@ -14,26 +14,26 @@
 
 Al diseñar este documento contra el contrato real de DOC-002 (no contra la memoria de qué se
 pensaba implementar), aparecieron dos discrepancias con
-`base-patrimonial/DOC-005-modelo-patrimonial.md` §5 (ya migrado y en `main`):
+`base-patrimonial/DOC-005-modelo-patrimonial.md` 5 (ya migrado y en `main`):
 
-1. **Nombre de categoría equivocado**: DOC-005 usó `codigo_invalido`; DOC-002 §2 y
+1. **Nombre de categoría equivocado**: DOC-005 usó `codigo_invalido`; DOC-002 2 y
    `cis/src/qr-connector/qr-connector.schemas.ts` (`scanResultadoSchema`) ya usan **`invalido`**
    a secas. Corrección: nueva migración en Fase 2 que renombra el valor permitido por el
    `CHECK` de `inventarios.resultado` — no se edita la migración `1755100000000` ya compartida.
 2. **Granularidad de `Inventario`**: DOC-005 modeló `inventarios` como una fila por
-   *activo verificado*. Eso es correcto como grano de almacenamiento (coincide con Tomo III §4.6:
-   "Fecha, Usuario, Método, Resultado, Observaciones" por verificación), pero DOC-002 §2 confirma
+   *activo verificado*. Eso es correcto como grano de almacenamiento (coincide con Tomo III 4.6:
+   "Fecha, Usuario, Método, Resultado, Observaciones" por verificación), pero DOC-002 2 confirma
    que `POST /inventarios` envía **una sesión completa cerrada** (`escaneos: []`,
    `incidencias: []`, con un único `inventarioId`/`idempotencyKey` para todo el lote — "la unidad
-   atómica es la sesión de inventario completa", DOC-002 §4). Falta una entidad que agrupe esas
-   filas. Corrección: nueva tabla `sesiones_inventario` en Fase 2 (ver §3).
+   atómica es la sesión de inventario completa", DOC-002 4). Falta una entidad que agrupe esas
+   filas. Corrección: nueva tabla `sesiones_inventario` en Fase 2 (ver 3).
 
 Ninguna de las dos requiere revertir DOC-005 — son adiciones/correcciones aditivas sobre lo ya
 migrado, con su propia migración nueva en esta fase.
 
 ## 1. Endpoints
 
-Mismos 4 que CIS ya expone hacia APP QR (DOC-002 §2) menos `POST /auth/session` (ese lo resuelve
+Mismos 4 que CIS ya expone hacia APP QR (DOC-002 2) menos `POST /auth/session` (ese lo resuelve
 `GET /entitlements`, ya implementado desde Fase 0 — no es parte de esta fase):
 
 | Endpoint | Método | Implementa | Auth |
@@ -72,7 +72,7 @@ interface ActivoCatalogo {
 
 ```ts
 interface InventarioRequest {
-  correlationId: string;      // de negocio (DOC-002 §6) -- distinto del header X-Correlation-Id
+  correlationId: string;      // de negocio (DOC-002 6) -- distinto del header X-Correlation-Id
   idempotencyKey: string;
   operadorId: string;
   organizacionId: string;
@@ -87,13 +87,13 @@ interface InventarioRequest {
 
 **El `resultado` que manda el cliente es una sugerencia offline, no la verdad**: la app clasifica
 localmente contra su último catálogo sincronizado (`app-qr-sicsaft/src/lib/scan-resolve.ts`),
-que puede estar desactualizado. DOC-002 §1 es explícito: "aplicar Reglas patrimoniales... eso
+que puede estar desactualizado. DOC-002 1 es explícito: "aplicar Reglas patrimoniales... eso
 vive en CORE". El Motor de Reglas (DOC-009) **reclasifica cada escaneo contra la Base
 Patrimonial real** y ese es el `resultado` que se persiste — el del cliente solo se guarda como
 lo que el operador vio en el momento, para auditoría de discrepancias (¿por qué el operador vio
 "correcto" y CORE dice "otra_area"? → catálogo del dispositivo desactualizado).
 
-**Persistencia** (resuelve el hallazgo §0):
+**Persistencia** (resuelve el hallazgo 0):
 
 ```sql
 -- nueva en Fase 2
@@ -104,7 +104,7 @@ CREATE TABLE sesiones_inventario (
     area_id TEXT NOT NULL REFERENCES areas(id),
     ubicacion_id TEXT NOT NULL REFERENCES ubicaciones(id),
     operador_id TEXT NOT NULL,
-    correlation_id TEXT NOT NULL,        -- correlationId de negocio del payload (DOC-002 §6)
+    correlation_id TEXT NOT NULL,        -- correlationId de negocio del payload (DOC-002 6)
     fecha_inicio TIMESTAMPTZ NOT NULL,
     fecha_cierre TIMESTAMPTZ NOT NULL,
     estado TEXT NOT NULL CHECK (estado IN ('pendiente', 'recibido', 'rechazado')),
@@ -129,7 +129,7 @@ interface PostInventarioResponse {
 
 **Idempotencia** (RF-07): `idempotencyKey` único en `sesiones_inventario`. Mismo key + mismo
 `request_hash` → se devuelve la fila existente sin reprocesar. Mismo key + hash distinto → `409`
-(DOC-002 §5, "tratar como bug de cliente").
+(DOC-002 5, "tratar como bug de cliente").
 
 ## 4. `GET /inventarios/:inventarioId/estado`
 
@@ -138,7 +138,7 @@ Idéntico a `InventarioEstadoResponse` de CIS — lee `sesiones_inventario.estad
 
 ## 5. Errores
 
-Mismo mapeo que DOC-002 §5 ya define del lado del cliente — CORE es quien produce estos códigos:
+Mismo mapeo que DOC-002 5 ya define del lado del cliente — CORE es quien produce estos códigos:
 
 | Código | Cuándo |
 |---|---|
@@ -154,5 +154,5 @@ la categoría `no_registrado` dentro de una respuesta `201` exitosa (DOC-009).
 [DOC-002](../../../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md) — contrato
 origen, del lado de CIS↔APP QR, que este documento no debe romper.
 [DOC-005](../../../base-patrimonial/DOC-005-modelo-patrimonial.md) — tablas sobre las que corre
-este contrato (con las dos correcciones de §0 pendientes de migrar).
+este contrato (con las dos correcciones de 0 pendientes de migrar).
 [DOC-009](DOC-009-motor-reglas.md) — cómo se recalcula `resultado` en el servidor.

@@ -44,7 +44,7 @@ async function attemptSend(db: IDBDatabase, session: ScanSession): Promise<void>
       locationName: session.locationName,
     });
   } catch (error) {
-    // DOC-002 §5: un 400/409 de CORE es un rechazo permanente (payload inválido o
+    // DOC-002 5: un 400/409 de CORE es un rechazo permanente (payload inválido o
     // idempotencyKey reutilizada con otro payload) — reintentarlo para siempre nunca lo va a
     // hacer pasar, así que corta la cola acá en vez de seguir intentando cada 5 minutos.
     // Cualquier otra falla (5xx, sin red, 401 sin refresh posible) sigue siendo transitoria.

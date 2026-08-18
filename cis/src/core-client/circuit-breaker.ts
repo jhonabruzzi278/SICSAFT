@@ -1,4 +1,4 @@
-// WAF §4: "circuit breaker en el CIS hacia el CORE... si un sistema externo empieza a fallar,
+// WAF 4: "circuit breaker en el CIS hacia el CORE... si un sistema externo empieza a fallar,
 // el CIS deja de insistir temporalmente en vez de propagar la falla hacia arriba". Implementacion
 // propia (no una libreria) — el algoritmo es chico y bien acotado (3 estados, 2 parametros), y
 // una dependencia nueva para esto seria mas superficie que resolver.

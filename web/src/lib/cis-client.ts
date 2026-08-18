@@ -1,7 +1,7 @@
 // Cliente HTTP hacia CIS — WEB nunca le habla a CORE directo (regla no negociable de CLAUDE.md).
-// Reusa DOC-006 (GET /catalogo, POST /auth/session) igual que app-qr-sicsaft (WAF §8, "WEB y APP
+// Reusa DOC-006 (GET /catalogo, POST /auth/session) igual que app-qr-sicsaft (WAF 8, "WEB y APP
 // QR son clientes intercambiables del mismo contrato") + el endpoint nuevo de Fase 5
-// (POST /admin/activos, DOC-012 §5).
+// (POST /admin/activos, DOC-012 5).
 import { loadOidcConfig } from './oidc/oidc-config';
 import { oidcClient, AuthenticationRequiredError } from './oidc/oidc-client';
 
@@ -54,7 +54,7 @@ export interface Activo {
   };
 }
 
-// DOC-004 §3 — maquina de estados de Contrato: solo estas transiciones son validas, CORE rechaza
+// DOC-004 3 — maquina de estados de Contrato: solo estas transiciones son validas, CORE rechaza
 // cualquier otra con 400 (ver core/src/entitlements/contrato.repository.ts,
 // TRANSICIONES_VALIDAS). Se repite acá solo para que la UI ofrezca botones con sentido, la
 // validacion real vuelve a correr en CORE.
@@ -130,7 +130,7 @@ export interface AuditoriaFiltro {
   fechaHasta?: string;
 }
 
-// RF-05 — Area/Ubicacion/Responsable (DOC-005 §2/§3).
+// RF-05 — Area/Ubicacion/Responsable (DOC-005 2/3).
 export interface Area {
   id: string;
   organizacionId: string;
@@ -227,7 +227,7 @@ export class CisApiError extends Error {
 }
 
 // Un solo deviceId estable por navegador — WEB no tiene el concepto de "un solo dispositivo" que
-// justifica deviceId para APP QR (DOC-002 §1), pero POST /auth/session lo exige igual (mismo
+// justifica deviceId para APP QR (DOC-002 1), pero POST /auth/session lo exige igual (mismo
 // contrato). No se persiste como secreto, solo identifica el "dispositivo" ante el enforcement de
 // device-registry de CIS.
 const DEVICE_ID_KEY = 'web-sicsaft-device-id';

@@ -12,18 +12,18 @@ import type {
   SesionDetalle,
 } from './core-client.types';
 
-// DOC-018 §3 — deliberadamente sin circuit breaker ni retry (a diferencia de
+// DOC-018 3 — deliberadamente sin circuit breaker ni retry (a diferencia de
 // cis/src/core-client/): CIS los necesita porque multiplexa requests sincronas de usuarios
 // reales concurrentes; CIP es un worker de background de un solo consumidor por vez, y BullMQ ya
 // da reintentos con backoff a nivel de job si un mensaje falla — agregar una segunda capa de
-// resiliencia acá seria redundante (YAGNI, WAF §9).
+// resiliencia acá seria redundante (YAGNI, WAF 9).
 @Injectable()
 export class CoreClientService {
   constructor(
     @Inject(CORE_CLIENT_CONFIG) private readonly config: CoreClientConfig,
   ) {}
 
-  // Itera todas las paginas de GET /catalogo para una organizacion — DOC-018 §5.2, volumen bajo
+  // Itera todas las paginas de GET /catalogo para una organizacion — DOC-018 5.2, volumen bajo
   // en este MVP (mismo criterio que ContratoRepository.findPagina paginando en memoria).
   async obtenerCatalogoCompleto(
     organizacionId: string,

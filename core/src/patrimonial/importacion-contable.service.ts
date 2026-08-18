@@ -8,7 +8,7 @@ import type {
   ResultadoFila,
 } from './importacion-contable.types';
 
-// DOC-012 §6 — carga masiva de base contable, precursor manual de CON-CONTABILIDAD (Fase 7).
+// DOC-012 6 — carga masiva de base contable, precursor manual de CON-CONTABILIDAD (Fase 7).
 // Idempotente POR FILA (no por request completo, a diferencia de InventariosService que es
 // atomico por sesion): cada fila se resuelve independiente, así una fila con datos invalidos no
 // aborta el resto del archivo. Invocado por OrquestadorService, no directo desde el controller
@@ -55,7 +55,7 @@ export class ImportacionContableService {
 
     // Reintentar la misma fila con el mismo contenido no duplica; una fila con
     // codigoPatrimonial ya existente pero contenido distinto se reporta como conflicto, nunca
-    // sobrescribe en silencio (DOC-012 §6) — y nunca se elimina (Tomo III §1.4 Entrada 5).
+    // sobrescribe en silencio (DOC-012 6) — y nunca se elimina (Tomo III 1.4 Entrada 5).
     if (this.mismoContenido(existente, fila, organizacionId)) {
       return {
         codigoPatrimonial: fila.codigoPatrimonial,
@@ -65,7 +65,7 @@ export class ImportacionContableService {
     return {
       codigoPatrimonial: fila.codigoPatrimonial,
       resultado: 'conflicto',
-      motivo: `El activo '${fila.codigoPatrimonial}' ya existe con datos distintos — la importacion nunca sobrescribe en silencio (DOC-012 §6)`,
+      motivo: `El activo '${fila.codigoPatrimonial}' ya existe con datos distintos — la importacion nunca sobrescribe en silencio (DOC-012 6)`,
     };
   }
 

@@ -31,7 +31,7 @@ function buildBody(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('DOC-012 §6 — importacion masiva de base contable (e2e)', () => {
+describe('DOC-012 6 — importacion masiva de base contable (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {

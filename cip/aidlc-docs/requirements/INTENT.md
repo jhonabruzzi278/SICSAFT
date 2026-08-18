@@ -3,16 +3,16 @@
 ## Qué se pidió
 El usuario pidió arrancar el diseño (metodología AI-DLC) de la Fase 6 del `ROADMAP.md`: el
 primer dashboard del Centro de Inteligencia Patrimonial (CIP, SYS-06), hoy una carpeta placeholder
-sin ningún código (`cip/README.md` § Estado: "🔲 No iniciado").
+sin ningún código (`cip/README.md` Estado: "🔲 No iniciado").
 
 ## Por qué ahora
 - Las Fases 0–5 y 3.1 ya están completas y mergeadas: CORE tiene datos reales (activos, eventos,
   sesiones de inventario) desde APP QR y WEB — recién ahora hay algo que un dashboard pueda medir
-  (`ROADMAP.md` Fase 6 § "Por qué acá").
+  (`ROADMAP.md` Fase 6 "Por qué acá").
 - El spec funcional (`PROCESO MODULAR DE APLICACION SICSAFT, SOFTWARE.ppt`, revisado 2026-08-17)
   confirma dos necesidades de negocio adicionales para este mismo dashboard: gráfico circular por
   categoría de AFT y un informe diario automático — ya anotadas como pendientes en
-  `REQUISITOS.md` § "Requisitos nuevos identificados en spec funcional".
+  `REQUISITOS.md` "Requisitos nuevos identificados en spec funcional".
 - Es el primer sistema del ecosistema que necesita el patrón de **outbox transaccional**
   (`ROADMAP.md` Fase 6: "Patrón a adoptar acá, no antes") — Motor de Eventos hoy solo inserta en
   `eventos`, sin publicar a nadie.
@@ -21,11 +21,11 @@ sin ningún código (`cip/README.md` § Estado: "🔲 No iniciado").
 - **Informe diario automático a hora fija** (spec pptx) — requiere un scheduler + un canal de
   entrega (correo, notificación) que no existe en ningún sistema del ecosistema todavía. Se deja
   como historia identificada pero sin diseñar en este incremento (ver
-  `story-artifacts/USER_STORIES.md` § Fuera de alcance) — evita mezclar "leer y mostrar datos" con
+  `story-artifacts/USER_STORIES.md` Fuera de alcance) — evita mezclar "leer y mostrar datos" con
   "generar y enviar un documento programado", que son dos problemas de tamaño distinto.
-- **Motor de Alertas** (Tomo IV §2.4) — sin consumidor real todavía, mismo criterio que
+- **Motor de Alertas** (Tomo IV 2.4) — sin consumidor real todavía, mismo criterio que
   `core/README.md` ya aplicó para no construirlo en Fase 2 (YAGNI).
-- **Elegir un motor de datos analítico** (columnar, OLAP) — WAF §9 lo prohíbe explícitamente antes
+- **Elegir un motor de datos analítico** (columnar, OLAP) — WAF 9 lo prohíbe explícitamente antes
   de tener el modelo de dominio de CORE estable y carga real medida. Este incremento usa Postgres
   (vistas materializadas / tablas de agregados propias de CIP), no un motor nuevo.
 - **Multi-tenancy de infraestructura** (una base de datos de CIP por organización) — CIP ya filtra
@@ -36,7 +36,7 @@ sin ningún código (`cip/README.md` § Estado: "🔲 No iniciado").
   posterior, análogo a como Fase 5 primero definió DOC-013 y después construyó `web/`.
 
 ## Decisión abierta que este diseño resuelve
-`cip/README.md` § Depende de decía "idealmente vía un almacén de solo lectura / reporting, no
+`cip/README.md` Depende de decía "idealmente vía un almacén de solo lectura / reporting, no
 contra la Base Patrimonial transaccional directamente" — sin especificar el mecanismo. Este
 documento fija esa decisión: outbox transaccional (trigger de Postgres, no cambios de código en
 cada repositorio que ya escribe `eventos`) + cola Redis/BullMQ (ya provisionado, ADR-001) + tablas

@@ -5,7 +5,7 @@ export interface RedisStub {
   disconnect: jest.Mock;
 }
 
-// RateLimitGuard (WAF §4) — stub que por defecto siempre permite (count=1), no hace falta un
+// RateLimitGuard (WAF 4) — stub que por defecto siempre permite (count=1), no hace falta un
 // Redis real para probar el resto de un conector. Compartido entre e2e specs (evitaba
 // duplicacion real, marcada por SonarCloud).
 export function crearRedisStub(): RedisStub {

@@ -1,15 +1,15 @@
 import type { MigrationBuilder } from 'node-pg-migrate';
 
-// ROADMAP.md Fase 3.1 / DOC-017 (app-qr-sicsaft) / DOC-005 §4 / DOC-012 §5.1 — reabre la
-// exclusion de 'mantenimiento' que DOC-005 §4 dejaba fuera (Tomo III §4.15 lo marca "modulo
+// ROADMAP.md Fase 3.1 / DOC-017 (app-qr-sicsaft) / DOC-005 4 / DOC-012 5.1 — reabre la
+// exclusion de 'mantenimiento' que DOC-005 4 dejaba fuera (Tomo III 4.15 lo marca "modulo
 // futuro", no prohibido) y agrega 'inactivo', a pedido explicito del usuario 2026-08-17. Ambas
 // son transiciones declarables por cualquier operador de APP QR sin el rol
-// administrador-patrimonial (Tomo III §1.4 ya le concede "registro de inventarios/estados" a esa
+// administrador-patrimonial (Tomo III 1.4 ya le concede "registro de inventarios/estados" a esa
 // entrada) — ver InventariosService. Aditivo: ninguna fila existente deja de ser valida.
 //
 // 'baja_sugerida' (eventos.tipo) es el evento informativo que registra que un operador sugirio
 // la baja de un activo durante un control — no cambia activos.estado, la ejecuta el
-// Administrador Patrimonial via POST /activos/:id/baja (sin cambios, DOC-012 §5.1).
+// Administrador Patrimonial via POST /activos/:id/baja (sin cambios, DOC-012 5.1).
 
 const OLD_ESTADO_VALUES = [
   'activo',

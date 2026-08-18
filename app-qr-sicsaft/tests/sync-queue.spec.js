@@ -17,7 +17,7 @@ test('sin conexión, el inventario queda en cola y se sincroniza solo al volver'
 
   // MSW responde dentro del Service Worker sin tocar red real, así que page.context().setOffline()
   // no garantiza que un fetch mockeado falle — se simula la falla directo en el handler de
-  // POST /inventarios (ver plan de e2e, HANDOFF §7).
+  // POST /inventarios (ver plan de e2e, HANDOFF 7).
   await setInventarioFailing(page, true);
   await page.click('[data-testid="finish-btn"]');
   await page.click('[data-testid="confirm-send-btn"]');

@@ -18,7 +18,7 @@ function buildContext(
 }
 
 describe('verificarRolAdministradorPatrimonial', () => {
-  // DOC-012 §2: el rol es de Proyecto pero asignado por organizacion — el chequeo siempre es
+  // DOC-012 2: el rol es de Proyecto pero asignado por organizacion — el chequeo siempre es
   // "¿tiene el rol EN ESTA organizacion?", nunca "¿tiene el rol en alguna organizacion?" (ese
   // segundo criterio permitia a un admin de la Org A escribir sobre activos de la Org B, hallazgo
   // real de revision de seguridad).
@@ -94,7 +94,7 @@ describe('AdministradorPatrimonialGuard', () => {
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
   });
 
-  // Endurecido tras revision de seguridad (DOC-012 §3.2): este guard nunca debe ser la unica
+  // Endurecido tras revision de seguridad (DOC-012 3.2): este guard nunca debe ser la unica
   // defensa — si ServiceTokenGuard no corrio antes (falla cerrada, no importa si el resto del
   // body viene "correcto"), rechaza. Evita que un endpoint futuro olvide encadenar
   // ServiceTokenGuard y deje la autorizacion de escritura oficial dependiendo solo de campos

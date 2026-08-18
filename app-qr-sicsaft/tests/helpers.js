@@ -11,7 +11,7 @@ function base64url(json) {
 // Siembra sessionStorage con un JWT sin firmar (oidcClient.decodeJwtClaims no verifica firma,
 // sólo lee el claim `name` para mostrar el operador — CIS es quien valida de verdad, server-side)
 // antes de la primera navegación. Salta OperatorGate por completo: ya no hay login por texto
-// desde TASK-007, ver HANDOFF §7 (plan de e2e con MSW).
+// desde TASK-007, ver HANDOFF 7 (plan de e2e con MSW).
 export async function seedAuth(page, { operator = 'Operador Test' } = {}) {
   const header = base64url(JSON.stringify({ alg: 'none', typ: 'JWT' }));
   const payload = base64url(JSON.stringify({ name: operator, sub: 'operator-test' }));
@@ -61,7 +61,7 @@ export async function scanCode(page, code) {
 
 // Reemplaza page.context().setOffline(true/false) para simular falla de red en POST /inventarios:
 // MSW responde dentro del Service Worker sin tocar red real, así que el offline emulado por
-// Playwright no garantiza que un fetch mockeado falle (ver plan de e2e, HANDOFF §7). El control
+// Playwright no garantiza que un fetch mockeado falle (ver plan de e2e, HANDOFF 7). El control
 // vive en window.__mockControls (src/mocks/browser.ts), sólo existe en modo mock (VITE_MOCK_API).
 export async function setInventarioFailing(page, failing) {
   await page.evaluate((v) => window.__mockControls.setInventarioFailing(v), failing);

@@ -24,9 +24,9 @@ export type MensajeAgregacion =
       organizacionId: string | null;
     };
 
-// DOC-018 §5 — orquesta que recalcular por tipo de mensaje. Deliberadamente sin manejo de
+// DOC-018 5 — orquesta que recalcular por tipo de mensaje. Deliberadamente sin manejo de
 // reintentos/idempotencia propio: BullMQ ya reintenta el job si este metodo tira, y todas las
-// escrituras de AgregacionRepository son upserts o DELETE+INSERT completos (DOC-018 §5.3).
+// escrituras de AgregacionRepository son upserts o DELETE+INSERT completos (DOC-018 5.3).
 @Injectable()
 export class AgregacionService {
   constructor(
@@ -43,7 +43,7 @@ export class AgregacionService {
     await this.repository.actualizarSyncEstado();
   }
 
-  // DOC-018 §5.1
+  // DOC-018 5.1
   private async procesarSesionCerrada(sesionId: string): Promise<void> {
     const sesion = await this.coreClient.obtenerInventarioDetalle(sesionId);
     const catalogo = await this.coreClient.obtenerCatalogoCompleto(
@@ -124,7 +124,7 @@ export class AgregacionService {
     ).length;
   }
 
-  // DOC-018 §5.2
+  // DOC-018 5.2
   private async procesarEvento(organizacionId: string): Promise<void> {
     const catalogo =
       await this.coreClient.obtenerCatalogoCompleto(organizacionId);

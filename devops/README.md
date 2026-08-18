@@ -16,7 +16,7 @@ sigue sin implementar — ver [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) 
 El usuario administra su propio VPS (no una plataforma gestionada tipo Vercel/Render para
 backend). Cada nivel del ecosistema es su propio contenedor con su propio `Dockerfile`
 multi-stage, orquestados por Docker Compose — consistente con "cada nivel = un repositorio o
-paquete desplegable propio" de [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §1.
+paquete desplegable propio" de [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 1.
 
 ```
 sicsaft-vps/
@@ -95,7 +95,7 @@ para el ciclo de feedback normal.
   dedicado) — el archivo cifrado sí se commitea, la clave privada nunca. Nunca hardcodeados (ya
   reforzado en el `.gitignore` raíz).
 - Observabilidad self-hosted: Prometheus + Grafana + Loki + Alertmanager — mismas "tres señales"
-  de [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §2 (métricas, logs estructurados con
+  de [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 2 (métricas, logs estructurados con
   `correlationId`, trazas).
 - Rate limiting y WAF a nivel de Traefik (Coraza/ModSecurity), o Cloudflare delante del VPS.
 
@@ -120,8 +120,8 @@ Nada de forma dura, pero sin esto no hay entorno productivo real para ningún si
 APP QR (hoy en Vercel).
 
 ## Documentos relacionados
-[ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) — pilar de Excelencia Operacional (§2) y de
-Seguridad (§3). [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack).
+[ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) — pilar de Excelencia Operacional (2) y de
+Seguridad (3). [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack).
 [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (identidad/SSO/dominios).
 [`devops/prod/README.md`](prod/README.md) (gestión de secretos, SOPS + age).
 

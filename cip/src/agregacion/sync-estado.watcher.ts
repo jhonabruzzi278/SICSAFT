@@ -4,7 +4,7 @@ import type { Queue } from 'bullmq';
 import { AgregacionRepository } from './agregacion.repository';
 import { CIP_EVENTOS_QUEUE } from './eventos-outbox-queue.constants';
 
-// ARCHITECTURA.md §7 / DOC-018 §5.4 — RF-10: "al_dia" solo pasa a false si hay mensajes
+// ARCHITECTURA.md 7 / DOC-018 5.4 — RF-10: "al_dia" solo pasa a false si hay mensajes
 // esperando en la cola Y el ultimo procesado fue hace mas de CIP_UMBRAL_ATRASO_MINUTOS. Una cola
 // vacia nunca esta atrasada, aunque haga horas del ultimo mensaje (silencio no es lo mismo que
 // atraso).

@@ -1,4 +1,4 @@
-// Fase 3.1/DOC-017 §2 — declaración de resultado de sesión, distinta de las 8 categorías de
+// Fase 3.1/DOC-017 2 — declaración de resultado de sesión, distinta de las 8 categorías de
 // escaneo por ítem (DOC-009). Interpretación confirmada con el usuario 2026-08-17:
 // EXITOSO: nada falta y nada apareció fuera de área/ubicación.
 // ACEPTABLE: exactamente uno de los dos problemas (falta algo, o apareció algo de otra área) —

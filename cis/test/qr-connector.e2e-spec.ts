@@ -161,7 +161,7 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
       }),
     };
 
-    // Idem para Redis (RateLimitGuard, WAF §4): se reemplaza el cliente real por un stub que por
+    // Idem para Redis (RateLimitGuard, WAF 4): se reemplaza el cliente real por un stub que por
     // defecto siempre permite (count=1) — no hace falta un Redis real para probar el resto del
     // conector. El test dedicado de 429 más abajo simula el conteo por encima del límite.
     redisClient = crearRedisStub();
@@ -203,7 +203,7 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
     );
   });
 
-  it('POST /auth/session registra el deviceId como dispositivo activo del operador (DOC-002 §1)', async () => {
+  it('POST /auth/session registra el deviceId como dispositivo activo del operador (DOC-002 1)', async () => {
     await request(app.getHttpServer())
       .post('/auth/session')
       .set('Authorization', `Bearer ${bearerToken}`)
@@ -362,7 +362,7 @@ describe('Conector QR (e2e) — DOC-002 + auth Zitadel (ADR-002) + entitlements 
       .expect(404);
   });
 
-  it('devuelve 429 cuando el operador supera el limite de requests (RateLimitGuard, WAF §4)', async () => {
+  it('devuelve 429 cuando el operador supera el limite de requests (RateLimitGuard, WAF 4)', async () => {
     // El stub de Redis simula que este operador ya superó el límite de la ventana actual.
     redisClient.eval.mockResolvedValue(31);
     redisClient.pttl.mockResolvedValue(4_000);

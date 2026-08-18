@@ -8,14 +8,14 @@ raíz (`cis/`, `core/`, `web/`, ...) es su propio desplegable con su propio `pac
 ## Regla no negociable del ecosistema
 
 **Ninguna fuente de captura (APP QR, WEB, RFID, ERP) puede modificar la Base Patrimonial Central
-directamente.** Todo pasa por `CIS → CORE`. Esto viene de Tomo IV §1.7 y está grabado en el
+directamente.** Todo pasa por `CIS → CORE`. Esto viene de Tomo IV 1.7 y está grabado en el
 diagrama de [README.md](README.md). Ningún cambio de código debe crear un atajo que la rompa
 (ej. un servicio nuevo que le escriba a `base-patrimonial`/Postgres sin pasar por `core/`).
 
 ## Fuente de verdad de cada decisión
 
 - **Qué debe hacer cada sistema y qué reglas de negocio cumple**: los tomos oficiales
-  (`TOMO III Cap.1/4`, `TOMO IV Cap.1/2`), citados por sección (`§x.y`) en cada README y en
+  (`TOMO III Cap.1/4`, `TOMO IV Cap.1/2`), citados por sección (`x.y`) en cada README y en
   `base-patrimonial/DOC-004-modelo-contrato.md`. Si el código y un README citando un tomo
   entran en conflicto, el tomo gana — corregir el código o levantar la discrepancia, nunca
   editar la cita para que calce.
@@ -37,7 +37,7 @@ diagrama de [README.md](README.md). Ningún cambio de código debe crear un ataj
   viceversa — son afirmaciones que otras partes del repo citan y de las que dependen decisiones
   futuras.
 - Al incorporar contenido nuevo de un tomo oficial (`.doc` fuente, no versionado en git), citar
-  la sección exacta (`Tomo III §1.4`, no solo "el tomo dice") y anotar explícitamente si lo que
+  la sección exacta (`Tomo III 1.4`, no solo "el tomo dice") y anotar explícitamente si lo que
   describe ya está implementado o sigue pendiente.
 
 ## Metodología AI-DLC para features nuevas
@@ -69,14 +69,14 @@ Fase 2). Estructura estándar:
   renderizan directo en GitHub, no requieren herramienta externa.
 - **No duplicar contenido ya citado**: un DOC-XXX nuevo referencia a los tomos oficiales y a los
   DOC-XXX previos por sección, no repite su contenido.
-- Los DOC-XXX ya numerados de antemano en un README (ej. `core/README.md` § "Documentos
+- Los DOC-XXX ya numerados de antemano en un README (ej. `core/README.md` "Documentos
   relacionados" listando DOC-006 a DOC-011 como pendientes) mantienen esa numeración cuando se
   escriben — no se renumeran.
 
 ## Git / commits
 
 - `main` protegida — nunca push directo, siempre PR con CI en verde (ver
-  [`devops/README.md`](devops/README.md) § Rama `main`).
+  [`devops/README.md`](devops/README.md) Rama `main`).
 - Nunca commitear directo a `main` — todo cambio, incluido este archivo, se hace en una rama
   propia y se mergea vía PR.
 - No borrar ramas, ni siquiera después de mergear el PR — ni localmente ni en el remoto.

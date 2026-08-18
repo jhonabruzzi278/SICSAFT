@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import type { ServiceAuthenticatedRequest } from './service-token.guard';
 
-// Rol de Proyecto en Zitadel (DOC-012 §2) — unico autorizado a escritura oficial de la Base
-// Patrimonial (Tomo III §1.4 Entrada 4).
+// Rol de Proyecto en Zitadel (DOC-012 2) — unico autorizado a escritura oficial de la Base
+// Patrimonial (Tomo III 1.4 Entrada 4).
 export const ADMINISTRADOR_PATRIMONIAL_ROLE = 'administrador-patrimonial';
 
 interface EscrituraOficialBody {
@@ -20,14 +20,14 @@ function esRecordDeRoles(value: unknown): value is Record<string, unknown> {
 }
 
 // Chequeo puro, reutilizable tanto por el guard de abajo como por OrquestadorService (DOC-012
-// §5-§7): los endpoints de escritura oficial de Activo NO usan este guard via @UseGuards() —
+// 5-7): los endpoints de escritura oficial de Activo NO usan este guard via @UseGuards() —
 // invocan esta funcion dentro del propio Orquestador para que un 403 por falta de rol quede
-// auditado igual que cualquier otro rechazo (DOC-012 §8; un guard corta antes de que el
+// auditado igual que cualquier otro rechazo (DOC-012 8; un guard corta antes de que el
 // Orquestador pueda envolver el error en su try/catch, asi que auditar ahi requeria mover el
 // chequeo adentro).
 //
 // Siempre valida el rol CONTRA `organizacionId` — nunca "¿tiene el rol en algun lado?". El rol es
-// de Proyecto en Zitadel pero asignado por organizacion (DOC-012 §2); una version anterior de
+// de Proyecto en Zitadel pero asignado por organizacion (DOC-012 2); una version anterior de
 // este chequeo aceptaba una lista plana de roles sin organizacion, lo que le permitia a un
 // administrador-patrimonial de la Organizacion A escribir sobre activos de la Organizacion B
 // (hallazgo real de revision de seguridad, corregido en este mismo incremento — ver tambien el
@@ -49,10 +49,10 @@ export function verificarRolAdministradorPatrimonial(
 }
 
 // CIS certifica que Zitadel firmo el rol en esa organizacion (ZitadelAuthGuard.rolesPorOrganizacion,
-// DOC-012 §3.1) y lo reenvia en el body de cada llamada de escritura oficial (mismo canal
+// DOC-012 3.1) y lo reenvia en el body de cada llamada de escritura oficial (mismo canal
 // service-to-service ya protegido por ServiceTokenGuard/CORE_SERVICE_TOKEN). CORE nunca confia en
-// que "si CIS dejo pasar el request, ya esta autorizado" (WAF §3, cero confianza entre niveles;
-// DOC-012 §3.2) — pero este guard en si (a diferencia de `verificarRolAdministradorPatrimonial`)
+// que "si CIS dejo pasar el request, ya esta autorizado" (WAF 3, cero confianza entre niveles;
+// DOC-012 3.2) — pero este guard en si (a diferencia de `verificarRolAdministradorPatrimonial`)
 // no se usa en los endpoints reales de escritura de Activo (ver arriba); queda disponible para un
 // futuro caso donde cortar antes del Orquestador sea aceptable (sin auditoria de rechazo).
 //

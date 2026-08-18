@@ -15,8 +15,8 @@ import {
 import { Alert, Badge, Card, Input, Label } from '@/components/ui';
 
 // RF-09 (DOC-019) — séptimo módulo del hub: primer dashboard de CIP, solo lectura. Drill-down
-// Organización→Área→Categoría (DOC-018 §6): elegir un área en "Áreas controladas" filtra
-// Sesiones/Fuera de área/Categorías del resto de la página — sin selector de Sede (DOC-018 §2.7,
+// Organización→Área→Categoría (DOC-018 6): elegir un área en "Áreas controladas" filtra
+// Sesiones/Fuera de área/Categorías del resto de la página — sin selector de Sede (DOC-018 2.7,
 // no resoluble desde las APIs de lectura de CORE disponibles hoy).
 
 function formatFechaHora(iso: string): string {

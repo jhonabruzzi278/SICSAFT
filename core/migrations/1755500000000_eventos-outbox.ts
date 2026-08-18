@@ -1,17 +1,17 @@
 import type { MigrationBuilder } from 'node-pg-migrate';
 
-// Fase 6 (ROADMAP.md, cip/aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md §1/§6):
+// Fase 6 (ROADMAP.md, cip/aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md 1/6):
 // transactional outbox para la publicacion de eventos hacia el CIP. Un trigger `AFTER INSERT ON
 // eventos`, no un INSERT manual en `EventoRepository.registrar`/`registrarContrato` — garantiza
 // que ningun evento relevante para CIP se pierde sin depender de que cada call site futuro se
 // acuerde de escribir tambien en la outbox (mismo razonamiento en
-// `cip/aidlc-docs/design-artifacts/DOMAIN_MODEL.md` §1). `gen_random_uuid()` es funcion nativa de
+// `cip/aidlc-docs/design-artifacts/DOMAIN_MODEL.md` 1). `gen_random_uuid()` es funcion nativa de
 // Postgres desde la version 13, sin extension adicional (imagen `postgres:16-alpine`).
 //
-// Que tipos de evento importan a CIP (filtro del trigger): ver DOC-014/ARCHITECTURE.md §3 — no
+// Que tipos de evento importan a CIP (filtro del trigger): ver DOC-014/ARCHITECTURE.md 3 — no
 // todos, en particular NO `escaneo_qr` disparado por cada lectura individual sin agrupar (por eso
 // se guarda `sesion_id` cuando el evento lo trae en `detalle`, para que el dispatcher pueda
-// agrupar por sesion en vez de publicar un mensaje por escaneo, ver ARCHITECTURE.md §4).
+// agrupar por sesion en vez de publicar un mensaje por escaneo, ver ARCHITECTURE.md 4).
 const TIPOS_RELEVANTES_PARA_CIP = [
   'alta',
   'escaneo_qr',

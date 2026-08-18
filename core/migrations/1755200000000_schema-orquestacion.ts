@@ -1,6 +1,6 @@
 import type { MigrationBuilder } from 'node-pg-migrate';
 
-// Fase 2 (core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md §0): corrige dos hallazgos
+// Fase 2 (core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md 0): corrige dos hallazgos
 // del diseno sobre la migracion 1755100000000 (DOC-005), ya compartida — no se edita esa
 // migracion, se corrige con una nueva:
 //
@@ -64,7 +64,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       notNull: true,
       check: "estado IN ('pendiente', 'recibido', 'rechazado')",
     },
-    // Detecta idempotencyKey reusada con un payload distinto (DOC-006 §3 / DOC-002 §5).
+    // Detecta idempotencyKey reusada con un payload distinto (DOC-006 3 / DOC-002 5).
     request_hash: { type: 'text', notNull: true },
     creado_en: {
       type: 'timestamptz',

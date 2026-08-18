@@ -1,7 +1,7 @@
 # Config de SOPS (https://github.com/getsops/sops) — decisión cerrada en devops/README.md
-# § "Cyberseguridad del VPS": SOPS + age para secretos de producción versionados y cifrados en
+# "Cyberseguridad del VPS": SOPS + age para secretos de producción versionados y cifrados en
 # git (nunca un gestor dedicado nuevo mientras el equipo sea de una persona, ver devops/prod/README.md
-# § "Por qué SOPS+age y no un gestor dedicado").
+# "Por qué SOPS+age y no un gestor dedicado").
 #
 # `age` acá es la implementación `rage` (github.com/str4d/rage) — mismo formato de clave y mismo
 # protocolo que el `age` de FiloSottile, intercambiables. `sops` no distingue entre ambas.

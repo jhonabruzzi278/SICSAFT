@@ -28,7 +28,7 @@ test('en mobile, el trigger del sidebar despliega el menú y queda visible (no a
 
 test('el escáner reconoce un código de variante BASE-VARIANTE', async ({ page }) => {
   // P001 tiene una variante 'M' en el catálogo mockeado del Conector QR (src/mocks/fixtures.ts) —
-  // CatalogPage (catálogo local) está desconectado del catálogo real desde TASK-007, ver HANDOFF §3.
+  // CatalogPage (catálogo local) está desconectado del catálogo real desde TASK-007, ver HANDOFF 3.
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
   await scanCode(page, 'p001-m');

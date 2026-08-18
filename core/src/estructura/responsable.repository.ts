@@ -97,7 +97,7 @@ export class ResponsableRepository {
   }
 
   // RF-05 — la "baja" de un Responsable es cambiar `estado` a 'inactivo' (nunca un DELETE, Tomo
-  // III §4.10). Cruza `area_id -> organizacion_id` contra `organizacionId` (defensa en
+  // III 4.10). Cruza `area_id -> organizacion_id` contra `organizacionId` (defensa en
   // profundidad, mismo motivo que ActivoRepository.cambiarEstado).
   async actualizarEstado(
     id: string,

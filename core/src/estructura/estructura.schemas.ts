@@ -77,7 +77,7 @@ export const altaResponsableSchema = escrituraOficialSchema.extend({
 });
 export type AltaResponsableBody = z.infer<typeof altaResponsableSchema>;
 
-// RF-05 — la "baja" de un Responsable (Tomo III §4.10, el historial nunca se borra: nunca un
+// RF-05 — la "baja" de un Responsable (Tomo III 4.10, el historial nunca se borra: nunca un
 // DELETE, mismo criterio que Activo/Contrato).
 export const actualizarEstadoResponsableSchema = escrituraOficialSchema.extend({
   estado: z.enum(['activo', 'inactivo']),
