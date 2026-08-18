@@ -507,12 +507,11 @@ describe('AdministradorService', () => {
 
   describe('altaOrganizacion', () => {
     const body: AltaOrganizacionBody = {
-      organizacionId: 'duoc-uc',
       id: 'zitadel-org-nueva',
       nombre: 'Nueva Organización',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
+    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService, sin exigir organizacionId propio (DOC-022 3)', async () => {
       const { service, coreClientService } = buildService({
         '386029528616558597': 'duoc-uc',
       });

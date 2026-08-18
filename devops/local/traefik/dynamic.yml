@@ -22,6 +22,11 @@ http:
       entryPoints:
         - web
       service: ccp
+    web-admin:
+      rule: "Host(`admin.sicsaft.localhost`)"
+      entryPoints:
+        - web
+      service: web-admin
 
   services:
     zitadel:
@@ -36,3 +41,7 @@ http:
       loadBalancer:
         servers:
           - url: "http://ccp:8080"
+    web-admin:
+      loadBalancer:
+        servers:
+          - url: "http://web-admin:8080"

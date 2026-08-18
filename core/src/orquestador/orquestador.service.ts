@@ -12,6 +12,7 @@ import {
   ADMINISTRADOR_PATRIMONIAL_ROLE,
   ADMINISTRADOR_SISTEMA_ROLE,
   verificarRolAdministradorPatrimonial,
+  verificarRolEnCualquierOrganizacion,
   verificarRolesPermitidos,
 } from '../common/auth/administrador-patrimonial.guard';
 import type {
@@ -254,7 +255,10 @@ export class OrquestadorService {
     return this.ejecutarOperacionOficial(
       'POST /organizaciones',
       payload.operadorId,
-      payload.organizacionId,
+      // Sin organizacionId real (DOC-022 3) — administrador-sistema no pertenece a ninguna
+      // organizacion de negocio en particular, el verificador de abajo ignora este parametro y
+      // chequea el rol en CUALQUIER organizacion del token.
+      '',
       payload.rolesPorOrganizacion,
       () =>
         this.escrituraOrganizacionService.crear({
@@ -262,8 +266,8 @@ export class OrquestadorService {
           nombre: payload.nombre,
         }),
       (organizacion) => organizacion.id,
-      (roles, orgId) =>
-        verificarRolesPermitidos(roles, orgId, [ADMINISTRADOR_SISTEMA_ROLE]),
+      (roles) =>
+        verificarRolEnCualquierOrganizacion(roles, [ADMINISTRADOR_SISTEMA_ROLE]),
     );
   }
 

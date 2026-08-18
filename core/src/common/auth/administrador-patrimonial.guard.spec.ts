@@ -4,6 +4,7 @@ import {
   ADMINISTRADOR_PATRIMONIAL_ROLE,
   ADMINISTRADOR_SISTEMA_ROLE,
   verificarRolAdministradorPatrimonial,
+  verificarRolEnCualquierOrganizacion,
   verificarRolesPermitidos,
 } from './administrador-patrimonial.guard';
 
@@ -117,6 +118,50 @@ describe('verificarRolesPermitidos', () => {
         [ADMINISTRADOR_SISTEMA_ROLE],
       ),
     ).toThrow(ForbiddenException);
+  });
+});
+
+describe('verificarRolEnCualquierOrganizacion', () => {
+  // DOC-022 3 — a diferencia de verificarRolesPermitidos (arriba), este chequeo ignora en qué
+  // organización está el rol: alcanza con que aparezca en CUALQUIER entrada de
+  // rolesPorOrganizacion. Es el fix del bug real que motivó separar web_admin/ — antes,
+  // administrador-sistema necesitaba el grant dentro de una organización específica para poder
+  // crear una organización nueva, lo cual no tiene sentido para un rol que administra toda la
+  // plataforma.
+  it('no lanza si el rol aparece en cualquier organizacion, sin importar cual', () => {
+    expect(() =>
+      verificarRolEnCualquierOrganizacion(
+        { 'org-1': [ADMINISTRADOR_PATRIMONIAL_ROLE], 'org-2': [ADMINISTRADOR_SISTEMA_ROLE] },
+        [ADMINISTRADOR_SISTEMA_ROLE],
+      ),
+    ).not.toThrow();
+  });
+
+  it('lanza 403 si el rol no aparece en ninguna organizacion', () => {
+    expect(() =>
+      verificarRolEnCualquierOrganizacion(
+        { 'org-1': [ADMINISTRADOR_PATRIMONIAL_ROLE] },
+        [ADMINISTRADOR_SISTEMA_ROLE],
+      ),
+    ).toThrow(ForbiddenException);
+  });
+
+  it('lanza 403 si rolesPorOrganizacion esta vacio o no es un objeto', () => {
+    expect(() =>
+      verificarRolEnCualquierOrganizacion({}, [ADMINISTRADOR_SISTEMA_ROLE]),
+    ).toThrow(ForbiddenException);
+    expect(() =>
+      verificarRolEnCualquierOrganizacion(undefined, [ADMINISTRADOR_SISTEMA_ROLE]),
+    ).toThrow(ForbiddenException);
+  });
+
+  it('no lanza si CUALQUIERA de los roles permitidos aparece en alguna organizacion', () => {
+    expect(() =>
+      verificarRolEnCualquierOrganizacion(
+        { 'org-1': [ADMINISTRADOR_PATRIMONIAL_ROLE] },
+        [ADMINISTRADOR_PATRIMONIAL_ROLE, ADMINISTRADOR_SISTEMA_ROLE],
+      ),
+    ).not.toThrow();
   });
 });
 

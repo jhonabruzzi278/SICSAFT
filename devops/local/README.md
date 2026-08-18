@@ -21,13 +21,18 @@ secas). Agregar al archivo hosts (`C:\Windows\System32\drivers\etc\hosts`, como 
 127.0.0.1 api.sicsaft.localhost
 127.0.0.1 traefik.sicsaft.localhost
 127.0.0.1 ccp.sicsaft.localhost
+127.0.0.1 admin.sicsaft.localhost
 ```
 
-(Se agregan más líneas acá a medida que sumemos servicios: `app.`, `qr.`, `cip.`.)
+(Se agregan más líneas acá a medida que sumemos servicios: `app.`, `qr.`, `cip.`,
+`directivo.` cuando exista `core/frontend/`, DOC-022.)
 
-`ccp.sicsaft.localhost` sirve el build de producción de WEB (nginx, ver `ccp/Dockerfile`) cuando
+`ccp.sicsaft.localhost` sirve el build de producción de CCP (nginx, ver `ccp/Dockerfile`) cuando
 corre dentro del stack (`docker compose up -d --build ccp`) — para desarrollo día a día seguí
 usando `npm run dev` (puerto 5174, hot reload), ver `../../ccp/README.md` Desarrollo local.
+`admin.sicsaft.localhost` es el equivalente para `web_admin/` (Administrador del Sistema,
+DOC-022) — `docker compose up -d --build web-admin`, o `npm run dev` (puerto 5176) para
+desarrollo día a día.
 
 ## 2. Configurar variables de entorno
 ```bash

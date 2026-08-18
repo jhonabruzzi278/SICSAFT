@@ -1,7 +1,8 @@
 // Cliente OIDC — authorization code + PKCE contra Zitadel (ADR-002), mismo mecanismo probado
-// real de punta a punta en app-qr-sicsaft/src/lib/oidc/oidc-client.ts (TASK-007). WEB reusa el
-// mismo proyecto "CIS" en Zitadel con una Aplicacion OIDC propia (`web-sicsaft`, User Agent,
-// PKCE) — ver devops/local/README.md "Cliente OIDC real (WEB)".
+// real de punta a punta en app-qr-sicsaft/src/lib/oidc/oidc-client.ts (TASK-007) y ccp/. Este
+// portal reusa el mismo proyecto "CIS" en Zitadel con una Aplicacion OIDC propia
+// (`web-admin-sicsaft`, User Agent, PKCE) — ver devops/local/README.md "Cliente OIDC real
+// (web_admin)", DOC-022.
 import { generateCodeChallenge, generateCodeVerifier, generateState } from './pkce';
 import { loadOidcConfig } from './oidc-config';
 import {
@@ -167,19 +168,13 @@ function getCurrentOperatorDisplayName(): string | null {
   return typeof name === 'string' ? name : null;
 }
 
-function esAdministradorPatrimonial(): boolean {
+// DOC-021 1 / DOC-022 — único rol que entra a este portal. Enforcement server-side real vive en
+// CIS (`AdministradorSistemaGuard`, DOC-021 4) — acá es "solo para UI" (redirigir a login si el
+// usuario autenticado no tiene el rol), la autorización real corre igual en CIS/CORE.
+function esAdministradorSistema(): boolean {
   const tokens = loadTokens();
   if (!tokens) return false;
-  return tieneRol(decodeJwtClaims(tokens.accessToken), 'administrador-patrimonial');
-}
-
-// DOC-020 4 — Directivo: rol nuevo, mismo mecanismo que esAdministradorPatrimonial (solo UI,
-// sin enforcement server-side propio porque no habilita ninguna escritura — un Directivo sin
-// administrador-patrimonial ya recibe 403 de CORE ante cualquier intento, DOC-020 7).
-function esDirectivo(): boolean {
-  const tokens = loadTokens();
-  if (!tokens) return false;
-  return tieneRol(decodeJwtClaims(tokens.accessToken), 'directivo');
+  return tieneRol(decodeJwtClaims(tokens.accessToken), 'administrador-sistema');
 }
 
 function isAuthenticated(): boolean {
@@ -196,8 +191,7 @@ export const oidcClient = {
   handleCallback,
   getValidAccessToken,
   getCurrentOperatorDisplayName,
-  esAdministradorPatrimonial,
-  esDirectivo,
+  esAdministradorSistema,
   isAuthenticated,
   logout,
 };

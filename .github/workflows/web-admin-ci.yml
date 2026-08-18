@@ -1,0 +1,44 @@
+name: web_admin CI
+
+on:
+  pull_request:
+    paths:
+      - "web_admin/**"
+      - ".github/workflows/web-admin-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web_admin/**"
+      - ".github/workflows/web-admin-ci.yml"
+
+defaults:
+  run:
+    working-directory: web_admin
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web_admin/package-lock.json
+
+      - run: npm ci --ignore-scripts
+
+      - name: Type-check + build
+        run: npm run build
+
+      - name: Build de imagen Docker
+        run: |
+          # Placeholders sin uso real: esta imagen (sicsaft-web-admin:ci) nunca corre ni se
+          # publica, solo valida que el Dockerfile buildee. https:// (no http://) evita un falso
+          # positivo de "clear-text protocol" (S5332) sobre hosts que jamas se resuelven.
+          docker build \
+            --build-arg VITE_ZITADEL_ISSUER=https://id.sicsaft.invalid \
+            --build-arg VITE_ZITADEL_CLIENT_ID=ci-placeholder \
+            --build-arg VITE_CIS_URL=https://api.sicsaft.invalid \
+            -t sicsaft-web-admin:ci .

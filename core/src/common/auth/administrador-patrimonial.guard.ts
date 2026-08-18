@@ -70,6 +70,33 @@ export function verificarRolAdministradorPatrimonial(
   ]);
 }
 
+// DOC-022 3 — variante sin `organizacionId`, para el unico caso donde no tiene sentido pedirlo:
+// crear una Organizacion nueva. `verificarRolesPermitidos` de arriba (usado por
+// Activo/Contrato/Catalogo/Documento) exige el rol DENTRO de una organizacionId puntual a
+// proposito (evita que alguien de la Organizacion A escriba sobre la Organizacion B) — pero
+// Administrador del Sistema administra la plataforma entera, no pertenece a una organizacion de
+// negocio en particular. Antes de esta funcion, `procesarAltaOrganizacion` reusaba el chequeo de
+// arriba con un organizacionId inventado por el cliente ("la primera organizacion que administro"),
+// lo que en la practica forzaba a que el grant de administrador-sistema viviera dentro de una
+// organizacion especifica para que el chequeo pasara — incorrecto para un rol que no deberia
+// depender de ninguna. Alcanza con que el rol aparezca en CUALQUIER entrada de
+// rolesPorOrganizacion.
+export function verificarRolEnCualquierOrganizacion(
+  rolesPorOrganizacion: unknown,
+  rolesPermitidos: readonly string[],
+): void {
+  const mapa = esRecordDeRoles(rolesPorOrganizacion) ? rolesPorOrganizacion : {};
+  const tieneAlguno = Object.values(mapa).some((roles) => {
+    const lista = Array.isArray(roles) ? roles : [];
+    return rolesPermitidos.some((rol) => lista.includes(rol));
+  });
+  if (!tieneAlguno) {
+    throw new ForbiddenException(
+      `Requiere alguno de estos roles en alguna organizacion: ${rolesPermitidos.join(', ')}`,
+    );
+  }
+}
+
 // CIS certifica que Zitadel firmo el rol en esa organizacion (ZitadelAuthGuard.rolesPorOrganizacion,
 // DOC-012 3.1) y lo reenvia en el body de cada llamada de escritura oficial (mismo canal
 // service-to-service ya protegido por ServiceTokenGuard/CORE_SERVICE_TOKEN). CORE nunca confia en

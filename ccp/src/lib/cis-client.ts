@@ -130,40 +130,6 @@ export interface ResultadoImportacionContable {
   conflictos: number;
 }
 
-// DOC-021 4 (Administrador del Sistema).
-export interface OrganizacionAdmin {
-  id: string;
-  nombre: string;
-}
-
-export interface AltaOrganizacionInput {
-  organizacionId: string;
-  id: string;
-  nombre: string;
-}
-
-export interface ContratosPorEstado {
-  vigente: number;
-  suspendido: number;
-  vencido: number;
-  cancelado: number;
-}
-
-export interface Indicadores {
-  totalOrganizaciones: number;
-  totalSedes: number;
-  contratosPorEstado: ContratosPorEstado;
-}
-
-export interface UsuarioOrganizacion {
-  userId: string;
-  email: string | null;
-  displayName: string | null;
-  roles: string[];
-}
-
-export type RolAsignable = 'administrador-patrimonial' | 'directivo' | 'administrador-sistema';
-
 // DOC-004 3 — maquina de estados de Contrato: solo estas transiciones son validas, CORE rechaza
 // cualquier otra con 400 (ver core/src/entitlements/contrato.repository.ts,
 // TRANSICIONES_VALIDAS). Se repite acá solo para que la UI ofrezca botones con sentido, la
@@ -494,44 +460,6 @@ export const cisClient = {
       body: JSON.stringify({ organizacionId, filas }),
     });
     return (await res.json()) as ResultadoImportacionContable;
-  },
-
-  // DOC-021 4 (Administrador del Sistema) — lectura abierta, ve TODAS las organizaciones
-  // (incluidas las sin contrato vigente), a diferencia de authSession().
-  async getOrganizaciones(): Promise<OrganizacionAdmin[]> {
-    const res = await authorizedFetch('/admin/organizaciones');
-    return (await res.json()) as OrganizacionAdmin[];
-  },
-
-  async altaOrganizacion(input: AltaOrganizacionInput): Promise<OrganizacionAdmin> {
-    const res = await authorizedFetch('/admin/organizaciones', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
-    return (await res.json()) as OrganizacionAdmin;
-  },
-
-  async getIndicadores(): Promise<Indicadores> {
-    const res = await authorizedFetch('/admin/indicadores');
-    return (await res.json()) as Indicadores;
-  },
-
-  async getUsuariosOrganizacion(orgId: string): Promise<UsuarioOrganizacion[]> {
-    const res = await authorizedFetch(
-      `/admin/organizaciones/${encodeURIComponent(orgId)}/usuarios`,
-    );
-    return (await res.json()) as UsuarioOrganizacion[];
-  },
-
-  async asignarUsuarioOrganizacion(
-    orgId: string,
-    email: string,
-    rol: RolAsignable,
-  ): Promise<void> {
-    await authorizedFetch(`/admin/organizaciones/${encodeURIComponent(orgId)}/usuarios`, {
-      method: 'POST',
-      body: JSON.stringify({ email, rol }),
-    });
   },
 
   // RNF-01 — CIS/CORE paginan (`{ contratos, total }`, default 20/tope 100). WEB no tiene UI de

@@ -13,10 +13,10 @@ import {
 } from '@/lib/cis-client';
 import { Alert, Badge, Button, Card, FieldError, Input, Label } from '@/components/ui';
 
-// RF-15 (DOC-021, Administrador del Sistema) — una sola pantalla con secciones, mismo patrón
-// multi-sección que EstructuraPage (Áreas/Ubicaciones/Responsables). Este rol nunca toca
-// información patrimonial (Activos/Catálogo/Documentos siguen exclusivos de
-// administrador-patrimonial) — ver DOC-021 1.
+// RF-15 (DOC-021) / DOC-022 — pantalla única del portal, con secciones (mismo patrón que
+// EstructuraPage tenía en ccp/ para Áreas/Ubicaciones/Responsables). Este rol nunca toca
+// información patrimonial (Activos/Catálogo/Documentos son exclusivos de ccp/,
+// administrador-patrimonial) — ver DOC-021 1, DOC-022 2.
 
 const altaOrganizacionSchema = z.object({
   id: z.string().min(1, 'Requerido — mismo id que la organización en Zitadel'),
@@ -68,14 +68,10 @@ function OrganizacionesSection({
     setSubmitError(null);
     setSubmitOk(false);
     try {
-      // organizacionId acá es "en qué organización tenés el rol administrador-sistema" (para el
-      // chequeo de AdministradorSistemaGuard) — no la organización nueva que se está creando.
-      // Usamos el id de la primera organización que ya administra el operador, si tiene alguna.
-      await cisClient.altaOrganizacion({
-        organizacionId: organizaciones?.[0]?.id ?? values.id,
-        id: values.id,
-        nombre: values.nombre,
-      });
+      // DOC-022 3 — ya no hace falta decir "en qué organización tengo el rol" (era el bug que
+      // motivó separar este portal): el rol administrador-sistema se verifica en cualquier
+      // organización del token del operador.
+      await cisClient.altaOrganizacion({ id: values.id, nombre: values.nombre });
       setSubmitOk(true);
       reset();
       onCreated();
@@ -429,7 +425,8 @@ export function AdminPage() {
       <h1 className="mb-2 text-2xl font-semibold text-accent-strong">Administración</h1>
       <p className="mb-6 text-sm text-text-dim">
         Administrador del Sistema — organizaciones, contratos, usuarios e indicadores de
-        plataforma. Nunca información patrimonial (Activos/Catálogo/Documentos).
+        plataforma. Nunca información patrimonial (Activos/Catálogo/Documentos, exclusivo de
+        CCP).
       </p>
       <div className="mb-6 flex gap-2 border-b border-border">
         {SECCIONES.map((s) => (

@@ -731,7 +731,6 @@ describe('AdministradorController', () => {
   it('altaOrganizacion delega en el service con el body, el auth del guard y el correlationId', async () => {
     service.altaOrganizacion.mockResolvedValue(ORGANIZACION);
     const body: AltaOrganizacionBody = {
-      organizacionId: 'duoc-uc',
       id: 'zitadel-org-nueva',
       nombre: 'Nueva Organización',
     };

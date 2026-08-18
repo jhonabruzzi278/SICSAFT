@@ -12,13 +12,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="border-b border-border bg-bg-raised">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <Link to="/" className="text-lg font-semibold text-accent-strong">
-            SICSAFT
+            SICSAFT — Administración
           </Link>
           {authenticated && (
             <div className="flex items-center gap-4 text-sm text-text-dim">
-              <Link to="/auditoria" className="hover:text-text">
-                Auditoría
-              </Link>
               {nombre && <span>{nombre}</span>}
               <Button
                 variant="ghost"

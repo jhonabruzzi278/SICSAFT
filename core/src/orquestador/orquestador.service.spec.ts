@@ -672,7 +672,6 @@ describe('OrquestadorService', () => {
     const payload: AltaOrganizacionBody = {
       correlationId: 'corr-1',
       operadorId: 'op-admin',
-      organizacionId: 'duoc-uc',
       rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
       id: 'duoc-uc',
       nombre: 'DUOC UC',
