@@ -53,3 +53,15 @@ primer punto de escritura real.
 - **Criterio de aceptación**: cambiar el estado de un contrato a `suspendido` hace que, en el
   siguiente login, esa organización deje de ver los módulos que ese contrato habilitaba (mismo
   invariante de DOC-004 §3 — "solo `vigente` habilita acceso").
+
+## Dashboard de indicadores (CIP)
+
+**Como** cualquier operador con contrato vigente en la organización (sin rol adicional — es
+información agregada, no una operación de escritura), **quiero** ver cobertura de inventario,
+áreas controladas, sesiones recientes con su veredicto, activos fuera de área o no localizados,
+incidencias y el estado de los AFT de mi organización en un solo lugar, **para** entender el
+estado patrimonial real sin tener que cruzar manualmente sesiones de inventario una por una.
+
+- **Criterio de aceptación**: el dashboard muestra explícitamente cuándo sus datos no están al día
+  (`alDia = false` de CIP, RF-10) en vez de mostrar un número desactualizado sin avisar — mismo
+  criterio de degradación visible que el resto del ecosistema (`ARQUITECTURA-WAF.md` §8).

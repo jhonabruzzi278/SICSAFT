@@ -12,6 +12,7 @@
 | RF-06 | Módulo Auditoría: solo lectura, **filtrable por usuario/fecha/operación**. | ✅ Implementado (2026-08-14) — filtros por `usuario`/`operacion` (búsqueda parcial, ILIKE) y rango `fechaDesde`/`fechaHasta`, tanto en `AuditoriaRepository.listar` (CORE) como en el formulario de `AuditoriaPage` (WEB). Verificado con unit + e2e reales contra Postgres. | DOC-011 (Motor de Auditoría) |
 | RF-07 | Módulo Contratos: ABM — hoy la tabla `contratos` de DOC-004 solo se lee; este es el primer cliente que la escribe. | ✅ Implementado (alta + transición de estado; sin DELETE, por diseño — Tomo III §4.10) | DOC-004 §7 ("quién crea/edita un Contrato") |
 | RF-08 | El alta de RF-03 debe hacer visible el activo en el catálogo que consume APP QR (mismo `GET /catalogo`, DOC-006 §2) — criterio "Done" de Fase 5, verifica que WEB y APP QR de verdad comparten el mismo contrato (WAF §8). | ✅ Implementado, verificado | ROADMAP.md Fase 5 |
+| RF-09 | Módulo Dashboard: séptimo módulo del hub, expone el primer dashboard de CIP (cobertura, áreas controladas, sesiones con veredicto, activos fuera de área/no localizados, incidencias, estado de AFT, categorías) — solo lectura, cualquier operador con contrato vigente en la organización, sin rol adicional. | ✅ Implementado (2026-08-18) — `src/dashboard-connector/` en CIS (proxy hacia CIP) + `DashboardPage.tsx` en WEB, verificado en el navegador contra MSW | DOC-014 §7.1/§7.2 (decisiones que DOC-019 resuelve), DOC-018 §6, DOC-019 |
 
 ## No funcionales
 
@@ -33,8 +34,8 @@ cerrados el mismo día:
 
 ## Fuera de alcance (explícito)
 
-- Dashboard ejecutivo, RFID, Documentos, Reportes, Integraciones, Roles/Permisos como módulo
-  propio, Configuración — los 11 módulos restantes de `web/README.md`, sin consumidor real hasta
-  fases posteriores.
+- RFID, Documentos, Reportes, Integraciones, Roles/Permisos como módulo propio, Configuración — 10
+  de los 11 módulos restantes de `web/README.md`, sin consumidor real hasta fases posteriores.
+  Dashboard ejecutivo deja de estar acá: ganó consumidor real (CIP, Fase 6) y su diseño es RF-09.
 - Baja, traslado y cambio de responsable de Activos desde WEB — el MVP solo agrega alta (RF-03),
   el resto de la escritura patrimonial queda sin UI hasta una fase posterior.

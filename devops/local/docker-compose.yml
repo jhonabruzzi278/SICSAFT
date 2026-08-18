@@ -134,6 +134,12 @@ services:
       # valor que CORE_SERVICE_TOKEN del servicio `core` (abajo). Generar con
       # `openssl rand -hex 32`, ver .env.example.
       CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      # DOC-019 §3.1 — URL interna de CIP dentro de la red de contenedores (ver servicio `cip`
+      # abajo) y el mismo CIP_SERVICE_TOKEN que ya usa `cip` (arriba, provisional desde DOC-018
+      # §3 — este módulo es su primer consumidor real). CIS es ahora el único llamador de la API
+      # de lectura de CIP: WEB nunca le habla a CIP directo.
+      CIP_URL: http://cip:3002
+      CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
       # Redis para el rate limiter (WAF §4, src/rate-limit/) — mismo REDIS_PASSWORD que el
       # servicio `redis` (arriba). Primer consumidor de Redis en el codigo del ecosistema.
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
@@ -155,6 +161,8 @@ services:
       zitadel:
         condition: service_started
       core:
+        condition: service_started
+      cip:
         condition: service_started
       redis:
         condition: service_healthy

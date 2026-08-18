@@ -159,10 +159,11 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
 con código funcionando y sus requisitos cerrados: Activos (🟢), Contratos (🟢), Inventarios (🟢),
 hub (🟢), Auditoría (🟢, filtrable por usuario/operación/fecha — RF-06 cerrado, ver "Gaps"
 arriba), Áreas/Ubicaciones/Responsables (🟢, ABM completo incluida la edición de Área/Ubicación —
-RF-05 cerrado, ver "Gaps" arriba). El resto — Dashboard, Incidencias, Movimientos, QR, RFID,
-Documentos, Reportes, Usuarios, Roles, Configuración, Integraciones — queda para después, sin
-diseñar todavía (sin consumidor
-real).
+RF-05 cerrado, ver "Gaps" arriba). Un séptimo módulo, Dashboard (🟢 implementado — RF-09,
+[DOC-019](aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)), expone el primer
+dashboard de CIP (SYS-06, Fase 6) vía un proxy nuevo en CIS (`src/dashboard-connector/`) — WEB
+nunca le habla a CIP directo. El resto — Incidencias, Movimientos, QR, RFID, Documentos, Reportes,
+Usuarios, Roles, Configuración, Integraciones — sigue sin diseñar (sin consumidor real).
 
 ## Roles previstos
 Administrador, Responsable Patrimonial, Operador, Supervisor, Auditor, Directivo.
@@ -207,6 +208,14 @@ WEB). Lo que queda:
 1. Verificación real de punta a punta de Auditoría y Áreas/Ubicaciones/Responsables desde el
    navegador (login real, como ya se hizo con Activos/Contratos/Inventarios) — hoy solo están
    probados con e2e de CORE/CIS.
+2. ✅ Módulo Dashboard (RF-09, [DOC-019](aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md))
+   implementado: `src/dashboard-connector/` nuevo en CIS (proxy hacia CIP con `CipClientService`
+   propio — mismo patrón de retry+circuit breaker que `CoreClientService`, mismo criterio de
+   autorización que `qr-connector.controller.ts`, sin rol adicional) + `DashboardPage.tsx` en WEB
+   (KPIs de cobertura, áreas controladas con drill-down por área, sesiones con veredicto, activos
+   fuera de área/no localizados, incidencias filtrables por código QR, estado de AFT, y un gráfico
+   circular por categoría — SVG propio, sin librería nueva). Verificado en el navegador contra MSW
+   (`src/mocks/handlers.ts`); pendiente verificación contra CIS/CIP reales.
 
 ✅ `Dockerfile`/`web-ci.yml`/servicio en el compose local — WEB ya tiene imagen de producción
 (nginx sirviendo el build de Vite, usuario sin privilegios) y corre dentro del stack en

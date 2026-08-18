@@ -499,6 +499,16 @@ Docker confirmado en `GET /dashboard/cobertura`/`GET /dashboard/sesiones` de CIP
 calculados correctos — no solo con mocks/unit. Unit 100% stmts/lines/funcs en ambos sistemas + e2e
 reales contra Postgres.
 
+**Frontend (2026-08-18) — diseño y construcción completos**: el dashboard se muestra como séptimo
+módulo del Portal WEB (`web/`), no una app propia — resuelve las dos decisiones abiertas de
+DOC-014 §7.1/§7.2. Diseño e implementación en
+[`web/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md`](web/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)
+(RF-09 de `web/`): WEB nunca le habla a CIP directo, pasa por un proxy nuevo en CIS
+(`src/cip-client/` + `src/dashboard-connector/`, mismo patrón de retry+circuit breaker que
+`CoreClientService` y misma autorización que `qr-connector.controller.ts`) — retira la nota
+"provisional" de DOC-018 §3 sobre `CIP_SERVICE_TOKEN`. `DashboardPage.tsx` (WEB) verificado en el
+navegador contra MSW; pendiente verificación real de punta a punta contra CIS/CIP dentro de Docker.
+
 **Qué se construye**
 - Métricas ya listadas en `cip/README.md` (cobertura de inventario, activos fuera de área, no
   localizados, incidencias, estado de AFT), con drill-down Organización→Sede→Área→Ubicación→
