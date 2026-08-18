@@ -41,6 +41,33 @@ Administrador como perfiles futuros con permisos distintos (sin diseño ni rol d
 sin consumidor real) — esta aclaración no les da alcance, solo da nombre explícito a la relación
 con el Profesional de AFT.
 
+#### Cobertura real desde el CCP hoy (auditoría 2026-08-18)
+
+El alcance funcional de arriba describe lo que el Profesional de AFT **debería** poder hacer desde
+el CCP. Auditando el código real (no solo el diseño) contra esa lista, 5 de los 11 puntos no son
+alcanzables todavía desde WEB — algunos porque CORE los implementa pero el puente de CIS
+(`cis/src/administrador/administrador.controller.ts`) no los expone, otros porque no existe
+ninguna capa (modelo, endpoint ni UI). Detalle:
+
+| Ítem | ¿Alcanzable desde el CCP hoy? | Detalle |
+|---|---|---|
+| Activos (alta) | ✅ | `web/src/pages/ActivosPage.tsx` → `POST /admin/activos` → `POST /activos` (§5) |
+| Activos (baja/reincorporación/cambio de responsable) | ❌ **gap** | CORE los implementa completos (`core/src/patrimonial/activo-escritura.controller.ts`: `:id/baja`, `:id/reincorporacion`, `PATCH :id/responsable`) pero CIS no los expone en `/admin/activos` y WEB no tiene UI ni cliente (`web/src/lib/cis-client.ts` solo tiene `altaActivo()`) — el Profesional de AFT no puede hoy cambiar el estado de un Activo ni su responsable desde el CCP |
+| Códigos patrimoniales | ✅ (solo al alta) | se asignan al crear el Activo (`codigoPatrimonial` en `NuevoActivoInput`), sin edición posterior expuesta |
+| Descripciones | ❌ **gap** | `Activo` no tiene un campo de descripción libre — el `nombre` que ve APP QR se compone automáticamente del catálogo (`construirNombreActivo`, `activo.repository.ts`), no es editable |
+| Familias/categorías | ❌ **gap** | sin lectura ni CRUD del catálogo de tipos de activo — `catalogoId` en el alta es texto libre (gap ya anotado en DOC-013 §3 y `web/README.md`) |
+| Áreas | ✅ | `EstructuraPage.tsx`, CRUD completo (`core/src/estructura/`) |
+| Ubicaciones | ✅ | `EstructuraPage.tsx`, CRUD completo |
+| Responsables | ✅ | `EstructuraPage.tsx`, alta/consulta/baja (cambio de `estado`) |
+| Estados | ⚠️ parcial | Contrato sí (`PATCH /admin/contratos/:id`, transiciones válidas); Activo no — ver fila de arriba |
+| Documentación y fotografías | ❌ **gap** | sin modelo, endpoint ni UI en ningún sistema del ecosistema — no hay ni siquiera un campo reservado |
+| Información para preparar inventarios | ⚠️ indirecto | sin feature dedicada; cubierto solo indirectamente por Activos+Áreas+Ubicaciones+Responsables, que son los insumos que después usa APP QR para sus sesiones de inventario |
+| Importaciones controladas desde archivos | ❌ **gap** | `POST /importaciones/contable` funciona y está probado en CORE (idempotente por fila, §6) pero no tiene puente en CIS ni UI en WEB — hoy solo es alcanzable con una llamada HTTP directa a CORE, fuera del flujo normal del Profesional de AFT |
+
+Los 5 ítems marcados **gap** (más el "parcial" de Estados) quedan fuera de alcance de este
+documento — son trabajo de Fase 5 sin terminar, no un cambio de diseño. Ver `web/README.md` §
+"Gaps de arquitectura real encontrados" para el mismo detalle desde la perspectiva de WEB.
+
 ## 1. Por qué esto y no antes
 
 Antes de la Fase 2 no había motores sobre los que escribir; después de la Fase 3 (CIS real + APP
