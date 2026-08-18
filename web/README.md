@@ -25,7 +25,9 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   probado en `app-qr-sicsaft/src/lib/oidc/` (mismo proyecto "CIS" en Zitadel, aplicación OIDC
   propia `web-sicsaft`, ver `devops/local/README.md`). `sessionStorage`, no `localStorage` — el
   Administrador Patrimonial re-autentica cada sesión de navegador (mayor blast radius que APP QR,
-  ver `aidlc-docs/design-artifacts/ARCHITECTURE.md` § "Decisión abierta").
+  ver `aidlc-docs/design-artifacts/ARCHITECTURE.md` § "Decisión abierta"). `esAdministradorPatrimonial()`/
+  `esDirectivo()` (DOC-020) decodifican el rol del JWT client-side, solo para UI — la autorización
+  real siempre corre en CORE.
 - `lib/cis-client.ts` — cliente hacia CIS: `POST /auth/session` (entitlements), `GET /catalogo`
   (ambos ya existían, reusados tal cual — WAF §8, "WEB y APP QR son clientes intercambiables del
   mismo contrato"), `GET /inventarios` + `GET /inventarios/:id` (ya existían para APP QR salvo el
@@ -33,7 +35,10 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   `PATCH /admin/contratos/:id` (nuevos, `cis/src/administrador/`, DOC-012 §5/§7).
 - `pages/LoginPage.tsx`, `AuthCallbackPage.tsx` — flujo de login.
 - `pages/HubPage.tsx` — lista las organizaciones con contrato vigente del operador (RF-02) y, por
-  cada una, los módulos ya implementados (Activos, Contratos, Inventarios).
+  cada una, los módulos ya implementados. RF-10 (DOC-020): un Directivo puro (sin
+  `administrador-patrimonial`) con una sola organización aterriza directo en `/dashboard`, sin
+  pasar por este hub; con varias organizaciones, o en el caso mixto, sigue viendo el hub (reducido
+  a solo Dashboard para el Directivo puro, completo para el resto).
 - `pages/ActivosPage.tsx` — RF-03: tabla de `GET /catalogo` + formulario de alta (react-hook-form
   + zod, RNF-04) contra `POST /admin/activos`. RF-08 verificado: un alta desde acá aparece de
   inmediato en el mismo catálogo que consumiría APP QR.
@@ -218,11 +223,15 @@ WEB). Lo que queda:
    Docker real: login OIDC real vía `web.sicsaft.localhost`, un `POST /inventarios` y un
    `POST /activos` reales disparados dentro de la red Docker confirmados en pantalla (cobertura,
    veredicto de sesión, estado de AFT y categorías, todos con datos reales).
-3. Construir RF-10 (segmentación por rol Directivo, diseño cerrado en
-   [DOC-020](aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md)): rol nuevo
-   `directivo` en Zitadel (solo config), `esDirectivo()` en `oidc-client.ts` (mismo patrón que
-   `esAdministradorPatrimonial()`, hoy sin consumidor) y una bifurcación en `HubPage.tsx` que
-   redirige al Directivo directo a `/dashboard`, sin pasar por el hub operativo.
+3. ✅ RF-10 (segmentación por rol Directivo, [DOC-020](aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md))
+   implementado: `esDirectivo()` en `oidc-client.ts` (mismo patrón que ya existía
+   `esAdministradorPatrimonial()`, hoy sin consumidor hasta este incremento) + bifurcación en
+   `HubPage.tsx` — un Directivo puro aterriza directo en `/dashboard` sin pasar por el hub, el caso
+   mixto (Directivo + administrador-patrimonial) ve el hub operativo completo, y el profesional de
+   AFT (sin rol especial) no tiene cambios. Verificado en el navegador (modo mock) para los 3
+   casos; el rol `directivo` en sí es config pura de Zitadel (`devops/local/README.md` § "Rol
+   `directivo`"), pendiente crearlo en el Zitadel local para verificación de punta a punta contra
+   Docker real.
 
 ✅ `Dockerfile`/`web-ci.yml`/servicio en el compose local — WEB ya tiene imagen de producción
 (nginx sirviendo el build de Vite, usuario sin privilegios) y corre dentro del stack en

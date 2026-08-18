@@ -173,6 +173,22 @@ desde `web/` (authorization code + PKCE real) → JWT con el claim de rol → `P
 en CIS → CORE crea el activo en Postgres → visible en `GET /catalogo`. Ver `cis/README.md` y
 `core/README.md` Fase 4/5 para el detalle de cada lado.
 
+## Rol `directivo` (WEB) — DOC-020, segmentación por rol
+
+Mismo proyecto/aplicación `web-sicsaft` de arriba, sin infraestructura nueva — solo un rol de
+Proyecto adicional (`ZitadelAuthGuard.extractRolesPorOrganizacion` ya lo parsea de forma genérica,
+sin cambios de código en CIS, ver DOC-020 §3):
+
+1. Proyecto "CIS" → **Roles** → crear un rol de Proyecto `directivo` (mismo mecanismo que
+   `administrador-patrimonial` arriba, "Assert Roles on Authentication" ya está habilitado a nivel
+   de proyecto desde ese incremento — no hace falta repetir el paso 2).
+2. Crear (o reusar) un usuario de prueba en "DUOC UC" **sin** el rol `administrador-patrimonial` —
+   el caso mixto (DOC-020 §5) muestra el hub operativo completo, así que para ver el redirect
+   directo al Dashboard hace falta un usuario que sea *solo* Directivo.
+3. Ese usuario → **Authorizations** → New → proyecto "CIS" → rol `directivo`.
+4. Login desde `web/` con ese usuario → debería aterrizar directo en `/dashboard?organizacionId=...`
+   sin pasar por el hub de tarjetas.
+
 ## Otros puntos ya resueltos
 - **`core` ya está en el compose** (esqueleto NestJS, `GET /`/`GET /health` + `GET /entitlements`
   real ya consumido por `cis`, sin router de Traefik a propósito — solo lo consume `cis` dentro

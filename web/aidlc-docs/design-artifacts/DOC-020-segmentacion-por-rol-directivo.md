@@ -7,6 +7,12 @@ estáticas) — la única autorización real que existe es el rol `administrador
 nombre en `web/README.md` § "Roles previstos" y como decisión diferida en
 [DOC-019](DOC-019-dashboard-cip-frontend.md) §2/§7 — este documento la resuelve.
 
+> **Estado: implementado (2026-08-18)** — `tieneRol()`/`esDirectivo()` en `oidc-client.ts` +
+> bifurcación en `HubPage.tsx` (redirect directo, hub reducido, caso mixto) con código funcionando.
+> Verificado en el navegador (modo mock) para los 3 casos de §5. Pendiente: crear el rol
+> `directivo` real en el Zitadel local (`devops/local/README.md` § "Rol `directivo`") para
+> verificación de punta a punta contra Docker real, mismo criterio que DOC-019.
+
 ## 0. Punto de partida: qué NO está definido en ningún tomo
 
 Ningún tomo oficial (`TOMO III/IV`) ni DOC-XXX previo asigna permisos concretos a "Directivo",

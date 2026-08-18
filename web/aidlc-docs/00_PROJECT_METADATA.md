@@ -5,11 +5,12 @@
 **Metodología:** AI-DLC (tercer sistema que lo adopta, después de `app-qr-sicsaft/aidlc-docs/` y
 `core/aidlc-docs/`)
 **Fecha:** 2026-08-13 (diseño), 2026-08-14 (primer incremento de código), 2026-08-18 (diseño y
-construcción del séptimo módulo, Dashboard/CIP — DOC-019; mismo día, diseño de la segmentación por
-rol Directivo — DOC-020)
+construcción del séptimo módulo, Dashboard/CIP — DOC-019; mismo día, diseño y construcción de la
+segmentación por rol Directivo — DOC-020)
 **Fase actual:** Construction — los 7 módulos (6 del MVP de Fase 5 + Dashboard, RF-09) tienen
 código funcionando y verificado de punta a punta contra Docker real (ver `web/README.md` § Estado).
-RF-10 (segmentación por rol, DOC-020) tiene diseño cerrado, pendiente de construir.
+RF-10 (segmentación por rol, DOC-020) tiene código funcionando, verificado en el navegador;
+pendiente verificación contra un rol `directivo` real en Zitadel.
 
 ## Status
 
@@ -18,8 +19,9 @@ RF-10 (segmentación por rol, DOC-020) tiene diseño cerrado, pendiente de const
 - [x] Construction — MVP de Fase 5 (6 módulos) completo. Incremento (Dashboard/CIP, DOC-019,
       2026-08-18): `src/dashboard-connector/` en CIS + `DashboardPage.tsx` en WEB implementados,
       verificados de punta a punta contra Docker real (login OIDC real, datos reales de CIP).
-      Incremento nuevo (segmentación por rol, DOC-020, 2026-08-18): diseño cerrado, código
-      pendiente.
+      Incremento (segmentación por rol, DOC-020, 2026-08-18): `esDirectivo()` en `oidc-client.ts` +
+      bifurcación en `HubPage.tsx` implementados, verificados en el navegador (modo mock) para los
+      3 casos (Directivo puro, mixto, default); pendiente verificación contra Zitadel real.
 - [ ] Operations — pendiente.
 
 ## Por qué este directorio existe ahora, adelantado
