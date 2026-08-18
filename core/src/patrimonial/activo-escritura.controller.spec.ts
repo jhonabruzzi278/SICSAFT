@@ -40,6 +40,7 @@ describe('ActivoEscrituraController', () => {
             procesarBajaActivo: jest.fn(),
             procesarReincorporacionActivo: jest.fn(),
             procesarCambioResponsable: jest.fn(),
+            procesarActualizarDescripcionActivo: jest.fn(),
           },
         },
       ],
@@ -121,5 +122,26 @@ describe('ActivoEscrituraController', () => {
       'activo-1',
       body,
     );
+  });
+
+  it('actualizarDescripcion delega en OrquestadorService.procesarActualizarDescripcionActivo', async () => {
+    const conDescripcion = { ...ACTIVO, descripcion: 'Notebook nuevo' };
+    orquestadorService.procesarActualizarDescripcionActivo.mockResolvedValue(
+      conDescripcion,
+    );
+    const body = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+      descripcion: 'Notebook nuevo',
+    };
+
+    await expect(
+      controller.actualizarDescripcion('activo-1', body),
+    ).resolves.toBe(conDescripcion);
+    expect(
+      orquestadorService.procesarActualizarDescripcionActivo,
+    ).toHaveBeenCalledWith('activo-1', body);
   });
 });

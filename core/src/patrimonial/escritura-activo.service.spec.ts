@@ -28,6 +28,7 @@ function buildService() {
     crear: jest.fn(),
     cambiarEstado: jest.fn(),
     actualizarResponsable: jest.fn(),
+    actualizarDescripcion: jest.fn(),
   } as unknown as jest.Mocked<ActivoRepository>;
   const eventoRepository = {
     registrar: jest.fn().mockResolvedValue(undefined),
@@ -139,6 +140,33 @@ describe('EscrituraActivoService', () => {
         tipo: 'cambio_responsable',
         usuario: 'op-admin',
         detalle: { responsableId: 'resp-2' },
+      });
+    });
+  });
+
+  describe('actualizarDescripcion', () => {
+    it('actualiza la descripcion y registra un evento de tipo cambio_descripcion', async () => {
+      const { service, activoRepository, eventoRepository } = buildService();
+      const conDescripcion = { ...ACTIVO, descripcion: 'Notebook nuevo' };
+      activoRepository.actualizarDescripcion.mockResolvedValue(conDescripcion);
+
+      const activo = await service.actualizarDescripcion(
+        'activo-1',
+        'duoc-uc',
+        'Notebook nuevo',
+        'op-admin',
+      );
+
+      expect(activo).toBe(conDescripcion);
+      expect(activoRepository.actualizarDescripcion).toHaveBeenCalledWith(
+        'activo-1',
+        'duoc-uc',
+        'Notebook nuevo',
+      );
+      expect(eventoRepository.registrar).toHaveBeenCalledWith({
+        activoId: 'activo-1',
+        tipo: 'cambio_descripcion',
+        usuario: 'op-admin',
       });
     });
   });
