@@ -171,7 +171,15 @@ nunca le habla a CIP directo. El resto — Incidencias, Movimientos, QR, RFID, D
 Usuarios, Roles, Configuración, Integraciones — sigue sin diseñar (sin consumidor real).
 
 ## Roles previstos
-Administrador, Responsable Patrimonial, Operador, Supervisor, Auditor, Directivo.
+**Profesional de AFT** (nombre funcional del rol `administrador-patrimonial` de Zitadel, ver
+[DOC-012 § "Nomenclatura"](../seguridad/DOC-012-administrador-patrimonial.md)) es el usuario
+principal de Nivel 1 responsable de cargar y mantener la información patrimonial desde el CCP —
+activos, códigos patrimoniales, descripciones, familias/categorías, áreas, ubicaciones,
+responsables, estados, documentación/fotografías, preparación de inventarios e importaciones
+controladas. **Directivo** (DOC-020) ya implementado, vista ejecutiva de solo Dashboard. Perfiles
+futuros anticipados, sin diseño ni rol de Zitadel todavía: Supervisor, Auditor, Administrador —
+cada uno con permisos distintos, sin que ninguno reemplace la responsabilidad de Nivel 1 del
+Profesional de AFT.
 
 ## Desarrollo local
 Requiere el stack de `../devops/local` corriendo (Zitadel + CIS + CORE + Postgres) y la app OIDC
