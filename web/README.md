@@ -158,22 +158,27 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
   WEB no tiene UI de paginación (ningún RF la pide todavía) — pide el tope de página (`limit=100`)
   en vez de el default (20) para no perder filas silenciosamente mientras el volumen se mantenga
   bajo esa cota; si crece más allá, hace falta una UI de paginación real (nuevo RF, no este).
-- **5 gaps de cobertura del CCP frente al alcance del Profesional de AFT (auditados 2026-08-18,
-  ver [DOC-012 § "Cobertura real desde el CCP hoy"](../seguridad/DOC-012-administrador-patrimonial.md)
-  para el detalle completo con archivo/línea)**, ninguno resuelto todavía:
-  - **Estados/ciclo de vida de Activo** — CORE tiene `baja`/`reincorporacion`/`responsable`
-    completos (`core/src/patrimonial/activo-escritura.controller.ts`) pero CIS no los expone en
-    `/admin/activos` y `ActivosPage.tsx` solo tiene alta+consulta — el Profesional de AFT no puede
-    dar de baja un Activo, reincorporarlo ni cambiarle el responsable desde el CCP.
-  - **Familias/categorías** — sin lectura ni CRUD del catálogo de tipos de activo; `catalogoId`
-    sigue siendo texto libre en el alta (mismo gap que "Sin lectura de `catalogo_activos`" ya
-    anotado arriba, ahora nombrado explícitamente contra el alcance funcional pedido).
-  - **Descripciones** — `Activo` no tiene un campo de descripción libre editable.
-  - **Documentación y fotografías** — sin modelo, endpoint ni UI en ningún sistema del
-    ecosistema.
-  - **Importaciones controladas desde archivos** — `POST /importaciones/contable` funciona y está
-    probado en CORE, pero sin puente en CIS ni UI en WEB — solo alcanzable con una llamada HTTP
-    directa a CORE hoy.
+- **5 gaps de cobertura del CCP frente al alcance del Profesional de AFT (auditados 2026-08-18)
+  — cerrados el mismo día ([DOC-021](aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
+  detalle completo con archivo/línea en
+  [DOC-012 § "Cobertura real desde el CCP hoy"](../seguridad/DOC-012-administrador-patrimonial.md))**:
+  - **Estados/ciclo de vida de Activo** — `ActivosPage.tsx` ofrece baja/reincorporación/cambio de
+    responsable por fila según `estado`, puente completo en CIS.
+  - **Familias/categorías** — `GET/POST /catalogo-tipos` sobre `catalogo_activos` (ya existía la
+    tabla, sin repository propio) — selector real en el alta de Activo, reemplaza el texto libre.
+  - **Descripciones** — columna nueva `activos.descripcion` + `PATCH /activos/:id/descripcion`,
+    editable desde el panel de edición.
+  - **Documentación y fotografías** (versión mínima) — tabla nueva `documentos_activo`, `url` es
+    un enlace externo que el operador ya subió a algún lado, sin bucket/OCR propio todavía (ver
+    `ROADMAP.md` Fase 7 § "Idea futura sin diseñar").
+  - **Importaciones controladas desde archivos** — `ImportacionesPage.tsx` nueva (CSV
+    cliente-side, sin dependencia nueva) → `POST /admin/importaciones/contable` (ya funcionaba en
+    CORE, solo faltaba el puente).
+- **Rol nuevo Administrador del Sistema** (`administrador-sistema`, DOC-021) — módulo
+  `AdminPage.tsx` (Organizaciones/Contratos/Usuarios/Indicadores), nunca toca información
+  patrimonial. Integración real con la API de administración de Zitadel para asignar usuarios a
+  organizaciones (`cis/src/zitadel-admin/`) — shapes de la API sin verificar todavía contra un
+  Zitadel real, ver nota en ese módulo.
 
 ## Módulos previstos
 6 en el MVP de Fase 5 (ver [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)), los 6
@@ -183,8 +188,12 @@ arriba), Áreas/Ubicaciones/Responsables (🟢, ABM completo incluida la edició
 RF-05 cerrado, ver "Gaps" arriba). Un séptimo módulo, Dashboard (🟢 implementado — RF-09,
 [DOC-019](aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)), expone el primer
 dashboard de CIP (SYS-06, Fase 6) vía un proxy nuevo en CIS (`src/dashboard-connector/`) — WEB
-nunca le habla a CIP directo. El resto — Incidencias, Movimientos, QR, RFID, Documentos, Reportes,
-Usuarios, Roles, Configuración, Integraciones — sigue sin diseñar (sin consumidor real).
+nunca le habla a CIP directo. Dos módulos más (2026-08-18, DOC-021): **Importaciones** (🟢, CSV
+cliente-side → `POST /admin/importaciones/contable`) y **Administración** (🟢, exclusivo de
+`administrador-sistema` — Organizaciones/Contratos/Usuarios/Indicadores, transversal como
+Auditoría, no vive dentro del flujo por-organización del hub). El resto — Incidencias,
+Movimientos, QR, RFID, Reportes, Roles, Configuración, Integraciones — sigue sin diseñar (sin
+consumidor real).
 
 ## Roles previstos
 **Profesional de AFT** (nombre funcional del rol `administrador-patrimonial` de Zitadel, ver
@@ -192,10 +201,12 @@ Usuarios, Roles, Configuración, Integraciones — sigue sin diseñar (sin consu
 principal de Nivel 1 responsable de cargar y mantener la información patrimonial desde el CCP —
 activos, códigos patrimoniales, descripciones, familias/categorías, áreas, ubicaciones,
 responsables, estados, documentación/fotografías, preparación de inventarios e importaciones
-controladas. **Directivo** (DOC-020) ya implementado, vista ejecutiva de solo Dashboard. Perfiles
-futuros anticipados, sin diseño ni rol de Zitadel todavía: Supervisor, Auditor, Administrador —
-cada uno con permisos distintos, sin que ninguno reemplace la responsabilidad de Nivel 1 del
-Profesional de AFT.
+controladas. **Directivo** (DOC-020) ya implementado, vista ejecutiva de solo Dashboard.
+**Administrador del Sistema** (`administrador-sistema`, DOC-021) ya implementado — administra la
+plataforma (organizaciones, contratos, usuarios, indicadores), nunca información patrimonial; el
+Profesional de AFT, simétricamente, nunca administra la plataforma. Perfiles futuros anticipados,
+sin diseño ni rol de Zitadel todavía: Supervisor, Auditor — sin que ninguno reemplace la
+responsabilidad de Nivel 1 del Profesional de AFT.
 
 ## Desarrollo local
 Requiere el stack de `../devops/local` corriendo (Zitadel + CIS + CORE + Postgres) y la app OIDC

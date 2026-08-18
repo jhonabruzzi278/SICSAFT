@@ -8,10 +8,12 @@
 construcción del séptimo módulo, Dashboard/CIP — DOC-019; mismo día, diseño y construcción de la
 segmentación por rol Directivo — DOC-020; mismo día, diseño de cierre de gaps del CCP + rol
 Administrador del Sistema — DOC-021)
-**Fase actual:** Construction — los 7 módulos (6 del MVP de Fase 5 + Dashboard, RF-09) y RF-10
-(segmentación por rol) tienen código funcionando, verificado de punta a punta contra Docker/
-Zitadel reales (ver `web/README.md` Estado). DOC-021 (cierre de 5 gaps + Administrador del
-Sistema) recién diseñado, construcción en curso.
+**Fase actual:** Construction — los 9 módulos (6 del MVP de Fase 5 + Dashboard RF-09 +
+Importaciones/Administración RF-14/RF-15) y RF-10 (segmentación por rol) tienen código
+funcionando. RF-01/RF-09/RF-10 verificados de punta a punta contra Docker/Zitadel reales; RF-11 a
+RF-15 (DOC-021) implementados con tsc/build/e2e en verde pero sin esa verificación real todavía
+(pendiente — requiere crear el rol `administrador-sistema` y el service user PAT en Zitadel real,
+ver `devops/local/README.md`).
 
 ## Status
 
@@ -25,8 +27,9 @@ Sistema) recién diseñado, construcción en curso.
       y de punta a punta contra Docker/Zitadel reales (rol `directivo` creado en Zitadel, login
       real confirma el redirect automático a `/dashboard`).
 - [ ] Operations — pendiente.
-- [ ] Construction — DOC-021 (cierre de gaps del CCP + Administrador del Sistema): diseñado
-      2026-08-18, código en curso.
+- [x] Construction — DOC-021 (cierre de gaps del CCP + Administrador del Sistema): diseñado y
+      construido 2026-08-18 (4 fases: CORE, CIS, WEB, devops). Falta verificación real de punta a
+      punta contra Docker/Zitadel (crear rol/service user reales).
 
 ## Por qué este directorio existe ahora, adelantado
 

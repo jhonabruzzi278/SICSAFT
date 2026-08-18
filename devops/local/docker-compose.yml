@@ -155,6 +155,11 @@ services:
       # (mismo caso que el resto del stack local) — Resource Id de la organizacion "DUOC UC" en
       # Zitadel, ver devops/local/README.md "Cliente OIDC real (WEB)".
       ZITADEL_ORG_ID_MAP: '{"386029528616558597":"duoc-uc"}'
+      # DOC-021 4 (Administrador del Sistema) — integración real con la API de administración de
+      # Zitadel, ver devops/local/README.md "Rol administrador-sistema + integración Zitadel
+      # Admin API".
+      ZITADEL_ADMIN_TOKEN: ${ZITADEL_ADMIN_TOKEN}
+      ZITADEL_PROJECT_ID: ${ZITADEL_PROJECT_ID}
     networks:
       - sicsaft
     depends_on:
