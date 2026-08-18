@@ -5,18 +5,21 @@
 **Metodología:** AI-DLC (tercer sistema que lo adopta, después de `app-qr-sicsaft/aidlc-docs/` y
 `core/aidlc-docs/`)
 **Fecha:** 2026-08-13 (diseño), 2026-08-14 (primer incremento de código), 2026-08-18 (diseño y
-construcción del séptimo módulo, Dashboard/CIP — DOC-019)
+construcción del séptimo módulo, Dashboard/CIP — DOC-019; mismo día, diseño de la segmentación por
+rol Directivo — DOC-020)
 **Fase actual:** Construction — los 7 módulos (6 del MVP de Fase 5 + Dashboard, RF-09) tienen
-código funcionando (ver `web/README.md` § Estado). Dashboard verificado en el navegador contra
-MSW; pendiente verificación contra CIS/CIP reales.
+código funcionando y verificado de punta a punta contra Docker real (ver `web/README.md` § Estado).
+RF-10 (segmentación por rol, DOC-020) tiene diseño cerrado, pendiente de construir.
 
 ## Status
 
 - [x] Inception — requirements, historias, arquitectura, DOC-013 y un mockup visual diseñados en
       la sesión de Fase 2.
-- [x] Construction — MVP de Fase 5 (6 módulos) completo. Incremento nuevo (Dashboard/CIP, DOC-019,
+- [x] Construction — MVP de Fase 5 (6 módulos) completo. Incremento (Dashboard/CIP, DOC-019,
       2026-08-18): `src/dashboard-connector/` en CIS + `DashboardPage.tsx` en WEB implementados,
-      verificados en el navegador contra MSW.
+      verificados de punta a punta contra Docker real (login OIDC real, datos reales de CIP).
+      Incremento nuevo (segmentación por rol, DOC-020, 2026-08-18): diseño cerrado, código
+      pendiente.
 - [ ] Operations — pendiente.
 
 ## Por qué este directorio existe ahora, adelantado
@@ -34,6 +37,7 @@ Patrimonial) ya estaban completas (`web/README.md` § Depende de).
 - Arquitectura: [`design-artifacts/ARCHITECTURE.md`](design-artifacts/ARCHITECTURE.md)
 - Contrato formal: [`design-artifacts/DOC-013-portal-web.md`](design-artifacts/DOC-013-portal-web.md)
 - Séptimo módulo (Dashboard/CIP): [`design-artifacts/DOC-019-dashboard-cip-frontend.md`](design-artifacts/DOC-019-dashboard-cip-frontend.md)
+- Segmentación por rol (Directivo): [`design-artifacts/DOC-020-segmentacion-por-rol-directivo.md`](design-artifacts/DOC-020-segmentacion-por-rol-directivo.md)
 - Estrategia de testing: [`testing/TEST_STRATEGY.md`](testing/TEST_STRATEGY.md)
 - Mockup visual: Artifact publicado en esta sesión (hub + módulos, paleta `BRAND.md`) — sin
   archivo en el repo, ver enlace compartido en la conversación.

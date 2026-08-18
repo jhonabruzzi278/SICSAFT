@@ -214,8 +214,15 @@ WEB). Lo que queda:
    autorización que `qr-connector.controller.ts`, sin rol adicional) + `DashboardPage.tsx` en WEB
    (KPIs de cobertura, áreas controladas con drill-down por área, sesiones con veredicto, activos
    fuera de área/no localizados, incidencias filtrables por código QR, estado de AFT, y un gráfico
-   circular por categoría — SVG propio, sin librería nueva). Verificado en el navegador contra MSW
-   (`src/mocks/handlers.ts`); pendiente verificación contra CIS/CIP reales.
+   circular por categoría — SVG propio, sin librería nueva). Verificado de punta a punta contra
+   Docker real: login OIDC real vía `web.sicsaft.localhost`, un `POST /inventarios` y un
+   `POST /activos` reales disparados dentro de la red Docker confirmados en pantalla (cobertura,
+   veredicto de sesión, estado de AFT y categorías, todos con datos reales).
+3. Construir RF-10 (segmentación por rol Directivo, diseño cerrado en
+   [DOC-020](aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md)): rol nuevo
+   `directivo` en Zitadel (solo config), `esDirectivo()` en `oidc-client.ts` (mismo patrón que
+   `esAdministradorPatrimonial()`, hoy sin consumidor) y una bifurcación en `HubPage.tsx` que
+   redirige al Directivo directo a `/dashboard`, sin pasar por el hub operativo.
 
 ✅ `Dockerfile`/`web-ci.yml`/servicio en el compose local — WEB ya tiene imagen de producción
 (nginx sirviendo el build de Vite, usuario sin privilegios) y corre dentro del stack en
