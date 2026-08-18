@@ -5,7 +5,16 @@ Explota la información que produce el CORE: dashboards, KPI, informes, BI, aler
 No se implementa dentro del CORE — el CORE produce datos, el CIP los interpreta.
 
 ## Estado
-🔲 No iniciado. Carpeta creada como placeholder dentro del plan maestro del ecosistema.
+🟡 Diseño (Inception, AI-DLC) completo — [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md): RF-01
+a RF-10 ([`requirements/REQUIREMENTS.md`](aidlc-docs/requirements/REQUIREMENTS.md)), modelo de
+datos y arquitectura de ingesta (outbox transaccional en CORE → Redis/BullMQ → worker de
+agregación de CIP → base `cip` propia, nunca contra la Base Patrimonial transaccional — DOC-014).
+
+**Primer incremento de Construction ya hecho, del lado de CORE**: `core/src/eventos-outbox/` —
+migración + trigger + dispatcher, publicando de verdad a la cola `cip-eventos` (ver
+`core/README.md` § "Outbox transaccional hacia CIP"). **Esta carpeta (`cip/`) sigue sin código
+todavía** — el segundo incremento (esqueleto NestJS propio, base de datos propia, worker
+consumidor y API de lectura) es lo que falta para tener un dashboard real.
 
 ## Primer dashboard previsto
 Por organización: activos registrados, activos escaneados, % cobertura de inventario, áreas
@@ -24,9 +33,13 @@ Base Patrimonial transaccional directamente.
 Nada.
 
 ## Documentos relacionados
-Pendiente: DOC-014 CIP.
+[DOC-014](aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md) — diseño completo del primer
+dashboard (Inception AI-DLC).
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §5 (separar lectura analítica de la Base
 Patrimonial transaccional, alimentada de forma asíncrona por el Motor de Eventos del CORE).
 
 ## Próximo paso sugerido
-Definir qué métricas del MVP 1 de CORE ya están disponibles para armar el primer dashboard.
+Confirmar el diseño con el usuario y pasar a Construction: migración `eventos_outbox` +
+trigger en `core/migrations/`, `EventosOutboxDispatcher` en `core/src/eventos-outbox/`, esqueleto
+NestJS de `cip/` (mismo patrón que `core/`/`cis/`, ver `CLAUDE.md` § "Al agregar un sistema
+nuevo") con su propia base `cip` y migraciones, worker de agregación y API de lectura.

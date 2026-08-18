@@ -8,6 +8,7 @@ import { DatabaseModule } from './database/database.module';
 import { CorrelationIdMiddleware } from './common/correlation-id/correlation-id.middleware';
 import { PatrimonialModule } from './patrimonial/patrimonial.module';
 import { OrquestadorModule } from './orquestador/orquestador.module';
+import { EventosOutboxModule } from './eventos-outbox/eventos-outbox.module';
 
 @Module({
   imports: [
@@ -20,6 +21,10 @@ import { OrquestadorModule } from './orquestador/orquestador.module';
     // AuditoriaModule transitivamente, ver orquestador.module.ts).
     PatrimonialModule,
     OrquestadorModule,
+    // Fase 6 (ROADMAP.md, cip/aidlc-docs/): dispatcher que publica eventos_outbox hacia la cola
+    // Redis/BullMQ que consumirá el worker de CIP — CORE no depende de CIP para responder al
+    // usuario (ver DOC-014 §8, reconciliación con Tomo IV §2.15/§2.19).
+    EventosOutboxModule,
   ],
   controllers: [AppController],
   providers: [AppService],

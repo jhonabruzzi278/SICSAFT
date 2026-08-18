@@ -13,3 +13,10 @@ process.env.CORE_DB_PORT ??= '5432';
 process.env.CORE_DB_NAME ??= 'core';
 process.env.CORE_DB_USER ??= 'core';
 process.env.CORE_DB_PASSWORD ??= 'core';
+
+// Fase 6 (EventosOutboxModule) — mismo criterio que CORE_DB_* arriba. `core-ci.yml` levanta un
+// Redis efímero sin password (limitación de `services:` de GitHub Actions, que no permite pasar
+// `--requirepass` sin una imagen custom); el `redis` de `devops/local/docker-compose.yml` sí
+// exige `REDIS_PASSWORD` — si tu `.env` local lo cambió del default, exportá REDIS_URL antes de
+// correr `npm run test:e2e` fuera de Docker.
+process.env.REDIS_URL ??= 'redis://localhost:6379';

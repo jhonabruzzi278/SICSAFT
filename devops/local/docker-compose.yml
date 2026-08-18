@@ -66,6 +66,11 @@ services:
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    ports:
+      # Expuesto al host solo para poder correr `npm run test:e2e` de `core` fuera de Docker
+      # (Fase 6, EventosOutboxModule) — mismo motivo que el puerto de `postgres` arriba. No
+      # necesario para que cis/core/cip se conecten entre si dentro de la red `sicsaft`.
+      - "6379:6379"
     volumes:
       - /data # anonimo — cache/colas no necesitan persistir entre reinicios locales
     networks:
@@ -195,6 +200,10 @@ services:
       CORE_DB_NAME: core
       CORE_DB_USER: ${CORE_DB_USER}
       CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+      # Fase 6 (EventosOutboxModule) — cola hacia el worker de CIP, mismo REDIS_PASSWORD que el
+      # servicio `redis` (arriba). Primer consumidor de colas (BullMQ) en el codigo del
+      # ecosistema, ver cip/aidlc-docs/design-artifacts/ARCHITECTURE.md.
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     networks:
       - sicsaft
     depends_on:
@@ -202,6 +211,8 @@ services:
         condition: service_healthy
       core-migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     # Sin router en traefik/dynamic.yml a propósito: CORE solo lo consume CIS dentro de la red
     # de contenedores (ver README raíz — "todo pasa por CIS → CORE"), nunca un navegador
