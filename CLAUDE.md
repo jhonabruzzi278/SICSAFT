@@ -85,6 +85,17 @@ Fase 2). Estructura estándar:
 - Commits agrupados por tema: si un cambio de sesión mezcla más de un tema (ej. "corregir docs
   desactualizadas" + "incorporar contenido nuevo"), preferir un solo commit bien descrito con
   bullets por tema en vez de forzar múltiples commits sobre archivos con hunks mezclados.
+- **Incrementos multi-fase (una fase de `ROADMAP.md`, un DOC-XXX con varias capas CORE/CIS/WEB)
+  usan `gh stack`** (extensión oficial `github/gh-stack`, instalada — ver `gh stack --help`) en
+  vez de armar la cadena de ramas/PRs a mano: `gh stack init` sobre la primera rama de la fase,
+  `gh stack add <rama>` por cada fase siguiente (cada una construida sobre la anterior, mismo
+  patrón ya usado en DOC-021: diseño → CORE → CIS → WEB → devops), `gh stack submit` para crear
+  los PRs apilados de una, y `gh stack merge` para mergearlos en orden una vez que el CI de cada
+  uno esté verde — hace el retarget de cada base automáticamente al mergear el anterior, en vez de
+  `gh pr edit --base main` manual por cada PR. `delete_branch_on_merge` está en `false` a nivel de
+  repo, así que `gh stack merge` no viola la regla de "no borrar ramas" de arriba. Para un cambio
+  de una sola capa (un fix, un doc suelto), seguir con una rama y un PR normal — `gh stack` es
+  para cuando la dependencia entre fases es real, no para todo cambio.
 
 ## CI / calidad
 
