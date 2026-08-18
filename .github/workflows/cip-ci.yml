@@ -50,10 +50,12 @@ jobs:
       CIP_DB_NAME: cip
       CIP_DB_USER: cip
       CIP_DB_PASSWORD: cip
-      CIP_SERVICE_TOKEN: secreto-compartido-ci
+      # CIP_SERVICE_TOKEN/CORE_SERVICE_TOKEN/REDIS_URL: sin fijar acá a propósito — mismo criterio
+      # que core-ci.yml con CORE_SERVICE_TOKEN. test/jest-e2e.setup.ts ya define un default
+      # ('secreto-compartido-e2e') que test/support/e2e-app.ts usa como SERVICE_TOKEN — fijarlos
+      # acá los desincroniza (hallazgo real: rompió los e2e con 401 en la primera corrida de este
+      # workflow).
       CORE_URL: http://localhost:3001
-      CORE_SERVICE_TOKEN: secreto-compartido-ci
-      REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
 
