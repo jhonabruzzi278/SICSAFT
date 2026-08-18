@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ActivoRepository } from '../patrimonial/activo.repository';
+import type { EstadoOperativoDeclarable } from '../patrimonial/activo.types';
 import { EventoRepository } from '../eventos/evento.repository';
 import { clasificarEscaneo } from '../reglas/clasificar-escaneo';
 import { SesionInventarioRepository } from './sesion-inventario.repository';
@@ -94,7 +95,7 @@ export class InventariosService {
       throw error;
     }
 
-    await this.registrarEventosDeEscaneo(filas, sesionId, payload.operadorId);
+    await this.registrarEventosDeEscaneo(filas, sesionId, payload);
 
     return { inventarioId: sesionId, estado: 'recibido' };
   }
@@ -191,19 +192,89 @@ export class InventariosService {
   private async registrarEventosDeEscaneo(
     filas: readonly FilaInventarioInput[],
     sesionId: string,
-    operadorId: string,
+    payload: InventarioRequest,
   ): Promise<void> {
+    const escaneosPorCodigo = new Map(
+      payload.escaneos.map((escaneo) => [escaneo.codigoQr, escaneo]),
+    );
+    // Un mismo codigoQr puede aparecer más de una vez en el payload (2da+ ocurrencia clasifica
+    // 'ya_escaneado', DOC-009) — estadoDeclarado/bajaSugerida solo se aplican en la primera
+    // ocurrencia real, para no repetir la transición/evento por cada repetición del mismo código
+    // dentro de la misma sesión. No alcanzable desde APP QR hoy (dedupea por código del lado del
+    // cliente), pero POST /inventarios es un contrato público (DOC-006) — se cubre igual.
+    const yaAplicado = new Set<string>();
+
     // Solo los escaneos que resolvieron a un activo real generan evento — no_registrado/invalido
     // no tienen activo_id, y un evento sin activo no tiene sentido (DOC-010).
     for (const fila of filas) {
-      if (fila.activoId) {
+      if (!fila.activoId) {
+        continue;
+      }
+      await this.eventoRepository.registrar({
+        activoId: fila.activoId,
+        tipo: 'escaneo_qr',
+        usuario: payload.operadorId,
+        detalle: { resultado: fila.resultado, sesionId },
+      });
+
+      if (yaAplicado.has(fila.codigoQr)) {
+        continue;
+      }
+      yaAplicado.add(fila.codigoQr);
+
+      const escaneo = escaneosPorCodigo.get(fila.codigoQr);
+      if (escaneo?.estadoDeclarado) {
+        await this.aplicarEstadoDeclarado(
+          fila.activoId,
+          payload.organizacionId,
+          escaneo.estadoDeclarado,
+          payload.operadorId,
+        );
+      }
+      if (escaneo?.bajaSugerida) {
         await this.eventoRepository.registrar({
           activoId: fila.activoId,
-          tipo: 'escaneo_qr',
-          usuario: operadorId,
-          detalle: { resultado: fila.resultado, sesionId },
+          tipo: 'baja_sugerida',
+          usuario: payload.operadorId,
+          detalle: { motivo: escaneo.bajaSugerida.motivo, sesionId },
         });
       }
+    }
+  }
+
+  // DOC-012 §5.1 — best-effort: si el activo ya cambió de estado entre el escaneo y este punto,
+  // o no está en un estado operativo compatible (ej. ya está dado_de_baja), se ignora en
+  // silencio en vez de abortar la sesión completa por un solo ítem. Nunca requiere el rol
+  // administrador-patrimonial (Tomo III §1.4 ya se lo concede a APP QR).
+  private async aplicarEstadoDeclarado(
+    activoId: string,
+    organizacionId: string,
+    estadoDeclarado: EstadoOperativoDeclarable,
+    operadorId: string,
+  ): Promise<void> {
+    try {
+      await this.activoRepository.cambiarEstado(
+        activoId,
+        organizacionId,
+        ['activo', 'mantenimiento', 'inactivo'],
+        estadoDeclarado,
+      );
+      if (estadoDeclarado !== 'activo') {
+        await this.eventoRepository.registrar({
+          activoId,
+          tipo: estadoDeclarado,
+          usuario: operadorId,
+          detalle: { origen: 'control_inventario' },
+        });
+      }
+    } catch (error: unknown) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        return;
+      }
+      throw error;
     }
   }
 

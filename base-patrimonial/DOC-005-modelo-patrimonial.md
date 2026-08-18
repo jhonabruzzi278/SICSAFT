@@ -140,6 +140,17 @@ existir en más de una sede (ej. "Finanzas" con gente en Melipilla y en otra sed
 
 ## 4. Estados de `Activo`
 
+> **Actualizado 2026-08-17** (decisión de producto, ver `ROADMAP.md` Fase 3.1 y
+> [DOC-017](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md)):
+> se agregan `mantenimiento` e `inactivo`. Tomo III §4.15 marca "Mantenimiento" como parte del
+> ciclo de vida oficial del activo (aparece explícitamente en la secuencia
+> Alta→…→Auditorías→**Mantenimiento**→Baja), etiquetado "(módulo futuro)" — no es una prohibición
+> del tomo, es un orden de construcción sugerido. Construirlo ahora no contradice el tomo, adelanta
+> ese módulo a pedido explícito del usuario. `inactivo` no tiene cita textual propia en el tomo
+> (que solo dice "Estado operativo" en §4.4 sin enumerar valores) — se modela como un estado
+> adicional de uso operativo (activo temporalmente fuera de servicio, sin estar en mantenimiento ni
+> extraviado), distinto del `estado` de `Responsable` (`activo|inactivo`, dominio no relacionado).
+
 ```mermaid
 stateDiagram-v2
     [*] --> activo: Alta (Motor Patrimonial, Fase 2)
@@ -147,14 +158,30 @@ stateDiagram-v2
     en_transito --> activo: Traslado confirmado en destino
     activo --> extraviado: Inventario sin localizar (2+ ciclos, regla de negocio de Fase 2)
     extraviado --> activo: Reincorporación (localizado)
+    activo --> mantenimiento: Declarado durante control (Fase 3.1)
+    mantenimiento --> activo: Sale de mantenimiento
+    activo --> inactivo: Declarado durante control (Fase 3.1)
+    inactivo --> activo: Vuelve a servicio
     activo --> dado_de_baja: Baja (irreversible)
     extraviado --> dado_de_baja: Baja (irreversible)
+    mantenimiento --> dado_de_baja: Baja (irreversible)
+    inactivo --> dado_de_baja: Baja (irreversible)
     dado_de_baja --> [*]: fila nunca se borra (Tomo III §4.10)
 ```
 
-`en_mantenimiento` **no** se modela todavía — Tomo III §4.15 lo marca explícitamente como "módulo
-futuro" en el ciclo de vida oficial. Se puede agregar al enum sin migración destructiva cuando
-exista (mismo patrón que DOC-004 §5 reservó `inventario-rfid` sin implementarlo).
+**Quién puede declarar cada transición** (ver DOC-012 § "Registro de estado operativo durante el
+control" para el detalle de autorización):
+- `activo ⇄ mantenimiento` y `activo ⇄ inactivo`: **cualquier operador autenticado de APP QR**,
+  durante el registro de un inventario — Tomo III §1.4 ya le concede a APP QR "registro de
+  inventarios/**estados**", no requiere el rol Administrador Patrimonial. Es una extensión de
+  `POST /inventarios` (DOC-006), no un endpoint nuevo.
+- `* → dado_de_baja`: **exclusivo de Administrador Patrimonial** (`POST /activos/:id/baja`, ya
+  implementado) — el tomo reserva "eliminar activos" a ese rol y dice explícitamente que APP QR
+  "no puede: modificar la Base Patrimonial Oficial". Esto **no cambia** con este incremento: un
+  operador de escaneo sin ese rol no puede dar de baja un activo, ni siquiera desde la pantalla de
+  control (ver DOC-017 § conflicto abierto).
+- `activo ⇄ en_transito` y `extraviado → activo`: sin cambios (Fase 2/4, ya implementado o
+  YAGNI-diferido según DOC-008).
 
 ## 5. `Inventario.resultado`: las 8 categorías ya citadas en el ecosistema
 
@@ -192,6 +219,10 @@ Sin escritor todavía — se llena recién cuando exista el Motor de Auditoría 
 - **Reglas de negocio de las 8 categorías de escaneo y de la máquina de estados de `Activo`** —
   este documento fija el vocabulario y las transiciones válidas, pero la lógica que las aplica
   vive en el Motor de Reglas/Motor Patrimonial (Fase 2), no en este esquema.
+- **Migración de la constraint `estado IN (...)` de `activos`** (`core/migrations/`, hoy
+  `('activo', 'en_transito', 'extraviado', 'dado_de_baja')`) — agregar `mantenimiento`/`inactivo`
+  a la constraint es aditivo (no destructivo, no invalida filas existentes), pero la migración en
+  sí no está escrita todavía — Fase 3.1 sigue en Inception (DOC-017), sin código.
 - **Ningún endpoint de CORE sirve estos datos todavía** — Motor Patrimonial (Fase 2) es quien
   expone `GET /catalogo`, `POST /inventarios`, etc. sobre estas tablas.
 - **Auditoría sin escritor** — la tabla existe, nada la llena todavía (Motor de Auditoría, Fase

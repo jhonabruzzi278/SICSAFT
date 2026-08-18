@@ -15,9 +15,22 @@ export const scanResultadoSchema = z.enum([
   'con_incidencia',
 ]);
 
+// Fase 3.1/DOC-017, DOC-012 §5.1 — declarable sin rol administrador-patrimonial.
+export const estadoOperativoDeclarableSchema = z.enum([
+  'activo',
+  'mantenimiento',
+  'inactivo',
+]);
+
+const bajaSugeridaSchema = z.object({
+  motivo: z.string().min(1),
+});
+
 const escaneoSchema = z.object({
   codigoQr: z.string().min(1),
   resultado: scanResultadoSchema,
+  estadoDeclarado: estadoOperativoDeclarableSchema.optional(),
+  bajaSugerida: bajaSugeridaSchema.optional(),
 });
 
 const incidenciaSchema = z.object({

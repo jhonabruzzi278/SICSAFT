@@ -1,4 +1,4 @@
-# Portal WEB SICSAFT (SYS-05)
+# CCP — Centro de Control Patrimonial (Portal WEB SICSAFT, SYS-05)
 
 ## Objetivo
 Aplicación web privada de administración y operación patrimonial (no confundir con APP QR, que

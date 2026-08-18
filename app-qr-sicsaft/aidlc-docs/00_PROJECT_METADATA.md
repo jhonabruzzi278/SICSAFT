@@ -16,6 +16,9 @@
 - Architecture: aidlc-docs/design-artifacts/ARCHITECTURE.md
 - Testing: aidlc-docs/testing/TEST_STRATEGY.md
 - Deployment: aidlc-docs/deployment/
+- **Fase 3.1** (ROADMAP.md ✅ completa — selector de modo, veredicto de sesión, estado
+  operativo/baja sugerida, AFT fuera de área):
+  [`design-artifacts/DOC-017-fase-3.1-brechas-flujo.md`](design-artifacts/DOC-017-fase-3.1-brechas-flujo.md)
 
 ## Notas del Análisis Automático
 - El directorio del proyecto estaba vacío al iniciar esta sesión (0 archivos). Todo el código fue generado en esta sesión a partir del brief funcional provisto por el usuario.

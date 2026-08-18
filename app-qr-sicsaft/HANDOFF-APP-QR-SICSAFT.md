@@ -5,7 +5,7 @@
 ## Instrucciones para la nueva sesión
 
 1. Este documento es autocontenido: no hace falta re-auditar el código para tener el contexto de negocio y las decisiones ya tomadas.
-2. **TASK-004 a TASK-010 ya están hechas** — ver sección 7. Las 12 pantallas de DOC-001 están cubiertas, incluido el envío HTTP real. No hay backlog nuevo definido todavía para APP QR SICSAFT — antes de inventar trabajo nuevo, confirmar con el usuario si corresponde sincronizar Trello o mirar otro sistema del ecosistema (`cis/`, `core/`, etc., ver `README.md` raíz). La suite de e2e de Playwright (`tests/`) ya corre en verde contra la sesión OIDC real, mockeando la red con MSW (`src/mocks/`, ver sección 7) — **pendiente real que sí quedó abierto**: el recorrido manual contra Zitadel/CIS/CORE reales, sección 7.
+2. **TASK-004 a TASK-010 ya están hechas** — ver sección 7. Las 12 pantallas de DOC-001 están cubiertas, incluido el envío HTTP real. No hay backlog nuevo definido todavía para APP QR SICSAFT — antes de inventar trabajo nuevo, confirmar con el usuario si corresponde sincronizar Trello o mirar otro sistema del ecosistema (`cis/`, `core/`, etc., ver `README.md` raíz). La suite de e2e de Playwright (`tests/`) ya corre en verde contra la sesión OIDC real, mockeando la red con MSW (`src/mocks/`, ver sección 7). El recorrido manual contra Zitadel/CIS/CORE reales **ya se hizo y se verificó de punta a punta el 2026-08-13** (sección 7, incluye un bug real encontrado y corregido) — **pendiente real que sí queda abierto**: la prueba en un dispositivo Android físico (offline real, cámara, PWA instalada), ver sección 7.
 3. **TASK-007 (sincronización real con CORE) ya no está bloqueada — se hizo.** Las 4 preguntas de la sección 6 tienen respuesta concreta desde el trabajo de `cis/`/`core/` (Fases 2-3 de `ROADMAP.md`): CIS expone exactamente las 4 rutas propuestas (DOC-006), la identidad viene de Zitadel real vía PKCE, `correlationId` de negocio convive con el header transversal, y la idempotencia es la propuesta. El Conector QR (`src/lib/qr-connector.ts`) ya no es un stub: `HttpQrConnectorClient` habla HTTP real contra CIS. Sección 6 actualizada con las respuestas.
 4. El backlog vive en Trello: https://trello.com/b/nCi6W4oB/sicsaft (tablero **SICSAFT**, board id `6a79df5317e070b5a23014d0`). Se gestiona con `C:\Proyectos\trello-ai-project-manager\trello_project.py` (`validate-plan` / `sync-plan`, dry-run por defecto, `--apply` para escribir). Requiere `TRELLO_API_KEY`, `TRELLO_TOKEN`, `TRELLO_BOARD_ID` en variables de entorno — **no están guardadas en ningún archivo**; pedíselas al usuario si hace falta escribir en Trello, y si te las pasa por chat, avisale que las rote después (ya se expusieron una vez en una sesión anterior). **El tablero no se sincronizó todavía con el trabajo de TASK-004 a TASK-009** — falta mover esas tarjetas a "Hecho" cuando haya credenciales.
 5. No se hizo `git push` de ningún commit todavía — todo vive local en `main`.
@@ -14,11 +14,11 @@
 
 ## 1. Qué es este proyecto
 
-**APP QR SICSAFT** (antes "QR Vault") es la app de **captura** del ecosistema patrimonial SICSAFT: identifica al operador, la organización/área/ubicación, escanea activos con QR, valida contra la Base Patrimonial Central, registra incidencias y envía los resultados a SICSAFT CORE. No modifica directamente la Base Patrimonial Central — todo pasa por un **Conector QR** intermediario (hoy un stub local, ver sección 5).
+**APP QR SICSAFT** (antes "QR Vault") es la app de **captura** del ecosistema patrimonial SICSAFT: identifica al operador, la organización/área/ubicación, escanea activos con QR, valida contra la Base Patrimonial Central, registra incidencias y envía los resultados a SICSAFT CORE. No modifica directamente la Base Patrimonial Central — todo pasa por un **Conector QR** intermediario, que ya habla HTTP real contra CIS→CORE (ver sección 5/7).
 
 ```mermaid
 flowchart LR
-    App["APP QR SICSAFT"] --> Connector["Conector QR (stub local)"]
+    App["APP QR SICSAFT"] --> Connector["Conector QR (real, HTTP contra CIS)"]
     Connector --> CIS["CIS"]
     CIS --> Core["SICSAFT CORE"]
     Core --> Rules["Reglas patrimoniales"]

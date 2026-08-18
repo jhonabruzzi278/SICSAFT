@@ -129,9 +129,14 @@ function toInventarioRequest(session: InventarioPayload): Record<string, unknown
     ubicacionId: session.locationId,
     fechaInicio: session.startedAt,
     fechaCierre: session.date,
+    // Fase 3.1/DOC-017 §3, DOC-012 §5.1 — ambos opcionales, ninguno modifica la Base Patrimonial
+    // directo: `estadoDeclarado` es una transicion best-effort que CORE aplica sin rol, y
+    // `bajaSugerida` es puramente informativo (lo ejecuta el Administrador Patrimonial).
     escaneos: session.items.map((item) => ({
       codigoQr: item.code,
       resultado: CATEGORY_TO_RESULTADO[item.category],
+      ...(item.estadoDeclarado ? { estadoDeclarado: item.estadoDeclarado } : {}),
+      ...(item.bajaSugerida ? { bajaSugerida: { motivo: item.bajaSugerida } } : {}),
     })),
     incidencias: session.items
       .filter((item): item is typeof item & { incidentNote: string } => Boolean(item.incidentNote))

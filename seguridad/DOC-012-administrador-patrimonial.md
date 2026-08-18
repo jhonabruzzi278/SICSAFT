@@ -3,7 +3,10 @@
 > **Estado**: los 4 ítems de código de esta fase están implementados y verificados (unit + e2e
 > contra Postgres real) — ítem 1 (rol + claim + autorización), ítem 3 (Motor Patrimonial: alta/
 > baja/reincorporación/cambio de responsable), ítem 4 (importación masiva idempotente de base
-> contable) e ítem 5 (escritura de `Contrato`). Formaliza el
+> contable) e ítem 5 (escritura de `Contrato`). **§5.1 agregado 2026-08-17, sin implementar
+> todavía** (Fase 3.1/DOC-017, en Inception, confirmado con el usuario) — registro de estado
+> operativo y "baja sugerida" por APP QR sin rol nuevo, sin tocar `Activo.estado` en el caso de
+> baja (la ejecuta el Administrador Patrimonial). Formaliza el
 > rol que Tomo III §1.4 Entrada 4 define como único autorizado a modificar oficialmente la Base
 > Patrimonial — hoy no existe en ningún sistema del ecosistema
 > ([`seguridad/README.md`](README.md) § "Rol pendiente"). Complementa
@@ -93,6 +96,7 @@ dominios completos de DOC-005 (mismo criterio YAGNI que recortó DOC-005 §8).
 | Crear | Activo (masivo) | `POST /importaciones/contable` | Nadie (Fase 7 lo automatiza, no lo reemplaza) |
 | Crear/Modificar | Contrato | `POST /contratos`, `PATCH /contratos/:id` | Nadie |
 | Consultar | Activo/Contrato | `GET /catalogo`, `GET /entitlements` (ya existen) | APP QR, WEB, RFID (Tomo III §1.4 ya se lo permite) |
+| Modificar (estado operativo) | Activo | `POST /inventarios`, extendido — ver §5.1 (pendiente, Fase 3.1) | **APP QR, sin rol nuevo** — Tomo III §1.4 ya le concede "registro de inventarios/estados" a esta entrada, distinto de "modificar la Base Patrimonial Oficial" |
 | Autorizar/Exportar/Administrar/Configurar | — | Sin endpoint todavía | Fuera de alcance de esta fase — sin consumidor real (WEB Fase 5 los va a necesitar para su propio ABM, no antes) |
 
 **Matriz WAF §11 sin excepciones**: APP QR y RFID conservan exactamente los mismos permisos de
@@ -119,6 +123,43 @@ YAGNI) — se implementan las 4 transiciones que sí tienen consumidor inmediato
 Cada transición inserta una fila en `eventos` (tipo `alta`/`baja`/`reincorporacion`/
 `cambio_responsable`, mismo patrón que el seed de Fase 1) — `Historial` sigue sin ser tabla
 propia, es la lectura cronológica de `eventos` por activo (DOC-005 §1, sin cambios).
+
+### 5.1 Registro de estado operativo durante el control (APP QR, sin rol nuevo) — ⬜ pendiente
+
+**Origen**: `ROADMAP.md` Fase 3.1 /
+[DOC-017](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md) — el
+controlador de AFT quiere declarar el estado de cada activo (en servicio/mantenimiento/inactivo)
+durante el mismo control de inventario, sin salir a WEB.
+
+**Por qué no necesita el rol `administrador-patrimonial`**: Tomo III §1.4 (tabla completa en
+`ARQUITECTURA-WAF.md` §11) le concede a la entrada APP QR *"Lectura, registro de
+inventarios/**estados**, generación de informes"* — "registro de estados" es un permiso ya
+otorgado por el tomo a **cualquier** operador autenticado de APP QR, no una capacidad exclusiva de
+Administrador Patrimonial. Es distinto de "modificar la Base Patrimonial Oficial" (lo que APP QR
+explícitamente **no puede**): declarar que un activo está en mantenimiento no reescribe su
+identidad, ubicación, responsable ni lo elimina — es información operativa de estado, análoga a
+"con_incidencia" en las 8 categorías de escaneo que ya se registran hoy sin rol especial.
+
+**Diseño propuesto**: extender el payload de `POST /inventarios` (DOC-006 §3) con un campo
+opcional por escaneo, `estadoDeclarado?: 'activo' | 'mantenimiento' | 'inactivo'` — **nunca**
+`dado_de_baja` (ver conflicto abajo). CORE aplica la transición dentro del mismo
+`OrquestadorService.ejecutarEscrituraOficial` que ya usa el Motor Patrimonial (§5), sin
+`verificarRolAdministradorPatrimonial` — mismo nivel de autorización que el resto de
+`POST /inventarios` hoy (operador autenticado vía Zitadel, sin claim de rol adicional). Cada
+transición genera su evento (`tipo: 'mantenimiento'` ya existe en el vocabulario de DOC-005 §6;
+`inactivo` es evento nuevo, mismo patrón).
+
+**"Baja sugerida" — resuelto 2026-08-17, sin delegar la escritura oficial**: el operador de
+escaneo puede marcar `bajaSugerida: { motivo: string }` por activo, que viaja en el mismo
+`POST /inventarios` extendido como dato informativo (misma naturaleza que una observación o
+incidencia) — **no** ejecuta ninguna transición de `Activo.estado`, no invoca
+`verificarRolAdministradorPatrimonial`, no es escritura oficial. El Administrador Patrimonial ve
+la sugerencia al revisar el inventario/informe (mismo lugar donde ya revisa auditoría hoy) y, si
+la valida, ejecuta él mismo `POST /activos/:id/baja` desde WEB — el único camino que de verdad
+cambia `Activo.estado` a `dado_de_baja` sigue siendo exclusivo de ese rol, sin cambios respecto a
+§5. Esto respeta Tomo III §1.4 sin ambigüedad: "generación de informes" (que el tomo ya le concede
+a APP QR) incluye señalar una sugerencia; "eliminar activos" (reservado a Administrador
+Patrimonial) sigue siendo un acto exclusivo y explícito de ese rol.
 
 ## 6. Importación de base contable (carga masiva) ✅ implementado
 

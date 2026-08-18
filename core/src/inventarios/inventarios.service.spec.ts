@@ -60,6 +60,7 @@ function buildService() {
     findByCodigoQr: jest.fn(),
     existeMasDeUnActivoConCodigoQr: jest.fn().mockResolvedValue(false),
     findCatalogo: jest.fn(),
+    cambiarEstado: jest.fn(),
   } as unknown as jest.Mocked<ActivoRepository>;
   const eventoRepository = {
     registrar: jest.fn(),
@@ -156,6 +157,180 @@ describe('InventariosService', () => {
       const [, filasArg] = sesionRepository.crear.mock.calls[0];
       expect(filasArg[0].resultado).toBe('con_incidencia');
       expect(filasArg[0].observaciones).toBe('Pantalla trizada');
+    });
+  });
+
+  describe('procesar — estado operativo declarado (Fase 3.1/DOC-012 §5.1)', () => {
+    it('aplica la transicion de estado sin requerir rol, sin evento para "activo"', async () => {
+      const { service, sesionRepository, activoRepository, eventoRepository } =
+        buildService();
+      sesionRepository.findByIdempotencyKey.mockResolvedValue(null);
+      activoRepository.findByCodigoQr.mockResolvedValue(ACTIVO);
+      activoRepository.cambiarEstado.mockResolvedValue({
+        ...ACTIVO,
+        estado: 'activo',
+      });
+
+      await service.procesar(
+        buildPayload({
+          escaneos: [
+            {
+              codigoQr: 'QR-000001',
+              resultado: 'correcto',
+              estadoDeclarado: 'activo',
+            },
+          ],
+        }),
+      );
+
+      expect(activoRepository.cambiarEstado).toHaveBeenCalledWith(
+        'activo-notebook-001',
+        'duoc-uc',
+        ['activo', 'mantenimiento', 'inactivo'],
+        'activo',
+      );
+      // Solo el evento escaneo_qr — "activo" no genera evento propio (§ inventarios.service.ts).
+      expect(eventoRepository.registrar).toHaveBeenCalledTimes(1);
+    });
+
+    it('mantenimiento/inactivo registran ademas un evento propio', async () => {
+      const { service, sesionRepository, activoRepository, eventoRepository } =
+        buildService();
+      sesionRepository.findByIdempotencyKey.mockResolvedValue(null);
+      activoRepository.findByCodigoQr.mockResolvedValue(ACTIVO);
+      activoRepository.cambiarEstado.mockResolvedValue({
+        ...ACTIVO,
+        estado: 'mantenimiento',
+      });
+
+      await service.procesar(
+        buildPayload({
+          escaneos: [
+            {
+              codigoQr: 'QR-000001',
+              resultado: 'correcto',
+              estadoDeclarado: 'mantenimiento',
+            },
+          ],
+        }),
+      );
+
+      expect(eventoRepository.registrar).toHaveBeenCalledWith({
+        activoId: 'activo-notebook-001',
+        tipo: 'mantenimiento',
+        usuario: 'op-1',
+        detalle: { origen: 'control_inventario' },
+      });
+    });
+
+    it('estado incompatible (400 de cambiarEstado) se ignora sin abortar la sesion', async () => {
+      const { service, sesionRepository, activoRepository } = buildService();
+      sesionRepository.findByIdempotencyKey.mockResolvedValue(null);
+      activoRepository.findByCodigoQr.mockResolvedValue({
+        ...ACTIVO,
+        estado: 'dado_de_baja',
+      });
+      activoRepository.cambiarEstado.mockRejectedValue(
+        new BadRequestException({ message: 'estado incompatible' }),
+      );
+
+      const respuesta = await service.procesar(
+        buildPayload({
+          escaneos: [
+            {
+              codigoQr: 'QR-000001',
+              resultado: 'correcto',
+              estadoDeclarado: 'mantenimiento',
+            },
+          ],
+        }),
+      );
+
+      expect(respuesta.estado).toBe('recibido');
+    });
+
+    it('codigoQr repetido en el mismo request aplica estadoDeclarado una sola vez', async () => {
+      const { service, sesionRepository, activoRepository, eventoRepository } =
+        buildService();
+      sesionRepository.findByIdempotencyKey.mockResolvedValue(null);
+      activoRepository.findByCodigoQr.mockResolvedValue(ACTIVO);
+      activoRepository.cambiarEstado.mockResolvedValue({
+        ...ACTIVO,
+        estado: 'mantenimiento',
+      });
+
+      await service.procesar(
+        buildPayload({
+          escaneos: [
+            {
+              codigoQr: 'QR-000001',
+              resultado: 'correcto',
+              estadoDeclarado: 'mantenimiento',
+            },
+            {
+              codigoQr: 'QR-000001',
+              resultado: 'correcto',
+              estadoDeclarado: 'mantenimiento',
+            },
+          ],
+        }),
+      );
+
+      // 2 eventos escaneo_qr (uno por ocurrencia) + 1 solo evento mantenimiento (no 2).
+      expect(activoRepository.cambiarEstado).toHaveBeenCalledTimes(1);
+      expect(eventoRepository.registrar).toHaveBeenCalledTimes(3);
+    });
+
+    it('un error inesperado de cambiarEstado (no 400/404) se relanza tal cual', async () => {
+      const { service, sesionRepository, activoRepository } = buildService();
+      sesionRepository.findByIdempotencyKey.mockResolvedValue(null);
+      activoRepository.findByCodigoQr.mockResolvedValue(ACTIVO);
+      const errorInesperado = new Error('conexion perdida');
+      activoRepository.cambiarEstado.mockRejectedValue(errorInesperado);
+
+      await expect(
+        service.procesar(
+          buildPayload({
+            escaneos: [
+              {
+                codigoQr: 'QR-000001',
+                resultado: 'correcto',
+                estadoDeclarado: 'mantenimiento',
+              },
+            ],
+          }),
+        ),
+      ).rejects.toBe(errorInesperado);
+    });
+
+    it('bajaSugerida registra un evento informativo, sin tocar Activo.estado', async () => {
+      const { service, sesionRepository, activoRepository, eventoRepository } =
+        buildService();
+      sesionRepository.findByIdempotencyKey.mockResolvedValue(null);
+      activoRepository.findByCodigoQr.mockResolvedValue(ACTIVO);
+
+      const respuesta = await service.procesar(
+        buildPayload({
+          escaneos: [
+            {
+              codigoQr: 'QR-000001',
+              resultado: 'correcto',
+              bajaSugerida: { motivo: 'Pantalla rota, no enciende' },
+            },
+          ],
+        }),
+      );
+
+      expect(activoRepository.cambiarEstado).not.toHaveBeenCalled();
+      expect(eventoRepository.registrar).toHaveBeenCalledWith({
+        activoId: 'activo-notebook-001',
+        tipo: 'baja_sugerida',
+        usuario: 'op-1',
+        detalle: {
+          motivo: 'Pantalla rota, no enciende',
+          sesionId: respuesta.inventarioId,
+        },
+      });
     });
   });
 

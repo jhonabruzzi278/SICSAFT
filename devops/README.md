@@ -40,7 +40,7 @@ sicsaft-vps/
 | `sicsaft.cl` | Landing comercial (público, sin login) |
 | `id.sicsaft.cl` | Identidad/SSO — Zitadel (ver ADR-002) |
 | `api.sicsaft.cl` | CIS (API Gateway) |
-| `app.sicsaft.cl` | Portal WEB (hub post-login) |
+| `app.sicsaft.cl` | CCP — Centro de Control Patrimonial (hub post-login) |
 | `qr.sicsaft.cl` | APP QR SICSAFT (PWA instalable, subdominio propio por `scope` del manifest) |
 | `cip.sicsaft.cl` | CIP (dashboards/BI), separable de `app.` si el tráfico lo justifica |
 

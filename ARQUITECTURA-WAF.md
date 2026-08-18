@@ -313,6 +313,15 @@ modelar: no hay integración con un sistema contable real en `integraciones/READ
 conector está listado pero sin iniciar, Fase 7 del ROADMAP) — la importación manual del
 Administrador Patrimonial cubre el 80% del valor mientras tanto.
 
+**Decisión de producto sobre esta entrada**: SICSAFT nunca se conecta directamente (API/DB) al
+sistema contable del cliente — la frontera de responsabilidad termina antes de esa integración.
+`CON-CONTABILIDAD`, cuando se construya, debe seguir siendo una importación controlada (archivo
+intermedio validado por el especialista contable, no una conexión en vivo), con flujo
+recibido → validado → comparado → aprobado → procesado → auditado antes de que CORE aplique
+cualquier cambio a la Base Patrimonial — nunca sobrescritura silenciosa de un campo patrimonial ya
+existente. Esto no cambia los permisos que le exige Tomo III §1.4 (importación, actualización,
+sincronización de registros oficiales); acota *cómo* se implementan.
+
 **Salidas oficiales (Tomo III §1.5)**
 
 | Salida | Contenido |

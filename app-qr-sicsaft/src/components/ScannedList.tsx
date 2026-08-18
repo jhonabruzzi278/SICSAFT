@@ -1,7 +1,7 @@
-import { AlertTriangleIcon, MessageSquarePlusIcon } from 'lucide-react';
+import { AlertTriangleIcon, MessageSquarePlusIcon, WrenchIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEntrance } from '@/hooks/useEntrance';
-import type { ScanCategory } from '@/lib/db';
+import type { EstadoOperativoDeclarable, ScanCategory } from '@/lib/db';
 
 export interface ScannedItem {
   code: string;
@@ -12,7 +12,19 @@ export interface ScannedItem {
   incidentNote?: string;
   outOfPlace?: boolean;
   externalFind?: boolean;
+  estadoDeclarado?: EstadoOperativoDeclarable;
+  bajaSugerida?: string;
 }
+
+// Fase 3.1/DOC-017 §3 — declarable sin rol administrador-patrimonial (Tomo III §1.4, DOC-012
+// §5.1). Solo para activos ya registrados en la Base Patrimonial (con codigoQr real, no
+// no_registrado/invalido) — no tiene sentido declarar estado de algo que CORE no puede resolver
+// a un activo.
+const ESTADO_OPTIONS: { value: EstadoOperativoDeclarable; label: string }[] = [
+  { value: 'activo', label: 'En servicio' },
+  { value: 'mantenimiento', label: 'En mantenimiento' },
+  { value: 'inactivo', label: 'Inactivo' },
+];
 
 const CATEGORY_LABEL: Record<ScanCategory, string> = {
   correct: '✔ Correcto',
@@ -40,7 +52,11 @@ interface ScannedListProps {
   onExternalFind: (code: string) => void;
   onDiscard: (code: string) => void;
   onAddIncident: (code: string) => void;
+  onDeclareEstado: (code: string, estado: EstadoOperativoDeclarable) => void;
+  onSuggestBaja: (code: string) => void;
 }
+
+const ACTIVO_REAL_CATEGORIES: ScanCategory[] = ['correct', 'wrong-area', 'wrong-location'];
 
 function ScannedListItem({
   item,
@@ -48,9 +64,12 @@ function ScannedListItem({
   onExternalFind,
   onDiscard,
   onAddIncident,
+  onDeclareEstado,
+  onSuggestBaja,
 }: { item: ScannedItem } & Omit<ScannedListProps, 'items'>) {
   const shown = useEntrance();
   const isWrongPlace = item.category === 'wrong-area' || item.category === 'wrong-location';
+  const esActivoReal = ACTIVO_REAL_CATEGORIES.includes(item.category);
 
   return (
     <li
@@ -81,7 +100,46 @@ function ScannedListItem({
         </div>
       )}
 
+      {item.bajaSugerida && (
+        <div className="text-xs text-destructive" data-testid="scanned-item-baja-sugerida">
+          Baja sugerida: {item.bajaSugerida}
+        </div>
+      )}
+
+      {esActivoReal && (
+        <div className="flex items-center gap-2">
+          <label htmlFor={`estado-${item.code}`} className="text-xs text-muted-foreground">
+            Estado:
+          </label>
+          <select
+            id={`estado-${item.code}`}
+            data-testid="estado-declarado-select"
+            className="rounded border bg-background px-2 py-1 text-xs"
+            value={item.estadoDeclarado ?? 'activo'}
+            onChange={(e) => onDeclareEstado(item.code, e.target.value as EstadoOperativoDeclarable)}
+          >
+            {ESTADO_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2">
+        {esActivoReal && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onSuggestBaja(item.code)}
+            data-testid="suggest-baja-btn"
+          >
+            <WrenchIcon />
+            {item.bajaSugerida ? 'Editar sugerencia de baja' : 'Sugerir baja'}
+          </Button>
+        )}
         {isWrongPlace && (
           <Button
             type="button"
@@ -136,7 +194,15 @@ function ScannedListItem({
   );
 }
 
-export function ScannedList({ items, onMarkOutOfPlace, onExternalFind, onDiscard, onAddIncident }: ScannedListProps) {
+export function ScannedList({
+  items,
+  onMarkOutOfPlace,
+  onExternalFind,
+  onDiscard,
+  onAddIncident,
+  onDeclareEstado,
+  onSuggestBaja,
+}: ScannedListProps) {
   if (items.length === 0) {
     return <p className="text-sm text-muted-foreground">Todavía no escaneaste ningún producto.</p>;
   }
@@ -154,6 +220,8 @@ export function ScannedList({ items, onMarkOutOfPlace, onExternalFind, onDiscard
             onExternalFind={onExternalFind}
             onDiscard={onDiscard}
             onAddIncident={onAddIncident}
+            onDeclareEstado={onDeclareEstado}
+            onSuggestBaja={onSuggestBaja}
           />
         ))}
     </ul>

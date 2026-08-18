@@ -1,7 +1,20 @@
-// DOC-005 §4 — estado de Activo. 'en_mantenimiento' deliberadamente fuera (Tomo III §4.15 lo
-// marca "modulo futuro").
+// DOC-005 §4 — estado de Activo. 'mantenimiento'/'inactivo' agregados en Fase 3.1 (2026-08-17,
+// migracion 1755400000000) — declarables por cualquier operador de APP QR sin rol
+// administrador-patrimonial, ver DOC-012 §5.1.
 export type EstadoActivo =
-  'activo' | 'en_transito' | 'extraviado' | 'dado_de_baja';
+  | 'activo'
+  | 'en_transito'
+  | 'extraviado'
+  | 'mantenimiento'
+  | 'inactivo'
+  | 'dado_de_baja';
+
+// Subconjunto de EstadoActivo que un operador de APP QR puede declarar via POST /inventarios
+// (InventariosService), sin el rol administrador-patrimonial — Tomo III §1.4 se lo concede
+// explicitamente a esa entrada ("registro de inventarios/estados"). No incluye en_transito,
+// extraviado ni dado_de_baja: esas transiciones siguen su propio camino (Motor Patrimonial /
+// Administrador Patrimonial), DOC-012 §5.1.
+export type EstadoOperativoDeclarable = 'activo' | 'mantenimiento' | 'inactivo';
 
 export interface CatalogoActivoInfo {
   tipo: string;
