@@ -562,6 +562,17 @@ diaria como parte del contrato, no como detalle opcional.
 **Done**: caída del sistema contable no bloquea el flujo Captura→CIS→CORE (test de resiliencia);
 ninguna sincronización elimina historial (invariante testeado).
 
+**Idea futura sin diseñar (anotada 2026-08-18, vision del usuario, no tomo)**: para cerrar los
+gaps de "documentación y fotografías" e "importaciones controladas desde archivos" (ver
+`seguridad/DOC-012-administrador-patrimonial.md` § "Cobertura real desde el CCP hoy"), el CCP
+podría alimentarse subiendo Excel/documentos a algo tipo bucket (S3 o equivalente), con un
+servicio de OCR sobre esos archivos, y CORE siempre como quien valida/confirma antes de tocar la
+BPI — coherente con la regla no negociable de `CLAUDE.md` (ningún bucket ni servicio de captura le
+escribe directo a la base). También se planteó que CORE tenga su propia interfaz/módulos/usuarios,
+no solo API — sin refinar todavía. Nada de esto tiene AI-DLC (`aidlc-docs/`) ni fase asignada — es
+una idea capturada para no perderla, no una decisión de diseño; antes de construirla necesita su
+propio ciclo de diseño (Inception→Construction) como cualquier feature no trivial de este repo.
+
 ## Fase 8 — RFID
 
 Cierra la Etapa 1 declarada en Tomo III 1.2 (APP QR + WEB + RFID). Entra como un conector más en

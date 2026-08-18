@@ -158,6 +158,22 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
   WEB no tiene UI de paginación (ningún RF la pide todavía) — pide el tope de página (`limit=100`)
   en vez de el default (20) para no perder filas silenciosamente mientras el volumen se mantenga
   bajo esa cota; si crece más allá, hace falta una UI de paginación real (nuevo RF, no este).
+- **5 gaps de cobertura del CCP frente al alcance del Profesional de AFT (auditados 2026-08-18,
+  ver [DOC-012 § "Cobertura real desde el CCP hoy"](../seguridad/DOC-012-administrador-patrimonial.md)
+  para el detalle completo con archivo/línea)**, ninguno resuelto todavía:
+  - **Estados/ciclo de vida de Activo** — CORE tiene `baja`/`reincorporacion`/`responsable`
+    completos (`core/src/patrimonial/activo-escritura.controller.ts`) pero CIS no los expone en
+    `/admin/activos` y `ActivosPage.tsx` solo tiene alta+consulta — el Profesional de AFT no puede
+    dar de baja un Activo, reincorporarlo ni cambiarle el responsable desde el CCP.
+  - **Familias/categorías** — sin lectura ni CRUD del catálogo de tipos de activo; `catalogoId`
+    sigue siendo texto libre en el alta (mismo gap que "Sin lectura de `catalogo_activos`" ya
+    anotado arriba, ahora nombrado explícitamente contra el alcance funcional pedido).
+  - **Descripciones** — `Activo` no tiene un campo de descripción libre editable.
+  - **Documentación y fotografías** — sin modelo, endpoint ni UI en ningún sistema del
+    ecosistema.
+  - **Importaciones controladas desde archivos** — `POST /importaciones/contable` funciona y está
+    probado en CORE, pero sin puente en CIS ni UI en WEB — solo alcanzable con una llamada HTTP
+    directa a CORE hoy.
 
 ## Módulos previstos
 6 en el MVP de Fase 5 (ver [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)), los 6
