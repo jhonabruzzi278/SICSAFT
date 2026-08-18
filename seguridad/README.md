@@ -52,6 +52,23 @@ escritura de `Contrato` (`POST /contratos`, `PATCH /contratos/:id`,
 **Pendiente**: las 4 acciones restantes de Gestión de Permisos (Autorizar/Exportar/Administrar/
 Configurar) — sin consumidor real hasta que WEB (Fase 5) tenga su propio ABM.
 
+### Rol ✅ implementado: Administrador del Sistema (DOC-021, sin fuente en un tomo — vision del usuario 2026-08-18)
+Segundo rol de Proyecto en Zitadel (`administrador-sistema`), administra la **plataforma**
+(organizaciones, contratos además del Profesional de AFT, usuarios, indicadores) — nunca
+información patrimonial (Activos/Catálogo/Documentos siguen exclusivos de
+`administrador-patrimonial`, y simétricamente el Profesional de AFT nunca administra la
+plataforma). Diseño completo en
+[DOC-021](../web/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md).
+Único caso de este repo con autorización server-side en dos niveles distintos según el endpoint:
+`POST /organizaciones` (solo `administrador-sistema`, vía el Orquestador de CORE — mismo patrón
+que el resto) y `GET/POST /organizaciones/:orgId/usuarios` (guard normal de CIS,
+`AdministradorSistemaGuard` — no pasa por CORE, es gestión de identidad en Zitadel, no información
+patrimonial auditable por Tomo IV). `POST/PATCH /contratos` generalizado para aceptar este rol
+además de `administrador-patrimonial` (Tomo III 1.4 no le quita esa capacidad al Profesional de
+AFT). Integración real con la API de administración de Zitadel para asignar usuarios —
+`cis/src/zitadel-admin/`, shapes de la API sin verificar todavía contra una instancia real (ver
+nota en ese módulo).
+
 ## Capacidades previstas
 Autenticación, refresh/expiración de sesión, RBAC, segregación por organización, segregación
 por área, auditoría de accesos, rate limiting, TLS, gestión de secretos, políticas de

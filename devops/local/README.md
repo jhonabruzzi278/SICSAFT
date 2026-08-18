@@ -196,6 +196,52 @@ tabla en el encabezado de [DOC-020](../../web/aidlc-docs/design-artifacts/DOC-02
 Nota: si `web` corría desde antes de este incremento, hace falta `docker compose build web` — la
 imagen no se reconstruye sola al mergear código nuevo.
 
+## Rol `administrador-sistema` + integración Zitadel Admin API (WEB) — DOC-021
+
+Dos partes: el rol de Proyecto (mismo mecanismo que `directivo`, sin infraestructura nueva) y el
+service user con Personal Access Token que CIS necesita para la integración real de "asignar
+usuarios a organizaciones" (`cis/src/zitadel-admin/`).
+
+### 1. Rol de Proyecto
+
+1. Proyecto "CIS" → **Roles** → crear un rol de Proyecto `administrador-sistema` (mismo mecanismo
+   que `administrador-patrimonial`/`directivo`, "Assert Roles on Authentication" ya está
+   habilitado a nivel de proyecto).
+2. Usuario de prueba en "DUOC UC" → **Authorizations** → New → proyecto "CIS" → rol
+   `administrador-sistema`.
+
+### 2. Service user + Personal Access Token (integración Zitadel Admin API)
+
+A diferencia del resto de la integración con Zitadel de este repo (login de operadores vía
+OIDC/PKCE), esto es autenticación **service-to-service** de CIS hacia la API de administración de
+Zitadel (`/management/v1/...`) — necesita su propio usuario técnico, no reusa ninguna app OIDC
+existente.
+
+1. Organización (la misma donde vive el proyecto "CIS", normalmente la organización raíz) →
+   **Users** → **New** → **Service User** (no "Human User") — nombre sugerido
+   `sicsaft-admin-service`.
+2. Asignarle un rol de **IAM/Org Manager** (Console → Users → el service user → **Authorizations**
+   → rol a nivel de Organización que le permita listar/crear grants de usuarios en cualquier
+   organización — no un rol de Proyecto como los de arriba, es un rol de administración de
+   Zitadel mismo).
+3. Ese service user → **Personal Access Tokens** → **New** → sin fecha de expiración (o una fecha
+   larga, según política) → copiar el token, empieza con algo como `pat_...` — **se muestra una
+   sola vez**.
+4. `devops/local/.env`: completar `ZITADEL_ADMIN_TOKEN` con ese token y `ZITADEL_PROJECT_ID` con
+   el Resource Id del proyecto "CIS" (Console → proyecto "CIS" → General → "Resource Id", mismo
+   id que ya se usa como `CIS_ZITADEL_AUDIENCE`/`ZITADEL_AUDIENCE` en otros pasos de este mismo
+   documento).
+5. `docker compose up -d --build cis` — `ZitadelAdminModule` exige esta config al arrancar
+   (`loadZitadelAdminConfig`), igual criterio que el resto de módulos de config obligatoria de
+   este stack.
+
+**Nota de honestidad**: los shapes de la API de Zitadel que usa `cis/src/zitadel-admin/` están
+armados contra su documentación pública, sin verificar todavía contra una instancia real (ver
+`cis/src/zitadel-admin/zitadel-admin.types.ts`) — verificar los 3 endpoints
+(`POST /management/v1/users/_search`, `POST /management/v1/users/grants/_search`,
+`POST /management/v1/users/{id}/grants`) contra el Zitadel real de este stack antes de confiar en
+producción, y ajustar el parseo si la forma real difiere.
+
 ## Otros puntos ya resueltos
 - **`core` ya está en el compose** (esqueleto NestJS, `GET /`/`GET /health` + `GET /entitlements`
   real ya consumido por `cis`, sin router de Traefik a propósito — solo lo consume `cis` dentro

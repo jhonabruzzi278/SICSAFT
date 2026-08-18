@@ -22,7 +22,7 @@ definir — ver 5, nota abierta).
 
 | Módulo | Lee de | Escribe en | Endpoint (DOC-006, salvo nota) |
 |---|---|---|---|
-| Activos ⚠️ | `activos` + `catalogo_activos` (DOC-005) | `activos` (solo alta) | `GET /catalogo` (CIS, ya existía); alta = `POST /admin/activos` (CIS) → `POST /activos` (CORE, DOC-012 5). **Solo alta** — baja/reincorporación/cambio de responsable existen en CORE pero sin puente en CIS ni UI, ver [DOC-012 § "Cobertura real desde el CCP hoy"](../../../seguridad/DOC-012-administrador-patrimonial.md) |
+| Activos ✅ | `activos` + `catalogo_activos` (DOC-005) | `activos` (ciclo completo) | `GET /catalogo` (CIS, ya existía); alta/baja/reincorporación/responsable/descripción, todos con puente CIS → CORE (DOC-012 5, DOC-021 3) |
 | Contratos ✅ | `contratos`/`contrato_sedes` (DOC-004) | ambas | `GET /admin/contratos` (CIS, nuevo, → `GET /contratos` en CORE, también nuevo); alta/estado = `POST /admin/contratos`/`PATCH /admin/contratos/:id` (CIS) → CORE (DOC-012 7) |
 | Inventarios ✅ | `sesiones_inventario` + `inventarios` (DOC-006 3) | — (solo lectura) | `GET /inventarios` (listado, CIS+CORE, nuevo) + `GET /inventarios/:id` (detalle, nuevo); `GET /inventarios/:id/estado` (ya existía) |
 | Áreas/Ubicaciones/Responsables ✅ | `areas`/`ubicaciones`/`responsables` (DOC-005) | las tres tablas | `GET/POST/PATCH /admin/areas`, `GET/POST/PATCH /admin/ubicaciones`, `GET/POST /admin/responsables` + `PATCH /admin/responsables/:id/estado` (CIS, todos nuevos, → CORE `src/estructura/`, también nuevo) |
