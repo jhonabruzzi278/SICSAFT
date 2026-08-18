@@ -7,11 +7,17 @@ estáticas) — la única autorización real que existe es el rol `administrador
 nombre en `web/README.md` § "Roles previstos" y como decisión diferida en
 [DOC-019](DOC-019-dashboard-cip-frontend.md) §2/§7 — este documento la resuelve.
 
-> **Estado: implementado (2026-08-18)** — `tieneRol()`/`esDirectivo()` en `oidc-client.ts` +
-> bifurcación en `HubPage.tsx` (redirect directo, hub reducido, caso mixto) con código funcionando.
-> Verificado en el navegador (modo mock) para los 3 casos de §5. Pendiente: crear el rol
-> `directivo` real en el Zitadel local (`devops/local/README.md` § "Rol `directivo`") para
-> verificación de punta a punta contra Docker real, mismo criterio que DOC-019.
+> **Estado: implementado y verificado real de punta a punta (2026-08-18)** — `tieneRol()`/
+> `esDirectivo()` en `oidc-client.ts` + bifurcación en `HubPage.tsx` (redirect directo, hub
+> reducido, caso mixto) con código funcionando. Verificado en el navegador (modo mock) para los 3
+> casos de §5, y además contra Docker/Zitadel reales: rol `directivo` creado en el proyecto CIS
+> (Console de Zitadel), usuario de prueba `directivo-test@sicsaft.localhost` autorizado con ese rol
+> (sin `administrador-patrimonial`), login real (authorization code + PKCE) → JWT con el claim
+> `directivo` → `HubPage` redirige automáticamente a `/dashboard?organizacionId=duoc-uc` sin pasar
+> por el hub, y cualquier intento de volver a `/` redirige de nuevo. Encontró y corrigió un
+> problema real: el contenedor `web` corría con una imagen construida antes de este incremento
+> (sin `esDirectivo` en el bundle) — hubo que reconstruirla (`docker compose build web`) antes de
+> poder verificar.
 
 ## 0. Punto de partida: qué NO está definido en ningún tomo
 
