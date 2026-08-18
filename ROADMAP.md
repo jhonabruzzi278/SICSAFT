@@ -467,10 +467,24 @@ login + alta de Activo visible de inmediato (RF-08), corre en `web-ci.yml`.
 (`http://web.sicsaft.localhost`) además de `npm run dev` suelto. ✅ `web/README.md`,
 `cis/README.md`, `core/README.md`, `README.md`, `REQUISITOS.md` y DOC-013 actualizados.
 
-## Fase 6 — CIP: primer dashboard
+## Fase 6 — CIP: primer dashboard 🟡 diseño completo (Inception), sin código todavía
 
 **Por qué acá**: `cip/README.md` pide "definir qué métricas del MVP de CORE ya están
 disponibles" — recién después de la Fase 3/4 hay inventarios y eventos reales que medir.
+
+**Diseño**: metodología AI-DLC en
+[`cip/aidlc-docs/`](cip/aidlc-docs/00_PROJECT_METADATA.md) — RF-01 a RF-10, modelo de datos
+(`eventos_outbox` en CORE + agregados propios de CIP) y arquitectura de ingesta completos en
+[DOC-014](cip/aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md). El outbox transaccional se
+resuelve con un trigger `AFTER INSERT ON eventos` (no un insert manual por cada call site) y el
+veredicto de sesión (exitoso/aceptable/defectuoso) se recalcula del lado de CIP en vez de ampliar
+el contrato de escritura de CORE — ver DOC-014 §5.
+
+**Construction, primer incremento (2026-08-18) — lado de CORE, ✅ completo**: migración
+`eventos_outbox` + trigger, `EventosOutboxDispatcher` (Redis/BullMQ), ver `core/README.md` §
+"Outbox transaccional hacia CIP". Verificado real contra el stack de `devops/local/` (no solo
+mocks/unit). **Pendiente, segundo incremento**: el servicio `cip/` en sí (worker de agregación +
+base de datos propia + API de lectura) — sin código todavía, ver `cip/README.md`.
 
 **Qué se construye**
 - Métricas ya listadas en `cip/README.md` (cobertura de inventario, activos fuera de área, no

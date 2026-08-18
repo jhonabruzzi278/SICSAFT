@@ -16,6 +16,7 @@ describe('AppModule', () => {
       CORE_DB_NAME: 'core',
       CORE_DB_USER: 'core',
       CORE_DB_PASSWORD: 'secreto',
+      REDIS_URL: 'redis://:secreto@localhost:6379',
     };
   });
 

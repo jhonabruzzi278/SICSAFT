@@ -148,6 +148,24 @@ posterior no se podía hacer nunca. Sin `sedeId` editable en Ubicación — move
 traslado, operación distinta y más grande, mismo motivo por el que el traslado de Activo sigue sin
 controller HTTP en el Motor Patrimonial (DOC-008, YAGNI, sin consumidor real).
 
+**Outbox transaccional hacia CIP (2026-08-18, Fase 6 — primer incremento de Construction)**:
+`src/eventos-outbox/` — migración `1755500000000` agrega la tabla `eventos_outbox` + un trigger
+`AFTER INSERT ON eventos` (no un insert manual en `EventoRepository`/`InventariosService`) que
+filtra los tipos relevantes para CIP (`alta`, `escaneo_qr`, `mantenimiento`, `inactivo`, `baja`,
+`reincorporacion`, `traslado` — ver
+[DOC-014](../cip/aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md) §1/§3).
+`EventosOutboxDispatcher` (polling cada 5s, `@nestjs/schedule`) agrupa los `escaneo_qr` de una
+misma sesión en un solo mensaje `sesion-cerrada` antes de publicar a la cola Redis/BullMQ
+`cip-eventos` (primer consumidor real de colas del ecosistema, ADR-001 ya lo declaraba sin uso) —
+y solo marca `publicado` lo que realmente llegó a la cola, así que si Redis está caído
+`POST /inventarios` sigue respondiendo normal y los eventos quedan pendientes para el próximo
+ciclo (RNF-03 de DOC-014), sin perderlos. Verificado real de punta a punta: `docker exec` con un
+`POST /inventarios` contra el contenedor `core` corriendo en `devops/local/docker-compose.yml`,
+confirmando la fila en `eventos_outbox` (`publicado = true`) y el job aparecido en
+`bull:cip-eventos:*` de Redis — no solo con mocks. Unit 100% stmts/lines/funcs + e2e reales contra
+Postgres. **Pendiente**: el worker de agregación y la API de lectura de `cip/` (servicio nuevo,
+sin código todavía) que consuman esta cola — ver `cip/README.md`.
+
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
 `docker compose up -d` desde `../devops/local` ya lo hace solo (el servicio `core-migrate` corre
