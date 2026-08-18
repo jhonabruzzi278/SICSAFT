@@ -297,7 +297,7 @@ explotación de información. Complementa el modelo de 6 niveles (§1) y el mode
 | APP QR | Captura vía código QR | Lectura, registro de inventarios/estados, generación de informes | Modificar la Base Patrimonial Oficial |
 | Plataforma WEB | Consulta, dashboards, reportes, administración | Generar configuraciones, asignar usuarios, autorizar procesos | Modificar directamente la Base Patrimonial sin permisos específicos |
 | RFID (referencia de integración: MOVAT) | Recibe eventos RFID — movimientos, alarmas, ubicación, lecturas | Solo lectura de eventos | Nunca modifica la Base Patrimonial |
-| **Administrador Patrimonial** ✅ | Único rol autorizado a modificar oficialmente la Base Patrimonial | Incorporar activos, eliminar activos (según permisos), modificar responsables/áreas, actualizar estados oficiales, importar bases contables | — |
+| **Administrador Patrimonial** ✅ (nombre funcional: Profesional de AFT, ver [DOC-012](seguridad/DOC-012-administrador-patrimonial.md) § "Nomenclatura") | Único rol autorizado a modificar oficialmente la Base Patrimonial | Incorporar activos, eliminar activos (según permisos), modificar responsables/áreas, actualizar estados oficiales, importar bases contables | — |
 | **Sistema Contable** | Fuente de la que siempre proviene la Base Oficial | Importación, actualización, sincronización de registros oficiales | Nunca elimina información histórica |
 
 **Administrador Patrimonial** ya está implementado de punta a punta (ROADMAP.md Fase 4,

@@ -28,9 +28,12 @@ ver DOC-004 §7). El token del operador solo trae `sub`/identidad, no sede — c
 Consultar, crear, modificar, eliminar, autorizar, exportar, administrar, configurar — bajo
 principio de mínimo privilegio necesario.
 
-### Rol ✅ implementado: Administrador Patrimonial (Tomo III §1.4, Entrada 4)
+### Rol ✅ implementado: Administrador Patrimonial (Tomo III §1.4, Entrada 4) — nombre funcional: Profesional de AFT
 El tomo oficial define un rol que hasta la Fase 4 no existía en ningún sistema del ecosistema: el
-**Administrador Patrimonial**, el único autorizado a modificar oficialmente la Base Patrimonial
+**Administrador Patrimonial** (`administrador-patrimonial` es el nombre técnico del rol de
+Zitadel; **Profesional de AFT** es el nombre funcional/oficial con el que el negocio identifica a
+quien lo ejerce — ver [DOC-012 § "Nomenclatura"](DOC-012-administrador-patrimonial.md)), el único
+autorizado a modificar oficialmente la Base Patrimonial
 (incorporar/eliminar activos, modificar responsables/áreas, actualizar estados oficiales,
 importar bases contables). Ninguna otra entrada (APP QR, Plataforma WEB, RFID) puede hacerlo
 directamente — ver [ARQUITECTURA-WAF.md §11](../ARQUITECTURA-WAF.md#11-entradas-y-salidas-oficiales-del-ecosistema-tomo-iii-cap1)

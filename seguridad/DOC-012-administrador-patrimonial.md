@@ -16,6 +16,31 @@
 > máquina de estados) y [DOC-006](../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md)
 > (convenciones de API CIS↔CORE que este documento extiende, no reemplaza).
 
+### Nomenclatura: Profesional de AFT
+
+`administrador-patrimonial` (este documento, el claim de Zitadel, el código) es el **nombre
+técnico** del rol — el **nombre funcional/oficial** con el que el negocio identifica a quien lo
+ejerce es **Profesional de AFT**: el usuario principal autorizado a acceder al CCP (Portal WEB,
+`web/`) y cargar/actualizar/mantener la información patrimonial necesaria para la operación del
+sistema. Aclaración provista por el usuario del proyecto (2026-08-18), no cita textual de un tomo
+con sección específica — se documenta como tal, sin inventar una referencia `§x.y` que no fue
+dada.
+
+Alcance funcional del Profesional de AFT dentro del CCP, según sus permisos (mapea 1:1 a las
+acciones ya implementadas en §4/§5/§6/§7 de este documento): activos; códigos patrimoniales;
+descripciones; familias/categorías; áreas; ubicaciones; responsables; estados; documentación y
+fotografías cuando corresponda; información para preparar inventarios; importaciones controladas
+desde archivos autorizados. El CCP nunca escribe directo a la base — toda creación/modificación
+pasa por CORE, que valida y actualiza la BPI (regla no negociable de `CLAUDE.md`, ya reflejada en
+§3 de este documento).
+
+**Nivel 1 vs. perfiles futuros**: el Profesional de AFT es el único perfil de Nivel 1 responsable
+de la carga y mantenimiento de la información patrimonial — no necesariamente el único que podrá
+entrar al CCP más adelante. `web/README.md` § "Roles previstos" ya anota Supervisor, Auditor y
+Administrador como perfiles futuros con permisos distintos (sin diseño ni rol de Zitadel todavía,
+sin consumidor real) — esta aclaración no les da alcance, solo da nombre explícito a la relación
+con el Profesional de AFT.
+
 ## 1. Por qué esto y no antes
 
 Antes de la Fase 2 no había motores sobre los que escribir; después de la Fase 3 (CIS real + APP
