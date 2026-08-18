@@ -318,6 +318,7 @@ export class ActivoRepository {
 
   private toActivoCatalogo(row: ActivoRow): ActivoCatalogo {
     return {
+      id: row.id,
       codigoQr: row.codigoQr,
       nombre: construirNombreActivo(row),
       familia: row.familia,
