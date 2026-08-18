@@ -4,17 +4,20 @@
 **Ciclo:** ROADMAP.md Fase 5 — "Portal WEB mínimo"
 **Metodología:** AI-DLC (tercer sistema que lo adopta, después de `app-qr-sicsaft/aidlc-docs/` y
 `core/aidlc-docs/`)
-**Fecha:** 2026-08-13 (diseño), 2026-08-14 (primer incremento de código)
-**Fase actual:** Construction — login + módulo Activos implementados y verificados de punta a
-punta; resto de los módulos del MVP sin construir (ver `web/README.md` § Estado).
+**Fecha:** 2026-08-13 (diseño), 2026-08-14 (primer incremento de código), 2026-08-18 (diseño del
+séptimo módulo, Dashboard/CIP — DOC-019)
+**Fase actual:** Construction — los 6 módulos del MVP de Fase 5 implementados y verificados de
+punta a punta (ver `web/README.md` § Estado). Un séptimo módulo, Dashboard (RF-09), tiene diseño
+cerrado ([DOC-019](design-artifacts/DOC-019-dashboard-cip-frontend.md)) y está pendiente de
+construir.
 
 ## Status
 
 - [x] Inception — requirements, historias, arquitectura, DOC-013 y un mockup visual diseñados en
       la sesión de Fase 2.
-- [x] Construction — en curso: login OIDC/PKCE real + módulo Activos (consulta + alta) ya
-      implementados y verificados contra Postgres real. Faltan Inventarios,
-      Áreas/Ubicaciones/Responsables, Auditoría, Contratos y el empaquetado Docker/CI.
+- [x] Construction — MVP de Fase 5 (6 módulos) completo. Incremento nuevo (Dashboard/CIP, DOC-019,
+      2026-08-18): diseño cerrado, código pendiente — `src/dashboard-connector/` en CIS +
+      `DashboardPage.tsx` en WEB.
 - [ ] Operations — pendiente.
 
 ## Por qué este directorio existe ahora, adelantado
@@ -31,6 +34,7 @@ Patrimonial) ya estaban completas (`web/README.md` § Depende de).
 - Historias de usuario: [`story-artifacts/USER_STORIES.md`](story-artifacts/USER_STORIES.md)
 - Arquitectura: [`design-artifacts/ARCHITECTURE.md`](design-artifacts/ARCHITECTURE.md)
 - Contrato formal: [`design-artifacts/DOC-013-portal-web.md`](design-artifacts/DOC-013-portal-web.md)
+- Séptimo módulo (Dashboard/CIP): [`design-artifacts/DOC-019-dashboard-cip-frontend.md`](design-artifacts/DOC-019-dashboard-cip-frontend.md)
 - Estrategia de testing: [`testing/TEST_STRATEGY.md`](testing/TEST_STRATEGY.md)
 - Mockup visual: Artifact publicado en esta sesión (hub + módulos, paleta `BRAND.md`) — sin
   archivo en el repo, ver enlace compartido en la conversación.

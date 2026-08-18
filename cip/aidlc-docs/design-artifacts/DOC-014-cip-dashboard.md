@@ -44,11 +44,12 @@ trigger, versionado en la misma migración — cambiar qué se publica es una mi
 `UPDATE` manual.
 
 ## 7. Decisiones abiertas (a resolver al pasar a Construction, no bloquean este diseño)
-1. **Quién puede leer el dashboard** (§4) — probablemente cualquier operador de la organización
-   (es información agregada, no PII ni un dato sensible de un individuo), a confirmar con el
-   usuario cuando se diseñe el frontend.
-2. **Cómo llega el frontend de CIP al usuario** — ¿app propia (como WEB) o una sección dentro de
-   WEB? `cip/README.md` no lo define. No afecta el diseño de ingesta/agregados de este documento.
+1. ~~**Quién puede leer el dashboard**~~ — **resuelto** en
+   [`web/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md`](../../../web/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)
+   §2: cualquier operador con contrato vigente en la organización, sin rol adicional.
+2. ~~**Cómo llega el frontend de CIP al usuario**~~ — **resuelto** en DOC-019 §1: sección nueva
+   dentro de WEB (séptimo módulo del hub), no una app propia. WEB nunca le habla a CIP
+   directamente — pasa por CIS (DOC-019 §3), mismo trust boundary que el resto de WEB.
 3. **Umbral de "atrasado"** de `SYNC_ESTADO.alDia` (`ARCHITECTURE.md` §7, default propuesto 15 min)
    — valor a confirmar con datos reales de carga, no una decisión de diseño bloqueante.
 

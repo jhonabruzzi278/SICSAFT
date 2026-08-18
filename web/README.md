@@ -159,10 +159,11 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
 con código funcionando y sus requisitos cerrados: Activos (🟢), Contratos (🟢), Inventarios (🟢),
 hub (🟢), Auditoría (🟢, filtrable por usuario/operación/fecha — RF-06 cerrado, ver "Gaps"
 arriba), Áreas/Ubicaciones/Responsables (🟢, ABM completo incluida la edición de Área/Ubicación —
-RF-05 cerrado, ver "Gaps" arriba). El resto — Dashboard, Incidencias, Movimientos, QR, RFID,
-Documentos, Reportes, Usuarios, Roles, Configuración, Integraciones — queda para después, sin
-diseñar todavía (sin consumidor
-real).
+RF-05 cerrado, ver "Gaps" arriba). Un séptimo módulo, Dashboard (🟡 diseñado, sin construir — RF-09,
+[DOC-019](aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)), expone el primer
+dashboard de CIP (SYS-06, Fase 6) vía un proxy nuevo en CIS — WEB nunca le habla a CIP directo. El
+resto — Incidencias, Movimientos, QR, RFID, Documentos, Reportes, Usuarios, Roles, Configuración,
+Integraciones — sigue sin diseñar (sin consumidor real).
 
 ## Roles previstos
 Administrador, Responsable Patrimonial, Operador, Supervisor, Auditor, Directivo.
@@ -207,6 +208,10 @@ WEB). Lo que queda:
 1. Verificación real de punta a punta de Auditoría y Áreas/Ubicaciones/Responsables desde el
    navegador (login real, como ya se hizo con Activos/Contratos/Inventarios) — hoy solo están
    probados con e2e de CORE/CIS.
+2. Construir el módulo Dashboard (RF-09, diseño cerrado en
+   [DOC-019](aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)): `src/dashboard-connector/`
+   nuevo en CIS (proxy hacia CIP, mismo patrón que `qr-connector.controller.ts`) + `DashboardPage.tsx`
+   en WEB.
 
 ✅ `Dockerfile`/`web-ci.yml`/servicio en el compose local — WEB ya tiene imagen de producción
 (nginx sirviendo el build de Vite, usuario sin privilegios) y corre dentro del stack en
