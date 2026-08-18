@@ -1,6 +1,6 @@
 # DOC-013: Portal WEB — módulos MVP (Fase 5)
 
-> Documento ya anticipado por número en `web/README.md` "Documentos relacionados" y en el
+> Documento ya anticipado por número en `ccp/README.md` "Documentos relacionados" y en el
 > criterio "Done" de `ROADMAP.md` Fase 5 — este es su contenido real, diseñado adelantado por
 > pedido explícito del usuario. **Estado: diseño, sin construir.**
 
@@ -30,14 +30,14 @@ definir — ver 5, nota abierta).
 
 **Actualización (2026-08-14)**: Activos (consulta + alta), Contratos (consulta + alta +
 transición de estado), Inventarios (consulta de sesiones + detalle de escaneos) y Auditoría
-(consulta, solo lectura) ya tienen endpoint real e implementados en `web/`. Contratos necesitó
+(consulta, solo lectura) ya tienen endpoint real e implementados en `ccp/`. Contratos necesitó
 agregar `GET /contratos` en CORE (no existía) y extender el puente CIS con `PATCH` (CORS solo
 permitía `GET`/`POST` hasta ese incremento). Inventarios necesitó agregar el listado
 (`GET /inventarios`) en CORE y CIS — el detalle por id ya existía pero exigía conocerlo de
 antemano. Auditoría necesitó el primer controller real sobre `AuditoriaRepository` (DOC-011 lo
 dejaba sin consumidor); el mismo día se le agregaron filtros por usuario/operación (búsqueda
 parcial) y rango de fecha, cerrando el requisito original — sin filtro por organización, porque
-`auditoria` no tiene `organizacionId` (gap conocido, distinto del anterior, ver `web/README.md`
+`auditoria` no tiene `organizacionId` (gap conocido, distinto del anterior, ver `ccp/README.md`
 "Gaps"). Áreas/Ubicaciones/Responsables
 (RF-05) es el módulo que más esfuerzo real requirió — módulo nuevo `core/src/estructura/` con
 `Ubicacion`/`Responsable` cruzando `sedeId`/`areaId` contra `organizacionId` antes de insertar

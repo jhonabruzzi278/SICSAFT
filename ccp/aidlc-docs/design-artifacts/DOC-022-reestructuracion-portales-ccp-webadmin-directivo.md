@@ -9,7 +9,7 @@
 
 | Rol Zitadel | Nombre funcional | Portal | Qué hace | Toca la BPI |
 |---|---|---|---|---|
-| `administrador-patrimonial` | Profesional de AFT | **CCP** (`ccp/`, ex-`web/`) | Carga/actualiza información patrimonial (activos, catálogo, documentos, importaciones) — DOC-012, DOC-021 §3-5 | Sí, es el único (junto con `administrador-sistema` para Contrato) |
+| `administrador-patrimonial` | Profesional de AFT | **CCP** (`ccp/`, ex-`ccp/`) | Carga/actualiza información patrimonial (activos, catálogo, documentos, importaciones) — DOC-012, DOC-021 §3-5 | Sí, es el único (junto con `administrador-sistema` para Contrato) |
 | `administrador-sistema` | Administrador del Sistema | **`web_admin/`** (nuevo) | Administra la plataforma: organizaciones, contratos, usuarios, indicadores — DOC-021 | Nunca |
 | `directivo` | Directivo | **`core/frontend/`** (nuevo) | Máximo privilegio a nivel de **su organización**: dashboard de solo lectura (ya existía, DOC-020) + designar quién es el Profesional de AFT de su organización + gestionar roles dentro de ella (nuevo) | Nunca |
 
@@ -29,7 +29,7 @@ DOC-021 §1 para separar Administrador del Sistema de Profesional de AFT.
 
 ## 3. Hallazgo que motiva separar `web_admin/` de CCP
 
-`web/src/pages/AdminPage.tsx` (implementado en DOC-021) fuerza a que el Administrador del Sistema
+`ccp/src/pages/AdminPage.tsx` (implementado en DOC-021) fuerza a que el Administrador del Sistema
 tenga su grant de `administrador-sistema` **dentro de una organización específica** — el alta de
 Organización manda `organizacionId: organizaciones?.[0]?.id` ("la primera de la lista") porque
 `procesarAltaOrganizacion` en CORE reutiliza sin cambios `escrituraOficialSchema`

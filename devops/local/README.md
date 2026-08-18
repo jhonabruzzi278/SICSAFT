@@ -20,14 +20,14 @@ secas). Agregar al archivo hosts (`C:\Windows\System32\drivers\etc\hosts`, como 
 127.0.0.1 id.sicsaft.localhost
 127.0.0.1 api.sicsaft.localhost
 127.0.0.1 traefik.sicsaft.localhost
-127.0.0.1 web.sicsaft.localhost
+127.0.0.1 ccp.sicsaft.localhost
 ```
 
 (Se agregan más líneas acá a medida que sumemos servicios: `app.`, `qr.`, `cip.`.)
 
-`web.sicsaft.localhost` sirve el build de producción de WEB (nginx, ver `web/Dockerfile`) cuando
-corre dentro del stack (`docker compose up -d --build web`) — para desarrollo día a día seguí
-usando `npm run dev` (puerto 5174, hot reload), ver `../../web/README.md` Desarrollo local.
+`ccp.sicsaft.localhost` sirve el build de producción de WEB (nginx, ver `ccp/Dockerfile`) cuando
+corre dentro del stack (`docker compose up -d --build ccp`) — para desarrollo día a día seguí
+usando `npm run dev` (puerto 5174, hot reload), ver `../../ccp/README.md` Desarrollo local.
 
 ## 2. Configurar variables de entorno
 ```bash
@@ -144,15 +144,15 @@ proyecto nuevo. Pasos reales seguidos (2026-08-14), reproducibles desde el dashb
 4. Ese usuario → **Authorizations** → New → proyecto "CIS" → rol `administrador-patrimonial`.
 5. Proyecto "CIS" → **Applications** → New → tipo **User Agent** (SPA, PKCE) → nombre
    `web-sicsaft` → **Development Mode** habilitado (redirect URI `http://` en dev) → redirect URI
-   `http://localhost:5174/auth/callback` (puerto de Vite de `web/`, no 5173 — ese es
+   `http://localhost:5174/auth/callback` (puerto de Vite de `ccp/`, no 5173 — ese es
    `app-qr-sicsaft`).
 6. En **Token Settings** de esa aplicación: **Auth Token Type = JWT** (no Bearer/opaco, mismo
    motivo que `app-qr-sicsaft`), **Access Token Role Assertion** y **ID Token Role Assertion**
    habilitados (el rol tiene que llegar en el token, no solo en `/userinfo`), y grant type
    `refresh_token` agregado (mismo criterio de refresh explícito que `app-qr-sicsaft`, no
    re-login silencioso).
-7. Copiar el **Client ID** de `web-sicsaft` a `web/.env` (`VITE_ZITADEL_CLIENT_ID`, ver
-   `web/.env.example`) junto con `VITE_ZITADEL_ISSUER=http://id.sicsaft.localhost` y
+7. Copiar el **Client ID** de `web-sicsaft` a `ccp/.env` (`VITE_ZITADEL_CLIENT_ID`, ver
+   `ccp/.env.example`) junto con `VITE_ZITADEL_ISSUER=http://id.sicsaft.localhost` y
    `VITE_CIS_URL=http://api.sicsaft.localhost`.
 8. `CIS_CORS_ORIGIN` en `docker-compose.yml` (servicio `cis`) debe incluir
    `http://localhost:5174` además de `http://localhost:5173` — ya seteado.
@@ -169,7 +169,7 @@ dashboard) cuando la UI del wizard de creación de aplicaciones no exponía dire
 `accessTokenRoleAssertion` — el resultado final es idéntico a hacerlo a mano desde Console.
 
 **Verificado real de punta a punta el 2026-08-14**: login de `admin-patrimonial@sicsaft.localhost`
-desde `web/` (authorization code + PKCE real) → JWT con el claim de rol → `POST /admin/activos`
+desde `ccp/` (authorization code + PKCE real) → JWT con el claim de rol → `POST /admin/activos`
 en CIS → CORE crea el activo en Postgres → visible en `GET /catalogo`. Ver `cis/README.md` y
 `core/README.md` Fase 4/5 para el detalle de cada lado.
 
@@ -186,14 +186,14 @@ sin cambios de código en CIS, ver DOC-020 3):
    el caso mixto (DOC-020 5) muestra el hub operativo completo, así que para ver el redirect
    directo al Dashboard hace falta un usuario que sea *solo* Directivo.
 3. Ese usuario → **Authorizations** → New → proyecto "CIS" → rol `directivo`.
-4. Login desde `web/` con ese usuario → debería aterrizar directo en `/dashboard?organizacionId=...`
+4. Login desde `ccp/` con ese usuario → debería aterrizar directo en `/dashboard?organizacionId=...`
    sin pasar por el hub de tarjetas.
 
 **Verificado real de punta a punta el 2026-08-18** con tres usuarios de prueba en "DUOC UC"
 (`directivo-test@sicsaft.localhost`, `mixto-test@sicsaft.localhost` con ambos roles, y el
 `admin-patrimonial@sicsaft.localhost` ya existente) — confirma los 3 casos de DOC-020 5, ver la
-tabla en el encabezado de [DOC-020](../../web/aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md).
-Nota: si `web` corría desde antes de este incremento, hace falta `docker compose build web` — la
+tabla en el encabezado de [DOC-020](../../ccp/aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md).
+Nota: si `ccp` corría desde antes de este incremento, hace falta `docker compose build ccp` — la
 imagen no se reconstruye sola al mergear código nuevo.
 
 ## Rol `administrador-sistema` + integración Zitadel Admin API (WEB) — DOC-021

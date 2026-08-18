@@ -1,6 +1,6 @@
 # Project Metadata — Portal WEB SICSAFT (Fase 5)
 
-**Sistema:** Portal WEB SICSAFT (SYS-05) — `web/`
+**Sistema:** Portal WEB SICSAFT (SYS-05) — `ccp/`
 **Ciclo:** ROADMAP.md Fase 5 — "Portal WEB mínimo"
 **Metodología:** AI-DLC (tercer sistema que lo adopta, después de `app-qr-sicsaft/aidlc-docs/` y
 `core/aidlc-docs/`)
@@ -31,7 +31,7 @@ ver `devops/local/README.md`).
 - [x] Construction — DOC-021 (cierre de gaps del CCP + Administrador del Sistema): diseñado y
       construido 2026-08-18 (4 fases: CORE, CIS, WEB, devops). Falta verificación real de punta a
       punta contra Docker/Zitadel (crear rol/service user reales).
-- [ ] Construction — DOC-022 (reestructuración de portales: `web/` → `ccp/`, `web_admin/` nuevo,
+- [ ] Construction — DOC-022 (reestructuración de portales: `ccp/` → `ccp/`, `web_admin/` nuevo,
       `core/frontend/` nuevo para el Directivo con gestión de roles acotada a su organización):
       diseñado 2026-08-18, en construcción (6 fases: diseño+ADR, rename, `web_admin/`, CIS
       `directivo/`, `core/frontend/`, cierre de docs).
@@ -41,7 +41,7 @@ ver `devops/local/README.md`).
 El usuario pidió explícitamente diseñar (no construir) el Portal WEB durante la sesión de diseño
 de Fase 2, para dejar la "parte visual" del ecosistema planificada de punta a punta. El código
 empezó recién en la sesión del 2026-08-14, una vez que Fase 3 (CIS real) y Fase 4 (Administrador
-Patrimonial) ya estaban completas (`web/README.md` Depende de).
+Patrimonial) ya estaban completas (`ccp/README.md` Depende de).
 
 ## Quick Links
 
@@ -61,7 +61,7 @@ Patrimonial) ya estaban completas (`web/README.md` Depende de).
 ## Notas del análisis
 
 - Alcance recortado a los **6 módulos MVP** que `ROADMAP.md` Fase 5 ya definió, no a los 17
-  "módulos previstos" que lista `web/README.md` a largo plazo — modelar los otros 11 sin
+  "módulos previstos" que lista `ccp/README.md` a largo plazo — modelar los otros 11 sin
   consumidor sería diseño especulativo (mismo criterio YAGNI de DOC-005/DOC-006).
 - No se diseña un dominio propio: WEB es un **cliente** del mismo contrato CIS/CORE que APP QR
   (`ARQUITECTURA-WAF.md` 8, "Portal WEB y APP QR son clientes intercambiables del mismo

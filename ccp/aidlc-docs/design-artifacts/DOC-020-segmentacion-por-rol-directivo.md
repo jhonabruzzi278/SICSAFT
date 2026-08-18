@@ -1,10 +1,10 @@
 # DOC-020 — Segmentación por rol: vista ejecutiva (Directivo) vs. vista operativa (profesional de AFT)
 
-Diseña la primera segmentación real por rol del Portal WEB (`web/`). Hoy **todo operador
+Diseña la primera segmentación real por rol del Portal WEB (`ccp/`). Hoy **todo operador
 autenticado con contrato vigente ve exactamente el mismo hub** (`HubPage.tsx`, 7 tarjetas
 estáticas) — la única autorización real que existe es el rol `administrador-patrimonial`
 (escritura oficial, verificado server-side en CORE, DOC-012). "Directivo" solo existía como
-nombre en `web/README.md` "Roles previstos" y como decisión diferida en
+nombre en `ccp/README.md` "Roles previstos" y como decisión diferida en
 [DOC-019](DOC-019-dashboard-cip-frontend.md) 2/7 — este documento la resuelve.
 
 > **Estado: implementado y verificado real de punta a punta, los 3 casos de 5 (2026-08-18)** —
@@ -18,15 +18,15 @@ nombre en `web/README.md` "Roles previstos" y como decisión diferida en
 > | `mixto-test@sicsaft.localhost` | `directivo` + `administrador-patrimonial` | Hub operativo completo (5 tarjetas) — gana la vista operativa, como especifica 5 (JWT confirmado con ambos claims) |
 > | `admin-patrimonial@sicsaft.localhost` (usuario ya existente de Fase 5) | `administrador-patrimonial` | Hub operativo completo, sin cambios de comportamiento respecto a antes de este incremento |
 >
-> Encontró y corrigió un problema real en el camino: el contenedor `web` corría con una imagen
+> Encontró y corrigió un problema real en el camino: el contenedor `ccp` corría con una imagen
 > construida antes de este incremento (sin `esDirectivo` en el bundle) — hubo que reconstruirla
-> (`docker compose build web`) antes de poder verificar el primer caso.
+> (`docker compose build ccp`) antes de poder verificar el primer caso.
 
 ## 0. Punto de partida: qué NO está definido en ningún tomo
 
 Ningún tomo oficial (`TOMO III/IV`) ni DOC-XXX previo asigna permisos concretos a "Directivo",
 "Supervisor", "Auditor" ni "Responsable Patrimonial" como roles técnicos — solo aparecen nombrados
-una vez en `web/README.md`. El único rol con semántica real hoy es `administrador-patrimonial`
+una vez en `ccp/README.md`. El único rol con semántica real hoy es `administrador-patrimonial`
 (DOC-012). Por eso este diseño no reinterpreta ningún tomo: define un rol de **producto** nuevo
 (alcance de UI/UX, confirmado con el usuario — ver decisiones 1/2) sin tocar ninguna regla de
 negocio patrimonial existente.
@@ -60,7 +60,7 @@ de Zitadel, sin script).
 
 ## 4. Cliente: mismo patrón ya preparado en `oidc-client.ts`, sin usar todavía
 
-`esAdministradorPatrimonial()` (`web/src/lib/oidc/oidc-client.ts` líneas 168-172) ya decodifica el
+`esAdministradorPatrimonial()` (`ccp/src/lib/oidc/oidc-client.ts` líneas 168-172) ya decodifica el
 JWT client-side y expone un booleano — preparado desde Fase 5 pero **sin consumidor real hoy**
 (grep confirma que ningún componente lo llama todavía). Mismo criterio explícito en su comentario:
 *"Solo para UI... el 403 real lo aplica CORE"* (DOC-013 4, "ocultar un ítem del menú no es
@@ -99,7 +99,7 @@ No se crea una "página del Directivo" separada — `HubPage` ya calcula `organi
   solo mirar; ocultarle Activos/Contratos porque también es directivo sería una regresión
   funcional. Mismo criterio "server decide, cliente nunca resta capacidad real" de DOC-013 4.
 - **Caso default** (ninguno de los dos roles — Responsable Patrimonial/Operador/Supervisor de
-  `web/README.md`, sin rol Zitadel propio hoy): sin cambios — es la "vista operativa" que ya existe
+  `ccp/README.md`, sin rol Zitadel propio hoy): sin cambios — es la "vista operativa" que ya existe
   y responde la pregunta original ("¿cuál es la página del profesional de AFT?": es el hub actual,
   sin rol especial, porque ningún tomo le exige uno distinto de "operador autenticado con contrato
   vigente").
@@ -130,4 +130,4 @@ comportamiento del redirect, no un bug).
 [DOC-019](DOC-019-dashboard-cip-frontend.md) 2/7 (decisión diferida que este documento resuelve),
 [DOC-013](DOC-013-portal-web.md) 4 (autorización a nivel de módulo, no solo de ruta — mismo
 criterio aplicado acá), [DOC-012](../../../seguridad/DOC-012-administrador-patrimonial.md) 2
-(precedente de creación de rol en Zitadel), `web/README.md` "Roles previstos".
+(precedente de creación de rol en Zitadel), `ccp/README.md` "Roles previstos".

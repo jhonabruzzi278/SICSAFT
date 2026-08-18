@@ -1,7 +1,7 @@
 // Mismo patrón que app-qr-sicsaft/tests/helpers.js: siembra sessionStorage con un JWT sin firmar
 // (oidcClient no verifica firma client-side, CIS es quien valida server-side) para saltar el
 // redirect real a Zitadel en los tests — el login OIDC/PKCE real ya se verifica manualmente
-// (ver web/README.md "Próximo paso sugerido").
+// (ver ccp/README.md "Próximo paso sugerido").
 function base64url(json) {
   return Buffer.from(json)
     .toString('base64')

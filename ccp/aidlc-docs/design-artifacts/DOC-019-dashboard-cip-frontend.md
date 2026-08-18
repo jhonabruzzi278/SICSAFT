@@ -7,15 +7,15 @@ ver esos datos. Resuelve las dos decisiones abiertas que DOC-014 7.1/7.2 dejó p
 "cuando se diseñe el frontend".
 
 > **Estado: implementado (2026-08-18)** — `cis/src/cip-client/` + `cis/src/dashboard-connector/`
-> (proxy CIS→CIP) y `web/src/pages/DashboardPage.tsx` con código funcionando, verificado en el
-> navegador contra MSW (`web/src/mocks/handlers.ts`). Pendiente: verificación real de punta a
+> (proxy CIS→CIP) y `ccp/src/pages/DashboardPage.tsx` con código funcionando, verificado en el
+> navegador contra MSW (`ccp/src/mocks/handlers.ts`). Pendiente: verificación real de punta a
 > punta (WEB→CIS→CIP→Postgres) dentro de Docker, igual que Fase 6 backend ya hizo.
 
 ## 1. Decisión: sección nueva dentro de WEB, no una app propia (resuelve DOC-014 7.2)
 
-CIP no gana una app propia — se agrega como séptimo módulo del Portal WEB (`web/`, SYS-05).
+CIP no gana una app propia — se agrega como séptimo módulo del Portal WEB (`ccp/`, SYS-05).
 
-**Motivo, con precedente directo**: `web/README.md` "Módulos previstos" ya listaba "Dashboard"
+**Motivo, con precedente directo**: `ccp/README.md` "Módulos previstos" ya listaba "Dashboard"
 entre los módulos futuros de WEB desde Fase 5 ("sin diseñar todavía, sin consumidor real") —
 CIP es exactamente ese consumidor. Levantar una segunda SPA solo para esto duplicaría todo lo que
 WEB ya resuelve una vez (login OIDC/PKCE contra Zitadel, hub por organización, `AppShell`, sistema
@@ -94,7 +94,7 @@ cis/src/dashboard-connector/         — proxy delgado hacia CipClientService (m
   `/admin`, ver 2): `cobertura`, `areas`, `sesiones`, `fuera-de-area`, `no-localizados`,
   `incidencias`, `estado-activos`, `categorias`.
 
-## 4. Frontend: `web/src/pages/DashboardPage.tsx`
+## 4. Frontend: `ccp/src/pages/DashboardPage.tsx`
 
 Séptimo módulo del hub (`pages/HubPage.tsx`), mismo patrón de tarjeta que los 6 existentes — pero
 con una nota distinta en 6 sobre a qué `moduloContratado` lo asocia.

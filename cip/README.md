@@ -89,9 +89,9 @@ encontradas sobre el diseño inicial durante la implementación. Ver
 Patrimonial transaccional).
 
 ## Próximo paso sugerido
-Frontend implementado: [DOC-019](../web/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)
+Frontend implementado: [DOC-019](../ccp/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)
 resolvió las decisiones abiertas de DOC-014 7.1/7.2 — CIP se muestra como séptimo módulo del hub
-de `web/` (no una app propia), y WEB nunca le habla directo a CIP: pasa por un proxy nuevo en CIS
+de `ccp/` (no una app propia), y WEB nunca le habla directo a CIP: pasa por un proxy nuevo en CIS
 (`src/dashboard-connector/` + `src/cip-client/`, mismo patrón que `qr-connector.controller.ts`/
 `CoreClientService`), que retira la nota "provisional" de DOC-018 3 sobre `CIP_SERVICE_TOKEN` —
 CIS es ahora el único llamador real de la API de lectura de CIP. Verificado en el navegador contra

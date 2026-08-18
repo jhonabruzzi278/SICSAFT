@@ -96,7 +96,7 @@ const CONTRATO_STUB: ContratoResult = {
 // `@Param('id')`, un string) contra un schema que espera un objeto — rompía con "Payload
 // inválido" en cualquier request real, invisible en los specs unitarios del controller/service
 // porque ahí se llama al método directo, sin pasar por el pipeline HTTP de Nest. Encontrado
-// probando el flujo real desde `web/` contra CIS real.
+// probando el flujo real desde `ccp/` contra CIS real.
 describe('Administrador Patrimonial — DOC-012 5/7 (e2e)', () => {
   let app: INestApplication<App>;
   let bearerToken: string;

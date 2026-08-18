@@ -11,7 +11,7 @@
 |---|---|---|---|---|---|
 | APP QR | [`app-qr-sicsaft/aidlc-docs/requirements/REQUIREMENTS.md`](app-qr-sicsaft/aidlc-docs/requirements/REQUIREMENTS.md) | MVP demo standalone (histórico — superado por TASK-007) | 11 | 4 | ✅ Completo (demo original) |
 | CORE | [`core/aidlc-docs/requirements/REQUIREMENTS.md`](core/aidlc-docs/requirements/REQUIREMENTS.md) | Fase 2 (Orquestador + 4 motores de lectura) | 7 | 5 | ✅ Completo, 1 parcial (RF-05), YAGNI/bajo riesgo deliberado — ver detalle |
-| WEB | [`web/aidlc-docs/requirements/REQUIREMENTS.md`](web/aidlc-docs/requirements/REQUIREMENTS.md) | Fase 5 (Portal WEB, 6 módulos) | 8 | 5 | ✅ Completo — 8/8 RF, 5/5 RNF |
+| WEB | [`ccp/aidlc-docs/requirements/REQUIREMENTS.md`](ccp/aidlc-docs/requirements/REQUIREMENTS.md) | Fase 5 (Portal WEB, 6 módulos) | 8 | 5 | ✅ Completo — 8/8 RF, 5/5 RNF |
 | CIS | *(sin `aidlc-docs/`, ver nota)* | Fase 0/3/4/5 (conector QR, escritura oficial) | — | — | Sin requisitos formalizados con ID — ver nota abajo |
 
 **CIS nunca tuvo su propio `REQUIREMENTS.md`** — se construyó antes de que el proyecto adoptara la

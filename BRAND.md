@@ -1,7 +1,7 @@
 # Marca SICSAFT — paleta de colores oficial
 
-Fuente de verdad única para cualquier trabajo visual del ecosistema (`app-qr-sicsaft/`, y los
-sistemas todavía sin código: `web/`, `cip/`, etc.). El origen canónico de estos valores es
+Fuente de verdad única para cualquier trabajo visual del ecosistema (`app-qr-sicsaft/`, `ccp/`,
+`web_admin/`, `core/frontend/`, `cip/`, etc.). El origen canónico de estos valores es
 [`landing/src/style.css`](landing/src/style.css) — la landing comercial oficial de SICSAFT
 (commit `90b816c`). Si la paleta cambia ahí, hay que propagar el cambio acá y a cada consumidor;
 no copiar valores a mano sin volver a este archivo.

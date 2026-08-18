@@ -209,7 +209,7 @@ export class CipClientService {
 
   // Único punto por el que CIS le habla a CIP — mismo criterio de reintentos + circuit breaker
   // que CoreClientService.callCore (WAF 4). Todos los endpoints de CIP son lectura pura (RF-09
-  // de web/, sin escritura), así que no hay passthroughStatuses que distinguir: cualquier error de
+  // de ccp/, sin escritura), así que no hay passthroughStatuses que distinguir: cualquier error de
   // CIP se colapsa a 502, igual que CoreClientService hace por default para getEntitlements/
   // getCatalogo.
   private async callCip(

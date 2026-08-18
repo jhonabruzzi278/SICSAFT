@@ -77,7 +77,7 @@ acá solo para el camino de escritura). `CoreClientService.postActivo` extiende 
 existente, propagando también un 403 (además de 400/409) para que WEB pueda distinguir "sin
 permiso" de "CORE caído" (DOC-012 8). **Verificado real de punta a punta el 2026-08-14**: rol
 `administrador-patrimonial` creado en Zitadel (proyecto "CIS", org "DUOC UC"), usuario de prueba
-con ese rol, login OIDC/PKCE real desde `web/` → JWT real con el claim de rol → CIS lo valida y
+con ese rol, login OIDC/PKCE real desde `ccp/` → JWT real con el claim de rol → CIS lo valida y
 traduce → CORE crea el activo en Postgres → visible de inmediato en `GET /catalogo` (mismo
 catálogo que consume APP QR, confirma WAF 8). Detalle completo en
 `../devops/local/README.md` "Cliente OIDC real (WEB)".
@@ -130,7 +130,7 @@ propagan `limit`/`offset` end-to-end (`administrador.schemas.ts` agrega un fragm
 devuelven el envelope `{ <entidad>, total }` tal cual, sin reinterpretarlo.
 
 **Cierre de 5 gaps del CCP + rol Administrador del Sistema (2026-08-18,
-[DOC-021](../web/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
+[DOC-021](../ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
 `AdministradorController`/`AdministradorService` suman ~15 endpoints nuevos, mismo patrón puente
 que el resto del módulo — `POST/baja/reincorporacion/PATCH responsable/descripcion` de Activo,
 `GET/POST /admin/catalogo-tipos`, `GET/POST/DELETE /admin/activos/:id/documentos`,

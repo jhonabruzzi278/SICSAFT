@@ -17,11 +17,11 @@ http:
       entryPoints:
         - web
       service: cis
-    web:
-      rule: "Host(`web.sicsaft.localhost`)"
+    ccp:
+      rule: "Host(`ccp.sicsaft.localhost`)"
       entryPoints:
         - web
-      service: web
+      service: ccp
 
   services:
     zitadel:
@@ -32,7 +32,7 @@ http:
       loadBalancer:
         servers:
           - url: "http://cis:3000"
-    web:
+    ccp:
       loadBalancer:
         servers:
-          - url: "http://web:8080"
+          - url: "http://ccp:8080"

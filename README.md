@@ -28,7 +28,7 @@ Diagrama completo con los módulos internos de cada nivel:
 | SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🟢 Conector QR real, proxy delgado hacia CORE (DOC-002/DOC-006), auth real via Zitadel (ADR-002), circuit breaker + reintentos + rate limiting (WAF 4), `deviceId` enforced, CORS para APP QR/WEB, puente de escritura oficial para Administrador Patrimonial (DOC-012 5) |
 | SYS-03 | [`core/`](core) | SICSAFT CORE | 🟡 Orquestador + 4 motores (Patrimonial, Reglas, Eventos, Auditoría — Fase 2) + escritura oficial de Activo/Contrato/importación masiva (Fase 4, DOC-012) sobre Postgres real — resto de los 9 motores de `core/README.md` sin implementar |
 | SYS-04 | [`base-patrimonial/`](base-patrimonial) | Base Patrimonial Central | 🟡 Modelo de `Contrato` documentado e implementado en Postgres (DOC-004) — resto de los 11 dominios sin definir |
-| SYS-05 | [`web/`](web) | CCP — Centro de Control Patrimonial (Portal WEB SICSAFT) | 🟢 Los 6 módulos del MVP implementados — login OIDC/PKCE real + Activos/Contratos/Inventarios verificados de punta a punta contra Postgres real, Auditoría y Áreas/Ubicaciones/Responsables verificados con e2e de CORE/CIS |
+| SYS-05 | [`ccp/`](ccp) | CCP — Centro de Control Patrimonial (Portal WEB SICSAFT) | 🟢 Los 6 módulos del MVP implementados — login OIDC/PKCE real + Activos/Contratos/Inventarios verificados de punta a punta contra Postgres real, Auditoría y Áreas/Ubicaciones/Responsables verificados con e2e de CORE/CIS |
 | SYS-06 | [`cip/`](cip) | Centro de Inteligencia Patrimonial | 🟢 Primer dashboard (Fase 6): worker de agregación (Redis/BullMQ) + 8 endpoints de lectura sobre base propia, verificado real de punta a punta — sin frontend todavía |
 | SYS-07 | [`rfid/`](rfid) | RFID SICSAFT | 🔲 No iniciado (fase tardía) |
 | SYS-08 | [`integraciones/`](integraciones) | Integraciones externas (ERP, RRHH, BI...) | 🔲 No iniciado (fase tardía) |
@@ -105,7 +105,7 @@ Backlog completo y contexto de negocio de APP QR: `app-qr-sicsaft/HANDOFF-APP-QR
    servicio-a-servicio CIS→CORE ya resueltos e implementados. Lo que sigue abierto es que CORE
    tenga motores reales (Patrimonial, Reglas, Eventos...) sobre el resto del dominio de Base
    Patrimonial (DOC-005), que todavía no tiene tabla ni modelo.
-5. `web/` — en desarrollo (login + módulo Activos, ver ROADMAP.md Fase 5); `cip/` sigue sin
+5. `ccp/` — en desarrollo (login + módulo Activos, ver ROADMAP.md Fase 5); `cip/` sigue sin
    iniciar, pendiente de que existan inventarios/eventos reales que medir.
 6. `rfid/` e `integraciones/` quedan para fases posteriores.
 7. `devops/` se diseña recién cuando cada sistema tenga su ADR de stack — usa

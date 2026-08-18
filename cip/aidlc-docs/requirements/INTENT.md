@@ -33,7 +33,7 @@ sin ningún código (`cip/README.md` Estado: "🔲 No iniciado").
   tiene motivo real todavía.
 - **UI final del dashboard** (React/gráficos) — este incremento diseña el modelo de datos, la
   ingesta asíncrona y la API de lectura; el frontend de CIP es un incremento de Construction
-  posterior, análogo a como Fase 5 primero definió DOC-013 y después construyó `web/`.
+  posterior, análogo a como Fase 5 primero definió DOC-013 y después construyó `ccp/`.
 
 ## Decisión abierta que este diseño resuelve
 `cip/README.md` Depende de decía "idealmente vía un almacén de solo lectura / reporting, no

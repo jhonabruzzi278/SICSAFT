@@ -1,19 +1,19 @@
-name: WEB CI
+name: CCP CI
 
 on:
   pull_request:
     paths:
-      - "web/**"
-      - ".github/workflows/web-ci.yml"
+      - "ccp/**"
+      - ".github/workflows/ccp-ci.yml"
   push:
     branches: [main]
     paths:
-      - "web/**"
-      - ".github/workflows/web-ci.yml"
+      - "ccp/**"
+      - ".github/workflows/ccp-ci.yml"
 
 defaults:
   run:
-    working-directory: web
+    working-directory: ccp
 
 jobs:
   test:
@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: ccp/package-lock.json
 
       - run: npm ci --ignore-scripts
 
@@ -46,12 +46,12 @@ jobs:
         if: failure()
         with:
           name: playwright-report
-          path: web/playwright-report/
+          path: ccp/playwright-report/
           retention-days: 7
 
       - name: Build de imagen Docker
         run: |
-          # Placeholders sin uso real: esta imagen (sicsaft-web:ci) nunca corre ni se publica, solo
+          # Placeholders sin uso real: esta imagen (sicsaft-ccp:ci) nunca corre ni se publica, solo
           # valida que el Dockerfile buildee. https:// acá (no http://, que sí usan devops/local/
           # y .env.example para el entorno local real sin TLS) evita un falso positivo de
           # "clear-text protocol" (S5332) sobre hosts que jamás se resuelven de verdad.
@@ -59,4 +59,4 @@ jobs:
             --build-arg VITE_ZITADEL_ISSUER=https://id.sicsaft.invalid \
             --build-arg VITE_ZITADEL_CLIENT_ID=ci-placeholder \
             --build-arg VITE_CIS_URL=https://api.sicsaft.invalid \
-            -t sicsaft-web:ci .
+            -t sicsaft-ccp:ci .

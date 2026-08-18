@@ -45,7 +45,7 @@ trigger, versionado en la misma migración — cambiar qué se publica es una mi
 
 ## 7. Decisiones abiertas (a resolver al pasar a Construction, no bloquean este diseño)
 1. ~~**Quién puede leer el dashboard**~~ — **resuelto** en
-   [`web/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md`](../../../web/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)
+   [`ccp/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md`](../../../ccp/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)
    2: cualquier operador con contrato vigente en la organización, sin rol adicional.
 2. ~~**Cómo llega el frontend de CIP al usuario**~~ — **resuelto** en DOC-019 1: sección nueva
    dentro de WEB (séptimo módulo del hub), no una app propia. WEB nunca le habla a CIP

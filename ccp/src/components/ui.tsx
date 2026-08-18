@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, LabelHTMLAttributes, ReactNode } from 'react';
 
-// Primitivos minimos de UI (sin radix/shadcn — ver web/README.md "Decisiones de esta primera
+// Primitivos minimos de UI (sin radix/shadcn — ver ccp/README.md "Decisiones de esta primera
 // version" para por que). Foco visible via :focus-visible en index.css (RNF-05).
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';

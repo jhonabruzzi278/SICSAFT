@@ -10,7 +10,7 @@ import { Alert, Badge, Button, Card } from '@/components/ui';
 
 // RF-14 (DOC-021, gap "importaciones controladas") — POST /importaciones/contable ya existía en
 // CORE desde DOC-012 6, sin puente en CIS ni UI en WEB. Parseo de CSV cliente-side con un parser
-// mínimo propio (sin dependencia nueva — mismo criterio ya declarado en web/README.md de
+// mínimo propio (sin dependencia nueva — mismo criterio ya declarado en ccp/README.md de
 // minimizar dependencias del primer incremento; el formato es controlado, no hace falta manejar
 // comillas/escapes de CSV genérico).
 

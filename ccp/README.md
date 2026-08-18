@@ -212,18 +212,18 @@ responsabilidad de Nivel 1 del Profesional de AFT.
 Requiere el stack de `../devops/local` corriendo (Zitadel + CIS + CORE + Postgres) y la app OIDC
 `web-sicsaft` ya creada (ver `../devops/local/README.md` "Cliente OIDC real (WEB)").
 ```bash
-cd web
+cd ccp
 npm install
 cp .env.example .env   # completar VITE_ZITADEL_CLIENT_ID con el Client ID real
 npm run dev            # http://localhost:5174
 ```
 
 **Dentro del stack de Docker** (en vez de `npm run dev` suelto): completar
-`WEB_VITE_ZITADEL_CLIENT_ID` en `devops/local/.env` y correr `docker compose up -d --build web`
+`WEB_VITE_ZITADEL_CLIENT_ID` en `devops/local/.env` y correr `docker compose up -d --build ccp`
 desde `devops/local/` — sirve el build de producción vía nginx en
-`http://web.sicsaft.localhost` (Traefik, `devops/local/traefik/dynamic.yml`). Como Vite incrusta
+`http://ccp.sicsaft.localhost` (Traefik, `devops/local/traefik/dynamic.yml`). Como Vite incrusta
 las `VITE_*` en build time, cambiar `WEB_VITE_ZITADEL_CLIENT_ID` exige reconstruir la imagen
-(`docker compose build web`), no solo reiniciar el contenedor.
+(`docker compose build ccp`), no solo reiniciar el contenedor.
 
 ## Depende de
 CORE (escritura oficial de `Activo`/`Contrato`/`Area`/`Ubicacion`/`Responsable`, Fases 4/5 — ✅) y
@@ -255,7 +255,7 @@ WEB). Lo que queda:
    (KPIs de cobertura, áreas controladas con drill-down por área, sesiones con veredicto, activos
    fuera de área/no localizados, incidencias filtrables por código QR, estado de AFT, y un gráfico
    circular por categoría — SVG propio, sin librería nueva). Verificado de punta a punta contra
-   Docker real: login OIDC real vía `web.sicsaft.localhost`, un `POST /inventarios` y un
+   Docker real: login OIDC real vía `ccp.sicsaft.localhost`, un `POST /inventarios` y un
    `POST /activos` reales disparados dentro de la red Docker confirmados en pantalla (cobertura,
    veredicto de sesión, estado de AFT y categorías, todos con datos reales).
 3. ✅ RF-10 (segmentación por rol Directivo, [DOC-020](aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md))
@@ -269,13 +269,13 @@ WEB). Lo que queda:
    `administrador-patrimonial` → hub completo; solo `administrador-patrimonial` → hub completo sin
    cambios), cada login confirmado con el claim real del JWT.
 
-✅ `Dockerfile`/`web-ci.yml`/servicio en el compose local — WEB ya tiene imagen de producción
+✅ `Dockerfile`/`ccp-ci.yml`/servicio en el compose local — WEB ya tiene imagen de producción
 (nginx sirviendo el build de Vite, usuario sin privilegios) y corre dentro del stack en
-`http://web.sicsaft.localhost` además de `npm run dev` suelto (ver "Desarrollo local" arriba).
+`http://ccp.sicsaft.localhost` además de `npm run dev` suelto (ver "Desarrollo local" arriba).
 
 ✅ e2e Playwright del flujo de login + alta (`tests/login-alta.spec.js`) — mismo patrón que
 `app-qr-sicsaft/tests/` (MSW mockea CIS en modo `VITE_MOCK_API=true`, `.env.e2e`; el redirect real
 a Zitadel se salta sembrando `sessionStorage` con un JWT sin firmar, `tests/helpers.js`
 `seedAuth()` — CIS es quien valida de verdad server-side, el cliente solo mira si hay tokens
 guardados). Cubre: operador sin sesión redirigido a `/login`, y login + alta de Activo visible de
-inmediato en el mismo catálogo (RF-08). Corre en CI (`web-ci.yml`) y local con `npm run test:e2e`.
+inmediato en el mismo catálogo (RF-08). Corre en CI (`ccp-ci.yml`) y local con `npm run test:e2e`.

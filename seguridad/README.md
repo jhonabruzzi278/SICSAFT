@@ -58,7 +58,7 @@ Segundo rol de Proyecto en Zitadel (`administrador-sistema`), administra la **pl
 información patrimonial (Activos/Catálogo/Documentos siguen exclusivos de
 `administrador-patrimonial`, y simétricamente el Profesional de AFT nunca administra la
 plataforma). Diseño completo en
-[DOC-021](../web/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md).
+[DOC-021](../ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md).
 Único caso de este repo con autorización server-side en dos niveles distintos según el endpoint:
 `POST /organizaciones` (solo `administrador-sistema`, vía el Orquestador de CORE — mismo patrón
 que el resto) y `GET/POST /organizaciones/:orgId/usuarios` (guard normal de CIS,
