@@ -13,6 +13,7 @@ export const MOCK_ORGANIZACIONES: Organizacion[] = [
 
 export const MOCK_CATALOGO: ActivoCatalogo[] = [
   {
+    id: 'activo-notebook-001',
     codigoQr: 'QR-NOTEBOOK-001',
     nombre: 'Notebook Dell Latitude',
     organizacionId: 'duoc-uc',

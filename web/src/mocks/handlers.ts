@@ -4,8 +4,26 @@
 // guardados (oidcClient.isAuthenticated(), sessionStorage) — mismo criterio que
 // app-qr-sicsaft/src/mocks/handlers.ts.
 import { http, HttpResponse } from 'msw';
-import type { Activo, ActivoCatalogo } from '@/lib/cis-client';
+import type { Activo, ActivoCatalogo, CatalogoTipoActivo } from '@/lib/cis-client';
 import { MOCK_CATALOGO, MOCK_ORGANIZACIONES, MOCK_SYNC } from './fixtures';
+
+// DOC-021 4 (gap "familias/categorías") — mismo id de catálogo que ya usaba el fixture de Activo
+// antes de este incremento ('catalogo-notebook'), ahora servido por un endpoint real en vez de
+// texto libre.
+const MOCK_CATALOGO_TIPOS: CatalogoTipoActivo[] = [
+  {
+    id: 'catalogo-notebook',
+    tipo: 'Equipo Computacional',
+    familia: 'Informática',
+    subfamilia: 'Notebook',
+    marca: null,
+    modelo: null,
+    fabricante: null,
+    vidaUtilMeses: null,
+    criticidad: 'media',
+    tecnologiaIdentificacion: 'qr',
+  },
+];
 
 const CIS_URL = import.meta.env.VITE_CIS_URL;
 
@@ -30,6 +48,8 @@ export const defaultHandlers = [
     return HttpResponse.json({ activos });
   }),
 
+  http.get(`${CIS_URL}/admin/catalogo-tipos`, () => HttpResponse.json(MOCK_CATALOGO_TIPOS)),
+
   http.post(`${CIS_URL}/admin/activos`, async ({ request }) => {
     const body = (await request.json()) as {
       organizacionId: string;
@@ -39,7 +59,9 @@ export const defaultHandlers = [
       areaId?: string;
       ubicacionId?: string;
     };
+    const nuevoId = crypto.randomUUID();
     catalogo.push({
+      id: nuevoId,
       codigoQr: body.codigoQr,
       nombre: `Activo ${body.codigoPatrimonial}`,
       organizacionId: body.organizacionId,
@@ -48,7 +70,7 @@ export const defaultHandlers = [
       estado: 'activo',
     });
     const activo: Activo = {
-      id: crypto.randomUUID(),
+      id: nuevoId,
       codigoPatrimonial: body.codigoPatrimonial,
       codigoQr: body.codigoQr,
       organizacionId: body.organizacionId,
@@ -56,6 +78,7 @@ export const defaultHandlers = [
       ubicacionId: body.ubicacionId ?? null,
       responsableId: null,
       estado: 'activo',
+      descripcion: null,
       catalogo: { tipo: 'equipo', familia: 'tecnologia', subfamilia: null, marca: null, modelo: null },
     };
     return HttpResponse.json(activo, { status: 201 });

@@ -182,6 +182,16 @@ function esDirectivo(): boolean {
   return tieneRol(decodeJwtClaims(tokens.accessToken), 'directivo');
 }
 
+// DOC-021 1 (Administrador del Sistema) — mismo mecanismo, tercer rol. A diferencia de
+// administrador-patrimonial/directivo, este SÍ tiene enforcement server-side propio
+// (AdministradorSistemaGuard en CIS, ver DOC-021 4) — acá sigue siendo "solo para UI" (mostrar/
+// ocultar el módulo Administración), la autorización real corre igual en CIS/CORE.
+function esAdministradorSistema(): boolean {
+  const tokens = loadTokens();
+  if (!tokens) return false;
+  return tieneRol(decodeJwtClaims(tokens.accessToken), 'administrador-sistema');
+}
+
 function isAuthenticated(): boolean {
   return loadTokens() !== null;
 }
@@ -198,6 +208,7 @@ export const oidcClient = {
   getCurrentOperatorDisplayName,
   esAdministradorPatrimonial,
   esDirectivo,
+  esAdministradorSistema,
   isAuthenticated,
   logout,
 };

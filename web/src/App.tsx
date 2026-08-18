@@ -11,6 +11,8 @@ import { InventariosPage } from '@/pages/InventariosPage';
 import { AuditoriaPage } from '@/pages/AuditoriaPage';
 import { EstructuraPage } from '@/pages/EstructuraPage';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { ImportacionesPage } from '@/pages/ImportacionesPage';
+import { AdminPage } from '@/pages/AdminPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   if (!oidcClient.isAuthenticated()) {
@@ -78,6 +80,22 @@ export default function App() {
           element={
             <RequireAuth>
               <DashboardPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/importaciones"
+          element={
+            <RequireAuth>
+              <ImportacionesPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <RequireAuth>
+              <AdminPage />
             </RequireAuth>
           }
         />
