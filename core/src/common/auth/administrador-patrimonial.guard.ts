@@ -10,6 +10,12 @@ import type { ServiceAuthenticatedRequest } from './service-token.guard';
 // Patrimonial (Tomo III 1.4 Entrada 4).
 export const ADMINISTRADOR_PATRIMONIAL_ROLE = 'administrador-patrimonial';
 
+// Rol de Proyecto en Zitadel (DOC-021 1) — administracion de la plataforma (organizaciones,
+// contratos, usuarios, indicadores), nunca de informacion patrimonial. Mismo mecanismo que
+// ADMINISTRADOR_PATRIMONIAL_ROLE (rol de Proyecto asignado por organizacion), sin cambios en
+// ZitadelAuthGuard — generico por nombre de rol (mismo precedente que `directivo`, DOC-020).
+export const ADMINISTRADOR_SISTEMA_ROLE = 'administrador-sistema';
+
 interface EscrituraOficialBody {
   organizacionId?: unknown;
   rolesPorOrganizacion?: unknown;
@@ -32,20 +38,36 @@ function esRecordDeRoles(value: unknown): value is Record<string, unknown> {
 // administrador-patrimonial de la Organizacion A escribir sobre activos de la Organizacion B
 // (hallazgo real de revision de seguridad, corregido en este mismo incremento — ver tambien el
 // cruce adicional contra la organizacion real del activo en ActivoRepository).
-export function verificarRolAdministradorPatrimonial(
+// Generalizacion (DOC-021 2) — Contrato pasa a aceptar administrador-patrimonial O
+// administrador-sistema (Tomo III 1.4 ya se lo exigia al primero, no se le quita esa capacidad;
+// el segundo la gana para poder administrar la plataforma). Los endpoints puramente
+// patrimoniales (Activo, Catalogo, Documento) siguen usando solo
+// verificarRolAdministradorPatrimonial (wrapper de abajo, un solo rol) y los puramente
+// administrativos (Organizacion) usan [ADMINISTRADOR_SISTEMA_ROLE] en solitario.
+export function verificarRolesPermitidos(
   rolesPorOrganizacion: unknown,
   organizacionId: string,
+  rolesPermitidos: readonly string[],
 ): void {
   const mapa = esRecordDeRoles(rolesPorOrganizacion)
     ? rolesPorOrganizacion
     : {};
   const rolesEnOrganizacion = mapa[organizacionId];
   const lista = Array.isArray(rolesEnOrganizacion) ? rolesEnOrganizacion : [];
-  if (!lista.includes(ADMINISTRADOR_PATRIMONIAL_ROLE)) {
+  if (!rolesPermitidos.some((rol) => lista.includes(rol))) {
     throw new ForbiddenException(
-      `Requiere el rol ${ADMINISTRADOR_PATRIMONIAL_ROLE} en la organizacion '${organizacionId}'`,
+      `Requiere alguno de estos roles en la organizacion '${organizacionId}': ${rolesPermitidos.join(', ')}`,
     );
   }
+}
+
+export function verificarRolAdministradorPatrimonial(
+  rolesPorOrganizacion: unknown,
+  organizacionId: string,
+): void {
+  return verificarRolesPermitidos(rolesPorOrganizacion, organizacionId, [
+    ADMINISTRADOR_PATRIMONIAL_ROLE,
+  ]);
 }
 
 // CIS certifica que Zitadel firmo el rol en esa organizacion (ZitadelAuthGuard.rolesPorOrganizacion,

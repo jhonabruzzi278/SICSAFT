@@ -15,6 +15,7 @@ const ACTIVO: Activo = {
   ubicacionId: null,
   responsableId: null,
   estado: 'activo',
+  descripcion: null,
   catalogo: {
     tipo: 'Equipo Computacional',
     familia: 'Informática',

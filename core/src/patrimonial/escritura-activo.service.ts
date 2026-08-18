@@ -84,4 +84,24 @@ export class EscrituraActivoService {
     });
     return activo;
   }
+
+  // DOC-021 3 (gap "descripciones").
+  async actualizarDescripcion(
+    activoId: string,
+    organizacionId: string,
+    descripcion: string | null,
+    operadorId: string,
+  ): Promise<Activo> {
+    const activo = await this.activoRepository.actualizarDescripcion(
+      activoId,
+      organizacionId,
+      descripcion,
+    );
+    await this.eventoRepository.registrar({
+      activoId: activo.id,
+      tipo: 'cambio_descripcion',
+      usuario: operadorId,
+    });
+    return activo;
+  }
 }

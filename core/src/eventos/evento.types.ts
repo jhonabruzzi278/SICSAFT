@@ -19,7 +19,8 @@ export type TipoEvento =
   | 'baja'
   | 'baja_sugerida'
   | 'reincorporacion'
-  | 'contrato_actualizado';
+  | 'contrato_actualizado'
+  | 'cambio_descripcion';
 
 export interface RegistrarEventoInput {
   activoId: string;

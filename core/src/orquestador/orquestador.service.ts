@@ -4,13 +4,22 @@ import { InventariosService } from '../inventarios/inventarios.service';
 import { EscrituraActivoService } from '../patrimonial/escritura-activo.service';
 import { ImportacionContableService } from '../patrimonial/importacion-contable.service';
 import { EscrituraContratoService } from '../entitlements/escritura-contrato.service';
+import { EscrituraOrganizacionService } from '../entitlements/escritura-organizacion.service';
 import { EscrituraEstructuraService } from '../estructura/escritura-estructura.service';
-import { verificarRolAdministradorPatrimonial } from '../common/auth/administrador-patrimonial.guard';
+import { EscrituraDocumentoActivoService } from '../patrimonial/escritura-documento-activo.service';
+import { CatalogoTipoActivoRepository } from '../patrimonial/catalogo-tipo-activo.repository';
+import {
+  ADMINISTRADOR_PATRIMONIAL_ROLE,
+  ADMINISTRADOR_SISTEMA_ROLE,
+  verificarRolAdministradorPatrimonial,
+  verificarRolesPermitidos,
+} from '../common/auth/administrador-patrimonial.guard';
 import type {
   InventarioRequest,
   PostInventarioResponse,
 } from '../inventarios/inventarios.types';
 import type {
+  ActualizarDescripcionActivoBody,
   AltaActivoBody,
   EscrituraOficialBody,
   CambioResponsableBody,
@@ -18,11 +27,20 @@ import type {
 import type { Activo } from '../patrimonial/activo.types';
 import type { ImportacionContableBody } from '../patrimonial/importacion-contable.schemas';
 import type { ImportacionContableResultado } from '../patrimonial/importacion-contable.types';
+import type { AltaCatalogoTipoBody } from '../patrimonial/catalogo-tipo-activo.schemas';
+import type { CatalogoTipoActivo } from '../patrimonial/catalogo-tipo-activo.types';
+import type {
+  AltaDocumentoActivoBody,
+  EliminarDocumentoActivoBody,
+} from '../patrimonial/documento-activo.schemas';
+import type { DocumentoActivo } from '../patrimonial/documento-activo.types';
 import type {
   ActualizarContratoBody,
   AltaContratoBody,
 } from '../entitlements/contrato.schemas';
 import type { Contrato } from '../entitlements/contrato.types';
+import type { AltaOrganizacionBody } from '../entitlements/organizacion.schemas';
+import type { Organizacion } from '../entitlements/organizacion.types';
 import type {
   AltaAreaBody,
   ActualizarAreaBody,
@@ -48,6 +66,9 @@ export class OrquestadorService {
     private readonly importacionContableService: ImportacionContableService,
     private readonly escrituraContratoService: EscrituraContratoService,
     private readonly escrituraEstructuraService: EscrituraEstructuraService,
+    private readonly escrituraOrganizacionService: EscrituraOrganizacionService,
+    private readonly escrituraDocumentoActivoService: EscrituraDocumentoActivoService,
+    private readonly catalogoTipoActivoRepository: CatalogoTipoActivoRepository,
     private readonly auditoriaRepository: AuditoriaRepository,
   ) {}
 
@@ -146,6 +167,106 @@ export class OrquestadorService {
     );
   }
 
+  // DOC-021 3 — PATCH /activos/:id/descripcion.
+  procesarActualizarDescripcionActivo(
+    activoId: string,
+    payload: ActualizarDescripcionActivoBody,
+  ): Promise<Activo> {
+    return this.ejecutarEscrituraOficial(
+      `PATCH /activos/${activoId}/descripcion`,
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraActivoService.actualizarDescripcion(
+          activoId,
+          payload.organizacionId,
+          payload.descripcion,
+          payload.operadorId,
+        ),
+    );
+  }
+
+  // DOC-021 4 (gap "familias/categorías") — POST /catalogo-tipos.
+  procesarAltaCatalogoTipo(
+    payload: AltaCatalogoTipoBody,
+  ): Promise<CatalogoTipoActivo> {
+    return this.ejecutarOperacionOficial(
+      'POST /catalogo-tipos',
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () => this.catalogoTipoActivoRepository.crear(payload),
+      (tipo) => tipo.id,
+    );
+  }
+
+  // DOC-021 3 (gap "documentación y fotografías") — POST /activos/:id/documentos.
+  procesarAltaDocumentoActivo(
+    activoId: string,
+    payload: AltaDocumentoActivoBody,
+  ): Promise<DocumentoActivo> {
+    return this.ejecutarOperacionOficial(
+      `POST /activos/${activoId}/documentos`,
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraDocumentoActivoService.crear({
+          activoId,
+          organizacionId: payload.organizacionId,
+          tipo: payload.tipo,
+          url: payload.url,
+          descripcion: payload.descripcion,
+          creadoPor: payload.operadorId,
+        }),
+      (documento) => documento.id,
+    );
+  }
+
+  // DOC-021 3 — DELETE /activos/:id/documentos/:documentoId.
+  procesarEliminarDocumentoActivo(
+    activoId: string,
+    documentoId: string,
+    payload: EliminarDocumentoActivoBody,
+  ): Promise<void> {
+    return this.ejecutarOperacionOficial(
+      `DELETE /activos/${activoId}/documentos/${documentoId}`,
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraDocumentoActivoService.eliminar(
+          documentoId,
+          activoId,
+          payload.organizacionId,
+        ),
+      () => documentoId,
+    );
+  }
+
+  // DOC-021 4 (Administrador del Sistema) — POST /organizaciones. Unico caso de este archivo con
+  // un verificador propio de un solo rol distinto al default (administrador-patrimonial no puede
+  // crear organizaciones — es administracion de plataforma, no informacion patrimonial).
+  procesarAltaOrganizacion(
+    payload: AltaOrganizacionBody,
+  ): Promise<Organizacion> {
+    return this.ejecutarOperacionOficial(
+      'POST /organizaciones',
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraOrganizacionService.crear({
+          id: payload.id,
+          nombre: payload.nombre,
+        }),
+      (organizacion) => organizacion.id,
+      (roles, orgId) =>
+        verificarRolesPermitidos(roles, orgId, [ADMINISTRADOR_SISTEMA_ROLE]),
+    );
+  }
+
   // DOC-012 6 — POST /importaciones/contable. Idempotente por fila (no atomico por request como
   // POST /inventarios) — el resultado siempre es 200 con el detalle de cada fila, el 403 por
   // falta de rol es el unico rechazo de todo el request.
@@ -168,6 +289,18 @@ export class OrquestadorService {
     );
   }
 
+  // Contrato acepta administrador-patrimonial (Tomo III 1.4 se lo exigia desde DOC-012 7, no se
+  // le quita) O administrador-sistema (DOC-021 2 — el Administrador del Sistema tambien puede
+  // crear/editar contratos, es administracion de plataforma).
+  private static readonly VERIFICAR_ROL_CONTRATO = (
+    roles: unknown,
+    organizacionId: string,
+  ): void =>
+    verificarRolesPermitidos(roles, organizacionId, [
+      ADMINISTRADOR_PATRIMONIAL_ROLE,
+      ADMINISTRADOR_SISTEMA_ROLE,
+    ]);
+
   // DOC-012 7 — POST /contratos (alta).
   procesarAltaContrato(payload: AltaContratoBody): Promise<Contrato> {
     return this.ejecutarEscrituraOficial(
@@ -176,6 +309,7 @@ export class OrquestadorService {
       payload.organizacionId,
       payload.rolesPorOrganizacion,
       () => this.escrituraContratoService.alta(payload, payload.operadorId),
+      OrquestadorService.VERIFICAR_ROL_CONTRATO,
     );
   }
 
@@ -196,6 +330,7 @@ export class OrquestadorService {
           payload.estado,
           payload.operadorId,
         ),
+      OrquestadorService.VERIFICAR_ROL_CONTRATO,
     );
   }
 
@@ -302,6 +437,10 @@ export class OrquestadorService {
     organizacionId: string,
     rolesPorOrganizacion: unknown,
     accion: () => Promise<T>,
+    verificarRol: (
+      roles: unknown,
+      organizacionId: string,
+    ) => void = verificarRolAdministradorPatrimonial,
   ): Promise<T> {
     return this.ejecutarOperacionOficial(
       operacion,
@@ -310,6 +449,7 @@ export class OrquestadorService {
       rolesPorOrganizacion,
       accion,
       (valor) => valor.estado,
+      verificarRol,
     );
   }
 
@@ -331,12 +471,16 @@ export class OrquestadorService {
     rolesPorOrganizacion: unknown,
     accion: () => Promise<T>,
     resultadoDe: (valor: T) => string,
+    // DOC-021 2 — parametrizado (default = comportamiento previo, ningun caller existente de
+    // Activo/Area/Ubicacion/Responsable/CatalogoTipo/Documento cambia) para que Contrato y
+    // Organizacion puedan pasar un verificador que acepte otros roles (administrador-sistema).
+    verificarRol: (
+      roles: unknown,
+      organizacionId: string,
+    ) => void = verificarRolAdministradorPatrimonial,
   ): Promise<T> {
     try {
-      verificarRolAdministradorPatrimonial(
-        rolesPorOrganizacion,
-        organizacionId,
-      );
+      verificarRol(rolesPorOrganizacion, organizacionId);
       const valor = await accion();
       await this.auditoriaRepository.registrar({
         usuario: operadorId,

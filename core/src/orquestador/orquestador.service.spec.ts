@@ -5,7 +5,10 @@ import { InventariosService } from '../inventarios/inventarios.service';
 import { EscrituraActivoService } from '../patrimonial/escritura-activo.service';
 import { ImportacionContableService } from '../patrimonial/importacion-contable.service';
 import { EscrituraContratoService } from '../entitlements/escritura-contrato.service';
+import { EscrituraOrganizacionService } from '../entitlements/escritura-organizacion.service';
 import { EscrituraEstructuraService } from '../estructura/escritura-estructura.service';
+import { EscrituraDocumentoActivoService } from '../patrimonial/escritura-documento-activo.service';
+import { CatalogoTipoActivoRepository } from '../patrimonial/catalogo-tipo-activo.repository';
 import { AuditoriaRepository } from '../auditoria/auditoria.repository';
 import type { InventarioRequest } from '../inventarios/inventarios.types';
 import type { AltaActivoBody } from '../patrimonial/activo.schemas';
@@ -38,6 +41,7 @@ const ACTIVO: Activo = {
   ubicacionId: null,
   responsableId: null,
   estado: 'activo',
+  descripcion: null,
   catalogo: {
     tipo: 'Equipo Computacional',
     familia: 'Informática',
@@ -102,6 +106,17 @@ function buildService() {
     altaResponsable: jest.fn(),
     actualizarEstadoResponsable: jest.fn(),
   } as unknown as jest.Mocked<EscrituraEstructuraService>;
+  const escrituraOrganizacionService = {
+    crear: jest.fn(),
+  } as unknown as jest.Mocked<EscrituraOrganizacionService>;
+  const escrituraDocumentoActivoService = {
+    crear: jest.fn(),
+    eliminar: jest.fn(),
+  } as unknown as jest.Mocked<EscrituraDocumentoActivoService>;
+  const catalogoTipoActivoRepository = {
+    listar: jest.fn(),
+    crear: jest.fn(),
+  } as unknown as jest.Mocked<CatalogoTipoActivoRepository>;
   const auditoriaRepository = {
     registrar: jest.fn().mockResolvedValue(undefined),
   } as unknown as jest.Mocked<AuditoriaRepository>;
@@ -112,6 +127,9 @@ function buildService() {
     importacionContableService,
     escrituraContratoService,
     escrituraEstructuraService,
+    escrituraOrganizacionService,
+    escrituraDocumentoActivoService,
+    catalogoTipoActivoRepository,
     auditoriaRepository,
   );
 
@@ -122,6 +140,9 @@ function buildService() {
     importacionContableService,
     escrituraContratoService,
     escrituraEstructuraService,
+    escrituraOrganizacionService,
+    escrituraDocumentoActivoService,
+    catalogoTipoActivoRepository,
     auditoriaRepository,
   };
 }

@@ -12,11 +12,13 @@ import { ServiceTokenGuard } from '../common/auth/service-token.guard';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { OrquestadorService } from '../orquestador/orquestador.service';
 import {
+  actualizarDescripcionActivoSchema,
   altaActivoSchema,
   cambioResponsableSchema,
   escrituraOficialSchema,
 } from './activo.schemas';
 import type {
+  ActualizarDescripcionActivoBody,
   AltaActivoBody,
   CambioResponsableBody,
   EscrituraOficialBody,
@@ -66,5 +68,17 @@ export class ActivoEscrituraController {
     body: CambioResponsableBody,
   ): Promise<Activo> {
     return this.orquestadorService.procesarCambioResponsable(id, body);
+  }
+
+  @Patch(':id/descripcion')
+  actualizarDescripcion(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(actualizarDescripcionActivoSchema))
+    body: ActualizarDescripcionActivoBody,
+  ): Promise<Activo> {
+    return this.orquestadorService.procesarActualizarDescripcionActivo(
+      id,
+      body,
+    );
   }
 }

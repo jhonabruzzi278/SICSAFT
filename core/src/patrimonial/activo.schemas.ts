@@ -29,6 +29,7 @@ export const altaActivoSchema = escrituraOficialSchema.extend({
   areaId: z.string().min(1).optional(),
   ubicacionId: z.string().min(1).optional(),
   valorPatrimonial: z.number().nonnegative().optional(),
+  descripcion: z.string().min(1).optional(),
 });
 export type AltaActivoBody = z.infer<typeof altaActivoSchema>;
 
@@ -37,3 +38,12 @@ export const cambioResponsableSchema = escrituraOficialSchema.extend({
   responsableId: z.string().min(1),
 });
 export type CambioResponsableBody = z.infer<typeof cambioResponsableSchema>;
+
+// DOC-021 3 (gap "descripciones") — PATCH /activos/:id/descripcion. `descripcion: null` limpia el
+// campo (a diferencia de omitirlo, que no lo toca) — por eso `.nullable()` y no solo `.optional()`.
+export const actualizarDescripcionActivoSchema = escrituraOficialSchema.extend({
+  descripcion: z.string().min(1).nullable(),
+});
+export type ActualizarDescripcionActivoBody = z.infer<
+  typeof actualizarDescripcionActivoSchema
+>;
