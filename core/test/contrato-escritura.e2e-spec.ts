@@ -12,7 +12,7 @@ import {
 
 // Contra el seed real de base-patrimonial/DOC-004-modelo-contrato.md: DUOC UC ya tiene un
 // contrato vigente cubriendo 'melipilla' (migracion 1755000000001_seed-dev-fixture.ts) — por eso
-// estos tests usan una sede/organizacion nueva para no chocar con el invariante DOC-004 §4.
+// estos tests usan una sede/organizacion nueva para no chocar con el invariante DOC-004 4.
 function buildAltaBody(overrides: Record<string, unknown> = {}) {
   return {
     correlationId: `corr-e2e-${randomUUID()}`,
@@ -37,7 +37,7 @@ function buildActualizarBody(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('DOC-012 §7 — escritura oficial de Contrato (e2e)', () => {
+describe('DOC-012 7 — escritura oficial de Contrato (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
@@ -79,7 +79,7 @@ describe('DOC-012 §7 — escritura oficial de Contrato (e2e)', () => {
   });
 
   describe('POST /contratos (alta)', () => {
-    it('devuelve 409 (DOC-004 §4) porque melipilla ya esta cubierta por el contrato vigente del seed', async () => {
+    it('devuelve 409 (DOC-004 4) porque melipilla ya esta cubierta por el contrato vigente del seed', async () => {
       // Prueba el invariante en el camino de escritura: 'melipilla' ya tiene un contrato vigente
       // (seed de Fase 0), así que un alta nueva sobre la misma sede debe rechazarse, nunca
       // duplicar cobertura silenciosamente.

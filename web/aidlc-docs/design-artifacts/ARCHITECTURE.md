@@ -40,7 +40,7 @@ implemente Fase 4/5, no una reinvención de contrato.
 ## Decisión abierta: tipo de Aplicación OIDC en Zitadel
 
 `app-qr-sicsaft` usa una app **User Agent** (SPA pública, PKCE, sin secreto — ver
-`devops/local/README.md` § "Cliente OIDC real"). WEB maneja permisos de escritura amplios
+`devops/local/README.md` "Cliente OIDC real"). WEB maneja permisos de escritura amplios
 (ABM de Contratos, alta de Activos) — vale la pena evaluar en la implementación si conviene un
 backend-for-frontend liviano (sesión server-side, cookie httpOnly) en vez de repetir el patrón
 100%-cliente de APP QR, dado el mayor blast radius de una sesión comprometida. **No se decide en
@@ -52,5 +52,5 @@ Fase 5, no una elegida por defecto solo por consistencia con APP QR.
 - El preset shadcn/ui **Sera** y la estructura de `src/components/ui/`.
 - El patrón de `AppShell.tsx` (sidebar persistente, colapsa a Sheet en mobile) — WEB es un panel
   de administración, encaja mejor que el layout de escaneo de APP QR.
-- `next-themes` para el toggle claro/oscuro (`BRAND.md` § "Cómo extender a modo claro" ya
+- `next-themes` para el toggle claro/oscuro (`BRAND.md` "Cómo extender a modo claro" ya
   documenta el mapeo completo).

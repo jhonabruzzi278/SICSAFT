@@ -244,7 +244,7 @@ export function ScanPage() {
     });
   }
 
-  // Fase 3.1/DOC-017 §3, DOC-012 §5.1 — declarable sin rol administrador-patrimonial.
+  // Fase 3.1/DOC-017 3, DOC-012 5.1 — declarable sin rol administrador-patrimonial.
   function handleDeclareEstado(code: string, estado: EstadoOperativoDeclarable) {
     setScanned((prev) => {
       const item = prev.get(code);
@@ -254,7 +254,7 @@ export function ScanPage() {
   }
 
   // Solo guarda el motivo — nunca ejecuta la baja (la ejecuta el Administrador Patrimonial desde
-  // WEB tras revisar, ver DOC-012 §5.1).
+  // WEB tras revisar, ver DOC-012 5.1).
   function handleSaveBaja(motivo: string) {
     if (!bajaTarget) return;
     setScanned((prev) => {
@@ -399,7 +399,7 @@ export function ScanPage() {
   const expectedAssets = catalogRef.current.filter((a) => a.areaId === area?.id && a.ubicacionId === location?.id);
   const missingAssets = expectedAssets.filter((a) => !scannedCodesRef.current.has(a.codigoQr));
   const externalFindCount = items.filter((i) => i.category === 'unregistered' && i.externalFind).length;
-  // Fase 3.1/DOC-017 §2 y §4.
+  // Fase 3.1/DOC-017 2 y 4.
   const verdict = calcularVeredicto(missingAssets.length, outOfPlaceCount);
   const outOfAreaByArea = new Map<string, ScannedItem[]>();
   items

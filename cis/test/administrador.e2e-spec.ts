@@ -90,13 +90,13 @@ const CONTRATO_STUB: ContratoResult = {
   modulosContratados: ['inventario-qr'],
 };
 
-// DOC-012 §5 (Fase 5) — el bug real que motivó este spec: `PATCH /admin/contratos/:id` usaba
+// DOC-012 5 (Fase 5) — el bug real que motivó este spec: `PATCH /admin/contratos/:id` usaba
 // `@UsePipes()` a nivel de método, que valida TODOS los parámetros del handler (incluido
 // `@Param('id')`, un string) contra un schema que espera un objeto — rompía con "Payload
 // inválido" en cualquier request real, invisible en los specs unitarios del controller/service
 // porque ahí se llama al método directo, sin pasar por el pipeline HTTP de Nest. Encontrado
 // probando el flujo real desde `web/` contra CIS real.
-describe('Administrador Patrimonial — DOC-012 §5/§7 (e2e)', () => {
+describe('Administrador Patrimonial — DOC-012 5/7 (e2e)', () => {
   let app: INestApplication<App>;
   let bearerToken: string;
   let coreClientService: {

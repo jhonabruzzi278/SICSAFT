@@ -7,7 +7,7 @@ export interface RequestWithCorrelationId extends Request {
   correlationId: string;
 }
 
-// CIS es el Nivel 1→2 de la cadena (WAF §2): si el cliente (APP QR/WEB) ya manda un
+// CIS es el Nivel 1→2 de la cadena (WAF 2): si el cliente (APP QR/WEB) ya manda un
 // correlationId lo respeta, si no genera uno acá — es el primer punto donde el ecosistema puede
 // garantizar que existe. CoreClientService lo propaga hacia CORE (ver core-client.service.ts).
 @Injectable()

@@ -15,8 +15,8 @@ de Área y Ubicación, incluida la asignación de responsable/ubicación princip
 alta/consulta/baja de Responsable). Activos/Contratos/Inventarios verificados de punta a punta
 contra Postgres real (login real de navegador incluido); Auditoría y
 Áreas/Ubicaciones/Responsables verificados con unit + e2e reales contra Postgres (CORE y CIS), sin
-login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/local/README.md`
-§ "Cliente OIDC real (WEB)". Diseño AI-DLC completo en
+login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/README.md`
+"Cliente OIDC real (WEB)". Diseño AI-DLC completo en
 [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) (requirements, historias, arquitectura,
 [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)).
 
@@ -25,14 +25,14 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   probado en `app-qr-sicsaft/src/lib/oidc/` (mismo proyecto "CIS" en Zitadel, aplicación OIDC
   propia `web-sicsaft`, ver `devops/local/README.md`). `sessionStorage`, no `localStorage` — el
   Administrador Patrimonial re-autentica cada sesión de navegador (mayor blast radius que APP QR,
-  ver `aidlc-docs/design-artifacts/ARCHITECTURE.md` § "Decisión abierta"). `esAdministradorPatrimonial()`/
+  ver `aidlc-docs/design-artifacts/ARCHITECTURE.md` "Decisión abierta"). `esAdministradorPatrimonial()`/
   `esDirectivo()` (DOC-020) decodifican el rol del JWT client-side, solo para UI — la autorización
   real siempre corre en CORE.
 - `lib/cis-client.ts` — cliente hacia CIS: `POST /auth/session` (entitlements), `GET /catalogo`
-  (ambos ya existían, reusados tal cual — WAF §8, "WEB y APP QR son clientes intercambiables del
+  (ambos ya existían, reusados tal cual — WAF 8, "WEB y APP QR son clientes intercambiables del
   mismo contrato"), `GET /inventarios` + `GET /inventarios/:id` (ya existían para APP QR salvo el
   listado, que es nuevo) y `POST /admin/activos`, `GET/POST /admin/contratos`,
-  `PATCH /admin/contratos/:id` (nuevos, `cis/src/administrador/`, DOC-012 §5/§7).
+  `PATCH /admin/contratos/:id` (nuevos, `cis/src/administrador/`, DOC-012 5/7).
 - `pages/LoginPage.tsx`, `AuthCallbackPage.tsx` — flujo de login.
 - `pages/HubPage.tsx` — lista las organizaciones con contrato vigente del operador (RF-02) y, por
   cada una, los módulos ya implementados. RF-10 (DOC-020): un Directivo puro (sin
@@ -44,7 +44,7 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   inmediato en el mismo catálogo que consumiría APP QR.
 - `pages/ContratosPage.tsx` — RF-07: tabla de `GET /admin/contratos` + formulario de alta +
   botones de transición de estado por fila (solo se ofrecen las transiciones válidas de DOC-004
-  §3, `TRANSICIONES_VALIDAS_CONTRATO` en `lib/cis-client.ts` — la validación real siempre vuelve a
+  3, `TRANSICIONES_VALIDAS_CONTRATO` en `lib/cis-client.ts` — la validación real siempre vuelve a
   correr en CORE). Primer cliente que escribe la tabla `contratos` (antes solo se leía).
 - `pages/InventariosPage.tsx` — RF-04: solo lectura (las sesiones se crean desde APP QR, WEB solo
   las consulta). Tabla de sesiones + panel de detalle (escaneos con su resultado) al hacer click
@@ -68,7 +68,7 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   va primero y alimenta el selector de las otras dos secciones. Cada tabla tiene un botón "Editar"
   por fila que reemplaza el formulario de alta por uno de edición (mismo panel, alterna entre los
   dos modos) — Área incluye la asignación de `responsableId`/`ubicacionPrincipalId` (ids en texto
-  libre, DOC-005 §2 dejaba ese ciclo abierto a propósito al alta; ahora se cierra vía edición) y
+  libre, DOC-005 2 dejaba ese ciclo abierto a propósito al alta; ahora se cierra vía edición) y
   Ubicación no permite cambiar `sedeId` (mover de sede es un traslado, operación distinta, fuera de
   alcance). La "baja" de un Responsable es cambiar su `estado` a `inactivo` (nunca un DELETE,
   mismo criterio que Activo/Contrato) — el botón alterna activo/inactivo en la tabla.
@@ -89,21 +89,21 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
 - Sin lectura de `catalogo_activos` — el campo "Catálogo (id)" del formulario de alta de Activos
   es texto libre (ids del seed de desarrollo: `catalogo-notebook`, `catalogo-proyector`) porque
   no existe todavía un endpoint que liste el catálogo de tipos de activo (gap ya anotado en
-  DOC-013 §3).
+  DOC-013 3).
 
 **Gaps de arquitectura real encontrados y resueltos en este incremento**:
 - El claim de rol que Zitadel firma (`rolesPorOrganizacion`) usa el id de organización **de
   Zitadel**, no el `organizacionId` de texto que CORE entiende (`duoc-uc`) — sin traducirlo,
   ningún token real podría autorizar una escritura oficial aunque el rol estuviera bien asignado.
   Se resolvió con un mapeo explícito en CIS (`ZITADEL_ORG_ID_MAP`, ver
-  `cis/src/administrador/organizacion-mapping.config.ts`) — mismo gap que `DOC-004 §7` ya
+  `cis/src/administrador/organizacion-mapping.config.ts`) — mismo gap que `DOC-004 7` ya
   documentaba para lectura, ahora también cerrado para el camino de escritura.
 - `GET /contratos` y `GET /inventarios` (listado) no existían en CORE — `Contrato` solo se leía
   indirecto vía `GET /entitlements` (sin `id`/`estado`) y las sesiones de inventario solo se
   podían consultar una por una si ya se conocía su `id`. Se agregaron
   `core/src/entitlements/contrato.controller.ts` e
   `InventariosController.getInventarios`/`getInventarioDetalle` — lectura abierta
-  (`ServiceTokenGuard` a secas, sin exigir ningún rol, DOC-012 §4).
+  (`ServiceTokenGuard` a secas, sin exigir ningún rol, DOC-012 4).
 - CORS de CIS solo permitía `GET`/`POST` — `PATCH /admin/contratos/:id` fallaba en el navegador
   (bloqueado en el preflight) hasta agregar `PATCH` a `CIS_CORS_ORIGIN`/`methods` en `src/main.ts`.
 - `@UsePipes()` a nivel de método en `AdministradorController.actualizarEstadoContrato` validaba
@@ -116,7 +116,7 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   (`cis/test/administrador.e2e-spec.ts`) para que no vuelva a pasar desapercibido.
 - **`GET /auditoria` no filtra por organización** (gap conocido, sin resolver — distinto del
   filtro por usuario/operación/fecha, ya cerrado, ver abajo): la tabla `auditoria` de CORE
-  (DOC-005 §7) no tiene columna `organizacionId` — audita cualquier operación del ecosistema, no
+  (DOC-005 7) no tiene columna `organizacionId` — audita cualquier operación del ecosistema, no
   solo las de una organización. `AuditoriaPage` en WEB muestra entradas de **todo** el ecosistema a
   cualquier operador autenticado con contrato vigente en alguna organización, sin importar cuál.
   Aceptado para este incremento porque el volumen real es bajo (mismo criterio ya aplicado a
@@ -137,13 +137,13 @@ login real de navegador todavía — ver `cis/README.md` § Fase 5 y `devops/loc
   nuevo en `AdministradorController`/`AdministradorService` de CIS. `Ubicacion`/`Responsable` no
   tienen columna `organizacionId` propia (`sede_id`/`area_id` respectivamente) — la escritura
   cruza esas referencias contra `organizacionId` antes de insertar (defensa en profundidad, mismo
-  criterio que `ActivoRepository` con activos de otra organización, DOC-012 §3) en vez de confiar
+  criterio que `ActivoRepository` con activos de otra organización, DOC-012 3) en vez de confiar
   solo en la FK de Postgres, que no distinguiría una sede/área real pero de otra organización.
 - **RF-05 cerrado por completo (2026-08-14)**: `AreaRepository.actualizar`/`UbicacionRepository.actualizar`
   nuevos en CORE (`PATCH /areas/:id`, `PATCH /ubicaciones/:id`), mismo patrón de defensa en
   profundidad que el alta (cross-organización antes de escribir) y mismo criterio "404 sin
   confirmar existencia en otra organización" que `ActivoRepository.cambiarEstado`. La edición de
-  Área incluye `responsableId`/`ubicacionPrincipalId` — cierra el ciclo que DOC-005 §2 dejaba
+  Área incluye `responsableId`/`ubicacionPrincipalId` — cierra el ciclo que DOC-005 2 dejaba
   abierto a propósito al alta ("sin ciclo estricto de creación" explicaba por qué el alta no los
   exige, no por qué la asignación posterior no se podía hacer nunca). Sin `sedeId` editable en
   Ubicación — mover de sede es un traslado, operación distinta y más grande, fuera de alcance
@@ -172,7 +172,7 @@ Usuarios, Roles, Configuración, Integraciones — sigue sin diseñar (sin consu
 
 ## Roles previstos
 **Profesional de AFT** (nombre funcional del rol `administrador-patrimonial` de Zitadel, ver
-[DOC-012 § "Nomenclatura"](../seguridad/DOC-012-administrador-patrimonial.md)) es el usuario
+[DOC-012 "Nomenclatura"](../seguridad/DOC-012-administrador-patrimonial.md)) es el usuario
 principal de Nivel 1 responsable de cargar y mantener la información patrimonial desde el CCP —
 activos, códigos patrimoniales, descripciones, familias/categorías, áreas, ubicaciones,
 responsables, estados, documentación/fotografías, preparación de inventarios e importaciones
@@ -183,7 +183,7 @@ Profesional de AFT.
 
 ## Desarrollo local
 Requiere el stack de `../devops/local` corriendo (Zitadel + CIS + CORE + Postgres) y la app OIDC
-`web-sicsaft` ya creada (ver `../devops/local/README.md` § "Cliente OIDC real (WEB)").
+`web-sicsaft` ya creada (ver `../devops/local/README.md` "Cliente OIDC real (WEB)").
 ```bash
 cd web
 npm install
@@ -211,7 +211,7 @@ Nada crítico.
 de CIS/CORE pega cada uno.
 [`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
 — contrato de escritura oficial que `POST /admin/activos` y `POST/PATCH /admin/contratos` exponen.
-Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §8 (WEB y APP QR son clientes intercambiables
+Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 8 (WEB y APP QR son clientes intercambiables
 del mismo contrato de CIS/CORE).
 
 ## Próximo paso sugerido
@@ -237,7 +237,7 @@ WEB). Lo que queda:
    `HubPage.tsx` — un Directivo puro aterriza directo en `/dashboard` sin pasar por el hub, el caso
    mixto (Directivo + administrador-patrimonial) ve el hub operativo completo, y el profesional de
    AFT (sin rol especial) no tiene cambios. Verificado real de punta a punta con los 3 casos: rol
-   `directivo` creado en el proyecto CIS de Zitadel (`devops/local/README.md` § "Rol `directivo`"),
+   `directivo` creado en el proyecto CIS de Zitadel (`devops/local/README.md` "Rol `directivo`"),
    tres usuarios de prueba (solo `directivo` → redirect a `/dashboard`; `directivo` +
    `administrador-patrimonial` → hub completo; solo `administrador-patrimonial` → hub completo sin
    cambios), cada login confirmado con el claim real del JWT.

@@ -6,7 +6,7 @@
 
 ## Responsabilidad única
 
-Tomo IV §2.4: "recibe toda operación, identifica origen, determina motores involucrados,
+Tomo IV 2.4: "recibe toda operación, identifica origen, determina motores involucrados,
 controla secuencia, publica eventos, cierra transacción". En código: `OrquestadorService` es la
 **única** clase que conoce el orden `Reglas → Patrimonial → Eventos → Auditoría` — ningún
 controller invoca un motor directamente (RF-06).

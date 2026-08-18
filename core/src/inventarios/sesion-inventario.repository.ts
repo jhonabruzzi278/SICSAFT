@@ -62,7 +62,7 @@ export interface SesionDetalle extends SesionResumen {
   escaneos: EscaneoDetalle[];
 }
 
-// DOC-006 §3 — agrupa la sesion (`sesiones_inventario`) con sus filas de verificacion
+// DOC-006 3 — agrupa la sesion (`sesiones_inventario`) con sus filas de verificacion
 // (`inventarios`, una por escaneo). `crear` es transaccional: o se persisten ambas cosas, o
 // ninguna — un fallo a mitad de camino nunca deja una sesion sin sus escaneos.
 @Injectable()
@@ -131,7 +131,7 @@ export class SesionInventarioRepository {
   }
 
   // RF-04 — detalle de una sesion con sus escaneos (`inventarios`, una fila por escaneo, ver
-  // DOC-006 §3). Null si no existe — el controller decide el 404 (mismo criterio que findEstado).
+  // DOC-006 3). Null si no existe — el controller decide el 404 (mismo criterio que findEstado).
   async findDetalle(id: string): Promise<SesionDetalle | null> {
     const sesionResult = await this.pool.query<{
       id: string;

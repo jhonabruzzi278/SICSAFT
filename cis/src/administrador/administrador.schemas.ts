@@ -11,7 +11,7 @@ const paginacionSchema = {
 export const contratosQuerySchema = z.object({ ...paginacionSchema });
 export type ContratosQuery = z.infer<typeof contratosQuerySchema>;
 
-// DOC-012 §5 — lo que WEB manda a CIS. Mas chico que PostActivoRequest (core-client.types.ts):
+// DOC-012 5 — lo que WEB manda a CIS. Mas chico que PostActivoRequest (core-client.types.ts):
 // `operadorId`/`rolesPorOrganizacion` los resuelve CIS a partir del access token ya validado
 // (ZitadelAuthGuard), nunca se confian desde el body de un cliente de navegador.
 export const altaActivoSchema = z.object({
@@ -27,7 +27,7 @@ export const altaActivoSchema = z.object({
 });
 export type AltaActivoBody = z.infer<typeof altaActivoSchema>;
 
-// DOC-012 §7 — lo que WEB manda a CIS para POST /contratos / PATCH /contratos/:id. Mismo criterio
+// DOC-012 7 — lo que WEB manda a CIS para POST /contratos / PATCH /contratos/:id. Mismo criterio
 // que altaActivoSchema: operadorId/rolesPorOrganizacion los resuelve CIS, nunca el body.
 export const altaContratoSchema = z.object({
   organizacionId: z.string().min(1),

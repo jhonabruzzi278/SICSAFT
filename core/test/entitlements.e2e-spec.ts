@@ -5,7 +5,7 @@ import { SERVICE_TOKEN_HEADER } from './../src/common/auth/service-token.guard';
 import { EntitlementsResponse } from './../src/entitlements/entitlements.types';
 import { crearAppE2e, SERVICE_TOKEN } from './support/e2e-app';
 
-describe('GET /entitlements (e2e) — DOC-004 §6 + auth servicio-a-servicio', () => {
+describe('GET /entitlements (e2e) — DOC-004 6 + auth servicio-a-servicio', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {

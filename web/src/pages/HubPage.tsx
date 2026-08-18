@@ -4,7 +4,7 @@ import { cisClient, type Organizacion } from '@/lib/cis-client';
 import { oidcClient } from '@/lib/oidc/oidc-client';
 import { Alert, Card } from '@/components/ui';
 
-// RF-02 — hub post-login. DOC-013 §5 deja abierto si el resto de los módulos WEB necesita su
+// RF-02 — hub post-login. DOC-013 5 deja abierto si el resto de los módulos WEB necesita su
 // propio valor en `modulosContratados` — acá simplemente se listan las organizaciones donde el
 // operador tiene contrato vigente (GET /entitlements vía auth/session) y, por cada una, los
 // módulos ya implementados (Activos, Contratos).
@@ -16,7 +16,7 @@ const MODULOS: { path: string; nombre: string }[] = [
   { path: 'dashboard', nombre: 'Dashboard' },
 ];
 
-// DOC-020 §1 — vista ejecutiva: el Directivo solo ve el Dashboard, no las herramientas operativas.
+// DOC-020 1 — vista ejecutiva: el Directivo solo ve el Dashboard, no las herramientas operativas.
 const MODULOS_DIRECTIVO: { path: string; nombre: string }[] = [
   { path: 'dashboard', nombre: 'Dashboard' },
 ];
@@ -40,11 +40,11 @@ export function HubPage() {
     };
   }, []);
 
-  // DOC-020 §5 — el caso mixto (Directivo + administrador-patrimonial) gana la vista operativa
+  // DOC-020 5 — el caso mixto (Directivo + administrador-patrimonial) gana la vista operativa
   // completa: ese operador necesita actuar, no solo mirar.
   const esVistaEjecutiva = oidcClient.esDirectivo() && !oidcClient.esAdministradorPatrimonial();
 
-  // DOC-020 §2 — Directivo con una sola organización: directo al Dashboard, sin parada en el hub.
+  // DOC-020 2 — Directivo con una sola organización: directo al Dashboard, sin parada en el hub.
   if (esVistaEjecutiva && organizaciones?.length === 1) {
     const [unicaOrg] = organizaciones;
     return (

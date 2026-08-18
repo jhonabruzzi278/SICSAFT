@@ -8,12 +8,12 @@ aplicaciones y sistemas externos interactúan con el patrimonio exclusivamente a
 
 ## Estado
 🟡 Esqueleto NestJS (mismo patrón que `../cis/`) + **`GET /entitlements` real sobre Postgres**
-([DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) §6): resuelve el modelo de `Contrato`
+([DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) 6): resuelve el modelo de `Contrato`
 contra una base `core` dedicada con esquema versionado por migraciones (`migrations/`,
 node-pg-migrate — ver "Desarrollo local"; mismo caso DUOC UC/Melipilla que ya usa CIS, cargado por
 la migración de seed a partir de `src/entitlements/contrato.seed.ts`, ya no retipeado a mano en
 SQL), con la máquina de estados y el invariante "una sede, un contrato
-vigente" de DOC-004 §3/§4 implementados, validados en `ContratoRepository` al leer (no solo en el
+vigente" de DOC-004 3/4 implementados, validados en `ContratoRepository` al leer (no solo en el
 seed de tests, ver `src/entitlements/contrato.seed.ts`) y testeados. Todo probado con lint, unit
 (100% stmts/lines/funcs, branches sobre el umbral del proyecto), e2e contra Postgres real, build y
 `docker build`/`docker run` real conectado a esa base — corre como servicio `core` en
@@ -29,7 +29,7 @@ real entre contenedores `cis`↔`core` (`docker network` + `docker exec`, proban
 header, header correcto, header incorrecto), no solo con mocks. Toda ruta pasa además por
 `CorrelationIdMiddleware` (`src/common/correlation-id/`, ROADMAP.md Fase 0): acepta/genera
 `X-Correlation-Id` y lo devuelve en la respuesta — CIS ya lo propaga al llamar acá. Todavía sin
-logging estructurado que lo use (WAF §2, pendiente).
+logging estructurado que lo use (WAF 2, pendiente).
 
 **Fase 2 (Orquestador + 4 motores de lectura) ya implementada** — diseño completo en
 [`core/aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) (DOC-006 a DOC-011), código real sobre
@@ -41,11 +41,11 @@ logging estructurado que lo use (WAF §2, pendiente).
   escaneo contra la Base Patrimonial real en una de las 8 categorías (DOC-009), idempotente
   (`sesiones_inventario`, migración `1755200000000`), auditado siempre — éxito o rechazo — por
   el Motor de Auditoría (`src/auditoria/`). **Fase 3.1**: acepta además `estadoDeclarado`
-  (`activo`/`mantenimiento`/`inactivo`, best-effort, sin rol — Tomo III §1.4) y `bajaSugerida`
+  (`activo`/`mantenimiento`/`inactivo`, best-effort, sin rol — Tomo III 1.4) y `bajaSugerida`
   (evento informativo, nunca cambia `Activo.estado`) por escaneo — migración
   `1755400000000-estados-mantenimiento-inactivo`, ver
   `app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md` y
-  `seguridad/DOC-012-administrador-patrimonial.md` §5.1.
+  `seguridad/DOC-012-administrador-patrimonial.md` 5.1.
 - `GET /inventarios/:id/estado`.
 
 Verificado igual que el resto del sistema: unit (100% stmts/lines/funcs, 90%+ branches), e2e
@@ -65,9 +65,9 @@ auditado. `ActivoRepository` cruza la organización del payload contra la organi
 activo objetivo antes de escribir (defensa en profundidad, 404 si no coincide) — corrige un
 hallazgo real de revisión de seguridad encontrado durante este mismo incremento. Se suman
 `POST /importaciones/contable` (`src/patrimonial/importacion-contable.*` — idempotente por fila,
-nunca sobrescribe ni elimina, DOC-012 §6) y `POST /contratos` + `PATCH /contratos/:id`
+nunca sobrescribe ni elimina, DOC-012 6) y `POST /contratos` + `PATCH /contratos/:id`
 (`src/entitlements/contrato-escritura.controller.ts` + `escritura-contrato.service.ts` — valida el
-invariante DOC-004 §4 y la máquina de estados DOC-004 §3, DOC-012 §7; la escritura de `Contrato`
+invariante DOC-004 4 y la máquina de estados DOC-004 3, DOC-012 7; la escritura de `Contrato`
 corre en una transacción real vía `pool.connect()` porque un e2e contra Postgres real encontró que
 sin ella un FK inválido en `contrato_sedes` dejaba un contrato huérfano sin ninguna sede).
 Verificado con unit (100% stmts/lines/funcs) + e2e reales contra Postgres
@@ -77,7 +77,7 @@ por reintento).
 
 **`GET /contratos` (2026-08-14, para Fase 5/WEB)**: `ContratoController`
 (`src/entitlements/contrato.controller.ts`) — lectura abierta (`ServiceTokenGuard` a secas, sin
-exigir el rol de escritura, DOC-012 §4), devuelve `ContratoRepository.findAll()`. Faltaba: hasta
+exigir el rol de escritura, DOC-012 4), devuelve `ContratoRepository.findAll()`. Faltaba: hasta
 ahora `Contrato` solo se leía indirecto vía `GET /entitlements` (que no expone `id`/`estado`),
 insuficiente para que un cliente (WEB) supiera qué `id` mandarle a `PATCH /contratos/:id`.
 
@@ -87,7 +87,7 @@ insuficiente para que un cliente (WEB) supiera qué `id` mandarle a `PATCH /cont
 organización y detalle con sus escaneos. Mismo motivo que `GET /contratos`: `GET
 /inventarios/:id/estado` (Fase 2/3) ya existía pero exige conocer el `id` de antemano, sin forma
 de listar qué sesiones existen. Ambos endpoints nuevos usan pipes por parámetro
-(`@Param(new ZodValidationPipe(...))`), no `@UsePipes()` de método — ver `cis/README.md` § Fase 5
+(`@Param(new ZodValidationPipe(...))`), no `@UsePipes()` de método — ver `cis/README.md` Fase 5
 para el hallazgo real que motivó ese cuidado.
 
 **`GET /auditoria` (2026-08-14, para Fase 5/WEB, RF-06)**: `AuditoriaController`
@@ -95,7 +95,7 @@ para el hallazgo real que motivó ese cuidado.
 explícitamente sin controller, "sin consumidor"). `AuditoriaRepository.listar()` devuelve
 resultados paginados (`limit`/`offset`, ver "Paginación" más abajo), más recientes primero.
 Lectura abierta, mismo criterio que `GET /contratos`: la
-tabla `auditoria` no tiene `organizacionId` (DOC-005 §7, audita cualquier operación del
+tabla `auditoria` no tiene `organizacionId` (DOC-005 7, audita cualquier operación del
 ecosistema, no solo las de una organización), así que no hay forma de exigir el rol contra una
 organización específica todavía — limitación conocida, documentada, no bloqueante para este
 incremento (mismo volumen bajo que justificó diferir el filtro por organización en
@@ -115,9 +115,9 @@ sin filtro alguno; este cierra ese gap.
 `UbicacionRepository`/`ResponsableRepository` (lectura: `GET /areas?organizacionId=`,
 `GET /ubicaciones?sedeId=`, `GET /responsables?areaId=`, todas lectura abierta) +
 `EscrituraEstructuraService` (alta de las tres, más `PATCH /responsables/:id/estado` — la "baja"
-de un Responsable, nunca un DELETE, Tomo III §4.10) invocado desde `OrquestadorService` con el
+de un Responsable, nunca un DELETE, Tomo III 4.10) invocado desde `OrquestadorService` con el
 mismo patrón de autorización+auditoría que Activo/Contrato (DOC-012). `Ubicacion` y `Responsable`
-no tienen columna `organizacionId` propia (`sede_id`/`area_id` respectivamente, DOC-005 §2) — la
+no tienen columna `organizacionId` propia (`sede_id`/`area_id` respectivamente, DOC-005 2) — la
 escritura cruza esas referencias contra `organizacionId` con una consulta previa
 (`verificarPertenece`/`verificarAreaPerteneceOrganizacion`) antes de insertar, defensa en
 profundidad mismo criterio que `ActivoRepository` con activos de otra organización (una FK de
@@ -131,7 +131,7 @@ plano sin límite (RNF-01 pedía que ningún listado devolviera un dataset sin p
 `AreaRepository`/`UbicacionRepository`/`ResponsableRepository`/`AuditoriaRepository` paginan en SQL
 (`COUNT(*)` + `LIMIT`/`OFFSET`). `ContratoRepository.findPagina` es distinto a propósito: reusa
 `findAll()` internamente y pagina en memoria — paginar en SQL ahí hubiese roto
-`assertInvarianteSedeUnContratoVigente` (DOC-004 §4), que valida "un solo contrato vigente por
+`assertInvarianteSedeUnContratoVigente` (DOC-004 4), que valida "un solo contrato vigente por
 sede" contra el dataset **completo**, no contra una página. Aceptable mientras el volumen se
 mantenga bajo (mismo criterio ya usado para diferir el filtro por organización de `GET
 /auditoria`); si crece, hay que separar la invariante de la lectura paginada. Verificado con unit +
@@ -142,7 +142,7 @@ e2e reales contra Postgres.
 que `ActivoRepository.cambiarEstado`: si el recurso no existe o es de otra organización, 404 (no
 403 ni 400), sin confirmar si el id existe en otra organización. La edición de Área incluye
 `responsableId`/`ubicacionPrincipalId` (validados cross-organización antes de escribir, igual que
-las referencias del alta) — cierra el ciclo que DOC-005 §2 documentaba como "sin ciclo estricto de
+las referencias del alta) — cierra el ciclo que DOC-005 2 documentaba como "sin ciclo estricto de
 creación": esa nota explicaba por qué el alta no exige esos dos campos, no por qué la asignación
 posterior no se podía hacer nunca. Sin `sedeId` editable en Ubicación — mover de sede es un
 traslado, operación distinta y más grande, mismo motivo por el que el traslado de Activo sigue sin
@@ -153,7 +153,7 @@ controller HTTP en el Motor Patrimonial (DOC-008, YAGNI, sin consumidor real).
 `AFTER INSERT ON eventos` (no un insert manual en `EventoRepository`/`InventariosService`) que
 filtra los tipos relevantes para CIP (`alta`, `escaneo_qr`, `mantenimiento`, `inactivo`, `baja`,
 `reincorporacion`, `traslado` — ver
-[DOC-014](../cip/aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md) §1/§3).
+[DOC-014](../cip/aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md) 1/3).
 `EventosOutboxDispatcher` (polling cada 5s, `@nestjs/schedule`) agrupa los `escaneo_qr` de una
 misma sesión en un solo mensaje `sesion-cerrada` antes de publicar a la cola Redis/BullMQ
 `cip-eventos` (primer consumidor real de colas del ecosistema, ADR-001 ya lo declaraba sin uso) —
@@ -168,7 +168,7 @@ Postgres. **Segundo incremento (mismo día) — completo**: migración `17556000
 worker de CIP la necesita y no puede leer la base `core` directamente, RNF-01) y `ActivoCatalogo`
 (`GET /catalogo`) gana `familia` (extensión aditiva, no rompe a WEB) — ambas encontradas al
 diseñar `cip/`, ver
-[DOC-018](../cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md) §2.5/§2.6. El worker
+[DOC-018](../cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md) 2.5/2.6. El worker
 de agregación y la API de lectura ya existen y corren reales en `cip/` — ver `cip/README.md`.
 
 ## Desarrollo local
@@ -198,14 +198,14 @@ Puerto por defecto `3001` (no `3000`) para poder correr `cis` y `core` en parale
 Docker sin chocar — dentro de Docker Compose cada uno tiene su propio namespace de puertos, así
 que no sería estrictamente necesario, pero evita sorpresas en desarrollo local sin contenedores.
 
-## Responsabilidades exclusivas (Tomo IV §2.3)
+## Responsabilidades exclusivas (Tomo IV 2.3)
 Ningún componente externo puede ejecutar estas operaciones directamente: crear/modificar/dar de
 baja activos, autorizar traslados, validar inventarios, registrar movimientos, asignar
 responsables, asociar etiquetas QR/RFID, administrar estados patrimoniales, actualizar
 historial, registrar eventos, actualizar indicadores, generar alertas, publicar información.
 
-## Arquitectura interna: Orquestador + 9 motores (Tomo IV §2.4–2.14)
-Ver también [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §1 — en el MVP estos 9 motores son
+## Arquitectura interna: Orquestador + 9 motores (Tomo IV 2.4–2.14)
+Ver también [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 1 — en el MVP estos 9 motores son
 módulos internos de un mismo desplegable, no microservicios separados; se separan solo cuando
 uno necesite escalar de forma independiente.
 
@@ -244,7 +244,7 @@ uno necesite escalar de forma independiente.
   administrar, configurar — bajo el principio de permisos mínimos necesarios (coordina con
   `../seguridad`).
 
-## Flujo/ciclo de vida de una transacción (Tomo IV §2.15–2.16)
+## Flujo/ciclo de vida de una transacción (Tomo IV 2.15–2.16)
 `Solicitud → Orquestador → Autenticación → Autorización → Motor de Reglas → Motor Patrimonial →
 Base Patrimonial Central → Motor de Eventos → Motor de Auditoría → Motor de Alertas (si aplica) →
 CIP → Respuesta`. Estados: Recibida → Validada → Autorizada → Procesada → Persistida → Auditada →
@@ -295,7 +295,7 @@ importación masiva, `Contrato` alta/actualización de estado) ya están hechos 
 punta contra Postgres real, incluido desde WEB vía CIS (`ROADMAP.md` Fase 5) — TASK-007 de APP QR
 también se verificó real (`ROADMAP.md` Fase 3). Fase 4 queda completa a nivel de código; solo
 faltan las 4 acciones de Gestión de Permisos sin consumidor (Autorizar/Exportar/Administrar/
-Configurar, DOC-012 §9) que WEB va a necesitar para su propio ABM. El siguiente incremento con
+Configurar, DOC-012 9) que WEB va a necesitar para su propio ABM. El siguiente incremento con
 valor real es el módulo Inventarios de WEB (`GET /inventarios/:id/estado` ya existe, falta la
 pantalla) o Áreas/Ubicaciones/Responsables (RF-05), que sí requiere endpoints de escritura nuevos
 en CORE. Alternativa sin código: rotación/gestión del `CORE_SERVICE_TOKEN` vía un secret manager

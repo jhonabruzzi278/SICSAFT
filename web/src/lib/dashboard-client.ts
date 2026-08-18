@@ -1,5 +1,5 @@
-// DOC-019 §4.2 — cliente hacia el módulo Dashboard de CIS (proxy hacia CIP, mismo criterio que
-// dashboard-connector.controller.ts). WEB nunca le habla a CIP directo (DOC-019 §3).
+// DOC-019 4.2 — cliente hacia el módulo Dashboard de CIS (proxy hacia CIP, mismo criterio que
+// dashboard-connector.controller.ts). WEB nunca le habla a CIP directo (DOC-019 3).
 import { loadOidcConfig } from './oidc/oidc-config';
 import { oidcClient } from './oidc/oidc-client';
 import { CisApiError } from './cis-client';

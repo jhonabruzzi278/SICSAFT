@@ -64,10 +64,10 @@ import type {
   UbicacionesPaginaResult,
 } from '../core-client/core-client.types';
 
-// DOC-012 §5 (Fase 5) — endpoints de escritura oficial para WEB (Administrador Patrimonial).
+// DOC-012 5 (Fase 5) — endpoints de escritura oficial para WEB (Administrador Patrimonial).
 // Mismos guards que QrConnectorController (ZitadelAuthGuard autentica al operador real, luego
 // RateLimitGuard por operador) — WEB y APP QR son clientes intercambiables del mismo mecanismo
-// de auth (ARQUITECTURA-WAF.md §8), la autorizacion de ROL la re-verifica CORE (WAF §3, cero
+// de auth (ARQUITECTURA-WAF.md 8), la autorizacion de ROL la re-verifica CORE (WAF 3, cero
 // confianza entre niveles) — este controller no decide "puede escribir", solo transporta.
 @Controller('admin')
 @UseGuards(ZitadelAuthGuard, RateLimitGuard)

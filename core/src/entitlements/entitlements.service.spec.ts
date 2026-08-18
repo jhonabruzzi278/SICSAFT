@@ -46,7 +46,7 @@ describe('EntitlementsService', () => {
     });
   });
 
-  it('no filtra por operadorId todavia — cualquier operador ve el mismo resultado (DOC-004 §7)', async () => {
+  it('no filtra por operadorId todavia — cualquier operador ve el mismo resultado (DOC-004 7)', async () => {
     const service = buildService([buildContrato()]);
 
     const primero = await service.resolve('op-1', ahora);

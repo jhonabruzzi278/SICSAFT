@@ -1,12 +1,12 @@
 # DOC-005: Modelo de dominio — Base Patrimonial (alcance mínimo viable)
 
-> **Alcance de este documento**: los dominios de `base-patrimonial/README.md` §"Los 11 dominios
+> **Alcance de este documento**: los dominios de `base-patrimonial/README.md` "Los 11 dominios
 > oficiales" que el flujo de captura QR necesita para dejar de ser un mock — `Área`, `Ubicación`,
 > `Responsable`, `Catálogo de Activos`, `Base Patrimonial Central` (el activo), `Inventarios`,
 > `Eventos` y `Auditoría`. `Historial` no es una tabla propia: es la lectura cronológica de
-> `Eventos` por activo (Tomo III §4.10, "todos los eventos desde alta hasta baja"). **No**
+> `Eventos` por activo (Tomo III 4.10, "todos los eventos desde alta hasta baja"). **No**
 > modela `Configuración` ni `Integraciones` — sin consumidor todavía, modelarlas sería
-> especulativo (YAGNI, ver `ARQUITECTURA-WAF.md` §9). Sigue la misma disciplina que
+> especulativo (YAGNI, ver `ARQUITECTURA-WAF.md` 9). Sigue la misma disciplina que
 > [DOC-004](DOC-004-modelo-contrato.md): entidades, estados, invariantes, qué consume esto y qué
 > NO resuelve.
 >
@@ -89,7 +89,7 @@ erDiagram
         string organizacionId FK
         string catalogoId FK
         string serie "nullable"
-        string estado "ver §4"
+        string estado "ver 4"
         string responsableId FK "nullable"
         string areaId FK "nullable"
         string ubicacionId FK "nullable"
@@ -103,13 +103,13 @@ erDiagram
         date fecha
         string usuario
         string metodo "qr | rfid | web"
-        string resultado "ver §5"
+        string resultado "ver 5"
         string observaciones "nullable"
     }
     EVENTO {
         string id
         string activoId FK
-        string tipo "ver §6"
+        string tipo "ver 6"
         datetime fecha
         string usuario "nullable — algunos eventos son del sistema, no de un operador"
         jsonb detalle "forma libre por tipo, ej. {ubicacionAnteriorId, ubicacionNuevaId} en traslado"
@@ -117,7 +117,7 @@ erDiagram
 ```
 
 `AUDITORIA` no se relaciona con `ACTIVO` directamente — registra **toda** acción del ecosistema
-(login, escritura, consulta sensible), no solo las de un activo. Ver §7.
+(login, escritura, consulta sensible), no solo las de un activo. Ver 7.
 
 ### Nota: por qué `Área`/`Responsable` no tienen ciclo estricto de creación
 
@@ -127,27 +127,27 @@ base de datos circular (Postgres no lo permite limpio sin `DEFERRABLE`, y no val
 para un caso que además es opcional). Se valida en la capa de aplicación cuando exista el Motor
 Patrimonial (Fase 2); hoy son ambos nullable y el seed de desarrollo no ejercita el caso circular.
 
-## 3. Reconciliación con `Sede` (deuda dejada abierta por DOC-004 §2)
+## 3. Reconciliación con `Sede` (deuda dejada abierta por DOC-004 2)
 
-DOC-004 §2 dejó anotado: *"queda como ajuste pendiente reconciliar formalmente esa relación
+DOC-004 2 dejó anotado: *"queda como ajuste pendiente reconciliar formalmente esa relación
 cuando se diseñe el dominio Ubicaciones completo (DOC-005)"*. Resolución: `Sede` (ya modelada en
 `core.sql`/migraciones de DOC-004) es el primer nivel de la jerarquía `Sede → Edificio → Piso →
-Oficina` que Tomo III §4.5 describe para `Ubicaciones` — este documento agrega `ubicaciones` como
+Oficina` que Tomo III 4.5 describe para `Ubicaciones` — este documento agrega `ubicaciones` como
 tabla nueva que referencia `sedes.id` y opcionalmente `areas.id`, sin modificar el esquema de
 `Sede` existente. `Área` referencia `organizaciones.id` directamente (no `sedes.id`) porque Tomo
-III §4.3 la describe como "estructura organizacional", no atada a una sede física — un área puede
+III 4.3 la describe como "estructura organizacional", no atada a una sede física — un área puede
 existir en más de una sede (ej. "Finanzas" con gente en Melipilla y en otra sede).
 
 ## 4. Estados de `Activo`
 
 > **Actualizado 2026-08-17** (decisión de producto, ver `ROADMAP.md` Fase 3.1 y
 > [DOC-017](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md)):
-> se agregan `mantenimiento` e `inactivo`. Tomo III §4.15 marca "Mantenimiento" como parte del
+> se agregan `mantenimiento` e `inactivo`. Tomo III 4.15 marca "Mantenimiento" como parte del
 > ciclo de vida oficial del activo (aparece explícitamente en la secuencia
 > Alta→…→Auditorías→**Mantenimiento**→Baja), etiquetado "(módulo futuro)" — no es una prohibición
 > del tomo, es un orden de construcción sugerido. Construirlo ahora no contradice el tomo, adelanta
 > ese módulo a pedido explícito del usuario. `inactivo` no tiene cita textual propia en el tomo
-> (que solo dice "Estado operativo" en §4.4 sin enumerar valores) — se modela como un estado
+> (que solo dice "Estado operativo" en 4.4 sin enumerar valores) — se modela como un estado
 > adicional de uso operativo (activo temporalmente fuera de servicio, sin estar en mantenimiento ni
 > extraviado), distinto del `estado` de `Responsable` (`activo|inactivo`, dominio no relacionado).
 
@@ -166,26 +166,26 @@ stateDiagram-v2
     extraviado --> dado_de_baja: Baja (irreversible)
     mantenimiento --> dado_de_baja: Baja (irreversible)
     inactivo --> dado_de_baja: Baja (irreversible)
-    dado_de_baja --> [*]: fila nunca se borra (Tomo III §4.10)
+    dado_de_baja --> [*]: fila nunca se borra (Tomo III 4.10)
 ```
 
-**Quién puede declarar cada transición** (ver DOC-012 § "Registro de estado operativo durante el
+**Quién puede declarar cada transición** (ver DOC-012 "Registro de estado operativo durante el
 control" para el detalle de autorización):
 - `activo ⇄ mantenimiento` y `activo ⇄ inactivo`: **cualquier operador autenticado de APP QR**,
-  durante el registro de un inventario — Tomo III §1.4 ya le concede a APP QR "registro de
+  durante el registro de un inventario — Tomo III 1.4 ya le concede a APP QR "registro de
   inventarios/**estados**", no requiere el rol Administrador Patrimonial. Es una extensión de
   `POST /inventarios` (DOC-006), no un endpoint nuevo.
 - `* → dado_de_baja`: **exclusivo de Administrador Patrimonial** (`POST /activos/:id/baja`, ya
   implementado) — el tomo reserva "eliminar activos" a ese rol y dice explícitamente que APP QR
   "no puede: modificar la Base Patrimonial Oficial". Esto **no cambia** con este incremento: un
   operador de escaneo sin ese rol no puede dar de baja un activo, ni siquiera desde la pantalla de
-  control (ver DOC-017 § conflicto abierto).
+  control (ver DOC-017 conflicto abierto).
 - `activo ⇄ en_transito` y `extraviado → activo`: sin cambios (Fase 2/4, ya implementado o
   YAGNI-diferido según DOC-008).
 
 ## 5. `Inventario.resultado`: las 8 categorías ya citadas en el ecosistema
 
-`core/README.md` § "Arquitectura interna" ya lista las 8 categorías de resultado de escaneo que
+`core/README.md` "Arquitectura interna" ya lista las 8 categorías de resultado de escaneo que
 el Motor de Reglas debe resolver **en CORE, no en el cliente** — hoy las resuelve
 `app-qr-sicsaft/src/lib/scan-resolve.ts` del lado de la app porque CORE no tiene datos contra qué
 validar. Este documento fija el vocabulario controlado que usará esa migración (Fase 2/3):
@@ -195,14 +195,14 @@ ya_escaneado | con_incidencia`
 
 ## 6. `Evento.tipo`: vocabulario controlado
 
-Igual a la lista de Tomo III §4.7 (`base-patrimonial/README.md`, fila "Eventos"):
+Igual a la lista de Tomo III 4.7 (`base-patrimonial/README.md`, fila "Eventos"):
 
 `alta | traslado | escaneo_qr | lectura_rfid | cambio_responsable | mantenimiento | movimiento |
 salida_autorizada | salida_no_autorizada | baja | reincorporacion`
 
 ## 7. `Auditoría`: no depende de `Activo`
 
-Campos exactos de Tomo III §4.9 (`base-patrimonial/README.md`, fila "Auditoría"): usuario, fecha,
+Campos exactos de Tomo III 4.9 (`base-patrimonial/README.md`, fila "Auditoría"): usuario, fecha,
 hora, equipo, IP, operación, resultado, observaciones. Se modela como tabla independiente
 (`fecha`+`hora` se combinan en un solo `timestamptz` — separarlos no aporta nada que
 `EXTRACT(...)` no resuelva en consulta) sin FK a `activos` porque audita **cualquier** operación
@@ -211,11 +211,11 @@ Sin escritor todavía — se llena recién cuando exista el Motor de Auditoría 
 
 ## 8. Lo que este documento NO resuelve (abierto, con dueño)
 
-- **`Configuración` e `Integraciones`** — sin consumidor, quedan fuera a propósito (ver §1).
-- **Gestión Documental** (expediente digital por activo) — Tomo IV §2.4 la lista como motor
+- **`Configuración` e `Integraciones`** — sin consumidor, quedan fuera a propósito (ver 1).
+- **Gestión Documental** (expediente digital por activo) — Tomo IV 2.4 la lista como motor
   aparte de CORE, sin fecha en el roadmap todavía.
-- **Zona RFID / coordenadas en `Ubicación`** — Etapa 2+ del roadmap tecnológico (Tomo III §1.2,
-  `ARQUITECTURA-WAF.md` §12), no construir todavía.
+- **Zona RFID / coordenadas en `Ubicación`** — Etapa 2+ del roadmap tecnológico (Tomo III 1.2,
+  `ARQUITECTURA-WAF.md` 12), no construir todavía.
 - **Reglas de negocio de las 8 categorías de escaneo y de la máquina de estados de `Activo`** —
   este documento fija el vocabulario y las transiciones válidas, pero la lógica que las aplica
   vive en el Motor de Reglas/Motor Patrimonial (Fase 2), no en este esquema.
@@ -239,13 +239,13 @@ solo agrega tablas nuevas, no modifica el esquema de Contrato.
 
 ## Documentos relacionados
 [`base-patrimonial/README.md`](README.md) — tabla completa de los 11 dominios oficiales (Tomo III
-§4.2–4.13) y de dónde sale el alcance recortado de este documento.
-[`core/README.md`](../core/README.md) § "Arquitectura interna" — los 9 motores que van a
+4.2–4.13) y de dónde sale el alcance recortado de este documento.
+[`core/README.md`](../core/README.md) "Arquitectura interna" — los 9 motores que van a
 consumir este modelo, en particular el Motor Patrimonial y el Motor de Reglas.
 [`ROADMAP.md`](../ROADMAP.md) Fase 1/Fase 2 — dónde encaja este documento en la secuencia de
 trabajo.
 `app-qr-sicsaft/src/lib/scan-resolve.ts` — lógica de las 8 categorías de escaneo que Fase 2/3
-migra desde el cliente hacia el Motor de Reglas usando el vocabulario de §5.
+migra desde el cliente hacia el Motor de Reglas usando el vocabulario de 5.
 
 ## Próximo paso sugerido
 Motor Patrimonial (ROADMAP.md Fase 2): Orquestador + consulta/catálogo/inventario/traslado sobre

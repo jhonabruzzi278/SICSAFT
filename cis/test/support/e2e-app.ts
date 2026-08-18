@@ -13,7 +13,7 @@ interface OpcionesAppE2e {
   jwks: JWTVerifyGetKey;
   coreClientService: unknown;
   redisClient: RedisStub;
-  // DOC-019 §3.1 — opcional: solo dashboard-connector.e2e-spec.ts lo necesita, el resto de los
+  // DOC-019 3.1 — opcional: solo dashboard-connector.e2e-spec.ts lo necesita, el resto de los
   // specs no le habla a CIP. Sin stub, CipClientModule sigue armando el HttpService real (nunca
   // se invoca si el spec no pega a /dashboard/...).
   cipClientService?: unknown;

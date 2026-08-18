@@ -16,8 +16,8 @@ export interface ScannedItem {
   bajaSugerida?: string;
 }
 
-// Fase 3.1/DOC-017 §3 — declarable sin rol administrador-patrimonial (Tomo III §1.4, DOC-012
-// §5.1). Solo para activos ya registrados en la Base Patrimonial (con codigoQr real, no
+// Fase 3.1/DOC-017 3 — declarable sin rol administrador-patrimonial (Tomo III 1.4, DOC-012
+// 5.1). Solo para activos ya registrados en la Base Patrimonial (con codigoQr real, no
 // no_registrado/invalido) — no tiene sentido declarar estado de algo que CORE no puede resolver
 // a un activo.
 const ESTADO_OPTIONS: { value: EstadoOperativoDeclarable; label: string }[] = [

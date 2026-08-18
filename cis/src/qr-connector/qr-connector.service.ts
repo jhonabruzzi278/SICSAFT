@@ -36,7 +36,7 @@ export class QrConnectorService {
     // ZitadelAuthGuard ya validó el token — el operador viene autenticado por Zitadel, no por
     // este metodo. `accessToken`/`expiresAt` son pass-through del mismo token (ver ADR-002: el
     // CIS valida, no emite uno propio).
-    // DOC-002 §1 "un solo dispositivo por operador": el dispositivo de esta request pasa a ser
+    // DOC-002 1 "un solo dispositivo por operador": el dispositivo de esta request pasa a ser
     // el activo (supersede al anterior, ver DeviceRegistryService) — el registro expira solo
     // junto con el token, sin requerir logout explicito.
     const ttlMs = Math.max(
@@ -61,7 +61,7 @@ export class QrConnectorService {
     };
   }
 
-  // DOC-006 §2 (Fase 3): CIS es un proxy delgado — sin filtrado ni logica propia, CORE ya
+  // DOC-006 2 (Fase 3): CIS es un proxy delgado — sin filtrado ni logica propia, CORE ya
   // resuelve la query completa contra la Base Patrimonial real.
   async getCatalogo(
     query: CatalogoQuery,
@@ -74,9 +74,9 @@ export class QrConnectorService {
     return { activos };
   }
 
-  // DOC-006 §3 (Fase 3): idempotencia, clasificacion de escaneos y validacion de
+  // DOC-006 3 (Fase 3): idempotencia, clasificacion de escaneos y validacion de
   // organizacion/area/ubicacion viven en CORE (sesiones_inventario, Motor de Reglas) — CIS ya no
-  // mantiene su propio estado en memoria. Los 400/409 que DOC-002 §5 exige distinguir de un 502
+  // mantiene su propio estado en memoria. Los 400/409 que DOC-002 5 exige distinguir de un 502
   // ya vienen resueltos por CoreClientService.callCore (passthroughStatuses).
   async postInventario(
     request: InventarioRequest,

@@ -2,7 +2,7 @@
 
 Extiende el modelo de datos de `base-patrimonial/DOC-005-modelo-patrimonial.md` (que ya define
 `Activo`, `Inventario`, `Evento`, `Auditoría`, etc.) con los conceptos de **orquestación** que
-Tomo IV §2.15–2.16 describe y que hoy no tienen representación en código.
+Tomo IV 2.15–2.16 describe y que hoy no tienen representación en código.
 
 ## Conceptos nuevos (no son tablas — viven en memoria de request, no se persisten como tales)
 
@@ -19,7 +19,7 @@ interface ContextoOperacion {
 }
 ```
 
-### `Transaccion` (Tomo IV §2.15–2.16)
+### `Transaccion` (Tomo IV 2.15–2.16)
 Máquina de estados que **no se persiste como tabla propia** en esta fase — se modela como el
 `try/catch` del Orquestador más los registros que sí dejan rastro (`eventos`, `auditoria`,
 `inventarios`). Persistir `Transaccion` como entidad de primera clase queda deliberadamente fuera
@@ -39,7 +39,7 @@ stateDiagram-v2
 ```
 
 Cualquier fallo cancela la transacción de forma controlada y registra el motivo en `auditoria`
-(regla ya declarada en `core/README.md` § "Flujo/ciclo de vida de una transacción").
+(regla ya declarada en `core/README.md` "Flujo/ciclo de vida de una transacción").
 
 ## Relación con las entidades de DOC-005
 
@@ -56,7 +56,7 @@ Cada `POST /inventarios` (o traslado/cambio de ubicación) produce **como máxim
 `Inventario`, **uno o más** `Evento` (ej. un traslado genera `traslado`; un inventario con
 incidencia puede generar `movimiento` además del inventario mismo), y **exactamente un**
 `Auditoria` — incluso si la operación fue rechazada, porque `auditoria` registra intentos, no
-solo éxitos (Tomo IV §2.9, "registra... resultado").
+solo éxitos (Tomo IV 2.9, "registra... resultado").
 
 ## Idempotencia: dónde vive el estado
 

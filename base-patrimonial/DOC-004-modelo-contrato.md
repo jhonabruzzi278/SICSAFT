@@ -23,7 +23,7 @@ Acción` — `Contrato` es la pieza que faltaba modelar.
 
 **Punto de validación: Base Patrimonial guarda el dato, CORE lo sirve, CIS lo cachea y valida en
 cada request — nunca el token.** El JWT de Zitadel solo trae `sub`/`org_id`/`roles[]`; no
-codifica qué sedes están habilitadas (ver ADR-002 §"Punto de validación"). Esto ya es visible en
+codifica qué sedes están habilitadas (ver ADR-002 "Punto de validación"). Esto ya es visible en
 el código: `ZitadelAuthContext` (`cis/src/common/auth/zitadel-auth.guard.ts`) solo expone
 `operadorId`, y `QrConnectorService.authSession()` sigue devolviendo el seed fijo
 (`SEED_ORGANIZACIONES`) porque no existe todavía de dónde resolver el dato real.
@@ -84,9 +84,9 @@ sedes; en el caso base cubre una sola). Campos:
 | `sedes` | Sede[] (N:N) | sedes cubiertas por este contrato |
 | `vigenciaDesde` | date | requerido |
 | `vigenciaHasta` | date \| null | `null` = indefinido, vigente hasta cancelación explícita |
-| `estado` | enum | ver §3 |
-| `modulosContratados` | string[] | ver §4 |
-| `creadoEn` | datetime | auditoría — no se borra, mismo principio de Historial (§"Ciclo de vida", `base-patrimonial/README.md`) |
+| `estado` | enum | ver 3 |
+| `modulosContratados` | string[] | ver 4 |
+| `creadoEn` | datetime | auditoría — no se borra, mismo principio de Historial ("Ciclo de vida", `base-patrimonial/README.md`) |
 
 ## 3. Estados y transiciones
 
@@ -136,7 +136,7 @@ código, ver `core/README.md`):
 1. Operador se autentica contra Zitadel (OIDC, fuera del CIS) → token con `sub`/`org_id`.
 2. CIS valida el token (`ZitadelAuthGuard`, ya implementado) y llama a CORE:
    `GET /entitlements?organizacionId={org_id}&operadorId={sub}` (contrato propuesto, a definir
-   formalmente en un DOC-006 API CIS↔CORE — ver `cis/README.md` § Documentos relacionados).
+   formalmente en un DOC-006 API CIS↔CORE — ver `cis/README.md` Documentos relacionados).
 3. CORE resuelve contra Base Patrimonial: contratos `vigente` de esa organización → sedes
    cubiertas → módulos habilitados. Devuelve exactamente la forma que
    `AuthSessionResponse.organizaciones` de CIS ya espera hoy
@@ -147,7 +147,7 @@ código, ver `core/README.md`):
    — sin cambios al contrato ya construido en CIS, esto reemplaza `SEED_ORGANIZACIONES` por el
    resultado real.
 4. CIS cachea el resultado — **invalidado por evento cuando un contrato cambia, no por TTL fijo**
-   (ADR-002, mismo patrón de caché de catálogos de `ARQUITECTURA-WAF.md` §5). El evento
+   (ADR-002, mismo patrón de caché de catálogos de `ARQUITECTURA-WAF.md` 5). El evento
    (`contrato.actualizado`, `contrato.vencido`, etc.) y su mecanismo de entrega (webhook, cola)
    quedan pendientes de diseño junto con CORE — no se resuelven en este documento.
 
@@ -159,18 +159,18 @@ código, ver `core/README.md`):
   todavía que lo dispare.
 - **Contrato de API `GET /entitlements`** formalizado (paths, auth service-to-service CIS↔CORE)
   — DOC-006, aunque la implementación real ya existe.
-- **Reconciliación formal de `Sede` con el dominio "Ubicaciones"** existente — ver nota §2.
+- **Reconciliación formal de `Sede` con el dominio "Ubicaciones"** existente — ver nota 2.
 - **Quién crea/edita un Contrato** (¿un panel admin en WEB? ¿API directa?) — depende de que WEB
   exista. Hoy la tabla `contratos` solo se lee, no hay ruta de escritura.
 
 ## Depende de
 Nada técnicamente para el diseño (este documento no depende de código existente). Ya implementado
-sobre Postgres (`core/migrations/`, `core/src/entitlements/`) — ver §7 para lo que sigue abierto.
+sobre Postgres (`core/migrations/`, `core/src/entitlements/`) — ver 7 para lo que sigue abierto.
 
 ## Bloquea
 - El `TODO(ADR-002/Contrato)` en `cis/src/qr-connector/qr-connector.service.ts` (resolución real
   de `organizaciones` en `auth/session`, hoy seed fijo).
-- `seguridad/README.md` § "Depende de" (modelo de `Contrato`).
+- `seguridad/README.md` "Depende de" (modelo de `Contrato`).
 
 ## Documentos relacionados
 - [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) — decisión de mecanismo de

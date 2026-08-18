@@ -19,7 +19,7 @@ import type {
   SesionResumen,
 } from './inventarios.types';
 
-// Codigo SQLSTATE de Postgres para violacion de foreign key — ver DOC-006 §5: una
+// Codigo SQLSTATE de Postgres para violacion de foreign key — ver DOC-006 5: una
 // organizacion/area/ubicacion inexistente es 400, no un 500 crudo de Postgres.
 const FOREIGN_KEY_VIOLATION = '23503';
 // Violacion de UNIQUE — carrera entre dos requests con el mismo idempotencyKey.
@@ -29,7 +29,7 @@ function esErrorPg(error: unknown): error is { code: string } {
   return typeof error === 'object' && error !== null && 'code' in error;
 }
 
-// DOC-006 §3 + DOC-007 — invocado por OrquestadorService, no directo desde el controller
+// DOC-006 3 + DOC-007 — invocado por OrquestadorService, no directo desde el controller
 // (RF-06). La idempotencia se resuelve antes de tocar el Motor de Reglas (ver
 // core/aidlc-docs/design-artifacts/ARCHITECTURE.md, secuencia completa).
 @Injectable()
@@ -136,14 +136,14 @@ export class InventariosService {
     payload: InventarioRequest,
   ): PostInventarioResponse {
     if (existente.requestHash !== requestHash) {
-      // DOC-002 §5: idempotencyKey reutilizada con payload distinto es bug de cliente.
+      // DOC-002 5: idempotencyKey reutilizada con payload distinto es bug de cliente.
       throw new ConflictException({
         message: 'idempotencyKey ya usada con un payload distinto',
         correlationId: payload.correlationId,
       });
     }
     // Mismo payload, misma key: reintento legitimo — se devuelve el resultado ya procesado,
-    // nunca se reclasifica ni se duplica (DOC-002 §4).
+    // nunca se reclasifica ni se duplica (DOC-002 4).
     return { inventarioId: existente.id, estado: existente.estado };
   }
 
@@ -242,10 +242,10 @@ export class InventariosService {
     }
   }
 
-  // DOC-012 §5.1 — best-effort: si el activo ya cambió de estado entre el escaneo y este punto,
+  // DOC-012 5.1 — best-effort: si el activo ya cambió de estado entre el escaneo y este punto,
   // o no está en un estado operativo compatible (ej. ya está dado_de_baja), se ignora en
   // silencio en vez de abortar la sesión completa por un solo ítem. Nunca requiere el rol
-  // administrador-patrimonial (Tomo III §1.4 ya se lo concede a APP QR).
+  // administrador-patrimonial (Tomo III 1.4 ya se lo concede a APP QR).
   private async aplicarEstadoDeclarado(
     activoId: string,
     organizacionId: string,

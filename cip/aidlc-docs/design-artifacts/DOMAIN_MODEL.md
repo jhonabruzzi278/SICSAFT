@@ -43,7 +43,7 @@ ya vive en una constraint, no en código (precedente ya aceptado en este repo).
 
 **No todo evento interesa a CIP** — `escaneo_qr` (uno por cada lectura, alto volumen) no dispara
 recalculo por sí solo; el trigger filtra por `tipo` (ver
-`design-artifacts/ARCHITECTURE.md` § "Qué eventos importan al agregado").
+`design-artifacts/ARCHITECTURE.md` "Qué eventos importan al agregado").
 
 ## 2. Almacén de lectura propio de CIP
 
@@ -64,7 +64,7 @@ erDiagram
     CONTROL_AREA {
         string areaId PK
         string organizacionId FK
-        string sedeId FK "eliminado en DOC-018 §2.7 — sin forma de resolverlo desde las APIs de CORE disponibles hoy"
+        string sedeId FK "eliminado en DOC-018 2.7 — sin forma de resolverlo desde las APIs de CORE disponibles hoy"
         boolean controladaEnPeriodo
         datetime ultimaSesionEn "nullable"
     }
@@ -76,7 +76,7 @@ erDiagram
         datetime fechaCierre
     }
     ACTIVO_FUERA_DE_AREA {
-        string codigoQr PK "no activoId — GET /catalogo y GET /inventarios/:id de CORE no exponen el id interno del activo, ver DOC-018 §2.5"
+        string codigoQr PK "no activoId — GET /catalogo y GET /inventarios/:id de CORE no exponen el id interno del activo, ver DOC-018 2.5"
         string organizacionId FK
         string areaRealId FK
         string areaEsperadaId FK

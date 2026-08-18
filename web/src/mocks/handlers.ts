@@ -1,5 +1,5 @@
 // Handlers de MSW para los endpoints de CIS que ejercita el flujo login+alta (DOC-006, DOC-012
-// §5) — solo se registran en modo mock (ver src/main.tsx, VITE_MOCK_API). Zitadel nunca se
+// 5) — solo se registran en modo mock (ver src/main.tsx, VITE_MOCK_API). Zitadel nunca se
 // mockea acá: CIS es quien valida el JWT server-side, el cliente solo mira si hay tokens
 // guardados (oidcClient.isAuthenticated(), sessionStorage) — mismo criterio que
 // app-qr-sicsaft/src/mocks/handlers.ts.
@@ -61,7 +61,7 @@ export const defaultHandlers = [
     return HttpResponse.json(activo, { status: 201 });
   }),
 
-  // DOC-019 §4 — solo para verificación manual en el navegador, no ejercitado por el e2e existente.
+  // DOC-019 4 — solo para verificación manual en el navegador, no ejercitado por el e2e existente.
   http.get(`${CIS_URL}/dashboard/cobertura`, () =>
     HttpResponse.json({
       activosRegistrados: 3,

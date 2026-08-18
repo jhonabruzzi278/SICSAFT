@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { loadEnvConfig } from '../common/load-env-config';
 
-// DOC-004 §7 / DOC-012 §3 — Zitadel firma `rolesPorOrganizacion` con SU id de organizacion (el
+// DOC-004 7 / DOC-012 3 — Zitadel firma `rolesPorOrganizacion` con SU id de organizacion (el
 // que aparece en la URL del dashboard, ej. 386029528616558597), pero CORE identifica
 // organizaciones con un id de texto legible (ej. 'duoc-uc', ver base-patrimonial/
-// DOC-004-modelo-contrato.md §2). Sin este mapeo, un token real de Zitadel nunca podria
+// DOC-004-modelo-contrato.md 2). Sin este mapeo, un token real de Zitadel nunca podria
 // autorizar una escritura oficial: CORE compara `rolesPorOrganizacion[organizacionId]` contra SU
 // propio organizacionId, que nunca coincide con la clave que Zitadel firmo. Es el mismo gap que
 // ROADMAP.md ya documenta para GET /entitlements ("sin mapeo operador->organizacion real") —

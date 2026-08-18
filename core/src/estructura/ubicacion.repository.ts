@@ -52,7 +52,7 @@ export class UbicacionRepository {
 
   // RF-05 — defensa en profundidad: `sedeId` (y `areaId`, si viene) deben pertenecer a
   // `organizacionId`, no solo existir — mismo criterio que ActivoRepository cruzando la
-  // organizacion real del activo objetivo (hallazgo real de revision de seguridad, DOC-012 §3).
+  // organizacion real del activo objetivo (hallazgo real de revision de seguridad, DOC-012 3).
   async crear(input: NuevaUbicacionInput): Promise<Ubicacion> {
     await this.verificarPertenece(
       'sedes',

@@ -2,13 +2,13 @@ import { z } from 'zod';
 
 // Contrato: app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md
 // Implementacion MOCK — ver qr-connector.service.ts. Las 4 preguntas abiertas a SICSAFT CORE
-// (DOC-002 §3/§6, HANDOFF-APP-QR-SICSAFT.md §6) siguen sin respuesta; este contrato es el
+// (DOC-002 3/6, HANDOFF-APP-QR-SICSAFT.md 6) siguen sin respuesta; este contrato es el
 // punto de partida de la negociacion, no una API ya acordada con CORE.
 
 // `operadorId`/`credencial` ya no van acá: Zitadel autentica al operador (OIDC, ver ADR-002) y
 // el CIS recibe su identidad ya validada desde el access token (ZitadelAuthGuard), nunca desde
 // el body. `deviceId` se mantiene — es un dato propio del conector (un solo dispositivo por
-// operador, DOC-002 §1), no algo que Zitadel modele.
+// operador, DOC-002 1), no algo que Zitadel modele.
 export const authSessionRequestSchema = z.object({
   deviceId: z.string().min(1),
 });
@@ -27,7 +27,7 @@ export const inventariosQuerySchema = z.object({
 });
 export type InventariosQuery = z.infer<typeof inventariosQuerySchema>;
 
-// Las 8 categorias de resultado de escaneo de DOC-001 §3 / scan-resolve.ts de APP QR.
+// Las 8 categorias de resultado de escaneo de DOC-001 3 / scan-resolve.ts de APP QR.
 export const scanResultadoSchema = z.enum([
   'correcto',
   'otra_area',
@@ -39,7 +39,7 @@ export const scanResultadoSchema = z.enum([
   'con_incidencia',
 ]);
 
-// Fase 3.1/DOC-017, DOC-012 §5.1 — proxy delgado hacia CORE (mismo shape, sin logica propia):
+// Fase 3.1/DOC-017, DOC-012 5.1 — proxy delgado hacia CORE (mismo shape, sin logica propia):
 // declarable sin rol administrador-patrimonial.
 const estadoOperativoDeclarableSchema = z.enum([
   'activo',

@@ -72,13 +72,13 @@ Propuesta REST/HTTPS sobre JSON, una operación por caso de uso del flujo oficia
 - El `correlationId` se guarda en el registro de auditoría local (TASK-009: operador, fecha/hora, dispositivo, inventario, código leído, resultado, ubicación, incidencia, estado de sincronización) junto a cada operación relacionada.
 
 ✅ **Resuelto (TASK-007)**: CORE sí tiene su propio esquema — un header transversal
-`X-Correlation-Id` (WAF §2, `CorrelationIdMiddleware` en CIS y CORE), independiente del
+`X-Correlation-Id` (WAF 2, `CorrelationIdMiddleware` en CIS y CORE), independiente del
 `correlationId` de negocio de este contrato. Conviven, no se reemplazan: el header traza la
 request HTTP en logs/tracing de infraestructura; el `correlationId` del payload sigue siendo el
 identificador de negocio del inventario en la auditoría local. **Corrección real sobre lo
 propuesto**: CORE **no** devuelve el `correlationId` de negocio en el body de la respuesta de
 `POST /inventarios` (`PostInventarioResponse` es `{inventarioId, estado, errores?}`, ver DOC-006
-§3) — solo el header `X-Correlation-Id` viaja de vuelta. El punto anterior de esta sección ("CORE
+3) — solo el header `X-Correlation-Id` viaja de vuelta. El punto anterior de esta sección ("CORE
 debe devolver el mismo correlationId... en toda respuesta") no se cumplió tal cual estaba escrito.
 
 ## Dependencias hacia el resto del backlog

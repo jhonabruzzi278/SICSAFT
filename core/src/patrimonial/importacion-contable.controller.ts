@@ -13,9 +13,9 @@ import { importacionContableSchema } from './importacion-contable.schemas';
 import type { ImportacionContableBody } from './importacion-contable.schemas';
 import type { ImportacionContableResultado } from './importacion-contable.types';
 
-// DOC-012 §6 — importacion masiva de base contable. Solo ServiceTokenGuard acá, mismo motivo que
+// DOC-012 6 — importacion masiva de base contable. Solo ServiceTokenGuard acá, mismo motivo que
 // ActivoEscrituraController: la autorizacion de rol se resuelve dentro de OrquestadorService para
-// que un 403 por falta de rol quede auditado (DOC-012 §8).
+// que un 403 por falta de rol quede auditado (DOC-012 8).
 @Controller('importaciones')
 @UseGuards(ServiceTokenGuard)
 export class ImportacionContableController {

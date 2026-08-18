@@ -12,7 +12,7 @@ import type { ZitadelAuthConfig } from './zitadel-auth.config';
 
 // Claim de roles de Proyecto que Zitadel firma en el JWT — solo aparece si la app pidio el scope
 // reservado `urn:zitadel:iam:org:project:role:<rol>` o tiene "Assert Roles on Authentication"
-// habilitado (DOC-012 §2). Forma: { "<rol>": { "<organizacionId>": "<nombreOrg>" } }.
+// habilitado (DOC-012 2). Forma: { "<rol>": { "<organizacionId>": "<nombreOrg>" } }.
 const ZITADEL_PROJECT_ROLES_CLAIM = 'urn:zitadel:iam:org:project:roles';
 
 export interface ZitadelAuthContext {
@@ -24,12 +24,12 @@ export interface ZitadelAuthContext {
   expiresAt: string;
   // Roles de Proyecto que Zitadel firmo, invertido de {rol: {orgId: orgName}} a
   // {orgId: [rol, ...]} (vacio si el claim no viene — la mayoria de los requests no lo
-  // necesitan). El rol es de Proyecto pero asignado por organizacion (DOC-012 §2) — perder ese
+  // necesitan). El rol es de Proyecto pero asignado por organizacion (DOC-012 2) — perder ese
   // contexto y exponer solo una lista plana de nombres de rol le habria permitido a un
   // administrador-patrimonial de la Organizacion A escribir sobre activos de la Organizacion B
   // (hallazgo real de la revision de seguridad de este mismo incremento). CIS solo certifica que
   // Zitadel firmo el rol en esa organizacion, nunca decide autorizacion con esto — esa decision
-  // es de CORE (DOC-012 §3, WAF §3 cero confianza entre niveles).
+  // es de CORE (DOC-012 3, WAF 3 cero confianza entre niveles).
   rolesPorOrganizacion: Record<string, string[]>;
 }
 
@@ -81,7 +81,7 @@ export class ZitadelAuthGuard implements CanActivate {
 
   // Invierte { "<rol>": { "<organizacionId>": "<nombreOrg>" } } a
   // { "<organizacionId>": ["<rol>", ...] } — la forma que necesita el chequeo de autorizacion en
-  // CORE (verificarRolAdministradorPatrimonial, DOC-012 §3), que siempre valida contra la
+  // CORE (verificarRolAdministradorPatrimonial, DOC-012 3), que siempre valida contra la
   // organizacion del recurso objetivo, nunca solo "¿tiene el rol en algun lado?".
   private extractRolesPorOrganizacion(
     payload: JWTPayload,
@@ -127,7 +127,7 @@ export class ZitadelAuthGuard implements CanActivate {
       });
     } catch {
       // No se expone la causa (firma invalida vs vencido vs issuer/audience distinto) — DOC-002
-      // §5 solo distingue un 401 generico para el cliente, y no filtrar el detalle evita dar
+      // 5 solo distingue un 401 generico para el cliente, y no filtrar el detalle evita dar
       // pistas utiles a un atacante sobre por que fallo la verificacion.
       throw new UnauthorizedException('Token inválido o vencido');
     }

@@ -9,7 +9,7 @@ construcción del séptimo módulo, Dashboard/CIP — DOC-019; mismo día, dise�
 segmentación por rol Directivo — DOC-020)
 **Fase actual:** Construction — los 7 módulos (6 del MVP de Fase 5 + Dashboard, RF-09) y RF-10
 (segmentación por rol) tienen código funcionando, verificado de punta a punta contra Docker/
-Zitadel reales (ver `web/README.md` § Estado).
+Zitadel reales (ver `web/README.md` Estado).
 
 ## Status
 
@@ -29,7 +29,7 @@ Zitadel reales (ver `web/README.md` § Estado).
 El usuario pidió explícitamente diseñar (no construir) el Portal WEB durante la sesión de diseño
 de Fase 2, para dejar la "parte visual" del ecosistema planificada de punta a punta. El código
 empezó recién en la sesión del 2026-08-14, una vez que Fase 3 (CIS real) y Fase 4 (Administrador
-Patrimonial) ya estaban completas (`web/README.md` § Depende de).
+Patrimonial) ya estaban completas (`web/README.md` Depende de).
 
 ## Quick Links
 
@@ -50,5 +50,5 @@ Patrimonial) ya estaban completas (`web/README.md` § Depende de).
   "módulos previstos" que lista `web/README.md` a largo plazo — modelar los otros 11 sin
   consumidor sería diseño especulativo (mismo criterio YAGNI de DOC-005/DOC-006).
 - No se diseña un dominio propio: WEB es un **cliente** del mismo contrato CIS/CORE que APP QR
-  (`ARQUITECTURA-WAF.md` §8, "Portal WEB y APP QR son clientes intercambiables del mismo
+  (`ARQUITECTURA-WAF.md` 8, "Portal WEB y APP QR son clientes intercambiables del mismo
   contrato") — reusa DOC-002/DOC-006, no inventa endpoints nuevos.

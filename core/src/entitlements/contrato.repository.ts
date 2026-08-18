@@ -69,7 +69,7 @@ interface ContratoRow {
   sedes: Sede[];
 }
 
-// DOC-012 §7 — solo estas 4 transiciones son validas (DOC-004 §3): cualquier otra combinacion es
+// DOC-012 7 — solo estas 4 transiciones son validas (DOC-004 3): cualquier otra combinacion es
 // 400. `vigente` es el unico estado de origen valido para 4 de las 4 transiciones — no hay forma
 // de pasar de 'suspendido' a 'vencido'/'cancelado' directamente, ni de 'vencido'/'cancelado' a
 // ningun otro estado (terminales).
@@ -88,7 +88,7 @@ export class ContratoRepository {
     const result = await this.pool.query<ContratoRow>(SELECT_CONTRATOS_SQL);
     const contratos = result.rows.map((row) => this.toContrato(row));
 
-    // Mismo invariante que se validaba sobre el seed en memoria (DOC-004 §4) — acá es el punto
+    // Mismo invariante que se validaba sobre el seed en memoria (DOC-004 4) — acá es el punto
     // de validacion real porque la base de datos es un limite del sistema (dato externo, no
     // garantizado por TypeScript) y no hay endpoint de escritura todavia que lo prevenga antes.
     assertInvarianteSedeUnContratoVigente(contratos);
@@ -97,7 +97,7 @@ export class ContratoRepository {
   }
 
   // RNF-01 (cierra el gap) — GET /contratos paginado. Reusa findAll() (necesita el dataset
-  // completo igual: el invariante DOC-004 §4 se valida contra TODOS los contratos, no solo la
+  // completo igual: el invariante DOC-004 4 se valida contra TODOS los contratos, no solo la
   // página pedida) y pagina en memoria — volumen bajo hoy (un Contrato por organizacion/sede), sin
   // costo real de traer todo a memoria; si el volumen crece, se reemplaza por LIMIT/OFFSET en SQL
   // manteniendo el invariante con una consulta separada.
@@ -109,7 +109,7 @@ export class ContratoRepository {
     };
   }
 
-  // DOC-012 §7 — usado por las 2 operaciones de escritura oficial para resolver 404 vs 400 antes
+  // DOC-012 7 — usado por las 2 operaciones de escritura oficial para resolver 404 vs 400 antes
   // de decidir la transicion, mismo patron que ActivoRepository.findById.
   async findById(id: string): Promise<Contrato | null> {
     const result = await this.pool.query<ContratoRow>(
@@ -120,8 +120,8 @@ export class ContratoRepository {
     return row ? this.toContrato(row) : null;
   }
 
-  // DOC-012 §7 — POST /contratos (alta). `estado` lo decide CORE ('vigente'), nunca el cliente.
-  // Valida el invariante DOC-004 §4 ("una sede, un contrato vigente") ANTES de insertar — a
+  // DOC-012 7 — POST /contratos (alta). `estado` lo decide CORE ('vigente'), nunca el cliente.
+  // Valida el invariante DOC-004 4 ("una sede, un contrato vigente") ANTES de insertar — a
   // diferencia de findAll (que lo valida al leer, defensivo), acá se previene la violacion en
   // vez de solo detectarla despues.
   async crear(input: NuevoContratoInput): Promise<Contrato> {
@@ -135,14 +135,14 @@ export class ContratoRepository {
     if (sedesEnConflicto.rows.length > 0) {
       const sedes = sedesEnConflicto.rows.map((r) => r.sedeId).join(', ');
       throw new ConflictException({
-        message: `Las sedes [${sedes}] ya estan cubiertas por otro contrato vigente (DOC-004 §4)`,
+        message: `Las sedes [${sedes}] ya estan cubiertas por otro contrato vigente (DOC-004 4)`,
       });
     }
 
     const id = randomUUID();
     // Transaccion real: sin esto, un FK invalido en contrato_sedes (2da sentencia) dejaba la
     // fila de contratos ya insertada (1ra sentencia) huerfana — un contrato 'vigente' sin
-    // ninguna sede, invisible al invariante DOC-004 §4 pero SI visible en GET /entitlements
+    // ninguna sede, invisible al invariante DOC-004 4 pero SI visible en GET /entitlements
     // (hallazgo real: rollback ausente detectado corriendo el e2e contra Postgres real).
     const client = await this.pool.connect();
     try {
@@ -186,7 +186,7 @@ export class ContratoRepository {
     return (await this.findById(id)) as Contrato;
   }
 
-  // DOC-012 §7 — PATCH /contratos/:id. `organizacionId` es la organizacion donde
+  // DOC-012 7 — PATCH /contratos/:id. `organizacionId` es la organizacion donde
   // OrquestadorService ya verifico el rol — se vuelve a cruzar acá contra la organizacion REAL
   // del contrato objetivo (404 si no coincide, nunca 403), mismo criterio de defensa en
   // profundidad que ActivoRepository.cambiarEstado.
@@ -201,7 +201,7 @@ export class ContratoRepository {
     }
     if (!TRANSICIONES_VALIDAS[actual.estado].includes(estadoNuevo)) {
       throw new BadRequestException({
-        message: `Transicion invalida de '${actual.estado}' a '${estadoNuevo}' (DOC-004 §3)`,
+        message: `Transicion invalida de '${actual.estado}' a '${estadoNuevo}' (DOC-004 3)`,
       });
     }
     await this.pool.query('UPDATE contratos SET estado = $1 WHERE id = $2', [

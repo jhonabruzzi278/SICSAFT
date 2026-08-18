@@ -46,7 +46,7 @@ import type {
 // auth/session viene de GET /entitlements, y catalogo/inventarios de GET /catalogo,
 // POST /inventarios y GET /inventarios/:id/estado — ya no hay mock ni estado propio en CIS.
 // RateLimitGuard corre despues de ZitadelAuthGuard (el orden en @UseGuards importa: necesita
-// `request.auth` ya seteado) — WAF §4 "rate limiting hacia el CORE" por operador.
+// `request.auth` ya seteado) — WAF 4 "rate limiting hacia el CORE" por operador.
 @Controller()
 @UseGuards(ZitadelAuthGuard, RateLimitGuard)
 export class QrConnectorController {
@@ -94,7 +94,7 @@ export class QrConnectorController {
     );
   }
 
-  // RF-04 (Fase 5, WEB) — pipes a nivel de parámetro, no @UsePipes de método (DOC-012 §5 ya dejó
+  // RF-04 (Fase 5, WEB) — pipes a nivel de parámetro, no @UsePipes de método (DOC-012 5 ya dejó
   // un hallazgo real: @UsePipes de método valida TODOS los parámetros del handler, rompiendo
   // cualquier @Param que coexista con el que sí se quiere validar).
   @Get('inventarios')

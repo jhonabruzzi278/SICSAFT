@@ -10,7 +10,7 @@ import { CircuitBreaker } from './circuit-breaker';
 
 // Un solo CircuitBreaker compartido por las 4 llamadas a CORE (entitlements/catalogo/
 // inventarios/estado) — si CORE esta caido, todas dejan de insistir juntas, no cada una por
-// separado (WAF §4). Parametros conservadores para el tamaño de trafico actual: 5 fallos
+// separado (WAF 4). Parametros conservadores para el tamaño de trafico actual: 5 fallos
 // consecutivos antes de abrir, 30s antes de sondear de nuevo.
 @Module({
   imports: [HttpModule],

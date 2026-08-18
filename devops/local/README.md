@@ -27,7 +27,7 @@ secas). Agregar al archivo hosts (`C:\Windows\System32\drivers\etc\hosts`, como 
 
 `web.sicsaft.localhost` sirve el build de producción de WEB (nginx, ver `web/Dockerfile`) cuando
 corre dentro del stack (`docker compose up -d --build web`) — para desarrollo día a día seguí
-usando `npm run dev` (puerto 5174, hot reload), ver `../../web/README.md` § Desarrollo local.
+usando `npm run dev` (puerto 5174, hot reload), ver `../../web/README.md` Desarrollo local.
 
 ## 2. Configurar variables de entorno
 ```bash
@@ -90,7 +90,7 @@ como decisión abierta en `../README.md`.
 7. **Habilitar `offline_access`** en la app `app-qr-sicsaft` (Token Settings → Auth Token Type ya
    en `JWT` del paso 4; agregar el scope/grant `offline_access` para que Zitadel emita
    `refresh_token`) — TASK-007 usa refresh token explícito, no re-login silencioso (decisión
-   confirmada con el usuario, ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §5). Sin esto,
+   confirmada con el usuario, ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` 5). Sin esto,
    `oidc-client.ts` falla fuerte al canjear el primer `code` con un mensaje explícito en vez de
    degradar a un comportamiento no pedido.
 8. Copiar el **Client ID** de la app `app-qr-sicsaft` a `app-qr-sicsaft/.env`
@@ -129,7 +129,7 @@ proyecto nuevo. Pasos reales seguidos (2026-08-14), reproducibles desde el dashb
 (`http://id.sicsaft.localhost`):
 
 1. Dentro del proyecto "CIS" → **Roles** → crear un rol de Proyecto `administrador-patrimonial`
-   (DOC-012 §2). Sin esto, `verificarRolAdministradorPatrimonial` en CORE siempre rechaza —
+   (DOC-012 2). Sin esto, `verificarRolAdministradorPatrimonial` en CORE siempre rechaza —
    Zitadel no tiene qué rol firmar.
 2. Proyecto "CIS" → **General** → activar **"Assert Roles on Authentication"**. Sin esto, el claim
    `urn:zitadel:iam:org:project:roles` nunca aparece en el token aunque el usuario tenga el rol
@@ -161,7 +161,7 @@ proyecto nuevo. Pasos reales seguidos (2026-08-14), reproducibles desde el dashb
    `386029528616558597`) al `organizacionId` de texto que CORE realmente usa (`duoc-uc`). Sin este
    mapeo, `AdministradorService` (`cis/src/administrador/`) no puede traducir el claim de rol que
    Zitadel firma (keyed por SU id de organización) al id que `verificarRolAdministradorPatrimonial`
-   de CORE espera — ver `cis/README.md` § Fase 5.
+   de CORE espera — ver `cis/README.md` Fase 5.
 
 Los pasos 1-4 se hicieron una sola vez vía la API REST de gestión de Zitadel
 (`/management/v1/...`, con el access token de una sesión de administrador ya autenticada en el
@@ -177,13 +177,13 @@ en CIS → CORE crea el activo en Postgres → visible en `GET /catalogo`. Ver `
 
 Mismo proyecto/aplicación `web-sicsaft` de arriba, sin infraestructura nueva — solo un rol de
 Proyecto adicional (`ZitadelAuthGuard.extractRolesPorOrganizacion` ya lo parsea de forma genérica,
-sin cambios de código en CIS, ver DOC-020 §3):
+sin cambios de código en CIS, ver DOC-020 3):
 
 1. Proyecto "CIS" → **Roles** → crear un rol de Proyecto `directivo` (mismo mecanismo que
    `administrador-patrimonial` arriba, "Assert Roles on Authentication" ya está habilitado a nivel
    de proyecto desde ese incremento — no hace falta repetir el paso 2).
 2. Crear (o reusar) un usuario de prueba en "DUOC UC" **sin** el rol `administrador-patrimonial` —
-   el caso mixto (DOC-020 §5) muestra el hub operativo completo, así que para ver el redirect
+   el caso mixto (DOC-020 5) muestra el hub operativo completo, así que para ver el redirect
    directo al Dashboard hace falta un usuario que sea *solo* Directivo.
 3. Ese usuario → **Authorizations** → New → proyecto "CIS" → rol `directivo`.
 4. Login desde `web/` con ese usuario → debería aterrizar directo en `/dashboard?organizacionId=...`
@@ -191,7 +191,7 @@ sin cambios de código en CIS, ver DOC-020 §3):
 
 **Verificado real de punta a punta el 2026-08-18** con tres usuarios de prueba en "DUOC UC"
 (`directivo-test@sicsaft.localhost`, `mixto-test@sicsaft.localhost` con ambos roles, y el
-`admin-patrimonial@sicsaft.localhost` ya existente) — confirma los 3 casos de DOC-020 §5, ver la
+`admin-patrimonial@sicsaft.localhost` ya existente) — confirma los 3 casos de DOC-020 5, ver la
 tabla en el encabezado de [DOC-020](../../web/aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md).
 Nota: si `web` corría desde antes de este incremento, hace falta `docker compose build web` — la
 imagen no se reconstruye sola al mergear código nuevo.

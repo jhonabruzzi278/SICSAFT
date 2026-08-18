@@ -3,7 +3,7 @@ import { ActivoRepository } from './activo.repository';
 import { EventoRepository } from '../eventos/evento.repository';
 import type { Activo, NuevoActivoInput } from './activo.types';
 
-// DOC-012 §5 — resto del ciclo de vida de Activo (Tomo III §4.15) que el Motor Patrimonial de la
+// DOC-012 5 — resto del ciclo de vida de Activo (Tomo III 4.15) que el Motor Patrimonial de la
 // Fase 2 no cubria (ese solo tenia lectura: GET /catalogo). Invocado por OrquestadorService, no
 // directo desde el controller (mismo criterio que InventariosService en RF-06) — la autorizacion
 // de rol (verificarRolAdministradorPatrimonial) vive en el Orquestador, no acá. `organizacionId`

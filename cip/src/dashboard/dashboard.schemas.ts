@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { paginacionSchema } from '../common/paginacion.schemas';
 
-// DOC-018 §6 — organizacionId obligatorio en todos, limit/offset solo en los listados
+// DOC-018 6 — organizacionId obligatorio en todos, limit/offset solo en los listados
 // potencialmente grandes (sesiones, fuera de área, no localizados, incidencias) — áreas, estado
 // de activos y categorías son agregados acotados por diseño, sin paginar.
 

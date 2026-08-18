@@ -18,14 +18,14 @@ Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
 ```
 
 Diagrama completo con los módulos internos de cada nivel:
-[ARQUITECTURA-WAF.md § 1.1](ARQUITECTURA-WAF.md#11-diagrama-maestro-de-arquitectura-funcional).
+[ARQUITECTURA-WAF.md 1.1](ARQUITECTURA-WAF.md#11-diagrama-maestro-de-arquitectura-funcional).
 
 ## Sistemas
 
 | Código | Carpeta | Sistema | Estado |
 |---|---|---|---|
 | SYS-01 | [`app-qr-sicsaft/`](app-qr-sicsaft) | APP QR SICSAFT (captura vía QR) | 🟢 En desarrollo activo — ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` |
-| SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🟢 Conector QR real, proxy delgado hacia CORE (DOC-002/DOC-006), auth real via Zitadel (ADR-002), circuit breaker + reintentos + rate limiting (WAF §4), `deviceId` enforced, CORS para APP QR/WEB, puente de escritura oficial para Administrador Patrimonial (DOC-012 §5) |
+| SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🟢 Conector QR real, proxy delgado hacia CORE (DOC-002/DOC-006), auth real via Zitadel (ADR-002), circuit breaker + reintentos + rate limiting (WAF 4), `deviceId` enforced, CORS para APP QR/WEB, puente de escritura oficial para Administrador Patrimonial (DOC-012 5) |
 | SYS-03 | [`core/`](core) | SICSAFT CORE | 🟡 Orquestador + 4 motores (Patrimonial, Reglas, Eventos, Auditoría — Fase 2) + escritura oficial de Activo/Contrato/importación masiva (Fase 4, DOC-012) sobre Postgres real — resto de los 9 motores de `core/README.md` sin implementar |
 | SYS-04 | [`base-patrimonial/`](base-patrimonial) | Base Patrimonial Central | 🟡 Modelo de `Contrato` documentado e implementado en Postgres (DOC-004) — resto de los 11 dominios sin definir |
 | SYS-05 | [`web/`](web) | CCP — Centro de Control Patrimonial (Portal WEB SICSAFT) | 🟢 Los 6 módulos del MVP implementados — login OIDC/PKCE real + Activos/Contratos/Inventarios verificados de punta a punta contra Postgres real, Auditoría y Áreas/Ubicaciones/Responsables verificados con e2e de CORE/CIS |
@@ -89,7 +89,7 @@ Backlog completo y contexto de negocio de APP QR: `app-qr-sicsaft/HANDOFF-APP-QR
    handoff ya tienen respuesta (ver `cis/`/`core/` abajo) y `qr-connector.ts` habla HTTP real
    contra CIS. **Verificado real de punta a punta el 2026-08-13** — login OIDC contra Zitadel,
    catálogo real, escaneo y envío persistido en Postgres vía CIS→CORE, ver
-   `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` §7 (incluye un bug real de payload encontrado y
+   `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` 7 (incluye un bug real de payload encontrado y
    corregido durante la verificación).
 2. Modelo de dominio compartido entre `core/` y `base-patrimonial/` — Trello `CORE-ADR-001` /
    `BASE-DOC-001` — **`Contrato` hecho, incluida la tabla real en Postgres**
@@ -97,9 +97,9 @@ Backlog completo y contexto de negocio de APP QR: `app-qr-sicsaft/HANDOFF-APP-QR
    inventarios) también hecho sobre `sesiones_inventario` (Fase 2 de `ROADMAP.md`) — el resto de
    los 11 dominios de Base Patrimonial sigue pendiente (DOC-005).
 3. `cis/` — Trello `CIS-ADR-001` — **hecho**: proxy real hacia CORE (ya no mock), auth real contra
-   Zitadel (ADR-002), circuit breaker + reintentos + rate limiting (WAF §4), `deviceId` enforced
-   (DOC-002 §1) y CORS habilitado para que APP QR le hable directo. `core/` tiene su Orquestador +
-   4 motores (Fase 2) y `GET /entitlements` (DOC-004 §6) sobre Postgres real — **hecho**. CIS ya lo
+   Zitadel (ADR-002), circuit breaker + reintentos + rate limiting (WAF 4), `deviceId` enforced
+   (DOC-002 1) y CORS habilitado para que APP QR le hable directo. `core/` tiene su Orquestador +
+   4 motores (Fase 2) y `GET /entitlements` (DOC-004 6) sobre Postgres real — **hecho**. CIS ya lo
    consume vía `CoreClientService`, con auth servicio-a-servicio (secreto compartido) — **hecho**.
 4. `seguridad/`: mecanismo de identidad (Zitadel/OIDC), modelo de `Contrato` (DOC-004) y auth
    servicio-a-servicio CIS→CORE ya resueltos e implementados. Lo que sigue abierto es que CORE

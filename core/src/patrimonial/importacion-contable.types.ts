@@ -1,5 +1,5 @@
-// DOC-012 §6 — carga masiva de base contable. Cada fila trae lo mismo que NuevoActivoInput
-// (organizacionId lo pone el request completo, no cada fila — DOC-012 §3.3, un solo
+// DOC-012 6 — carga masiva de base contable. Cada fila trae lo mismo que NuevoActivoInput
+// (organizacionId lo pone el request completo, no cada fila — DOC-012 3.3, un solo
 // organizacionId por operacion de escritura oficial).
 export interface FilaImportacionContable {
   codigoPatrimonial: string;
@@ -12,7 +12,7 @@ export interface FilaImportacionContable {
   valorPatrimonial?: number;
 }
 
-// DOC-012 §6 — "idempotente por fila, no por request completo": cada fila se resuelve
+// DOC-012 6 — "idempotente por fila, no por request completo": cada fila se resuelve
 // independiente, nunca sobrescribe en silencio y nunca elimina.
 export type ResultadoFila =
   | { codigoPatrimonial: string; resultado: 'creado' }

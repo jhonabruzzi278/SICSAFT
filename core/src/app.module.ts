@@ -23,7 +23,7 @@ import { EventosOutboxModule } from './eventos-outbox/eventos-outbox.module';
     OrquestadorModule,
     // Fase 6 (ROADMAP.md, cip/aidlc-docs/): dispatcher que publica eventos_outbox hacia la cola
     // Redis/BullMQ que consumirá el worker de CIP — CORE no depende de CIP para responder al
-    // usuario (ver DOC-014 §8, reconciliación con Tomo IV §2.15/§2.19).
+    // usuario (ver DOC-014 8, reconciliación con Tomo IV 2.15/2.19).
     EventosOutboxModule,
   ],
   controllers: [AppController],

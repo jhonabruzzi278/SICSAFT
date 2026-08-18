@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // Conexion a la base `cip` propia (separada de `core`, DOC-014 RNF-01/RNF-05) — ver
 // devops/local/docker-compose.yml (servicio `postgres`, base creada por
-// devops/local/postgres/init/03-cip.sh) y cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md §4.
+// devops/local/postgres/init/03-cip.sh) y cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md 4.
 const databaseEnvSchema = z.object({
   CIP_DB_HOST: z.string().min(1, 'es requerido'),
   CIP_DB_PORT: z.coerce.number().int().positive().default(5432),

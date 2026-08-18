@@ -33,11 +33,11 @@ import type {
   SesionesResult,
 } from '../cip-client/cip-client.types';
 
-// DOC-019 §2/§3.1 — septimo módulo del hub de WEB (RF-09): mismo criterio de autorización que
+// DOC-019 2/3.1 — septimo módulo del hub de WEB (RF-09): mismo criterio de autorización que
 // Activos/Inventarios (ZitadelAuthGuard + RateLimitGuard, sin rol adicional) porque es información
 // agregada de organización completa, no PII ni una escritura — no el patrón de
 // AdministradorController (/admin/..., reservado para escritura oficial). Pipes por parámetro, no
-// @UsePipes de método (DOC-012 §5 ya dejó ese hallazgo real).
+// @UsePipes de método (DOC-012 5 ya dejó ese hallazgo real).
 @Controller('dashboard')
 @UseGuards(ZitadelAuthGuard, RateLimitGuard)
 export class DashboardConnectorController {

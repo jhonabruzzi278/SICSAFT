@@ -1,6 +1,6 @@
 # Secretos de producción — SOPS + age
 
-Cierra la decisión que `devops/README.md` § "Cyberseguridad del VPS" dejaba abierta ("SOPS + age
+Cierra la decisión que `devops/README.md` "Cyberseguridad del VPS" dejaba abierta ("SOPS + age
 ... o un gestor de secretos dedicado"): **SOPS + age**, sin infraestructura adicional que correr,
 respaldar o mantener disponible — coherente con el resto de este repo (todo versionado en git,
 `docker-compose.yml` sobre un único VPS, sin Kubernetes ni PaaS gestionado, ver
@@ -74,7 +74,7 @@ cifrar→commitear→descifrar antes de confiar en él.
 
 ## Uso en el deploy (cuando exista el VPS real)
 
-El pipeline de `devops/README.md` § "Pipeline CI/CD" descifra en el paso de deploy, nunca antes:
+El pipeline de `devops/README.md` "Pipeline CI/CD" descifra en el paso de deploy, nunca antes:
 la clave privada age vive como secreto de GitHub Actions (`SOPS_AGE_KEY`, el contenido del
 `keys.txt`, no un archivo) solo para el job de deploy a producción, no para CI de PRs. Ejemplo del
 paso relevante:
@@ -91,7 +91,7 @@ runner efímero del job, se descarta al terminar.
 
 ## Documentos relacionados
 
-`devops/README.md` § "Cyberseguridad del VPS" (decisión original, ahora cerrada acá) y § "Pipeline
+`devops/README.md` "Cyberseguridad del VPS" (decisión original, ahora cerrada acá) y "Pipeline
 CI/CD" (dónde encaja el paso de descifrado). `devops/local/.env.example` (mismas variables, para
 el ambiente local sin cifrar — ese sí puede vivir en texto plano porque nunca se commitea, ver
 `.gitignore` raíz).

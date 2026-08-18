@@ -36,7 +36,7 @@ la base `core` directamente.
 Un trigger de Postgres no puede llamar HTTP de forma confiable (sin extensiones no estándar) ni
 debe hacerlo — bloquearía la transacción que lo disparó. El diseño separa:
 
-1. **`eventos_outbox`** (dentro de la transacción de CORE, ver `DOMAIN_MODEL.md` §1) — garantiza
+1. **`eventos_outbox`** (dentro de la transacción de CORE, ver `DOMAIN_MODEL.md` 1) — garantiza
    que ningún evento se pierde, sin acoplar la escritura transaccional a la disponibilidad de
    Redis.
 2. **`EventosOutboxDispatcher`** (proceso separado dentro de `core/`, un `@Cron`/intervalo simple
@@ -46,7 +46,7 @@ debe hacerlo — bloquearía la transacción que lo disparó. El diseño separa:
 3. **Cola Redis/BullMQ `cip-eventos`** — ya provisionado (`devops/local/docker-compose.yml`
    servicio `redis`, mismo `REDIS_PASSWORD` que ya usa el rate limiter de CIS). Primer consumidor
    real de colas en el ecosistema (ADR-001 ya lo declaraba, sin uso hasta ahora).
-4. **Worker de CIP** — proceso propio de `cip/` (no un módulo dentro de CORE) para cumplir WAF §8
+4. **Worker de CIP** — proceso propio de `cip/` (no un módulo dentro de CORE) para cumplir WAF 8
    "CIP: escala independiente del CORE" — un pico de recalculo de agregados no puede competir por
    CPU/memoria con el camino síncrono de `POST /inventarios`.
 
@@ -55,7 +55,7 @@ debe hacerlo — bloquearía la transacción que lo disparó. El diseño separa:
 | `eventos.tipo` | Agregado que recalcula | Alcance del recalculo |
 |---|---|---|
 | `alta` | `COBERTURA_ORGANIZACION`, `ESTADO_ACTIVO_RESUMEN`, `CATEGORIA_ACTIVO_RESUMEN` | Solo la organización del activo |
-| `escaneo_qr` | `COBERTURA_ORGANIZACION`, `CONTROL_AREA` | Solo el área/organización de la sesión — **no** dispara por cada escaneo individual, ver §4 |
+| `escaneo_qr` | `COBERTURA_ORGANIZACION`, `CONTROL_AREA` | Solo el área/organización de la sesión — **no** dispara por cada escaneo individual, ver 4 |
 | `mantenimiento` / `inactivo` | `ESTADO_ACTIVO_RESUMEN` | Solo la organización del activo |
 | `baja` / `reincorporacion` | `ESTADO_ACTIVO_RESUMEN`, `ACTIVO_NO_LOCALIZADO` (si aplica) | Solo la organización del activo |
 | `traslado` | `ACTIVO_FUERA_DE_AREA` | Solo el área origen/destino |
@@ -75,7 +75,7 @@ individual sería `N` recalculos redundantes para una sola sesión cerrada.
 de encolar — publica **un solo mensaje** `sesion-cerrada` a la cola cuando termina de procesar el
 lote de outbox de una corrida, no un mensaje por evento. El worker de CIP entonces trae la sesión
 completa vía `GET /inventarios/:id` (un solo request) y recalcula desde ahí — mismo criterio que ya
-usa `POST /inventarios` en CORE (procesa la sesión entera, no escaneo por escaneo, DOC-006 §3).
+usa `POST /inventarios` en CORE (procesa la sesión entera, no escaneo por escaneo, DOC-006 3).
 
 ## 5. Veredicto: recalculado, no reenviado
 
@@ -113,7 +113,7 @@ o CIS si algún día expone un puente) — decisión de qué cliente llama a CIP
 CIS queda para el incremento de Construction que construya el frontend (no bloquea este diseño de
 ingesta).
 
-## 7. Degradación (RF-10, WAF §8)
+## 7. Degradación (RF-10, WAF 8)
 
 - Si Redis está caído: el dispatcher deja de publicar, los eventos se acumulan en
   `eventos_outbox` (nunca se pierden) — `POST /inventarios` de CORE sigue funcionando normal, no
@@ -127,10 +127,10 @@ ingesta).
   configurable (default 15 min) — el frontend lo usa para mostrar un aviso, la API sigue
   respondiendo 200 con los datos que tiene.
 
-## 8. Qué NO se construye en este incremento (YAGNI, ver WAF §9 y `requirements/INTENT.md`)
+## 8. Qué NO se construye en este incremento (YAGNI, ver WAF 9 y `requirements/INTENT.md`)
 
 - Réplica de lectura de Postgres para `core` — la base `cip` separada ya logra el aislamiento que
-  pedía WAF §5, sin la complejidad operativa de una réplica streaming todavía.
+  pedía WAF 5, sin la complejidad operativa de una réplica streaming todavía.
 - Motor de datos columnar/analítico — Postgres alcanza para agregados de este volumen.
 - Caché adicional sobre la API de lectura de CIP — sus tablas ya son agregados precalculados, un
   caché encima sería optimizar algo que todavía no se midió como lento.

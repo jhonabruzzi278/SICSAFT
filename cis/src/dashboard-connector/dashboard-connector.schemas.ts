@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// DOC-019 §3.1/§4 — organizacionId es un query param libre, sin cruzarlo contra
+// DOC-019 3.1/4 — organizacionId es un query param libre, sin cruzarlo contra
 // rolesPorOrganizacion del operador: mismo criterio ya aceptado por catalogoQuerySchema/
 // inventariosQuerySchema (qr-connector.schemas.ts) para lectura abierta — el cliente ya obtuvo la
 // lista de organizaciones con contrato vigente vía POST /auth/session (GET /entitlements) y se

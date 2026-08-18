@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Contrato de GET /entitlements de CORE — ver base-patrimonial/DOC-004-modelo-contrato.md §6.
+// Contrato de GET /entitlements de CORE — ver base-patrimonial/DOC-004-modelo-contrato.md 6.
 // Se valida la respuesta acá porque CORE es un limite de confianza (proceso/red distintos, ver
 // coding-style: "validar en los limites del sistema"), no porque se desconfie del codigo propio.
 const sedeSchema = z.object({
@@ -21,7 +21,7 @@ export const entitlementsResponseSchema = z.object({
 export type EntitlementsResult = z.infer<typeof entitlementsResponseSchema>;
 
 // Contrato de GET /catalogo de CORE — ver core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md
-// §2. CORE pagina (`total`), pero el contrato ya construido con APP QR (DOC-002) no expone
+// 2. CORE pagina (`total`), pero el contrato ya construido con APP QR (DOC-002) no expone
 // paginacion todavia — CoreClientService devuelve solo `activos`, sin cambiar CatalogoResponse.
 const activoCatalogoSchema = z.object({
   codigoQr: z.string(),
@@ -38,7 +38,7 @@ export const catalogoResponseSchema = z.object({
 });
 export type CatalogoResult = z.infer<typeof catalogoResponseSchema>;
 
-// Contrato de POST /inventarios y GET /inventarios/:id/estado de CORE — DOC-006 §3/§4.
+// Contrato de POST /inventarios y GET /inventarios/:id/estado de CORE — DOC-006 3/4.
 export const postInventarioResponseSchema = z.object({
   inventarioId: z.string(),
   estado: z.enum(['pendiente', 'recibido', 'rechazado']),
@@ -53,7 +53,7 @@ export type InventarioEstadoResult = z.infer<
   typeof inventarioEstadoResponseSchema
 >;
 
-// Contrato de POST /activos de CORE — DOC-012 §5. `PostActivoRequest` es lo que CIS le manda a
+// Contrato de POST /activos de CORE — DOC-012 5. `PostActivoRequest` es lo que CIS le manda a
 // CORE (ya con `operadorId`/`rolesPorOrganizacion` resueltos, ver AdministradorService), no lo
 // que WEB le manda a CIS (ese es AltaActivoBody, forma mas chica — sin esos dos campos).
 export interface PostActivoRequest {
@@ -71,7 +71,7 @@ export interface PostActivoRequest {
   valorPatrimonial?: number;
 }
 
-// Contrato de POST /contratos y PATCH /contratos/:id de CORE — DOC-012 §7. Mismo criterio que
+// Contrato de POST /contratos y PATCH /contratos/:id de CORE — DOC-012 7. Mismo criterio que
 // PostActivoRequest: CIS ya resolvio operadorId/rolesPorOrganizacion antes de armar esto.
 export interface PostContratoRequest {
   correlationId: string;
@@ -181,7 +181,7 @@ export interface AuditoriaFiltro extends Paginacion {
   fechaHasta?: string;
 }
 
-// RF-05 (Fase 5, WEB) — contrato de Area/Ubicacion/Responsable de CORE (DOC-005 §2/§3).
+// RF-05 (Fase 5, WEB) — contrato de Area/Ubicacion/Responsable de CORE (DOC-005 2/3).
 export const areaResponseSchema = z.object({
   id: z.string(),
   organizacionId: z.string(),

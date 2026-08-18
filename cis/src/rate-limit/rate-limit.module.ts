@@ -5,7 +5,7 @@ import { RateLimitGuard } from './rate-limit.guard';
 import type { RateLimitOptions } from './rate-limit.types';
 
 // Parametros conservadores para el trafico actual, mismo criterio que CORE_CIRCUIT_BREAKER en
-// core-client.module.ts: 30 requests por operador cada 10s (WAF §4).
+// core-client.module.ts: 30 requests por operador cada 10s (WAF 4).
 const RATE_LIMIT_OPTIONS_VALUE: RateLimitOptions = {
   maxRequests: 30,
   windowMs: 10_000,

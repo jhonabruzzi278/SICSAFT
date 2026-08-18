@@ -15,7 +15,7 @@ const rootEl = document.getElementById('root');
 if (!rootEl) throw new Error('#root element not found');
 
 // Modo mock (e2e con MSW, ver src/mocks/) — arranca el Service Worker de MSW ANTES de renderizar
-// para que ningún fetch salga sin ser interceptado (ver plan de e2e, HANDOFF §7). La app ya tiene
+// para que ningún fetch salga sin ser interceptado (ver plan de e2e, HANDOFF 7). La app ya tiene
 // su propio Service Worker de Workbox (UpdatePrompt.tsx) — se omite acá para no tener dos Service
 // Workers compitiendo por el scope "/".
 const isMockMode = import.meta.env.VITE_MOCK_API === 'true';

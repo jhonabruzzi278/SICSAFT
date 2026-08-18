@@ -10,10 +10,10 @@ import { DashboardModule } from './dashboard/dashboard.module';
     DatabaseModule,
     ServiceTokenModule,
     HealthModule,
-    // DOC-018 §5 — worker que consume la cola cip-eventos que ya publica CORE (PR #8) y escribe
+    // DOC-018 5 — worker que consume la cola cip-eventos que ya publica CORE (PR #8) y escribe
     // los agregados.
     AgregacionModule,
-    // DOC-018 §6 — API de lectura sobre esos mismos agregados.
+    // DOC-018 6 — API de lectura sobre esos mismos agregados.
     DashboardModule,
   ],
 })

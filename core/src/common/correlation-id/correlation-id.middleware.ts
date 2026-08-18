@@ -10,7 +10,7 @@ export interface RequestWithCorrelationId extends Request {
 // Acepta el correlationId del llamador (CIS lo propaga desde su propio middleware, ver
 // cis/src/common/correlation-id/) o genera uno nuevo si CORE es el primer salto — nunca deja una
 // request sin correlationId. Se devuelve en la respuesta para que quien llamó pueda confirmar
-// cual quedo asociado, aunque no haya mandado uno (WAF §2: "todo evento que cruza un nivel lleva
+// cual quedo asociado, aunque no haya mandado uno (WAF 2: "todo evento que cruza un nivel lleva
 // el mismo correlationId").
 @Injectable()
 export class CorrelationIdMiddleware implements NestMiddleware {

@@ -25,7 +25,7 @@ import type { Area } from '../estructura/area.types';
 import type { Ubicacion } from '../estructura/ubicacion.types';
 import type { Responsable } from '../estructura/responsable.types';
 
-// El rol es de Proyecto pero asignado por organizacion (DOC-012 §2) — el operador de estos tests
+// El rol es de Proyecto pero asignado por organizacion (DOC-012 2) — el operador de estos tests
 // tiene el rol en 'duoc-uc', nunca "en cualquier organizacion".
 const ADMIN_ROLES_DUOC_UC = { 'duoc-uc': ['administrador-patrimonial'] };
 
@@ -206,7 +206,7 @@ describe('OrquestadorService', () => {
     });
   });
 
-  // DOC-012 §5/§8 — escritura oficial de Activo. La autorizacion de rol se resuelve acá adentro
+  // DOC-012 5/8 — escritura oficial de Activo. La autorizacion de rol se resuelve acá adentro
   // (verificarRolAdministradorPatrimonial), no en un guard, para que un 403 por falta de rol
   // tambien quede auditado como rechazo (a diferencia de ServiceTokenGuard, que corta antes del
   // Orquestador porque autentica la conexion CIS<->CORE, no una accion de negocio).

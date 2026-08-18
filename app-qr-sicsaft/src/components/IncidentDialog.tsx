@@ -11,7 +11,7 @@ interface IncidentDialogProps {
   initialNote?: string;
   onOpenChange: (open: boolean) => void;
   onSave: (note: string) => void;
-  // Fase 3.1 — reusado tal cual para "sugerir baja" (DOC-012 §5.1), un mismo prompt de texto
+  // Fase 3.1 — reusado tal cual para "sugerir baja" (DOC-012 5.1), un mismo prompt de texto
   // corto con otro título/placeholder/testid. Todos opcionales, con los defaults de incidencia
   // (uso original) para no romper el caller existente.
   title?: string;

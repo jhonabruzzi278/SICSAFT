@@ -6,7 +6,7 @@ import { CipClientService } from './cip-client.service';
 import { CircuitBreaker } from '../core-client/circuit-breaker';
 
 // Mismos parámetros que CoreClientModule (5 fallos consecutivos, 30s de reset) — un solo breaker
-// compartido por las 8 llamadas de lectura del dashboard, mismo criterio WAF §4.
+// compartido por las 8 llamadas de lectura del dashboard, mismo criterio WAF 4.
 @Module({
   imports: [HttpModule],
   providers: [

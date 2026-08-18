@@ -19,9 +19,9 @@ import type {
 } from './contrato.schemas';
 import type { Contrato } from './contrato.types';
 
-// DOC-012 §7 — escritura oficial de Contrato (alta/cambio de estado). Solo ServiceTokenGuard
+// DOC-012 7 — escritura oficial de Contrato (alta/cambio de estado). Solo ServiceTokenGuard
 // acá: la autorizacion de rol se resuelve dentro de OrquestadorService, mismo motivo que
-// ActivoEscrituraController (DOC-012 §8, un 403 por falta de rol queda auditado).
+// ActivoEscrituraController (DOC-012 8, un 403 por falta de rol queda auditado).
 @Controller('contratos')
 @UseGuards(ServiceTokenGuard)
 export class ContratoEscrituraController {

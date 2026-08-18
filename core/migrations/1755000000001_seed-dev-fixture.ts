@@ -2,7 +2,7 @@ import type { MigrationBuilder } from 'node-pg-migrate';
 import { SEED_CONTRATOS } from '../src/entitlements/contrato.seed';
 
 // Datos de desarrollo/CI — NO es el mecanismo de carga de datos de produccion (eso llega en la
-// Fase 4 del roadmap: importacion real via el rol Administrador Patrimonial, Tomo III §1.4).
+// Fase 4 del roadmap: importacion real via el rol Administrador Patrimonial, Tomo III 1.4).
 // Generados a partir de SEED_CONTRATOS (core/src/entitlements/contrato.seed.ts) para que exista
 // una unica fuente de verdad del caso DUOC UC/Melipilla — antes estaba retipeado a mano acá y en
 // cis/src/qr-connector/qr-connector.seed.ts (esa segunda copia sigue pendiente hasta que CIS deje

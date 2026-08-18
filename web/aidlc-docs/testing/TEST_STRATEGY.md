@@ -6,7 +6,7 @@ críticos, sin bajar el criterio de cobertura que adopte el resto del ecosistema
 ## E2E (Playwright, criterio "Done" de `ROADMAP.md` Fase 5)
 
 - **Login + alta de activo**: login OIDC completo (authorization code + PKCE contra un Zitadel
-  real, mismo patrón que `devops/local/README.md` § "Cliente OIDC real") → dar de alta un activo
+  real, mismo patrón que `devops/local/README.md` "Cliente OIDC real") → dar de alta un activo
   → verificar que aparece en `GET /catalogo` (mismo endpoint que consulta APP QR) — es literal el
   criterio "Done" de Fase 5, se prueba de punta a punta, no con mocks.
 - **Hub por contrato**: dos usuarios de organizaciones con `modulosContratados` distintos ven
@@ -24,5 +24,5 @@ críticos, sin bajar el criterio de cobertura que adopte el resto del ecosistema
 ## Qué NO se testea en esta fase
 
 - Los módulos sin endpoint real todavía (Áreas/Ubicaciones/Responsables/Auditoría/Contratos, ver
-  DOC-013 §3) no tienen e2e contra backend real hasta que Fase 4 les dé un endpoint — se testean
+  DOC-013 3) no tienen e2e contra backend real hasta que Fase 4 les dé un endpoint — se testean
   con mocks mientras tanto, explícitamente marcados como temporales.

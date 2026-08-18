@@ -128,19 +128,19 @@ services:
       # (loadZitadelAuthConfig valida al arrancar, ver cis/src/common/auth/zitadel-auth.config.ts).
       ZITADEL_AUDIENCE: ${CIS_ZITADEL_AUDIENCE}
       # URL interna de CORE dentro de la red de contenedores (ver servicio `core` abajo) — CIS la
-      # usa para resolver entitlements reales en auth/session (DOC-004 §6), ya no un seed fijo.
+      # usa para resolver entitlements reales en auth/session (DOC-004 6), ya no un seed fijo.
       CORE_URL: http://core:3001
       # Secreto compartido de auth servicio-a-servicio CIS->CORE — debe ser exactamente el mismo
       # valor que CORE_SERVICE_TOKEN del servicio `core` (abajo). Generar con
       # `openssl rand -hex 32`, ver .env.example.
       CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
-      # DOC-019 §3.1 — URL interna de CIP dentro de la red de contenedores (ver servicio `cip`
+      # DOC-019 3.1 — URL interna de CIP dentro de la red de contenedores (ver servicio `cip`
       # abajo) y el mismo CIP_SERVICE_TOKEN que ya usa `cip` (arriba, provisional desde DOC-018
-      # §3 — este módulo es su primer consumidor real). CIS es ahora el único llamador de la API
+      # 3 — este módulo es su primer consumidor real). CIS es ahora el único llamador de la API
       # de lectura de CIP: WEB nunca le habla a CIP directo.
       CIP_URL: http://cip:3002
       CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
-      # Redis para el rate limiter (WAF §4, src/rate-limit/) — mismo REDIS_PASSWORD que el
+      # Redis para el rate limiter (WAF 4, src/rate-limit/) — mismo REDIS_PASSWORD que el
       # servicio `redis` (arriba). Primer consumidor de Redis en el codigo del ecosistema.
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       # Origen permitido para CORS (TASK-007 de APP QR, ver app-qr-sicsaft/src/lib/qr-connector.ts;
@@ -150,7 +150,7 @@ services:
       # dentro del stack en vez de con `npm run dev`; agregar los dominios reales cuando exista
       # deploy.
       CIS_CORS_ORIGIN: http://localhost:5173,http://localhost:5174,http://web.sicsaft.localhost
-      # DOC-012 §5 (Fase 5) — mapeo Zitadel org id -> organizacionId de CORE, ver
+      # DOC-012 5 (Fase 5) — mapeo Zitadel org id -> organizacionId de CORE, ver
       # src/administrador/organizacion-mapping.config.ts. Solo DUOC UC tiene datos reales hoy
       # (mismo caso que el resto del stack local) — Resource Id de la organizacion "DUOC UC" en
       # Zitadel, ver devops/local/README.md "Cliente OIDC real (WEB)".
@@ -258,7 +258,7 @@ services:
       CIP_DB_NAME: cip
       CIP_DB_USER: ${CIP_DB_USER}
       CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
-      # API de lectura de CIP — secreto propio, no reusa CORE_SERVICE_TOKEN (DOC-018 §3).
+      # API de lectura de CIP — secreto propio, no reusa CORE_SERVICE_TOKEN (DOC-018 3).
       CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
       # CIP como cliente de CORE (GET /catalogo, GET /inventarios/:id) — mismo
       # CORE_SERVICE_TOKEN que ya usa `cis`.
@@ -278,7 +278,7 @@ services:
         condition: service_started
     restart: unless-stopped
     # Sin router en traefik/dynamic.yml a propósito, mismo criterio que `core`: sin frontend
-    # todavia, ningun consumidor externo real (DOC-018 §7.2 — decision abierta).
+    # todavia, ningun consumidor externo real (DOC-018 7.2 — decision abierta).
 
   web:
     build:

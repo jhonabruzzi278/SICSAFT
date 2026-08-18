@@ -156,7 +156,7 @@ describe('QrConnectorService', () => {
       );
     });
 
-    it('registra el deviceId de la request como el dispositivo activo del operador (DOC-002 §1)', async () => {
+    it('registra el deviceId de la request como el dispositivo activo del operador (DOC-002 1)', async () => {
       const auth = buildAuthContext({
         expiresAt: new Date(Date.now() + 900_000).toISOString(),
       });

@@ -35,7 +35,7 @@ function buildEscrituraOficialBody(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('DOC-012 §5 — escritura oficial de Activo (e2e)', () => {
+describe('DOC-012 5 — escritura oficial de Activo (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {

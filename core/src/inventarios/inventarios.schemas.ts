@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// DOC-006 §3 — mismo schema que inventarioRequestSchema de CIS
+// DOC-006 3 — mismo schema que inventarioRequestSchema de CIS
 // (cis/src/qr-connector/qr-connector.schemas.ts). Se duplica acá (sin paquete compartido entre
 // CIS y CORE todavia, mismo caso ya documentado para Organizacion/Sede) — si uno cambia, el otro
 // debe actualizarse a mano.
@@ -15,7 +15,7 @@ export const scanResultadoSchema = z.enum([
   'con_incidencia',
 ]);
 
-// Fase 3.1/DOC-017, DOC-012 §5.1 — declarable sin rol administrador-patrimonial.
+// Fase 3.1/DOC-017, DOC-012 5.1 — declarable sin rol administrador-patrimonial.
 export const estadoOperativoDeclarableSchema = z.enum([
   'activo',
   'mantenimiento',

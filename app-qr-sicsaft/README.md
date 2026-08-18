@@ -13,7 +13,7 @@ de productos como herramienta aparte, fuera del flujo oficial.
    Fase 8) → operador → organización → área/ubicación → escaneo clasificado en 6 categorías
    (correcto, otra área, otra ubicación, no registrado, código inválido, ya escaneado), con
    declaración opcional de estado operativo por activo (en servicio/mantenimiento/inactivo, sin
-   rol especial — Tomo III §1.4) y "sugerir baja" (informativo, la ejecuta el Administrador
+   rol especial — Tomo III 1.4) y "sugerir baja" (informativo, la ejecuta el Administrador
    Patrimonial desde WEB) → incidencias → cierre con veredicto de sesión
    (exitoso/aceptable/defectuoso) y lista de AFT fuera de área agrupada por su área real → cola de
    sincronización offline y registro de auditoría (Fase 3.1, ver

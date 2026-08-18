@@ -21,25 +21,25 @@ en `core/migrations/`), ya consumido por CIS en `auth/session`
 constante, CIS es el único llamador válido). Lo que sigue sin resolver: `sedeId`/vigencia de
 contrato con **datos reales de negocio** (la base `core` hoy solo tiene el caso DUOC UC/Melipilla
 precargado y no hay mapeo operador→organización — cualquier operador ve el mismo resultado hoy,
-ver DOC-004 §7). El token del operador solo trae `sub`/identidad, no sede — coincide con ADR-002
-§"Punto de validación": eso se resuelve en CORE, no en el token.
+ver DOC-004 7). El token del operador solo trae `sub`/identidad, no sede — coincide con ADR-002
+"Punto de validación": eso se resuelve en CORE, no en el token.
 
 ## Permisos previstos
 Consultar, crear, modificar, eliminar, autorizar, exportar, administrar, configurar — bajo
 principio de mínimo privilegio necesario.
 
-### Rol ✅ implementado: Administrador Patrimonial (Tomo III §1.4, Entrada 4) — nombre funcional: Profesional de AFT
+### Rol ✅ implementado: Administrador Patrimonial (Tomo III 1.4, Entrada 4) — nombre funcional: Profesional de AFT
 El tomo oficial define un rol que hasta la Fase 4 no existía en ningún sistema del ecosistema: el
 **Administrador Patrimonial** (`administrador-patrimonial` es el nombre técnico del rol de
 Zitadel; **Profesional de AFT** es el nombre funcional/oficial con el que el negocio identifica a
-quien lo ejerce — ver [DOC-012 § "Nomenclatura"](DOC-012-administrador-patrimonial.md)), el único
+quien lo ejerce — ver [DOC-012 "Nomenclatura"](DOC-012-administrador-patrimonial.md)), el único
 autorizado a modificar oficialmente la Base Patrimonial
 (incorporar/eliminar activos, modificar responsables/áreas, actualizar estados oficiales,
 importar bases contables). Ninguna otra entrada (APP QR, Plataforma WEB, RFID) puede hacerlo
-directamente — ver [ARQUITECTURA-WAF.md §11](../ARQUITECTURA-WAF.md#11-entradas-y-salidas-oficiales-del-ecosistema-tomo-iii-cap1)
+directamente — ver [ARQUITECTURA-WAF.md 11](../ARQUITECTURA-WAF.md#11-entradas-y-salidas-oficiales-del-ecosistema-tomo-iii-cap1)
 para la matriz completa de permisos por entrada. Diseño completo en
 [DOC-012](DOC-012-administrador-patrimonial.md). **Ya implementado, las 3 operaciones que Tomo
-III §1.4 le exige**: rol de Proyecto en Zitadel, claim
+III 1.4 le exige**: rol de Proyecto en Zitadel, claim
 `urn:zitadel:iam:org:project:roles` leído por `ZitadelAuthGuard` en CIS y reenviado como
 `rolesPorOrganizacion` (nunca una lista plana sin organización — corrige un hallazgo real de
 revisión de seguridad), autorización verificada en CORE por organización dentro de
@@ -60,7 +60,7 @@ contraseña, protección de APIs, logs de acceso.
 ## Depende de
 Más datos reales de Base Patrimonial (hoy solo un caso precargado) y mapeo operador→organización
 (membership real de Zitadel) para que `GET /entitlements` deje de devolver el mismo resultado a
-cualquier operador — ver DOC-004 §7.
+cualquier operador — ver DOC-004 7.
 
 ## Bloquea
 CIS (validar `sedeId`/contrato vigente en cada request — ver ADR-002), CORE (autorización), WEB
@@ -72,9 +72,9 @@ Organización→Contrato→Sede, flujo de login).
 [`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md)
 (modelo de `Contrato` — entidades, estados, invariantes, cómo lo consume CIS).
 [DOC-012](DOC-012-administrador-patrimonial.md) — diseño del rol Administrador Patrimonial y el
-camino de escritura oficial (Fase 4 del ROADMAP), items 1/3/4/5 implementados, ver § "Estado" de
+camino de escritura oficial (Fase 4 del ROADMAP), items 1/3/4/5 implementados, ver "Estado" de
 este documento.
-Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) §3 (cero confianza entre niveles, permisos
+Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 3 (cero confianza entre niveles, permisos
 mínimos necesarios, segregación por organización/área validada en el CORE, no solo en el cliente
 — ahora extendida a sede/contrato).
 

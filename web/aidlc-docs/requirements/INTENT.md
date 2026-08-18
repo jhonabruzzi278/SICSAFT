@@ -12,7 +12,7 @@ por delante en `ROADMAP.md`.
 - **Por qué ahora**: pedido explícito — tener la dirección visual y el contrato de módulos
   definidos de antemano evita improvisar decisiones de UX cuando llegue el momento de construir,
   y permite que Fase 2/3/4 se diseñen ya sabiendo qué forma de datos va a necesitar consumir WEB.
-- **Por qué no se construye ahora**: `web/README.md` § Depende de es explícito — "CORE (MVP de
+- **Por qué no se construye ahora**: `web/README.md` Depende de es explícito — "CORE (MVP de
   inventarios) y CIS (autenticación real)". Ninguno de los dos existe todavía (Fase 2/3 sin
   construir). Construir WEB antes sería código sin nada real contra qué correr.
 
@@ -29,6 +29,6 @@ por delante en `ROADMAP.md`.
 
 ## Fuente de verdad
 
-`ROADMAP.md` Fase 5, `web/README.md`, `ARQUITECTURA-WAF.md` §8, `ADR-002` (flujo de login,
+`ROADMAP.md` Fase 5, `web/README.md`, `ARQUITECTURA-WAF.md` 8, `ADR-002` (flujo de login,
 Organización→Contrato→Sede), `BRAND.md` (paleta oficial), `DOC-006` (contrato de datos que CIS ya
 expone y que WEB también va a consumir).

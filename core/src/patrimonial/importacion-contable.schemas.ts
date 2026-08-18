@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { escrituraOficialSchema } from './activo.schemas';
 
-// DOC-012 §6 — misma forma de fila que altaActivoSchema, sin organizacionId/campos de escritura
+// DOC-012 6 — misma forma de fila que altaActivoSchema, sin organizacionId/campos de escritura
 // oficial repetidos por fila (esos son del request completo, ver escrituraOficialSchema).
 const filaImportacionSchema = z.object({
   codigoPatrimonial: z.string().min(1),

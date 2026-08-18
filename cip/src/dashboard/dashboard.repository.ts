@@ -14,7 +14,7 @@ import type {
   VeredictoSesionResponse,
 } from './dashboard.types';
 
-// DOC-018 §6 — lecturas contra las tablas de agregados. Nunca contra la Base Patrimonial
+// DOC-018 6 — lecturas contra las tablas de agregados. Nunca contra la Base Patrimonial
 // transaccional (RNF-01) — este repositorio ni siquiera podria: solo tiene el pool de la base
 // `cip`.
 @Injectable()

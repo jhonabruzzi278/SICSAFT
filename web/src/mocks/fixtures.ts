@@ -22,6 +22,6 @@ export const MOCK_CATALOGO: ActivoCatalogo[] = [
   },
 ];
 
-// DOC-019 §4 — solo para verificación manual en el navegador (VITE_MOCK_API), no consumido por
+// DOC-019 4 — solo para verificación manual en el navegador (VITE_MOCK_API), no consumido por
 // el e2e de Playwright existente (login-alta.spec.js no toca /dashboard).
 export const MOCK_SYNC = { actualizadoEn: '2026-08-18T10:00:00.000Z', alDia: true };

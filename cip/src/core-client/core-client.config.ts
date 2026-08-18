@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// CIP como cliente de CORE (DOC-018 §3) — mismo secreto compartido que ya usa CIS
+// CIP como cliente de CORE (DOC-018 3) — mismo secreto compartido que ya usa CIS
 // (cis/src/core-client/core-client.config.ts), CIP es un segundo consumidor del mismo contrato
 // servicio-a-servicio. `CORE_URL` apunta al servicio `core` dentro de la red de contenedores
 // (ver devops/local/docker-compose.yml).

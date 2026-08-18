@@ -3,7 +3,7 @@
 **Sistema:** SICSAFT CORE (SYS-03) — `core/`
 **Ciclo:** ROADMAP.md Fase 2 — "CORE MVP: Orquestador + 4 motores de lectura"
 **Metodología:** AI-DLC (mismo patrón que `app-qr-sicsaft/aidlc-docs/`, primer sistema backend
-que lo adopta — ver `CLAUDE.md` § Documentación)
+que lo adopta — ver `CLAUDE.md` Documentación)
 **Fecha:** 2026-08-13
 **Fase actual:** Construction completa — código real implementado y verificado sobre este diseño.
 
@@ -14,7 +14,7 @@ que lo adopta — ver `CLAUDE.md` § Documentación)
 - [x] Construction — implementado: Orquestador, Motor Patrimonial (`GET /catalogo`), Motor de
       Reglas (`clasificarEscaneo`), Motor de Eventos, Motor de Auditoría, `POST /inventarios` +
       `GET /inventarios/:id/estado` idempotentes. 96 tests (100% stmts/lines/funcs), e2e contra
-      Postgres real, verificado en `docker build`/`docker run` real. Ver `core/README.md` § Estado.
+      Postgres real, verificado en `docker build`/`docker run` real. Ver `core/README.md` Estado.
 - [ ] Operations — pendiente (sin deploy real todavía, ver `devops/README.md`).
 
 ## Por qué este directorio existe
@@ -50,14 +50,14 @@ el DOC-XXX correspondiente (DOC-012) se documentó en
 [`seguridad/DOC-012-administrador-patrimonial.md`](../../seguridad/DOC-012-administrador-patrimonial.md),
 no en `core/aidlc-docs/`, siguiendo el mismo criterio que ya usa `base-patrimonial/DOC-004`/
 `DOC-005` (el dominio del documento determina dónde vive, no dónde termina el código). Ver
-`core/README.md` § Estado para el resumen de qué de DOC-012 ya está implementado acá.
+`core/README.md` Estado para el resumen de qué de DOC-012 ya está implementado acá.
 
 ## Notas del análisis
 
-- Estos DOC-XXX ya estaban *citados* como pendientes en `core/README.md` § "Documentos
+- Estos DOC-XXX ya estaban *citados* como pendientes en `core/README.md` "Documentos
   relacionados" desde la Fase 0 — este directorio les da contenido real, no cambia su numeración.
 - El diseño reutiliza sin reinterpretar: el vocabulario de las 8 categorías de escaneo
-  (`base-patrimonial/DOC-005-modelo-patrimonial.md` §5) y la lógica hoy vive del lado del cliente
+  (`base-patrimonial/DOC-005-modelo-patrimonial.md` 5) y la lógica hoy vive del lado del cliente
   en `app-qr-sicsaft/src/lib/scan-resolve.ts` — este diseño es, en gran parte, la especificación
   de mover esa lógica a CORE sin cambiarle el comportamiento observable.
 - El contrato de API (DOC-006) no inventa formas nuevas: se diseñó para que

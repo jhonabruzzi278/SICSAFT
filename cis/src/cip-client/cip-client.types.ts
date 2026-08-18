@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// DOC-019 §3.1 — copia local de las formas de respuesta de cip/src/dashboard/dashboard.types.ts.
+// DOC-019 3.1 — copia local de las formas de respuesta de cip/src/dashboard/dashboard.types.ts.
 // Sin paquete compartido entre CIS y CIP todavía (mismo caso ya aceptado para CIS/CORE en
 // core-client.types.ts).
 

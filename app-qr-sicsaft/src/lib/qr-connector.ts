@@ -72,7 +72,7 @@ export interface QrConnectorClient {
   getInventarioEstado(inventarioId: string): Promise<InventarioEstado>;
 }
 
-// DOC-002 §5: 400 (payload rechazado, ej. organización inexistente) y 409 (idempotencyKey
+// DOC-002 5: 400 (payload rechazado, ej. organización inexistente) y 409 (idempotencyKey
 // reutilizada con payload distinto) son rechazos permanentes — nunca hay que reintentarlos. Se
 // distinguen de una falla transitoria (5xx/red) con un tipo de error propio para que
 // sync-queue.ts (TASK-008) sepa cuándo dejar de insistir (`SyncStatus.rejected`) en vez de
@@ -92,7 +92,7 @@ interface ErrorBody {
   errores?: Array<{ campo: string; detalle: string } | string>;
 }
 
-// Forma real de CORE (DOC-006 §3, `ScanResultado` en core/src/reglas/reglas.types.ts) — distinta
+// Forma real de CORE (DOC-006 3, `ScanResultado` en core/src/reglas/reglas.types.ts) — distinta
 // de `ScanCategory` (nombres/idioma internos de la app, ver db.ts). `postInventario` traduce una
 // a la otra; nunca se manda `ScanCategory` tal cual por la red.
 type ScanResultado =
@@ -115,10 +115,10 @@ const CATEGORY_TO_RESULTADO: Record<ScanCategory, ScanResultado> = {
   duplicate: 'duplicado',
 };
 
-// DOC-006 §3 (`InventarioRequest`) — nombres de campo en español, distintos de `InventarioPayload`
+// DOC-006 3 (`InventarioRequest`) — nombres de campo en español, distintos de `InventarioPayload`
 // (forma interna de la app, `ScanSession` en db.ts). `correlationId` ya es estable por sesión
 // (generado al iniciar el inventario, ver db.ts) y sirve también como `idempotencyKey`: nunca
-// cambia entre reintentos de la misma sesión, que es exactamente lo que DOC-002 §4 exige.
+// cambia entre reintentos de la misma sesión, que es exactamente lo que DOC-002 4 exige.
 function toInventarioRequest(session: InventarioPayload): Record<string, unknown> {
   return {
     correlationId: session.correlationId,
@@ -129,7 +129,7 @@ function toInventarioRequest(session: InventarioPayload): Record<string, unknown
     ubicacionId: session.locationId,
     fechaInicio: session.startedAt,
     fechaCierre: session.date,
-    // Fase 3.1/DOC-017 §3, DOC-012 §5.1 — ambos opcionales, ninguno modifica la Base Patrimonial
+    // Fase 3.1/DOC-017 3, DOC-012 5.1 — ambos opcionales, ninguno modifica la Base Patrimonial
     // directo: `estadoDeclarado` es una transicion best-effort que CORE aplica sin rol, y
     // `bajaSugerida` es puramente informativo (lo ejecuta el Administrador Patrimonial).
     escaneos: session.items.map((item) => ({

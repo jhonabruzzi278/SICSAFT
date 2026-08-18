@@ -29,10 +29,10 @@ import type {
   ActualizarUbicacionBody,
 } from './administrador.schemas';
 
-// DOC-012 §5 (Fase 4/5) — puente WEB->CIS->CORE para la escritura oficial de Activo. WEB nunca
+// DOC-012 5 (Fase 4/5) — puente WEB->CIS->CORE para la escritura oficial de Activo. WEB nunca
 // le habla a CORE directo (regla no negociable de CLAUDE.md) — este servicio traduce el contexto
 // ya autenticado por Zitadel (ZitadelAuthGuard) al contrato de escritura oficial que CORE espera
-// (DOC-012 §3.3).
+// (DOC-012 3.3).
 @Injectable()
 export class AdministradorService {
   constructor(
@@ -59,7 +59,7 @@ export class AdministradorService {
     );
   }
 
-  // DOC-012 §4 — lectura abierta, no necesita traducir rolesPorOrganizacion (CORE no exige rol
+  // DOC-012 4 — lectura abierta, no necesita traducir rolesPorOrganizacion (CORE no exige rol
   // para GET /contratos, mismo criterio que GET /catalogo). Paginado (RNF-01, cierra el gap).
   getContratos(
     paginacion: Paginacion,

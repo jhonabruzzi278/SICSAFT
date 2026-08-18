@@ -7,10 +7,10 @@ import type {
   NuevoContratoInput,
 } from './contrato.types';
 
-// DOC-012 §7 — escritura de Contrato (hoy ContratoRepository solo leia). Invocado por
+// DOC-012 7 — escritura de Contrato (hoy ContratoRepository solo leia). Invocado por
 // OrquestadorService, no directo desde el controller (mismo criterio que EscrituraActivoService)
 // — la autorizacion de rol vive en el Orquestador, no acá. La validacion de transiciones validas
-// (DOC-004 §3) vive en ContratoRepository.actualizarEstado, mismo lugar que valida el invariante
+// (DOC-004 3) vive en ContratoRepository.actualizarEstado, mismo lugar que valida el invariante
 // de sedes (cruza contra el estado real en la misma transaccion lógica que la lectura).
 @Injectable()
 export class EscrituraContratoService {

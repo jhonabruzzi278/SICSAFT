@@ -5,7 +5,7 @@ import type { MigrationBuilder } from 'node-pg-migrate';
 // mecanismo que la migracion 1755000000000 (DOC-004/Contrato) — node-pg-migrate, up/down reales.
 
 export async function up(pgm: MigrationBuilder): Promise<void> {
-  // Area y Responsable se referencian mutuamente (DOC-005 §2, "por que Area/Responsable no
+  // Area y Responsable se referencian mutuamente (DOC-005 2, "por que Area/Responsable no
   // tienen ciclo estricto de creacion") — se crean sin esas dos columnas primero, se agregan
   // por ALTER una vez que ambas tablas (y Ubicacion, para ubicacion_principal_id) existen.
   pgm.createTable('areas', {
@@ -46,7 +46,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     },
   });
 
-  // Cierra el ciclo Area <-> Responsable/Ubicacion (DOC-005 §2) — ambas nullable, sin
+  // Cierra el ciclo Area <-> Responsable/Ubicacion (DOC-005 2) — ambas nullable, sin
   // constraint de aplicacion todavia (queda para el Motor Patrimonial, Fase 2).
   pgm.addColumns('areas', {
     responsable_id: { type: 'text', references: 'responsables' },
@@ -67,8 +67,8 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       notNull: true,
       check: "criticidad IN ('baja', 'media', 'alta')",
     },
-    // DOC-005 §2: hoy solo 'qr' tiene datos reales — 'rfid'/'qr_rfid' reservados sin
-    // implementar (Etapa 1 del roadmap tecnologico, Tomo III §1.2).
+    // DOC-005 2: hoy solo 'qr' tiene datos reales — 'rfid'/'qr_rfid' reservados sin
+    // implementar (Etapa 1 del roadmap tecnologico, Tomo III 1.2).
     tecnologia_identificacion: {
       type: 'text',
       notNull: true,
@@ -92,7 +92,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       references: 'catalogo_activos',
     },
     serie: { type: 'text' },
-    // DOC-005 §4 — 'en_mantenimiento' deliberadamente fuera (Tomo III §4.15 lo marca "modulo
+    // DOC-005 4 — 'en_mantenimiento' deliberadamente fuera (Tomo III 4.15 lo marca "modulo
     // futuro").
     estado: {
       type: 'text',
@@ -126,7 +126,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       notNull: true,
       check: "metodo IN ('qr', 'rfid', 'web')",
     },
-    // DOC-005 §5 — las 8 categorias que hoy resuelve app-qr-sicsaft/src/lib/scan-resolve.ts del
+    // DOC-005 5 — las 8 categorias que hoy resuelve app-qr-sicsaft/src/lib/scan-resolve.ts del
     // lado del cliente, migran a CORE en la Fase 2/3 del ROADMAP.
     resultado: {
       type: 'text',
@@ -141,7 +141,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable('eventos', {
     id: { type: 'text', primaryKey: true },
     activo_id: { type: 'text', notNull: true, references: 'activos' },
-    // DOC-005 §6, vocabulario de Tomo III §4.7.
+    // DOC-005 6, vocabulario de Tomo III 4.7.
     tipo: {
       type: 'text',
       notNull: true,
@@ -159,7 +159,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createIndex('eventos', 'activo_id');
   pgm.createIndex('eventos', 'tipo');
 
-  // DOC-005 §7 — sin FK a activos a proposito: audita cualquier operacion del ecosistema, no
+  // DOC-005 7 — sin FK a activos a proposito: audita cualquier operacion del ecosistema, no
   // solo las que tocan un activo.
   pgm.createTable('auditoria', {
     id: { type: 'text', primaryKey: true },

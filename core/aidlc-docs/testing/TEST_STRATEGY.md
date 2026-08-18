@@ -5,7 +5,7 @@ Mismo patrón que ya usa `core/src/entitlements/` (Fase 0) — sin relajar el um
 
 ## Unit tests
 
-- `clasificarEscaneo` (DOC-009): las 8 categorías + el orden de precedencia de §3 (ej.
+- `clasificarEscaneo` (DOC-009): las 8 categorías + el orden de precedencia de 3 (ej.
   `ya_escaneado` gana sobre `duplicado`), tabla de casos uno por rama del árbol de decisión.
 - `ActivoRepository`, `EventoRepository`, `AuditoriaRepository`: mockeando `pg.Pool`, mismo
   patrón que `contrato.repository.spec.ts`.
@@ -25,8 +25,8 @@ Mismo patrón que ya usa `core/src/entitlements/` (Fase 0) — sin relajar el um
 
 ## Contract test CIS↔CORE (pendiente de decidir herramienta — no bloquea esta fase)
 
-`ARQUITECTURA-WAF.md` §2 ya menciona "contract tests CIS↔CORE" como parte de la pirámide de
-testing del ecosistema, sin herramienta elegida (`devops/README.md` § Estrategia de testing). No
+`ARQUITECTURA-WAF.md` 2 ya menciona "contract tests CIS↔CORE" como parte de la pirámide de
+testing del ecosistema, sin herramienta elegida (`devops/README.md` Estrategia de testing). No
 se resuelve en Fase 2 — los e2e de CIS contra un CORE real en Docker (ya existentes desde Fase 0,
 `docker network` + `docker exec`) cubren el caso mientras tanto.
 

@@ -14,7 +14,7 @@ export interface CategoriaResumenFila {
   cantidad: number;
 }
 
-// DOC-018 §5 — escrituras del worker de agregacion. Cada metodo es deliberadamente una operacion
+// DOC-018 5 — escrituras del worker de agregacion. Cada metodo es deliberadamente una operacion
 // chica y con nombre propio (no una unica clase "AgregacionRepository.guardarTodo") para que el
 // AgregacionService (que orquesta el orden por tipo de mensaje) quede legible.
 @Injectable()
@@ -62,7 +62,7 @@ export class AgregacionRepository {
     );
   }
 
-  // DOC-018 §5.1 punto 4 — conteo incremental: un codigoQr ya visto no se vuelve a contar.
+  // DOC-018 5.1 punto 4 — conteo incremental: un codigoQr ya visto no se vuelve a contar.
   async marcarEscaneadosAlgunaVez(
     organizacionId: string,
     codigosQr: readonly string[],
@@ -80,7 +80,7 @@ export class AgregacionRepository {
 
   // Recalcula cobertura_organizacion completa — activosEscaneados sale de
   // activo_escaneado_alguna_vez (ya actualizada por marcarEscaneadosAlgunaVez si corresponde),
-  // activosRegistrados lo trae el llamador (ya tiene el catalogo completo en memoria, DOC-018 §5).
+  // activosRegistrados lo trae el llamador (ya tiene el catalogo completo en memoria, DOC-018 5).
   async recalcularCobertura(
     organizacionId: string,
     activosRegistrados: number,
@@ -151,7 +151,7 @@ export class AgregacionRepository {
     );
   }
 
-  // DELETE+INSERT completo por organizacion — DOC-018 §4 "nota de diseño": se autocorrige ante un
+  // DELETE+INSERT completo por organizacion — DOC-018 4 "nota de diseño": se autocorrige ante un
   // evento perdido/duplicado, no arrastra contadores desincronizados.
   async reemplazarEstadoActivoResumen(
     organizacionId: string,
@@ -247,7 +247,7 @@ export class AgregacionRepository {
     };
   }
 
-  // ARCHITECTURE.md §7 / DOC-018 §5.4 — solo lo marca el watcher (eventos-outbox.worker.ts no lo
+  // ARCHITECTURE.md 7 / DOC-018 5.4 — solo lo marca el watcher (eventos-outbox.worker.ts no lo
   // llama, solo confirma "al_dia = true" en cada mensaje procesado con exito).
   async marcarAtrasado(): Promise<void> {
     await this.pool.query(

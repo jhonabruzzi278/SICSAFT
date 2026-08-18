@@ -160,7 +160,7 @@ describe('InventariosService', () => {
     });
   });
 
-  describe('procesar — estado operativo declarado (Fase 3.1/DOC-012 §5.1)', () => {
+  describe('procesar — estado operativo declarado (Fase 3.1/DOC-012 5.1)', () => {
     it('aplica la transicion de estado sin requerir rol, sin evento para "activo"', async () => {
       const { service, sesionRepository, activoRepository, eventoRepository } =
         buildService();
@@ -189,7 +189,7 @@ describe('InventariosService', () => {
         ['activo', 'mantenimiento', 'inactivo'],
         'activo',
       );
-      // Solo el evento escaneo_qr — "activo" no genera evento propio (§ inventarios.service.ts).
+      // Solo el evento escaneo_qr — "activo" no genera evento propio (inventarios.service.ts).
       expect(eventoRepository.registrar).toHaveBeenCalledTimes(1);
     });
 

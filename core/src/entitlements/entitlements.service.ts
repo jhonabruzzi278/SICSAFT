@@ -7,7 +7,7 @@ import type { EntitlementsResponse, Organizacion } from './entitlements.types';
 export class EntitlementsService {
   constructor(private readonly contratoRepository: ContratoRepository) {}
 
-  // TODO(DOC-004 §7): sin mapeo operador->organizacion todavia (requiere membership real de
+  // TODO(DOC-004 7): sin mapeo operador->organizacion todavia (requiere membership real de
   // Zitadel) — cualquier operadorId ve las mismas organizaciones con contrato vigente.
   // `operadorId` se recibe y valida igual porque el contrato de la API ya lo exige (ver
   // core/README.md), queda listo para filtrar en cuanto exista esa fuente de datos.

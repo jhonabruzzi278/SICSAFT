@@ -32,7 +32,7 @@ import type { Responsable } from './responsable.types';
 // RF-05 (Fase 5) — escritura oficial de Area/Ubicacion/Responsable, mismo criterio que
 // ActivoEscrituraController: solo ServiceTokenGuard acá, la autorizacion de rol
 // (verificarRolAdministradorPatrimonial) se resuelve dentro de OrquestadorService, para que un
-// 403 por falta de rol tambien quede auditado (DOC-012 §8).
+// 403 por falta de rol tambien quede auditado (DOC-012 8).
 @Controller()
 @UseGuards(ServiceTokenGuard)
 export class EstructuraEscrituraController {
