@@ -189,6 +189,13 @@ sin cambios de código en CIS, ver DOC-020 §3):
 4. Login desde `web/` con ese usuario → debería aterrizar directo en `/dashboard?organizacionId=...`
    sin pasar por el hub de tarjetas.
 
+**Verificado real de punta a punta el 2026-08-18** con tres usuarios de prueba en "DUOC UC"
+(`directivo-test@sicsaft.localhost`, `mixto-test@sicsaft.localhost` con ambos roles, y el
+`admin-patrimonial@sicsaft.localhost` ya existente) — confirma los 3 casos de DOC-020 §5, ver la
+tabla en el encabezado de [DOC-020](../../web/aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md).
+Nota: si `web` corría desde antes de este incremento, hace falta `docker compose build web` — la
+imagen no se reconstruye sola al mergear código nuevo.
+
 ## Otros puntos ya resueltos
 - **`core` ya está en el compose** (esqueleto NestJS, `GET /`/`GET /health` + `GET /entitlements`
   real ya consumido por `cis`, sin router de Traefik a propósito — solo lo consume `cis` dentro

@@ -7,17 +7,20 @@ estáticas) — la única autorización real que existe es el rol `administrador
 nombre en `web/README.md` § "Roles previstos" y como decisión diferida en
 [DOC-019](DOC-019-dashboard-cip-frontend.md) §2/§7 — este documento la resuelve.
 
-> **Estado: implementado y verificado real de punta a punta (2026-08-18)** — `tieneRol()`/
-> `esDirectivo()` en `oidc-client.ts` + bifurcación en `HubPage.tsx` (redirect directo, hub
-> reducido, caso mixto) con código funcionando. Verificado en el navegador (modo mock) para los 3
-> casos de §5, y además contra Docker/Zitadel reales: rol `directivo` creado en el proyecto CIS
-> (Console de Zitadel), usuario de prueba `directivo-test@sicsaft.localhost` autorizado con ese rol
-> (sin `administrador-patrimonial`), login real (authorization code + PKCE) → JWT con el claim
-> `directivo` → `HubPage` redirige automáticamente a `/dashboard?organizacionId=duoc-uc` sin pasar
-> por el hub, y cualquier intento de volver a `/` redirige de nuevo. Encontró y corrigió un
-> problema real: el contenedor `web` corría con una imagen construida antes de este incremento
-> (sin `esDirectivo` en el bundle) — hubo que reconstruirla (`docker compose build web`) antes de
-> poder verificar.
+> **Estado: implementado y verificado real de punta a punta, los 3 casos de §5 (2026-08-18)** —
+> `tieneRol()`/`esDirectivo()` en `oidc-client.ts` + bifurcación en `HubPage.tsx` (redirect directo,
+> hub reducido, caso mixto) con código funcionando. Verificado en el navegador (modo mock) y además
+> con logins reales contra Zitadel (rol `directivo` creado en el proyecto CIS, Console de Zitadel):
+>
+> | Usuario de prueba | Roles Zitadel | Resultado real |
+> |---|---|---|
+> | `directivo-test@sicsaft.localhost` | `directivo` | Redirect automático a `/dashboard?organizacionId=duoc-uc`, sin pasar por el hub — y cualquier intento de volver a `/` redirige de nuevo (JWT confirmado con el claim `directivo` únicamente) |
+> | `mixto-test@sicsaft.localhost` | `directivo` + `administrador-patrimonial` | Hub operativo completo (5 tarjetas) — gana la vista operativa, como especifica §5 (JWT confirmado con ambos claims) |
+> | `admin-patrimonial@sicsaft.localhost` (usuario ya existente de Fase 5) | `administrador-patrimonial` | Hub operativo completo, sin cambios de comportamiento respecto a antes de este incremento |
+>
+> Encontró y corrigió un problema real en el camino: el contenedor `web` corría con una imagen
+> construida antes de este incremento (sin `esDirectivo` en el bundle) — hubo que reconstruirla
+> (`docker compose build web`) antes de poder verificar el primer caso.
 
 ## 0. Punto de partida: qué NO está definido en ningún tomo
 
