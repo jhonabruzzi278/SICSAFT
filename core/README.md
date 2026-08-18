@@ -40,7 +40,12 @@ logging estructurado que lo use (WAF §2, pendiente).
   `src/orquestador/` + `src/inventarios/` + `src/reglas/` + `src/eventos/`) — clasifica cada
   escaneo contra la Base Patrimonial real en una de las 8 categorías (DOC-009), idempotente
   (`sesiones_inventario`, migración `1755200000000`), auditado siempre — éxito o rechazo — por
-  el Motor de Auditoría (`src/auditoria/`).
+  el Motor de Auditoría (`src/auditoria/`). **Fase 3.1**: acepta además `estadoDeclarado`
+  (`activo`/`mantenimiento`/`inactivo`, best-effort, sin rol — Tomo III §1.4) y `bajaSugerida`
+  (evento informativo, nunca cambia `Activo.estado`) por escaneo — migración
+  `1755400000000-estados-mantenimiento-inactivo`, ver
+  `app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md` y
+  `seguridad/DOC-012-administrador-patrimonial.md` §5.1.
 - `GET /inventarios/:id/estado`.
 
 Verificado igual que el resto del sistema: unit (100% stmts/lines/funcs, 90%+ branches), e2e

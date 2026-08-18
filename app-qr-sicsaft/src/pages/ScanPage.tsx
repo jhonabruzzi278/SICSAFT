@@ -20,7 +20,7 @@ import { OrganizationPicker } from '@/components/OrganizationPicker';
 import { AreaLocationPicker } from '@/components/AreaLocationPicker';
 import { IncidentDialog } from '@/components/IncidentDialog';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
-import type { ScannedSessionItem } from '@/lib/db';
+import type { EstadoOperativoDeclarable, ScannedSessionItem } from '@/lib/db';
 import {
   qrConnector,
   buildOrganizationTree,
@@ -34,6 +34,8 @@ import { downloadCsv } from '@/lib/csv-export';
 import { oidcClient, AuthenticationRequiredError } from '@/lib/oidc/oidc-client';
 import { getOrCreateDeviceId } from '@/lib/device-id';
 import { logAuditEvent } from '@/lib/audit-log';
+import { calcularVeredicto, VERDICT_LABEL } from '@/lib/verdict';
+import { getScanMode, setScanMode, SCAN_MODE_OPTIONS, type ScanMode } from '@/lib/scan-mode';
 import type { Organization, OrgArea, OrgLocation } from '@/lib/organizations-data';
 
 type View = 'operator' | 'organization' | 'area-location' | 'home' | 'scanning' | 'report';
@@ -57,6 +59,8 @@ export function ScanPage() {
   const [scanned, setScanned] = useState<Map<string, ScannedItem>>(new Map());
   const [manualCode, setManualCode] = useState('');
   const [incidentTarget, setIncidentTarget] = useState<string | null>(null);
+  const [bajaTarget, setBajaTarget] = useState<string | null>(null);
+  const [scanMode, setScanModeState] = useState<ScanMode>(() => getScanMode());
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const { canInstall, showIosHint, promptInstall } = useInstallPrompt();
@@ -240,6 +244,32 @@ export function ScanPage() {
     });
   }
 
+  // Fase 3.1/DOC-017 §3, DOC-012 §5.1 — declarable sin rol administrador-patrimonial.
+  function handleDeclareEstado(code: string, estado: EstadoOperativoDeclarable) {
+    setScanned((prev) => {
+      const item = prev.get(code);
+      if (!item) return prev;
+      return new Map(prev).set(code, { ...item, estadoDeclarado: estado });
+    });
+  }
+
+  // Solo guarda el motivo — nunca ejecuta la baja (la ejecuta el Administrador Patrimonial desde
+  // WEB tras revisar, ver DOC-012 §5.1).
+  function handleSaveBaja(motivo: string) {
+    if (!bajaTarget) return;
+    setScanned((prev) => {
+      const item = prev.get(bajaTarget);
+      if (!item) return prev;
+      return new Map(prev).set(bajaTarget, { ...item, bajaSugerida: motivo });
+    });
+    setBajaTarget(null);
+  }
+
+  function handleScanModeChange(mode: ScanMode) {
+    setScanMode(mode);
+    setScanModeState(mode);
+  }
+
   function startScanning() {
     if (!operatorName || !organization || !area || !location) return;
     setStartingScan(true);
@@ -287,15 +317,21 @@ export function ScanPage() {
     setSending(true);
     const items = Array.from(scanned.values());
     const sessionItems: ScannedSessionItem[] = items.map(
-      ({ code, name, category, incidentNote, outOfPlace, externalFind }) => ({
+      ({ code, name, category, incidentNote, outOfPlace, externalFind, estadoDeclarado, bajaSugerida }) => ({
         code,
         name,
         category,
         incidentNote,
         outOfPlace,
         externalFind,
+        estadoDeclarado,
+        bajaSugerida,
       }),
     );
+    const missingCount = missingAssets.length;
+    const outOfPlaceTotal =
+      items.filter((i) => i.category === 'wrong-area').length +
+      items.filter((i) => i.category === 'wrong-location').length;
     try {
       await submitInventario({
         operatorName,
@@ -314,6 +350,8 @@ export function ScanPage() {
         unregistered: items.filter((i) => i.category === 'unregistered').length,
         invalid: invalidAttemptsRef.current,
         incidents: items.filter((i) => i.incidentNote).length,
+        missing: missingCount,
+        verdict: calcularVeredicto(missingCount, outOfPlaceTotal),
         items: sessionItems,
         correlationId: correlationIdRef.current,
       });
@@ -333,6 +371,7 @@ export function ScanPage() {
     invalidAttemptsRef.current = 0;
     setScanned(new Map());
     setIncidentTarget(null);
+    setBajaTarget(null);
     setSending(false);
     setSent(false);
     setView('home');
@@ -360,6 +399,18 @@ export function ScanPage() {
   const expectedAssets = catalogRef.current.filter((a) => a.areaId === area?.id && a.ubicacionId === location?.id);
   const missingAssets = expectedAssets.filter((a) => !scannedCodesRef.current.has(a.codigoQr));
   const externalFindCount = items.filter((i) => i.category === 'unregistered' && i.externalFind).length;
+  // Fase 3.1/DOC-017 §2 y §4.
+  const verdict = calcularVeredicto(missingAssets.length, outOfPlaceCount);
+  const outOfAreaByArea = new Map<string, ScannedItem[]>();
+  items
+    .filter((i) => i.category === 'wrong-area')
+    .forEach((item) => {
+      const key = item.expectedAreaName ?? 'Área desconocida';
+      const grupo = outOfAreaByArea.get(key) ?? [];
+      grupo.push(item);
+      outOfAreaByArea.set(key, grupo);
+    });
+  const bajaItem = bajaTarget ? scanned.get(bajaTarget) : undefined;
 
   if (view === 'operator') {
     return <OperatorGate />;
@@ -401,6 +452,29 @@ export function ScanPage() {
               <PencilIcon />
               Cambiar
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-sm">Modo</CardTitle>
+            <CardDescription>Qué sistemas están disponibles para este control</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2" data-testid="scan-mode-selector">
+            {SCAN_MODE_OPTIONS.map((opt) => (
+              <Button
+                key={opt.value}
+                type="button"
+                variant={scanMode === opt.value ? 'default' : 'outline'}
+                size="sm"
+                disabled={opt.disabled}
+                title={opt.description}
+                onClick={() => handleScanModeChange(opt.value)}
+                data-testid={`scan-mode-${opt.value}`}
+              >
+                {opt.label}
+              </Button>
+            ))}
           </CardContent>
         </Card>
 
@@ -483,6 +557,8 @@ export function ScanPage() {
               onExternalFind={handleExternalFind}
               onDiscard={handleDiscard}
               onAddIncident={setIncidentTarget}
+              onDeclareEstado={handleDeclareEstado}
+              onSuggestBaja={setBajaTarget}
             />
           </CardContent>
         </Card>
@@ -513,12 +589,42 @@ export function ScanPage() {
           }}
           onSave={handleSaveIncident}
         />
+
+        <IncidentDialog
+          open={bajaTarget !== null}
+          itemCode={bajaTarget ?? ''}
+          itemName={bajaItem?.name ?? ''}
+          initialNote={bajaItem?.bajaSugerida}
+          onOpenChange={(open) => {
+            if (!open) setBajaTarget(null);
+          }}
+          onSave={handleSaveBaja}
+          title="Sugerir baja"
+          fieldLabel="Motivo de la baja sugerida"
+          placeholder="Ej. pantalla rota, no enciende, irreparable..."
+          saveLabel="Guardar sugerencia"
+          testIdPrefix="baja-sugerida"
+        />
       </div>
     );
   }
 
   return (
     <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+      <Card className="md:col-span-3 lg:col-span-4">
+        <CardContent className="flex items-center justify-between pt-6">
+          <div>
+            <p className="text-sm text-muted-foreground">Resultado del control</p>
+            <p
+              className="text-2xl font-bold"
+              data-testid="report-verdict"
+              data-verdict={verdict}
+            >
+              {VERDICT_LABEL[verdict]}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardContent className="pt-6 text-center">
           <p className="text-3xl font-bold" data-testid="report-total">
@@ -616,6 +722,32 @@ export function ScanPage() {
               {missingAssets.map((asset) => (
                 <li key={asset.codigoQr} className="text-warning">
                   {asset.codigoQr} – {asset.nombre}
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="md:col-span-3 lg:col-span-4">
+        <CardHeader>
+          <CardTitle className="text-sm">AFT que no corresponden a esta área</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {outOfAreaByArea.size === 0 ? (
+            <p className="text-sm text-muted-foreground">Ninguno</p>
+          ) : (
+            <ul className="space-y-2 text-sm" data-testid="report-out-of-area-list">
+              {Array.from(outOfAreaByArea.entries()).map(([areaName, grupo]) => (
+                <li key={areaName}>
+                  <span className="font-semibold">{areaName}</span>
+                  <ul className="ml-4 space-y-0.5">
+                    {grupo.map((item) => (
+                      <li key={item.code} className="text-warning">
+                        {item.code} – {item.name}
+                      </li>
+                    ))}
+                  </ul>
                 </li>
               ))}
             </ul>

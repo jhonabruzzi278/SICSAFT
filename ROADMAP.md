@@ -55,6 +55,33 @@ y no hay forma de llenarla**. Todo lo demás (motores, WEB, CIP, TASK-007) depen
 fases están ordenadas para que cada una entregue algo verificable de punta a punta, no para
 completar documentos.
 
+## Fuente nueva: spec funcional de flujo por pantallas (pptx, 2026-08-17)
+
+`PROCESO MODULAR DE APLICACION SICSAFT, SOFTWARE.ppt` (fuera de git, igual que los tomos
+oficiales — citado por nombre de archivo, no versionado) describe el flujo pantalla-a-pantalla de
+los 3 modos de producto (Modo 1: QR, Modo 2: QR+WEB, Modo 3: QR+WEB+RFID) y el comportamiento
+esperado de "SICSAFT CORE"/"programa master". Comparado contra el código real (auditoría completa
+2026-08-17), confirma que el flujo base de Modo 1 (escanear → clasificar → confirmar → enviar →
+CORE → auditoría) ya está construido (Fase 3), pero agrega **cuatro brechas nuevas** no
+registradas hasta ahora en este roadmap — se anotan en la fase que les corresponde por
+dependencia, no como fase aparte:
+
+1. Selector de modo 1/2/3 y declaración de resultado de sesión (EXITOSO/ACEPTABLE/DEFECTUOSO) —
+   APP QR, ver Fase 3.1 abajo.
+2. Estado del AFT declarado manualmente durante el control (en servicio/mantenimiento/inactivo/
+   baja) — choca con la exclusión de `en_mantenimiento` ya documentada en DOC-005 §8, ver Fase 3.1.
+3. Gráfico circular de categorías + informe diario automático a hora fija con resumen de toda la
+   organización — es CIP, ver Fase 6 (actualizada abajo).
+4. Clasificación ordinario (solo QR)/extraordinario (QR+RFID) por activo + mapa de zonificación
+   con alarmas en tiempo real — depende de RFID, ver Fase 8 (actualizada abajo).
+
+El resto del pptx (Modo 2 = dashboard web con todos los datos de la organización; "CORE recibe
+solo actualizaciones del especialista contable, responsable de actualizar diariamente") ya
+coincide con lo documentado en Fase 5 y Fase 7 respectivamente — no agrega alcance nuevo ahí,
+solo confirma la necesidad de negocio. Detalle de los 8 requisitos candidatos, con estado y fase
+de destino: [`REQUISITOS.md`](REQUISITOS.md) § "Requisitos nuevos identificados en spec funcional
+(pptx)".
+
 ## Fase 0 — Fundaciones que hay que pagar antes de crecer el dominio
 
 **Por qué primero**: agregar 10 dominios sobre un `init.sql` sin migraciones y con seeds
@@ -242,6 +269,47 @@ entitlements, opcional) y la brecha de cobertura de payload-shape en los mocks M
 en la práctica (no solo en código) — login real, catálogo real, inventario persistido en la Base
 Patrimonial vía CIS→CORE. Todo lo anterior a esto es infraestructura.
 
+## Fase 3.1 — Brechas de flujo APP QR encontradas en el spec funcional (pptx) ✅ completa
+
+**Diseño**:
+[`app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md`](app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md)
+— los 4 ítems confirmados con el usuario 2026-08-17, implementados el mismo día.
+
+**Por qué acá y no dentro de Fase 3**: Fase 3 ya cerró y quedó verificada de punta a punta el
+2026-08-13, antes de que este pptx se revisara (2026-08-17). Son brechas nuevas sobre una fase ya
+cerrada, no continuación de trabajo en curso — se numeran aparte para no reabrir el hito de Fase 3.
+
+**Qué se construyó**
+1. ✅ **Selector de modo 1/2/3** (pantalla 2 del pptx): `app-qr-sicsaft/src/lib/scan-mode.ts` +
+   tarjeta "Modo" en la pantalla `home` de `ScanPage.tsx` — puramente informativo (Modo 1/2 mismo
+   comportamiento de escaneo, Modo 3 deshabilitado hasta Fase 8/RFID), preferencia persistida en
+   `localStorage`, no viaja a CIS/CORE.
+2. ✅ **Declaración de resultado de sesión** (EXITOSO/ACEPTABLE/DEFECTUOSO):
+   `app-qr-sicsaft/src/lib/verdict.ts` (`calcularVeredicto`, función pura) — calculado en cliente a
+   partir de `missingAssets.length`/`outOfPlaceCount` ya existentes, mostrado en el resumen antes
+   de enviar, sin cambio de contrato con CORE.
+3. ✅ **Estado del AFT declarado durante el control** (en servicio/mantenimiento/inactivo/baja
+   sugerida): migración `core/migrations/1755400000000_estados-mantenimiento-inactivo.ts`
+   (aditiva — `activos.estado` y `eventos.tipo` amplían su `CHECK`), `EstadoOperativoDeclarable`
+   en `core/src/patrimonial/activo.types.ts`, `POST /inventarios` extendido (`estadoDeclarado`,
+   `bajaSugerida`) en `core/src/inventarios/` — **sin rol nuevo** (Tomo III §1.4 ya concede a APP
+   QR "registro de inventarios/estados"), best-effort (una transición inválida se ignora sin
+   abortar la sesión). Reflejado en CIS (`cis/src/qr-connector/qr-connector.schemas.ts`, proxy
+   delgado) y en la UI de APP QR (`ScannedList.tsx`: select de estado + botón "Sugerir baja").
+   `bajaSugerida` **nunca** ejecuta la baja — solo registra un evento `baja_sugerida` informativo;
+   la ejecuta el Administrador Patrimonial desde WEB con `POST /activos/:id/baja` (sin cambios).
+   Detalle completo de la autorización: `seguridad/DOC-012-administrador-patrimonial.md` §5.1.
+4. ✅ **Listar AFT que no corresponden al área con el área real a la que pertenecen**: sección
+   "AFT que no corresponden a esta área" en el reporte de `ScanPage.tsx`, agrupada por
+   `expectedAreaName` — sin cambios de datos ni de contrato, `scan-resolve.ts` ya lo resolvía.
+
+**Done**: 4/4 ítems implementados y verificados — 258 unit + 75 e2e de CORE contra Postgres real
+(incluida la migración aplicada de verdad), 176 unit de CIS, build limpio de APP QR, 43 e2e de
+Playwright (37 preexistentes sin regresión + 6 nuevos de Fase 3.1), y verificado real de punta a
+punta contra el stack local (login OIDC real, escaneo de un activo real de DUOC UC, veredicto
+"Aceptable" calculado correcto, envío persistido en Postgres). Ninguna de las 8 categorías de
+escaneo (DOC-009) se rompió — este incremento las reusa, no las reemplaza.
+
 ## Fase 4 — Administrador Patrimonial y camino de escritura oficial ✅ completa
 
 **Por qué acá y no antes**: es el rol que Tomo III §1.4 define como único autorizado a modificar
@@ -420,6 +488,12 @@ disponibles" — recién después de la Fase 3/4 hay inventarios y eventos reale
   eventos si el proceso muere entre medio). El patrón estándar: insertar el evento y un registro
   "pendiente de publicar" en la misma transacción; un worker aparte lo despacha con reintentos.
   No implementar antes de tener un consumidor real (YAGNI, mismo criterio que WAF §9).
+- **Confirmado por spec pptx** (`PROCESO MODULAR DE APLICACION SICSAFT, SOFTWARE.ppt`,
+  2026-08-17): gráfico circular por categoría de AFT (informática, mobiliario, equipos varios,
+  enseres de cocina, etc.) por área, e informe diario automático a hora fija con resumen de toda
+  la organización (cantidad de áreas controladas ese día, % de cobertura, áreas con control
+  exitoso/aceptable/defectuoso, AFT fuera de área, AFT por estado) — mismo alcance que las
+  métricas ya listadas arriba; el pptx confirma la necesidad de negocio, no agrega alcance nuevo.
 
 **Done**: CIP no toca la base transaccional en ninguna consulta (verificable en código);
 dashboard degrada a "últimos datos conocidos" si la fuente está caída (WAF §8); DOC-014.
@@ -442,6 +516,12 @@ negociable de `CLAUDE.md`), sincronización idempotente, aislamiento de fallos y
 (WAF §4), registro por integración (fecha/origen/destino/estado/resultado/errores/
 `correlationId`), dominio `Integraciones` de DOC-005 que quedó fuera de la Fase 1, DOC-016.
 
+**Confirmado por spec pptx**: "CORE debe tener siempre la base de datos ORIGINAL de los AFT según
+el sistema contable, solo autorizado a recibir bases actualizadas del especialista contable de la
+organización, con responsabilidad de actualizar diariamente" — mismo alcance ya documentado acá
+(sincronización idempotente, diaria); el pptx no agrega requisito nuevo, refuerza la cadencia
+diaria como parte del contrato, no como detalle opcional.
+
 **Done**: caída del sistema contable no bloquea el flujo Captura→CIS→CORE (test de resiliencia);
 ninguna sincronización elimina historial (invariante testeado).
 
@@ -452,6 +532,12 @@ CIS, sin tocar CORE ni Base Patrimonial — así está diseñado el límite de m
 Requiere el módulo `inventario-rfid` ya reservado en DOC-004 §5, el dominio Zona RFID de
 Ubicaciones, y los eventos `RFID_*` de `rfid/README.md`. Depende de hardware/lector real: no
 arrancar sin un piloto concreto.
+
+**Confirmado por spec pptx**: clasificación de AFT ordinario (solo etiqueta QR) vs extraordinario
+(etiqueta QR + etiqueta RFID), y mapa de zonificación/plano arquitectónico de la organización con
+la ubicación de los AFT extraordinarios y sus dispositivos de alarma en cada entrada/salida de
+área, desplegado en tiempo real dentro de WEB — mismo alcance del "dominio Zona RFID" ya anotado
+arriba; el pptx aporta el detalle de UI (mapa + alarmas) que todavía no estaba especificado.
 
 ## Track paralelo: OPS (no es una fase, es continuo)
 
@@ -505,6 +591,7 @@ Fase 0 (migraciones + correlationId + OIDC real) ✅
   └─ Fase 1 (DOC-005 mínimo) ✅
        └─ Fase 2 (CORE MVP: 4 motores + DOC-006) ✅
             └─ Fase 3 (CIS real + APP QR TASK-007) ✅ verificado real de punta a punta 2026-08-13
+                 ├─ Fase 3.1 (brechas de flujo APP QR halladas en spec pptx) ✅ completa
                  ├─ Fase 4 (Administrador Patrimonial + escritura oficial) ✅ completa
                  │    ├─ Fase 5 (WEB mínimo) ✅ 6/6 módulos implementados
                  │    └─ Fase 7 (CON-CONTABILIDAD)   [pieza nueva]

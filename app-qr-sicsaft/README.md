@@ -9,9 +9,15 @@ el 2026-08-13, ver `HANDOFF-APP-QR-SICSAFT.md` sección 7), con autenticación r
 Zitadel (OIDC + PKCE, ver `src/lib/oidc/`). Conserva además el generador de etiquetas QR / catálogo
 de productos como herramienta aparte, fuera del flujo oficial.
 
-1. **Inventario** (`/`): operador → organización → área/ubicación → escaneo clasificado en 6
-   categorías (correcto, otra área, otra ubicación, no registrado, código inválido, ya escaneado) →
-   incidencias → cierre, con cola de sincronización offline y registro de auditoría.
+1. **Inventario** (`/`): selector de modo 1/2/3 (informativo, Modo 3/RFID deshabilitado hasta
+   Fase 8) → operador → organización → área/ubicación → escaneo clasificado en 6 categorías
+   (correcto, otra área, otra ubicación, no registrado, código inválido, ya escaneado), con
+   declaración opcional de estado operativo por activo (en servicio/mantenimiento/inactivo, sin
+   rol especial — Tomo III §1.4) y "sugerir baja" (informativo, la ejecuta el Administrador
+   Patrimonial desde WEB) → incidencias → cierre con veredicto de sesión
+   (exitoso/aceptable/defectuoso) y lista de AFT fuera de área agrupada por su área real → cola de
+   sincronización offline y registro de auditoría (Fase 3.1, ver
+   `aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md`).
 2. **Catálogo** (`/catalog`, fuera del flujo oficial): alta de productos y generación/impresión de
    etiquetas QR, incluyendo variantes/talles (`BASE-VARIANTE`).
 

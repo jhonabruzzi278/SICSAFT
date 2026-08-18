@@ -59,6 +59,32 @@ pidió). Priorizados por severidad:
   efectivo (bajo el mínimo AA de 4.5:1) — corregido a 6.64:1. El resto del sistema de color ya
   pasaba AA cómodamente (4.1–18:1 según par texto/fondo).
 
+## Requisitos nuevos identificados en spec funcional (pptx), sin formalizar todavía
+
+Fuente: `PROCESO MODULAR DE APLICACION SICSAFT, SOFTWARE.ppt` (fuera de git, revisado 2026-08-17
+— ver [`ROADMAP.md`](ROADMAP.md) § "Fuente nueva: spec funcional de flujo por pantallas"). Describe
+el flujo pantalla-a-pantalla completo de los 3 modos de producto (QR / QR+WEB / QR+WEB+RFID).
+Comparado contra el código real, aporta requisitos que **todavía no tienen ID formal en ningún
+`REQUIREMENTS.md`** porque no fueron diseñados con metodología AI-DLC todavía — se listan acá para
+no perderlos, con ID definitivo pendiente de asignar cuando se diseñe cada incremento.
+
+| Candidato | Sistema | Qué pide | Estado | Roadmap |
+|---|---|---|---|---|
+| Selector de modo 1/2/3 | APP QR | Pantalla para elegir QR / QR+WEB / QR+WEB+RFID antes del control | ✅ Implementado — `lib/scan-mode.ts`, verificado e2e | Fase 3.1 |
+| Declaración de resultado de sesión (EXITOSO/ACEPTABLE/DEFECTUOSO) | APP QR | Veredicto agregado del control, distinto de las 8 categorías de escaneo por ítem ya implementadas (DOC-009) | ✅ Implementado — `lib/verdict.ts`, verificado e2e y contra Postgres real | Fase 3.1 |
+| Estado del AFT declarado durante el control: en servicio/mantenimiento/inactivo | APP QR + CORE | Marcar el estado (no destructivo) de cada activo al escanearlo | ✅ Implementado — migración `1755400000000`, `POST /inventarios` extendido, sin rol nuevo (Tomo III §1.4), verificado e2e contra Postgres real | Fase 3.1 |
+| Estado del AFT declarado durante el control: baja sugerida | APP QR + CORE | El operador sugiere la baja (dato informativo); el Administrador Patrimonial la revisa y ejecuta desde WEB | ✅ Implementado — evento `baja_sugerida`, no toca `Activo.estado`, sin conflicto con Tomo III §1.4 | Fase 3.1 |
+| Lista de AFT fuera de área con su área real | APP QR | Agregado del informe de control; dato ya disponible en la clasificación existente | ✅ Implementado — sección agrupada en `ScanPage.tsx`, verificado e2e | Fase 3.1 |
+| Gráfico circular por categoría de AFT | CIP | Visualización por área (informática, mobiliario, equipos varios, enseres de cocina, etc.) | 🔲 No implementado | Fase 6 |
+| Informe diario automático a hora fija | CIP | Resumen de toda la organización: cobertura, control exitoso/aceptable/defectuoso, AFT por estado | 🔲 No implementado | Fase 6 |
+| Clasificación ordinario (QR)/extraordinario (QR+RFID) | RFID | Por activo, según qué etiquetas tiene | 🔲 No implementado | Fase 8 |
+| Mapa de zonificación con alarmas en tiempo real | RFID | Plano de la organización con AFT extraordinarios y dispositivos de alarma por entrada/salida de área | 🔲 No implementado | Fase 8 |
+
+**Confirma sin agregar alcance nuevo**: Modo 2 del pptx (dashboard web con todos los datos de la
+organización) ya está cubierto por WEB Fase 5; "CORE recibe solo actualizaciones del especialista
+contable, con responsabilidad de actualizar diariamente" ya está documentado en Fase 7
+(CON-CONTABILIDAD) — el pptx confirma la necesidad de negocio en ambos casos, no pide algo nuevo.
+
 ## Cómo se usa este índice
 
 - **Para trabajar en un sistema**: leer su `REQUIREMENTS.md` completo — este índice es un resumen
