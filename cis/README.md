@@ -162,6 +162,23 @@ bajaba el promedio global por debajo de 85% por tener menos peso relativo. 100% 
 functions se mantiene sin excepción. Ningún test puede cubrir esa rama fantasma (es metadata de
 compilación, no una rama de ejecución dependiente de datos).
 
+**Módulo nuevo `src/directivo/` — gestión de roles acotada a la propia organización
+(2026-08-19, [DOC-022](../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
+3)**: `GET/POST /directivo/usuarios` — el Directivo designa quién es el Profesional de AFT
+(`administrador-patrimonial`) dentro de SU organización, reusando el mismo `ZitadelAdminService`
+de `src/zitadel-admin/` que ya usa `AdministradorModule` (Fase 2 de DOC-021), sin ningún cambio
+ahí. A diferencia de `AdministradorSistemaGuard` (que lee `:orgId` de la URL porque Administrador
+del Sistema opera sobre cualquier organización), `DirectivoGuard`
+(`src/directivo/directivo.guard.ts`) nunca acepta un organizacionId de ruta o body — lo deriva
+siempre del propio JWT ya validado por `ZitadelAuthGuard`: si el rol `directivo` no aparece en
+exactamente una organización del token (cero, o más de una — ambigüedad no resuelta con un
+default), rechaza con 403. Esto hace el límite de organización estructural, no solo verificado en
+tests: no existe ningún parámetro con el que un Directivo pueda siquiera intentar pedir la
+organización de otro. El rol asignable está fijo en el servicio (`administrador-patrimonial`), no
+en lo que manda el cliente — `asignarProfesionalAftSchema` ni siquiera tiene un campo `rol` (a
+diferencia de `asignarUsuarioOrganizacionSchema` de `AdministradorModule`, que acepta los 3 roles
+de Proyecto).
+
 ## Desarrollo local
 ```bash
 cd cis

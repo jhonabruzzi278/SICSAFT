@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
 import { QrConnectorModule } from './qr-connector/qr-connector.module';
 import { AdministradorModule } from './administrador/administrador.module';
+import { DirectivoModule } from './directivo/directivo.module';
 import { DashboardConnectorModule } from './dashboard-connector/dashboard-connector.module';
 import { ZitadelAuthModule } from './common/auth/zitadel-auth.module';
 import { RateLimitModule } from './rate-limit/rate-limit.module';
@@ -16,6 +17,7 @@ import { CorrelationIdMiddleware } from './common/correlation-id/correlation-id.
     HealthModule,
     QrConnectorModule,
     AdministradorModule,
+    DirectivoModule,
     DashboardConnectorModule,
   ],
   controllers: [AppController],
