@@ -1,40 +1,16 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import {
-  SignJWT,
-  generateKeyPair,
-  type JWTVerifyGetKey,
-  type KeyLike,
-} from 'jose';
+import { generateKeyPair, type JWTVerifyGetKey } from 'jose';
 import type { GrantUsuario } from './../src/zitadel-admin/zitadel-admin.types';
 import { crearAppE2e } from './support/e2e-app';
 import { crearRedisStub } from './support/redis-stub';
+import { firmarTokenZitadel } from './support/jwt';
 
 const ISSUER = 'http://id.sicsaft.localhost';
 const AUDIENCE = 'cis-api';
-const ZITADEL_ROLES_CLAIM = 'urn:zitadel:iam:org:project:roles';
 const DUOC_ORG_ID = '386029528616558597';
 const OTRA_ORG_ID = '386029528616558598';
-
-async function firmarToken(
-  privateKey: KeyLike,
-  roles: Record<string, string[]>,
-): Promise<string> {
-  return new SignJWT({
-    [ZITADEL_ROLES_CLAIM]: Object.fromEntries(
-      Object.entries(roles).flatMap(([org, rolesEnOrg]) =>
-        rolesEnOrg.map((rol) => [rol, { [org]: 'Organización' }]),
-      ),
-    ),
-  })
-    .setProtectedHeader({ alg: 'RS256' })
-    .setSubject('op-directivo')
-    .setIssuer(ISSUER)
-    .setAudience(AUDIENCE)
-    .setExpirationTime('15m')
-    .sign(privateKey);
-}
 
 // DOC-022 3 — el Directivo designa quién es el Profesional de AFT de SU organización, sin poder
 // tocar usuarios de otra (límite de organización) ni asignar un rol distinto a
@@ -60,17 +36,28 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
 
   beforeEach(async () => {
     const { publicKey, privateKey } = await generateKeyPair('RS256');
-    tokenDirectivoDuoc = await firmarToken(privateKey, {
-      [DUOC_ORG_ID]: ['directivo'],
-    });
-    tokenPatrimonialDuoc = await firmarToken(privateKey, {
-      [DUOC_ORG_ID]: ['administrador-patrimonial'],
-    });
+    const opcionesToken = {
+      issuer: ISSUER,
+      audience: AUDIENCE,
+      subject: 'op-directivo',
+    };
+    tokenDirectivoDuoc = await firmarTokenZitadel(
+      privateKey,
+      { [DUOC_ORG_ID]: ['directivo'] },
+      opcionesToken,
+    );
+    tokenPatrimonialDuoc = await firmarTokenZitadel(
+      privateKey,
+      { [DUOC_ORG_ID]: ['administrador-patrimonial'] },
+      opcionesToken,
+    );
     // Mismo emisor/clave que tokenDirectivoDuoc — solo cambia la organización firmada en el
     // claim. Simula un segundo Directivo real (otra organización), no un token inválido.
-    tokenDirectivoOtraOrg = await firmarToken(privateKey, {
-      [OTRA_ORG_ID]: ['directivo'],
-    });
+    tokenDirectivoOtraOrg = await firmarTokenZitadel(
+      privateKey,
+      { [OTRA_ORG_ID]: ['directivo'] },
+      opcionesToken,
+    );
     const localJwks: JWTVerifyGetKey = () => Promise.resolve(publicKey);
 
     zitadelAdminService = {
