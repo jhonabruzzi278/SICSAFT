@@ -131,7 +131,10 @@ describe('verificarRolEnCualquierOrganizacion', () => {
   it('no lanza si el rol aparece en cualquier organizacion, sin importar cual', () => {
     expect(() =>
       verificarRolEnCualquierOrganizacion(
-        { 'org-1': [ADMINISTRADOR_PATRIMONIAL_ROLE], 'org-2': [ADMINISTRADOR_SISTEMA_ROLE] },
+        {
+          'org-1': [ADMINISTRADOR_PATRIMONIAL_ROLE],
+          'org-2': [ADMINISTRADOR_SISTEMA_ROLE],
+        },
         [ADMINISTRADOR_SISTEMA_ROLE],
       ),
     ).not.toThrow();
@@ -151,7 +154,9 @@ describe('verificarRolEnCualquierOrganizacion', () => {
       verificarRolEnCualquierOrganizacion({}, [ADMINISTRADOR_SISTEMA_ROLE]),
     ).toThrow(ForbiddenException);
     expect(() =>
-      verificarRolEnCualquierOrganizacion(undefined, [ADMINISTRADOR_SISTEMA_ROLE]),
+      verificarRolEnCualquierOrganizacion(undefined, [
+        ADMINISTRADOR_SISTEMA_ROLE,
+      ]),
     ).toThrow(ForbiddenException);
   });
 

@@ -267,7 +267,9 @@ export class OrquestadorService {
         }),
       (organizacion) => organizacion.id,
       (roles) =>
-        verificarRolEnCualquierOrganizacion(roles, [ADMINISTRADOR_SISTEMA_ROLE]),
+        verificarRolEnCualquierOrganizacion(roles, [
+          ADMINISTRADOR_SISTEMA_ROLE,
+        ]),
     );
   }
 

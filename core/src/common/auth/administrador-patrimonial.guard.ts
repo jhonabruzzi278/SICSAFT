@@ -85,7 +85,9 @@ export function verificarRolEnCualquierOrganizacion(
   rolesPorOrganizacion: unknown,
   rolesPermitidos: readonly string[],
 ): void {
-  const mapa = esRecordDeRoles(rolesPorOrganizacion) ? rolesPorOrganizacion : {};
+  const mapa = esRecordDeRoles(rolesPorOrganizacion)
+    ? rolesPorOrganizacion
+    : {};
   const tieneAlguno = Object.values(mapa).some((roles) => {
     const lista = Array.isArray(roles) ? roles : [];
     return rolesPermitidos.some((rol) => lista.includes(rol));
