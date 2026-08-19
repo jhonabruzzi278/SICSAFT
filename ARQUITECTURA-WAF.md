@@ -322,6 +322,16 @@ Patrimonial directamente (columna "No puede" de esta fila), simétrico con que e
 Patrimonial nunca administra la plataforma — ver `seguridad/README.md` "Administrador del
 Sistema" para el detalle de los dos niveles de autorización server-side que usa esta entrada.
 
+**Nota de implementación (DOC-022, 2026-08-19)**: "Plataforma WEB" en la fila de arriba es una
+sola entrada oficial de Tomo III, pero se implementó como **tres portales separados**, uno por rol
+(`ccp/` para el Profesional de AFT, `web_admin/` para el Administrador del Sistema,
+`core/frontend/` para el Directivo — nunca un login compartido, ver `seguridad/README.md` "Mapeo
+rol → portal → hostname"). Autorizar procesos (columna "Permisos" de esta fila) también cubre la
+capacidad nueva del Directivo: designar quién es el Profesional de AFT de su propia organización
+(`GET/POST /directivo/usuarios`, `cis/src/directivo/`) — gestión de identidad acotada a una sola
+organización, mismo criterio de "nunca modifica la Base Patrimonial directamente" que el
+Administrador del Sistema.
+
 **Decisión de producto sobre esta entrada**: SICSAFT nunca se conecta directamente (API/DB) al
 sistema contable del cliente — la frontera de responsabilidad termina antes de esa integración.
 `CON-CONTABILIDAD`, cuando se construya, debe seguir siendo una importación controlada (archivo
@@ -343,7 +353,11 @@ sincronización de registros oficiales); acota *cómo* se implementan.
 
 Mapea 1:1 con los motores ya definidos en [`core/README.md`](core/README.md) (Motor de Reportes,
 Motor de Alertas, Motor de Auditoría) más el nivel CIP ([`cip/README.md`](cip/README.md)) para el
-Dashboard Ejecutivo.
+Dashboard Ejecutivo. **Dashboard Ejecutivo ya implementado** (RF-09, DOC-019) — vive en
+`ccp/src/pages/DashboardPage.tsx` (Profesional de AFT, dentro de su portal operativo) y, desde
+DOC-022, también en `core/frontend/src/pages/DashboardPage.tsx` (Directivo, en su propio portal
+de solo lectura) — mismo código fuente, dos portales distintos porque cada rol lo consume desde un
+contexto diferente (ver "Nota de implementación" arriba).
 
 ## 12. Hoja de ruta tecnológica declarada (Tomo III 1.2)
 
