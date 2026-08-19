@@ -1,7 +1,8 @@
 // Cliente OIDC — authorization code + PKCE contra Zitadel (ADR-002), mismo mecanismo probado
-// real de punta a punta en app-qr-sicsaft/src/lib/oidc/oidc-client.ts (TASK-007). WEB reusa el
-// mismo proyecto "CIS" en Zitadel con una Aplicacion OIDC propia (`web-sicsaft`, User Agent,
-// PKCE) — ver devops/local/README.md "Cliente OIDC real (WEB)".
+// real de punta a punta en app-qr-sicsaft/src/lib/oidc/oidc-client.ts (TASK-007). Portal del
+// Directivo: reusa el mismo proyecto "CIS" en Zitadel con una Aplicacion OIDC propia
+// (`core-frontend-sicsaft`, User Agent, PKCE) — ver devops/local/README.md "Cliente OIDC real
+// (core/frontend)".
 import { generateCodeChallenge, generateCodeVerifier, generateState } from './pkce';
 import { loadOidcConfig } from './oidc-config';
 import {

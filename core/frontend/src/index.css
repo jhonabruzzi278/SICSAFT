@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+/* Paleta de marca SICSAFT — ver BRAND.md en la raíz del repo. Origen canónico:
+   landing/src/style.css (solo modo oscuro) — el Portal WEB no define modo claro todavia (RNF-05
+   solo pide foco visible + contraste AA, no un toggle de tema; ver DOC-013). */
+:root {
+  --color-bg: oklch(15% 0.045 258);
+  --color-bg-raised: oklch(19% 0.05 258);
+  --color-bg-card: oklch(21% 0.05 258);
+  --color-border: oklch(32% 0.05 258);
+  --color-border-strong: oklch(44% 0.07 258);
+  --color-text: oklch(97% 0.006 258);
+  --color-text-dim: oklch(78% 0.03 258);
+  --color-text-faint: oklch(58% 0.03 258);
+  --color-accent: oklch(68% 0.19 254);
+  --color-accent-strong: oklch(74% 0.17 240);
+  --color-accent-dim: oklch(40% 0.11 254);
+  --color-destructive: oklch(0.704 0.191 22.216);
+  --color-success: oklch(0.68 0.14 155);
+  --color-warning: oklch(0.78 0.15 70);
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-bg-raised: var(--color-bg-raised);
+  --color-bg-card: var(--color-bg-card);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-text: var(--color-text);
+  --color-text-dim: var(--color-text-dim);
+  --color-text-faint: var(--color-text-faint);
+  --color-accent: var(--color-accent);
+  --color-accent-strong: var(--color-accent-strong);
+  --color-accent-dim: var(--color-accent-dim);
+  --color-destructive: var(--color-destructive);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family:
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      sans-serif;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}

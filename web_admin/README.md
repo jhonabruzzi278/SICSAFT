@@ -19,8 +19,12 @@ motivó la extracción: crear una organización ya no exige decir "en qué organ
 (`verificarRolEnCualquierOrganizacion` en CORE) — el grant de `administrador-sistema` puede vivir
 en cualquier organización, o en ninguna todavía.
 
-Build/type-check verificados (`npm run build`); pendiente verificación real de punta a punta
-contra Docker/Zitadel (crear la Application OIDC real, ver `devops/local/README.md`).
+**Verificado real de punta a punta contra Docker/Zitadel (2026-08-19, junto con DOC-022 4)**:
+login OIDC/PKCE real, alta de organización, y la pestaña **Usuarios** (listado por organización +
+asignación de rol) — esta última destapó dos bugs reales en `cis/src/zitadel-admin/` (nunca antes
+ejercitados contra una instancia real de Zitadel: `listarGrants`/`crearGrant` mandaban una query y
+un manejo de conflicto que la API real rechazaba) corregidos en el mismo incremento, ver
+`../cis/README.md` para el detalle.
 
 ## Desarrollo local
 
@@ -52,5 +56,4 @@ Nada — es un cliente más de CIS, ningún otro sistema depende de `web_admin/`
 
 ## Próximo paso sugerido
 
-Verificación real de punta a punta: crear la Application OIDC `web-admin-sicsaft` en Zitadel
-(`devops/local/README.md`), login real, alta de organización sin el workaround anterior.
+Nada pendiente propio — verificación real de punta a punta completa (ver "Estado" arriba).

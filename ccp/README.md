@@ -25,9 +25,10 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
   probado en `app-qr-sicsaft/src/lib/oidc/` (mismo proyecto "CIS" en Zitadel, aplicación OIDC
   propia `web-sicsaft`, ver `devops/local/README.md`). `sessionStorage`, no `localStorage` — el
   Administrador Patrimonial re-autentica cada sesión de navegador (mayor blast radius que APP QR,
-  ver `aidlc-docs/design-artifacts/ARCHITECTURE.md` "Decisión abierta"). `esAdministradorPatrimonial()`/
-  `esDirectivo()` (DOC-020) decodifican el rol del JWT client-side, solo para UI — la autorización
-  real siempre corre en CORE.
+  ver `aidlc-docs/design-artifacts/ARCHITECTURE.md` "Decisión abierta"). La segmentación por rol
+  Directivo de DOC-020 (`esDirectivo()`/`esAdministradorPatrimonial()`, bifurcación en
+  `HubPage.tsx`) quedó superada por DOC-022 (2026-08-19): el Directivo ya no entra a CCP, tiene su
+  propio portal (`../core/frontend/`) — ambas funciones y la bifurcación se eliminaron de acá.
 - `lib/cis-client.ts` — cliente hacia CIS: `POST /auth/session` (entitlements), `GET /catalogo`
   (ambos ya existían, reusados tal cual — WAF 8, "WEB y APP QR son clientes intercambiables del
   mismo contrato"), `GET /inventarios` + `GET /inventarios/:id` (ya existían para APP QR salvo el
@@ -35,10 +36,9 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
   `PATCH /admin/contratos/:id` (nuevos, `cis/src/administrador/`, DOC-012 5/7).
 - `pages/LoginPage.tsx`, `AuthCallbackPage.tsx` — flujo de login.
 - `pages/HubPage.tsx` — lista las organizaciones con contrato vigente del operador (RF-02) y, por
-  cada una, los módulos ya implementados. RF-10 (DOC-020): un Directivo puro (sin
-  `administrador-patrimonial`) con una sola organización aterriza directo en `/dashboard`, sin
-  pasar por este hub; con varias organizaciones, o en el caso mixto, sigue viendo el hub (reducido
-  a solo Dashboard para el Directivo puro, completo para el resto).
+  cada una, los módulos ya implementados (incluido `dashboard`, RF-09/DOC-019 — sigue siendo un
+  módulo del Profesional de AFT). Sin segmentación por rol (DOC-020 quedó superado por DOC-022,
+  ver arriba).
 - `pages/ActivosPage.tsx` — RF-03: tabla de `GET /catalogo` + formulario de alta (react-hook-form
   + zod, RNF-04) contra `POST /admin/activos`. RF-08 verificado: un alta desde acá aparece de
   inmediato en el mismo catálogo que consumiría APP QR.
@@ -201,7 +201,9 @@ consumidor real).
 principal de Nivel 1 responsable de cargar y mantener la información patrimonial desde el CCP —
 activos, códigos patrimoniales, descripciones, familias/categorías, áreas, ubicaciones,
 responsables, estados, documentación/fotografías, preparación de inventarios e importaciones
-controladas. **Directivo** (DOC-020) ya implementado, vista ejecutiva de solo Dashboard.
+controladas. **Directivo** (DOC-020, reestructurado por DOC-022 el 2026-08-19) ya no entra a CCP —
+tiene su propio portal en `../core/frontend/`, ver ese README para su vista ejecutiva de solo
+Dashboard + gestión de roles acotada a su organización.
 **Administrador del Sistema** (`administrador-sistema`, DOC-021) ya implementado — administra la
 plataforma (organizaciones, contratos, usuarios, indicadores), nunca información patrimonial; el
 Profesional de AFT, simétricamente, nunca administra la plataforma. Perfiles futuros anticipados,
@@ -258,16 +260,13 @@ WEB). Lo que queda:
    Docker real: login OIDC real vía `ccp.sicsaft.localhost`, un `POST /inventarios` y un
    `POST /activos` reales disparados dentro de la red Docker confirmados en pantalla (cobertura,
    veredicto de sesión, estado de AFT y categorías, todos con datos reales).
-3. ✅ RF-10 (segmentación por rol Directivo, [DOC-020](aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md))
-   implementado: `esDirectivo()` en `oidc-client.ts` (mismo patrón que ya existía
-   `esAdministradorPatrimonial()`, hoy sin consumidor hasta este incremento) + bifurcación en
-   `HubPage.tsx` — un Directivo puro aterriza directo en `/dashboard` sin pasar por el hub, el caso
-   mixto (Directivo + administrador-patrimonial) ve el hub operativo completo, y el profesional de
-   AFT (sin rol especial) no tiene cambios. Verificado real de punta a punta con los 3 casos: rol
-   `directivo` creado en el proyecto CIS de Zitadel (`devops/local/README.md` "Rol `directivo`"),
-   tres usuarios de prueba (solo `directivo` → redirect a `/dashboard`; `directivo` +
-   `administrador-patrimonial` → hub completo; solo `administrador-patrimonial` → hub completo sin
-   cambios), cada login confirmado con el claim real del JWT.
+3. ⚠️ RF-10 (segmentación por rol Directivo, [DOC-020](aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md))
+   — implementado y verificado real en su momento (ver el propio DOC-020 para ese historial), pero
+   **superado por [DOC-022](aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
+   el 2026-08-19**: `esDirectivo()`/`esAdministradorPatrimonial()` y la bifurcación de
+   `HubPage.tsx` se eliminaron de CCP — el Directivo tiene su propio portal ahora
+   (`../core/frontend/`, ver ese README). El profesional de AFT (`administrador-patrimonial`,
+   único rol que sigue entrando a CCP) no tiene cambios de comportamiento.
 
 ✅ `Dockerfile`/`ccp-ci.yml`/servicio en el compose local — WEB ya tiene imagen de producción
 (nginx sirviendo el build de Vite, usuario sin privilegios) y corre dentro del stack en

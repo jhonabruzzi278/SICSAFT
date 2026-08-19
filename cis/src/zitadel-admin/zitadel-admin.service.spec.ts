@@ -42,6 +42,7 @@ describe('ZitadelAdminService', () => {
     projectId: 'proyecto-cis',
   };
   let axiosPost: jest.Mock;
+  let axiosPut: jest.Mock;
   let httpService: HttpService;
   let breaker: CircuitBreaker;
   let service: ZitadelAdminService;
@@ -49,8 +50,9 @@ describe('ZitadelAdminService', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     axiosPost = jest.fn();
+    axiosPut = jest.fn();
     httpService = {
-      axiosRef: { post: axiosPost },
+      axiosRef: { post: axiosPost, put: axiosPut },
     } as unknown as HttpService;
     // Umbral alto: en estos tests un solo fallo nunca debe abrir el circuito por accidente.
     breaker = new CircuitBreaker({ failureThreshold: 100, resetTimeoutMs: 1 });
@@ -147,7 +149,7 @@ describe('ZitadelAdminService', () => {
   });
 
   describe('listarGrants', () => {
-    it('llama a POST {issuer}/management/v1/users/grants/_search con orgId/projectId y el header x-zitadel-orgid', async () => {
+    it('llama a POST {issuer}/management/v1/users/grants/_search con projectId y el header x-zitadel-orgid (sin orgIdQuery — ese query type no existe en la API real, ver el comentario en zitadel-admin.service.ts)', async () => {
       axiosPost.mockResolvedValue(buildAxiosResponse({ result: [] }));
 
       await service.listarGrants('zitadel-org-1', 'corr-1');
@@ -155,10 +157,7 @@ describe('ZitadelAdminService', () => {
       expect(axiosPost).toHaveBeenCalledWith(
         'http://zitadel:8080/management/v1/users/grants/_search',
         {
-          queries: [
-            { orgIdQuery: { orgId: 'zitadel-org-1' } },
-            { projectIdQuery: { projectId: 'proyecto-cis' } },
-          ],
+          queries: [{ projectIdQuery: { projectId: 'proyecto-cis' } }],
         },
         {
           headers: {
@@ -170,11 +169,48 @@ describe('ZitadelAdminService', () => {
       );
     });
 
+    it('filtra en memoria los grants de otras organizaciones — Zitadel devuelve grants de TODAS las organizaciones del proyecto, no solo la pedida', async () => {
+      axiosPost.mockResolvedValue(
+        buildAxiosResponse({
+          result: [
+            {
+              id: 'grant-1',
+              userId: 'usuario-1',
+              orgId: 'zitadel-org-1',
+              projectId: 'proyecto-cis',
+              roleKeys: ['administrador-patrimonial'],
+              email: 'usuario1@duoc.cl',
+            },
+            {
+              id: 'grant-2',
+              userId: 'usuario-2',
+              orgId: 'zitadel-org-OTRA',
+              projectId: 'proyecto-cis',
+              roleKeys: ['directivo'],
+              email: 'usuario2@otra-org.cl',
+            },
+          ],
+        }),
+      );
+
+      await expect(
+        service.listarGrants('zitadel-org-1', 'corr-1'),
+      ).resolves.toEqual([
+        {
+          userId: 'usuario-1',
+          email: 'usuario1@duoc.cl',
+          displayName: null,
+          roles: ['administrador-patrimonial'],
+        },
+      ]);
+    });
+
     it('devuelve los grants mapeados cuando Zitadel responde una forma valida', async () => {
       axiosPost.mockResolvedValue(
         buildAxiosResponse({
           result: [
             {
+              id: 'grant-1',
               userId: 'usuario-1',
               orgId: 'zitadel-org-1',
               projectId: 'proyecto-cis',
@@ -203,6 +239,7 @@ describe('ZitadelAdminService', () => {
         buildAxiosResponse({
           result: [
             {
+              id: 'grant-2',
               userId: 'usuario-2',
               orgId: 'zitadel-org-1',
               projectId: 'proyecto-cis',
@@ -340,6 +377,97 @@ describe('ZitadelAdminService', () => {
         service.crearGrant('zitadel-org-1', 'no-existe', 'directivo', 'corr-1'),
       ).rejects.toThrow(NotFoundException);
       expect(axiosPost).toHaveBeenCalledTimes(1);
+    });
+
+    // Verificado real contra Zitadel v2.65 (DOC-022 4) — Zitadel modela un solo UserGrant por
+    // usuario+proyecto+organizacion, un segundo POST .../grants para el mismo trio devuelve 409
+    // "User grant already exists". crearGrant reacciona sumando el rol al grant existente (PUT)
+    // en vez de fallar.
+    it('si el usuario ya tiene un grant en el proyecto (409), le suma el rol via PUT en vez de fallar', async () => {
+      axiosPost
+        .mockRejectedValueOnce(
+          buildAxiosError(409, { message: 'User grant already exists' }),
+        )
+        .mockResolvedValueOnce(
+          buildAxiosResponse({
+            result: [
+              {
+                id: 'grant-1',
+                userId: 'usuario-1',
+                orgId: 'zitadel-org-1',
+                projectId: 'proyecto-cis',
+                roleKeys: ['administrador-sistema'],
+              },
+            ],
+          }),
+        );
+      axiosPut.mockResolvedValue(buildAxiosResponse({}));
+
+      await service.crearGrant(
+        'zitadel-org-1',
+        'usuario-1',
+        'administrador-patrimonial',
+        'corr-1',
+      );
+
+      expect(axiosPut).toHaveBeenCalledWith(
+        'http://zitadel:8080/management/v1/users/usuario-1/grants/grant-1',
+        { roleKeys: ['administrador-sistema', 'administrador-patrimonial'] },
+        {
+          headers: {
+            Authorization: 'Bearer pat-secreto',
+            'x-correlation-id': 'corr-1',
+            'x-zitadel-orgid': 'zitadel-org-1',
+          },
+        },
+      );
+    });
+
+    it('si el grant existente ya tiene el rol pedido (409 redundante), no llama a PUT — idempotente', async () => {
+      axiosPost
+        .mockRejectedValueOnce(
+          buildAxiosError(409, { message: 'User grant already exists' }),
+        )
+        .mockResolvedValueOnce(
+          buildAxiosResponse({
+            result: [
+              {
+                id: 'grant-1',
+                userId: 'usuario-1',
+                orgId: 'zitadel-org-1',
+                projectId: 'proyecto-cis',
+                roleKeys: ['administrador-patrimonial'],
+              },
+            ],
+          }),
+        );
+
+      await service.crearGrant(
+        'zitadel-org-1',
+        'usuario-1',
+        'administrador-patrimonial',
+        'corr-1',
+      );
+
+      expect(axiosPut).not.toHaveBeenCalled();
+    });
+
+    it('devuelve 502 si Zitadel dijo 409 pero la búsqueda del grant existente no encuentra nada (consistencia eventual)', async () => {
+      axiosPost
+        .mockRejectedValueOnce(
+          buildAxiosError(409, { message: 'User grant already exists' }),
+        )
+        .mockResolvedValueOnce(buildAxiosResponse({ result: [] }));
+
+      await expect(
+        service.crearGrant(
+          'zitadel-org-1',
+          'usuario-1',
+          'administrador-patrimonial',
+          'corr-1',
+        ),
+      ).rejects.toThrow(BadGatewayException);
+      expect(axiosPut).not.toHaveBeenCalled();
     });
   });
 });

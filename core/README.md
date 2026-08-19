@@ -230,6 +230,23 @@ Puerto por defecto `3001` (no `3000`) para poder correr `cis` y `core` en parale
 Docker sin chocar — dentro de Docker Compose cada uno tiene su propio namespace de puertos, así
 que no sería estrictamente necesario, pero evita sorpresas en desarrollo local sin contenedores.
 
+## Frontend (`frontend/`, DOC-022 4)
+
+CORE es el único sistema del ecosistema con **dos deployables**: este backend NestJS (`src/`,
+todo lo de arriba) y un segundo, [`frontend/`](frontend/README.md) — el portal WEB del Directivo
+(dashboard ejecutivo + designar al Profesional de AFT de su organización). Viven en la misma
+carpeta de nivel raíz por decisión explícita del usuario ("CORE va a estar conformado de backend y
+frontend"), pero son procesos y deploys completamente independientes: `frontend/` es una SPA
+Vite/React servida por su propio nginx (`frontend/Dockerfile`), con su propio CI
+(`core-frontend-ci.yml`, excluido del filtro de paths de `core-ci.yml` de arriba).
+
+**El frontend nunca le habla a este backend directo** — le habla a CIS, exactamente igual que
+`ccp/`/`web_admin/` (documentado formalmente en
+[ADR-003](../adr/ADR-003-frontend-de-core-para-directivo.md), que reemplaza puntualmente a
+ADR-001 solo en este aspecto). Este backend no gana ninguna superficie HTTP nueva por la
+existencia de `frontend/` — sigue sin router de Traefik, sigue sin más consumidor que CIS dentro
+de la red de contenedores (ver "Estado" arriba).
+
 ## Responsabilidades exclusivas (Tomo IV 2.3)
 Ningún componente externo puede ejecutar estas operaciones directamente: crear/modificar/dar de
 baja activos, autorizar traslados, validar inventarios, registrar movimientos, asignar

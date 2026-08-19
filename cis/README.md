@@ -140,9 +140,18 @@ breaker, reintentos) — integración real con la API de administración de Zita
 (`ZitadelAdminService.buscarUsuarioPorEmail`/`listarGrants`/`crearGrant`, autenticada con un
 Personal Access Token de un service user, header `x-zitadel-orgid` para escribir en
 organizaciones distintas a la del service user) para `GET/POST /admin/organizaciones/:orgId/
-usuarios` — **los shapes de la API de Zitadel están armados solo contra su documentación
-pública, sin verificar todavía contra una instancia real** (ver comentario en
-`zitadel-admin.types.ts` y `../devops/local/README.md`). `AdministradorSistemaGuard`
+usuarios`. **Verificado real contra Zitadel v2.65 recién en DOC-022 4 (2026-08-19)** — dos bugs
+reales encontrados ahí, no solo contra la documentación pública (ver el comentario completo en
+`zitadel-admin.types.ts`/`zitadel-admin.service.ts`): (1) `listarGrants` mandaba un `orgIdQuery`
+que la API real rechaza con 400 (ese query type no existe — Zitadel solo filtra grants por
+dominio/nombre de organización, no por id), corregido a pedir por proyecto solamente y filtrar
+por `orgId` en memoria con la respuesta; (2) `crearGrant` fallaba con 409 "already exists" cuando
+el usuario YA tenía cualquier grant en el proyecto CIS (Zitadel modela un solo `UserGrant` por
+usuario+proyecto+organización, con `roleKeys` como array) — corregido a detectar el 409 y sumar
+el rol al grant existente vía `PUT` en vez de intentar crear uno nuevo. Ambos bugs afectaban
+también a `web_admin/` (mismo `ZitadelAdminService`, verificado real tras el fix: alta de
+organización, listado de usuarios por organización y asignación de un rol adicional a un usuario
+ya asignado, los tres reales contra el stack de Docker). `AdministradorSistemaGuard`
 (`src/administrador/administrador-sistema.guard.ts`) es el único endpoint de este módulo que NO
 sigue el patrón "verificar dentro del Orquestador de CORE" — un guard normal de CIS alcanza
 porque asignar usuarios en Zitadel no toca CORE ni el Motor de Auditoría de Tomo IV (WAF 3 sigue

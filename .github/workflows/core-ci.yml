@@ -4,11 +4,16 @@ on:
   pull_request:
     paths:
       - "core/**"
+      # DOC-022 4 — core/frontend/ es un SPA independiente con su propio workflow
+      # (core-frontend-ci.yml); excluirlo acá evita levantar Postgres/correr migraciones/e2e del
+      # backend en cambios que solo tocan el frontend.
+      - "!core/frontend/**"
       - ".github/workflows/core-ci.yml"
   push:
     branches: [main]
     paths:
       - "core/**"
+      - "!core/frontend/**"
       - ".github/workflows/core-ci.yml"
 
 defaults:
