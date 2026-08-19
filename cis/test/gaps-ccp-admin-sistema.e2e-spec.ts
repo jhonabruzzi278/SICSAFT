@@ -1,12 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import {
-  SignJWT,
-  generateKeyPair,
-  type JWTVerifyGetKey,
-  type KeyLike,
-} from 'jose';
+import { generateKeyPair, type JWTVerifyGetKey } from 'jose';
 import type {
   ActivoResult,
   CatalogoTipoResult,
@@ -18,11 +13,11 @@ import type {
 import type { GrantUsuario } from './../src/zitadel-admin/zitadel-admin.types';
 import { crearAppE2e } from './support/e2e-app';
 import { crearRedisStub } from './support/redis-stub';
+import { firmarTokenZitadel } from './support/jwt';
 
 const ISSUER = 'http://id.sicsaft.localhost';
 const AUDIENCE = 'cis-api';
 const ZITADEL_ORG_ID = '386029528616558597';
-const ZITADEL_ROLES_CLAIM = 'urn:zitadel:iam:org:project:roles';
 
 const ACTIVO_STUB: ActivoResult = {
   id: 'activo-1',
@@ -85,25 +80,6 @@ const IMPORTACION_STUB: ImportacionContableResult = {
   conflictos: 0,
 };
 
-async function firmarToken(
-  privateKey: KeyLike,
-  roles: Record<string, string[]>,
-): Promise<string> {
-  return new SignJWT({
-    [ZITADEL_ROLES_CLAIM]: Object.fromEntries(
-      Object.entries(roles).flatMap(([org, rolesEnOrg]) =>
-        rolesEnOrg.map((rol) => [rol, { [org]: 'DUOC UC' }]),
-      ),
-    ),
-  })
-    .setProtectedHeader({ alg: 'RS256' })
-    .setSubject('op-admin')
-    .setIssuer(ISSUER)
-    .setAudience(AUDIENCE)
-    .setExpirationTime('15m')
-    .sign(privateKey);
-}
-
 describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2e)', () => {
   let app: INestApplication<App>;
   let tokenPatrimonial: string;
@@ -139,12 +115,16 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
 
   beforeEach(async () => {
     const { publicKey, privateKey } = await generateKeyPair('RS256');
-    tokenPatrimonial = await firmarToken(privateKey, {
-      [ZITADEL_ORG_ID]: ['administrador-patrimonial'],
-    });
-    tokenSistema = await firmarToken(privateKey, {
-      [ZITADEL_ORG_ID]: ['administrador-sistema'],
-    });
+    tokenPatrimonial = await firmarTokenZitadel(
+      privateKey,
+      { [ZITADEL_ORG_ID]: ['administrador-patrimonial'] },
+      { issuer: ISSUER, audience: AUDIENCE, subject: 'op-admin' },
+    );
+    tokenSistema = await firmarTokenZitadel(
+      privateKey,
+      { [ZITADEL_ORG_ID]: ['administrador-sistema'] },
+      { issuer: ISSUER, audience: AUDIENCE, subject: 'op-admin' },
+    );
     const localJwks: JWTVerifyGetKey = () => Promise.resolve(publicKey);
 
     coreClientService = {

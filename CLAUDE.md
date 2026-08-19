@@ -1,9 +1,16 @@
 # SICSAFT — reglas del repo
 
 Monorepo de varios sistemas independientes (no workspace/npm-workspaces): cada carpeta de nivel
-raíz (`cis/`, `core/`, `web/`, ...) es su propio desplegable con su propio `package.json`,
-`Dockerfile` y pipeline de CI. Ver [README.md](README.md) para el mapa completo de sistemas y
-[ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md) para el marco de arquitectura.
+raíz (`cis/`, `core/`, `ccp/`, `web_admin/`, ...) es su propio desplegable con su propio
+`package.json`, `Dockerfile` y pipeline de CI. Ver [README.md](README.md) para el mapa completo de
+sistemas y [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md) para el marco de arquitectura.
+
+**Tres portales, tres roles, tres logins — nunca uno compartido** (DOC-022): `ccp/` (ex-`web/`) es
+exclusivo del Profesional de AFT, `web_admin/` del Administrador del Sistema, y `core/frontend/`
+del Directivo. `core/` es el único sistema con dos deployables (`core/` = backend NestJS,
+`core/frontend/` = SPA) — el frontend le habla a CIS, nunca a CORE directo (ver
+[ADR-003](adr/ADR-003-frontend-de-core-para-directivo.md)), así que la regla de abajo sigue
+aplicando sin excepción.
 
 ## Regla no negociable del ecosistema
 

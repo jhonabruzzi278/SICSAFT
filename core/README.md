@@ -106,7 +106,7 @@ incremento (mismo volumen bajo que justificó diferir el filtro por organizació
 en varias operaciones, ej. `POST /activos/{id}/baja`, `PATCH /responsables/{id}/estado`, un filtro
 exacto casi nunca matchearía) y `fechaDesde`/`fechaHasta` (rango inclusive sobre la columna
 `timestamptz`). Condiciones dinámicas parametrizadas, mismo patrón que
-`ActivoRepository.findCatalogo`. El requisito original (`web/aidlc-docs/requirements/`) pedía
+`ActivoRepository.findCatalogo`. El requisito original (`ccp/aidlc-docs/requirements/`) pedía
 auditoría "filtrable por usuario/fecha/operación" — el primer incremento solo devolvía el listado
 sin filtro alguno; este cierra ese gap.
 
@@ -172,7 +172,7 @@ diseñar `cip/`, ver
 de agregación y la API de lectura ya existen y corren reales en `cip/` — ver `cip/README.md`.
 
 **Cierre de 5 gaps del CCP + rol Administrador del Sistema (2026-08-18,
-[DOC-021](../web/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
+[DOC-021](../ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
 migración `1755800000000` agrega `activos.descripcion` (nullable) y la tabla `documentos_activo`
 (URL + metadata, sin bucket/OCR propio todavía — versión mínima; a diferencia de `activos`, esta
 tabla no es BPI oficial y sí admite `DELETE` real). `PATCH /activos/:id/descripcion`
@@ -184,7 +184,7 @@ cruzando `organizacionId` contra el Activo real antes de escribir (mismo criteri
 profundidad que el resto de `activo.repository.ts`), cerrando el gap "documentación y
 fotografías". Los gaps "ciclo de vida" (baja/reincorporación/responsable) e "importaciones" ya
 tenían endpoint en CORE desde Fase 4 — solo faltaba el puente CIS/WEB (ver `../cis/README.md`,
-`../web/README.md`). Segundo rol de Proyecto en Zitadel, `administrador-sistema`
+`../ccp/README.md`). Segundo rol de Proyecto en Zitadel, `administrador-sistema`
 (`src/entitlements/organizacion.repository.ts` + `organizacion-escritura.controller.ts`,
 `POST /organizaciones`) — administra la plataforma (organizaciones, y ahora también `Contrato`
 junto al Profesional de AFT), nunca información patrimonial. Esto exigió generalizar
@@ -229,6 +229,23 @@ npm run build
 Puerto por defecto `3001` (no `3000`) para poder correr `cis` y `core` en paralelo fuera de
 Docker sin chocar — dentro de Docker Compose cada uno tiene su propio namespace de puertos, así
 que no sería estrictamente necesario, pero evita sorpresas en desarrollo local sin contenedores.
+
+## Frontend (`frontend/`, DOC-022 4)
+
+CORE es el único sistema del ecosistema con **dos deployables**: este backend NestJS (`src/`,
+todo lo de arriba) y un segundo, [`frontend/`](frontend/README.md) — el portal WEB del Directivo
+(dashboard ejecutivo + designar al Profesional de AFT de su organización). Viven en la misma
+carpeta de nivel raíz por decisión explícita del usuario ("CORE va a estar conformado de backend y
+frontend"), pero son procesos y deploys completamente independientes: `frontend/` es una SPA
+Vite/React servida por su propio nginx (`frontend/Dockerfile`), con su propio CI
+(`core-frontend-ci.yml`, excluido del filtro de paths de `core-ci.yml` de arriba).
+
+**El frontend nunca le habla a este backend directo** — le habla a CIS, exactamente igual que
+`ccp/`/`web_admin/` (documentado formalmente en
+[ADR-003](../adr/ADR-003-frontend-de-core-para-directivo.md), que reemplaza puntualmente a
+ADR-001 solo en este aspecto). Este backend no gana ninguna superficie HTTP nueva por la
+existencia de `frontend/` — sigue sin router de Traefik, sigue sin más consumidor que CIS dentro
+de la red de contenedores (ver "Estado" arriba).
 
 ## Responsabilidades exclusivas (Tomo IV 2.3)
 Ningún componente externo puede ejecutar estas operaciones directamente: crear/modificar/dar de

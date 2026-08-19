@@ -20,14 +20,21 @@ secas). Agregar al archivo hosts (`C:\Windows\System32\drivers\etc\hosts`, como 
 127.0.0.1 id.sicsaft.localhost
 127.0.0.1 api.sicsaft.localhost
 127.0.0.1 traefik.sicsaft.localhost
-127.0.0.1 web.sicsaft.localhost
+127.0.0.1 ccp.sicsaft.localhost
+127.0.0.1 admin.sicsaft.localhost
+127.0.0.1 directivo.sicsaft.localhost
 ```
 
 (Se agregan más líneas acá a medida que sumemos servicios: `app.`, `qr.`, `cip.`.)
 
-`web.sicsaft.localhost` sirve el build de producción de WEB (nginx, ver `web/Dockerfile`) cuando
-corre dentro del stack (`docker compose up -d --build web`) — para desarrollo día a día seguí
-usando `npm run dev` (puerto 5174, hot reload), ver `../../web/README.md` Desarrollo local.
+`ccp.sicsaft.localhost` sirve el build de producción de CCP (nginx, ver `ccp/Dockerfile`) cuando
+corre dentro del stack (`docker compose up -d --build ccp`) — para desarrollo día a día seguí
+usando `npm run dev` (puerto 5174, hot reload), ver `../../ccp/README.md` Desarrollo local.
+`admin.sicsaft.localhost` es el equivalente para `web_admin/` (Administrador del Sistema,
+DOC-022) — `docker compose up -d --build web-admin`, o `npm run dev` (puerto 5176) para
+desarrollo día a día. `directivo.sicsaft.localhost` es el equivalente para `core/frontend/`
+(Directivo, DOC-022) — `docker compose up -d --build core-frontend`, o `npm run dev` (puerto
+5177) para desarrollo día a día.
 
 ## 2. Configurar variables de entorno
 ```bash
@@ -144,15 +151,15 @@ proyecto nuevo. Pasos reales seguidos (2026-08-14), reproducibles desde el dashb
 4. Ese usuario → **Authorizations** → New → proyecto "CIS" → rol `administrador-patrimonial`.
 5. Proyecto "CIS" → **Applications** → New → tipo **User Agent** (SPA, PKCE) → nombre
    `web-sicsaft` → **Development Mode** habilitado (redirect URI `http://` en dev) → redirect URI
-   `http://localhost:5174/auth/callback` (puerto de Vite de `web/`, no 5173 — ese es
+   `http://localhost:5174/auth/callback` (puerto de Vite de `ccp/`, no 5173 — ese es
    `app-qr-sicsaft`).
 6. En **Token Settings** de esa aplicación: **Auth Token Type = JWT** (no Bearer/opaco, mismo
    motivo que `app-qr-sicsaft`), **Access Token Role Assertion** y **ID Token Role Assertion**
    habilitados (el rol tiene que llegar en el token, no solo en `/userinfo`), y grant type
    `refresh_token` agregado (mismo criterio de refresh explícito que `app-qr-sicsaft`, no
    re-login silencioso).
-7. Copiar el **Client ID** de `web-sicsaft` a `web/.env` (`VITE_ZITADEL_CLIENT_ID`, ver
-   `web/.env.example`) junto con `VITE_ZITADEL_ISSUER=http://id.sicsaft.localhost` y
+7. Copiar el **Client ID** de `web-sicsaft` a `ccp/.env` (`VITE_ZITADEL_CLIENT_ID`, ver
+   `ccp/.env.example`) junto con `VITE_ZITADEL_ISSUER=http://id.sicsaft.localhost` y
    `VITE_CIS_URL=http://api.sicsaft.localhost`.
 8. `CIS_CORS_ORIGIN` en `docker-compose.yml` (servicio `cis`) debe incluir
    `http://localhost:5174` además de `http://localhost:5173` — ya seteado.
@@ -169,11 +176,18 @@ dashboard) cuando la UI del wizard de creación de aplicaciones no exponía dire
 `accessTokenRoleAssertion` — el resultado final es idéntico a hacerlo a mano desde Console.
 
 **Verificado real de punta a punta el 2026-08-14**: login de `admin-patrimonial@sicsaft.localhost`
-desde `web/` (authorization code + PKCE real) → JWT con el claim de rol → `POST /admin/activos`
+desde `ccp/` (authorization code + PKCE real) → JWT con el claim de rol → `POST /admin/activos`
 en CIS → CORE crea el activo en Postgres → visible en `GET /catalogo`. Ver `cis/README.md` y
 `core/README.md` Fase 4/5 para el detalle de cada lado.
 
-## Rol `directivo` (WEB) — DOC-020, segmentación por rol
+## Rol `directivo` (WEB) — DOC-020, segmentación por rol [SUPERADO por DOC-022]
+
+⚠️ Esta sección documenta el mecanismo original de DOC-020 (2026-08-18), donde el Directivo
+entraba a `ccp/` y era redirigido a `/dashboard`. **DOC-022 (2026-08-19) lo reemplaza**: el
+Directivo ya no entra a `ccp/` en absoluto, tiene su propio portal (`core/frontend/`) — ver
+"Cliente OIDC real (core/frontend)" y "Rol `directivo` + gestión de roles (core/frontend)" más
+abajo. Se deja este historial porque el rol de Proyecto `directivo` creado acá sigue siendo el
+mismo (no se recrea), solo cambia qué aplicación OIDC lo consume.
 
 Mismo proyecto/aplicación `web-sicsaft` de arriba, sin infraestructura nueva — solo un rol de
 Proyecto adicional (`ZitadelAuthGuard.extractRolesPorOrganizacion` ya lo parsea de forma genérica,
@@ -186,15 +200,80 @@ sin cambios de código en CIS, ver DOC-020 3):
    el caso mixto (DOC-020 5) muestra el hub operativo completo, así que para ver el redirect
    directo al Dashboard hace falta un usuario que sea *solo* Directivo.
 3. Ese usuario → **Authorizations** → New → proyecto "CIS" → rol `directivo`.
-4. Login desde `web/` con ese usuario → debería aterrizar directo en `/dashboard?organizacionId=...`
+4. Login desde `ccp/` con ese usuario → debería aterrizar directo en `/dashboard?organizacionId=...`
    sin pasar por el hub de tarjetas.
 
 **Verificado real de punta a punta el 2026-08-18** con tres usuarios de prueba en "DUOC UC"
 (`directivo-test@sicsaft.localhost`, `mixto-test@sicsaft.localhost` con ambos roles, y el
 `admin-patrimonial@sicsaft.localhost` ya existente) — confirma los 3 casos de DOC-020 5, ver la
-tabla en el encabezado de [DOC-020](../../web/aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md).
-Nota: si `web` corría desde antes de este incremento, hace falta `docker compose build web` — la
+tabla en el encabezado de [DOC-020](../../ccp/aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md).
+Nota: si `ccp` corría desde antes de este incremento, hace falta `docker compose build ccp` — la
 imagen no se reconstruye sola al mergear código nuevo.
+
+## Cliente OIDC real (web_admin) — DOC-022 2
+
+`web_admin/` necesita su propia Application OIDC (no reusa `web-sicsaft`) — mismo proyecto "CIS" y
+misma organización "DUOC UC". Pasos reales seguidos (2026-08-18), reproducibles desde el dashboard:
+
+1. Proyecto "CIS" → **Applications** → New → tipo **User Agent** (SPA, PKCE) → nombre
+   `web-admin-sicsaft` → **Development Mode** habilitado → redirect URI
+   `http://localhost:5176/auth/callback` (puerto de Vite de `web_admin/`).
+2. En **Token Settings**: **Auth Token Type = JWT**, **Access Token Role Assertion** e **ID Token
+   Role Assertion** habilitados, grant type `refresh_token` agregado — mismo criterio que
+   `web-sicsaft`.
+3. Copiar el **Client ID** a `web_admin/.env` (`VITE_ZITADEL_CLIENT_ID`) y a
+   `devops/local/.env` (`WEB_ADMIN_VITE_ZITADEL_CLIENT_ID`, para cuando corre dentro del stack).
+4. `CIS_CORS_ORIGIN` en `docker-compose.yml` (servicio `cis`) debe incluir
+   `http://localhost:5176` y `http://admin.sicsaft.localhost` — ya seteado.
+5. Usuario de prueba en "DUOC UC" con el rol `administrador-sistema` (ver más abajo "Rol
+   `administrador-sistema`") → login desde `web_admin/` → alta de organización sin necesitar decir
+   "en qué organización tengo el rol" (verifica `verificarRolEnCualquierOrganizacion` en CORE).
+
+**Verificado real de punta a punta el 2026-08-18**: usuario `admin.sicsaft.localhost` con el rol
+`administrador-sistema`, login OIDC/PKCE real, alta de una organización nueva (`doc022-verify-org`)
+confirmada visible en la lista de organizaciones.
+
+## Cliente OIDC real (core/frontend) — DOC-022 4
+
+`core/frontend/` (portal del Directivo) necesita su propia Application OIDC — mismo proyecto "CIS"
+y misma organización "DUOC UC", mismo patrón que `web_admin` arriba:
+
+1. Proyecto "CIS" → **Applications** → New → tipo **User Agent** (SPA, PKCE) → nombre
+   `core-frontend-sicsaft` → **Development Mode** habilitado → redirect URI
+   `http://localhost:5177/auth/callback` (puerto de Vite de `core/frontend/`).
+2. En **Token Settings**: **Auth Token Type = JWT**, **Access Token Role Assertion** e **ID Token
+   Role Assertion** habilitados, grant type `refresh_token` agregado.
+3. Copiar el **Client ID** a `core/frontend/.env` (`VITE_ZITADEL_CLIENT_ID`) y a
+   `devops/local/.env` (`CORE_FRONTEND_VITE_ZITADEL_CLIENT_ID`, para cuando corre dentro del
+   stack).
+4. `CIS_CORS_ORIGIN` en `docker-compose.yml` (servicio `cis`) debe incluir
+   `http://localhost:5177` y `http://directivo.sicsaft.localhost` — ya seteado.
+5. Usuario de prueba en "DUOC UC" con el rol `directivo` (el mismo rol de Proyecto ya creado para
+   DOC-020, ver arriba — no se recrea) → login desde `core/frontend/` → resuelve la organización
+   vía `POST /auth/session` y aterriza en `/dashboard?organizacionId=...`.
+
+**Verificado real de punta a punta el 2026-08-19**: Application OIDC `core-frontend-sicsaft`
+creada, login real con `directivo-test`, Dashboard con datos reales, designación de Profesional de
+AFT confirmada (dos casos: usuario sin grant previo, y usuario con otro rol ya asignado — este
+último destapó y corrigió dos bugs reales en `cis/src/zitadel-admin/`, ver `cis/README.md`).
+
+## Rol `directivo` + gestión de roles (core/frontend) — DOC-022 3
+
+El rol de Proyecto `directivo` ya existe (creado para DOC-020, ver arriba) — este incremento le
+suma una capacidad de **escritura** nueva: designar quién es el Profesional de AFT
+(`administrador-patrimonial`) de su propia organización, vía `cis/src/directivo/`
+(`GET/POST /directivo/usuarios`). Reusa el mismo `ZitadelAdminService` y el mismo service user con
+Personal Access Token ya configurado para `administrador-sistema` (ver más abajo) — sin
+infraestructura nueva de ese lado.
+
+1. Usuario de prueba en "DUOC UC" con el rol `directivo` → **Profesional de AFT** en
+   `core/frontend/` → designar un email de un usuario ya existente en Zitadel.
+2. Verificar el límite de organización: un segundo Directivo de prueba en una organización
+   distinta (crear una organización nueva vía `web_admin/` primero, ver arriba) no debería poder
+   ver ni tocar los usuarios de "DUOC UC" — `DirectivoGuard` en CIS deriva la organización siempre
+   del propio JWT, nunca de un parámetro que el cliente pueda mandar.
+
+⚠️ Pendiente verificación real de punta a punta (mismo estado que la sección anterior).
 
 ## Rol `administrador-sistema` + integración Zitadel Admin API (WEB) — DOC-021
 

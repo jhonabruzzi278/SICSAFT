@@ -144,12 +144,13 @@ services:
       # servicio `redis` (arriba). Primer consumidor de Redis en el codigo del ecosistema.
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       # Origen permitido para CORS (TASK-007 de APP QR, ver app-qr-sicsaft/src/lib/qr-connector.ts;
-      # Fase 5 de WEB, ver web/src/lib/oidc/) — sin esto, ningun navegador puede llamar a CIS
-      # directo (solo servicio-a-servicio, que no pasa por CORS). Puertos de Vite en dev (APP QR
-      # 5173, WEB 5174) + el dominio de Traefik del servicio `web` (abajo) para cuando WEB corre
-      # dentro del stack en vez de con `npm run dev`; agregar los dominios reales cuando exista
-      # deploy.
-      CIS_CORS_ORIGIN: http://localhost:5173,http://localhost:5174,http://web.sicsaft.localhost
+      # Fase 5 de CCP, ver ccp/src/lib/oidc/; DOC-022 para web_admin/core-frontend) — sin esto,
+      # ningun navegador puede llamar a CIS directo (solo servicio-a-servicio, que no pasa por
+      # CORS). Puertos de Vite en dev (APP QR 5173, CCP 5174, web_admin 5176, core/frontend 5177)
+      # + los dominios de Traefik de `ccp`, `web-admin` y `core-frontend` (abajo) para cuando
+      # corren dentro del stack en vez de con `npm run dev`; agregar los dominios reales cuando
+      # exista deploy.
+      CIS_CORS_ORIGIN: http://localhost:5173,http://localhost:5174,http://localhost:5176,http://localhost:5177,http://ccp.sicsaft.localhost,http://admin.sicsaft.localhost,http://directivo.sicsaft.localhost
       # DOC-012 5 (Fase 5) — mapeo Zitadel org id -> organizacionId de CORE, ver
       # src/administrador/organizacion-mapping.config.ts. Solo DUOC UC tiene datos reales hoy
       # (mismo caso que el resto del stack local) — Resource Id de la organizacion "DUOC UC" en
@@ -285,16 +286,51 @@ services:
     # Sin router en traefik/dynamic.yml a propósito, mismo criterio que `core`: sin frontend
     # todavia, ningun consumidor externo real (DOC-018 7.2 — decision abierta).
 
-  web:
+  ccp:
     build:
-      context: ../../web
+      context: ../../ccp
       dockerfile: Dockerfile
       args:
         # Vite incrusta VITE_* en build time (SPA, sin servidor propio) — a diferencia de
-        # cis/core, cambiar esto exige reconstruir la imagen (`docker compose build web`), un
+        # cis/core, cambiar esto exige reconstruir la imagen (`docker compose build ccp`), un
         # `environment:` acá abajo no alcanzaría (ya estaría horneado en el JS servido).
         VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
         VITE_ZITADEL_CLIENT_ID: ${WEB_VITE_ZITADEL_CLIENT_ID}
+        VITE_CIS_URL: http://api.sicsaft.localhost
+    networks:
+      - sicsaft
+    depends_on:
+      cis:
+        condition: service_started
+    restart: unless-stopped
+
+  # DOC-022 2 — Administrador del Sistema, extraido de ccp/AdminPage.tsx a su propio sistema con
+  # login propio (organizaciones/contratos/usuarios/indicadores, nunca informacion patrimonial).
+  web-admin:
+    build:
+      context: ../../web_admin
+      dockerfile: Dockerfile
+      args:
+        VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
+        VITE_ZITADEL_CLIENT_ID: ${WEB_ADMIN_VITE_ZITADEL_CLIENT_ID}
+        VITE_CIS_URL: http://api.sicsaft.localhost
+    networks:
+      - sicsaft
+    depends_on:
+      cis:
+        condition: service_started
+    restart: unless-stopped
+
+  # DOC-022 3/4 — portal del Directivo, vive en core/frontend/ pero le habla a CIS, nunca al
+  # backend de CORE directo (ADR-003). Dashboard ejecutivo (RF-09, movido desde ccp/) + designar
+  # al Profesional de AFT (cis/src/directivo/, acotado a la propia organizacion del Directivo).
+  core-frontend:
+    build:
+      context: ../../core/frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
+        VITE_ZITADEL_CLIENT_ID: ${CORE_FRONTEND_VITE_ZITADEL_CLIENT_ID}
         VITE_CIS_URL: http://api.sicsaft.localhost
     networks:
       - sicsaft

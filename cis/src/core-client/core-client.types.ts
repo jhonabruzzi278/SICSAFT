@@ -422,7 +422,13 @@ export const organizacionResponseSchema = z.object({
 export type OrganizacionResult = z.infer<typeof organizacionResponseSchema>;
 export const organizacionesResponseSchema = z.array(organizacionResponseSchema);
 
-export interface PostOrganizacionRequest extends EscrituraOficialRequest {
+// DOC-022 3 — sin `organizacionId` a propósito, a diferencia del resto de
+// EscrituraOficialRequest: el rol administrador-sistema se verifica en cualquier organización
+// del token, no en una puntual (ver core/src/entitlements/organizacion.schemas.ts).
+export interface PostOrganizacionRequest {
+  correlationId: string;
+  operadorId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
   id: string;
   nombre: string;
 }

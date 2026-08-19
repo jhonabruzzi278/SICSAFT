@@ -61,7 +61,7 @@ CORE que CIP puede usar expone el `id` interno del activo:
   trae `codigoQr`, `resultado`, `observaciones` — sin `id` ni área esperada.
 
 Agregar `id` a esos DTOs es un cambio de contrato de CORE que también afecta a WEB (mismo
-`ActivoCatalogo` que ya consume `web/`, Fase 5) — fuera de alcance de este incremento, y
+`ActivoCatalogo` que ya consume `ccp/`, Fase 5) — fuera de alcance de este incremento, y
 innecesario: **`codigoQr` ya es único por activo** (constraint `UNIQUE` en `activos.codigo_qr`,
 migración `1755100000000`) y es el identificador que ya cruza la frontera CORE↔CIS↔APP QR en todo
 el ecosistema. Todas las tablas de agregados de 4 que en `DOMAIN_MODEL.md` decían `activoId` se

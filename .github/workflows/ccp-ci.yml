@@ -1,0 +1,62 @@
+name: CCP CI
+
+on:
+  pull_request:
+    paths:
+      - "ccp/**"
+      - ".github/workflows/ccp-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ccp/**"
+      - ".github/workflows/ccp-ci.yml"
+
+defaults:
+  run:
+    working-directory: ccp
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: ccp/package-lock.json
+
+      - run: npm ci --ignore-scripts
+
+      - name: Type-check + build
+        run: npm run build
+
+      - name: Instalar Chromium (Playwright)
+        # Binario local (node_modules/.bin), no `npx playwright` — npx puede resolver y ejecutar
+        # un paquete remoto si no lo encuentra local (S6505); esta forma usa exactamente la
+        # version de @playwright/test ya fijada en package-lock.json (S8543), instalada por
+        # `npm ci` en el paso anterior.
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Tests e2e
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: ccp/playwright-report/
+          retention-days: 7
+
+      - name: Build de imagen Docker
+        run: |
+          # Placeholders sin uso real: esta imagen (sicsaft-ccp:ci) nunca corre ni se publica, solo
+          # valida que el Dockerfile buildee. https:// acá (no http://, que sí usan devops/local/
+          # y .env.example para el entorno local real sin TLS) evita un falso positivo de
+          # "clear-text protocol" (S5332) sobre hosts que jamás se resuelven de verdad.
+          docker build \
+            --build-arg VITE_ZITADEL_ISSUER=https://id.sicsaft.invalid \
+            --build-arg VITE_ZITADEL_CLIENT_ID=ci-placeholder \
+            --build-arg VITE_CIS_URL=https://api.sicsaft.invalid \
+            -t sicsaft-ccp:ci .

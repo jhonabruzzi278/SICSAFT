@@ -26,7 +26,7 @@ sicsaft-vps/
 ├── traefik/                        # reverse proxy + TLS automático (Let's Encrypt)
 ├── cis/Dockerfile
 ├── core/Dockerfile
-├── web/Dockerfile
+├── ccp/Dockerfile
 └── backups/                        # restic/borgbackup, destino EXTERNO al VPS
 ```
 

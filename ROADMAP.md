@@ -364,15 +364,15 @@ mismo archivo no duplica ni borra nada ✅ (verificado e2e); `seguridad/README.m
 
 ## Fase 5 — Portal WEB mínimo ✅ 6/6 módulos implementados
 
-**Por qué acá**: `web/README.md` dice "depende de CORE MVP + CIS real" — ambos existen recién
+**Por qué acá**: `ccp/README.md` dice "depende de CORE MVP + CIS real" — ambos existen recién
 después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita exponer.
 
-**Diseño completo**: metodología AI-DLC en [`web/aidlc-docs/`](web/aidlc-docs/00_PROJECT_METADATA.md)
+**Diseño completo**: metodología AI-DLC en [`ccp/aidlc-docs/`](ccp/aidlc-docs/00_PROJECT_METADATA.md)
 — requirements, historias, DOC-013 y un mockup visual (hub + Activos + Contratos, paleta
 `BRAND.md`), diseñado adelantado por pedido explícito del usuario en la misma sesión de Fase 2.
 
 **Qué se construyó** (2026-08-14, cuatro incrementos)
-- ✅ Vite/React (ADR-001, sin shadcn/ui en esta primera versión — ver `web/README.md` 
+- ✅ Vite/React (ADR-001, sin shadcn/ui en esta primera versión — ver `ccp/README.md` 
   "Decisiones") con OIDC authorization code + PKCE real contra Zitadel — app OIDC propia
   `web-sicsaft` en el mismo proyecto "CIS", ver `devops/local/README.md` "Cliente OIDC real
   (WEB)".
@@ -391,7 +391,7 @@ después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita e
   hay.
 - ✅ Módulo **Auditoría** completo, requisito RF-06 cerrado en su totalidad (consulta filtrable
   por usuario/operación/fecha, sin filtro por organización — gap distinto, conocido y aceptado, ver
-  `web/README.md` "Gaps"). Primer consumidor real de `AuditoriaRepository` (DOC-011 lo dejaba sin
+  `ccp/README.md` "Gaps"). Primer consumidor real de `AuditoriaRepository` (DOC-011 lo dejaba sin
   controller, "sin consumidor todavía"): `GET /auditoria` nuevo en CORE (hasta 200 entradas más
   recientes) + `GET /admin/auditoria` puente en CIS, mismo criterio de lectura abierta que
   `GET /contratos`. El mismo día se agregaron los filtros que el requisito original pedía y el
@@ -426,10 +426,10 @@ después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita e
   por módulo implementado (Activos, Contratos, Inventarios, Áreas/Ubicaciones/Responsables);
   Auditoría vive fuera del flujo por organización, como link directo en el header (no depende de
   qué organización esté seleccionada).
-- ✅ Dockerfile/`web-ci.yml`/servicio en el compose local — imagen nginx (usuario sin privilegios,
-  fallback SPA) + `web-ci.yml` (build + `docker build`) + servicio `web` en
-  `devops/local/docker-compose.yml` (`http://web.sicsaft.localhost` vía Traefik). Sigue
-  soportando `npm run dev` suelto para desarrollo, ver `web/README.md` Desarrollo local.
+- ✅ Dockerfile/`ccp-ci.yml`/servicio en el compose local — imagen nginx (usuario sin privilegios,
+  fallback SPA) + `ccp-ci.yml` (build + `docker build`) + servicio `ccp` en
+  `devops/local/docker-compose.yml` (`http://ccp.sicsaft.localhost` vía Traefik). Sigue
+  soportando `npm run dev` suelto para desarrollo, ver `ccp/README.md` Desarrollo local.
 
 **Gaps de arquitectura encontrados y resueltos en este incremento** (los cinco solo aparecieron
 probando el flujo real en el navegador, ninguno lo detectaban los tests unitarios/e2e con mocks):
@@ -460,11 +460,11 @@ completo de Área/Ubicación/Responsable, incluida la edición de Área/Ubicaci�
 arriba), ambos verificados con unit + e2e reales contra Postgres (CORE y CIS), sin login real de
 navegador todavía (a diferencia de RF-03/RF-04/RF-07). Los 6 módulos del MVP de Fase 5 quedan con
 sus requisitos cerrados por completo — sin filas pendientes en `REQUISITOS.md` "RF/RNF con
-estado parcial" para WEB. ✅ e2e Playwright del flujo de login + alta (`web/tests/`, MSW mockea
+estado parcial" para WEB. ✅ e2e Playwright del flujo de login + alta (`ccp/tests/`, MSW mockea
 CIS, mismo patrón que `app-qr-sicsaft/tests/`) — cubre operador sin sesión redirigido a `/login` y
-login + alta de Activo visible de inmediato (RF-08), corre en `web-ci.yml`.
-✅ Dockerfile/`web-ci.yml`/servicio en el compose local — WEB corre en Docker
-(`http://web.sicsaft.localhost`) además de `npm run dev` suelto. ✅ `web/README.md`,
+login + alta de Activo visible de inmediato (RF-08), corre en `ccp-ci.yml`.
+✅ Dockerfile/`ccp-ci.yml`/servicio en el compose local — WEB corre en Docker
+(`http://ccp.sicsaft.localhost`) además de `npm run dev` suelto. ✅ `ccp/README.md`,
 `cis/README.md`, `core/README.md`, `README.md`, `REQUISITOS.md` y DOC-013 actualizados.
 
 ## Fase 6 — CIP: primer dashboard ✅ completa
@@ -500,10 +500,10 @@ calculados correctos — no solo con mocks/unit. Unit 100% stmts/lines/funcs en 
 reales contra Postgres.
 
 **Frontend (2026-08-18) — diseño y construcción completos**: el dashboard se muestra como séptimo
-módulo del Portal WEB (`web/`), no una app propia — resuelve las dos decisiones abiertas de
+módulo del Portal WEB (`ccp/`), no una app propia — resuelve las dos decisiones abiertas de
 DOC-014 7.1/7.2. Diseño e implementación en
-[`web/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md`](web/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)
-(RF-09 de `web/`): WEB nunca le habla a CIP directo, pasa por un proxy nuevo en CIS
+[`ccp/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md`](ccp/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)
+(RF-09 de `ccp/`): WEB nunca le habla a CIP directo, pasa por un proxy nuevo en CIS
 (`src/cip-client/` + `src/dashboard-connector/`, mismo patrón de retry+circuit breaker que
 `CoreClientService` y misma autorización que `qr-connector.controller.ts`) — retira la nota
 "provisional" de DOC-018 3 sobre `CIP_SERVICE_TOKEN`. `DashboardPage.tsx` (WEB) verificado en el

@@ -1,0 +1,30 @@
+{
+  "name": "core-frontend-sicsaft",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Portal WEB SICSAFT del Directivo — dashboard ejecutivo + designación del Profesional de AFT (DOC-022).",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2",
+    "react-hook-form": "^7.84.0",
+    "@hookform/resolvers": "^5.7.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.1"
+  }
+}

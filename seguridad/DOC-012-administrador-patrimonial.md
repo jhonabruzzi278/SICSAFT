@@ -21,7 +21,7 @@
 `administrador-patrimonial` (este documento, el claim de Zitadel, el código) es el **nombre
 técnico** del rol — el **nombre funcional/oficial** con el que el negocio identifica a quien lo
 ejerce es **Profesional de AFT**: el usuario principal autorizado a acceder al CCP (Portal WEB,
-`web/`) y cargar/actualizar/mantener la información patrimonial necesaria para la operación del
+`ccp/`) y cargar/actualizar/mantener la información patrimonial necesaria para la operación del
 sistema. Aclaración provista por el usuario del proyecto (2026-08-18), no cita textual de un tomo
 con sección específica — se documenta como tal, sin inventar una referencia `x.y` que no fue
 dada.
@@ -36,7 +36,7 @@ pasa por CORE, que valida y actualiza la BPI (regla no negociable de `CLAUDE.md`
 
 **Nivel 1 vs. perfiles futuros**: el Profesional de AFT es el único perfil de Nivel 1 responsable
 de la carga y mantenimiento de la información patrimonial — no necesariamente el único que podrá
-entrar al CCP más adelante. `web/README.md` "Roles previstos" ya anota Supervisor, Auditor y
+entrar al CCP más adelante. `ccp/README.md` "Roles previstos" ya anota Supervisor, Auditor y
 Administrador como perfiles futuros con permisos distintos (sin diseño ni rol de Zitadel todavía,
 sin consumidor real) — esta aclaración no les da alcance, solo da nombre explícito a la relación
 con el Profesional de AFT.
@@ -45,11 +45,11 @@ con el Profesional de AFT.
 
 El alcance funcional de arriba describe lo que el Profesional de AFT **debería** poder hacer desde
 el CCP. Auditando el código real contra esa lista se encontraron 5 gaps — los 5 se cerraron el
-mismo día ([DOC-021](../web/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md)):
+mismo día ([DOC-021](../ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md)):
 
 | Ítem | ¿Alcanzable desde el CCP hoy? | Detalle |
 |---|---|---|
-| Activos (alta) | ✅ | `web/src/pages/ActivosPage.tsx` → `POST /admin/activos` → `POST /activos` (§5) |
+| Activos (alta) | ✅ | `ccp/src/pages/ActivosPage.tsx` → `POST /admin/activos` → `POST /activos` (§5) |
 | Activos (baja/reincorporación/cambio de responsable) | ✅ | Botones por fila en `ActivosPage.tsx` según `estado`, puente completo en CIS (`postActivoBaja`/`postActivoReincorporacion`/`patchActivoResponsable`) |
 | Códigos patrimoniales | ✅ (solo al alta) | se asignan al crear el Activo (`codigoPatrimonial` en `NuevoActivoInput`), sin edición posterior expuesta (no lo pedía el alcance) |
 | Descripciones | ✅ | Columna nueva `activos.descripcion` + `PATCH /activos/:id/descripcion`, editable desde el panel de edición de `ActivosPage.tsx` |

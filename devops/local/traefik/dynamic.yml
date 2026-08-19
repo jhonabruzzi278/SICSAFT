@@ -17,11 +17,21 @@ http:
       entryPoints:
         - web
       service: cis
-    web:
-      rule: "Host(`web.sicsaft.localhost`)"
+    ccp:
+      rule: "Host(`ccp.sicsaft.localhost`)"
       entryPoints:
         - web
-      service: web
+      service: ccp
+    web-admin:
+      rule: "Host(`admin.sicsaft.localhost`)"
+      entryPoints:
+        - web
+      service: web-admin
+    core-frontend:
+      rule: "Host(`directivo.sicsaft.localhost`)"
+      entryPoints:
+        - web
+      service: core-frontend
 
   services:
     zitadel:
@@ -32,7 +42,15 @@ http:
       loadBalancer:
         servers:
           - url: "http://cis:3000"
-    web:
+    ccp:
       loadBalancer:
         servers:
-          - url: "http://web:8080"
+          - url: "http://ccp:8080"
+    web-admin:
+      loadBalancer:
+        servers:
+          - url: "http://web-admin:8080"
+    core-frontend:
+      loadBalancer:
+        servers:
+          - url: "http://core-frontend:8080"

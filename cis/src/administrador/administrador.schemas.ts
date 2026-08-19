@@ -100,10 +100,11 @@ export const importacionContableSchema = z.object({
 });
 export type ImportacionContableBody = z.infer<typeof importacionContableSchema>;
 
-// DOC-021 4 (Administrador del Sistema) — `id` es el org_id real de Zitadel (ver
-// core/src/entitlements/organizacion.schemas.ts).
+// DOC-021 4 / DOC-022 3 (Administrador del Sistema) — `id` es el org_id real de Zitadel (ver
+// core/src/entitlements/organizacion.schemas.ts). Sin `organizacionId` a propósito — el rol se
+// verifica en cualquier organización del token, no en una puntual (mismo motivo que el schema
+// de CORE).
 export const altaOrganizacionSchema = z.object({
-  organizacionId: z.string().min(1),
   id: z.string().min(1),
   nombre: z.string().min(1),
 });

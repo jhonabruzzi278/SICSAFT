@@ -58,16 +58,51 @@ Segundo rol de Proyecto en Zitadel (`administrador-sistema`), administra la **pl
 información patrimonial (Activos/Catálogo/Documentos siguen exclusivos de
 `administrador-patrimonial`, y simétricamente el Profesional de AFT nunca administra la
 plataforma). Diseño completo en
-[DOC-021](../web/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md).
+[DOC-021](../ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
+extraído a su propio portal (`web_admin/`) por
+[DOC-022](../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
 Único caso de este repo con autorización server-side en dos niveles distintos según el endpoint:
-`POST /organizaciones` (solo `administrador-sistema`, vía el Orquestador de CORE — mismo patrón
-que el resto) y `GET/POST /organizaciones/:orgId/usuarios` (guard normal de CIS,
-`AdministradorSistemaGuard` — no pasa por CORE, es gestión de identidad en Zitadel, no información
-patrimonial auditable por Tomo IV). `POST/PATCH /contratos` generalizado para aceptar este rol
-además de `administrador-patrimonial` (Tomo III 1.4 no le quita esa capacidad al Profesional de
-AFT). Integración real con la API de administración de Zitadel para asignar usuarios —
-`cis/src/zitadel-admin/`, shapes de la API sin verificar todavía contra una instancia real (ver
-nota en ese módulo).
+`POST /organizaciones` (verifica el rol en **cualquier** organización del token, vía el
+Orquestador de CORE — `verificarRolEnCualquierOrganizacion`, DOC-022 2, no una organización
+puntual como el resto de las escrituras oficiales) y `GET/POST /organizaciones/:orgId/usuarios`
+(guard normal de CIS, `AdministradorSistemaGuard` — no pasa por CORE, es gestión de identidad en
+Zitadel, no información patrimonial auditable por Tomo IV). `POST/PATCH /contratos` generalizado
+para aceptar este rol además de `administrador-patrimonial` (Tomo III 1.4 no le quita esa
+capacidad al Profesional de AFT). Integración real con la API de administración de Zitadel para
+asignar usuarios — `cis/src/zitadel-admin/`, **verificada real contra una instancia de Zitadel el
+2026-08-19** (DOC-022 4): corrigió dos bugs genuinos que la documentación pública no revelaba
+(`listarGrants` pedía un filtro de organización que la API real no tiene; `crearGrant` no sabía
+sumar un rol a un usuario que ya tenía otro rol en el mismo proyecto) — ver `cis/README.md`.
+
+### Rol ✅ implementado: Directivo (DOC-020, reestructurado por DOC-022 3/4 el 2026-08-19)
+Tercer rol de Proyecto en Zitadel (`directivo`) — el de **mayor privilegio a nivel de
+organización**: dashboard ejecutivo de solo lectura (RF-09/DOC-019) y designación de quién es el
+Profesional de AFT de su propia organización (`administrador-patrimonial`). Nunca información
+patrimonial en sí (Activos/Catálogo/Documentos exclusivos del Profesional de AFT en CCP) ni
+administración de plataforma (exclusiva del Administrador del Sistema en `web_admin/`). Portal
+propio (`core/frontend/`, ver ese README) — hasta DOC-022 vivía dentro de CCP con una redirección
+automática al Dashboard (DOC-020, superado). El límite de organización es **estructural, no solo
+verificado por tests**: `DirectivoGuard` (`cis/src/directivo/directivo.guard.ts`) nunca acepta un
+organizacionId de ruta o body para este rol, siempre lo deriva del propio JWT — si el rol
+`directivo` no aparece en exactamente una organización del token, rechaza con 403. Mismo enfoque
+de autorización en dos niveles que Administrador del Sistema: `GET/POST /directivo/usuarios` es
+gestión de identidad en Zitadel (guard normal de CIS, no pasa por CORE), reusando el mismo
+`ZitadelAdminService` verificado real (ver arriba). Diseño completo en
+[DOC-022](../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
+La tercera capacidad que el usuario mencionó para este rol ("valida") queda explícitamente fuera
+de alcance — sin tomo ni definición todavía, ver DOC-022 "Fuera de alcance".
+
+## Mapeo rol → portal → hostname (local)
+
+| Rol (Zitadel) | Nombre funcional | Portal | Hostname (local) |
+|---|---|---|---|
+| `administrador-patrimonial` | Profesional de AFT | `ccp/` | `ccp.sicsaft.localhost` |
+| `administrador-sistema` | Administrador del Sistema | `web_admin/` | `admin.sicsaft.localhost` |
+| `directivo` | Directivo | `core/frontend/` | `directivo.sicsaft.localhost` |
+
+Tres portales, tres roles, tres logins — nunca uno compartido (DOC-022, regla no negociable de
+`CLAUDE.md`). Los tres son SPAs independientes contra el mismo proyecto "CIS" de Zitadel, cada uno
+con su propia Application OIDC (ver `devops/local/README.md` "Cliente OIDC real" para cada uno).
 
 ## Capacidades previstas
 Autenticación, refresh/expiración de sesión, RBAC, segregación por organización, segregación
@@ -80,8 +115,9 @@ Más datos reales de Base Patrimonial (hoy solo un caso precargado) y mapeo oper
 cualquier operador — ver DOC-004 7.
 
 ## Bloquea
-CIS (validar `sedeId`/contrato vigente en cada request — ver ADR-002), CORE (autorización), WEB
-(roles/permisos), APP QR (login de operador — TASK futura).
+CIS (validar `sedeId`/contrato vigente en cada request — ver ADR-002), CORE (autorización), los
+tres portales WEB (`ccp/`, `web_admin/`, `core/frontend/` — roles/permisos), APP QR (login de
+operador — TASK futura).
 
 ## Documentos relacionados
 [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (mecanismo de identidad, modelo

@@ -2,7 +2,7 @@
 
 Fuente primaria de cada fila: `cip/README.md` "Primer dashboard previsto"/"Navegación prevista"
 (ya citaba Tomo IV 2.4–2.14 vía `core/README.md`) y el spec funcional pptx (2026-08-17, filas
-marcadas explícitamente). Numeración propia de este sistema (RF-01... como en `core/`, `web/`),
+marcadas explícitamente). Numeración propia de este sistema (RF-01... como en `core/`, `ccp/`),
 no continúa la de otros sistemas.
 
 ## Funcionales

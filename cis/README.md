@@ -77,7 +77,7 @@ acá solo para el camino de escritura). `CoreClientService.postActivo` extiende 
 existente, propagando también un 403 (además de 400/409) para que WEB pueda distinguir "sin
 permiso" de "CORE caído" (DOC-012 8). **Verificado real de punta a punta el 2026-08-14**: rol
 `administrador-patrimonial` creado en Zitadel (proyecto "CIS", org "DUOC UC"), usuario de prueba
-con ese rol, login OIDC/PKCE real desde `web/` → JWT real con el claim de rol → CIS lo valida y
+con ese rol, login OIDC/PKCE real desde `ccp/` → JWT real con el claim de rol → CIS lo valida y
 traduce → CORE crea el activo en Postgres → visible de inmediato en `GET /catalogo` (mismo
 catálogo que consume APP QR, confirma WAF 8). Detalle completo en
 `../devops/local/README.md` "Cliente OIDC real (WEB)".
@@ -130,7 +130,7 @@ propagan `limit`/`offset` end-to-end (`administrador.schemas.ts` agrega un fragm
 devuelven el envelope `{ <entidad>, total }` tal cual, sin reinterpretarlo.
 
 **Cierre de 5 gaps del CCP + rol Administrador del Sistema (2026-08-18,
-[DOC-021](../web/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
+[DOC-021](../ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
 `AdministradorController`/`AdministradorService` suman ~15 endpoints nuevos, mismo patrón puente
 que el resto del módulo — `POST/baja/reincorporacion/PATCH responsable/descripcion` de Activo,
 `GET/POST /admin/catalogo-tipos`, `GET/POST/DELETE /admin/activos/:id/documentos`,
@@ -140,9 +140,18 @@ breaker, reintentos) — integración real con la API de administración de Zita
 (`ZitadelAdminService.buscarUsuarioPorEmail`/`listarGrants`/`crearGrant`, autenticada con un
 Personal Access Token de un service user, header `x-zitadel-orgid` para escribir en
 organizaciones distintas a la del service user) para `GET/POST /admin/organizaciones/:orgId/
-usuarios` — **los shapes de la API de Zitadel están armados solo contra su documentación
-pública, sin verificar todavía contra una instancia real** (ver comentario en
-`zitadel-admin.types.ts` y `../devops/local/README.md`). `AdministradorSistemaGuard`
+usuarios`. **Verificado real contra Zitadel v2.65 recién en DOC-022 4 (2026-08-19)** — dos bugs
+reales encontrados ahí, no solo contra la documentación pública (ver el comentario completo en
+`zitadel-admin.types.ts`/`zitadel-admin.service.ts`): (1) `listarGrants` mandaba un `orgIdQuery`
+que la API real rechaza con 400 (ese query type no existe — Zitadel solo filtra grants por
+dominio/nombre de organización, no por id), corregido a pedir por proyecto solamente y filtrar
+por `orgId` en memoria con la respuesta; (2) `crearGrant` fallaba con 409 "already exists" cuando
+el usuario YA tenía cualquier grant en el proyecto CIS (Zitadel modela un solo `UserGrant` por
+usuario+proyecto+organización, con `roleKeys` como array) — corregido a detectar el 409 y sumar
+el rol al grant existente vía `PUT` en vez de intentar crear uno nuevo. Ambos bugs afectaban
+también a `web_admin/` (mismo `ZitadelAdminService`, verificado real tras el fix: alta de
+organización, listado de usuarios por organización y asignación de un rol adicional a un usuario
+ya asignado, los tres reales contra el stack de Docker). `AdministradorSistemaGuard`
 (`src/administrador/administrador-sistema.guard.ts`) es el único endpoint de este módulo que NO
 sigue el patrón "verificar dentro del Orquestador de CORE" — un guard normal de CIS alcanza
 porque asignar usuarios en Zitadel no toca CORE ni el Motor de Auditoría de Tomo IV (WAF 3 sigue
@@ -161,6 +170,23 @@ ternarios) — mismo patrón preexistente en `qr-connector.controller.ts`/
 bajaba el promedio global por debajo de 85% por tener menos peso relativo. 100% statements/lines/
 functions se mantiene sin excepción. Ningún test puede cubrir esa rama fantasma (es metadata de
 compilación, no una rama de ejecución dependiente de datos).
+
+**Módulo nuevo `src/directivo/` — gestión de roles acotada a la propia organización
+(2026-08-19, [DOC-022](../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
+3)**: `GET/POST /directivo/usuarios` — el Directivo designa quién es el Profesional de AFT
+(`administrador-patrimonial`) dentro de SU organización, reusando el mismo `ZitadelAdminService`
+de `src/zitadel-admin/` que ya usa `AdministradorModule` (Fase 2 de DOC-021), sin ningún cambio
+ahí. A diferencia de `AdministradorSistemaGuard` (que lee `:orgId` de la URL porque Administrador
+del Sistema opera sobre cualquier organización), `DirectivoGuard`
+(`src/directivo/directivo.guard.ts`) nunca acepta un organizacionId de ruta o body — lo deriva
+siempre del propio JWT ya validado por `ZitadelAuthGuard`: si el rol `directivo` no aparece en
+exactamente una organización del token (cero, o más de una — ambigüedad no resuelta con un
+default), rechaza con 403. Esto hace el límite de organización estructural, no solo verificado en
+tests: no existe ningún parámetro con el que un Directivo pueda siquiera intentar pedir la
+organización de otro. El rol asignable está fijo en el servicio (`administrador-patrimonial`), no
+en lo que manda el cliente — `asignarProfesionalAftSchema` ni siquiera tiene un campo `rol` (a
+diferencia de `asignarUsuarioOrganizacionSchema` de `AdministradorModule`, que acepta los 3 roles
+de Proyecto).
 
 ## Desarrollo local
 ```bash
