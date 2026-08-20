@@ -38,7 +38,7 @@ cliente).
 No son parte de `POST /inventarios` (eso es verificación, no movimiento) — quedan modelados como
 la extensión natural de este motor pero **sin endpoint HTTP propio en esta fase**: no hay
 consumidor real todavía (ningún cliente de APP QR pide trasladar un activo hoy, ver
-`app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-001-flujo-oficial.md`).
+`aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-001-flujo-oficial.md`).
 
 **Corrección (2026-08-14, revisión de requisitos)**: esta sección decía "se deja el método en el
 repository" — verificado contra el código, `ActivoRepository` **no tiene** `actualizarUbicacion`

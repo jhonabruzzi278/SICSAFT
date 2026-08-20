@@ -2,7 +2,7 @@
 
 **Sistema:** SICSAFT CORE (SYS-03) — `core/`
 **Ciclo:** ROADMAP.md Fase 2 — "CORE MVP: Orquestador + 4 motores de lectura"
-**Metodología:** AI-DLC (mismo patrón que `app-qr-sicsaft/aidlc-docs/`, primer sistema backend
+**Metodología:** AI-DLC (mismo patrón que `aidlc-docs/app-qr-sicsaft/`, primer sistema backend
 que lo adopta — ver `CLAUDE.md` Documentación)
 **Fecha:** 2026-08-13
 **Fase actual:** Construction completa — código real implementado y verificado sobre este diseño.
@@ -48,7 +48,7 @@ Este directorio documenta específicamente la Fase 2 (Motor Patrimonial MVP, lec
 vive acá: al ser una capacidad transversal de seguridad/permisos (Usuario → Rol → Organización),
 el DOC-XXX correspondiente (DOC-012) se documentó en
 [`seguridad/DOC-012-administrador-patrimonial.md`](../../seguridad/DOC-012-administrador-patrimonial.md),
-no en `core/aidlc-docs/`, siguiendo el mismo criterio que ya usa `base-patrimonial/DOC-004`/
+no en `aidlc-docs/core/`, siguiendo el mismo criterio que ya usa `base-patrimonial/DOC-004`/
 `DOC-005` (el dominio del documento determina dónde vive, no dónde termina el código). Ver
 `core/README.md` Estado para el resumen de qué de DOC-012 ya está implementado acá.
 

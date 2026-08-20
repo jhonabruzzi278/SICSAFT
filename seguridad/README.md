@@ -58,9 +58,9 @@ Segundo rol de Proyecto en Zitadel (`administrador-sistema`), administra la **pl
 información patrimonial (Activos/Catálogo/Documentos siguen exclusivos de
 `administrador-patrimonial`, y simétricamente el Profesional de AFT nunca administra la
 plataforma). Diseño completo en
-[DOC-021](../ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
+[DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
 extraído a su propio portal (`web_admin/`) por
-[DOC-022](../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
+[DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
 Único caso de este repo con autorización server-side en dos niveles distintos según el endpoint:
 `POST /organizaciones` (verifica el rol en **cualquier** organización del token, vía el
 Orquestador de CORE — `verificarRolEnCualquierOrganizacion`, DOC-022 2, no una organización
@@ -88,7 +88,7 @@ organizacionId de ruta o body para este rol, siempre lo deriva del propio JWT �
 de autorización en dos niveles que Administrador del Sistema: `GET/POST /directivo/usuarios` es
 gestión de identidad en Zitadel (guard normal de CIS, no pasa por CORE), reusando el mismo
 `ZitadelAdminService` verificado real (ver arriba). Diseño completo en
-[DOC-022](../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
+[DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
 La tercera capacidad que el usuario mencionó para este rol ("valida") queda explícitamente fuera
 de alcance — sin tomo ni definición todavía, ver DOC-022 "Fuera de alcance".
 

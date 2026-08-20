@@ -7,7 +7,7 @@ organización: dashboard ejecutivo de solo lectura (RF-09, movido desde `ccp/`) 
 quién es el Profesional de AFT de su organización (`administrador-patrimonial`, gestión de
 identidad acotada a la propia organización). **Nunca** toca información patrimonial en sí
 (Activos/Catálogo/Documentos son exclusivos de [`../../ccp`](../../ccp), Profesional de AFT) — ver
-[DOC-022](../../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
+[DOC-022](../../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
 §3/§4.
 
 Vive físicamente dentro de `core/` (por eso "CORE está conformado de backend y frontend"), pero
@@ -54,13 +54,13 @@ Nada — es un cliente más de CIS, ningún otro sistema depende de `core/fronte
 
 ## Documentos relacionados
 
-[DOC-022](../../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
+[DOC-022](../../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
 (diseño de este portal y de la reestructuración completa).
 [ADR-003](../../adr/ADR-003-frontend-de-core-para-directivo.md) (por qué vive en `core/` pero le
 habla a CIS).
-[DOC-020](../../ccp/aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md)
+[DOC-020](../../aidlc-docs/ccp/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md)
 (diseño original del rol Directivo, cuando todavía era solo-lectura dentro de `ccp/`).
-[DOC-019](../../ccp/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md) (diseño
+[DOC-019](../../aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md) (diseño
 original del Dashboard, del que este portal reusa el código tal cual).
 
 ## Próximo paso sugerido

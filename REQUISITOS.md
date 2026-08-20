@@ -9,9 +9,9 @@
 
 | Sistema | Fuente | Alcance | RF | RNF | Estado |
 |---|---|---|---|---|---|
-| APP QR | [`app-qr-sicsaft/aidlc-docs/requirements/REQUIREMENTS.md`](app-qr-sicsaft/aidlc-docs/requirements/REQUIREMENTS.md) | MVP demo standalone (histórico — superado por TASK-007) | 11 | 4 | ✅ Completo (demo original) |
-| CORE | [`core/aidlc-docs/requirements/REQUIREMENTS.md`](core/aidlc-docs/requirements/REQUIREMENTS.md) | Fase 2 (Orquestador + 4 motores de lectura) | 7 | 5 | ✅ Completo, 1 parcial (RF-05), YAGNI/bajo riesgo deliberado — ver detalle |
-| WEB | [`ccp/aidlc-docs/requirements/REQUIREMENTS.md`](ccp/aidlc-docs/requirements/REQUIREMENTS.md) | Fase 5 (Portal WEB, 6 módulos) | 8 | 5 | ✅ Completo — 8/8 RF, 5/5 RNF |
+| APP QR | [`aidlc-docs/app-qr-sicsaft/requirements/REQUIREMENTS.md`](aidlc-docs/app-qr-sicsaft/requirements/REQUIREMENTS.md) | MVP demo standalone (histórico — superado por TASK-007) | 11 | 4 | ✅ Completo (demo original) |
+| CORE | [`aidlc-docs/core/requirements/REQUIREMENTS.md`](aidlc-docs/core/requirements/REQUIREMENTS.md) | Fase 2 (Orquestador + 4 motores de lectura) | 7 | 5 | ✅ Completo, 1 parcial (RF-05), YAGNI/bajo riesgo deliberado — ver detalle |
+| WEB | [`aidlc-docs/ccp/requirements/REQUIREMENTS.md`](aidlc-docs/ccp/requirements/REQUIREMENTS.md) | Fase 5 (Portal WEB, 6 módulos) | 8 | 5 | ✅ Completo — 8/8 RF, 5/5 RNF |
 | CIS | *(sin `aidlc-docs/`, ver nota)* | Fase 0/3/4/5 (conector QR, escritura oficial) | — | — | Sin requisitos formalizados con ID — ver nota abajo |
 
 **CIS nunca tuvo su propio `REQUIREMENTS.md`** — se construyó antes de que el proyecto adoptara la
@@ -76,7 +76,7 @@ no perderlos, con ID definitivo pendiente de asignar cuando se diseñe cada incr
 | Estado del AFT declarado durante el control: baja sugerida | APP QR + CORE | El operador sugiere la baja (dato informativo); el Administrador Patrimonial la revisa y ejecuta desde WEB | ✅ Implementado — evento `baja_sugerida`, no toca `Activo.estado`, sin conflicto con Tomo III 1.4 | Fase 3.1 |
 | Lista de AFT fuera de área con su área real | APP QR | Agregado del informe de control; dato ya disponible en la clasificación existente | ✅ Implementado — sección agrupada en `ScanPage.tsx`, verificado e2e | Fase 3.1 |
 | Gráfico circular por categoría de AFT | CIP | Visualización por área (informática, mobiliario, equipos varios, enseres de cocina, etc.) | ✅ Implementado — `GET /dashboard/categorias` (dato real, agregado por área/familia) + gráfico circular SVG en `DashboardPage` (WEB, DOC-019), filtrable por área | Fase 6 |
-| Informe diario automático a hora fija | CIP | Resumen de toda la organización: cobertura, control exitoso/aceptable/defectuoso, AFT por estado | 🔲 No implementado — requiere scheduler + canal de entrega, deliberadamente fuera de alcance (`cip/aidlc-docs/requirements/INTENT.md`) | Fase 6 |
+| Informe diario automático a hora fija | CIP | Resumen de toda la organización: cobertura, control exitoso/aceptable/defectuoso, AFT por estado | 🔲 No implementado — requiere scheduler + canal de entrega, deliberadamente fuera de alcance (`aidlc-docs/cip/requirements/INTENT.md`) | Fase 6 |
 | Clasificación ordinario (QR)/extraordinario (QR+RFID) | RFID | Por activo, según qué etiquetas tiene | 🔲 No implementado | Fase 8 |
 | Mapa de zonificación con alarmas en tiempo real | RFID | Plano de la organización con AFT extraordinarios y dispositivos de alarma por entrada/salida de área | 🔲 No implementado | Fase 8 |
 

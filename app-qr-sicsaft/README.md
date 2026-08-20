@@ -17,7 +17,7 @@ de productos como herramienta aparte, fuera del flujo oficial.
    Patrimonial desde WEB) → incidencias → cierre con veredicto de sesión
    (exitoso/aceptable/defectuoso) y lista de AFT fuera de área agrupada por su área real → cola de
    sincronización offline y registro de auditoría (Fase 3.1, ver
-   `aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md`).
+   `../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md`).
 2. **Catálogo** (`/catalog`, fuera del flujo oficial): alta de productos y generación/impresión de
    etiquetas QR, incluyendo variantes/talles (`BASE-VARIANTE`).
 
@@ -112,10 +112,10 @@ Contexto de negocio, decisiones ya tomadas y backlog: [`HANDOFF-APP-QR-SICSAFT.m
 
 Este proyecto sigue la metodología AI-DLC. Estado actual: **Early Construction**
 
-Documentación completa en [`/aidlc-docs/`](./aidlc-docs/):
-- [Requirements](./aidlc-docs/requirements/)
-- [Architecture](./aidlc-docs/design-artifacts/ARCHITECTURE.md)
-- [Testing Strategy](./aidlc-docs/testing/TEST_STRATEGY.md)
-- [Deployment (pendiente)](./aidlc-docs/deployment/)
+Documentación completa en [`/aidlc-docs/`](../aidlc-docs/app-qr-sicsaft/):
+- [Requirements](../aidlc-docs/app-qr-sicsaft/requirements/)
+- [Architecture](../aidlc-docs/app-qr-sicsaft/design-artifacts/ARCHITECTURE.md)
+- [Testing Strategy](../aidlc-docs/app-qr-sicsaft/testing/TEST_STRATEGY.md)
+- [Deployment (pendiente)](../aidlc-docs/app-qr-sicsaft/deployment/)
 
 Última auditoría: 2026-08-06

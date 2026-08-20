@@ -17,15 +17,15 @@ contra Postgres real (login real de navegador incluido); Auditoría y
 Áreas/Ubicaciones/Responsables verificados con unit + e2e reales contra Postgres (CORE y CIS), sin
 login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/README.md`
 "Cliente OIDC real (WEB)". Diseño AI-DLC completo en
-[`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) (requirements, historias, arquitectura,
-[DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)).
+[`aidlc-docs/`](../aidlc-docs/ccp/00_PROJECT_METADATA.md) (requirements, historias, arquitectura,
+[DOC-013](../aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md)).
 
 **Qué existe hoy** (`src/`):
 - `lib/oidc/` — cliente OIDC authorization code + PKCE, puerto por puerto idéntico al patrón ya
   probado en `app-qr-sicsaft/src/lib/oidc/` (mismo proyecto "CIS" en Zitadel, aplicación OIDC
   propia `web-sicsaft`, ver `devops/local/README.md`). `sessionStorage`, no `localStorage` — el
   Administrador Patrimonial re-autentica cada sesión de navegador (mayor blast radius que APP QR,
-  ver `aidlc-docs/design-artifacts/ARCHITECTURE.md` "Decisión abierta"). La segmentación por rol
+  ver `../aidlc-docs/ccp/design-artifacts/ARCHITECTURE.md` "Decisión abierta"). La segmentación por rol
   Directivo de DOC-020 (`esDirectivo()`/`esAdministradorPatrimonial()`, bifurcación en
   `HubPage.tsx`) quedó superada por DOC-022 (2026-08-19): el Directivo ya no entra a CCP, tiene su
   propio portal (`../core/frontend/`) — ambas funciones y la bifurcación se eliminaron de acá.
@@ -159,7 +159,7 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
   en vez de el default (20) para no perder filas silenciosamente mientras el volumen se mantenga
   bajo esa cota; si crece más allá, hace falta una UI de paginación real (nuevo RF, no este).
 - **5 gaps de cobertura del CCP frente al alcance del Profesional de AFT (auditados 2026-08-18)
-  — cerrados el mismo día ([DOC-021](aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
+  — cerrados el mismo día ([DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
   detalle completo con archivo/línea en
   [DOC-012 § "Cobertura real desde el CCP hoy"](../seguridad/DOC-012-administrador-patrimonial.md))**:
   - **Estados/ciclo de vida de Activo** — `ActivosPage.tsx` ofrece baja/reincorporación/cambio de
@@ -181,12 +181,12 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
   Zitadel real, ver nota en ese módulo.
 
 ## Módulos previstos
-6 en el MVP de Fase 5 (ver [DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md)), los 6
+6 en el MVP de Fase 5 (ver [DOC-013](../aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md)), los 6
 con código funcionando y sus requisitos cerrados: Activos (🟢), Contratos (🟢), Inventarios (🟢),
 hub (🟢), Auditoría (🟢, filtrable por usuario/operación/fecha — RF-06 cerrado, ver "Gaps"
 arriba), Áreas/Ubicaciones/Responsables (🟢, ABM completo incluida la edición de Área/Ubicación —
 RF-05 cerrado, ver "Gaps" arriba). Un séptimo módulo, Dashboard (🟢 implementado — RF-09,
-[DOC-019](aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)), expone el primer
+[DOC-019](../aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md)), expone el primer
 dashboard de CIP (SYS-06, Fase 6) vía un proxy nuevo en CIS (`src/dashboard-connector/`) — WEB
 nunca le habla a CIP directo. Dos módulos más (2026-08-18, DOC-021): **Importaciones** (🟢, CSV
 cliente-side → `POST /admin/importaciones/contable`) y **Administración** (🟢, exclusivo de
@@ -236,7 +236,7 @@ pendientes para el MVP de Fase 5.
 Nada crítico.
 
 ## Documentos relacionados
-[DOC-013](aidlc-docs/design-artifacts/DOC-013-portal-web.md) — módulos MVP y contra qué endpoint
+[DOC-013](../aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md) — módulos MVP y contra qué endpoint
 de CIS/CORE pega cada uno.
 [`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
 — contrato de escritura oficial que `POST /admin/activos` y `POST/PATCH /admin/contratos` exponen.
@@ -250,7 +250,7 @@ WEB). Lo que queda:
 1. Verificación real de punta a punta de Auditoría y Áreas/Ubicaciones/Responsables desde el
    navegador (login real, como ya se hizo con Activos/Contratos/Inventarios) — hoy solo están
    probados con e2e de CORE/CIS.
-2. ✅ Módulo Dashboard (RF-09, [DOC-019](aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md))
+2. ✅ Módulo Dashboard (RF-09, [DOC-019](../aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md))
    implementado: `src/dashboard-connector/` nuevo en CIS (proxy hacia CIP con `CipClientService`
    propio — mismo patrón de retry+circuit breaker que `CoreClientService`, mismo criterio de
    autorización que `qr-connector.controller.ts`, sin rol adicional) + `DashboardPage.tsx` en WEB
@@ -260,9 +260,9 @@ WEB). Lo que queda:
    Docker real: login OIDC real vía `ccp.sicsaft.localhost`, un `POST /inventarios` y un
    `POST /activos` reales disparados dentro de la red Docker confirmados en pantalla (cobertura,
    veredicto de sesión, estado de AFT y categorías, todos con datos reales).
-3. ⚠️ RF-10 (segmentación por rol Directivo, [DOC-020](aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md))
+3. ⚠️ RF-10 (segmentación por rol Directivo, [DOC-020](../aidlc-docs/ccp/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md))
    — implementado y verificado real en su momento (ver el propio DOC-020 para ese historial), pero
-   **superado por [DOC-022](aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
+   **superado por [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
    el 2026-08-19**: `esDirectivo()`/`esAdministradorPatrimonial()` y la bifurcación de
    `HubPage.tsx` se eliminaron de CCP — el Directivo tiene su propio portal ahora
    (`../core/frontend/`, ver ese README). El profesional de AFT (`administrador-patrimonial`,

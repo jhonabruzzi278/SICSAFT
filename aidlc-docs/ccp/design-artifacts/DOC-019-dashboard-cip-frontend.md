@@ -1,7 +1,7 @@
 # DOC-019 — Módulo Dashboard (CIP) en Portal WEB (incremento nuevo, tras Fase 6)
 
 Contrato del frontend del primer dashboard de CIP (SYS-06, Fase 6 backend ya completa —
-[DOC-014](../../../cip/aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md)/[DOC-018](../../../cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md)).
+[DOC-014](../../../aidlc-docs/cip/design-artifacts/DOC-014-cip-dashboard.md)/[DOC-018](../../../aidlc-docs/cip/design-artifacts/DOC-018-cip-servicio-nestjs.md)).
 No repite el diseño de agregación/ingesta de CIP — se centra en cómo un operador humano llega a
 ver esos datos. Resuelve las dos decisiones abiertas que DOC-014 7.1/7.2 dejó pendientes para
 "cuando se diseñe el frontend".
@@ -165,8 +165,8 @@ el contrato tiene *algún* módulo habilitado (provisional, ya documentado como 
 
 ## 8. Documentos relacionados
 
-[DOC-014](../../../cip/aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md) 7 (decisiones que
-este documento resuelve), [DOC-018](../../../cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md)
+[DOC-014](../../../aidlc-docs/cip/design-artifacts/DOC-014-cip-dashboard.md) 7 (decisiones que
+este documento resuelve), [DOC-018](../../../aidlc-docs/cip/design-artifacts/DOC-018-cip-servicio-nestjs.md)
 3/6 (API de lectura que este documento consume), [DOC-013](DOC-013-portal-web.md) 4/5 (mismo
 criterio de autorización a nivel de módulo y misma nota abierta de `modulosContratados`),
 `ARQUITECTURA-WAF.md` 8 (WEB como cliente intercambiable, degradación visible).

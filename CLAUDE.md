@@ -12,6 +12,94 @@ del Directivo. `core/` es el único sistema con dos deployables (`core/` = backe
 [ADR-003](adr/ADR-003-frontend-de-core-para-directivo.md)), así que la regla de abajo sigue
 aplicando sin excepción.
 
+## Arquitectura del ecosistema (flujo de datos)
+
+```
+Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
+        ↓
+      CIS (interoperabilidad — cis/, NestJS)
+        ↓
+    SICSAFT CORE (orquestador + motores — core/, NestJS)
+        ↓
+  Base Patrimonial Central (fuente única de verdad — Postgres)
+        ↓
+      CIP (inteligencia / BI — cip/)
+        ↓
+  Usuarios / Organización (ccp/, web_admin/, core/frontend/)
+```
+
+- **`cis/`** — backend NestJS, único punto de entrada para fuentes de captura (proxy delgado hacia
+  CORE, auth Zitadel, circuit breaker/reintentos/rate limiting). Nunca escribe directo a la Base
+  Patrimonial.
+- **`core/`** — backend NestJS, orquestador + motores (Patrimonial, Reglas, Eventos, Auditoría).
+  Único sistema con dos deployables: el backend (`core/`) y su SPA (`core/frontend/`, portal del
+  Directivo). El frontend habla con CIS, nunca directo al backend de CORE ([ADR-003](adr/ADR-003-frontend-de-core-para-directivo.md)).
+- **`ccp/`, `web_admin/`, `core/frontend/`** — tres SPAs Vite/React independientes, un portal por
+  rol (Profesional de AFT / Administrador del Sistema / Directivo), cada una con su propio login
+  OIDC/PKCE contra Zitadel. No comparten sesión ni código entre sí.
+- **`base-patrimonial/`** — modelo de dominio de la Base Patrimonial Central, documentado y
+  versionado en `core/migrations/` (Postgres real).
+- **`devops/local/docker-compose.yml`** — stack local completo: Traefik + Postgres + Redis +
+  Zitadel + los 5 sistemas + observabilidad self-hosted (Prometheus + Loki/Promtail + Grafana,
+  equivalente a CloudWatch/CloudTrail pero administrado por el operador del VPS).
+
+Estado real y detalle de cada sistema (qué está mockeado vs. real, endpoints, dependencias): tabla
+completa en [README.md](README.md) y el `README.md` propio de cada carpeta.
+
+## Comandos por sistema
+
+`cis/` y `core/` son NestJS (Jest); `ccp/`, `web_admin/`, `app-qr-sicsaft/` y `core/frontend/` son
+Vite/React. `ccp/`, `web_admin/` y `core/frontend/` tienen ESLint + Vitest (unit) — `app-qr-sicsaft/`
+todavía no tiene ninguno de los dos configurado. Playwright (e2e) existe en `ccp/` y
+`app-qr-sicsaft/`; instalado pero sin specs en `web_admin/`; inexistente en `core/frontend/`. Cada
+comando corre desde la carpeta del sistema.
+
+**Backends (`cis/`, `core/`):**
+```bash
+npm run start:dev          # dev server con watch
+npm run lint:ci             # eslint --max-warnings=0 (lo que corre CI; usar "lint" a secas para autofix local)
+npm test                    # jest (unit)
+npx jest ruta/al.spec.ts    # un solo archivo de test
+npx jest -t "nombre del test"  # un solo test por nombre
+npm run test:cov            # cobertura — umbral en package.json > jest.coverageThreshold (100% líneas/funciones en cis/ y core/)
+npm run test:e2e            # jest contra ./test/jest-e2e.json (Postgres real en CI, no mocks)
+npm run build                # nest build
+```
+`core/` además tiene `npm run migrate:up` / `migrate:down` (`node-pg-migrate` sobre
+`core/migrations/`).
+
+**Frontends, todas (`ccp/`, `web_admin/`, `app-qr-sicsaft/`, `core/frontend/`):**
+```bash
+npm run dev                  # vite
+npm run build                 # tsc -b && vite build
+```
+
+**`ccp/`, `web_admin/`, `core/frontend/` además tienen:**
+```bash
+npm run lint:ci               # eslint --max-warnings=0 (mismo criterio que cis/core)
+npm test                      # vitest run — hoy solo cubre src/lib/oidc/ (PKCE/tokens/refresh, DOC-023)
+npm run test:cov              # vitest run --coverage
+```
+
+**`ccp/` y `app-qr-sicsaft/` además tienen e2e real** (`web_admin/` tiene Playwright instalado pero
+sin specs todavía; `core/frontend/` no tiene e2e):
+```bash
+npm run test:e2e              # playwright test
+npx playwright test archivo.spec.ts   # un solo archivo e2e
+```
+
+**Stack local completo** (Traefik + Postgres + Redis + Zitadel + los 5 sistemas + observabilidad
+self-hosted — Prometheus/Loki/Grafana):
+```bash
+cd devops/local && docker compose up -d
+```
+Ver [`devops/local/README.md`](devops/local/README.md) para variables de entorno, dominios
+locales, y la sección "Observabilidad" (URLs de Grafana, qué mide cada componente, limitación
+conocida de cAdvisor en Docker Desktop).
+
+No hay comando de build/test a nivel raíz del repo — cada sistema se construye y testea de forma
+aislada dentro de su propia carpeta.
+
 ## Regla no negociable del ecosistema
 
 **Ninguna fuente de captura (APP QR, WEB, RFID, ERP) puede modificar la Base Patrimonial Central
@@ -29,6 +117,12 @@ diagrama de [README.md](README.md). Ningún cambio de código debe crear un ataj
 - **Cómo construir eso de forma escalable/resiliente**: [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md).
 - **Decisiones de stack ya tomadas**: [`adr/`](adr) (NestJS, Postgres, Redis, Zitadel
   self-hosted). No reabrir estas decisiones sin un ADR nuevo que las reemplace explícitamente.
+- **Qué puede hacer cada rol (RBAC), endpoint por endpoint**:
+  [`ccp/DOC-023`](aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md) — matriz
+  Rol × Módulo × Acción extraída de los guards reales de CIS/CORE, no de lo que la UI muestra
+  u oculta. Antes de agregar un endpoint nuevo con autorización, revisar ahí qué patrón de guard
+  ya existe para el caso (rol contra `organizacionId` puntual, rol en cualquier organización,
+  o solo `ServiceTokenGuard`) en vez de inventar uno nuevo.
 - **Estado real de cada sistema**: el README de esa carpeta, no memoria de conversaciones
   anteriores — los README se mantienen sincronizados con el código en cada commit relevante (ver
   "Documentación" abajo).
@@ -49,36 +143,50 @@ diagrama de [README.md](README.md). Ningún cambio de código debe crear un ataj
 
 ## Metodología AI-DLC para features nuevas
 
-Toda fase de trabajo no trivial (una fase de `ROADMAP.md`, una feature nueva) se documenta con la
-carpeta `aidlc-docs/` dentro del sistema que la implementa, **antes** de escribir código —
-patrón ya usado por `app-qr-sicsaft/aidlc-docs/` (primer sistema) y `core/aidlc-docs/` (segundo,
-Fase 2). Estructura estándar:
+Toda fase de trabajo no trivial (una fase de `ROADMAP.md`, una feature nueva) se documenta con
+AI-DLC **antes** de escribir código. Toda la documentación AI-DLC de todos los sistemas vive en
+una única carpeta en la raíz del proyecto, `aidlc-docs/`, con una subcarpeta por sistema —
+**nunca anidada dentro del sistema que la implementa**. Se decidió así (2026-08-20) porque cada
+carpeta de sistema es su propio desplegable (ver arriba) y `aidlc-docs/` es documentación de
+proceso, no código ni artefacto de build — mezclarla dentro de `cis/`, `core/`, etc. la hacía
+difícil de descubrir y la exponía a quedar arrastrada por accidente en un build o un
+`Dockerfile` mal filtrado. Estructura estándar, un directorio por sistema (`app-qr-sicsaft/`,
+`ccp/`, `cip/`, `core/`, y el que corresponda a cada sistema nuevo):
 
 ```
-<sistema>/aidlc-docs/
-├── 00_PROJECT_METADATA.md        # estado de fase (Inception/Construction/Operations), quick links
-├── requirements/
-│   ├── INTENT.md                  # que se pidio, por que ahora, que NO es esta fase
-│   └── REQUIREMENTS.md            # funcionales/no funcionales, con ID (RF-XX/RNF-XX) y fuente
-├── story-artifacts/
-│   └── USER_STORIES.md            # desde la perspectiva del consumidor real, con criterios de aceptacion
-├── design-artifacts/
-│   ├── DOMAIN_MODEL.md            # entidades + diagramas (mermaid erDiagram/stateDiagram)
-│   ├── ARCHITECTURE.md            # mapa de modulos + diagramas de secuencia
-│   └── DOC-XXX-*.md               # contratos/documentos numerados, mismo esquema que DOC-002/004/005
-└── testing/
-    └── TEST_STRATEGY.md           # que se testea y como, sin bajar el umbral de cobertura vigente
+aidlc-docs/
+└── <sistema>/
+    ├── 00_PROJECT_METADATA.md      # estado de fase (Inception/Construction/Operations), quick links
+    ├── requirements/
+    │   ├── INTENT.md                # que se pidio, por que ahora, que NO es esta fase
+    │   └── REQUIREMENTS.md          # funcionales/no funcionales, con ID (RF-XX/RNF-XX) y fuente
+    ├── story-artifacts/
+    │   └── USER_STORIES.md          # desde la perspectiva del consumidor real, con criterios de aceptacion
+    ├── design-artifacts/
+    │   ├── DOMAIN_MODEL.md          # entidades + diagramas (mermaid erDiagram/stateDiagram)
+    │   ├── ARCHITECTURE.md          # mapa de modulos + diagramas de secuencia
+    │   └── DOC-XXX-*.md             # contratos/documentos numerados, mismo esquema que DOC-002/004/005
+    └── testing/
+        └── TEST_STRATEGY.md         # que se testea y como, sin bajar el umbral de cobertura vigente
 ```
 
+- **Ruta canónica**: `aidlc-docs/<sistema>/...` — nunca `<sistema>/aidlc-docs/...`. Al enlazar
+  desde el README de un sistema (que sí vive dentro de `<sistema>/`) hacia su propia
+  documentación AI-DLC, la ruta relativa sube un nivel primero: `../aidlc-docs/<sistema>/...`.
 - **Diseño antes que código**: cuando el usuario pide explícitamente diseñar primero, generar
-  todo `aidlc-docs/` de la fase, presentarlo, y esperar confirmación antes de tocar `src/`.
+  todo `aidlc-docs/<sistema>/` de la fase, presentarlo, y esperar confirmación antes de tocar
+  `src/`.
 - **Diagramas en Mermaid** (`erDiagram`, `stateDiagram-v2`, `sequenceDiagram`, `flowchart`) —
   renderizan directo en GitHub, no requieren herramienta externa.
 - **No duplicar contenido ya citado**: un DOC-XXX nuevo referencia a los tomos oficiales y a los
-  DOC-XXX previos por sección, no repite su contenido.
+  DOC-XXX previos por sección (incluidos los de otro sistema, ej. `aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md`
+  desde `aidlc-docs/ccp/`), no repite su contenido.
 - Los DOC-XXX ya numerados de antemano en un README (ej. `core/README.md` "Documentos
   relacionados" listando DOC-006 a DOC-011 como pendientes) mantienen esa numeración cuando se
   escriben — no se renumeran.
+- Una fase que toca varias capas a la vez (CORE→CIS→WEB→devops, ver DOC-021) sigue documentándose
+  bajo el sistema donde nace la decisión de diseño — no se crea una subcarpeta por fase separada
+  de la de sistema.
 
 ## Git / commits
 

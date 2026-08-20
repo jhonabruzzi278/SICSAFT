@@ -13,7 +13,7 @@ pública — hoy `core` no tiene ruta en Traefik, solo lo llaman `cis`/`cip` den
 de Docker, y la regla no negociable de `CLAUDE.md` es "ninguna fuente de captura puede modificar
 la Base Patrimonial directamente — todo pasa por CIS → CORE".
 
-[DOC-022](../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
+[DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
 separa los tres roles del ecosistema (Profesional de AFT, Administrador del Sistema, Directivo) en
 tres portales con login propio. El usuario del proyecto pidió explícitamente que el portal del
 Directivo viva dentro de la carpeta `core/` ("CORE va a estar conformado de backend y frontend"),
@@ -65,5 +65,5 @@ a CORE directamente.**
 
 [ADR-001](ADR-001-stack-backend-nestjs.md) (decisión de stack que este documento extiende, sin
 reemplazarla). [ADR-002](ADR-002-identidad-zitadel-multi-tenant.md) (modelo de identidad que los
-tres portales comparten). [DOC-022](../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
+tres portales comparten). [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
 (diseño completo de la reestructuración de portales que motiva este ADR).

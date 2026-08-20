@@ -35,5 +35,5 @@ directorio es esa etapa de diseño, deliberadamente sin una sola línea de códi
 
 Tomo IV Cap.2 (2.4–2.16, Orquestador + motores + flujo de transacción, ya citado en
 `core/README.md`), `base-patrimonial/DOC-005-modelo-patrimonial.md` (tablas), DOC-002
-(`app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md`, contrato ya construido del
+(`aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md`, contrato ya construido del
 lado de CIS que este diseño no debe romper).

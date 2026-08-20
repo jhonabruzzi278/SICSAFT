@@ -130,7 +130,7 @@ propagan `limit`/`offset` end-to-end (`administrador.schemas.ts` agrega un fragm
 devuelven el envelope `{ <entidad>, total }` tal cual, sin reinterpretarlo.
 
 **Cierre de 5 gaps del CCP + rol Administrador del Sistema (2026-08-18,
-[DOC-021](../ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
+[DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
 `AdministradorController`/`AdministradorService` suman ~15 endpoints nuevos, mismo patrón puente
 que el resto del módulo — `POST/baja/reincorporacion/PATCH responsable/descripcion` de Activo,
 `GET/POST /admin/catalogo-tipos`, `GET/POST/DELETE /admin/activos/:id/documentos`,
@@ -172,7 +172,7 @@ functions se mantiene sin excepción. Ningún test puede cubrir esa rama fantasm
 compilación, no una rama de ejecución dependiente de datos).
 
 **Módulo nuevo `src/directivo/` — gestión de roles acotada a la propia organización
-(2026-08-19, [DOC-022](../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
+(2026-08-19, [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
 3)**: `GET/POST /directivo/usuarios` — el Directivo designa quién es el Profesional de AFT
 (`administrador-patrimonial`) dentro de SU organización, reusando el mismo `ZitadelAdminService`
 de `src/zitadel-admin/` que ya usa `AdministradorModule` (Fase 2 de DOC-021), sin ningún cambio
@@ -187,6 +187,24 @@ organización de otro. El rol asignable está fijo en el servicio (`administrado
 en lo que manda el cliente — `asignarProfesionalAftSchema` ni siquiera tiene un campo `rol` (a
 diferencia de `asignarUsuarioOrganizacionSchema` de `AdministradorModule`, que acepta los 3 roles
 de Proyecto).
+
+**`GET /admin/indicadores` con guard de rol (2026-08-19,
+[DOC-023](../aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md) 3)**: hallazgo real
+al construir la matriz de permisos del ecosistema — este endpoint era el único módulo de
+administración sin verificación de rol server-side, solo ocultado en la UI de `web_admin/`.
+Corregido con `AdministradorSistemaEnCualquierOrganizacionGuard`
+(`src/administrador/administrador-sistema-cualquier-organizacion.guard.ts`) — a diferencia de
+`AdministradorSistemaGuard`, que chequea el rol contra el `:orgId` de la URL, este endpoint no
+tiene organización propia (son indicadores agregados de toda la plataforma), así que el chequeo es
+"el rol en cualquier organización del token", mismo criterio que `verificarRolEnCualquierOrganizacion`
+de CORE usa para el alta de Organización.
+
+**Limpieza de dependencias muertas (2026-08-19, auditoría con Knip)**: `@eslint/eslintrc`,
+`source-map-support` y `ts-loader` salieron de `devDependencies` — ninguno se usaba (`ts-loader`
+solo aplica con `webpack: true` en `nest-cli.json`, que este proyecto no tiene; `@eslint/eslintrc`
+solo hace falta para `FlatCompat`, que `eslint.config.mjs` no usa). `supertest`/`@types/supertest`
+se verificaron en uso real (los 6 `*.e2e-spec.ts` de `test/`) antes de descartarlos como falso
+positivo de Knip — se quedan.
 
 ## Desarrollo local
 ```bash
@@ -251,9 +269,9 @@ recalibrada con el número medido real cada vez que se agrega un módulo grande.
 
 ## Conector QR — proxy real hacia CORE (`src/qr-connector/`, `src/common/auth/`)
 Contrato completo de
-[`../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md`](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md),
+[`../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md`](../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md),
 resuelto contra CORE vía
-[`../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md`](../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md).
+[`../aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md`](../aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md).
 `QrConnectorService` no tiene lógica de negocio propia — valida con Zod el request de cada
 operación (`qr-connector.schemas.ts`) y delega en `CoreClientService`. Los 4 endpoints están
 detrás de `ZitadelAuthGuard` (`src/common/auth/zitadel-auth.guard.ts`, sin
@@ -299,9 +317,9 @@ supersede-en-vez-de-rechazo y el TTL atado al token.
   `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` 7.
 
 ## Documentos relacionados
-- [DOC-002](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md) (contrato
+- [DOC-002](../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md) (contrato
   Conector QR) — vive en el repo de APP QR QRVault por ahora.
-- [DOC-006](../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md) (API CIS↔CORE) —
+- [DOC-006](../aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md) (API CIS↔CORE) —
   implementado en ambos lados.
 - [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack: NestJS/TypeScript).
 - [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) — el CIS valida `organizacionId`,

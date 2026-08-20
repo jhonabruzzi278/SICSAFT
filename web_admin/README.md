@@ -6,8 +6,8 @@ Portal WEB exclusivo del rol **Administrador del Sistema** (`administrador-siste
 la *plataforma* SICSAFT: organizaciones, contratos, usuarios (asignación de roles vía integración
 real con la API de administración de Zitadel) e indicadores. **Nunca** toca información
 patrimonial (Activos/Catálogo/Documentos son exclusivos de [`ccp/`](../ccp), Profesional de AFT) —
-ver [DOC-021](../ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md)
-§1 y [DOC-022](../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
+ver [DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md)
+§1 y [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
 
 ## Estado
 
@@ -49,9 +49,9 @@ Nada — es un cliente más de CIS, ningún otro sistema depende de `web_admin/`
 
 ## Documentos relacionados
 
-[DOC-021](../ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md)
+[DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md)
 (diseño original del rol Administrador del Sistema, cuando todavía vivía dentro de `ccp/`).
-[DOC-022](../ccp/aidlc-docs/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
+[DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
 (diseño de la extracción a este sistema propio).
 
 ## Próximo paso sugerido

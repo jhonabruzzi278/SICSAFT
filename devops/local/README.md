@@ -76,6 +76,47 @@ defecto que un contenedor lea el socket del daemon (Enhanced Container Isolation
 conviene tener menos archivos que mantener a mano a medida que se agreguen más servicios — queda
 como decisión abierta en `../README.md`.
 
+## Observabilidad (Prometheus + Loki + Grafana, self-hosted)
+
+Equivalente self-hosted a CloudWatch/CloudTrail — corre dentro del mismo `docker compose`, sin
+depender de ningún servicio en la nube, para que el operador del VPS lo administre directamente.
+Config versionada en `observability/` (`prometheus.yml`, `loki-config.yml`,
+`promtail-config.yml`, `grafana/provisioning/`).
+
+**Componentes:**
+- **node-exporter** — métricas del host (CPU/memoria/disco/red), lo mismo que CloudWatch da gratis
+  por instancia EC2.
+- **cAdvisor** — métricas por contenedor (CPU/memoria/red/IO por servicio), equivalente a
+  CloudWatch Container Insights.
+- **Prometheus** — scrapea a los dos de arriba (`observability/prometheus.yml`, targets estáticos —
+  mismo criterio que Traefik arriba: sin discovery por socket de Docker).
+- **Promtail** — envía los logs de TODOS los contenedores del stack a Loki, sin tocar código de
+  aplicación (`docker_sd_configs` contra el socket de Docker — a diferencia de Traefik, esto SÍ
+  funciona bajo Enhanced Container Isolation; verificado real, con un filtro explícito para no
+  mezclar logs de otros proyectos Docker de la misma máquina).
+- **Loki** — almacena los logs (filesystem local, retención 7 días en este stack de desarrollo).
+- **Grafana** — dashboards. Datasources (Prometheus + Loki) y un dashboard inicial
+  ("SICSAFT — Overview") se provisionan solos al arrancar, sin configurar nada a mano.
+
+**Acceso:** http://grafana.sicsaft.localhost — usuario/contraseña de `GRAFANA_ADMIN_USER`/
+`GRAFANA_ADMIN_PASSWORD` (`.env`). El dashboard "SICSAFT — Overview" (carpeta "SICSAFT") trae:
+CPU/memoria de host, CPU/memoria por contenedor, volumen de logs por servicio, y un panel de
+últimos logs de todos los servicios.
+
+**Limitación conocida en Docker Desktop (Windows/Mac), no en el VPS real**: cAdvisor no puede leer
+las métricas por-contenedor individuales bajo Docker Desktop —
+`failed to identify the read-write layer ID for container ...` en sus logs — porque Docker
+Desktop expone el storage driver de forma distinta dentro de su VM que un Docker nativo de Linux.
+Las métricas de **host** (node-exporter) y los **logs** (Loki/Promtail) sí funcionan
+completos y verificados acá; las métricas **por contenedor** de cAdvisor van a andar sin cambios
+de config en el VPS real (Linux nativo), que es el entorno para el que está pensado este stack.
+
+**Para ir más allá** (no incluido en este incremento): los backends NestJS (`cis/`, `core/`) no
+exponen `/metrics` propio todavía — el `prometheus.yml` deja el target comentado y listo para
+cuando se agregue `prom-client`/`@willsoto/nestjs-prometheus`. Dashboards de la comunidad
+("Node Exporter Full", id `1860` en grafana.com) se pueden importar desde la propia UI de Grafana
+(Dashboards → New → Import → pegar el id) sin necesidad de versionarlos acá.
+
 ## Cliente OIDC real (ROADMAP.md Fase 0) — ya hecho, pasos para reproducirlo
 1. Levantar el stack y entrar a `http://id.sicsaft.localhost`, login con
    `ZITADEL_ADMIN_USERNAME`/`ZITADEL_ADMIN_PASSWORD` (Zitadel obliga a cambiar la contraseña en
@@ -153,6 +194,18 @@ proyecto nuevo. Pasos reales seguidos (2026-08-14), reproducibles desde el dashb
    `web-sicsaft` → **Development Mode** habilitado (redirect URI `http://` en dev) → redirect URI
    `http://localhost:5174/auth/callback` (puerto de Vite de `ccp/`, no 5173 — ese es
    `app-qr-sicsaft`).
+
+   ⚠️ **Redirect URIs — la app necesita las DOS**, no solo la de Vite: `redirect_uri` lo calcula
+   cada frontend como `${window.location.origin}/auth/callback` (ver `ccp/src/lib/oidc/oidc-config.ts`),
+   así que cambia según cómo lo estés probando — `http://localhost:5174/auth/callback` corriendo
+   `npm run dev`, **`http://ccp.sicsaft.localhost/auth/callback` corriendo el stack de Docker**
+   detrás de Traefik (mismo criterio para `postLogoutRedirectUris` y `allowedOrigins`). Si falta
+   cualquiera de las dos, el login tira `invalid_request: The requested redirect_uri is missing in
+   the client configuration` — ya pasó una vez: la app quedó con `web.sicsaft.localhost` (el
+   hostname de antes del rename `web/` → `ccp/` de DOC-022) en vez de `ccp.sicsaft.localhost`, y
+   Traefik ya no enruta ese hostname viejo a ningún lado. Se corrigió vía la Management API de
+   Zitadel (`PUT /management/v1/projects/{id}/apps/{id}/oidc_config` con el
+   `ZITADEL_ADMIN_TOKEN` de `devops/local/.env`) en vez de la Console — mismo resultado.
 6. En **Token Settings** de esa aplicación: **Auth Token Type = JWT** (no Bearer/opaco, mismo
    motivo que `app-qr-sicsaft`), **Access Token Role Assertion** y **ID Token Role Assertion**
    habilitados (el rol tiene que llegar en el token, no solo en `/userinfo`), y grant type
@@ -206,7 +259,7 @@ sin cambios de código en CIS, ver DOC-020 3):
 **Verificado real de punta a punta el 2026-08-18** con tres usuarios de prueba en "DUOC UC"
 (`directivo-test@sicsaft.localhost`, `mixto-test@sicsaft.localhost` con ambos roles, y el
 `admin-patrimonial@sicsaft.localhost` ya existente) — confirma los 3 casos de DOC-020 5, ver la
-tabla en el encabezado de [DOC-020](../../ccp/aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md).
+tabla en el encabezado de [DOC-020](../../aidlc-docs/ccp/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md).
 Nota: si `ccp` corría desde antes de este incremento, hace falta `docker compose build ccp` — la
 imagen no se reconstruye sola al mergear código nuevo.
 
@@ -217,7 +270,10 @@ misma organización "DUOC UC". Pasos reales seguidos (2026-08-18), reproducibles
 
 1. Proyecto "CIS" → **Applications** → New → tipo **User Agent** (SPA, PKCE) → nombre
    `web-admin-sicsaft` → **Development Mode** habilitado → redirect URI
-   `http://localhost:5176/auth/callback` (puerto de Vite de `web_admin/`).
+   `http://localhost:5176/auth/callback` (puerto de Vite de `web_admin/`) **y también**
+   `http://admin.sicsaft.localhost/auth/callback` si se va a probar corriendo el stack de Docker
+   detrás de Traefik, no solo `npm run dev` — ver la nota ⚠️ en "Cliente OIDC real (WEB) — Fase 5"
+   arriba para el porqué (mismo criterio para `postLogoutRedirectUris`/`allowedOrigins`).
 2. En **Token Settings**: **Auth Token Type = JWT**, **Access Token Role Assertion** e **ID Token
    Role Assertion** habilitados, grant type `refresh_token` agregado — mismo criterio que
    `web-sicsaft`.
@@ -240,7 +296,10 @@ y misma organización "DUOC UC", mismo patrón que `web_admin` arriba:
 
 1. Proyecto "CIS" → **Applications** → New → tipo **User Agent** (SPA, PKCE) → nombre
    `core-frontend-sicsaft` → **Development Mode** habilitado → redirect URI
-   `http://localhost:5177/auth/callback` (puerto de Vite de `core/frontend/`).
+   `http://localhost:5177/auth/callback` (puerto de Vite de `core/frontend/`) **y también**
+   `http://directivo.sicsaft.localhost/auth/callback` si se va a probar corriendo el stack de
+   Docker detrás de Traefik, no solo `npm run dev` — ver la nota ⚠️ en "Cliente OIDC real (WEB) —
+   Fase 5" arriba para el porqué (mismo criterio para `postLogoutRedirectUris`/`allowedOrigins`).
 2. En **Token Settings**: **Auth Token Type = JWT**, **Access Token Role Assertion** e **ID Token
    Role Assertion** habilitados, grant type `refresh_token` agregado.
 3. Copiar el **Client ID** a `core/frontend/.env` (`VITE_ZITADEL_CLIENT_ID`) y a

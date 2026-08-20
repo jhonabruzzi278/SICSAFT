@@ -13,7 +13,7 @@
 > [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (mecanismo de identidad),
 > [DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) (modelo de `Contrato`, hoy solo se
 > lee), [DOC-005](../base-patrimonial/DOC-005-modelo-patrimonial.md) (modelo de `Activo` y su
-> máquina de estados) y [DOC-006](../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md)
+> máquina de estados) y [DOC-006](../aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md)
 > (convenciones de API CIS↔CORE que este documento extiende, no reemplaza).
 
 ### Nomenclatura: Profesional de AFT
@@ -45,7 +45,7 @@ con el Profesional de AFT.
 
 El alcance funcional de arriba describe lo que el Profesional de AFT **debería** poder hacer desde
 el CCP. Auditando el código real contra esa lista se encontraron 5 gaps — los 5 se cerraron el
-mismo día ([DOC-021](../ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md)):
+mismo día ([DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md)):
 
 | Ítem | ¿Alcanzable desde el CCP hoy? | Detalle |
 |---|---|---|
@@ -176,7 +176,7 @@ propia, es la lectura cronológica de `eventos` por activo (DOC-005 1, sin cambi
 ### 5.1 Registro de estado operativo durante el control (APP QR, sin rol nuevo) — ⬜ pendiente
 
 **Origen**: `ROADMAP.md` Fase 3.1 /
-[DOC-017](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md) — el
+[DOC-017](../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md) — el
 controlador de AFT quiere declarar el estado de cada activo (en servicio/mantenimiento/inactivo)
 durante el mismo control de inventario, sin salir a WEB.
 
@@ -308,7 +308,7 @@ autentica la conexión CIS↔CORE, no una acción de negocio auditable por usuar
 [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (identidad/Zitadel),
 [DOC-004](../base-patrimonial/DOC-004-modelo-contrato.md) (`Contrato`, máquina de estados 3,
 invariante 4), [DOC-005](../base-patrimonial/DOC-005-modelo-patrimonial.md) (`Activo`, máquina de
-estados 4), [DOC-006](../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md) (convenciones
+estados 4), [DOC-006](../aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md) (convenciones
 de API CIS↔CORE que este documento extiende — `correlationId`, `idempotencyKey`, formato de
 error), [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 3 (cero confianza, permisos mínimos) y 11
 (matriz de entradas oficiales, Tomo III Cap.1).
