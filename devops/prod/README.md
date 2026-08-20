@@ -1,6 +1,77 @@
-# Secretos de producción — SOPS + age
+# Secretos y despliegue de producción
 
-Cierra la decisión que `devops/README.md` "Cyberseguridad del VPS" dejaba abierta ("SOPS + age
+## Decisión revisada (2026-08-20): Coolify, variables nativas en vez de SOPS + age
+
+El despliegue de producción corre como recurso "Docker Compose" en **Coolify**, self-hosted sobre
+el mismo VPS propio (no cambia "VPS propio, Docker Compose" de `devops/README.md` — Coolify es
+solo el panel/proxy que orquesta ese mismo modelo, nunca un PaaS de terceros). Con Coolify ya
+administrando el ciclo de vida del stack, los secretos de `devops/prod/docker-compose.yml` se
+cargan directo en su panel ("Environment Variables" del recurso) en vez de cifrarse con SOPS+age
+en git — ver `devops/prod/.env.example` para la lista completa de variables a cargar, y
+`devops/prod/docker-compose.yml` para dónde entra cada una.
+
+**Por qué el cambio**: con Coolify como orquestador, el flujo SOPS+age original (descifrar en un
+paso de GitHub Actions, inyectar al `docker compose up` por SSH) deja de aplicar tal cual —
+Coolify no ejecuta ese pipeline, dispara su propio deploy (webhook de git o botón manual) y ya
+resuelve las variables desde su propio panel antes de levantar los contenedores. Mantener SOPS+age
+en paralelo hubiera significado sincronizar dos fuentes de verdad para los mismos secretos.
+
+**Trade-off aceptado** (mismo tipo que el de SOPS+age, ver sección de abajo para el detalle
+original): sin versionado cifrado en git de los secretos — viven solo en la base de datos de
+Coolify. Si el equipo crece y hace falta auditar cambios de secretos o rotarlos por fuera del
+panel, ahí sí reconsiderar (decisión futura, no bloqueante hoy).
+
+## Despliegue con Coolify
+
+1. Crear el recurso **Docker Compose** en Coolify, apuntando al repo y a
+   `devops/prod/docker-compose.yml` como compose file.
+2. Cargar las variables de `devops/prod/.env.example` con sus valores reales en la pestaña
+   "Environment Variables" del recurso (nunca completar ese archivo `.env.example` con valores
+   reales ni commitearlo).
+3. Para cada servicio expuesto públicamente (`zitadel`, `cis`, `ccp`, `web-admin`,
+   `core-frontend`, `grafana` — los únicos con `expose:` en el compose), asignar su dominio real
+   desde la pestaña "Domains" de ese servicio (ver tabla de dominios en `devops/README.md`) —
+   Coolify emite el certificado TLS solo (Let's Encrypt) apenas el dominio resuelve al VPS. No
+   hace falta escribir labels de Traefik a mano.
+4. Desplegar. `core-migrate`/`cip-migrate` corren una vez y salen (`restart: "no"`) antes de que
+   `core`/`cip` arranquen — mismo orden que en local, Coolify solo lo ejecuta.
+
+## Revisión de la implementación (2026-08-20)
+
+Al escribir `devops/prod/docker-compose.yml` se revisó todo `devops/` en busca de problemas reales
+antes de darlo por listo. Se encontraron y corrigieron 4:
+
+1. **Promtail descartaba el 100% de los logs de producción.** El filtro de
+   `devops/local/observability/promtail-config.yml` (compartido entre local y prod por referencia
+   relativa) reconocía contenedores por nombre exacto `sicsaft-local-*` — en prod
+   (`sicsaft-prod-*`) ningún contenedor matcheaba, así que Loki quedaba vacío sin ningún error
+   visible. Corregido filtrando por el label `com.docker.compose.project` (que Compose pone en
+   todo contenedor) en vez de parsear el nombre — funciona igual en ambos ambientes.
+2. **`ZITADEL_ORG_ID_MAP` sin comillas rompía el YAML.** Docker Compose interpola `${VAR}` en el
+   texto del compose ANTES de parsearlo como YAML — un JSON sin comillas (`{"a":"b"}`) es un
+   mapping YAML válido, no el string literal que CIS necesita para hacerle `JSON.parse()`. El
+   archivo local ya lo entrecomillaba para su valor hardcodeado; el de prod no, para la variable.
+   Corregido.
+3. **Retención de Loki sin ajustar para producción.** `devops/local/observability/loki-config.yml`
+   decía explícitamente en su propio comentario "ajustar en `devops/prod/` cuando exista el VPS
+   real" — se estaba reusando tal cual (7 días). Ahora `devops/prod/observability/loki-config.yml`
+   es una copia propia con 30 días.
+4. **`depends_on` con `service_started` donde ya había un healthcheck real disponible.**
+   `cis`/`core`/`cip` traen `HEALTHCHECK` real contra `GET /health` desde su propio `Dockerfile` —
+   los servicios que dependen de ellos (`cip`→`core`, `cis`→`core`/`cip`, los 3 frontends→`cis`)
+   ahora esperan `service_healthy` en vez de solo "el proceso arrancó", en local y en prod. Zitadel
+   se queda en `service_started` a propósito: su imagen oficial no trae `HEALTHCHECK` ni
+   shell/wget utilizables desde un exec-healthcheck — armar uno sin verificarlo contra una
+   instancia real hubiera sido peor que no tener ninguno (un healthcheck que siempre falla frena
+   el deploy entero).
+
+## Lo que sigue documentado abajo (SOPS + age) — histórico, ya no es el flujo activo
+
+Se deja el resto de este documento para quien necesite el detalle de por qué se había elegido
+SOPS+age originalmente (aplica igual si en el futuro se decide volver a un flujo sin Coolify, o
+un componente puntual necesita secretos cifrados en git por fuera del panel).
+
+Cerraba la decisión que `devops/README.md` "Cyberseguridad del VPS" dejaba abierta ("SOPS + age
 ... o un gestor de secretos dedicado"): **SOPS + age**, sin infraestructura adicional que correr,
 respaldar o mantener disponible — coherente con el resto de este repo (todo versionado en git,
 `docker-compose.yml` sobre un único VPS, sin Kubernetes ni PaaS gestionado, ver

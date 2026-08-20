@@ -29,6 +29,12 @@ jobs:
 
       - run: npm ci --ignore-scripts
 
+      - name: Lint
+        run: npm run lint:ci
+
+      - name: Tests unitarios (OIDC/PKCE)
+        run: npm run test:cov
+
       - name: Type-check + build
         run: npm run build
 

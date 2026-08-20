@@ -12,7 +12,9 @@ function base64url(json) {
 
 export async function seedAuth(page, { operator = 'Operador Test' } = {}) {
   const header = base64url(JSON.stringify({ alg: 'none', typ: 'JWT' }));
-  const payload = base64url(JSON.stringify({ name: operator, sub: 'operator-test' }));
+  const payload = base64url(
+    JSON.stringify({ name: operator, sub: 'operator-test' }),
+  );
   const fakeJwt = `${header}.${payload}.`;
   const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
 
@@ -20,7 +22,11 @@ export async function seedAuth(page, { operator = 'Operador Test' } = {}) {
     ([token, exp]) => {
       sessionStorage.setItem(
         'web-sicsaft-oidc-tokens',
-        JSON.stringify({ accessToken: token, refreshToken: 'mock-refresh-token', expiresAt: exp }),
+        JSON.stringify({
+          accessToken: token,
+          refreshToken: 'mock-refresh-token',
+          expiresAt: exp,
+        }),
       );
     },
     [fakeJwt, expiresAt],

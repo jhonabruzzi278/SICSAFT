@@ -127,6 +127,11 @@ Organización→Contrato→Sede, flujo de login).
 [DOC-012](DOC-012-administrador-patrimonial.md) — diseño del rol Administrador Patrimonial y el
 camino de escritura oficial (Fase 4 del ROADMAP), items 1/3/4/5 implementados, ver "Estado" de
 este documento.
+[`ccp/DOC-023`](../aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md) — matriz de
+permisos por rol (Rol × Módulo × Acción) extraída endpoint por endpoint de los guards reales de
+CIS/CORE; encontró y corrigió el mismo día un hallazgo real (`GET /admin/indicadores` sin guard de
+rol en backend, solo restringido en la UI de `web_admin/` — ver `AdministradorSistemaEnCualquierOrganizacionGuard`
+en `cis/src/administrador/`).
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 3 (cero confianza entre niveles, permisos
 mínimos necesarios, segregación por organización/área validada en el CORE, no solo en el cliente
 — ahora extendida a sede/contrato).

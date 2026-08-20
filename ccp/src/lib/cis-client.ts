@@ -316,7 +316,10 @@ function getDeviceId(): string {
   return deviceId;
 }
 
-async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+async function authorizedFetch(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
   const config = loadOidcConfig();
   const accessToken = await oidcClient.getValidAccessToken();
   const res = await fetch(`${config.cisUrl}${path}`, {
@@ -329,7 +332,10 @@ async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Re
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new CisApiError(res.status, body.message ?? `CIS devolvió ${res.status}`);
+    throw new CisApiError(
+      res.status,
+      body.message ?? `CIS devolvió ${res.status}`,
+    );
   }
   return res;
 }
@@ -362,14 +368,20 @@ export const cisClient = {
 
   // DOC-021 3 (gap "estados").
   async bajaActivo(id: string, organizacionId: string): Promise<Activo> {
-    const res = await authorizedFetch(`/admin/activos/${encodeURIComponent(id)}/baja`, {
-      method: 'POST',
-      body: JSON.stringify({ organizacionId }),
-    });
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(id)}/baja`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ organizacionId }),
+      },
+    );
     return (await res.json()) as Activo;
   },
 
-  async reincorporarActivo(id: string, organizacionId: string): Promise<Activo> {
+  async reincorporarActivo(
+    id: string,
+    organizacionId: string,
+  ): Promise<Activo> {
     const res = await authorizedFetch(
       `/admin/activos/${encodeURIComponent(id)}/reincorporacion`,
       { method: 'POST', body: JSON.stringify({ organizacionId }) },
@@ -384,7 +396,10 @@ export const cisClient = {
   ): Promise<Activo> {
     const res = await authorizedFetch(
       `/admin/activos/${encodeURIComponent(id)}/responsable`,
-      { method: 'PATCH', body: JSON.stringify({ organizacionId, responsableId }) },
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ organizacionId, responsableId }),
+      },
     );
     return (await res.json()) as Activo;
   },
@@ -397,7 +412,10 @@ export const cisClient = {
   ): Promise<Activo> {
     const res = await authorizedFetch(
       `/admin/activos/${encodeURIComponent(id)}/descripcion`,
-      { method: 'PATCH', body: JSON.stringify({ organizacionId, descripcion }) },
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ organizacionId, descripcion }),
+      },
     );
     return (await res.json()) as Activo;
   },
@@ -408,7 +426,9 @@ export const cisClient = {
     return (await res.json()) as CatalogoTipoActivo[];
   },
 
-  async altaCatalogoTipo(input: AltaCatalogoTipoInput): Promise<CatalogoTipoActivo> {
+  async altaCatalogoTipo(
+    input: AltaCatalogoTipoInput,
+  ): Promise<CatalogoTipoActivo> {
     const res = await authorizedFetch('/admin/catalogo-tipos', {
       method: 'POST',
       body: JSON.stringify(input),
@@ -485,10 +505,13 @@ export const cisClient = {
     organizacionId: string,
     estado: string,
   ): Promise<Contrato> {
-    const res = await authorizedFetch(`/admin/contratos/${encodeURIComponent(contratoId)}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ organizacionId, estado }),
-    });
+    const res = await authorizedFetch(
+      `/admin/contratos/${encodeURIComponent(contratoId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ organizacionId, estado }),
+      },
+    );
     return (await res.json()) as Contrato;
   },
 
@@ -511,7 +534,10 @@ export const cisClient = {
     if (filtro.fechaDesde) params.set('fechaDesde', filtro.fechaDesde);
     if (filtro.fechaHasta) params.set('fechaHasta', filtro.fechaHasta);
     const res = await authorizedFetch(`/admin/auditoria?${params.toString()}`);
-    const data = (await res.json()) as { entradas: AuditoriaEntrada[]; total: number };
+    const data = (await res.json()) as {
+      entradas: AuditoriaEntrada[];
+      total: number;
+    };
     return data.entradas;
   },
 
@@ -532,18 +558,26 @@ export const cisClient = {
   },
 
   async actualizarArea(id: string, input: ActualizarAreaInput): Promise<Area> {
-    const res = await authorizedFetch(`/admin/areas/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      body: JSON.stringify(input),
-    });
+    const res = await authorizedFetch(
+      `/admin/areas/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+    );
     return (await res.json()) as Area;
   },
 
   // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.
   async getUbicaciones(sedeId: string): Promise<Ubicacion[]> {
     const params = new URLSearchParams({ sedeId, limit: '100' });
-    const res = await authorizedFetch(`/admin/ubicaciones?${params.toString()}`);
-    const data = (await res.json()) as { ubicaciones: Ubicacion[]; total: number };
+    const res = await authorizedFetch(
+      `/admin/ubicaciones?${params.toString()}`,
+    );
+    const data = (await res.json()) as {
+      ubicaciones: Ubicacion[];
+      total: number;
+    };
     return data.ubicaciones;
   },
 
@@ -569,8 +603,13 @@ export const cisClient = {
   // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.
   async getResponsables(areaId: string): Promise<Responsable[]> {
     const params = new URLSearchParams({ areaId, limit: '100' });
-    const res = await authorizedFetch(`/admin/responsables?${params.toString()}`);
-    const data = (await res.json()) as { responsables: Responsable[]; total: number };
+    const res = await authorizedFetch(
+      `/admin/responsables?${params.toString()}`,
+    );
+    const data = (await res.json()) as {
+      responsables: Responsable[];
+      total: number;
+    };
     return data.responsables;
   },
 

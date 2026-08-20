@@ -203,6 +203,10 @@ Organización). **Pendiente**: verificación real de punta a punta contra Zitade
 el service user PAT, ver `../devops/local/README.md`) — hecho solo con Docker/Postgres reales,
 no con un Zitadel real corriendo.
 
+**Limpieza de dependencias muertas (2026-08-19, auditoría con Knip)**: mismo hallazgo y misma
+corrección que `cis/` (ver su README) — `@eslint/eslintrc`, `source-map-support` y `ts-loader`
+fuera de `devDependencies`, `supertest`/`@types/supertest` verificados en uso real y conservados.
+
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
 `docker compose up -d` desde `../devops/local` ya lo hace solo (el servicio `core-migrate` corre

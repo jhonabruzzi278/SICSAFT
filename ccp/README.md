@@ -238,6 +238,9 @@ Nada crítico.
 ## Documentos relacionados
 [DOC-013](../aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md) — módulos MVP y contra qué endpoint
 de CIS/CORE pega cada uno.
+[DOC-023](../aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md) — matriz de permisos por
+rol (Rol × Módulo × Acción), extraída de los guards reales de CIS/CORE; confirma que el sidebar de
+este portal solo linkea a módulos donde `administrador-patrimonial` tiene una acción real.
 [`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
 — contrato de escritura oficial que `POST /admin/activos` y `POST/PATCH /admin/contratos` exponen.
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 8 (WEB y APP QR son clientes intercambiables

@@ -11,13 +11,48 @@ import {
   type Sede,
   type Ubicacion,
 } from '@/lib/cis-client';
-import { Alert, Badge, Button, Card, FieldError, Input, Label } from '@/components/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  FieldError,
+  Input,
+  Label,
+} from '@/components/ui';
 
 // RF-05 — módulo Áreas/Ubicaciones/Responsables: ABM, el único módulo del MVP que no reusaba
 // infraestructura ya construida (ni CORE ni CIS tenían ningún endpoint todavía). Una sola pantalla
 // con las tres secciones, en el orden en que se necesitan para completar el ciclo real (un Area
 // primero, porque Responsable exige un areaId existente; Ubicacion exige un sedeId — se toma de
 // las sedes del contrato vigente de la organización, ya cargadas en el hub).
+
+// Pie compartido de los formularios de edición de Área/Ubicación (error + acciones) — mismo
+// bloque en ambas secciones, cada una con su propio estado de edición local (no hay nada real
+// para compartir más allá de este fragmento presentacional).
+function EditFormFooter({
+  error,
+  isSubmitting,
+  onCancel,
+}: {
+  error: string | null;
+  isSubmitting: boolean;
+  onCancel: () => void;
+}) {
+  return (
+    <>
+      {error && <Alert>{error}</Alert>}
+      <div className="flex gap-2">
+        <Button type="submit" disabled={isSubmitting} className="flex-1">
+          {isSubmitting ? 'Guardando…' : 'Guardar cambios'}
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>
+          Cancelar
+        </Button>
+      </div>
+    </>
+  );
+}
 
 const altaAreaSchema = z.object({
   codigo: z.string().min(1, 'Requerido'),
@@ -108,7 +143,11 @@ export function EstructuraPage() {
   }, [organizacionId]);
 
   if (!organizacionId) {
-    return <Alert>Falta organizacionId — volvé al hub y elegí una organización.</Alert>;
+    return (
+      <Alert>
+        Falta organizacionId — volvé al hub y elegí una organización.
+      </Alert>
+    );
   }
 
   return (
@@ -159,7 +198,9 @@ function AreasSection({
     handleSubmit: handleSubmitEdicion,
     reset: resetEdicion,
     formState: { isSubmitting: isEditSubmitting },
-  } = useForm<ActualizarAreaForm>({ resolver: zodResolver(actualizarAreaSchema) });
+  } = useForm<ActualizarAreaForm>({
+    resolver: zodResolver(actualizarAreaSchema),
+  });
 
   async function onSubmit(values: AltaAreaForm) {
     setSubmitError(null);
@@ -229,7 +270,9 @@ function AreasSection({
         <h2 className="mb-4 text-lg font-medium text-text">Áreas</h2>
         {error && <Alert>{error}</Alert>}
         {!error && !areas && <p className="text-text-dim">Cargando…</p>}
-        {areas?.length === 0 && <p className="text-text-dim">Sin áreas todavía.</p>}
+        {areas?.length === 0 && (
+          <p className="text-text-dim">Sin áreas todavía.</p>
+        )}
         {areas && areas.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-left text-sm">
@@ -244,9 +287,13 @@ function AreasSection({
               <tbody>
                 {areas.map((area) => (
                   <tr key={area.id} className="border-t border-border">
-                    <td className="px-4 py-2 font-mono text-xs">{area.codigo}</td>
+                    <td className="px-4 py-2 font-mono text-xs">
+                      {area.codigo}
+                    </td>
                     <td className="px-4 py-2">{area.nombre}</td>
-                    <td className="px-4 py-2 text-text-dim">{area.dependencia ?? '—'}</td>
+                    <td className="px-4 py-2 text-text-dim">
+                      {area.dependencia ?? '—'}
+                    </td>
                     <td className="px-4 py-2">
                       <Button variant="ghost" onClick={() => editar(area)}>
                         Editar
@@ -262,7 +309,9 @@ function AreasSection({
 
       {editando ? (
         <Card className="h-fit">
-          <h3 className="mb-4 font-medium text-text">Editar área — {editando.codigo}</h3>
+          <h3 className="mb-4 font-medium text-text">
+            Editar área — {editando.codigo}
+          </h3>
           <form
             onSubmit={(e) => void handleSubmitEdicion(onSubmitEdicion)(e)}
             className="space-y-4"
@@ -277,38 +326,48 @@ function AreasSection({
             </div>
             <div>
               <Label htmlFor="area-edit-dependencia">Dependencia</Label>
-              <Input id="area-edit-dependencia" {...registerEdicion('dependencia')} />
+              <Input
+                id="area-edit-dependencia"
+                {...registerEdicion('dependencia')}
+              />
             </div>
             <div>
               <Label htmlFor="area-edit-centroCosto">Centro de costo</Label>
-              <Input id="area-edit-centroCosto" {...registerEdicion('centroCosto')} />
+              <Input
+                id="area-edit-centroCosto"
+                {...registerEdicion('centroCosto')}
+              />
             </div>
             <div>
               <Label htmlFor="area-edit-responsableId">Responsable (id)</Label>
-              <Input id="area-edit-responsableId" {...registerEdicion('responsableId')} />
+              <Input
+                id="area-edit-responsableId"
+                {...registerEdicion('responsableId')}
+              />
             </div>
             <div>
-              <Label htmlFor="area-edit-ubicacionPrincipalId">Ubicación principal (id)</Label>
+              <Label htmlFor="area-edit-ubicacionPrincipalId">
+                Ubicación principal (id)
+              </Label>
               <Input
                 id="area-edit-ubicacionPrincipalId"
                 {...registerEdicion('ubicacionPrincipalId')}
               />
             </div>
-            {editError && <Alert>{editError}</Alert>}
-            <div className="flex gap-2">
-              <Button type="submit" disabled={isEditSubmitting} className="flex-1">
-                {isEditSubmitting ? 'Guardando…' : 'Guardar cambios'}
-              </Button>
-              <Button type="button" variant="secondary" onClick={() => setEditando(null)}>
-                Cancelar
-              </Button>
-            </div>
+            <EditFormFooter
+              error={editError}
+              isSubmitting={isEditSubmitting}
+              onCancel={() => setEditando(null)}
+            />
           </form>
         </Card>
       ) : (
         <Card className="h-fit">
           <h3 className="mb-4 font-medium text-text">Alta de área</h3>
-          <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
+          <form
+            onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+            className="space-y-4"
+          >
             <div>
               <Label htmlFor="area-codigo">Código</Label>
               <Input id="area-codigo" {...register('codigo')} />
@@ -324,7 +383,9 @@ function AreasSection({
               <Input id="area-dependencia" {...register('dependencia')} />
             </div>
             <div>
-              <Label htmlFor="area-centroCosto">Centro de costo (opcional)</Label>
+              <Label htmlFor="area-centroCosto">
+                Centro de costo (opcional)
+              </Label>
               <Input id="area-centroCosto" {...register('centroCosto')} />
             </div>
             {submitError && <Alert>{submitError}</Alert>}
@@ -358,7 +419,9 @@ function UbicacionesSection({
     handleSubmit,
     reset,
     formState: { isSubmitting },
-  } = useForm<AltaUbicacionForm>({ resolver: zodResolver(altaUbicacionSchema) });
+  } = useForm<AltaUbicacionForm>({
+    resolver: zodResolver(altaUbicacionSchema),
+  });
   const {
     register: registerEdicion,
     handleSubmit: handleSubmitEdicion,
@@ -451,7 +514,9 @@ function UbicacionesSection({
     return (
       <section>
         <h2 className="mb-4 text-lg font-medium text-text">Ubicaciones</h2>
-        <p className="text-text-dim">Esta organización no tiene sedes contratadas.</p>
+        <p className="text-text-dim">
+          Esta organización no tiene sedes contratadas.
+        </p>
       </section>
     );
   }
@@ -476,7 +541,9 @@ function UbicacionesSection({
           </select>
         </div>
         {listError && <Alert>{listError}</Alert>}
-        {!listError && !ubicaciones && <p className="text-text-dim">Cargando…</p>}
+        {!listError && !ubicaciones && (
+          <p className="text-text-dim">Cargando…</p>
+        )}
         {ubicaciones?.length === 0 && (
           <p className="text-text-dim">Sin ubicaciones en esta sede todavía.</p>
         )}
@@ -498,7 +565,9 @@ function UbicacionesSection({
                     <td className="px-4 py-2">{ubicacion.edificio ?? '—'}</td>
                     <td className="px-4 py-2">{ubicacion.piso ?? '—'}</td>
                     <td className="px-4 py-2">{ubicacion.oficina ?? '—'}</td>
-                    <td className="px-4 py-2 text-text-dim">{ubicacion.areaId ?? '—'}</td>
+                    <td className="px-4 py-2 text-text-dim">
+                      {ubicacion.areaId ?? '—'}
+                    </td>
                     <td className="px-4 py-2">
                       <Button variant="ghost" onClick={() => editar(ubicacion)}>
                         Editar
@@ -531,7 +600,10 @@ function UbicacionesSection({
           >
             <div>
               <Label htmlFor="ubicacion-edit-edificio">Edificio</Label>
-              <Input id="ubicacion-edit-edificio" {...registerEdicion('edificio')} />
+              <Input
+                id="ubicacion-edit-edificio"
+                {...registerEdicion('edificio')}
+              />
             </div>
             <div>
               <Label htmlFor="ubicacion-edit-piso">Piso</Label>
@@ -539,11 +611,17 @@ function UbicacionesSection({
             </div>
             <div>
               <Label htmlFor="ubicacion-edit-oficina">Oficina</Label>
-              <Input id="ubicacion-edit-oficina" {...registerEdicion('oficina')} />
+              <Input
+                id="ubicacion-edit-oficina"
+                {...registerEdicion('oficina')}
+              />
             </div>
             <div>
               <Label htmlFor="ubicacion-edit-dependencia">Dependencia</Label>
-              <Input id="ubicacion-edit-dependencia" {...registerEdicion('dependencia')} />
+              <Input
+                id="ubicacion-edit-dependencia"
+                {...registerEdicion('dependencia')}
+              />
             </div>
             <div>
               <Label htmlFor="ubicacion-edit-area">Área (id)</Label>
@@ -553,21 +631,20 @@ function UbicacionesSection({
                 {...registerEdicion('areaId')}
               />
             </div>
-            {editError && <Alert>{editError}</Alert>}
-            <div className="flex gap-2">
-              <Button type="submit" disabled={isEditSubmitting} className="flex-1">
-                {isEditSubmitting ? 'Guardando…' : 'Guardar cambios'}
-              </Button>
-              <Button type="button" variant="secondary" onClick={() => setEditando(null)}>
-                Cancelar
-              </Button>
-            </div>
+            <EditFormFooter
+              error={editError}
+              isSubmitting={isEditSubmitting}
+              onCancel={() => setEditando(null)}
+            />
           </form>
         </Card>
       ) : (
         <Card className="h-fit">
           <h3 className="mb-4 font-medium text-text">Alta de ubicación</h3>
-          <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
+          <form
+            onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+            className="space-y-4"
+          >
             <input type="hidden" value={sedeId} {...register('sedeId')} />
             <div>
               <Label htmlFor="ubicacion-edificio">Edificio (opcional)</Label>
@@ -583,10 +660,18 @@ function UbicacionesSection({
             </div>
             <div>
               <Label htmlFor="ubicacion-area">Área (id, opcional)</Label>
-              <Input id="ubicacion-area" list="areas-datalist" {...register('areaId')} />
+              <Input
+                id="ubicacion-area"
+                list="areas-datalist"
+                {...register('areaId')}
+              />
             </div>
             {submitError && <Alert>{submitError}</Alert>}
-            <Button type="submit" disabled={isSubmitting || !sedeId} className="w-full">
+            <Button
+              type="submit"
+              disabled={isSubmitting || !sedeId}
+              className="w-full"
+            >
               {isSubmitting ? 'Creando…' : 'Crear ubicación'}
             </Button>
           </form>
@@ -612,7 +697,9 @@ function ResponsablesSection({
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<AltaResponsableForm>({ resolver: zodResolver(altaResponsableSchema) });
+  } = useForm<AltaResponsableForm>({
+    resolver: zodResolver(altaResponsableSchema),
+  });
 
   useEffect(() => {
     if (!areaId && areas && areas.length > 0) setAreaId(areas[0].id);
@@ -677,7 +764,9 @@ function ResponsablesSection({
     return (
       <section>
         <h2 className="mb-4 text-lg font-medium text-text">Responsables</h2>
-        <p className="text-text-dim">Creá un área primero — un responsable siempre pertenece a una.</p>
+        <p className="text-text-dim">
+          Creá un área primero — un responsable siempre pertenece a una.
+        </p>
       </section>
     );
   }
@@ -702,9 +791,13 @@ function ResponsablesSection({
           </select>
         </div>
         {listError && <Alert>{listError}</Alert>}
-        {!listError && !responsables && <p className="text-text-dim">Cargando…</p>}
+        {!listError && !responsables && (
+          <p className="text-text-dim">Cargando…</p>
+        )}
         {responsables?.length === 0 && (
-          <p className="text-text-dim">Sin responsables en esta área todavía.</p>
+          <p className="text-text-dim">
+            Sin responsables en esta área todavía.
+          </p>
         )}
         {responsables && responsables.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-border">
@@ -728,8 +821,13 @@ function ResponsablesSection({
                       <Badge>{responsable.estado}</Badge>
                     </td>
                     <td className="px-4 py-2">
-                      <Button variant="ghost" onClick={() => void darDeBaja(responsable)}>
-                        {responsable.estado === 'activo' ? 'Dar de baja' : 'Reactivar'}
+                      <Button
+                        variant="ghost"
+                        onClick={() => void darDeBaja(responsable)}
+                      >
+                        {responsable.estado === 'activo'
+                          ? 'Dar de baja'
+                          : 'Reactivar'}
                       </Button>
                     </td>
                   </tr>
@@ -742,11 +840,17 @@ function ResponsablesSection({
 
       <Card className="h-fit">
         <h3 className="mb-4 font-medium text-text">Alta de responsable</h3>
-        <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
+        <form
+          onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+          className="space-y-4"
+        >
           <input type="hidden" value={areaId} {...register('areaId')} />
           <div>
             <Label htmlFor="responsable-identificacion">Identificación</Label>
-            <Input id="responsable-identificacion" {...register('identificacion')} />
+            <Input
+              id="responsable-identificacion"
+              {...register('identificacion')}
+            />
             <FieldError>{errors.identificacion?.message}</FieldError>
           </div>
           <div>
@@ -760,7 +864,11 @@ function ResponsablesSection({
           </div>
           <div>
             <Label htmlFor="responsable-correo">Correo (opcional)</Label>
-            <Input id="responsable-correo" type="email" {...register('correo')} />
+            <Input
+              id="responsable-correo"
+              type="email"
+              {...register('correo')}
+            />
             <FieldError>{errors.correo?.message}</FieldError>
           </div>
           <div>
@@ -768,7 +876,11 @@ function ResponsablesSection({
             <Input id="responsable-telefono" {...register('telefono')} />
           </div>
           {submitError && <Alert>{submitError}</Alert>}
-          <Button type="submit" disabled={isSubmitting || !areaId} className="w-full">
+          <Button
+            type="submit"
+            disabled={isSubmitting || !areaId}
+            className="w-full"
+          >
             {isSubmitting ? 'Creando…' : 'Crear responsable'}
           </Button>
         </form>

@@ -7,6 +7,9 @@ networks:
 volumes:
   postgres_data:
   zitadel_data:
+  prometheus_data:
+  loki_data:
+  grafana_data:
 
 services:
   traefik:
@@ -46,6 +49,11 @@ services:
       ZITADEL_DB_PASSWORD: ${ZITADEL_DB_PASSWORD}
       CORE_DB_USER: ${CORE_DB_USER}
       CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+      # Faltaba acá — postgres/init/03-cip.sh (`set -eu`) necesita estas dos para crear el
+      # usuario/base de CIP; sin ellas, un `docker compose up` desde cero (volumen nuevo) falla
+      # en el init de postgres apenas llega a ese script.
+      CIP_DB_USER: ${CIP_DB_USER}
+      CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
     ports:
       # Expuesto al host solo para poder correr `npm run test:e2e`/desarrollo local de `core`
       # fuera de Docker contra la base real — no es necesario para que cis/core (dentro de la red
@@ -164,12 +172,17 @@ services:
     networks:
       - sicsaft
     depends_on:
+      # zitadel se queda en `service_started`: la imagen oficial no trae HEALTHCHECK y es una
+      # imagen mínima (sin shell/wget utilizables desde un healthcheck exec) — no se puede armar
+      # uno confiable sin verificarlo contra una instancia real primero. core/cip sí lo tienen
+      # (HEALTHCHECK real en su Dockerfile contra GET /health), así que ahí sí exigimos
+      # service_healthy en vez de solo "el proceso arrancó".
       zitadel:
         condition: service_started
       core:
-        condition: service_started
+        condition: service_healthy
       cip:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -281,7 +294,7 @@ services:
       redis:
         condition: service_healthy
       core:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     # Sin router en traefik/dynamic.yml a propósito, mismo criterio que `core`: sin frontend
     # todavia, ningun consumidor externo real (DOC-018 7.2 — decision abierta).
@@ -301,7 +314,7 @@ services:
       - sicsaft
     depends_on:
       cis:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   # DOC-022 2 — Administrador del Sistema, extraido de ccp/AdminPage.tsx a su propio sistema con
@@ -318,7 +331,7 @@ services:
       - sicsaft
     depends_on:
       cis:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   # DOC-022 3/4 — portal del Directivo, vive en core/frontend/ pero le habla a CIS, nunca al
@@ -336,5 +349,97 @@ services:
       - sicsaft
     depends_on:
       cis:
-        condition: service_started
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- Observabilidad self-hosted (equivalente a CloudWatch/CloudTrail, pero administrado por el
+  # operador del VPS en vez de un servicio gestionado) — Prometheus (metricas) + Loki (logs) +
+  # Grafana (visualizacion), ver devops/local/README.md "Observabilidad" para el detalle y las
+  # URLs de acceso.
+
+  # Metricas de host (CPU/mem/disco/red) — mismo dato que CloudWatch da gratis por instancia EC2.
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    networks:
+      - sicsaft
+    restart: unless-stopped
+
+  # Metricas por contenedor (CPU/mem/red/IO por servicio) — equivalente a CloudWatch Container
+  # Insights. Sin `privileged`/mounts de `/dev` a proposito: mas conservador, funciona en Docker
+  # Desktop (Windows/Mac) sin depender de dispositivos que esa VM puede no exponer.
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - sicsaft
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - sicsaft
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.1.0
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./observability/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    networks:
+      - sicsaft
+    restart: unless-stopped
+
+  # Envia los logs de TODOS los contenedores a Loki via el socket de Docker (docker_sd_configs) —
+  # sin tocar codigo de aplicacion, cis/core/etc siguen logueando a stdout como ya hacen.
+  promtail:
+    image: grafana/promtail:3.1.0
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./observability/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - sicsaft
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # Detras de Traefik en /http, sin dominio raiz propio de Grafana — ver
+      # traefik/dynamic.yml router "grafana".
+      GF_SERVER_ROOT_URL: "http://grafana.sicsaft.localhost/"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - sicsaft
+    depends_on:
+      - prometheus
+      - loki
     restart: unless-stopped

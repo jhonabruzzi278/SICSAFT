@@ -4,7 +4,11 @@
 // guardados (oidcClient.isAuthenticated(), sessionStorage) — mismo criterio que
 // app-qr-sicsaft/src/mocks/handlers.ts.
 import { http, HttpResponse } from 'msw';
-import type { Activo, ActivoCatalogo, CatalogoTipoActivo } from '@/lib/cis-client';
+import type {
+  Activo,
+  ActivoCatalogo,
+  CatalogoTipoActivo,
+} from '@/lib/cis-client';
 import { MOCK_CATALOGO, MOCK_ORGANIZACIONES, MOCK_SYNC } from './fixtures';
 
 // DOC-021 4 (gap "familias/categorías") — mismo id de catálogo que ya usaba el fixture de Activo
@@ -48,7 +52,9 @@ export const defaultHandlers = [
     return HttpResponse.json({ activos });
   }),
 
-  http.get(`${CIS_URL}/admin/catalogo-tipos`, () => HttpResponse.json(MOCK_CATALOGO_TIPOS)),
+  http.get(`${CIS_URL}/admin/catalogo-tipos`, () =>
+    HttpResponse.json(MOCK_CATALOGO_TIPOS),
+  ),
 
   http.post(`${CIS_URL}/admin/activos`, async ({ request }) => {
     const body = (await request.json()) as {
@@ -79,7 +85,13 @@ export const defaultHandlers = [
       responsableId: null,
       estado: 'activo',
       descripcion: null,
-      catalogo: { tipo: 'equipo', familia: 'tecnologia', subfamilia: null, marca: null, modelo: null },
+      catalogo: {
+        tipo: 'equipo',
+        familia: 'tecnologia',
+        subfamilia: null,
+        marca: null,
+        modelo: null,
+      },
     };
     return HttpResponse.json(activo, { status: 201 });
   }),
@@ -96,8 +108,16 @@ export const defaultHandlers = [
   http.get(`${CIS_URL}/dashboard/areas`, () =>
     HttpResponse.json({
       areas: [
-        { areaId: 'area-informatica', controladaEnPeriodo: true, ultimaSesionEn: '2026-08-18T09:00:00.000Z' },
-        { areaId: 'area-biblioteca', controladaEnPeriodo: false, ultimaSesionEn: null },
+        {
+          areaId: 'area-informatica',
+          controladaEnPeriodo: true,
+          ultimaSesionEn: '2026-08-18T09:00:00.000Z',
+        },
+        {
+          areaId: 'area-biblioteca',
+          controladaEnPeriodo: false,
+          ultimaSesionEn: null,
+        },
       ],
       ...MOCK_SYNC,
     }),

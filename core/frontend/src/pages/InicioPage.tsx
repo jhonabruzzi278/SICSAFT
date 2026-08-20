@@ -9,7 +9,9 @@ import { Alert, Card } from '@/components/ui';
 // POST /auth/session, el mismo mecanismo ya verificado real en DOC-020 para este propósito
 // (limitación conocida documentada en cis-client.ts: hoy no filtra por operador).
 export function InicioPage() {
-  const [organizaciones, setOrganizaciones] = useState<Organizacion[] | null>(null);
+  const [organizaciones, setOrganizaciones] = useState<Organizacion[] | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,7 +22,8 @@ export function InicioPage() {
         if (!cancelled) setOrganizaciones(res.organizaciones);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Error desconocido');
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : 'Error desconocido');
       });
     return () => {
       cancelled = true;
@@ -30,21 +33,31 @@ export function InicioPage() {
   if (organizaciones?.length === 1) {
     const [unicaOrg] = organizaciones;
     return (
-      <Navigate to={`/dashboard?organizacionId=${encodeURIComponent(unicaOrg.id)}`} replace />
+      <Navigate
+        to={`/dashboard?organizacionId=${encodeURIComponent(unicaOrg.id)}`}
+        replace
+      />
     );
   }
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-accent-strong">Organizaciones</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-accent-strong">
+        Organizaciones
+      </h1>
       {error && <Alert>{error}</Alert>}
       {!error && !organizaciones && <p className="text-text-dim">Cargando…</p>}
       {organizaciones?.length === 0 && (
-        <p className="text-text-dim">No hay organizaciones con contrato vigente.</p>
+        <p className="text-text-dim">
+          No hay organizaciones con contrato vigente.
+        </p>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
         {organizaciones?.map((org) => (
-          <Link key={org.id} to={`/dashboard?organizacionId=${encodeURIComponent(org.id)}`}>
+          <Link
+            key={org.id}
+            to={`/dashboard?organizacionId=${encodeURIComponent(org.id)}`}
+          >
             <Card className="transition-colors hover:border-border-strong">
               <h3 className="font-medium text-text">{org.nombre}</h3>
             </Card>

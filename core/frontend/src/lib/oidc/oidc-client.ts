@@ -3,7 +3,11 @@
 // Directivo: reusa el mismo proyecto "CIS" en Zitadel con una Aplicacion OIDC propia
 // (`core-frontend-sicsaft`, User Agent, PKCE) — ver devops/local/README.md "Cliente OIDC real
 // (core/frontend)".
-import { generateCodeChallenge, generateCodeVerifier, generateState } from './pkce';
+import {
+  generateCodeChallenge,
+  generateCodeVerifier,
+  generateState,
+} from './pkce';
 import { loadOidcConfig } from './oidc-config';
 import {
   clearPendingPkce,
@@ -51,7 +55,9 @@ function tokensFromResponse(
   };
 }
 
-async function postTokenEndpoint(body: URLSearchParams): Promise<TokenResponse> {
+async function postTokenEndpoint(
+  body: URLSearchParams,
+): Promise<TokenResponse> {
   const config = loadOidcConfig();
   const res = await fetch(new URL('/oauth/v2/token', config.issuer), {
     method: 'POST',
@@ -95,7 +101,9 @@ async function handleCallback(searchParams: URLSearchParams): Promise<void> {
   const code = searchParams.get('code');
   const state = searchParams.get('state');
   if (!code || !state || !pending || state !== pending.state) {
-    throw new Error('Respuesta de login inválida o expirada — iniciá sesión de nuevo.');
+    throw new Error(
+      'Respuesta de login inválida o expirada — iniciá sesión de nuevo.',
+    );
   }
 
   const config = loadOidcConfig();
@@ -130,7 +138,10 @@ async function refreshAccessToken(refreshToken: string): Promise<StoredTokens> {
 }
 
 function isExpired(tokens: StoredTokens): boolean {
-  return new Date(tokens.expiresAt).getTime() - TOKEN_EXPIRY_SAFETY_MARGIN_MS <= Date.now();
+  return (
+    new Date(tokens.expiresAt).getTime() - TOKEN_EXPIRY_SAFETY_MARGIN_MS <=
+    Date.now()
+  );
 }
 
 async function getValidAccessToken(): Promise<string> {

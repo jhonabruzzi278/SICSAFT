@@ -5,7 +5,9 @@ test.describe('Autenticación', () => {
   test('un operador sin sesión es redirigido a /login', async ({ page }) => {
     await page.goto('/activos');
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole('button', { name: 'Iniciar sesión' })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Iniciar sesión' }),
+    ).toBeVisible();
   });
 });
 
@@ -14,14 +16,18 @@ test.describe('Login + alta de activo (RF-01/RF-03/RF-08)', () => {
     await seedAuth(page);
   });
 
-  test('un operador autenticado ve el hub y da de alta un activo visible de inmediato', async ({
+  test('un operador autenticado aterriza directo en el dashboard y da de alta un activo visible de inmediato', async ({
     page,
   }) => {
     await page.goto('/');
 
-    // RF-02 — hub post-login, lista organizaciones con contrato vigente.
-    await expect(page.getByRole('heading', { name: 'Organizaciones' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'DUOC UC' })).toBeVisible();
+    // RF-02 — hub post-login: con una sola organización con contrato vigente (fixture, ver
+    // MOCK_ORGANIZACIONES) redirige directo al dashboard en vez de mostrar el picker de
+    // organizaciones, para que el sidebar de módulos aparezca de inmediato (ver HubPage.tsx).
+    await expect(page).toHaveURL(/\/dashboard\?organizacionId=/);
+    await expect(
+      page.getByRole('heading', { name: 'Dashboard' }),
+    ).toBeVisible();
 
     await page.getByRole('link', { name: 'Activos' }).click();
     await expect(page).toHaveURL(/\/activos\?organizacionId=/);

@@ -63,7 +63,10 @@ interface Pagina<T> {
   total: number;
 }
 
-async function authorizedFetch(path: string, params: Record<string, string>): Promise<Response> {
+async function authorizedFetch(
+  path: string,
+  params: Record<string, string>,
+): Promise<Response> {
   const config = loadOidcConfig();
   const accessToken = await oidcClient.getValidAccessToken();
   const query = new URLSearchParams(params);
@@ -72,18 +75,25 @@ async function authorizedFetch(path: string, params: Record<string, string>): Pr
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new CisApiError(res.status, body.message ?? `CIS devolvió ${res.status}`);
+    throw new CisApiError(
+      res.status,
+      body.message ?? `CIS devolvió ${res.status}`,
+    );
   }
   return res;
 }
 
 export const dashboardClient = {
   async getCobertura(organizacionId: string): Promise<Cobertura> {
-    const res = await authorizedFetch('/dashboard/cobertura', { organizacionId });
+    const res = await authorizedFetch('/dashboard/cobertura', {
+      organizacionId,
+    });
     return (await res.json()) as Cobertura;
   },
 
-  async getAreas(organizacionId: string): Promise<{ areas: ControlArea[] } & SyncInfo> {
+  async getAreas(
+    organizacionId: string,
+  ): Promise<{ areas: ControlArea[] } & SyncInfo> {
     const res = await authorizedFetch('/dashboard/areas', { organizacionId });
     return (await res.json()) as { areas: ControlArea[] } & SyncInfo;
   },
@@ -131,7 +141,9 @@ export const dashboardClient = {
   async getEstadoActivos(
     organizacionId: string,
   ): Promise<{ estados: EstadoResumen[] } & SyncInfo> {
-    const res = await authorizedFetch('/dashboard/estado-activos', { organizacionId });
+    const res = await authorizedFetch('/dashboard/estado-activos', {
+      organizacionId,
+    });
     return (await res.json()) as { estados: EstadoResumen[] } & SyncInfo;
   },
 

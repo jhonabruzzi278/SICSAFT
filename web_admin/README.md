@@ -26,6 +26,13 @@ ejercitados contra una instancia real de Zitadel: `listarGrants`/`crearGrant` ma
 un manejo de conflicto que la API real rechazaba) corregidos en el mismo incremento, ver
 `../cis/README.md` para el detalle.
 
+**Sidebar de navegación + tests unitarios de OIDC/PKCE (2026-08-19)**: rediseño de shell (sidebar
+fijo, KPIs de Indicadores como `StatCard`, mismo lenguaje visual que `ccp/`/`core/frontend/`) y
+primera suite de tests unitarios del portal (Vitest + jsdom, 49 tests sobre `src/lib/oidc/` —
+PKCE contra el vector oficial de RFC 7636, protección CSRF por `state`, ciclo de refresh de
+sesión, y `esAdministradorSistema()`). `msw` salió de `devDependencies` (dependencia sin uso real,
+sin `mocks/` ni bootstrap en `main.tsx` — a diferencia de `ccp/`, que sí lo usa para e2e).
+
 ## Desarrollo local
 
 ```bash

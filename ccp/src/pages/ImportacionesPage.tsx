@@ -14,7 +14,11 @@ import { Alert, Badge, Button, Card } from '@/components/ui';
 // minimizar dependencias del primer incremento; el formato es controlado, no hace falta manejar
 // comillas/escapes de CSV genérico).
 
-const COLUMNAS_REQUERIDAS = ['codigoPatrimonial', 'codigoQr', 'catalogoId'] as const;
+const COLUMNAS_REQUERIDAS = [
+  'codigoPatrimonial',
+  'codigoQr',
+  'catalogoId',
+] as const;
 const COLUMNAS_OPCIONALES = [
   'serie',
   'responsableId',
@@ -29,12 +33,16 @@ function parsearCsv(texto: string): FilaImportacionContable[] {
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
   if (lineas.length < 2) {
-    throw new Error('El archivo necesita una fila de encabezados y al menos una fila de datos.');
+    throw new Error(
+      'El archivo necesita una fila de encabezados y al menos una fila de datos.',
+    );
   }
   const encabezados = lineas[0].split(',').map((h) => h.trim());
   for (const columna of COLUMNAS_REQUERIDAS) {
     if (!encabezados.includes(columna)) {
-      throw new Error(`Falta la columna requerida '${columna}' en el encabezado.`);
+      throw new Error(
+        `Falta la columna requerida '${columna}' en el encabezado.`,
+      );
     }
   }
 
@@ -75,7 +83,8 @@ export function ImportacionesPage() {
   const [filas, setFilas] = useState<FilaImportacionContable[] | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [resultado, setResultado] = useState<ResultadoImportacionContable | null>(null);
+  const [resultado, setResultado] =
+    useState<ResultadoImportacionContable | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -90,7 +99,9 @@ export function ImportacionesPage() {
       })
       .catch((err: unknown) => {
         setFilas(null);
-        setParseError(err instanceof Error ? err.message : 'No se pudo leer el archivo.');
+        setParseError(
+          err instanceof Error ? err.message : 'No se pudo leer el archivo.',
+        );
       });
   }
 
@@ -105,9 +116,13 @@ export function ImportacionesPage() {
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err: unknown) {
       if (err instanceof CisApiError && err.status === 403) {
-        setSubmitError('No tenés el rol administrador-patrimonial en esta organización.');
+        setSubmitError(
+          'No tenés el rol administrador-patrimonial en esta organización.',
+        );
       } else {
-        setSubmitError(err instanceof Error ? err.message : 'Error desconocido');
+        setSubmitError(
+          err instanceof Error ? err.message : 'Error desconocido',
+        );
       }
     } finally {
       setEnviando(false);
@@ -115,16 +130,24 @@ export function ImportacionesPage() {
   }
 
   if (!organizacionId) {
-    return <Alert>Falta organizacionId — volvé al hub y elegí una organización.</Alert>;
+    return (
+      <Alert>
+        Falta organizacionId — volvé al hub y elegí una organización.
+      </Alert>
+    );
   }
 
   return (
     <div className="max-w-2xl space-y-6">
-      <h1 className="text-2xl font-semibold text-accent-strong">Importaciones controladas</h1>
+      <h1 className="text-2xl font-semibold text-accent-strong">
+        Importaciones controladas
+      </h1>
       <p className="text-sm text-text-dim">
-        Archivo CSV con encabezados: <code>codigoPatrimonial, codigoQr, catalogoId</code>{' '}
-        (requeridos) y opcionalmente <code>serie, responsableId, areaId, ubicacionId,
-        valorPatrimonial</code>. Idempotente por fila — reimportar la misma fila sin cambios no la
+        Archivo CSV con encabezados:{' '}
+        <code>codigoPatrimonial, codigoQr, catalogoId</code> (requeridos) y
+        opcionalmente{' '}
+        <code>serie, responsableId, areaId, ubicacionId, valorPatrimonial</code>
+        . Idempotente por fila — reimportar la misma fila sin cambios no la
         duplica.
       </p>
 
@@ -146,21 +169,29 @@ export function ImportacionesPage() {
       {filas && filas.length > 0 && (
         <Card>
           <h2 className="mb-4 font-medium text-text">
-            Vista previa — {filas.length} {filas.length === 1 ? 'fila' : 'filas'}
+            Vista previa — {filas.length}{' '}
+            {filas.length === 1 ? 'fila' : 'filas'}
           </h2>
           <div className="mb-4 max-h-64 overflow-auto rounded-lg border border-border">
             <table className="w-full text-left text-xs">
               <thead className="bg-bg-raised text-text-dim">
                 <tr>
-                  <th className="px-3 py-1.5 font-medium">Código patrimonial</th>
+                  <th className="px-3 py-1.5 font-medium">
+                    Código patrimonial
+                  </th>
                   <th className="px-3 py-1.5 font-medium">Código QR</th>
                   <th className="px-3 py-1.5 font-medium">Catálogo</th>
                 </tr>
               </thead>
               <tbody>
                 {filas.map((fila) => (
-                  <tr key={fila.codigoPatrimonial} className="border-t border-border">
-                    <td className="px-3 py-1.5 font-mono">{fila.codigoPatrimonial}</td>
+                  <tr
+                    key={fila.codigoPatrimonial}
+                    className="border-t border-border"
+                  >
+                    <td className="px-3 py-1.5 font-mono">
+                      {fila.codigoPatrimonial}
+                    </td>
                     <td className="px-3 py-1.5 font-mono">{fila.codigoQr}</td>
                     <td className="px-3 py-1.5">{fila.catalogoId}</td>
                   </tr>
@@ -169,8 +200,13 @@ export function ImportacionesPage() {
             </table>
           </div>
           {submitError && <Alert>{submitError}</Alert>}
-          <Button disabled={enviando} onClick={() => void confirmarImportacion()}>
-            {enviando ? 'Importando…' : `Confirmar importación de ${filas.length} filas`}
+          <Button
+            disabled={enviando}
+            onClick={() => void confirmarImportacion()}
+          >
+            {enviando
+              ? 'Importando…'
+              : `Confirmar importación de ${filas.length} filas`}
           </Button>
         </Card>
       )}
@@ -184,8 +220,13 @@ export function ImportacionesPage() {
           </p>
           <ul className="space-y-1 text-sm">
             {resultado.filas.map((fila) => (
-              <li key={fila.codigoPatrimonial} className="flex items-center gap-2">
-                <span className="font-mono text-xs">{fila.codigoPatrimonial}</span>
+              <li
+                key={fila.codigoPatrimonial}
+                className="flex items-center gap-2"
+              >
+                <span className="font-mono text-xs">
+                  {fila.codigoPatrimonial}
+                </span>
                 <Badge>{fila.resultado}</Badge>
                 {fila.resultado === 'conflicto' && (
                   <span className="text-xs text-text-dim">{fila.motivo}</span>

@@ -312,12 +312,22 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
   });
 
   describe('GET /admin/indicadores', () => {
-    it('devuelve los conteos de plataforma', async () => {
+    // DOC-023 3 — hallazgo corregido: antes cualquier operador autenticado (incluido
+    // administrador-patrimonial) podía leer indicadores de plataforma; ahora exige
+    // administrador-sistema en cualquier organización (AdministradorSistemaEnCualquierOrganizacionGuard).
+    it('devuelve los conteos de plataforma cuando el operador tiene administrador-sistema', async () => {
       const res = await request(app.getHttpServer())
         .get('/admin/indicadores')
-        .set('Authorization', `Bearer ${tokenPatrimonial}`)
+        .set('Authorization', `Bearer ${tokenSistema}`)
         .expect(200);
       expect(res.body).toEqual(INDICADORES_STUB);
+    });
+
+    it('devuelve 403 si el operador tiene administrador-patrimonial pero no administrador-sistema', async () => {
+      await request(app.getHttpServer())
+        .get('/admin/indicadores')
+        .set('Authorization', `Bearer ${tokenPatrimonial}`)
+        .expect(403);
     });
   });
 

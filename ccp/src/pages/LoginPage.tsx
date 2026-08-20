@@ -12,9 +12,12 @@ export function LoginPage() {
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
       <Card className="w-full max-w-sm text-center">
-        <h1 className="mb-2 text-xl font-semibold text-accent-strong">Portal SICSAFT</h1>
+        <h1 className="mb-2 text-xl font-semibold text-accent-strong">
+          Portal SICSAFT
+        </h1>
         <p className="mb-6 text-sm text-text-dim">
-          Iniciá sesión con tu cuenta de la organización para administrar el patrimonio.
+          Iniciá sesión con tu cuenta de la organización para administrar el
+          patrimonio.
         </p>
         <Button className="w-full" onClick={() => oidcClient.startLogin()}>
           Iniciar sesión

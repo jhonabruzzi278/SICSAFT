@@ -10,7 +10,15 @@ import {
   type CatalogoTipoActivo,
   type DocumentoActivo,
 } from '@/lib/cis-client';
-import { Alert, Badge, Button, Card, FieldError, Input, Label } from '@/components/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  FieldError,
+  Input,
+  Label,
+} from '@/components/ui';
 
 // RF-03 — módulo Activos: consulta (GET /catalogo, ya existía) + alta (POST /admin/activos,
 // Fase 5/DOC-012). RF-08: el alta debe hacerse visible en el mismo catálogo que consume APP QR —
@@ -117,7 +125,10 @@ export function ActivosPage() {
   }
 
   function cargarCatalogoTipos() {
-    cisClient.getCatalogoTipos().then(setCatalogoTipos).catch(() => setCatalogoTipos([]));
+    cisClient
+      .getCatalogoTipos()
+      .then(setCatalogoTipos)
+      .catch(() => setCatalogoTipos([]));
   }
 
   useEffect(() => {
@@ -207,10 +218,18 @@ export function ActivosPage() {
     setEditarError(null);
     try {
       if (values.descripcion) {
-        await cisClient.actualizarDescripcionActivo(editando.id, organizacionId, values.descripcion);
+        await cisClient.actualizarDescripcionActivo(
+          editando.id,
+          organizacionId,
+          values.descripcion,
+        );
       }
       if (values.responsableId) {
-        await cisClient.cambiarResponsableActivo(editando.id, organizacionId, values.responsableId);
+        await cisClient.cambiarResponsableActivo(
+          editando.id,
+          organizacionId,
+          values.responsableId,
+        );
       }
       setEditando(null);
       cargarCatalogo();
@@ -230,7 +249,10 @@ export function ActivosPage() {
         descripcion: values.descripcion || undefined,
       });
       resetDocumento();
-      const lista = await cisClient.getDocumentosActivo(editando.id, organizacionId);
+      const lista = await cisClient.getDocumentosActivo(
+        editando.id,
+        organizacionId,
+      );
       setDocumentos(lista);
     } catch (err: unknown) {
       setDocumentoError(errorDeCisApi(err, 'agregar un documento'));
@@ -241,8 +263,15 @@ export function ActivosPage() {
     if (!editando) return;
     setDocumentoError(null);
     try {
-      await cisClient.eliminarDocumentoActivo(editando.id, documentoId, organizacionId);
-      const lista = await cisClient.getDocumentosActivo(editando.id, organizacionId);
+      await cisClient.eliminarDocumentoActivo(
+        editando.id,
+        documentoId,
+        organizacionId,
+      );
+      const lista = await cisClient.getDocumentosActivo(
+        editando.id,
+        organizacionId,
+      );
       setDocumentos(lista);
     } catch (err: unknown) {
       setDocumentoError(errorDeCisApi(err, 'eliminar un documento'));
@@ -250,14 +279,20 @@ export function ActivosPage() {
   }
 
   if (!organizacionId) {
-    return <Alert>Falta organizacionId — volvé al hub y elegí una organización.</Alert>;
+    return (
+      <Alert>
+        Falta organizacionId — volvé al hub y elegí una organización.
+      </Alert>
+    );
   }
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="space-y-6">
         <div>
-          <h1 className="mb-4 text-2xl font-semibold text-accent-strong">Activos</h1>
+          <h1 className="mb-4 text-2xl font-semibold text-accent-strong">
+            Activos
+          </h1>
           {listError && <Alert>{listError}</Alert>}
           {!listError && !activos && <p className="text-text-dim">Cargando…</p>}
           {activos?.length === 0 && (
@@ -277,8 +312,13 @@ export function ActivosPage() {
                 </thead>
                 <tbody>
                   {activos.map((activo) => (
-                    <tr key={activo.codigoQr} className="border-t border-border">
-                      <td className="px-4 py-2 font-mono text-xs">{activo.codigoQr}</td>
+                    <tr
+                      key={activo.codigoQr}
+                      className="border-t border-border"
+                    >
+                      <td className="px-4 py-2 font-mono text-xs">
+                        {activo.codigoQr}
+                      </td>
                       <td className="px-4 py-2">{activo.nombre}</td>
                       <td className="px-4 py-2">{activo.areaId}</td>
                       <td className="px-4 py-2">
@@ -286,7 +326,8 @@ export function ActivosPage() {
                       </td>
                       <td className="px-4 py-2">
                         <div className="flex flex-wrap gap-2">
-                          {(activo.estado === 'activo' || activo.estado === 'extraviado') && (
+                          {(activo.estado === 'activo' ||
+                            activo.estado === 'extraviado') && (
                             <Button
                               variant="ghost"
                               className="!px-2 !py-1 text-xs"
@@ -327,7 +368,11 @@ export function ActivosPage() {
               <h2 className="font-medium text-text">
                 Editar {editando.codigoQr} — {editando.nombre}
               </h2>
-              <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => setEditando(null)}>
+              <Button
+                variant="ghost"
+                className="!px-2 !py-1 text-xs"
+                onClick={() => setEditando(null)}
+              >
                 Cerrar
               </Button>
             </div>
@@ -337,11 +382,19 @@ export function ActivosPage() {
             >
               <div>
                 <Label htmlFor="editar-descripcion">Nueva descripción</Label>
-                <Input id="editar-descripcion" {...registerEditar('descripcion')} />
+                <Input
+                  id="editar-descripcion"
+                  {...registerEditar('descripcion')}
+                />
               </div>
               <div>
-                <Label htmlFor="editar-responsable">Nuevo responsable (id)</Label>
-                <Input id="editar-responsable" {...registerEditar('responsableId')} />
+                <Label htmlFor="editar-responsable">
+                  Nuevo responsable (id)
+                </Label>
+                <Input
+                  id="editar-responsable"
+                  {...registerEditar('responsableId')}
+                />
               </div>
               {editarError && (
                 <div className="sm:col-span-2">
@@ -405,12 +458,19 @@ export function ActivosPage() {
               </div>
               <div>
                 <Label htmlFor="doc-url">URL</Label>
-                <Input id="doc-url" placeholder="https://…" {...registerDocumento('url')} />
+                <Input
+                  id="doc-url"
+                  placeholder="https://…"
+                  {...registerDocumento('url')}
+                />
                 <FieldError>{erroresDocumento.url?.message}</FieldError>
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="doc-descripcion">Descripción (opcional)</Label>
-                <Input id="doc-descripcion" {...registerDocumento('descripcion')} />
+                <Input
+                  id="doc-descripcion"
+                  {...registerDocumento('descripcion')}
+                />
               </div>
               {documentoError && (
                 <div className="sm:col-span-2">
@@ -418,7 +478,11 @@ export function ActivosPage() {
                 </div>
               )}
               <div className="sm:col-span-2">
-                <Button type="submit" variant="secondary" disabled={agregandoDocumento}>
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  disabled={agregandoDocumento}
+                >
                   {agregandoDocumento ? 'Agregando…' : 'Agregar'}
                 </Button>
               </div>
@@ -430,10 +494,16 @@ export function ActivosPage() {
       <div className="space-y-6">
         <Card className="h-fit">
           <h2 className="mb-4 font-medium text-text">Alta de activo</h2>
-          <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
+          <form
+            onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+            className="space-y-4"
+          >
             <div>
               <Label htmlFor="codigoPatrimonial">Código patrimonial</Label>
-              <Input id="codigoPatrimonial" {...register('codigoPatrimonial')} />
+              <Input
+                id="codigoPatrimonial"
+                {...register('codigoPatrimonial')}
+              />
               <FieldError>{errors.codigoPatrimonial?.message}</FieldError>
             </div>
             <div>
@@ -492,7 +562,9 @@ export function ActivosPage() {
 
         {nuevoTipoAbierto && (
           <Card className="h-fit">
-            <h2 className="mb-4 font-medium text-text">Nuevo tipo de catálogo</h2>
+            <h2 className="mb-4 font-medium text-text">
+              Nuevo tipo de catálogo
+            </h2>
             <form
               onSubmit={(e) => void handleSubmitTipo(onSubmitTipo)(e)}
               className="space-y-4"
@@ -532,7 +604,9 @@ export function ActivosPage() {
                 </select>
               </div>
               <div>
-                <Label htmlFor="tipo-tecnologia">Tecnología de identificación</Label>
+                <Label htmlFor="tipo-tecnologia">
+                  Tecnología de identificación
+                </Label>
                 <select
                   id="tipo-tecnologia"
                   {...registerTipo('tecnologiaIdentificacion')}
