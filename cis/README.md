@@ -188,6 +188,24 @@ en lo que manda el cliente — `asignarProfesionalAftSchema` ni siquiera tiene u
 diferencia de `asignarUsuarioOrganizacionSchema` de `AdministradorModule`, que acepta los 3 roles
 de Proyecto).
 
+**`GET /admin/indicadores` con guard de rol (2026-08-19,
+[DOC-023](../aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md) 3)**: hallazgo real
+al construir la matriz de permisos del ecosistema — este endpoint era el único módulo de
+administración sin verificación de rol server-side, solo ocultado en la UI de `web_admin/`.
+Corregido con `AdministradorSistemaEnCualquierOrganizacionGuard`
+(`src/administrador/administrador-sistema-cualquier-organizacion.guard.ts`) — a diferencia de
+`AdministradorSistemaGuard`, que chequea el rol contra el `:orgId` de la URL, este endpoint no
+tiene organización propia (son indicadores agregados de toda la plataforma), así que el chequeo es
+"el rol en cualquier organización del token", mismo criterio que `verificarRolEnCualquierOrganizacion`
+de CORE usa para el alta de Organización.
+
+**Limpieza de dependencias muertas (2026-08-19, auditoría con Knip)**: `@eslint/eslintrc`,
+`source-map-support` y `ts-loader` salieron de `devDependencies` — ninguno se usaba (`ts-loader`
+solo aplica con `webpack: true` en `nest-cli.json`, que este proyecto no tiene; `@eslint/eslintrc`
+solo hace falta para `FlatCompat`, que `eslint.config.mjs` no usa). `supertest`/`@types/supertest`
+se verificaron en uso real (los 6 `*.e2e-spec.ts` de `test/`) antes de descartarlos como falso
+positivo de Knip — se quedan.
+
 ## Desarrollo local
 ```bash
 cd cis
