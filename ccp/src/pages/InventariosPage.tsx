@@ -44,18 +44,26 @@ export function InventariosPage() {
       .getInventarioDetalle(seleccionId)
       .then(setDetalle)
       .catch((err: unknown) => {
-        setDetalleError(err instanceof Error ? err.message : 'Error desconocido');
+        setDetalleError(
+          err instanceof Error ? err.message : 'Error desconocido',
+        );
       });
   }, [seleccionId]);
 
   if (!organizacionId) {
-    return <Alert>Falta organizacionId — volvé al hub y elegí una organización.</Alert>;
+    return (
+      <Alert>
+        Falta organizacionId — volvé al hub y elegí una organización.
+      </Alert>
+    );
   }
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div>
-        <h1 className="mb-4 text-2xl font-semibold text-accent-strong">Inventarios</h1>
+        <h1 className="mb-4 text-2xl font-semibold text-accent-strong">
+          Inventarios
+        </h1>
         {listError && <Alert>{listError}</Alert>}
         {!listError && !sesiones && <p className="text-text-dim">Cargando…</p>}
         {sesiones?.length === 0 && (
@@ -82,7 +90,9 @@ export function InventariosPage() {
                       seleccionId === sesion.id ? 'bg-bg-raised' : ''
                     }`}
                   >
-                    <td className="px-4 py-2">{formatFechaHora(sesion.fechaCierre)}</td>
+                    <td className="px-4 py-2">
+                      {formatFechaHora(sesion.fechaCierre)}
+                    </td>
                     <td className="px-4 py-2">{sesion.areaId}</td>
                     <td className="px-4 py-2">{sesion.ubicacionId}</td>
                     <td className="px-4 py-2">{sesion.operadorId}</td>

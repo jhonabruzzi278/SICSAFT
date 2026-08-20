@@ -9,7 +9,15 @@ import {
   TRANSICIONES_VALIDAS_CONTRATO,
   type Contrato,
 } from '@/lib/cis-client';
-import { Alert, Badge, Button, Card, FieldError, Input, Label } from '@/components/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  FieldError,
+  Input,
+  Label,
+} from '@/components/ui';
 
 // RF-07 — módulo Contratos: primer cliente que escribe la tabla `contratos` (antes solo se leía,
 // DOC-004 7). Mismo patrón que ActivosPage: tabla de lectura (GET /admin/contratos, nuevo en
@@ -51,7 +59,9 @@ export function ContratosPage() {
     setListError(null);
     cisClient
       .getContratos()
-      .then((todos) => setContratos(todos.filter((c) => c.organizacionId === organizacionId)))
+      .then((todos) =>
+        setContratos(todos.filter((c) => c.organizacionId === organizacionId)),
+      )
       .catch((err: unknown) => {
         setListError(err instanceof Error ? err.message : 'Error desconocido');
       });
@@ -68,7 +78,10 @@ export function ContratosPage() {
     try {
       await cisClient.altaContrato({
         organizacionId,
-        sedeIds: values.sedeIds.split(',').map((s) => s.trim()).filter(Boolean),
+        sedeIds: values.sedeIds
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
         vigenciaDesde: new Date(values.vigenciaDesde).toISOString(),
         vigenciaHasta: values.vigenciaHasta
           ? new Date(values.vigenciaHasta).toISOString()
@@ -87,7 +100,11 @@ export function ContratosPage() {
     setActionError(null);
     setPendingId(contratoId);
     try {
-      await cisClient.actualizarEstadoContrato(contratoId, organizacionId, estado);
+      await cisClient.actualizarEstadoContrato(
+        contratoId,
+        organizacionId,
+        estado,
+      );
       cargarContratos();
     } catch (err: unknown) {
       setActionError(mensajeError(err));
@@ -104,18 +121,26 @@ export function ContratosPage() {
   }
 
   if (!organizacionId) {
-    return <Alert>Falta organizacionId — volvé al hub y elegí una organización.</Alert>;
+    return (
+      <Alert>
+        Falta organizacionId — volvé al hub y elegí una organización.
+      </Alert>
+    );
   }
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div>
-        <h1 className="mb-4 text-2xl font-semibold text-accent-strong">Contratos</h1>
+        <h1 className="mb-4 text-2xl font-semibold text-accent-strong">
+          Contratos
+        </h1>
         {listError && <Alert>{listError}</Alert>}
         {actionError && <Alert>{actionError}</Alert>}
         {!listError && !contratos && <p className="text-text-dim">Cargando…</p>}
         {contratos?.length === 0 && (
-          <p className="text-text-dim">Sin contratos en esta organización todavía.</p>
+          <p className="text-text-dim">
+            Sin contratos en esta organización todavía.
+          </p>
         )}
         {contratos && contratos.length > 0 && (
           <div className="space-y-3">
@@ -124,26 +149,34 @@ export function ContratosPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-medium text-text">
-                      {contrato.sedes.map((s) => s.nombre).join(', ') || 'Sin sedes'}
+                      {contrato.sedes.map((s) => s.nombre).join(', ') ||
+                        'Sin sedes'}
                     </p>
                     <p className="mt-1 text-sm text-text-dim">
-                      {formatFecha(contrato.vigenciaDesde)} — {formatFecha(contrato.vigenciaHasta)}
+                      {formatFecha(contrato.vigenciaDesde)} —{' '}
+                      {formatFecha(contrato.vigenciaHasta)}
                     </p>
                   </div>
                   <Badge>{contrato.estado}</Badge>
                 </div>
                 {TRANSICIONES_VALIDAS_CONTRATO[contrato.estado]?.length > 0 && (
                   <div className="mt-4 flex gap-2">
-                    {TRANSICIONES_VALIDAS_CONTRATO[contrato.estado].map((destino) => (
-                      <Button
-                        key={destino}
-                        variant="secondary"
-                        disabled={pendingId === contrato.id}
-                        onClick={() => void cambiarEstado(contrato.id, destino)}
-                      >
-                        {pendingId === contrato.id ? 'Actualizando…' : `→ ${destino}`}
-                      </Button>
-                    ))}
+                    {TRANSICIONES_VALIDAS_CONTRATO[contrato.estado].map(
+                      (destino) => (
+                        <Button
+                          key={destino}
+                          variant="secondary"
+                          disabled={pendingId === contrato.id}
+                          onClick={() =>
+                            void cambiarEstado(contrato.id, destino)
+                          }
+                        >
+                          {pendingId === contrato.id
+                            ? 'Actualizando…'
+                            : `→ ${destino}`}
+                        </Button>
+                      ),
+                    )}
                   </div>
                 )}
               </Card>
@@ -154,20 +187,35 @@ export function ContratosPage() {
 
       <Card className="h-fit">
         <h2 className="mb-4 font-medium text-text">Alta de contrato</h2>
-        <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
+        <form
+          onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+          className="space-y-4"
+        >
           <div>
             <Label htmlFor="sedeIds">Sedes (ids separados por coma)</Label>
-            <Input id="sedeIds" placeholder="melipilla, santiago" {...register('sedeIds')} />
+            <Input
+              id="sedeIds"
+              placeholder="melipilla, santiago"
+              {...register('sedeIds')}
+            />
             <FieldError>{errors.sedeIds?.message}</FieldError>
           </div>
           <div>
             <Label htmlFor="vigenciaDesde">Vigencia desde</Label>
-            <Input id="vigenciaDesde" type="date" {...register('vigenciaDesde')} />
+            <Input
+              id="vigenciaDesde"
+              type="date"
+              {...register('vigenciaDesde')}
+            />
             <FieldError>{errors.vigenciaDesde?.message}</FieldError>
           </div>
           <div>
             <Label htmlFor="vigenciaHasta">Vigencia hasta (opcional)</Label>
-            <Input id="vigenciaHasta" type="date" {...register('vigenciaHasta')} />
+            <Input
+              id="vigenciaHasta"
+              type="date"
+              {...register('vigenciaHasta')}
+            />
           </div>
 
           {submitError && <Alert>{submitError}</Alert>}

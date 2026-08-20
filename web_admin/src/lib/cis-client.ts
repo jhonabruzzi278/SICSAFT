@@ -42,7 +42,8 @@ export interface UsuarioOrganizacion {
   roles: string[];
 }
 
-export type RolAsignable = 'administrador-patrimonial' | 'directivo' | 'administrador-sistema';
+export type RolAsignable =
+  'administrador-patrimonial' | 'directivo' | 'administrador-sistema';
 
 export interface Contrato {
   id: string;
@@ -73,7 +74,10 @@ export class CisApiError extends Error {
   }
 }
 
-async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+async function authorizedFetch(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
   const config = loadOidcConfig();
   const accessToken = await oidcClient.getValidAccessToken();
   const res = await fetch(`${config.cisUrl}${path}`, {
@@ -86,7 +90,10 @@ async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Re
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new CisApiError(res.status, body.message ?? `CIS devolvió ${res.status}`);
+    throw new CisApiError(
+      res.status,
+      body.message ?? `CIS devolvió ${res.status}`,
+    );
   }
   return res;
 }
@@ -99,7 +106,9 @@ export const cisClient = {
     return (await res.json()) as OrganizacionAdmin[];
   },
 
-  async altaOrganizacion(input: AltaOrganizacionInput): Promise<OrganizacionAdmin> {
+  async altaOrganizacion(
+    input: AltaOrganizacionInput,
+  ): Promise<OrganizacionAdmin> {
     const res = await authorizedFetch('/admin/organizaciones', {
       method: 'POST',
       body: JSON.stringify(input),
@@ -124,10 +133,13 @@ export const cisClient = {
     email: string,
     rol: RolAsignable,
   ): Promise<void> {
-    await authorizedFetch(`/admin/organizaciones/${encodeURIComponent(orgId)}/usuarios`, {
-      method: 'POST',
-      body: JSON.stringify({ email, rol }),
-    });
+    await authorizedFetch(
+      `/admin/organizaciones/${encodeURIComponent(orgId)}/usuarios`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ email, rol }),
+      },
+    );
   },
 
   // RNF-01 — CIS/CORE paginan (`{ contratos, total }`, default 20/tope 100). Sin UI de

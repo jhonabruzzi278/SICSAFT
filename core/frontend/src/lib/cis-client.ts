@@ -48,7 +48,10 @@ function getDeviceId(): string {
   return deviceId;
 }
 
-async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+async function authorizedFetch(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
   const config = loadOidcConfig();
   const accessToken = await oidcClient.getValidAccessToken();
   const res = await fetch(`${config.cisUrl}${path}`, {
@@ -61,7 +64,10 @@ async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Re
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new CisApiError(res.status, body.message ?? `CIS devolvió ${res.status}`);
+    throw new CisApiError(
+      res.status,
+      body.message ?? `CIS devolvió ${res.status}`,
+    );
   }
   return res;
 }

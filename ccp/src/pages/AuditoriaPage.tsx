@@ -25,7 +25,12 @@ function aIsoOUndefined(datetimeLocal: string): string | undefined {
   return new Date(datetimeLocal).toISOString();
 }
 
-const FILTRO_VACIO = { usuario: '', operacion: '', fechaDesde: '', fechaHasta: '' };
+const FILTRO_VACIO = {
+  usuario: '',
+  operacion: '',
+  fechaDesde: '',
+  fechaHasta: '',
+};
 
 export function AuditoriaPage() {
   const [campos, setCampos] = useState(FILTRO_VACIO);
@@ -43,7 +48,8 @@ export function AuditoriaPage() {
         if (!cancelled) setEntradas(res);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Error desconocido');
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : 'Error desconocido');
       });
     return () => {
       cancelled = true;
@@ -69,7 +75,9 @@ export function AuditoriaPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-semibold text-accent-strong">Auditoría</h1>
+      <h1 className="mb-4 text-2xl font-semibold text-accent-strong">
+        Auditoría
+      </h1>
 
       <form
         onSubmit={aplicarFiltros}
@@ -89,7 +97,9 @@ export function AuditoriaPage() {
           <Input
             id="filtro-operacion"
             value={campos.operacion}
-            onChange={(e) => setCampos({ ...campos, operacion: e.target.value })}
+            onChange={(e) =>
+              setCampos({ ...campos, operacion: e.target.value })
+            }
             placeholder="inventarios, baja…"
           />
         </div>
@@ -99,7 +109,9 @@ export function AuditoriaPage() {
             id="filtro-fecha-desde"
             type="datetime-local"
             value={campos.fechaDesde}
-            onChange={(e) => setCampos({ ...campos, fechaDesde: e.target.value })}
+            onChange={(e) =>
+              setCampos({ ...campos, fechaDesde: e.target.value })
+            }
           />
         </div>
         <div>
@@ -108,7 +120,9 @@ export function AuditoriaPage() {
             id="filtro-fecha-hasta"
             type="datetime-local"
             value={campos.fechaHasta}
-            onChange={(e) => setCampos({ ...campos, fechaHasta: e.target.value })}
+            onChange={(e) =>
+              setCampos({ ...campos, fechaHasta: e.target.value })
+            }
           />
         </div>
         <div className="flex items-end gap-2 lg:col-span-4">
@@ -145,13 +159,21 @@ export function AuditoriaPage() {
             <tbody>
               {entradas.map((entrada) => (
                 <tr key={entrada.id} className="border-t border-border">
-                  <td className="px-4 py-2">{formatFechaHora(entrada.fecha)}</td>
-                  <td className="px-4 py-2 font-mono text-xs">{entrada.usuario}</td>
-                  <td className="px-4 py-2 font-mono text-xs">{entrada.operacion}</td>
+                  <td className="px-4 py-2">
+                    {formatFechaHora(entrada.fecha)}
+                  </td>
+                  <td className="px-4 py-2 font-mono text-xs">
+                    {entrada.usuario}
+                  </td>
+                  <td className="px-4 py-2 font-mono text-xs">
+                    {entrada.operacion}
+                  </td>
                   <td className="px-4 py-2">
                     <Badge>{entrada.resultado}</Badge>
                   </td>
-                  <td className="px-4 py-2 text-text-dim">{entrada.observaciones ?? '—'}</td>
+                  <td className="px-4 py-2 text-text-dim">
+                    {entrada.observaciones ?? '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

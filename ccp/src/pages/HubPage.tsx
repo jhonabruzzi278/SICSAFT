@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { cisClient, type Organizacion } from '@/lib/cis-client';
 import { Alert, Card } from '@/components/ui';
 
@@ -25,7 +25,9 @@ const MODULOS: { path: string; nombre: string }[] = [
 ];
 
 export function HubPage() {
-  const [organizaciones, setOrganizaciones] = useState<Organizacion[] | null>(null);
+  const [organizaciones, setOrganizaciones] = useState<Organizacion[] | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,20 +38,40 @@ export function HubPage() {
         if (!cancelled) setOrganizaciones(res.organizaciones);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Error desconocido');
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : 'Error desconocido');
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  // Con una sola organización (caso común, ver fixtures/README) el sidebar de módulos recién
+  // aparece cuando hay organizacionId en la URL — sin este redirect el operador aterrizaba
+  // primero en esta lista de tarjetas, con el AppShell "viejo" (sin sidebar), y solo veía el
+  // rediseño después de entrar manualmente a un módulo. Mismo patrón que
+  // core/frontend/InicioPage.tsx para el Directivo.
+  if (organizaciones?.length === 1) {
+    const [unicaOrg] = organizaciones;
+    return (
+      <Navigate
+        to={`/dashboard?organizacionId=${encodeURIComponent(unicaOrg.id)}`}
+        replace
+      />
+    );
+  }
+
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-accent-strong">Organizaciones</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-accent-strong">
+        Organizaciones
+      </h1>
       {error && <Alert>{error}</Alert>}
       {!error && !organizaciones && <p className="text-text-dim">Cargando…</p>}
       {organizaciones?.length === 0 && (
-        <p className="text-text-dim">No hay organizaciones con contrato vigente.</p>
+        <p className="text-text-dim">
+          No hay organizaciones con contrato vigente.
+        </p>
       )}
       <div className="space-y-6">
         {organizaciones?.map((org) => (

@@ -2,8 +2,20 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { cisClient, CisApiError, type UsuarioOrganizacion } from '@/lib/cis-client';
-import { Alert, Badge, Button, Card, FieldError, Input, Label } from '@/components/ui';
+import {
+  cisClient,
+  CisApiError,
+  type UsuarioOrganizacion,
+} from '@/lib/cis-client';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  FieldError,
+  Input,
+  Label,
+} from '@/components/ui';
 
 // DOC-022 3 — designar quién es el Profesional de AFT (administrador-patrimonial) de la propia
 // organización del Directivo. Sin selector de organización (a diferencia de la sección análoga en
@@ -35,14 +47,18 @@ export function GestionarProfesionalAftPage() {
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<AsignarProfesionalAftForm>({ resolver: zodResolver(asignarProfesionalAftSchema) });
+  } = useForm<AsignarProfesionalAftForm>({
+    resolver: zodResolver(asignarProfesionalAftSchema),
+  });
 
   function cargarUsuarios() {
     setListError(null);
     cisClient
       .getUsuariosDirectivo()
       .then(setUsuarios)
-      .catch((err: unknown) => setListError(errorDeCisApi(err, 'ver los usuarios')));
+      .catch((err: unknown) =>
+        setListError(errorDeCisApi(err, 'ver los usuarios')),
+      );
   }
 
   useEffect(cargarUsuarios, []);
@@ -62,17 +78,24 @@ export function GestionarProfesionalAftPage() {
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-semibold text-accent-strong">Profesional de AFT</h1>
+      <h1 className="mb-2 text-2xl font-semibold text-accent-strong">
+        Profesional de AFT
+      </h1>
       <p className="mb-6 text-sm text-text-dim">
-        Designá quién carga y mantiene la información patrimonial de tu organización en CCP.
-        Nunca información patrimonial en sí (Activos/Catálogo/Documentos, exclusivo de CCP).
+        Designá quién carga y mantiene la información patrimonial de tu
+        organización en CCP. Nunca información patrimonial en sí
+        (Activos/Catálogo/Documentos, exclusivo de CCP).
       </p>
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div>
           {listError && <Alert>{listError}</Alert>}
-          {!listError && !usuarios && <p className="text-text-dim">Cargando…</p>}
+          {!listError && !usuarios && (
+            <p className="text-text-dim">Cargando…</p>
+          )}
           {usuarios?.length === 0 && (
-            <p className="text-text-dim">Sin usuarios asignados en tu organización todavía.</p>
+            <p className="text-text-dim">
+              Sin usuarios asignados en tu organización todavía.
+            </p>
           )}
           {usuarios && usuarios.length > 0 && (
             <div className="overflow-x-auto rounded-xl border border-border">
@@ -86,7 +109,9 @@ export function GestionarProfesionalAftPage() {
                 <tbody>
                   {usuarios.map((usuario) => (
                     <tr key={usuario.userId} className="border-t border-border">
-                      <td className="px-4 py-2">{usuario.email ?? usuario.userId}</td>
+                      <td className="px-4 py-2">
+                        {usuario.email ?? usuario.userId}
+                      </td>
                       <td className="px-4 py-2">
                         <div className="flex flex-wrap gap-1">
                           {usuario.roles.map((rol) => (
@@ -102,15 +127,28 @@ export function GestionarProfesionalAftPage() {
           )}
         </div>
         <Card className="h-fit">
-          <h3 className="mb-4 font-medium text-text">Designar Profesional de AFT</h3>
-          <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
+          <h3 className="mb-4 font-medium text-text">
+            Designar Profesional de AFT
+          </h3>
+          <form
+            onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+            className="space-y-4"
+          >
             <div>
-              <Label htmlFor="profesional-email">Email (usuario ya existente en Zitadel)</Label>
-              <Input id="profesional-email" type="email" {...register('email')} />
+              <Label htmlFor="profesional-email">
+                Email (usuario ya existente en Zitadel)
+              </Label>
+              <Input
+                id="profesional-email"
+                type="email"
+                {...register('email')}
+              />
               <FieldError>{errors.email?.message}</FieldError>
             </div>
             {submitError && <Alert>{submitError}</Alert>}
-            {submitOk && <Alert variant="success">Profesional de AFT designado.</Alert>}
+            {submitOk && (
+              <Alert variant="success">Profesional de AFT designado.</Alert>
+            )}
             <Button type="submit" disabled={isSubmitting} className="w-full">
               {isSubmitting ? 'Designando…' : 'Designar'}
             </Button>

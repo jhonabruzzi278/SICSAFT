@@ -21,7 +21,9 @@ export function AuthCallbackPage() {
       .handleCallback(new URLSearchParams(location.search))
       .then(() => navigate('/', { replace: true }))
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'No se pudo completar el login.');
+        setError(
+          err instanceof Error ? err.message : 'No se pudo completar el login.',
+        );
       });
   }, [location.search, navigate]);
 
@@ -30,9 +32,14 @@ export function AuthCallbackPage() {
       <Card className="w-full max-w-sm text-center">
         {error ? (
           <>
-            <h1 className="mb-2 text-lg font-semibold text-destructive">No se pudo iniciar sesión</h1>
+            <h1 className="mb-2 text-lg font-semibold text-destructive">
+              No se pudo iniciar sesión
+            </h1>
             <Alert>{error}</Alert>
-            <Button className="mt-4 w-full" onClick={() => oidcClient.startLogin()}>
+            <Button
+              className="mt-4 w-full"
+              onClick={() => oidcClient.startLogin()}
+            >
               Volver a intentar
             </Button>
           </>

@@ -12,7 +12,8 @@ import {
   type SyncInfo,
   type VeredictoSesion,
 } from '@/lib/dashboard-client';
-import { Alert, Badge, Card, Input, Label } from '@/components/ui';
+import { Alert, Badge, Card, Input, Label, StatCard } from '@/components/ui';
+import { IconBox, IconChart, IconMapPin } from '@/components/icons';
 
 // RF-09 (DOC-019) — séptimo módulo del hub: primer dashboard de CIP, solo lectura. Drill-down
 // Organización→Área→Categoría (DOC-018 6): elegir un área en "Áreas controladas" filtra
@@ -45,7 +46,12 @@ function PieCategorias({ categorias }: { categorias: CategoriaResumen[] }) {
     const fraccion = categoria.cantidad / total;
     const inicio = anguloAcumulado;
     anguloAcumulado += fraccion * 360;
-    return { categoria, inicio, fin: anguloAcumulado, color: PALETA_CATEGORIAS[i % PALETA_CATEGORIAS.length] };
+    return {
+      categoria,
+      inicio,
+      fin: anguloAcumulado,
+      color: PALETA_CATEGORIAS[i % PALETA_CATEGORIAS.length],
+    };
   });
 
   function puntoEnCirculo(angulo: number): [number, number] {
@@ -71,14 +77,51 @@ function PieCategorias({ categorias }: { categorias: CategoriaResumen[] }) {
       </svg>
       <ul className="space-y-1 text-sm">
         {segmentos.map(({ categoria, color }) => (
-          <li key={`${categoria.areaId}-${categoria.familia}`} className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+          <li
+            key={`${categoria.areaId}-${categoria.familia}`}
+            className="flex items-center gap-2"
+          >
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: color }}
+            />
             <span className="text-text">{categoria.familia}</span>
             <span className="text-text-dim">({categoria.cantidad})</span>
           </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+// Barras horizontales simples para "Estado de los AFT" — mismo criterio que PieCategorias: SVG a
+// mano, sin sumar una librería de gráficos para un solo chart chico (YAGNI).
+function BarEstados({ estados }: { estados: EstadoResumen[] }) {
+  if (estados.length === 0) {
+    return <p className="text-sm text-text-dim">Sin activos para graficar.</p>;
+  }
+  const max = Math.max(...estados.map((e) => e.cantidad), 1);
+  return (
+    <ul className="space-y-3">
+      {estados.map((estado) => (
+        <li key={estado.estado} className="flex items-center gap-3">
+          <span className="w-28 shrink-0 truncate text-xs text-text-dim">
+            {estado.estado}
+          </span>
+          <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-bg-raised">
+            <span
+              className="block h-full rounded-full bg-accent"
+              style={{
+                width: `${Math.max((estado.cantidad / max) * 100, 4)}%`,
+              }}
+            />
+          </span>
+          <span className="w-8 shrink-0 text-right font-mono text-xs text-text">
+            {estado.cantidad}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -90,7 +133,9 @@ function EstadoSync({ sync }: { sync: SyncInfo | null }) {
   return (
     <span className="text-xs text-warning">
       Últimos datos conocidos
-      {sync.actualizadoEn ? ` — actualizado ${formatFechaHora(sync.actualizadoEn)}` : ''}
+      {sync.actualizadoEn
+        ? ` — actualizado ${formatFechaHora(sync.actualizadoEn)}`
+        : ''}
     </span>
   );
 }
@@ -104,8 +149,12 @@ export function DashboardPage() {
   const [cobertura, setCobertura] = useState<Cobertura | null>(null);
   const [areas, setAreas] = useState<ControlArea[] | null>(null);
   const [sesiones, setSesiones] = useState<VeredictoSesion[] | null>(null);
-  const [fueraDeArea, setFueraDeArea] = useState<ActivoFueraDeArea[] | null>(null);
-  const [noLocalizados, setNoLocalizados] = useState<ActivoNoLocalizado[] | null>(null);
+  const [fueraDeArea, setFueraDeArea] = useState<ActivoFueraDeArea[] | null>(
+    null,
+  );
+  const [noLocalizados, setNoLocalizados] = useState<
+    ActivoNoLocalizado[] | null
+  >(null);
   const [incidencias, setIncidencias] = useState<Incidencia[] | null>(null);
   const [codigoQrFiltro, setCodigoQrFiltro] = useState('');
   const [estados, setEstados] = useState<EstadoResumen[] | null>(null);
@@ -129,7 +178,8 @@ export function DashboardPage() {
         setNoLocalizados(noLocalizadosRes.items);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Error desconocido');
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : 'Error desconocido');
       });
     return () => {
       cancelled = true;
@@ -151,7 +201,8 @@ export function DashboardPage() {
         setCategorias(categoriasRes.categorias);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Error desconocido');
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : 'Error desconocido');
       });
     return () => {
       cancelled = true;
@@ -167,7 +218,8 @@ export function DashboardPage() {
         if (!cancelled) setIncidencias(res.items);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Error desconocido');
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : 'Error desconocido');
       });
     return () => {
       cancelled = true;
@@ -185,7 +237,11 @@ export function DashboardPage() {
   }
 
   if (!organizacionId) {
-    return <Alert>Falta organizacionId — volvé al hub y elegí una organización.</Alert>;
+    return (
+      <Alert>
+        Falta organizacionId — volvé al hub y elegí una organización.
+      </Alert>
+    );
   }
 
   return (
@@ -197,30 +253,35 @@ export function DashboardPage() {
       {error && <Alert>{error}</Alert>}
 
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <Card>
-          <p className="text-xs text-text-dim">Activos registrados</p>
-          <p className="text-3xl font-semibold text-text">
-            {cobertura?.activosRegistrados ?? '—'}
-          </p>
-        </Card>
-        <Card>
-          <p className="text-xs text-text-dim">Activos escaneados</p>
-          <p className="text-3xl font-semibold text-text">
-            {cobertura?.activosEscaneados ?? '—'}
-          </p>
-        </Card>
-        <Card>
-          <p className="text-xs text-text-dim">% Cobertura</p>
-          <p className="text-3xl font-semibold text-text">
-            {cobertura ? `${Math.round(cobertura.porcentajeCobertura * 100)}%` : '—'}
-          </p>
-        </Card>
+        <StatCard
+          label="Activos registrados"
+          value={cobertura?.activosRegistrados ?? '—'}
+          icon={<IconBox />}
+        />
+        <StatCard
+          label="Activos escaneados"
+          value={cobertura?.activosEscaneados ?? '—'}
+          icon={<IconChart />}
+          tone="success"
+        />
+        <StatCard
+          label="% Cobertura"
+          value={
+            cobertura
+              ? `${Math.round(cobertura.porcentajeCobertura * 100)}%`
+              : '—'
+          }
+          icon={<IconMapPin />}
+          tone="warning"
+        />
       </div>
 
       <Card className="mb-8">
         <h2 className="mb-4 font-medium text-text">Áreas controladas</h2>
         {!areas && <p className="text-sm text-text-dim">Cargando…</p>}
-        {areas?.length === 0 && <p className="text-sm text-text-dim">Sin áreas todavía.</p>}
+        {areas?.length === 0 && (
+          <p className="text-sm text-text-dim">Sin áreas todavía.</p>
+        )}
         <div className="flex flex-wrap gap-2">
           {areas?.map((area) => (
             <button
@@ -236,15 +297,17 @@ export function DashboardPage() {
               <span className="block font-medium text-text">{area.areaId}</span>
               <span className="text-xs text-text-dim">
                 {area.controladaEnPeriodo ? 'Controlada' : 'Pendiente'}
-                {area.ultimaSesionEn ? ` — ${formatFechaHora(area.ultimaSesionEn)}` : ''}
+                {area.ultimaSesionEn
+                  ? ` — ${formatFechaHora(area.ultimaSesionEn)}`
+                  : ''}
               </span>
             </button>
           ))}
         </div>
         {areaId && (
           <p className="mt-3 text-xs text-text-dim">
-            Filtrando por área <span className="font-mono">{areaId}</span> — clic de nuevo para
-            quitar el filtro.
+            Filtrando por área <span className="font-mono">{areaId}</span> —
+            clic de nuevo para quitar el filtro.
           </p>
         )}
       </Card>
@@ -254,7 +317,9 @@ export function DashboardPage() {
           <h2 className="mb-4 font-medium text-text">Sesiones de inventario</h2>
           {!sesiones && <p className="text-sm text-text-dim">Cargando…</p>}
           {sesiones?.length === 0 && (
-            <p className="text-sm text-text-dim">Sin sesiones en este filtro.</p>
+            <p className="text-sm text-text-dim">
+              Sin sesiones en este filtro.
+            </p>
           )}
           {sesiones && sesiones.length > 0 && (
             <ul className="space-y-2">
@@ -263,7 +328,9 @@ export function DashboardPage() {
                   key={sesion.sesionId}
                   className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
                 >
-                  <span className="text-text-dim">{formatFechaHora(sesion.fechaCierre)}</span>
+                  <span className="text-text-dim">
+                    {formatFechaHora(sesion.fechaCierre)}
+                  </span>
                   <span className="text-text-dim">{sesion.areaId}</span>
                   <Badge>{sesion.veredicto}</Badge>
                 </li>
@@ -275,19 +342,10 @@ export function DashboardPage() {
         <Card>
           <h2 className="mb-4 font-medium text-text">Estado de los AFT</h2>
           {!estados && <p className="text-sm text-text-dim">Cargando…</p>}
-          {estados && estados.length > 0 && (
-            <ul className="space-y-2">
-              {estados.map((estado) => (
-                <li
-                  key={estado.estado}
-                  className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
-                >
-                  <Badge>{estado.estado}</Badge>
-                  <span className="font-mono text-text">{estado.cantidad}</span>
-                </li>
-              ))}
-            </ul>
+          {estados && estados.length === 0 && (
+            <p className="text-sm text-text-dim">Sin activos para graficar.</p>
           )}
+          {estados && estados.length > 0 && <BarEstados estados={estados} />}
         </Card>
       </div>
 
@@ -329,7 +387,9 @@ export function DashboardPage() {
                   className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
                 >
                   <span className="font-mono text-xs">{activo.codigoQr}</span>
-                  <span className="text-text-dim">desde {formatFechaHora(activo.desdeEn)}</span>
+                  <span className="text-text-dim">
+                    desde {formatFechaHora(activo.desdeEn)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -349,7 +409,9 @@ export function DashboardPage() {
           />
         </div>
         {!incidencias && <p className="text-sm text-text-dim">Cargando…</p>}
-        {incidencias?.length === 0 && <p className="text-sm text-text-dim">Sin incidencias.</p>}
+        {incidencias?.length === 0 && (
+          <p className="text-sm text-text-dim">Sin incidencias.</p>
+        )}
         {incidencias && incidencias.length > 0 && (
           <ul className="space-y-2 text-sm">
             {incidencias.map((incidencia) => (
@@ -358,8 +420,12 @@ export function DashboardPage() {
                 className="rounded-lg border border-border px-3 py-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs">{incidencia.codigoQr}</span>
-                  <span className="text-xs text-text-dim">{formatFechaHora(incidencia.fecha)}</span>
+                  <span className="font-mono text-xs">
+                    {incidencia.codigoQr}
+                  </span>
+                  <span className="text-xs text-text-dim">
+                    {formatFechaHora(incidencia.fecha)}
+                  </span>
                 </div>
                 <p className="mt-1 text-text-dim">{incidencia.observaciones}</p>
               </li>

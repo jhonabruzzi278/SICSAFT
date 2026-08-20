@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +12,17 @@ import {
   type RolAsignable,
   type UsuarioOrganizacion,
 } from '@/lib/cis-client';
-import { Alert, Badge, Button, Card, FieldError, Input, Label } from '@/components/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  FieldError,
+  Input,
+  Label,
+  StatCard,
+} from '@/components/ui';
+import { IconFileText, IconLayers, IconMapPin } from '@/components/icons';
 
 // RF-15 (DOC-021) / DOC-022 — pantalla única del portal, con secciones (mismo patrón que
 // EstructuraPage tenía en ccp/ para Áreas/Ubicaciones/Responsables). Este rol nunca toca
@@ -34,7 +45,11 @@ type AltaContratoForm = z.infer<typeof altaContratoSchema>;
 const asignarUsuarioSchema = z.object({
   organizacionId: z.string().min(1, 'Elegí una organización'),
   email: z.string().email('Email inválido'),
-  rol: z.enum(['administrador-patrimonial', 'directivo', 'administrador-sistema']),
+  rol: z.enum([
+    'administrador-patrimonial',
+    'directivo',
+    'administrador-sistema',
+  ]),
 });
 type AsignarUsuarioForm = z.infer<typeof asignarUsuarioSchema>;
 
@@ -62,7 +77,9 @@ function OrganizacionesSection({
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<AltaOrganizacionForm>({ resolver: zodResolver(altaOrganizacionSchema) });
+  } = useForm<AltaOrganizacionForm>({
+    resolver: zodResolver(altaOrganizacionSchema),
+  });
 
   async function onSubmit(values: AltaOrganizacionForm) {
     setSubmitError(null);
@@ -71,7 +88,10 @@ function OrganizacionesSection({
       // DOC-022 3 — ya no hace falta decir "en qué organización tengo el rol" (era el bug que
       // motivó separar este portal): el rol administrador-sistema se verifica en cualquier
       // organización del token del operador.
-      await cisClient.altaOrganizacion({ id: values.id, nombre: values.nombre });
+      await cisClient.altaOrganizacion({
+        id: values.id,
+        nombre: values.nombre,
+      });
       setSubmitOk(true);
       reset();
       onCreated();
@@ -84,7 +104,9 @@ function OrganizacionesSection({
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div>
         {!organizaciones && <p className="text-text-dim">Cargando…</p>}
-        {organizaciones?.length === 0 && <p className="text-text-dim">Sin organizaciones.</p>}
+        {organizaciones?.length === 0 && (
+          <p className="text-text-dim">Sin organizaciones.</p>
+        )}
         {organizaciones && organizaciones.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-left text-sm">
@@ -108,7 +130,10 @@ function OrganizacionesSection({
       </div>
       <Card className="h-fit">
         <h3 className="mb-4 font-medium text-text">Nueva organización</h3>
-        <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
+        <form
+          onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+          className="space-y-4"
+        >
           <div>
             <Label htmlFor="org-id">Id (igual al de Zitadel)</Label>
             <Input id="org-id" {...register('id')} />
@@ -130,7 +155,11 @@ function OrganizacionesSection({
   );
 }
 
-function ContratosSection({ organizaciones }: { organizaciones: OrganizacionAdmin[] | null }) {
+function ContratosSection({
+  organizaciones,
+}: {
+  organizaciones: OrganizacionAdmin[] | null;
+}) {
   const [contratos, setContratos] = useState<Contrato[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -147,7 +176,9 @@ function ContratosSection({ organizaciones }: { organizaciones: OrganizacionAdmi
     cisClient
       .getContratos()
       .then(setContratos)
-      .catch((err: unknown) => setListError(err instanceof Error ? err.message : 'Error desconocido'));
+      .catch((err: unknown) =>
+        setListError(err instanceof Error ? err.message : 'Error desconocido'),
+      );
   }
 
   useEffect(cargar, []);
@@ -158,7 +189,10 @@ function ContratosSection({ organizaciones }: { organizaciones: OrganizacionAdmi
     try {
       await cisClient.altaContrato({
         organizacionId: values.organizacionId,
-        sedeIds: values.sedeIds.split(',').map((s) => s.trim()).filter(Boolean),
+        sedeIds: values.sedeIds
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
         vigenciaDesde: new Date(values.vigenciaDesde).toISOString(),
         modulosContratados: ['inventario-qr'],
       });
@@ -175,7 +209,9 @@ function ContratosSection({ organizaciones }: { organizaciones: OrganizacionAdmi
       <div>
         {listError && <Alert>{listError}</Alert>}
         {!listError && !contratos && <p className="text-text-dim">Cargando…</p>}
-        {contratos?.length === 0 && <p className="text-text-dim">Sin contratos.</p>}
+        {contratos?.length === 0 && (
+          <p className="text-text-dim">Sin contratos.</p>
+        )}
         {contratos && contratos.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-left text-sm">
@@ -205,7 +241,10 @@ function ContratosSection({ organizaciones }: { organizaciones: OrganizacionAdmi
       </div>
       <Card className="h-fit">
         <h3 className="mb-4 font-medium text-text">Nuevo contrato</h3>
-        <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
+        <form
+          onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+          className="space-y-4"
+        >
           <div>
             <Label htmlFor="contrato-org">Organización</Label>
             <select
@@ -223,13 +262,19 @@ function ContratosSection({ organizaciones }: { organizaciones: OrganizacionAdmi
             <FieldError>{errors.organizacionId?.message}</FieldError>
           </div>
           <div>
-            <Label htmlFor="contrato-sedes">Sedes (ids separados por coma)</Label>
+            <Label htmlFor="contrato-sedes">
+              Sedes (ids separados por coma)
+            </Label>
             <Input id="contrato-sedes" {...register('sedeIds')} />
             <FieldError>{errors.sedeIds?.message}</FieldError>
           </div>
           <div>
             <Label htmlFor="contrato-vigencia">Vigencia desde</Label>
-            <Input id="contrato-vigencia" type="date" {...register('vigenciaDesde')} />
+            <Input
+              id="contrato-vigencia"
+              type="date"
+              {...register('vigenciaDesde')}
+            />
             <FieldError>{errors.vigenciaDesde?.message}</FieldError>
           </div>
           {submitError && <Alert>{submitError}</Alert>}
@@ -243,7 +288,11 @@ function ContratosSection({ organizaciones }: { organizaciones: OrganizacionAdmi
   );
 }
 
-function UsuariosSection({ organizaciones }: { organizaciones: OrganizacionAdmin[] | null }) {
+function UsuariosSection({
+  organizaciones,
+}: {
+  organizaciones: OrganizacionAdmin[] | null;
+}) {
   const [orgSeleccionada, setOrgSeleccionada] = useState('');
   const [usuarios, setUsuarios] = useState<UsuarioOrganizacion[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
@@ -255,7 +304,9 @@ function UsuariosSection({ organizaciones }: { organizaciones: OrganizacionAdmin
     reset,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<AsignarUsuarioForm>({ resolver: zodResolver(asignarUsuarioSchema) });
+  } = useForm<AsignarUsuarioForm>({
+    resolver: zodResolver(asignarUsuarioSchema),
+  });
 
   function cargarUsuarios(orgId: string) {
     if (!orgId) {
@@ -266,7 +317,9 @@ function UsuariosSection({ organizaciones }: { organizaciones: OrganizacionAdmin
     cisClient
       .getUsuariosOrganizacion(orgId)
       .then(setUsuarios)
-      .catch((err: unknown) => setListError(errorDeCisApi(err, 'ver los usuarios')));
+      .catch((err: unknown) =>
+        setListError(errorDeCisApi(err, 'ver los usuarios')),
+      );
   }
 
   function onOrgChange(orgId: string) {
@@ -285,7 +338,11 @@ function UsuariosSection({ organizaciones }: { organizaciones: OrganizacionAdmin
         values.rol as RolAsignable,
       );
       setSubmitOk(true);
-      reset({ organizacionId: values.organizacionId, email: '', rol: values.rol });
+      reset({
+        organizacionId: values.organizacionId,
+        email: '',
+        rol: values.rol,
+      });
       cargarUsuarios(values.organizacionId);
     } catch (err: unknown) {
       setSubmitError(errorDeCisApi(err, 'asignar un usuario'));
@@ -310,8 +367,12 @@ function UsuariosSection({ organizaciones }: { organizaciones: OrganizacionAdmin
           ))}
         </select>
         {listError && <Alert>{listError}</Alert>}
-        {orgSeleccionada && !usuarios && !listError && <p className="text-text-dim">Cargando…</p>}
-        {usuarios?.length === 0 && <p className="text-text-dim">Sin usuarios asignados.</p>}
+        {orgSeleccionada && !usuarios && !listError && (
+          <p className="text-text-dim">Cargando…</p>
+        )}
+        {usuarios?.length === 0 && (
+          <p className="text-text-dim">Sin usuarios asignados.</p>
+        )}
         {usuarios && usuarios.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-left text-sm">
@@ -324,7 +385,9 @@ function UsuariosSection({ organizaciones }: { organizaciones: OrganizacionAdmin
               <tbody>
                 {usuarios.map((usuario) => (
                   <tr key={usuario.userId} className="border-t border-border">
-                    <td className="px-4 py-2">{usuario.email ?? usuario.userId}</td>
+                    <td className="px-4 py-2">
+                      {usuario.email ?? usuario.userId}
+                    </td>
                     <td className="px-4 py-2">
                       <div className="flex flex-wrap gap-1">
                         {usuario.roles.map((rol) => (
@@ -341,11 +404,16 @@ function UsuariosSection({ organizaciones }: { organizaciones: OrganizacionAdmin
       </div>
       <Card className="h-fit">
         <h3 className="mb-4 font-medium text-text">Asignar usuario</h3>
-        <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
+        <form
+          onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+          className="space-y-4"
+        >
           <input type="hidden" {...register('organizacionId')} />
           <FieldError>{errors.organizacionId?.message}</FieldError>
           <div>
-            <Label htmlFor="usuario-email">Email (usuario ya existente en Zitadel)</Label>
+            <Label htmlFor="usuario-email">
+              Email (usuario ya existente en Zitadel)
+            </Label>
             <Input id="usuario-email" type="email" {...register('email')} />
             <FieldError>{errors.email?.message}</FieldError>
           </div>
@@ -356,14 +424,22 @@ function UsuariosSection({ organizaciones }: { organizaciones: OrganizacionAdmin
               {...register('rol')}
               className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text"
             >
-              <option value="administrador-patrimonial">Profesional de AFT</option>
+              <option value="administrador-patrimonial">
+                Profesional de AFT
+              </option>
               <option value="directivo">Directivo</option>
-              <option value="administrador-sistema">Administrador del Sistema</option>
+              <option value="administrador-sistema">
+                Administrador del Sistema
+              </option>
             </select>
           </div>
           {submitError && <Alert>{submitError}</Alert>}
           {submitOk && <Alert variant="success">Usuario asignado.</Alert>}
-          <Button type="submit" disabled={isSubmitting || !orgSeleccionada} className="w-full">
+          <Button
+            type="submit"
+            disabled={isSubmitting || !orgSeleccionada}
+            className="w-full"
+          >
             {isSubmitting ? 'Asignando…' : 'Asignar'}
           </Button>
         </form>
@@ -380,75 +456,119 @@ function IndicadoresSection() {
     cisClient
       .getIndicadores()
       .then(setIndicadores)
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Error desconocido'));
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : 'Error desconocido'),
+      );
   }, []);
 
   if (error) return <Alert>{error}</Alert>;
   if (!indicadores) return <p className="text-text-dim">Cargando…</p>;
 
   const tarjetas = [
-    { label: 'Organizaciones', valor: indicadores.totalOrganizaciones },
-    { label: 'Sedes', valor: indicadores.totalSedes },
-    { label: 'Contratos vigentes', valor: indicadores.contratosPorEstado.vigente },
-    { label: 'Contratos suspendidos', valor: indicadores.contratosPorEstado.suspendido },
-    { label: 'Contratos vencidos', valor: indicadores.contratosPorEstado.vencido },
-    { label: 'Contratos cancelados', valor: indicadores.contratosPorEstado.cancelado },
+    {
+      label: 'Organizaciones',
+      valor: indicadores.totalOrganizaciones,
+      icon: <IconLayers />,
+      tone: 'accent' as const,
+    },
+    {
+      label: 'Sedes',
+      valor: indicadores.totalSedes,
+      icon: <IconMapPin />,
+      tone: 'accent' as const,
+    },
+    {
+      label: 'Contratos vigentes',
+      valor: indicadores.contratosPorEstado.vigente,
+      icon: <IconFileText />,
+      tone: 'success' as const,
+    },
+    {
+      label: 'Contratos suspendidos',
+      valor: indicadores.contratosPorEstado.suspendido,
+      icon: <IconFileText />,
+      tone: 'warning' as const,
+    },
+    {
+      label: 'Contratos vencidos',
+      valor: indicadores.contratosPorEstado.vencido,
+      icon: <IconFileText />,
+      tone: 'warning' as const,
+    },
+    {
+      label: 'Contratos cancelados',
+      valor: indicadores.contratosPorEstado.cancelado,
+      icon: <IconFileText />,
+      tone: 'destructive' as const,
+    },
   ];
 
   return (
     <div className="grid gap-4 sm:grid-cols-3">
       {tarjetas.map((t) => (
-        <Card key={t.label}>
-          <p className="text-sm text-text-dim">{t.label}</p>
-          <p className="text-3xl font-semibold text-accent-strong">{t.valor}</p>
-        </Card>
+        <StatCard
+          key={t.label}
+          label={t.label}
+          value={t.valor}
+          icon={t.icon}
+          tone={t.tone}
+        />
       ))}
     </div>
   );
 }
 
-const SECCIONES = ['Organizaciones', 'Contratos', 'Usuarios', 'Indicadores'] as const;
-type Seccion = (typeof SECCIONES)[number];
+export const SECCIONES = [
+  'Organizaciones',
+  'Contratos',
+  'Usuarios',
+  'Indicadores',
+] as const;
+export type Seccion = (typeof SECCIONES)[number];
 
 export function AdminPage() {
-  const [seccion, setSeccion] = useState<Seccion>('Organizaciones');
-  const [organizaciones, setOrganizaciones] = useState<OrganizacionAdmin[] | null>(null);
+  const [searchParams] = useSearchParams();
+  const seccionParam = searchParams.get('seccion');
+  const seccion: Seccion = (SECCIONES as readonly string[]).includes(
+    seccionParam ?? '',
+  )
+    ? (seccionParam as Seccion)
+    : 'Organizaciones';
+  const [organizaciones, setOrganizaciones] = useState<
+    OrganizacionAdmin[] | null
+  >(null);
 
   function cargarOrganizaciones() {
-    cisClient.getOrganizaciones().then(setOrganizaciones).catch(() => setOrganizaciones([]));
+    cisClient
+      .getOrganizaciones()
+      .then(setOrganizaciones)
+      .catch(() => setOrganizaciones([]));
   }
 
   useEffect(cargarOrganizaciones, []);
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-semibold text-accent-strong">Administración</h1>
+      <h1 className="mb-2 text-2xl font-semibold text-accent-strong">
+        {seccion}
+      </h1>
       <p className="mb-6 text-sm text-text-dim">
-        Administrador del Sistema — organizaciones, contratos, usuarios e indicadores de
-        plataforma. Nunca información patrimonial (Activos/Catálogo/Documentos, exclusivo de
-        CCP).
+        Administrador del Sistema — organizaciones, contratos, usuarios e
+        indicadores de plataforma. Nunca información patrimonial
+        (Activos/Catálogo/Documentos, exclusivo de CCP).
       </p>
-      <div className="mb-6 flex gap-2 border-b border-border">
-        {SECCIONES.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setSeccion(s)}
-            className={`px-3 py-2 text-sm font-medium ${
-              seccion === s
-                ? 'border-b-2 border-accent text-accent-strong'
-                : 'text-text-dim hover:text-text'
-            }`}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
       {seccion === 'Organizaciones' && (
-        <OrganizacionesSection organizaciones={organizaciones} onCreated={cargarOrganizaciones} />
+        <OrganizacionesSection
+          organizaciones={organizaciones}
+          onCreated={cargarOrganizaciones}
+        />
       )}
-      {seccion === 'Contratos' && <ContratosSection organizaciones={organizaciones} />}
-      {seccion === 'Usuarios' && <UsuariosSection organizaciones={organizaciones} />}
+      {seccion === 'Contratos' && (
+        <ContratosSection organizaciones={organizaciones} />
+      )}
+      {seccion === 'Usuarios' && (
+        <UsuariosSection organizaciones={organizaciones} />
+      )}
       {seccion === 'Indicadores' && <IndicadoresSection />}
     </div>
   );
