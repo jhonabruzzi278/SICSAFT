@@ -1,0 +1,376 @@
+# Stack de producción para desplegar como recurso "Docker Compose" en Coolify, sobre el VPS
+# propio (ver devops/README.md "Modelo de despliegue: VPS propio, Docker Compose" — Coolify no
+# cambia esa decisión, es solo el panel/proxy/orquestador que corre sobre el mismo VPS, nunca un
+# PaaS gestionado de terceros).
+#
+# Diferencias reales contra devops/local/docker-compose.yml (ver ese archivo para el detalle
+# comentado de cada variable — acá solo se documenta lo que cambia):
+#
+# 1. Sin servicio `traefik` propio: Coolify trae su propio proxy (Traefik) compartido para todos
+#    los recursos de la instancia. Asignar el dominio real de cada servicio expuesto abajo desde
+#    la pestaña "Domains" de ese servicio en el panel de Coolify (no hace falta editar labels de
+#    Traefik a mano) — Coolify emite el certificado TLS solo (Let's Encrypt) apenas el dominio
+#    resuelve al VPS.
+# 2. Sin puertos de host expuestos en `postgres`/`redis` (en local existen solo para poder correr
+#    tests fuera de Docker) — en producción reduce superficie de ataque, ver devops/README.md
+#    "Cyberseguridad del VPS" ("Solo 80/443 públicos").
+# 3. Sin el alias de red `id.sicsaft.localhost` en el proxy: ese truco existía para que Zitadel
+#    (multi-tenant por Host header) resolviera su propio dominio DESDE DENTRO de la red Docker en
+#    Docker Desktop (Windows/Mac), que aísla el acceso al socket del daemon. En el VPS real
+#    (Linux, DNS público real), cualquier contenedor que le hable a `https://id.sicsaft.cl` sale a
+#    internet y vuelve a entrar por el proxy de Coolify con el Host correcto — no hace falta el
+#    alias.
+# 4. Variables sin secreto real acá (mismos nombres `${VAR}` que devops/local/.env.example) — los
+#    valores viven en el gestor de variables nativo de Coolify (una variable de entorno por
+#    servicio o compartida a nivel de proyecto), no en un archivo `.env` ni cifradas con SOPS+age
+#    (decisión revisada — ver devops/prod/README.md "Decisión revisada" para el porqué).
+# 5. Dominios reales bajo `sicsaft.cl` (ver devops/README.md "Dominios") en vez de
+#    `*.sicsaft.localhost` — usados solo como referencia en variables VITE_*/ZITADEL_* que se
+#    hornean en build time o se validan al arrancar; el ruteo real lo decide el campo "Domains" de
+#    Coolify, no estos valores.
+
+name: sicsaft-prod
+
+networks:
+  sicsaft:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  zitadel_data:
+  prometheus_data:
+  loki_data:
+  grafana_data:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      POSTGRES_DB: postgres
+      ZITADEL_DB_USER: ${ZITADEL_DB_USER}
+      ZITADEL_DB_PASSWORD: ${ZITADEL_DB_PASSWORD}
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+      CIP_DB_USER: ${CIP_DB_USER}
+      CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../local/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - sicsaft
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ADMIN_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - /data # anonimo — cache/colas no necesitan persistir entre despliegues
+    networks:
+      - sicsaft
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  zitadel:
+    image: ghcr.io/zitadel/zitadel:v2.65.0
+    command: start-from-init --masterkey "${ZITADEL_MASTERKEY}" --tlsMode external
+    environment:
+      ZITADEL_DATABASE_POSTGRES_HOST: postgres
+      ZITADEL_DATABASE_POSTGRES_PORT: 5432
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: ${ZITADEL_DB_USER}
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: ${ZITADEL_DB_PASSWORD}
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: ${POSTGRES_ADMIN_USER}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
+      # Dominio real — Coolify termina el TLS público en su proxy y reenvía HTTP en texto plano
+      # dentro de la red interna, por eso EXTERNALSECURE sigue en "true" (asi lo ve el navegador)
+      # aunque el propio contenedor hable HTTP puro (mismo patrón que el `--tlsMode disabled` de
+      # local, acá `external` — Zitadel confía en que el proxy de adelante ya terminó el TLS).
+      ZITADEL_EXTERNALDOMAIN: id.sicsaft.cl
+      ZITADEL_EXTERNALPORT: 443
+      ZITADEL_EXTERNALSECURE: "true"
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD}
+    expose:
+      - "8080" # puerto interno que Coolify enruta desde el dominio asignado en su panel
+    volumes:
+      - zitadel_data:/zitadel
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  cis:
+    build:
+      context: ../../cis
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3000
+      ZITADEL_ISSUER: https://id.sicsaft.cl
+      ZITADEL_AUDIENCE: ${CIS_ZITADEL_AUDIENCE}
+      CORE_URL: http://core:3001
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      CIP_URL: http://cip:3002
+      CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      # Solo los 3 portales reales de producción — sin puertos de Vite (eso era solo para
+      # `npm run dev` local).
+      CIS_CORS_ORIGIN: https://app.sicsaft.cl,https://admin.sicsaft.cl,https://directivo.sicsaft.cl
+      ZITADEL_ORG_ID_MAP: ${ZITADEL_ORG_ID_MAP}
+      ZITADEL_ADMIN_TOKEN: ${ZITADEL_ADMIN_TOKEN}
+      ZITADEL_PROJECT_ID: ${ZITADEL_PROJECT_ID}
+    expose:
+      - "3000"
+    networks:
+      - sicsaft
+    depends_on:
+      zitadel:
+        condition: service_started
+      core:
+        condition: service_started
+      cip:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  core-migrate:
+    build:
+      context: ../../core
+      dockerfile: Dockerfile
+    command: ["node", "scripts/migrate.js", "up"]
+    environment:
+      CORE_DB_HOST: postgres
+      CORE_DB_PORT: 5432
+      CORE_DB_NAME: core
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  core:
+    build:
+      context: ../../core
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3001
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      CORE_DB_HOST: postgres
+      CORE_DB_PORT: 5432
+      CORE_DB_NAME: core
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+      core-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    # Sin `expose`/dominio a propósito: CORE solo lo consume CIS dentro de la red interna, nunca
+    # un navegador directo — mismo criterio que devops/local/docker-compose.yml.
+
+  cip-migrate:
+    build:
+      context: ../../cip
+      dockerfile: Dockerfile
+    command: ["node", "scripts/migrate.js", "up"]
+    environment:
+      CIP_DB_HOST: postgres
+      CIP_DB_PORT: 5432
+      CIP_DB_NAME: cip
+      CIP_DB_USER: ${CIP_DB_USER}
+      CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  cip:
+    build:
+      context: ../../cip
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3002
+      CIP_DB_HOST: postgres
+      CIP_DB_PORT: 5432
+      CIP_DB_NAME: cip
+      CIP_DB_USER: ${CIP_DB_USER}
+      CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
+      CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
+      CORE_URL: http://core:3001
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+      cip-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      core:
+        condition: service_started
+    restart: unless-stopped
+    # Sin `expose`/dominio a propósito, mismo criterio que `core`: sin frontend todavía (DOC-018
+    # 7.2 — decisión abierta).
+
+  ccp:
+    build:
+      context: ../../ccp
+      dockerfile: Dockerfile
+      args:
+        VITE_ZITADEL_ISSUER: https://id.sicsaft.cl
+        VITE_ZITADEL_CLIENT_ID: ${WEB_VITE_ZITADEL_CLIENT_ID}
+        VITE_CIS_URL: https://api.sicsaft.cl
+    expose:
+      - "8080"
+    networks:
+      - sicsaft
+    depends_on:
+      cis:
+        condition: service_started
+    restart: unless-stopped
+
+  web-admin:
+    build:
+      context: ../../web_admin
+      dockerfile: Dockerfile
+      args:
+        VITE_ZITADEL_ISSUER: https://id.sicsaft.cl
+        VITE_ZITADEL_CLIENT_ID: ${WEB_ADMIN_VITE_ZITADEL_CLIENT_ID}
+        VITE_CIS_URL: https://api.sicsaft.cl
+    expose:
+      - "8080"
+    networks:
+      - sicsaft
+    depends_on:
+      cis:
+        condition: service_started
+    restart: unless-stopped
+
+  core-frontend:
+    build:
+      context: ../../core/frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_ZITADEL_ISSUER: https://id.sicsaft.cl
+        VITE_ZITADEL_CLIENT_ID: ${CORE_FRONTEND_VITE_ZITADEL_CLIENT_ID}
+        VITE_CIS_URL: https://api.sicsaft.cl
+    expose:
+      - "8080"
+    networks:
+      - sicsaft
+    depends_on:
+      cis:
+        condition: service_started
+    restart: unless-stopped
+
+  # --- Observabilidad self-hosted — mismos archivos de config que devops/local/, ver
+  # devops/local/README.md "Observabilidad" para el detalle de cada componente.
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    networks:
+      - sicsaft
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - sicsaft
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    volumes:
+      - ../local/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - sicsaft
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.1.0
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ../local/observability/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    networks:
+      - sicsaft
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:3.1.0
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ../local/observability/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - sicsaft
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: "https://grafana.sicsaft.cl/"
+    expose:
+      - "3000"
+    volumes:
+      - ../local/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../local/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - sicsaft
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped

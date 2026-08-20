@@ -1,0 +1,36 @@
+# Config de Prometheus del stack local — mismo criterio que traefik/dynamic.yml: config estatica
+# versionada, sin auto-discovery contra el socket de Docker (Enhanced Container Isolation de
+# Docker Desktop en Windows lo bloquea, ver el comentario de traefik/dynamic.yml para el mismo
+# problema ya documentado ahi).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Metricas de host (CPU/mem/disco/red) — equivalente a lo que CloudWatch da gratis por instancia
+  # EC2, pero self-hosted.
+  - job_name: node-exporter
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Metricas por contenedor (CPU/mem/red/IO por servicio) — equivalente a CloudWatch Container
+  # Insights.
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # Prometheus se scrapea a si mismo (metricas de salud del propio scraper).
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Placeholder para cuando cis/core expongan /metrics (prom-client) — comentado a proposito: hoy
+  # ningun backend de NestJS expone ese endpoint, agregar el target real recien cuando exista (ver
+  # devops/local/README.md "Observabilidad" para el porque de no instrumentar app-level metrics en
+  # este incremento).
+  # - job_name: cis
+  #   static_configs:
+  #     - targets: ["cis:3000"]
+  # - job_name: core
+  #   static_configs:
+  #     - targets: ["core:3001"]

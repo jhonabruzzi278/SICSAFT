@@ -1,0 +1,33 @@
+# Config minima de Loki (single-binary, filesystem, sin object storage externo) — coherente con
+# el resto de devops/local/: todo corre en el mismo Docker Compose, sin dependencias en la nube.
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # Retencion corta (7 dias) — este es el stack LOCAL de desarrollo, no produccion; ajustar en
+  # devops/prod/ cuando exista el VPS real.
+  retention_period: 168h
+  allow_structured_metadata: true

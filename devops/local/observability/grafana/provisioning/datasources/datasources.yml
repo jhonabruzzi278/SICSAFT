@@ -1,0 +1,20 @@
+# Datasources provisionados automaticamente al arrancar Grafana — el operador no tiene que
+# configurarlos a mano en la UI cada vez que se recrea el contenedor (sin volumen persistente de
+# config, solo de datos).
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus-ds
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+
+  - name: Loki
+    uid: loki-ds
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false

@@ -1,0 +1,14 @@
+# Provider de dashboards — cualquier .json que se agregue a
+# devops/local/observability/grafana/dashboards/ aparece solo al reiniciar Grafana, sin importar
+# a mano por la UI.
+apiVersion: 1
+
+providers:
+  - name: SICSAFT
+    orgId: 1
+    folder: SICSAFT
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards

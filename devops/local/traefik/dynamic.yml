@@ -32,6 +32,11 @@ http:
       entryPoints:
         - web
       service: core-frontend
+    grafana:
+      rule: "Host(`grafana.sicsaft.localhost`)"
+      entryPoints:
+        - web
+      service: grafana
 
   services:
     zitadel:
@@ -54,3 +59,7 @@ http:
       loadBalancer:
         servers:
           - url: "http://core-frontend:8080"
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://grafana:3000"

@@ -5,39 +5,57 @@ Capacidad transversal de infraestructura, CI/CD, seguridad operacional y observa
 todos los sistemas del ecosistema (APP QR, CIS, CORE, WEB, CIP, RFID, Integraciones).
 
 ## Estado
-🟡 Stack local funcionando (`devops/local/`: Traefik + Postgres + Redis + Zitadel + CIS + CORE en
-Docker Compose, ver su README para cómo levantarlo). Gestión de secretos de producción resuelta
-(SOPS + age, ver [`devops/prod/README.md`](prod/README.md)) — herramientas y flujo listos, falta
-generar la clave real del operador del VPS. Producción (VPS real, dominios `sicsaft.cl`, CI/CD)
-sigue sin implementar — ver [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) y
+🟡 Stack local funcionando (`devops/local/`: Traefik + Postgres + Redis + Zitadel + los 5 sistemas
++ observabilidad self-hosted en Docker Compose, ver su README para cómo levantarlo). Observabilidad
+(2026-08-19): Prometheus (métricas de host y contenedores) + Loki/Promtail (logs de todos los
+contenedores) + Grafana (dashboards provisionados solos) — equivalente self-hosted a
+CloudWatch/CloudTrail, administrado por el operador del VPS, ver `devops/local/README.md`
+"Observabilidad". [`devops/prod/docker-compose.yml`](prod/docker-compose.yml) (2026-08-20) — stack
+de producción listo para desplegarse como recurso "Docker Compose" en **Coolify** sobre el VPS
+propio (sin `traefik` propio, Coolify trae el suyo; ver `devops/prod/README.md` "Despliegue con
+Coolify"). Gestión de secretos de producción **revisada** (2026-08-20): variables nativas del
+panel de Coolify en vez de SOPS + age (ver `devops/prod/README.md` "Decisión revisada" para el
+porqué) — herramientas SOPS+age quedan documentadas como histórico, no como flujo activo. Falta el
+VPS real (dominios `sicsaft.cl` sin comprar/apuntar todavía, ni instancia de Coolify corriendo) —
+ver [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) y
 [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) para el stack ya decidido.
 
-## Modelo de despliegue: VPS propio, Docker Compose
+## Modelo de despliegue: VPS propio, Docker Compose orquestado por Coolify
 El usuario administra su propio VPS (no una plataforma gestionada tipo Vercel/Render para
 backend). Cada nivel del ecosistema es su propio contenedor con su propio `Dockerfile`
 multi-stage, orquestados por Docker Compose — consistente con "cada nivel = un repositorio o
-paquete desplegable propio" de [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 1.
+paquete desplegable propio" de [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 1. **Coolify**
+(self-hosted, en el mismo VPS) es el panel que orquesta ese Docker Compose y provee el proxy
+reverso/TLS — no es un PaaS gestionado de terceros, sigue siendo el mismo VPS propio (decisión
+2026-08-20, ver `devops/prod/README.md` "Decisión revisada").
+
+Árbol real (ya existe, ya no es solo el plan):
 
 ```
-sicsaft-vps/
-├── docker-compose.yml              # servicios base: traefik, postgres, redis, zitadel
-├── docker-compose.staging.yml      # overrides por ambiente
-├── docker-compose.prod.yml
-├── traefik/                        # reverse proxy + TLS automático (Let's Encrypt)
-├── cis/Dockerfile
-├── core/Dockerfile
-├── ccp/Dockerfile
-└── backups/                        # restic/borgbackup, destino EXTERNO al VPS
+devops/
+├── local/                          # stack de desarrollo — ver devops/local/README.md
+│   ├── docker-compose.yml
+│   ├── traefik/                    # Traefik propio, solo para local (Coolify trae el suyo)
+│   ├── observability/              # config compartida de Prometheus/Loki/Promtail/Grafana
+│   └── postgres/init/              # scripts de bootstrap de roles/bases, compartidos con prod
+└── prod/                           # stack de producción — ver devops/prod/README.md
+    ├── docker-compose.yml          # recurso "Docker Compose" en Coolify, sin traefik propio
+    ├── .env.example                # variables a cargar en el panel de Coolify (sin valores reales)
+    └── README.md                   # despliegue + histórico de la decisión SOPS+age
 ```
 
-Secretos de este árbol (contraseñas de Postgres/Redis, `ZITADEL_MASTERKEY`, tokens
-servicio-a-servicio) viven cifrados en el propio repo — ver [`devops/prod/`](prod/README.md), SOPS
-+ age.
+Cada sistema (`cis/Dockerfile`, `core/Dockerfile`, `ccp/Dockerfile`, ...) vive en su propia
+carpeta de nivel raíz, no dentro de `devops/` — `devops/prod/docker-compose.yml` los referencia
+por `build.context` relativo (ver ese archivo).
 
-- **Traefik** como único punto de entrada (80/443), enruta por subdominio y renueva TLS solo.
-- Red Docker interna aislada por ambiente; solo Traefik expone puertos al host.
+- **Coolify** (proxy Traefik propio) como único punto de entrada (80/443) en producción, enruta
+  por dominio asignado desde su panel ("Domains" por servicio) y renueva TLS solo (Let's
+  Encrypt) — en local sigue siendo un Traefik propio con config estática (ver
+  `devops/local/traefik/dynamic.yml`), porque ahí no hay Coolify.
+- Red Docker interna aislada por ambiente (`sicsaft` en ambos compose, redes Docker distintas por
+  ser stacks/proyectos distintos); solo el proxy expone puertos al host.
 - Backups automatizados con destino externo al VPS (si el VPS se cae o se compromete, el backup
-  no puede vivir en el mismo disco).
+  no puede vivir en el mismo disco) — pendiente, ver "Próximo paso sugerido".
 
 ## Dominios (bajo `sicsaft.cl`, `sicsaft.com` solo como redirect de protección de marca)
 
@@ -46,9 +64,17 @@ servicio-a-servicio) viven cifrados en el propio repo — ver [`devops/prod/`](p
 | `sicsaft.cl` | Landing comercial (público, sin login) |
 | `id.sicsaft.cl` | Identidad/SSO — Zitadel (ver ADR-002) |
 | `api.sicsaft.cl` | CIS (API Gateway) |
-| `app.sicsaft.cl` | CCP — Centro de Control Patrimonial (hub post-login) |
+| `app.sicsaft.cl` | CCP — Centro de Control Patrimonial (hub post-login del Profesional de AFT) |
+| `admin.sicsaft.cl` | web_admin — Portal WEB del Administrador del Sistema (DOC-022) |
+| `directivo.sicsaft.cl` | core/frontend — Portal WEB del Directivo (DOC-022, ADR-003) |
+| `grafana.sicsaft.cl` | Grafana — dashboards de observabilidad (acceso solo con login, ver "Observabilidad self-hosted" abajo) |
 | `qr.sicsaft.cl` | APP QR SICSAFT (PWA instalable, subdominio propio por `scope` del manifest) |
 | `cip.sicsaft.cl` | CIP (dashboards/BI), separable de `app.` si el tráfico lo justifica |
+
+Las filas `admin.`/`directivo.`/`grafana.` se agregaron acá (2026-08-20) siguiendo el mismo patrón
+de nombre corto por rol/propósito que ya usa esta tabla — mismo criterio que los hostnames locales
+`admin.sicsaft.localhost`/`directivo.sicsaft.localhost` de `devops/local/docker-compose.yml`, no
+una decisión nueva de naming.
 
 ## Rama `main` — regla no negociable
 **Nunca push directo a `main`**, configurado como branch protection en GitHub desde ya, aunque el
@@ -68,10 +94,15 @@ lint + type-check
         → build de imagen Docker (multi-stage)
           → scan de imagen (Trivy)
             → push a registry (GHCR)
-              → deploy automático a staging (SSH + `docker compose pull && up -d`)
+              → deploy automático a staging (webhook de Coolify sobre push a la rama de staging)
                 → smoke tests contra staging
-                  → aprobación manual → deploy a producción
+                  → aprobación manual → deploy a producción (Coolify, mismo mecanismo)
 ```
+
+El paso de deploy cambió de "SSH + `docker compose pull && up -d`" (plan original) a **Coolify
+redesplegando su recurso Docker Compose** vía webhook — ver `devops/prod/README.md` "Despliegue
+con Coolify". Las etapas anteriores (lint → tests → scans → build/push de imagen) no cambian,
+Coolify solo reemplaza el último tramo (SSH manual) por su propio mecanismo de redeploy.
 
 Carga/estrés (k6) corre en cron contra staging (ej. nocturno), no en cada PR — es lento y caro
 para el ciclo de feedback normal.
@@ -126,6 +157,7 @@ Seguridad (3). [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack).
 [`devops/prod/README.md`](prod/README.md) (gestión de secretos, SOPS + age).
 
 ## Próximo paso sugerido
-Levantar el `docker-compose.yml` base (Traefik + Postgres + Redis + Zitadel) en el VPS como
-primer entregable, antes de tener CIS/CORE con código — permite validar dominios/TLS/SSO de punta
-a punta con servicios vacíos. Tarjeta Trello: `OPS-ADR-002`.
+Comprar el VPS, instalar Coolify, y desplegar `devops/prod/docker-compose.yml` como primer
+entregable (ver `devops/prod/README.md` "Despliegue con Coolify") — permite validar
+dominios/TLS/SSO de punta a punta contra el stack real antes de preocuparse por backups o el resto
+del pipeline de CI/CD. Tarjeta Trello: `OPS-ADR-002`.
