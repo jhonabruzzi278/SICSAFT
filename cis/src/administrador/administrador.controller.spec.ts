@@ -4,6 +4,7 @@ import type { Request } from 'express';
 import { AdministradorController } from './administrador.controller';
 import { AdministradorService } from './administrador.service';
 import { AdministradorSistemaGuard } from './administrador-sistema.guard';
+import { AdministradorSistemaEnCualquierOrganizacionGuard } from './administrador-sistema-cualquier-organizacion.guard';
 import {
   ZitadelAuthGuard,
   type AuthenticatedRequest,
@@ -121,6 +122,8 @@ describe('AdministradorController', () => {
       .overrideGuard(RateLimitGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(AdministradorSistemaGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(AdministradorSistemaEnCualquierOrganizacionGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

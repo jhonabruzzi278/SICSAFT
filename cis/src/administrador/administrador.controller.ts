@@ -23,6 +23,7 @@ import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 import { AdministradorService } from './administrador.service';
 import { AdministradorSistemaGuard } from './administrador-sistema.guard';
+import { AdministradorSistemaEnCualquierOrganizacionGuard } from './administrador-sistema-cualquier-organizacion.guard';
 import type { GrantUsuario } from '../zitadel-admin/zitadel-admin.types';
 import {
   actualizarAreaSchema,
@@ -281,8 +282,13 @@ export class AdministradorController {
     );
   }
 
-  // DOC-021 4 — lectura abierta, sin auditoria (CORE tampoco la exige).
+  // DOC-023 3 — hallazgo corregido: antes era lectura abierta sin auditoria (CORE tampoco la
+  // exige, ver indicadores.controller.ts de CORE) y sin guard de rol en backend, solo ocultada en
+  // la UI de web_admin. Sin organizacionId propio (son indicadores agregados de toda la
+  // plataforma), asi que el chequeo correcto es "el rol en cualquier organizacion", no el patron
+  // AdministradorSistemaGuard de :orgId que usa el resto de este controller.
   @Get('indicadores')
+  @UseGuards(AdministradorSistemaEnCualquierOrganizacionGuard)
   getIndicadores(
     @Req() request: RequestWithCorrelationId,
   ): Promise<IndicadoresResult> {

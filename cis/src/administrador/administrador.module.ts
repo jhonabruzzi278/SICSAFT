@@ -4,6 +4,7 @@ import { ZitadelAdminModule } from '../zitadel-admin/zitadel-admin.module';
 import { AdministradorController } from './administrador.controller';
 import { AdministradorService } from './administrador.service';
 import { AdministradorSistemaGuard } from './administrador-sistema.guard';
+import { AdministradorSistemaEnCualquierOrganizacionGuard } from './administrador-sistema-cualquier-organizacion.guard';
 import { ORGANIZACION_MAPPING } from './administrador.constants';
 import { loadOrganizacionMapping } from './organizacion-mapping.config';
 
@@ -15,6 +16,7 @@ import { loadOrganizacionMapping } from './organizacion-mapping.config';
   providers: [
     AdministradorService,
     AdministradorSistemaGuard,
+    AdministradorSistemaEnCualquierOrganizacionGuard,
     { provide: ORGANIZACION_MAPPING, useFactory: loadOrganizacionMapping },
   ],
 })
