@@ -33,4 +33,4 @@ todavía (ver `ROADMAP.md` Fase 6, `cip/README.md` Estado: 🔲 No iniciado).
   de la transaccional), 8 (contrato de módulo aplicado a CIP), 9 (anti-sobre-ingeniería — no
   elegir motor analítico antes de tener el modelo de CORE estable).
 - [`ROADMAP.md`](../../ROADMAP.md) Fase 6.
-- [`cip/README.md`](../README.md).
+- [`cip/README.md`](../../cip/README.md).

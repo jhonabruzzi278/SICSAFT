@@ -2,8 +2,8 @@
 
 **Sistema:** Portal WEB SICSAFT (SYS-05) — `ccp/`
 **Ciclo:** ROADMAP.md Fase 5 — "Portal WEB mínimo"
-**Metodología:** AI-DLC (tercer sistema que lo adopta, después de `app-qr-sicsaft/aidlc-docs/` y
-`core/aidlc-docs/`)
+**Metodología:** AI-DLC (tercer sistema que lo adopta, después de `aidlc-docs/app-qr-sicsaft/` y
+`aidlc-docs/core/`)
 **Fecha:** 2026-08-13 (diseño), 2026-08-14 (primer incremento de código), 2026-08-18 (diseño y
 construcción del séptimo módulo, Dashboard/CIP — DOC-019; mismo día, diseño y construcción de la
 segmentación por rol Directivo — DOC-020; mismo día, diseño de cierre de gaps del CCP + rol

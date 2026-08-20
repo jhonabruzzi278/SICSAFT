@@ -66,7 +66,7 @@ quien defina el contrato comercial, no a este diseño técnico.
 
 ## Documentos relacionados
 
-[DOC-006](../../../core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md) — contrato base que
+[DOC-006](../../../aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md) — contrato base que
 este documento extiende. [DOC-004](../../../base-patrimonial/DOC-004-modelo-contrato.md) 5/7 —
 `modulosContratados` y el punto abierto de quién escribe `Contrato`. [ADR-002](../../../adr/ADR-002-identidad-zitadel-multi-tenant.md)
 flujo de login — de dónde sale el criterio del hub.

@@ -11,7 +11,7 @@ flowchart LR
     Rules --> Database["Base Patrimonial Central"]
 ```
 
-> **Estado del contrato**: implementado real de punta a punta desde TASK-007 — `cis/src/qr-connector/` sirve exactamente estas 4 rutas (formalizadas del lado de CORE en `core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md`) y `app-qr-sicsaft/src/lib/qr-connector.ts` (`HttpQrConnectorClient`) las consume real. Los puntos que decían **⚠️ Pendiente de confirmar con el equipo de SICSAFT CORE** ya tienen respuesta — se anota la resolución real en cada uno en vez de borrar la pregunta original, para que quede el registro de qué se asumió en el diseño vs. qué resultó ser cierto.
+> **Estado del contrato**: implementado real de punta a punta desde TASK-007 — `cis/src/qr-connector/` sirve exactamente estas 4 rutas (formalizadas del lado de CORE en `aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md`) y `app-qr-sicsaft/src/lib/qr-connector.ts` (`HttpQrConnectorClient`) las consume real. Los puntos que decían **⚠️ Pendiente de confirmar con el equipo de SICSAFT CORE** ya tienen respuesta — se anota la resolución real en cada uno en vez de borrar la pregunta original, para que quede el registro de qué se asumió en el diseño vs. qué resultó ser cierto.
 
 ## 1. Alcance del Conector QR
 

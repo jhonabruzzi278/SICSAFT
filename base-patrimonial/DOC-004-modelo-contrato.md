@@ -120,7 +120,7 @@ período de traslape), se revisita como excepción explícita, no como comportam
 Lista abierta pero controlada — no texto libre. Hoy solo existe un valor real:
 
 - `inventario-qr` — habilita el Conector QR (`cis/src/qr-connector/`, contrato
-  [DOC-002](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md)) para las sedes
+  [DOC-002](../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md)) para las sedes
   cubiertas por el contrato.
 
 Valores futuros (no implementados, solo reservados para no romper el enum al agregarlos):
@@ -177,7 +177,7 @@ sobre Postgres (`core/migrations/`, `core/src/entitlements/`) — ver 7 para lo 
   identidad y por qué se agrega `Contrato` al modelo.
 - [`seguridad/README.md`](../seguridad/README.md) — modelo completo
   Usuario→Organización→Contrato→Sede→Rol→Permisos→Acción.
-- [DOC-002](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md) — contrato del
+- [DOC-002](../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md) — contrato del
   Conector QR, primer consumidor real de `modulosContratados: ["inventario-qr"]`.
 - `cis/src/qr-connector/qr-connector.types.ts` — forma exacta de `Organizacion`/`Sede` que este
   modelo debe poder producir sin romper el contrato ya construido.

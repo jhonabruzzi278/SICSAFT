@@ -59,12 +59,17 @@ Redis), [ADR-002](adr/ADR-002-identidad-zitadel-multi-tenant.md) (Zitadel self-h
 Organización→Contrato→Sede, dominios bajo `sicsaft.cl`). Operación de infraestructura (VPS,
 Docker Compose, CI/CD, DevSecOps): [`devops/README.md`](devops/README.md).
 
+Documentación de metodología AI-DLC (requisitos, historias, diseño y estrategia de testing por
+fase, generada antes de escribir código): [`aidlc-docs/`](aidlc-docs), una subcarpeta por sistema
+(`aidlc-docs/app-qr-sicsaft/`, `aidlc-docs/ccp/`, `aidlc-docs/cip/`, `aidlc-docs/core/`) —
+convención completa en [CLAUDE.md](CLAUDE.md) "Metodología AI-DLC para features nuevas".
+
 ## Dónde está el trabajo activo hoy
 
 **APP QR SICSAFT** (`app-qr-sicsaft/`) sigue siendo el sistema con más código y el único con
 usuarios reales en mente. Su identificador técnico interno (`package.json` → `name`) es
 `app-qr-sicsaft`; el nombre visible del producto sigue siendo "APP QR SICSAFT" (ver
-`app-qr-sicsaft/aidlc-docs/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md`).
+`aidlc-docs/app-qr-sicsaft/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md`).
 
 **CIS** (`cis/`) ya tiene código real también: esqueleto NestJS + el Conector QR mockeado
 (DOC-002) corriendo detrás de autenticación real vía Zitadel (ADR-002) — lint, unit, e2e, build y

@@ -17,7 +17,7 @@ que el sistema completo sea escalable, modular, resiliente y optimizado — sin 
 reglas y sin atarse a un proveedor.
 
 Referencia cruzada: [README.md](README.md) (índice de sistemas) ·
-[app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md](app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md)
+[aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md](aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md)
 (único contrato de integración ya escrito).
 
 ## 1. Los 6 niveles como límites de módulo (Modularidad)
@@ -315,7 +315,7 @@ Administrador Patrimonial cubre el 80% del valor mientras tanto.
 
 **Plataforma WEB** — las columnas "Permisos" (generar configuraciones, asignar usuarios, autorizar
 procesos) ya están implementadas: es exactamente el alcance del rol Administrador del Sistema
-(`administrador-sistema`, [DOC-021](ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
+(`administrador-sistema`, [DOC-021](aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
 2026-08-18) — crea organizaciones y contratos, asigna usuarios a organizaciones (integración real
 con la API de administración de Zitadel), ve indicadores de plataforma. Nunca modifica la Base
 Patrimonial directamente (columna "No puede" de esta fila), simétrico con que el Administrador

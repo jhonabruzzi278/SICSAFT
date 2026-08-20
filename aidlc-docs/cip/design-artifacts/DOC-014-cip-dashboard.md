@@ -45,7 +45,7 @@ trigger, versionado en la misma migración — cambiar qué se publica es una mi
 
 ## 7. Decisiones abiertas (a resolver al pasar a Construction, no bloquean este diseño)
 1. ~~**Quién puede leer el dashboard**~~ — **resuelto** en
-   [`ccp/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md`](../../../ccp/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)
+   [`aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md`](../../../aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md)
    2: cualquier operador con contrato vigente en la organización, sin rol adicional.
 2. ~~**Cómo llega el frontend de CIP al usuario**~~ — **resuelto** en DOC-019 1: sección nueva
    dentro de WEB (séptimo módulo del hub), no una app propia. WEB nunca le habla a CIP
@@ -87,8 +87,8 @@ conflicto de "baja" en DOC-017: se documenta la discrepancia en vez de resolverl
 editando la cita del tomo.
 
 ## 9. Documentos relacionados
-`base-patrimonial/DOC-005-modelo-patrimonial.md` (entidades fuente), `core/aidlc-docs/design-artifacts/DOC-010-motor-eventos.md`
+`base-patrimonial/DOC-005-modelo-patrimonial.md` (entidades fuente), `aidlc-docs/core/design-artifacts/DOC-010-motor-eventos.md`
 (si existe — Motor de Eventos, fuente de los eventos que dispara este outbox),
-`app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md` (origen del
+`aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md` (origen del
 veredicto de sesión y de los estados `mantenimiento`/`inactivo` que este dashboard muestra),
 `ARQUITECTURA-WAF.md` 5/8/9.

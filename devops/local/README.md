@@ -206,7 +206,7 @@ sin cambios de código en CIS, ver DOC-020 3):
 **Verificado real de punta a punta el 2026-08-18** con tres usuarios de prueba en "DUOC UC"
 (`directivo-test@sicsaft.localhost`, `mixto-test@sicsaft.localhost` con ambos roles, y el
 `admin-patrimonial@sicsaft.localhost` ya existente) — confirma los 3 casos de DOC-020 5, ver la
-tabla en el encabezado de [DOC-020](../../ccp/aidlc-docs/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md).
+tabla en el encabezado de [DOC-020](../../aidlc-docs/ccp/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md).
 Nota: si `ccp` corría desde antes de este incremento, hace falta `docker compose build ccp` — la
 imagen no se reconstruye sola al mergear código nuevo.
 

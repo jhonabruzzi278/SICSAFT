@@ -32,7 +32,7 @@ header, header correcto, header incorrecto), no solo con mocks. Toda ruta pasa a
 logging estructurado que lo use (WAF 2, pendiente).
 
 **Fase 2 (Orquestador + 4 motores de lectura) ya implementada** — diseño completo en
-[`core/aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) (DOC-006 a DOC-011), código real sobre
+[`aidlc-docs/core/`](../aidlc-docs/core/00_PROJECT_METADATA.md) (DOC-006 a DOC-011), código real sobre
 [DOC-005](../base-patrimonial/DOC-005-modelo-patrimonial.md):
 - `GET /catalogo` (Motor Patrimonial, `src/patrimonial/`) — paginado, por
   organización/área/ubicación.
@@ -44,7 +44,7 @@ logging estructurado que lo use (WAF 2, pendiente).
   (`activo`/`mantenimiento`/`inactivo`, best-effort, sin rol — Tomo III 1.4) y `bajaSugerida`
   (evento informativo, nunca cambia `Activo.estado`) por escaneo — migración
   `1755400000000-estados-mantenimiento-inactivo`, ver
-  `app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md` y
+  `../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md` y
   `seguridad/DOC-012-administrador-patrimonial.md` 5.1.
 - `GET /inventarios/:id/estado`.
 
@@ -106,7 +106,7 @@ incremento (mismo volumen bajo que justificó diferir el filtro por organizació
 en varias operaciones, ej. `POST /activos/{id}/baja`, `PATCH /responsables/{id}/estado`, un filtro
 exacto casi nunca matchearía) y `fechaDesde`/`fechaHasta` (rango inclusive sobre la columna
 `timestamptz`). Condiciones dinámicas parametrizadas, mismo patrón que
-`ActivoRepository.findCatalogo`. El requisito original (`ccp/aidlc-docs/requirements/`) pedía
+`ActivoRepository.findCatalogo`. El requisito original (`../aidlc-docs/ccp/requirements/`) pedía
 auditoría "filtrable por usuario/fecha/operación" — el primer incremento solo devolvía el listado
 sin filtro alguno; este cierra ese gap.
 
@@ -153,7 +153,7 @@ controller HTTP en el Motor Patrimonial (DOC-008, YAGNI, sin consumidor real).
 `AFTER INSERT ON eventos` (no un insert manual en `EventoRepository`/`InventariosService`) que
 filtra los tipos relevantes para CIP (`alta`, `escaneo_qr`, `mantenimiento`, `inactivo`, `baja`,
 `reincorporacion`, `traslado` — ver
-[DOC-014](../cip/aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md) 1/3).
+[DOC-014](../aidlc-docs/cip/design-artifacts/DOC-014-cip-dashboard.md) 1/3).
 `EventosOutboxDispatcher` (polling cada 5s, `@nestjs/schedule`) agrupa los `escaneo_qr` de una
 misma sesión en un solo mensaje `sesion-cerrada` antes de publicar a la cola Redis/BullMQ
 `cip-eventos` (primer consumidor real de colas del ecosistema, ADR-001 ya lo declaraba sin uso) —
@@ -168,11 +168,11 @@ Postgres. **Segundo incremento (mismo día) — completo**: migración `17556000
 worker de CIP la necesita y no puede leer la base `core` directamente, RNF-01) y `ActivoCatalogo`
 (`GET /catalogo`) gana `familia` (extensión aditiva, no rompe a WEB) — ambas encontradas al
 diseñar `cip/`, ver
-[DOC-018](../cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md) 2.5/2.6. El worker
+[DOC-018](../aidlc-docs/cip/design-artifacts/DOC-018-cip-servicio-nestjs.md) 2.5/2.6. El worker
 de agregación y la API de lectura ya existen y corren reales en `cip/` — ver `cip/README.md`.
 
 **Cierre de 5 gaps del CCP + rol Administrador del Sistema (2026-08-18,
-[DOC-021](../ccp/aidlc-docs/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
+[DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
 migración `1755800000000` agrega `activos.descripcion` (nullable) y la tabla `documentos_activo`
 (URL + metadata, sin bucket/OCR propio todavía — versión mínima; a diferencia de `activos`, esta
 tabla no es BPI oficial y sí admite `DELETE` real). `PATCH /activos/:id/descripcion`
@@ -325,7 +325,7 @@ módulos Nest dentro de un mismo desplegable, ver ADR-001).
 (modelo de `Contrato` — primer dato real que este esqueleto tendría que servir).
 [`base-patrimonial/DOC-005-modelo-patrimonial.md`](../base-patrimonial/DOC-005-modelo-patrimonial.md)
 (alcance mínimo del resto del dominio — Área/Ubicación/Responsable/Catálogo/Activo/Inventarios/
-Eventos/Auditoría). [`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) — DOC-006 (API CIS↔CORE),
+Eventos/Auditoría). [`aidlc-docs/`](../aidlc-docs/core/00_PROJECT_METADATA.md) — DOC-006 (API CIS↔CORE),
 DOC-007 (Orquestador), DOC-008 (Motor Patrimonial), DOC-009 (Motor de Reglas), DOC-010 (Motor de
 Eventos), DOC-011 (Motor de Auditoría), todos entregados e implementados. Pendiente: DOC-003
 Modelo de dominio SICSAFT completo.

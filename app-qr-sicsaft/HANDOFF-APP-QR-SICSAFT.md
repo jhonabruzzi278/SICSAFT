@@ -29,7 +29,7 @@ Repo: `C:\Trabajos\SICSAFT\app-qr-sicsaft`.
 
 ## 2. Decisión de identidad — ADR-003
 
-`aidlc-docs/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md`
+`../aidlc-docs/app-qr-sicsaft/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md`
 
 Rename QR Vault → APP QR SICSAFT en dos fases:
 - **Fase 1 (cosmética, YA APLICADA — commit `063e1a7`)**: nombre visible, título del navegador, manifest PWA, textos de instalación/offline, README, `package.json`/`-lock.json`.
@@ -38,7 +38,7 @@ Rename QR Vault → APP QR SICSAFT en dos fases:
 
 ## 3. Estado real del código
 
-`aidlc-docs/design-artifacts/AUDIT-SICSAFT-FLOW.md` documenta el estado **al momento de TASK-001/002** (antes de TASK-004+) — queda como registro histórico, no como estado actual. Estado actual del flujo oficial (8 pasos):
+`../aidlc-docs/app-qr-sicsaft/design-artifacts/AUDIT-SICSAFT-FLOW.md` documenta el estado **al momento de TASK-001/002** (antes de TASK-004+) — queda como registro histórico, no como estado actual. Estado actual del flujo oficial (8 pasos):
 
 | Paso | Estado | Detalle |
 |---|---|---|
@@ -57,7 +57,7 @@ Rename QR Vault → APP QR SICSAFT en dos fases:
 
 ## 4. Flujo oficial y pantallas — DOC-001
 
-`aidlc-docs/design-artifacts/DOC-001-flujo-oficial.md`
+`../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-001-flujo-oficial.md`
 
 **12 pantallas mínimas — las 12 están cubiertas.** Pantalla 10 (resumen del inventario) muestra esperados/faltantes/correctos/fuera de lugar/no registrados/externos/incidencias (TASK-010). Pantalla 11 (confirmación y envío) es el botón "Confirmar y enviar" (`confirmAndSend()` en `ScanPage.tsx`, TASK-010) — separado de "Finalizar", matchea el diagrama de DOC-001 (`Finalizar → Resumen → Confirmar y enviar`). Pantalla 12 (estado de sincronización) se resolvió como parte de `HistoryPage.tsx` en vez de una ruta propia (badge de `syncStatus` + botón "Ver auditoría", TASK-008/009) — DOC-001 la describe como estado por inventario, no como pantalla de contenido propio.
 
@@ -65,7 +65,7 @@ Rename QR Vault → APP QR SICSAFT en dos fases:
 
 ## 5. Contrato del Conector QR — DOC-002
 
-`aidlc-docs/design-artifacts/DOC-002-conector-qr.md`
+`../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md`
 
 **Implementado real contra CIS** (`src/lib/qr-connector.ts`, TASK-007) — `HttpQrConnectorClient` reemplazó al stub local (`LocalQrConnectorClient`, TASK-006):
 

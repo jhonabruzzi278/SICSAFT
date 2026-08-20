@@ -9,8 +9,8 @@ No se implementa dentro del CORE — el CORE produce datos, el CIP los interpret
 `POST /inventarios` en CORE → trigger → `eventos_outbox` → `EventosOutboxDispatcher` → Redis/BullMQ
 (`cip-eventos`) → `EventosOutboxWorker` de CIP → agregados en la base `cip` (propia, separada de
 `core` — RNF-01/RNF-05) → `GET /dashboard/...`. Diseño completo en
-[`aidlc-docs/`](aidlc-docs/00_PROJECT_METADATA.md) ([DOC-014](aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md),
-[DOC-018](aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md)).
+[`aidlc-docs/`](../aidlc-docs/cip/00_PROJECT_METADATA.md) ([DOC-014](../aidlc-docs/cip/design-artifacts/DOC-014-cip-dashboard.md),
+[DOC-018](../aidlc-docs/cip/design-artifacts/DOC-018-cip-servicio-nestjs.md)).
 
 **Esqueleto NestJS** (`src/`, mismo patrón que `core/`/`cis/`, sin Zitadel — CIP no valida
 identidad de operador): `DatabaseModule` (base `cip`), `ServiceTokenModule`
@@ -81,15 +81,15 @@ Puerto por defecto `3002` (CIS=3000, CORE=3001) para poder correr los tres fuera
 chocar.
 
 ## Documentos relacionados
-[DOC-014](aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md) — diseño del primer dashboard
-(Inception AI-DLC). [DOC-018](aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md) —
+[DOC-014](../aidlc-docs/cip/design-artifacts/DOC-014-cip-dashboard.md) — diseño del primer dashboard
+(Inception AI-DLC). [DOC-018](../aidlc-docs/cip/design-artifacts/DOC-018-cip-servicio-nestjs.md) —
 contrato de implementación (esqueleto, migraciones, worker, API), con las 4 correcciones
 encontradas sobre el diseño inicial durante la implementación. Ver
 [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 5 (separar lectura analítica de la Base
 Patrimonial transaccional).
 
 ## Próximo paso sugerido
-Frontend implementado: [DOC-019](../ccp/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)
+Frontend implementado: [DOC-019](../aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md)
 resolvió las decisiones abiertas de DOC-014 7.1/7.2 — CIP se muestra como séptimo módulo del hub
 de `ccp/` (no una app propia), y WEB nunca le habla directo a CIP: pasa por un proxy nuevo en CIS
 (`src/dashboard-connector/` + `src/cip-client/`, mismo patrón que `qr-connector.controller.ts`/

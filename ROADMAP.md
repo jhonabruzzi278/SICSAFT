@@ -157,7 +157,7 @@ endpoint de CORE sirve estas tablas; eso es la Fase 2 (Motor Patrimonial).
 
 **Por qué acá**: primer valor real de CORE, ya con dominio detrás.
 
-**Diseño**: metodología AI-DLC en [`core/aidlc-docs/`](core/aidlc-docs/00_PROJECT_METADATA.md) —
+**Diseño**: metodología AI-DLC en [`aidlc-docs/core/`](aidlc-docs/core/00_PROJECT_METADATA.md) —
 requirements, historias de usuario, modelo de dominio de orquestación, arquitectura con
 diagramas de secuencia, y DOC-006 (API CIS↔CORE) a DOC-011 (Motor de Auditoría). El diseño
 encontró (y la implementación corrigió, migración `1755200000000`) dos errores sobre DOC-005 ya
@@ -272,7 +272,7 @@ Patrimonial vía CIS→CORE. Todo lo anterior a esto es infraestructura.
 ## Fase 3.1 — Brechas de flujo APP QR encontradas en el spec funcional (pptx) ✅ completa
 
 **Diseño**:
-[`app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md`](app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md)
+[`aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md`](aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md)
 — los 4 ítems confirmados con el usuario 2026-08-17, implementados el mismo día.
 
 **Por qué acá y no dentro de Fase 3**: Fase 3 ya cerró y quedó verificada de punta a punta el
@@ -367,7 +367,7 @@ mismo archivo no duplica ni borra nada ✅ (verificado e2e); `seguridad/README.m
 **Por qué acá**: `ccp/README.md` dice "depende de CORE MVP + CIS real" — ambos existen recién
 después de la Fase 3, y la Fase 4 crea las operaciones que el portal necesita exponer.
 
-**Diseño completo**: metodología AI-DLC en [`ccp/aidlc-docs/`](ccp/aidlc-docs/00_PROJECT_METADATA.md)
+**Diseño completo**: metodología AI-DLC en [`aidlc-docs/ccp/`](aidlc-docs/ccp/00_PROJECT_METADATA.md)
 — requirements, historias, DOC-013 y un mockup visual (hub + Activos + Contratos, paleta
 `BRAND.md`), diseñado adelantado por pedido explícito del usuario en la misma sesión de Fase 2.
 
@@ -473,9 +473,9 @@ login + alta de Activo visible de inmediato (RF-08), corre en `ccp-ci.yml`.
 disponibles" — recién después de la Fase 3/4 hay inventarios y eventos reales que medir.
 
 **Diseño**: metodología AI-DLC en
-[`cip/aidlc-docs/`](cip/aidlc-docs/00_PROJECT_METADATA.md) — RF-01 a RF-10, modelo de datos
+[`aidlc-docs/cip/`](aidlc-docs/cip/00_PROJECT_METADATA.md) — RF-01 a RF-10, modelo de datos
 (`eventos_outbox` en CORE + agregados propios de CIP) y arquitectura de ingesta completos en
-[DOC-014](cip/aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md). El outbox transaccional se
+[DOC-014](aidlc-docs/cip/design-artifacts/DOC-014-cip-dashboard.md). El outbox transaccional se
 resuelve con un trigger `AFTER INSERT ON eventos` (no un insert manual por cada call site) y el
 veredicto de sesión (exitoso/aceptable/defectuoso) se recalcula del lado de CIP en vez de ampliar
 el contrato de escritura de CORE — ver DOC-014 5.
@@ -489,7 +489,7 @@ NestJS propio (`cip/src/`), base de datos `cip` separada de `core` con 8 tablas 
 `EventosOutboxWorker` (consume `cip-eventos`) + `AgregacionService` (recalcula veredicto de
 sesión, cobertura, fuera de área, incidencias, estado/categoría de activos), `SyncEstadoWatcher`
 (RF-10) y `DashboardModule` con los 8 endpoints de lectura — ver `cip/README.md` y
-[DOC-018](cip/aidlc-docs/design-artifacts/DOC-018-cip-servicio-nestjs.md). Encontró y corrigió 4
+[DOC-018](aidlc-docs/cip/design-artifacts/DOC-018-cip-servicio-nestjs.md). Encontró y corrigió 4
 brechas reales del diseño inicial durante la implementación (`eventos_outbox` necesitaba
 `organizacion_id`, CIP no puede usar `activoId` solo `codigoQr`, `GET /catalogo` no exponía
 `familia` cruda, `control_area` no podía resolver `sedeId`) — todas documentadas en DOC-018 2.
@@ -502,7 +502,7 @@ reales contra Postgres.
 **Frontend (2026-08-18) — diseño y construcción completos**: el dashboard se muestra como séptimo
 módulo del Portal WEB (`ccp/`), no una app propia — resuelve las dos decisiones abiertas de
 DOC-014 7.1/7.2. Diseño e implementación en
-[`ccp/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md`](ccp/aidlc-docs/design-artifacts/DOC-019-dashboard-cip-frontend.md)
+[`aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md`](aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md)
 (RF-09 de `ccp/`): WEB nunca le habla a CIP directo, pasa por un proxy nuevo en CIS
 (`src/cip-client/` + `src/dashboard-connector/`, mismo patrón de retry+circuit breaker que
 `CoreClientService` y misma autorización que `qr-connector.controller.ts`) — retira la nota
@@ -652,7 +652,7 @@ Track OPS ─────── paralelo, con hitos atados a Fases 0/3/4/5
 Archivos clave para quien implemente cada fase: [CLAUDE.md](CLAUDE.md),
 [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md),
 [base-patrimonial/DOC-004-modelo-contrato.md](base-patrimonial/DOC-004-modelo-contrato.md),
-[app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md](app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-002-conector-qr.md),
+[aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md](aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md),
 [adr/ADR-002-identidad-zitadel-multi-tenant.md](adr/ADR-002-identidad-zitadel-multi-tenant.md),
 [core/migrations](core/migrations),
 `cis/src/qr-connector/qr-connector.service.ts`, `core/src/entitlements/contrato.repository.ts`.

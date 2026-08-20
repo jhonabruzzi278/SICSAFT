@@ -1,6 +1,6 @@
 # Test Strategy — Portal WEB SICSAFT (Fase 5)
 
-Mismo patrón que `app-qr-sicsaft/aidlc-docs/testing/TEST_STRATEGY.md` — Playwright para flujos
+Mismo patrón que `aidlc-docs/app-qr-sicsaft/testing/TEST_STRATEGY.md` — Playwright para flujos
 críticos, sin bajar el criterio de cobertura que adopte el resto del ecosistema en ese momento.
 
 ## E2E (Playwright, criterio "Done" de `ROADMAP.md` Fase 5)

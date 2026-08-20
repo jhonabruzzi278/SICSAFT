@@ -141,7 +141,7 @@ existir en más de una sede (ej. "Finanzas" con gente en Melipilla y en otra sed
 ## 4. Estados de `Activo`
 
 > **Actualizado 2026-08-17** (decisión de producto, ver `ROADMAP.md` Fase 3.1 y
-> [DOC-017](../app-qr-sicsaft/aidlc-docs/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md)):
+> [DOC-017](../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md)):
 > se agregan `mantenimiento` e `inactivo`. Tomo III 4.15 marca "Mantenimiento" como parte del
 > ciclo de vida oficial del activo (aparece explícitamente en la secuencia
 > Alta→…→Auditorías→**Mantenimiento**→Baja), etiquetado "(módulo futuro)" — no es una prohibición

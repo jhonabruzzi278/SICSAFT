@@ -12,7 +12,7 @@ El contexto que condiciona la elección:
   Docker/Docker Compose como unidad de despliegue — no hay plataforma gestionada tipo Vercel/Render
   detrás para los niveles de backend.
 - Ya existe una decisión de frontend tomada y en producción: `app-qr-sicsaft` usa Vite + React +
-  TypeScript sin SSR (ver `app-qr-sicsaft/aidlc-docs/design-artifacts/ADR/ADR-002-react-shadcn-migration.md`)
+  TypeScript sin SSR (ver `aidlc-docs/app-qr-sicsaft/design-artifacts/ADR/ADR-002-react-shadcn-migration.md`)
   y `landing/` es Vite + TypeScript vanilla. Ambos son 100% client-side.
 - Prioridad explícita del usuario: velocidad de desarrollo, código limpio, testeable a fondo
   (unitario + integración + carga), CI/CD estricto antes de llegar a producción.
