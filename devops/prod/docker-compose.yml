@@ -28,6 +28,13 @@
 #    `*.sicsaft.localhost` — usados solo como referencia en variables VITE_*/ZITADEL_* que se
 #    hornean en build time o se validan al arrancar; el ruteo real lo decide el campo "Domains" de
 #    Coolify, no estos valores.
+# 6. `loki` usa `./observability/loki-config.yml` propio (retención 30 días), no el de
+#    `devops/local/observability/` (7 días, explícitamente marcado ahí como "ajustar en
+#    producción") — el resto de la config de observabilidad (Prometheus, Promtail, provisioning
+#    de Grafana) sí se comparte por referencia relativa, es idéntica en ambos ambientes.
+# 7. `depends_on` usa `condition: service_healthy` (no solo `service_started`) contra `cis`/
+#    `core`/`cip` porque sus Dockerfile ya definen `HEALTHCHECK` real contra `GET /health` — mismo
+#    cambio aplicado también en devops/local/docker-compose.yml, no es exclusivo de prod.
 
 name: sicsaft-prod
 
@@ -130,7 +137,12 @@ services:
       # Solo los 3 portales reales de producción — sin puertos de Vite (eso era solo para
       # `npm run dev` local).
       CIS_CORS_ORIGIN: https://app.sicsaft.cl,https://admin.sicsaft.cl,https://directivo.sicsaft.cl
-      ZITADEL_ORG_ID_MAP: ${ZITADEL_ORG_ID_MAP}
+      # Entre comillas a propósito: es JSON literal (ej. {"<org-id>":"duoc-uc"}) — sin comillas,
+      # Docker Compose interpola el valor DENTRO del YAML antes de parsearlo, y `{"a":"b"}` sin
+      # comillas es un mapping YAML válido, no el string que CIS espera recibir y hacerle
+      # `JSON.parse()` (mismo motivo por el que devops/local/docker-compose.yml ya lo entrecomilla
+      # con el valor hardcodeado de desarrollo).
+      ZITADEL_ORG_ID_MAP: "${ZITADEL_ORG_ID_MAP}"
       ZITADEL_ADMIN_TOKEN: ${ZITADEL_ADMIN_TOKEN}
       ZITADEL_PROJECT_ID: ${ZITADEL_PROJECT_ID}
     expose:
@@ -138,12 +150,17 @@ services:
     networks:
       - sicsaft
     depends_on:
+      # zitadel se queda en `service_started`: la imagen oficial no trae HEALTHCHECK y es una
+      # imagen mínima (sin shell/wget utilizables desde un healthcheck exec) — no se puede armar
+      # uno confiable sin verificarlo contra una instancia real primero. core/cip sí lo tienen
+      # (HEALTHCHECK real en su Dockerfile contra GET /health), así que ahí sí exigimos
+      # service_healthy en vez de solo "el proceso arrancó".
       zitadel:
         condition: service_started
       core:
-        condition: service_started
+        condition: service_healthy
       cip:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -235,7 +252,7 @@ services:
       redis:
         condition: service_healthy
       core:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     # Sin `expose`/dominio a propósito, mismo criterio que `core`: sin frontend todavía (DOC-018
     # 7.2 — decisión abierta).
@@ -254,7 +271,7 @@ services:
       - sicsaft
     depends_on:
       cis:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   web-admin:
@@ -271,7 +288,7 @@ services:
       - sicsaft
     depends_on:
       cis:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   core-frontend:
@@ -288,7 +305,7 @@ services:
       - sicsaft
     depends_on:
       cis:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   # --- Observabilidad self-hosted — mismos archivos de config que devops/local/, ver
@@ -337,7 +354,9 @@ services:
     image: grafana/loki:3.1.0
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
-      - ../local/observability/loki-config.yml:/etc/loki/loki-config.yml:ro
+      # Config propia, no compartida con local — la retención de logs es distinta (ver
+      # devops/prod/observability/loki-config.yml).
+      - ./observability/loki-config.yml:/etc/loki/loki-config.yml:ro
       - loki_data:/loki
     networks:
       - sicsaft

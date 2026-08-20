@@ -172,12 +172,17 @@ services:
     networks:
       - sicsaft
     depends_on:
+      # zitadel se queda en `service_started`: la imagen oficial no trae HEALTHCHECK y es una
+      # imagen mínima (sin shell/wget utilizables desde un healthcheck exec) — no se puede armar
+      # uno confiable sin verificarlo contra una instancia real primero. core/cip sí lo tienen
+      # (HEALTHCHECK real en su Dockerfile contra GET /health), así que ahí sí exigimos
+      # service_healthy en vez de solo "el proceso arrancó".
       zitadel:
         condition: service_started
       core:
-        condition: service_started
+        condition: service_healthy
       cip:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -289,7 +294,7 @@ services:
       redis:
         condition: service_healthy
       core:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     # Sin router en traefik/dynamic.yml a propósito, mismo criterio que `core`: sin frontend
     # todavia, ningun consumidor externo real (DOC-018 7.2 — decision abierta).
@@ -309,7 +314,7 @@ services:
       - sicsaft
     depends_on:
       cis:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   # DOC-022 2 — Administrador del Sistema, extraido de ccp/AdminPage.tsx a su propio sistema con
@@ -326,7 +331,7 @@ services:
       - sicsaft
     depends_on:
       cis:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   # DOC-022 3/4 — portal del Directivo, vive en core/frontend/ pero le habla a CIS, nunca al
@@ -344,7 +349,7 @@ services:
       - sicsaft
     depends_on:
       cis:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   # --- Observabilidad self-hosted (equivalente a CloudWatch/CloudTrail, pero administrado por el

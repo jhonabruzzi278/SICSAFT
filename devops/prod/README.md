@@ -36,6 +36,35 @@ panel, ahí sí reconsiderar (decisión futura, no bloqueante hoy).
 4. Desplegar. `core-migrate`/`cip-migrate` corren una vez y salen (`restart: "no"`) antes de que
    `core`/`cip` arranquen — mismo orden que en local, Coolify solo lo ejecuta.
 
+## Revisión de la implementación (2026-08-20)
+
+Al escribir `devops/prod/docker-compose.yml` se revisó todo `devops/` en busca de problemas reales
+antes de darlo por listo. Se encontraron y corrigieron 4:
+
+1. **Promtail descartaba el 100% de los logs de producción.** El filtro de
+   `devops/local/observability/promtail-config.yml` (compartido entre local y prod por referencia
+   relativa) reconocía contenedores por nombre exacto `sicsaft-local-*` — en prod
+   (`sicsaft-prod-*`) ningún contenedor matcheaba, así que Loki quedaba vacío sin ningún error
+   visible. Corregido filtrando por el label `com.docker.compose.project` (que Compose pone en
+   todo contenedor) en vez de parsear el nombre — funciona igual en ambos ambientes.
+2. **`ZITADEL_ORG_ID_MAP` sin comillas rompía el YAML.** Docker Compose interpola `${VAR}` en el
+   texto del compose ANTES de parsearlo como YAML — un JSON sin comillas (`{"a":"b"}`) es un
+   mapping YAML válido, no el string literal que CIS necesita para hacerle `JSON.parse()`. El
+   archivo local ya lo entrecomillaba para su valor hardcodeado; el de prod no, para la variable.
+   Corregido.
+3. **Retención de Loki sin ajustar para producción.** `devops/local/observability/loki-config.yml`
+   decía explícitamente en su propio comentario "ajustar en `devops/prod/` cuando exista el VPS
+   real" — se estaba reusando tal cual (7 días). Ahora `devops/prod/observability/loki-config.yml`
+   es una copia propia con 30 días.
+4. **`depends_on` con `service_started` donde ya había un healthcheck real disponible.**
+   `cis`/`core`/`cip` traen `HEALTHCHECK` real contra `GET /health` desde su propio `Dockerfile` —
+   los servicios que dependen de ellos (`cip`→`core`, `cis`→`core`/`cip`, los 3 frontends→`cis`)
+   ahora esperan `service_healthy` en vez de solo "el proceso arrancó", en local y en prod. Zitadel
+   se queda en `service_started` a propósito: su imagen oficial no trae `HEALTHCHECK` ni
+   shell/wget utilizables desde un exec-healthcheck — armar uno sin verificarlo contra una
+   instancia real hubiera sido peor que no tener ninguno (un healthcheck que siempre falla frena
+   el deploy entero).
+
 ## Lo que sigue documentado abajo (SOPS + age) — histórico, ya no es el flujo activo
 
 Se deja el resto de este documento para quien necesite el detalle de por qué se había elegido

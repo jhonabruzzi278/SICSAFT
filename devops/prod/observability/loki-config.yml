@@ -1,0 +1,39 @@
+# Config de Loki para PRODUCCIÓN — mismo motor que devops/local/observability/loki-config.yml
+# (single-binary, filesystem, sin object storage externo), solo cambia la retención. Copia en vez
+# de referencia relativa a la de local a propósito: ese archivo decía explícitamente "ajustar en
+# devops/prod/ cuando exista el VPS real" y devops/prod/docker-compose.yml lo estaba reusando sin
+# tocar — este archivo es esa corrección.
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # 30 días — punto de partida razonable para producción, no una cifra normativa. El Motor de
+  # Auditoría del Tomo IV (usuario/fecha/hora/operación/resultado/IP, ver devops/README.md
+  # "Cumplimiento legal") vive en Postgres con su propia retención, sin relación con esto: Loki
+  # guarda logs operacionales de contenedor (debugging/observabilidad), no el registro de
+  # auditoría legal — no usar esta retención como sustituto de esa exigencia.
+  retention_period: 720h
+  allow_structured_metadata: true
