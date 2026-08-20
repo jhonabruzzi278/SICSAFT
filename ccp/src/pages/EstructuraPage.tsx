@@ -27,6 +27,33 @@ import {
 // primero, porque Responsable exige un areaId existente; Ubicacion exige un sedeId — se toma de
 // las sedes del contrato vigente de la organización, ya cargadas en el hub).
 
+// Pie compartido de los formularios de edición de Área/Ubicación (error + acciones) — mismo
+// bloque en ambas secciones, cada una con su propio estado de edición local (no hay nada real
+// para compartir más allá de este fragmento presentacional).
+function EditFormFooter({
+  error,
+  isSubmitting,
+  onCancel,
+}: {
+  error: string | null;
+  isSubmitting: boolean;
+  onCancel: () => void;
+}) {
+  return (
+    <>
+      {error && <Alert>{error}</Alert>}
+      <div className="flex gap-2">
+        <Button type="submit" disabled={isSubmitting} className="flex-1">
+          {isSubmitting ? 'Guardando…' : 'Guardar cambios'}
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>
+          Cancelar
+        </Button>
+      </div>
+    </>
+  );
+}
+
 const altaAreaSchema = z.object({
   codigo: z.string().min(1, 'Requerido'),
   nombre: z.string().min(1, 'Requerido'),
@@ -327,23 +354,11 @@ function AreasSection({
                 {...registerEdicion('ubicacionPrincipalId')}
               />
             </div>
-            {editError && <Alert>{editError}</Alert>}
-            <div className="flex gap-2">
-              <Button
-                type="submit"
-                disabled={isEditSubmitting}
-                className="flex-1"
-              >
-                {isEditSubmitting ? 'Guardando…' : 'Guardar cambios'}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setEditando(null)}
-              >
-                Cancelar
-              </Button>
-            </div>
+            <EditFormFooter
+              error={editError}
+              isSubmitting={isEditSubmitting}
+              onCancel={() => setEditando(null)}
+            />
           </form>
         </Card>
       ) : (
@@ -616,23 +631,11 @@ function UbicacionesSection({
                 {...registerEdicion('areaId')}
               />
             </div>
-            {editError && <Alert>{editError}</Alert>}
-            <div className="flex gap-2">
-              <Button
-                type="submit"
-                disabled={isEditSubmitting}
-                className="flex-1"
-              >
-                {isEditSubmitting ? 'Guardando…' : 'Guardar cambios'}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setEditando(null)}
-              >
-                Cancelar
-              </Button>
-            </div>
+            <EditFormFooter
+              error={editError}
+              isSubmitting={isEditSubmitting}
+              onCancel={() => setEditando(null)}
+            />
           </form>
         </Card>
       ) : (
