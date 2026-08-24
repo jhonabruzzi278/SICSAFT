@@ -40,7 +40,21 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:16-alpine
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    # pgaudit tiene que estar en shared_preload_libraries antes de que Postgres acepte
+    # conexiones -- CREATE EXTENSION solo no alcanza (requiere reinicio, no solo reload). Loguea
+    # write/ddl/role (no "read": auditar cada SELECT es ruido, el objetivo es detectar escritura
+    # fuera del camino oficial CORE -> Base Patrimonial, no el trafico de lectura normal). Sale
+    # por stderr como el resto de logs de Postgres -- Promtail ya los manda a Loki, sin wiring
+    # adicional.
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pgaudit"
+      - "-c"
+      - "pgaudit.log=write, ddl, role"
     environment:
       POSTGRES_USER: ${POSTGRES_ADMIN_USER}
       POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}

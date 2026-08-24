@@ -12,3 +12,12 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     CREATE DATABASE core OWNER "${CORE_DB_USER}";
     GRANT ALL PRIVILEGES ON DATABASE core TO "${CORE_DB_USER}";
 EOSQL
+
+# pgaudit sobre la Base Patrimonial (regla no negociable del ecosistema: nunca escritura directa
+# fuera de CORE, ver CLAUDE.md raiz) -- shared_preload_libraries ya lo carga a nivel de servidor
+# (ver command: en docker-compose.yml), acá solo se habilita la extension en esta base
+# especifica. CIP tiene sus propias tablas de agregacion; se puede sumar con el mismo patron si
+# hace falta auditarlas tambien.
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "core" <<-EOSQL
+    CREATE EXTENSION IF NOT EXISTS pgaudit;
+EOSQL
