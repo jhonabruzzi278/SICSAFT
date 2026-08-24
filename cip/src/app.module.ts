@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { DatabaseModule } from './database/database.module';
 import { ServiceTokenModule } from './common/auth/service-token.module';
 import { HealthModule } from './health/health.module';
@@ -7,6 +8,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
+    // GET /metrics -- formato Prometheus (prom-client), target real en observability/prometheus.yml.
+    PrometheusModule.register(),
     DatabaseModule,
     ServiceTokenModule,
     HealthModule,

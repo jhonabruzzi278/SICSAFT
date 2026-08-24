@@ -1,4 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
@@ -13,6 +14,9 @@ import { IndicadoresModule } from './indicadores/indicadores.module';
 
 @Module({
   imports: [
+    // GET /metrics -- formato Prometheus (prom-client), target real en observability/prometheus.yml
+    // (reemplaza el placeholder comentado que esperaba esto desde Fase 3.1).
+    PrometheusModule.register(),
     ServiceTokenModule,
     DatabaseModule,
     HealthModule,

@@ -24,13 +24,16 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # Placeholder para cuando cis/core expongan /metrics (prom-client) — comentado a proposito: hoy
-  # ningun backend de NestJS expone ese endpoint, agregar el target real recien cuando exista (ver
-  # devops/local/README.md "Observabilidad" para el porque de no instrumentar app-level metrics en
-  # este incremento).
-  # - job_name: cis
-  #   static_configs:
-  #     - targets: ["cis:3000"]
-  # - job_name: core
-  #   static_configs:
-  #     - targets: ["core:3001"]
+  # /metrics real (prom-client via @willsoto/nestjs-prometheus) en los 3 backends NestJS — ver
+  # devops/local/README.md "Observabilidad". CIS tiene router publico en Traefik (a diferencia de
+  # core/cip) — ver el comentario en cis/src/app.module.ts sobre exposicion antes de replicar este
+  # mismo patron en devops/prod/.
+  - job_name: cis
+    static_configs:
+      - targets: ["cis:3000"]
+  - job_name: core
+    static_configs:
+      - targets: ["core:3001"]
+  - job_name: cip
+    static_configs:
+      - targets: ["cip:3002"]
