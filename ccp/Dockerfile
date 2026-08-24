@@ -2,7 +2,7 @@
 # duracion): el runtime final es nginx sirviendo archivos, sin proceso Node corriendo. Ver
 # devops/README.md para la topologia completa (Traefik + este contenedor + los demas niveles).
 
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --ignore-scripts
@@ -22,7 +22,7 @@ RUN npm run build
 # Imagen "unprivileged" — corre como usuario sin privilegios y escucha en 8080 por default (no
 # 80, que requeriria root), mismo criterio de cis/Dockerfile ("nunca root en el contenedor
 # final") sin tener que armar el usuario a mano como alli.
-FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
+FROM nginxinc/nginx-unprivileged:1.29-alpine AS runtime
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 
