@@ -24,8 +24,13 @@ describe('DirectivoService', () => {
     // comportamiento real del wrapper tiene su propia cobertura en
     // auditoria-identidad.service.spec.ts.
     auditoriaIdentidad = {
-      ejecutar: jest.fn((_operacion, _operadorId, _correlationId, accion) =>
-        accion(),
+      ejecutar: jest.fn(
+        (
+          _operacion: string,
+          _operadorId: string,
+          _correlationId: string,
+          accion: () => Promise<unknown>,
+        ) => accion(),
       ),
     };
     service = new DirectivoService(

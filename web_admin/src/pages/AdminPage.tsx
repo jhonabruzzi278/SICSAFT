@@ -142,7 +142,12 @@ function OrganizacionRow({
             className="flex items-center gap-2"
           >
             <Input {...register('nombre')} className="h-8 max-w-xs py-1" />
-            <Button type="submit" variant="secondary" disabled={busy} className="px-2 py-1 text-xs">
+            <Button
+              type="submit"
+              variant="secondary"
+              disabled={busy}
+              className="px-2 py-1 text-xs"
+            >
               Guardar
             </Button>
             <Button
@@ -414,7 +419,8 @@ function EditarCondicionesContrato({
     resolver: zodResolver(editarCondicionesSchema),
     defaultValues: { vigenciaHasta: contrato.vigenciaHasta ?? '' },
   });
-  const editable = contrato.estado === 'vigente' || contrato.estado === 'suspendido';
+  const editable =
+    contrato.estado === 'vigente' || contrato.estado === 'suspendido';
 
   async function onSubmit(values: EditarCondicionesForm) {
     setError(null);
@@ -455,7 +461,12 @@ function EditarCondicionesContrato({
             className="h-8 max-w-[10rem] py-1"
             {...register('vigenciaHasta')}
           />
-          <Button type="submit" variant="secondary" disabled={isSubmitting} className="px-2 py-1 text-xs">
+          <Button
+            type="submit"
+            variant="secondary"
+            disabled={isSubmitting}
+            className="px-2 py-1 text-xs"
+          >
             Guardar
           </Button>
           <Button
@@ -511,7 +522,10 @@ function ContratosSection({
       setSedes(null);
       return;
     }
-    cisClient.getSedes(orgId).then(setSedes).catch(() => setSedes([]));
+    cisClient
+      .getSedes(orgId)
+      .then(setSedes)
+      .catch(() => setSedes([]));
   }
 
   useEffect(cargarContratos, []);
@@ -564,7 +578,10 @@ function ContratosSection({
               </thead>
               <tbody>
                 {contratos.map((contrato) => (
-                  <tr key={contrato.id} className="border-t border-border align-top">
+                  <tr
+                    key={contrato.id}
+                    className="border-t border-border align-top"
+                  >
                     <td className="px-4 py-2">{contrato.organizacionNombre}</td>
                     <td className="px-4 py-2 text-xs">
                       {contrato.sedes.map((s) => s.nombre).join(', ')}

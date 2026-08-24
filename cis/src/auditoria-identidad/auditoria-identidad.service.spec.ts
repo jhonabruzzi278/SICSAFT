@@ -42,7 +42,12 @@ describe('AuditoriaIdentidadService', () => {
       const { service, coreClientService } = buildService();
       const accion = jest.fn().mockResolvedValue('resultado-1');
 
-      await service.ejecutar('POST /directivo/usuarios', 'op-1', 'corr-1', accion);
+      await service.ejecutar(
+        'POST /directivo/usuarios',
+        'op-1',
+        'corr-1',
+        accion,
+      );
 
       expect(coreClientService.postAuditoria).toHaveBeenCalledWith(
         {

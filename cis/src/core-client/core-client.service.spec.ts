@@ -1501,7 +1501,11 @@ describe('CoreClientService', () => {
       axiosPatch.mockResolvedValue(buildAxiosResponse(renombrada));
 
       await expect(
-        service.patchOrganizacion('duoc-uc', patchOrganizacionRequest, 'corr-1'),
+        service.patchOrganizacion(
+          'duoc-uc',
+          patchOrganizacionRequest,
+          'corr-1',
+        ),
       ).resolves.toEqual(renombrada);
       expect(axiosPatch).toHaveBeenCalledWith(
         'http://core:3001/organizaciones/duoc-uc',
@@ -1563,9 +1567,9 @@ describe('CoreClientService', () => {
         buildAxiosError(400, { message: 'organizacionId inexistente' }),
       );
 
-      await expect(
-        service.postSede(postSedeRequest, 'corr-1'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.postSede(postSedeRequest, 'corr-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     // DOC-024 1 — el picker que reemplaza copiar/pegar un id a mano en el formulario de

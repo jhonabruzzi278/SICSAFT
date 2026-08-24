@@ -634,7 +634,8 @@ describe('ZitadelAdminService', () => {
           profile: { firstName: 'nuevo@duoc.cl', lastName: 'nuevo@duoc.cl' },
           email: { email: 'nuevo@duoc.cl', isEmailVerified: true },
           password: {
-            password: expect.stringMatching(/^.{20}$/) as unknown as string,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.stringMatching devuelve un asymmetric matcher, no un string real.
+            password: expect.stringMatching(/^.{20}$/),
             changeRequired: true,
           },
         },
@@ -667,14 +668,8 @@ describe('ZitadelAdminService', () => {
     it('genera una contraseña distinta en cada llamada', async () => {
       axiosPost.mockResolvedValue(buildAxiosResponse({ userId: 'usuario-9' }));
 
-      const primera = await service.crearUsuarioHuman(
-        'uno@duoc.cl',
-        'corr-1',
-      );
-      const segunda = await service.crearUsuarioHuman(
-        'dos@duoc.cl',
-        'corr-1',
-      );
+      const primera = await service.crearUsuarioHuman('uno@duoc.cl', 'corr-1');
+      const segunda = await service.crearUsuarioHuman('dos@duoc.cl', 'corr-1');
 
       expect(primera.passwordInicial).not.toBe(segunda.passwordInicial);
     });

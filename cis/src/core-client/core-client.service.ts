@@ -350,11 +350,7 @@ export class CoreClientService {
     organizacionId: string,
     correlationId: string,
   ): Promise<SedeResult[]> {
-    const data = await this.get(
-      '/sedes',
-      { organizacionId },
-      correlationId,
-    );
+    const data = await this.get('/sedes', { organizacionId }, correlationId);
     return this.parse(sedesResponseSchema, data, 'sedes');
   }
 

@@ -79,7 +79,8 @@ export const MATRIZ_PERMISOS: FilaPermiso[] = [
     patrimonial: 'no',
     sistema: 'no',
     directivo: 'si',
-    mecanismo: 'DirectivoGuard (organización siempre del JWT, nunca de la ruta)',
+    mecanismo:
+      'DirectivoGuard (organización siempre del JWT, nunca de la ruta)',
   },
   {
     modulo: 'Indicadores de plataforma',

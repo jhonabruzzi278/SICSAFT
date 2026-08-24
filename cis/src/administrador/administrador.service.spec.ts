@@ -131,8 +131,13 @@ function buildService(mapping: Record<string, string>) {
   // (que SI audita) tiene su propia cobertura en auditoria-identidad.service.spec.ts — acá solo
   // se verifica que cada metodo LO LLAME con el `operacion`/`organizacionId` correctos.
   const auditoriaIdentidad = {
-    ejecutar: jest.fn((_operacion, _operadorId, _correlationId, accion) =>
-      accion(),
+    ejecutar: jest.fn(
+      (
+        _operacion: string,
+        _operadorId: string,
+        _correlationId: string,
+        accion: () => Promise<unknown>,
+      ) => accion(),
     ),
   } as unknown as jest.Mocked<AuditoriaIdentidadService>;
   const service = new AdministradorService(
@@ -595,10 +600,14 @@ describe('AdministradorService', () => {
     // cliente: lo crea primero en Zitadel y usa ESE id para escribir en CORE y para registrar el
     // mapeo dinamico (Gap 0), en ese orden.
     it('crea la organizacion en Zitadel, escribe en CORE con el id real, y registra el mapeo dinamico — en ese orden', async () => {
-      const { service, coreClientService, zitadelAdminService, organizacionMappingDinamico } =
-        buildService({
-          '386029528616558597': 'duoc-uc',
-        });
+      const {
+        service,
+        coreClientService,
+        zitadelAdminService,
+        organizacionMappingDinamico,
+      } = buildService({
+        '386029528616558597': 'duoc-uc',
+      });
       zitadelAdminService.crearOrganizacion.mockResolvedValue({
         id: 'zitadel-org-nueva',
       });
@@ -650,8 +659,12 @@ describe('AdministradorService', () => {
     });
 
     it('si Zitadel falla al crear la organizacion, nunca otorga el ProjectGrant ni llama a CORE', async () => {
-      const { service, coreClientService, zitadelAdminService, organizacionMappingDinamico } =
-        buildService({});
+      const {
+        service,
+        coreClientService,
+        zitadelAdminService,
+        organizacionMappingDinamico,
+      } = buildService({});
       zitadelAdminService.crearOrganizacion.mockRejectedValue(
         new Error('Zitadel no disponible'),
       );
@@ -669,8 +682,12 @@ describe('AdministradorService', () => {
     // Gap 1 — hallazgo real: sin el ProjectGrant, la organizacion queda inutil (nadie puede
     // recibir un rol ahi). Mejor fallar antes de registrarla en CORE.
     it('si falla el ProjectGrant, nunca llama a CORE ni registra el mapeo', async () => {
-      const { service, coreClientService, zitadelAdminService, organizacionMappingDinamico } =
-        buildService({});
+      const {
+        service,
+        coreClientService,
+        zitadelAdminService,
+        organizacionMappingDinamico,
+      } = buildService({});
       zitadelAdminService.crearOrganizacion.mockResolvedValue({
         id: 'zitadel-org-nueva',
       });
@@ -686,8 +703,12 @@ describe('AdministradorService', () => {
     });
 
     it('si CORE falla despues de crear en Zitadel, no registra el mapeo dinamico', async () => {
-      const { service, coreClientService, zitadelAdminService, organizacionMappingDinamico } =
-        buildService({});
+      const {
+        service,
+        coreClientService,
+        zitadelAdminService,
+        organizacionMappingDinamico,
+      } = buildService({});
       zitadelAdminService.crearOrganizacion.mockResolvedValue({
         id: 'zitadel-org-nueva',
       });
@@ -707,8 +728,9 @@ describe('AdministradorService', () => {
 
   describe('editarOrganizacion', () => {
     it('actualiza el nombre en Zitadel primero, despues en CORE (mismo orden que altaOrganizacion)', async () => {
-      const { service, coreClientService, zitadelAdminService } =
-        buildService({ '386029528616558597': 'duoc-uc' });
+      const { service, coreClientService, zitadelAdminService } = buildService({
+        '386029528616558597': 'duoc-uc',
+      });
       const renombrada: OrganizacionResult = {
         id: 'duoc-uc',
         nombre: 'DUOC UC (renombrada)',
@@ -753,8 +775,9 @@ describe('AdministradorService', () => {
     });
 
     it('si Zitadel falla, nunca llama a CORE', async () => {
-      const { service, coreClientService, zitadelAdminService } =
-        buildService({ '386029528616558597': 'duoc-uc' });
+      const { service, coreClientService, zitadelAdminService } = buildService({
+        '386029528616558597': 'duoc-uc',
+      });
       zitadelAdminService.actualizarNombreOrganizacion.mockRejectedValue(
         new Error('Zitadel no disponible'),
       );
@@ -773,8 +796,9 @@ describe('AdministradorService', () => {
 
   describe('actualizarEstadoOrganizacion', () => {
     it('delega en CoreClientService.patchOrganizacionEstado sin tocar Zitadel — sin cascada (DOC-024 1)', async () => {
-      const { service, coreClientService, zitadelAdminService } =
-        buildService({ '386029528616558597': 'duoc-uc' });
+      const { service, coreClientService, zitadelAdminService } = buildService({
+        '386029528616558597': 'duoc-uc',
+      });
       const inactiva: OrganizacionResult = {
         id: 'duoc-uc',
         nombre: 'DUOC UC',
@@ -936,8 +960,9 @@ describe('AdministradorService', () => {
     // DOC-024 3 — esta operacion nunca toca CORE, asi que sin este wrapper quedaba fuera del
     // Motor de Auditoria por completo.
     it('envuelve la operacion en AuditoriaIdentidadService.ejecutar con el operador y la organizacion (DOC-024 3)', async () => {
-      const { service, zitadelAdminService, auditoriaIdentidad } =
-        buildService({ 'zitadel-org-1': 'duoc-uc' });
+      const { service, zitadelAdminService, auditoriaIdentidad } = buildService(
+        { 'zitadel-org-1': 'duoc-uc' },
+      );
       zitadelAdminService.buscarUsuarioPorEmail.mockResolvedValue({
         id: 'usuario-1',
         email: 'nuevo@duoc.cl',
@@ -958,8 +983,9 @@ describe('AdministradorService', () => {
 
   describe('quitarRolUsuarioOrganizacion', () => {
     it('resuelve el id de Zitadel y quita el rol via ZitadelAdminService', async () => {
-      const { service, zitadelAdminService, auditoriaIdentidad } =
-        buildService({ 'zitadel-org-1': 'duoc-uc' });
+      const { service, zitadelAdminService, auditoriaIdentidad } = buildService(
+        { 'zitadel-org-1': 'duoc-uc' },
+      );
       zitadelAdminService.quitarRolDeGrant.mockResolvedValue(undefined);
 
       await service.quitarRolUsuarioOrganizacion(
@@ -988,8 +1014,9 @@ describe('AdministradorService', () => {
 
   describe('desactivarUsuarioOrganizacion', () => {
     it('resuelve el id de Zitadel y desactiva al usuario via ZitadelAdminService', async () => {
-      const { service, zitadelAdminService, auditoriaIdentidad } =
-        buildService({ 'zitadel-org-1': 'duoc-uc' });
+      const { service, zitadelAdminService, auditoriaIdentidad } = buildService(
+        { 'zitadel-org-1': 'duoc-uc' },
+      );
       zitadelAdminService.desactivarUsuario.mockResolvedValue(undefined);
 
       await service.desactivarUsuarioOrganizacion(
@@ -1131,9 +1158,7 @@ describe('AdministradorService', () => {
         ...CONTRATO,
         vigenciaHasta: '2027-01-01T00:00:00.000Z',
       };
-      coreClientService.patchContratoCondiciones.mockResolvedValue(
-        actualizado,
-      );
+      coreClientService.patchContratoCondiciones.mockResolvedValue(actualizado);
       const body = {
         organizacionId: 'duoc-uc',
         vigenciaHasta: '2027-01-01T00:00:00.000Z',
@@ -1161,7 +1186,10 @@ describe('AdministradorService', () => {
   });
 
   describe('altaSede', () => {
-    const body: AltaSedeBody = { organizacionId: 'duoc-uc', nombre: 'Melipilla' };
+    const body: AltaSedeBody = {
+      organizacionId: 'duoc-uc',
+      nombre: 'Melipilla',
+    };
     const SEDE: SedeResult = {
       id: 'sede-1',
       organizacionId: 'duoc-uc',
@@ -1203,9 +1231,7 @@ describe('AdministradorService', () => {
       ];
       coreClientService.getSedes.mockResolvedValue(sedes);
 
-      await expect(
-        service.getSedes('duoc-uc', 'corr-1'),
-      ).resolves.toBe(sedes);
+      await expect(service.getSedes('duoc-uc', 'corr-1')).resolves.toBe(sedes);
       expect(coreClientService.getSedes).toHaveBeenCalledWith(
         'duoc-uc',
         'corr-1',

@@ -78,9 +78,9 @@ describe('DirectivoController', () => {
     const body = { email: 'nuevo@duoc.cl' };
     const request = buildDirectivoRequest();
 
-    await expect(
-      controller.asignarProfesionalAft(body, request),
-    ).resolves.toBe(resultado);
+    await expect(controller.asignarProfesionalAft(body, request)).resolves.toBe(
+      resultado,
+    );
     expect(service.asignarProfesionalAft).toHaveBeenCalledWith(
       'zitadel-org-1',
       body,

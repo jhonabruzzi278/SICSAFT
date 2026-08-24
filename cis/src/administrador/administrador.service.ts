@@ -77,7 +77,12 @@ export class AdministradorService {
       auth.rolesPorOrganizacion,
     );
     return this.coreClientService.postActivo(
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -94,7 +99,12 @@ export class AdministradorService {
     );
     return this.coreClientService.postActivoBaja(
       activoId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -110,7 +120,12 @@ export class AdministradorService {
     );
     return this.coreClientService.postActivoReincorporacion(
       activoId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -126,7 +141,12 @@ export class AdministradorService {
     );
     return this.coreClientService.patchActivoResponsable(
       activoId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -143,7 +163,12 @@ export class AdministradorService {
     );
     return this.coreClientService.patchActivoDescripcion(
       activoId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -162,7 +187,12 @@ export class AdministradorService {
       auth.rolesPorOrganizacion,
     );
     return this.coreClientService.postCatalogoTipo(
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -191,7 +221,12 @@ export class AdministradorService {
     );
     return this.coreClientService.postDocumentoActivo(
       activoId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -209,7 +244,12 @@ export class AdministradorService {
     return this.coreClientService.deleteDocumentoActivo(
       activoId,
       documentoId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -224,7 +264,12 @@ export class AdministradorService {
       auth.rolesPorOrganizacion,
     );
     return this.coreClientService.postImportacionContable(
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -259,10 +304,11 @@ export class AdministradorService {
     auth: ZitadelAuthContext,
     correlationId: string,
   ): Promise<OrganizacionResult> {
-    const { id: zitadelOrgId } = await this.zitadelAdminService.crearOrganizacion(
-      body.nombre,
-      correlationId,
-    );
+    const { id: zitadelOrgId } =
+      await this.zitadelAdminService.crearOrganizacion(
+        body.nombre,
+        correlationId,
+      );
     await this.zitadelAdminService.otorgarProyectoAOrganizacion(
       zitadelOrgId,
       correlationId,
@@ -280,7 +326,10 @@ export class AdministradorService {
       },
       correlationId,
     );
-    await this.organizacionMappingDinamico.registrar(zitadelOrgId, zitadelOrgId);
+    await this.organizacionMappingDinamico.registrar(
+      zitadelOrgId,
+      zitadelOrgId,
+    );
     return organizacion;
   }
 
@@ -304,7 +353,12 @@ export class AdministradorService {
     );
     return this.coreClientService.patchOrganizacion(
       organizacionId,
-      { nombre: body.nombre, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        nombre: body.nombre,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -322,7 +376,12 @@ export class AdministradorService {
     );
     return this.coreClientService.patchOrganizacionEstado(
       organizacionId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -438,7 +497,9 @@ export class AdministradorService {
   // en el mapa estático, se prueba el mapeo dinámico (organizaciones creadas via
   // altaOrganizacion, donde el id de CORE YA ES el id de Zitadel — ver
   // OrganizacionMappingDinamicoService) antes de rendirse con 404.
-  private async organizacionIdAZitadel(organizacionId: string): Promise<string> {
+  private async organizacionIdAZitadel(
+    organizacionId: string,
+  ): Promise<string> {
     const entradaEstatica = Object.entries(this.organizacionMapping).find(
       ([, core]) => core === organizacionId,
     );
@@ -446,7 +507,9 @@ export class AdministradorService {
       return entradaEstatica[0];
     }
     const zitadelOrgId =
-      await this.organizacionMappingDinamico.resolverZitadelOrgId(organizacionId);
+      await this.organizacionMappingDinamico.resolverZitadelOrgId(
+        organizacionId,
+      );
     if (!zitadelOrgId) {
       throw new NotFoundException({
         message: `Organización '${organizacionId}' sin mapeo a un id de Zitadel (ZITADEL_ORG_ID_MAP)`,
@@ -473,7 +536,12 @@ export class AdministradorService {
       auth.rolesPorOrganizacion,
     );
     return this.coreClientService.postContrato(
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -489,7 +557,12 @@ export class AdministradorService {
     );
     return this.coreClientService.patchContrato(
       contratoId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -507,7 +580,12 @@ export class AdministradorService {
     );
     return this.coreClientService.patchContratoCondiciones(
       contratoId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -524,7 +602,12 @@ export class AdministradorService {
       auth.rolesPorOrganizacion,
     );
     return this.coreClientService.postSede(
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -532,7 +615,10 @@ export class AdministradorService {
   // DOC-024 1 — GET /admin/sedes?organizacionId=, el picker que reemplaza copiar/pegar un id a
   // mano en el formulario de Contrato de web_admin. Lectura abierta, mismo criterio que
   // getOrganizaciones.
-  getSedes(organizacionId: string, correlationId: string): Promise<SedeResult[]> {
+  getSedes(
+    organizacionId: string,
+    correlationId: string,
+  ): Promise<SedeResult[]> {
     return this.coreClientService.getSedes(organizacionId, correlationId);
   }
 
@@ -548,7 +634,12 @@ export class AdministradorService {
     );
     return this.coreClientService.patchSedeEstado(
       sedeId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -584,7 +675,12 @@ export class AdministradorService {
       auth.rolesPorOrganizacion,
     );
     return this.coreClientService.postArea(
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -601,7 +697,12 @@ export class AdministradorService {
     );
     return this.coreClientService.patchArea(
       areaId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -628,7 +729,12 @@ export class AdministradorService {
       auth.rolesPorOrganizacion,
     );
     return this.coreClientService.postUbicacion(
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -645,7 +751,12 @@ export class AdministradorService {
     );
     return this.coreClientService.patchUbicacion(
       ubicacionId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -672,7 +783,12 @@ export class AdministradorService {
       auth.rolesPorOrganizacion,
     );
     return this.coreClientService.postResponsable(
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }
@@ -688,7 +804,12 @@ export class AdministradorService {
     );
     return this.coreClientService.patchResponsableEstado(
       responsableId,
-      { ...body, correlationId, operadorId: auth.operadorId, rolesPorOrganizacion },
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion,
+      },
       correlationId,
     );
   }

@@ -28,7 +28,6 @@ import {
   obtenerUsuarioResponseSchema,
   type GrantUsuario,
   type OrganizacionZitadel,
-  type UsuarioHumanCreado,
   type UsuarioZitadel,
 } from './zitadel-admin.types';
 
@@ -309,8 +308,8 @@ export class ZitadelAdminService {
       correlationId,
       { orgId: zitadelOrgId },
     );
-    return this.parse(obtenerUsuarioResponseSchema, data, 'users/{userId}')
-      .user.state;
+    return this.parse(obtenerUsuarioResponseSchema, data, 'users/{userId}').user
+      .state;
   }
 
   private async buscarGrantDeUsuario(
@@ -370,12 +369,9 @@ export class ZitadelAdminService {
     nombre: string,
     correlationId: string,
   ): Promise<void> {
-    await this.put(
-      '/management/v1/orgs/me',
-      { name: nombre },
-      correlationId,
-      { orgId: zitadelOrgId },
-    );
+    await this.put('/management/v1/orgs/me', { name: nombre }, correlationId, {
+      orgId: zitadelOrgId,
+    });
   }
 
   // Gap 1 (flujo real Admin->Directivo->Profesional AFT) — hallazgo real: sin esto, ningún

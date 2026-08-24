@@ -87,7 +87,9 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
       jwks: localJwks,
       // DOC-024 3 — DirectivoService ahora envuelve asignarProfesionalAft en
       // AuditoriaIdentidadService, que reporta el resultado via CoreClientService.postAuditoria.
-      coreClientService: { postAuditoria: jest.fn().mockResolvedValue(undefined) },
+      coreClientService: {
+        postAuditoria: jest.fn().mockResolvedValue(undefined),
+      },
       redisClient: crearRedisStub(),
       zitadelAdminService,
     });

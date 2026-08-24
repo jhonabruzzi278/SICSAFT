@@ -284,7 +284,10 @@ describe('AdministradorController', () => {
       estado: 'activo',
     };
     service.altaSede.mockResolvedValue(sede);
-    const body: AltaSedeBody = { organizacionId: 'duoc-uc', nombre: 'Melipilla' };
+    const body: AltaSedeBody = {
+      organizacionId: 'duoc-uc',
+      nombre: 'Melipilla',
+    };
     const auth: ZitadelAuthContext = {
       operadorId: 'op-1',
       accessToken: 'zitadel-token',
@@ -307,7 +310,9 @@ describe('AdministradorController', () => {
       },
     ];
     service.getSedes.mockResolvedValue(sedes);
-    const request = { correlationId: CORRELATION_ID } as RequestWithCorrelationId;
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
 
     await expect(
       controller.getSedes({ organizacionId: 'duoc-uc' }, request),

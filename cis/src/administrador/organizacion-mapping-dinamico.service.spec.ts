@@ -27,9 +27,9 @@ describe('OrganizacionMappingDinamicoService', () => {
     it('propaga el error si Redis falla (no es una restriccion de negocio complementaria)', async () => {
       redis.mset.mockRejectedValue(new Error('ECONNREFUSED'));
 
-      await expect(
-        service.registrar('zitadel-org-1', 'org-1'),
-      ).rejects.toThrow('ECONNREFUSED');
+      await expect(service.registrar('zitadel-org-1', 'org-1')).rejects.toThrow(
+        'ECONNREFUSED',
+      );
     });
   });
 

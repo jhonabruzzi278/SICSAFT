@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method -- jest.fn() mocks no usan `this`. */
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { AdministradorSistemaGuard } from './administrador-sistema.guard';
 import { OrganizacionMappingDinamicoService } from './organizacion-mapping-dinamico.service';
@@ -43,7 +44,9 @@ describe('AdministradorSistemaGuard', () => {
     );
 
     await expect(guard.canActivate(context)).resolves.toBe(true);
-    expect(organizacionMappingDinamico.resolverOrganizacionId).not.toHaveBeenCalled();
+    expect(
+      organizacionMappingDinamico.resolverOrganizacionId,
+    ).not.toHaveBeenCalled();
   });
 
   // Gap 0 (hallazgo real) — este guard tenia su propia traduccion, separada de
@@ -53,7 +56,10 @@ describe('AdministradorSistemaGuard', () => {
     organizacionMappingDinamico.resolverOrganizacionId.mockResolvedValue(
       'org-nueva',
     );
-    const guard = new AdministradorSistemaGuard({}, organizacionMappingDinamico);
+    const guard = new AdministradorSistemaGuard(
+      {},
+      organizacionMappingDinamico,
+    );
     const context = buildContext(
       { orgId: 'org-nueva' },
       {
