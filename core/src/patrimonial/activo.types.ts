@@ -28,6 +28,9 @@ export interface Activo {
   id: string;
   codigoPatrimonial: string;
   codigoQr: string;
+  // Mismo caso que responsableId abajo: ya era columna de la tabla (migracion Fase 1) y ya se
+  // escribia en el alta (NuevoActivoInput.serie), pero nadie la seleccionaba de vuelta.
+  serie: string | null;
   organizacionId: string;
   areaId: string | null;
   ubicacionId: string | null;
@@ -38,6 +41,9 @@ export interface Activo {
   estado: EstadoActivo;
   // DOC-021 3 (gap "descripciones") — libre, editable via PATCH /activos/:id/descripcion.
   descripcion: string | null;
+  // Derivado (no es columna de activos): fecha del ultimo registro en inventarios para este
+  // activo, o null si nunca fue inventariado. Ver ActivoRepository.SELECT_ACTIVO_SQL.
+  ultimoInventario: string | null;
   catalogo: CatalogoActivoInfo;
 }
 

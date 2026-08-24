@@ -40,7 +40,21 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:16-alpine
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    # pgaudit tiene que estar en shared_preload_libraries antes de que Postgres acepte
+    # conexiones -- CREATE EXTENSION solo no alcanza (requiere reinicio, no solo reload). Loguea
+    # write/ddl/role (no "read": auditar cada SELECT es ruido, el objetivo es detectar escritura
+    # fuera del camino oficial CORE -> Base Patrimonial, no el trafico de lectura normal). Sale
+    # por stderr como el resto de logs de Postgres -- Promtail ya los manda a Loki, sin wiring
+    # adicional.
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pgaudit"
+      - "-c"
+      - "pgaudit.log=write, ddl, role"
     environment:
       POSTGRES_USER: ${POSTGRES_ADMIN_USER}
       POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
@@ -393,12 +407,41 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
+      # Deshabilitado por default (costo/seguridad) -- lo habilita el servicio `k6` de abajo para
+      # empujar metricas de carga via remote-write. No expone puerto al host, solo lo usan
+      # servicios dentro de esta misma red.
+      - "--web.enable-remote-write-receiver"
+      # k6 manda los trend metrics (http_req_duration, etc.) como native histograms
+      # (K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM en el servicio `k6`) -- sin este feature flag
+      # Prometheus rechaza el remote-write entero con 500 "native histograms are disabled"
+      # (verificado real corriendo un load test antes de este flag).
+      - "--enable-feature=native-histograms"
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     networks:
       - sicsaft
     restart: unless-stopped
+
+  # Pruebas de carga bajo demanda -- profile dedicado, nunca arranca con `docker compose up -d`.
+  # Corre en la misma red que cis/core/cip para resolverlos por nombre de servicio interno (core y
+  # cip no publican puerto al host a proposito, ver sus propios bloques) y empuja metricas a
+  # Prometheus via remote-write. Ver devops/local/k6/README.md para como correrlo y como importar
+  # el dashboard de Grafana (id 18030, mismo criterio que "Node Exporter Full" mas abajo en el
+  # README de este directorio: dashboards de la comunidad se importan desde la UI, no se
+  # versionan).
+  k6:
+    image: grafana/k6:latest
+    profiles: ["k6"]
+    volumes:
+      - ./k6:/scripts:ro
+    environment:
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+      K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM: "true"
+    networks:
+      - sicsaft
 
   loki:
     image: grafana/loki:3.1.0

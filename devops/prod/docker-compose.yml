@@ -51,7 +51,21 @@ volumes:
 
 services:
   postgres:
-    image: postgres:16-alpine
+    # Mismo build que devops/local/ (pgaudit no viene precompilado en postgres:16-alpine) --
+    # reusa el Dockerfile de local por referencia relativa, mismo criterio que el volumen de
+    # postgres/init de abajo. Sin esto, el init de abajo (postgres/init/02-core.sh, compartido con
+    # local) falla: intenta CREATE EXTENSION pgaudit contra una imagen que no la tiene.
+    build:
+      context: ../local/postgres
+      dockerfile: Dockerfile
+    # Mismo motivo que devops/local/docker-compose.yml -- shared_preload_libraries es de servidor
+    # completo, requiere estar antes de aceptar conexiones (no alcanza con CREATE EXTENSION solo).
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pgaudit"
+      - "-c"
+      - "pgaudit.log=write, ddl, role"
     environment:
       POSTGRES_USER: ${POSTGRES_ADMIN_USER}
       POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}

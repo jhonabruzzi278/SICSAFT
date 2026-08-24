@@ -40,7 +40,9 @@ Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
 - **`base-patrimonial/`** — modelo de dominio de la Base Patrimonial Central, documentado y
   versionado en `core/migrations/` (Postgres real).
 - **`devops/local/docker-compose.yml`** — stack local completo: Traefik + Postgres + Redis +
-  Zitadel + los 5 sistemas + observabilidad self-hosted (Prometheus + Loki/Promtail + Grafana,
+  Zitadel + los 6 sistemas desplegables (`cis`, `core`, `cip`, `ccp`, `web-admin`, `core-frontend`
+  — `app-qr-sicsaft/` es un PWA cliente sin contenedor propio en este stack) + observabilidad
+  self-hosted (Prometheus + Loki/Promtail + Grafana,
   equivalente a CloudWatch/CloudTrail pero administrado por el operador del VPS).
 
 Estado real y detalle de cada sistema (qué está mockeado vs. real, endpoints, dependencias): tabla
@@ -48,25 +50,27 @@ completa en [README.md](README.md) y el `README.md` propio de cada carpeta.
 
 ## Comandos por sistema
 
-`cis/` y `core/` son NestJS (Jest); `ccp/`, `web_admin/`, `app-qr-sicsaft/` y `core/frontend/` son
-Vite/React. `ccp/`, `web_admin/` y `core/frontend/` tienen ESLint + Vitest (unit) — `app-qr-sicsaft/`
+`cis/`, `core/` y `cip/` son NestJS (Jest); `ccp/`, `web_admin/`, `app-qr-sicsaft/` y `core/frontend/`
+son Vite/React. `ccp/`, `web_admin/` y `core/frontend/` tienen ESLint + Vitest (unit) — `app-qr-sicsaft/`
 todavía no tiene ninguno de los dos configurado. Playwright (e2e) existe en `ccp/` y
 `app-qr-sicsaft/`; instalado pero sin specs en `web_admin/`; inexistente en `core/frontend/`. Cada
 comando corre desde la carpeta del sistema.
 
-**Backends (`cis/`, `core/`):**
+**Backends (`cis/`, `core/`, `cip/`):**
 ```bash
 npm run start:dev          # dev server con watch
 npm run lint:ci             # eslint --max-warnings=0 (lo que corre CI; usar "lint" a secas para autofix local)
 npm test                    # jest (unit)
 npx jest ruta/al.spec.ts    # un solo archivo de test
 npx jest -t "nombre del test"  # un solo test por nombre
-npm run test:cov            # cobertura — umbral en package.json > jest.coverageThreshold (100% líneas/funciones en cis/ y core/)
+npm run test:cov            # cobertura — umbral en package.json > jest.coverageThreshold (100% líneas/funciones en los tres)
 npm run test:e2e            # jest contra ./test/jest-e2e.json (Postgres real en CI, no mocks)
 npm run build                # nest build
 ```
-`core/` además tiene `npm run migrate:up` / `migrate:down` (`node-pg-migrate` sobre
-`core/migrations/`).
+`core/` y `cip/` además tienen `npm run migrate:up` / `migrate:down` (`node-pg-migrate` sobre
+`core/migrations/` y `cip/migrations/` respectivamente — bases Postgres separadas, RNF-01/RNF-05).
+`cip/` además corre un worker BullMQ (`AgregacionModule`) contra la cola `cip-eventos` que puebla
+consumiendo eventos reales de `core/`, no expone frontend propio — ver `cip/README.md`.
 
 **Frontends, todas (`ccp/`, `web_admin/`, `app-qr-sicsaft/`, `core/frontend/`):**
 ```bash
@@ -88,8 +92,8 @@ npm run test:e2e              # playwright test
 npx playwright test archivo.spec.ts   # un solo archivo e2e
 ```
 
-**Stack local completo** (Traefik + Postgres + Redis + Zitadel + los 5 sistemas + observabilidad
-self-hosted — Prometheus/Loki/Grafana):
+**Stack local completo** (Traefik + Postgres + Redis + Zitadel + los 6 sistemas desplegables +
+observabilidad self-hosted — Prometheus/Loki/Grafana):
 ```bash
 cd devops/local && docker compose up -d
 ```
@@ -214,15 +218,15 @@ aidlc-docs/
 
 ## CI / calidad
 
-- Cada sistema (`cis/`, `core/`) tiene su propio workflow en `.github/workflows/` — corre lint,
-  unit tests con cobertura, e2e contra Postgres real (Testcontainers-style service en GitHub
+- Cada sistema (`cis/`, `core/`, `cip/`) tiene su propio workflow en `.github/workflows/` — corre
+  lint, unit tests con cobertura, e2e contra Postgres real (Testcontainers-style service en GitHub
   Actions, no mocks), build y `docker build`. Ver `core-ci.yml`/`cis-ci.yml` como plantilla al
   agregar un sistema nuevo.
 - Quality Gate de SonarCloud es obligatorio — no usar `// NOSONAR` para silenciar un hallazgo
   real; solo para falsos positivos confirmados, y siempre con un comentario explicando por qué
   (ver `.sonarcloud.properties` y el historial de `fix: corregir NOSONAR mal ubicado...`).
 - Boilerplate generado por Nest CLI (specs de humo, configs de eslint) está excluido del análisis
-  de duplicación a propósito — no es señal de deuda técnica real entre `cis/` y `core/`.
+  de duplicación a propósito — no es señal de deuda técnica real entre `cis/`, `core/` y `cip/`.
 
 ## Al agregar un sistema nuevo
 

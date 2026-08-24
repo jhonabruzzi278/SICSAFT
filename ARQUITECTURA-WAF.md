@@ -20,6 +20,26 @@ Referencia cruzada: [README.md](README.md) (índice de sistemas) ·
 [aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md](aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md)
 (único contrato de integración ya escrito).
 
+### 0.1. Patrimonio Digital Institucional vs. BPI — no confundir concepto con tecnología
+
+- **Patrimonio Digital Institucional**: la representación digital organizada, trazable e
+  histórica de los Activos Fijos Tangibles de la organización — identificación, ubicación,
+  responsable, estado, documentos, eventos e historial. Es el concepto de negocio (el **qué**),
+  no una tecnología.
+- **BPI / Base Patrimonial Central — Nivel 4**: la estructura tecnológica que materializa ese
+  concepto — almacena, relaciona y conserva la información ya validada (el **dónde**; alias ya
+  aclarado en 1.1). La BPI no decide si una operación está permitida: solo persiste lo que el
+  CORE ya validó.
+- **SICSAFT CORE — Nivel 3**: gobierna qué operación puede tocar la BPI (usuario, permisos,
+  reglas, estado) antes de persistir — ver Regla de modularidad, abajo.
+- **CIP — Nivel 5**: consume la BPI para convertir datos validados en indicadores y alertas (el
+  **para qué**) — nunca contra la transaccional en vivo (ver Pilar 5).
+
+Un documento o fotografía puede vivir físicamente en un repositorio distinto (motor de Gestión
+Documental, Tomo IV 2.4) y seguir siendo parte del Patrimonio Digital Institucional mientras la
+BPI lo referencie desde el activo — no necesita contener el archivo en sí para que ese archivo
+cuente como patrimonio digital.
+
 ## 1. Los 6 niveles como límites de módulo (Modularidad)
 
 El Modelo General (Tomo IV Cap.1) ya define 6 niveles. Cada nivel es un **límite de despliegue

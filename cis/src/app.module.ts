@@ -1,4 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
@@ -12,6 +13,14 @@ import { CorrelationIdMiddleware } from './common/correlation-id/correlation-id.
 
 @Module({
   imports: [
+    // GET /metrics -- formato Prometheus (prom-client), target real en observability/prometheus.yml.
+    // OJO: a diferencia de core/cip (sin router publico en Traefik), CIS SI tiene uno
+    // (api.sicsaft.localhost, sin restriccion de path) -- este endpoint queda publicamente
+    // alcanzable tal cual, sin bloqueo a nivel de Traefik todavia. No es un problema hoy (dominio
+    // .localhost, sin exposicion real), pero antes de que este mismo patron se replique en
+    // devops/prod/ hace falta una regla que bloquee /metrics desde afuera (ipAllowList o un
+    // router de mayor prioridad), ver conversacion de esta sesion.
+    PrometheusModule.register(),
     ZitadelAuthModule,
     RateLimitModule,
     HealthModule,
