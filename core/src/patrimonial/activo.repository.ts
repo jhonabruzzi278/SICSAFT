@@ -31,12 +31,14 @@ const SELECT_ACTIVO_SQL = `
     a.id,
     a.codigo_patrimonial AS "codigoPatrimonial",
     a.codigo_qr AS "codigoQr",
+    a.serie,
     a.organizacion_id AS "organizacionId",
     a.area_id AS "areaId",
     a.ubicacion_id AS "ubicacionId",
     a.responsable_id AS "responsableId",
     a.estado,
     a.descripcion,
+    (SELECT MAX(i.fecha) FROM inventarios i WHERE i.activo_id = a.id) AS "ultimoInventario",
     c.tipo,
     c.familia,
     c.subfamilia,
@@ -50,12 +52,14 @@ interface ActivoRow {
   id: string;
   codigoPatrimonial: string;
   codigoQr: string;
+  serie: string | null;
   organizacionId: string;
   areaId: string | null;
   ubicacionId: string | null;
   responsableId: string | null;
   estado: EstadoActivo;
   descripcion: string | null;
+  ultimoInventario: string | null;
   tipo: string;
   familia: string;
   subfamilia: string | null;
@@ -300,12 +304,14 @@ export class ActivoRepository {
       id: row.id,
       codigoPatrimonial: row.codigoPatrimonial,
       codigoQr: row.codigoQr,
+      serie: row.serie,
       organizacionId: row.organizacionId,
       areaId: row.areaId,
       ubicacionId: row.ubicacionId,
       responsableId: row.responsableId,
       estado: row.estado,
       descripcion: row.descripcion,
+      ultimoInventario: row.ultimoInventario,
       catalogo: {
         tipo: row.tipo,
         familia: row.familia,
