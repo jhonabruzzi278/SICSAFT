@@ -42,6 +42,9 @@ export function GestionarProfesionalAftPage() {
   const [listError, setListError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitOk, setSubmitOk] = useState(false);
+  // Gap 3 (flujo real Admin->Directivo->Profesional AFT) — solo se llena cuando el email no
+  // existía todavía en Zitadel (creado: true). Se muestra una sola vez, nunca se persiste.
+  const [passwordCreada, setPasswordCreada] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -66,9 +69,13 @@ export function GestionarProfesionalAftPage() {
   async function onSubmit(values: AsignarProfesionalAftForm) {
     setSubmitError(null);
     setSubmitOk(false);
+    setPasswordCreada(null);
     try {
-      await cisClient.asignarProfesionalAft(values.email);
+      const resultado = await cisClient.asignarProfesionalAft(values.email);
       setSubmitOk(true);
+      if (resultado.creado) {
+        setPasswordCreada(resultado.passwordInicial);
+      }
       reset();
       cargarUsuarios();
     } catch (err: unknown) {
@@ -135,9 +142,7 @@ export function GestionarProfesionalAftPage() {
             className="space-y-4"
           >
             <div>
-              <Label htmlFor="profesional-email">
-                Email (usuario ya existente en Zitadel)
-              </Label>
+              <Label htmlFor="profesional-email">Email</Label>
               <Input
                 id="profesional-email"
                 type="email"
@@ -146,8 +151,17 @@ export function GestionarProfesionalAftPage() {
               <FieldError>{errors.email?.message}</FieldError>
             </div>
             {submitError && <Alert>{submitError}</Alert>}
-            {submitOk && (
-              <Alert variant="success">Profesional de AFT designado.</Alert>
+            {submitOk && passwordCreada && (
+              <Alert variant="success">
+                Profesional de AFT creado. Contraseña inicial (compartila fuera
+                de acá, no se vuelve a mostrar):{' '}
+                <span className="font-mono">{passwordCreada}</span>
+              </Alert>
+            )}
+            {submitOk && !passwordCreada && (
+              <Alert variant="success">
+                Profesional de AFT designado (ya tenía cuenta en Zitadel).
+              </Alert>
             )}
             <Button type="submit" disabled={isSubmitting} className="w-full">
               {isSubmitting ? 'Designando…' : 'Designar'}

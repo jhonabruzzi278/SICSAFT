@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditoriaModule } from './auditoria.module';
+import { AuditoriaController } from './auditoria.controller';
+import { AuditoriaEscrituraController } from './auditoria-escritura.controller';
 import { AuditoriaRepository } from './auditoria.repository';
 import { DatabaseModule } from '../database/database.module';
 import { ServiceTokenModule } from '../common/auth/service-token.module';
@@ -29,6 +31,10 @@ describe('AuditoriaModule', () => {
     }).compile();
 
     expect(module.get(AuditoriaRepository)).toBeInstanceOf(AuditoriaRepository);
+    expect(module.get(AuditoriaController)).toBeInstanceOf(AuditoriaController);
+    expect(module.get(AuditoriaEscrituraController)).toBeInstanceOf(
+      AuditoriaEscrituraController,
+    );
 
     await module.close();
   });

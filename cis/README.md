@@ -206,6 +206,28 @@ solo hace falta para `FlatCompat`, que `eslint.config.mjs` no usa). `supertest`/
 se verificaron en uso real (los 6 `*.e2e-spec.ts` de `test/`) antes de descartarlos como falso
 positivo de Knip — se quedan.
 
+**CRUD completo sin Consola de Zitadel + auditoría de identidad (2026-08-21,
+[DOC-024](../aidlc-docs/ccp/design-artifacts/DOC-024-crud-completo-auditoria-identidad.md))**:
+`ZitadelAdminService` gana `actualizarNombreOrganizacion`, `quitarRolDeGrant` y `desactivarUsuario`
+— verificados reales contra el Zitadel de `devops/local` antes de codearlos (mismo criterio que el
+resto de este módulo). Hallazgo real: un usuario en `USER_STATE_INITIAL` (cualquier Profesional de
+AFT recién creado en este stack sin SMTP) no se puede desactivar, Zitadel exige borrarlo — único
+caso donde este servicio borra un usuario de verdad. Nuevo módulo `src/auditoria-identidad/`
+(`AuditoriaIdentidadService`, calco de `OrquestadorService.ejecutarOperacionOficial` de CORE):
+`asignarUsuarioOrganizacion` y `DirectivoService.asignarProfesionalAft` — las dos únicas
+operaciones del ecosistema que nunca tocaban CORE — ahora reportan su resultado a un nuevo
+`POST /auditoria` de CORE, cerrando el punto ciego que dejaban fuera del Motor de Auditoría de
+Tomo IV. Nuevos endpoints: editar/dar de baja Organización y Sede (`estado`, bidireccional, nunca
+`DELETE` real — Tomo III 4.10), `GET /admin/sedes` (picker por organización), editar condiciones
+de Contrato (`PATCH /admin/contratos/:id/condiciones`, separado del cambio de `estado` que ya
+existía), y quitar/desactivar un usuario de una organización.
+**Hallazgo real verificado en vivo contra `web_admin/` en el navegador**: `DELETE` no estaba en la
+lista de métodos permitidos de `app.enableCors()` (`src/main.ts`) — el único `DELETE` que existía
+hasta ahora (`/admin/activos/:id/documentos/:documentoId`, DOC-021 3) nunca se había ejercitado
+desde un navegador real, solo via `supertest`/curl (que no aplican CORS), así que el gap quedó
+invisible hasta que la nueva pantalla de "quitar rol" de `web_admin/` lo disparó en vivo — corregido
+en el mismo incremento.
+
 ## Desarrollo local
 ```bash
 cd cis

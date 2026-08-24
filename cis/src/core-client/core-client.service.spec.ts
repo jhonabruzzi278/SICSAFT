@@ -521,6 +521,51 @@ describe('CoreClientService', () => {
     });
   });
 
+  // DOC-024 2 — separado de patchContrato (que solo cambia `estado`).
+  describe('patchContratoCondiciones', () => {
+    const request = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+      vigenciaHasta: '2027-01-01T00:00:00.000Z',
+    };
+    const contrato = {
+      id: 'contrato-1',
+      organizacionId: 'duoc-uc',
+      organizacionNombre: 'DUOC UC',
+      sedes: [{ id: 'melipilla', nombre: 'Melipilla' }],
+      vigenciaDesde: '2026-01-01T00:00:00.000Z',
+      vigenciaHasta: '2027-01-01T00:00:00.000Z',
+      estado: 'vigente',
+      modulosContratados: ['inventario-qr'],
+    };
+
+    it('llama a PATCH {baseUrl}/contratos/:id/condiciones con el body completo', async () => {
+      axiosPatch.mockResolvedValue(buildAxiosResponse(contrato));
+
+      await expect(
+        service.patchContratoCondiciones('contrato-1', request, 'x-corr-http'),
+      ).resolves.toEqual(contrato);
+      expect(axiosPatch).toHaveBeenCalledWith(
+        'http://core:3001/contratos/contrato-1/condiciones',
+        request,
+        expect.anything(),
+      );
+    });
+
+    it('propaga un 409 de CORE (sede ya cubierta por otro contrato) como ConflictException, sin reintentar', async () => {
+      axiosPatch.mockRejectedValue(
+        buildAxiosError(409, { message: 'sede ya cubierta' }),
+      );
+
+      await expect(
+        service.patchContratoCondiciones('contrato-1', request, 'x-corr-http'),
+      ).rejects.toThrow(ConflictException);
+      expect(axiosPatch).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('getInventarioEstado', () => {
     it('llama a GET {baseUrl}/inventarios/:id/estado', async () => {
       axiosGet.mockResolvedValue(
@@ -733,6 +778,40 @@ describe('CoreClientService', () => {
       axiosGet.mockResolvedValue(buildAxiosResponse(pagina));
 
       await expect(service.getAuditoria({}, 'corr-1')).resolves.toEqual(pagina);
+    });
+  });
+
+  // DOC-024 3 — reporta a CORE el resultado de una operacion de identidad en Zitadel. Sin
+  // passthroughStatuses: un fallo acá no es un rechazo de negocio que distinguir.
+  describe('postAuditoria', () => {
+    const request = {
+      usuario: 'op-directivo-1',
+      operacion: 'POST /directivo/usuarios',
+      resultado: 'ok',
+      organizacionId: 'zitadel-org-1',
+    };
+
+    it('llama a POST {baseUrl}/auditoria con el body completo', async () => {
+      axiosPost.mockResolvedValue(buildAxiosResponse(undefined));
+
+      await service.postAuditoria(request, 'corr-1');
+
+      expect(axiosPost).toHaveBeenCalledWith(
+        'http://core:3001/auditoria',
+        request,
+        expect.anything(),
+      );
+    });
+
+    it('propaga un 502 si CORE no esta disponible, sin passthrough (no hay rechazo de negocio que distinguir)', async () => {
+      axiosPost.mockRejectedValue(buildAxiosNetworkError());
+
+      const assertion = expect(
+        service.postAuditoria(request, 'corr-1'),
+      ).rejects.toThrow(BadGatewayException);
+      await jest.advanceTimersByTimeAsync(200); // backoff del 1er reintento
+      await jest.advanceTimersByTimeAsync(400); // backoff del 2do reintento (exponencial)
+      await assertion;
     });
   });
 
@@ -1361,7 +1440,7 @@ describe('CoreClientService', () => {
   });
 
   describe('Organizaciones e indicadores (DOC-021 4)', () => {
-    const organizacion = { id: 'duoc-uc', nombre: 'DUOC UC' };
+    const organizacion = { id: 'duoc-uc', nombre: 'DUOC UC', estado: 'activo' };
     const postOrganizacionRequest = {
       correlationId: 'corr-1',
       operadorId: 'op-admin',
@@ -1407,6 +1486,142 @@ describe('CoreClientService', () => {
       await expect(
         service.postOrganizacion(postOrganizacionRequest, 'corr-1'),
       ).rejects.toThrow(ConflictException);
+    });
+
+    // DOC-024 1.
+    const patchOrganizacionRequest = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
+      nombre: 'DUOC UC (renombrada)',
+    };
+
+    it('patchOrganizacion llama a PATCH {baseUrl}/organizaciones/:id y devuelve la organizacion actualizada', async () => {
+      const renombrada = { ...organizacion, nombre: 'DUOC UC (renombrada)' };
+      axiosPatch.mockResolvedValue(buildAxiosResponse(renombrada));
+
+      await expect(
+        service.patchOrganizacion('duoc-uc', patchOrganizacionRequest, 'corr-1'),
+      ).resolves.toEqual(renombrada);
+      expect(axiosPatch).toHaveBeenCalledWith(
+        'http://core:3001/organizaciones/duoc-uc',
+        patchOrganizacionRequest,
+        expect.anything(),
+      );
+    });
+
+    it('patchOrganizacionEstado llama a PATCH {baseUrl}/organizaciones/:id/estado y devuelve la organizacion actualizada', async () => {
+      const inactiva = { ...organizacion, estado: 'inactivo' };
+      axiosPatch.mockResolvedValue(buildAxiosResponse(inactiva));
+      const request = {
+        correlationId: 'corr-1',
+        operadorId: 'op-admin',
+        rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
+        estado: 'inactivo' as const,
+      };
+
+      await expect(
+        service.patchOrganizacionEstado('duoc-uc', request, 'corr-1'),
+      ).resolves.toEqual(inactiva);
+      expect(axiosPatch).toHaveBeenCalledWith(
+        'http://core:3001/organizaciones/duoc-uc/estado',
+        request,
+        expect.anything(),
+      );
+    });
+
+    // Gap 2 (flujo real Admin->Directivo->Profesional AFT).
+    const sede = {
+      id: 'sede-1',
+      organizacionId: 'duoc-uc',
+      nombre: 'Melipilla',
+      estado: 'activo',
+    };
+    const postSedeRequest = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+      organizacionId: 'duoc-uc',
+      nombre: 'Melipilla',
+    };
+
+    it('postSede llama a POST {baseUrl}/sedes y devuelve la sede creada', async () => {
+      axiosPost.mockResolvedValue(buildAxiosResponse(sede));
+
+      await expect(
+        service.postSede(postSedeRequest, 'corr-1'),
+      ).resolves.toEqual(sede);
+      expect(axiosPost).toHaveBeenCalledWith(
+        'http://core:3001/sedes',
+        postSedeRequest,
+        expect.anything(),
+      );
+    });
+
+    it('postSede propaga un 400 de CORE como BadRequestException (organizacionId inexistente), sin reintentar', async () => {
+      axiosPost.mockRejectedValue(
+        buildAxiosError(400, { message: 'organizacionId inexistente' }),
+      );
+
+      await expect(
+        service.postSede(postSedeRequest, 'corr-1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    // DOC-024 1 — el picker que reemplaza copiar/pegar un id a mano en el formulario de
+    // Contrato de web_admin.
+    it('getSedes llama a GET {baseUrl}/sedes con organizacionId y devuelve el listado', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse([sede]));
+
+      await expect(service.getSedes('duoc-uc', 'corr-1')).resolves.toEqual([
+        sede,
+      ]);
+      expect(axiosGet).toHaveBeenCalledWith('http://core:3001/sedes', {
+        params: { organizacionId: 'duoc-uc' },
+        headers: {
+          'x-internal-service-token': 'secreto-compartido',
+          'x-correlation-id': 'corr-1',
+        },
+      });
+    });
+
+    it('patchSedeEstado llama a PATCH {baseUrl}/sedes/:id/estado y devuelve la sede actualizada — sin cascada (DOC-024 1)', async () => {
+      const inactiva = { ...sede, estado: 'inactivo' };
+      axiosPatch.mockResolvedValue(buildAxiosResponse(inactiva));
+      const request = {
+        correlationId: 'corr-1',
+        operadorId: 'op-admin',
+        organizacionId: 'duoc-uc',
+        rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        estado: 'inactivo' as const,
+      };
+
+      await expect(
+        service.patchSedeEstado('sede-1', request, 'corr-1'),
+      ).resolves.toEqual(inactiva);
+      expect(axiosPatch).toHaveBeenCalledWith(
+        'http://core:3001/sedes/sede-1/estado',
+        request,
+        expect.anything(),
+      );
+    });
+
+    it('patchSedeEstado propaga un 404 de CORE como NotFoundException, sin reintentar', async () => {
+      axiosPatch.mockRejectedValue(
+        buildAxiosError(404, { message: 'no existe la sede' }),
+      );
+      const request = {
+        correlationId: 'corr-1',
+        operadorId: 'op-admin',
+        organizacionId: 'duoc-uc',
+        rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+        estado: 'inactivo' as const,
+      };
+
+      await expect(
+        service.patchSedeEstado('no-existe', request, 'corr-1'),
+      ).rejects.toThrow(NotFoundException);
+      expect(axiosPatch).toHaveBeenCalledTimes(1);
     });
 
     it('getIndicadores llama a GET {baseUrl}/indicadores y devuelve los indicadores', async () => {

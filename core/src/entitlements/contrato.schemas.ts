@@ -27,3 +27,25 @@ export const contratosQuerySchema = z.object({
   ...paginacionSchema,
 });
 export type ContratosQuery = z.infer<typeof contratosQuerySchema>;
+
+// DOC-024 2 — PATCH /contratos/:id/condiciones. Endpoint separado de actualizarContratoSchema
+// (que solo cambia `estado`) — ver DOC-024 2 para por que no se mezclan. `vigenciaDesde`
+// deliberadamente no editable (mover la fecha de inicio hacia atras no es un caso real). Los 3
+// campos son opcionales individualmente pero se exige al menos uno (`.refine`), para que un PATCH
+// vacio sea un 400 explicito en vez de un no-op silencioso.
+export const actualizarCondicionesContratoSchema = escrituraOficialSchema
+  .extend({
+    sedeIds: z.array(z.string().min(1)).min(1).optional(),
+    vigenciaHasta: z.string().min(1).nullable().optional(),
+    modulosContratados: z.array(z.literal('inventario-qr')).min(1).optional(),
+  })
+  .refine(
+    (body) =>
+      body.sedeIds !== undefined ||
+      body.vigenciaHasta !== undefined ||
+      body.modulosContratados !== undefined,
+    { message: 'Debe incluir al menos un campo a actualizar' },
+  );
+export type ActualizarCondicionesContratoBody = z.infer<
+  typeof actualizarCondicionesContratoSchema
+>;

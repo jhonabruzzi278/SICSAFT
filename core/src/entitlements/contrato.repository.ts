@@ -10,6 +10,7 @@ import type { Pool } from 'pg';
 import { PG_POOL } from '../database/database.constants';
 import { assertInvarianteSedeUnContratoVigente } from './contrato.seed';
 import type {
+  CambiosCondicionesContrato,
   Contrato,
   ContratosPagina,
   EstadoContrato,
@@ -209,6 +210,92 @@ export class ContratoRepository {
       id,
     ]);
     return { ...actual, estado: estadoNuevo };
+  }
+
+  // DOC-024 2 — PATCH /contratos/:id/condiciones. Separado de actualizarEstado (ver DOC-024 2).
+  // 400 si el contrato ya esta en un estado terminal (vencido/cancelado) — editar los terminos de
+  // un contrato cerrado reescribe historia. Si cambian las sedes, vuelve a chequear el invariante
+  // DOC-004 4 EXCLUYENDO las filas del propio contrato (a diferencia de crear(), que no tiene un
+  // contrato propio que excluir todavia). Transaccion unica, mismo motivo que crear(): un FK
+  // invalido en contrato_sedes no debe dejar la fila de contratos ya actualizada.
+  async actualizarCondiciones(
+    id: string,
+    organizacionId: string,
+    cambios: CambiosCondicionesContrato,
+  ): Promise<Contrato> {
+    const actual = await this.findById(id);
+    if (!actual || actual.organizacionId !== organizacionId) {
+      throw new NotFoundException({ message: `No existe el contrato '${id}'` });
+    }
+    if (actual.estado === 'vencido' || actual.estado === 'cancelado') {
+      throw new BadRequestException({
+        message: `No se pueden editar las condiciones de un contrato '${actual.estado}' (DOC-024 2)`,
+      });
+    }
+
+    if (cambios.sedeIds) {
+      const sedesEnConflicto = await this.pool.query<{ sedeId: string }>(
+        `SELECT DISTINCT cs.sede_id AS "sedeId"
+         FROM contrato_sedes cs
+         JOIN contratos c ON c.id = cs.contrato_id
+         WHERE c.estado = 'vigente' AND c.id != $1 AND cs.sede_id = ANY($2)`,
+        [id, cambios.sedeIds],
+      );
+      if (sedesEnConflicto.rows.length > 0) {
+        const sedes = sedesEnConflicto.rows.map((r) => r.sedeId).join(', ');
+        throw new ConflictException({
+          message: `Las sedes [${sedes}] ya estan cubiertas por otro contrato vigente (DOC-004 4)`,
+        });
+      }
+    }
+
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const sets: string[] = [];
+      const valores: unknown[] = [];
+      if (cambios.vigenciaHasta !== undefined) {
+        valores.push(cambios.vigenciaHasta);
+        sets.push(`vigencia_hasta = $${valores.length}`);
+      }
+      if (cambios.modulosContratados !== undefined) {
+        valores.push(cambios.modulosContratados);
+        sets.push(`modulos_contratados = $${valores.length}`);
+      }
+      if (sets.length > 0) {
+        valores.push(id);
+        await client.query(
+          `UPDATE contratos SET ${sets.join(', ')} WHERE id = $${valores.length}`,
+          valores,
+        );
+      }
+
+      if (cambios.sedeIds) {
+        await client.query(
+          'DELETE FROM contrato_sedes WHERE contrato_id = $1',
+          [id],
+        );
+        for (const sedeId of cambios.sedeIds) {
+          await client.query(
+            'INSERT INTO contrato_sedes (contrato_id, sede_id) VALUES ($1, $2)',
+            [id, sedeId],
+          );
+        }
+      }
+
+      await client.query('COMMIT');
+    } catch (error: unknown) {
+      await client.query('ROLLBACK');
+      if (esErrorPg(error) && error.code === FOREIGN_KEY_VIOLATION) {
+        throw new BadRequestException({ message: 'alguna sedeId inexistente' });
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+    // Recien actualizado con este mismo id — nunca null.
+    return (await this.findById(id)) as Contrato;
   }
 
   private toContrato(row: ContratoRow): Contrato {

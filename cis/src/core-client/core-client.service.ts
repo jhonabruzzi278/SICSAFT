@@ -38,6 +38,8 @@ import {
   postInventarioResponseSchema,
   responsableResponseSchema,
   responsablesPaginaResponseSchema,
+  sedeResponseSchema,
+  sedesResponseSchema,
   sesionDetalleResponseSchema,
   sesionesResumenResponseSchema,
   ubicacionResponseSchema,
@@ -62,11 +64,16 @@ import {
   type PatchActivoDescripcionRequest,
   type PatchActivoResponsableRequest,
   type PatchAreaRequest,
+  type PatchContratoCondicionesRequest,
   type PatchContratoRequest,
+  type PatchOrganizacionEstadoRequest,
+  type PatchOrganizacionRequest,
   type PatchResponsableEstadoRequest,
+  type PatchSedeEstadoRequest,
   type PatchUbicacionRequest,
   type PostActivoRequest,
   type PostAreaRequest,
+  type PostAuditoriaRequest,
   type PostCatalogoTipoRequest,
   type PostContratoRequest,
   type PostDocumentoActivoRequest,
@@ -74,9 +81,11 @@ import {
   type PostInventarioResult,
   type PostOrganizacionRequest,
   type PostResponsableRequest,
+  type PostSedeRequest,
   type PostUbicacionRequest,
   type ResponsableResult,
   type ResponsablesPaginaResult,
+  type SedeResult,
   type SesionDetalleResult,
   type SesionResumenResult,
   type UbicacionResult,
@@ -293,6 +302,77 @@ export class CoreClientService {
     return this.parse(organizacionResponseSchema, data, 'organizaciones');
   }
 
+  // DOC-024 1 — PATCH /organizaciones/:id (editar nombre).
+  async patchOrganizacion(
+    organizacionId: string,
+    request: PatchOrganizacionRequest,
+    correlationId: string,
+  ): Promise<OrganizacionResult> {
+    const data = await this.patch(
+      `/organizaciones/${encodeURIComponent(organizacionId)}`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403] },
+    );
+    return this.parse(organizacionResponseSchema, data, 'organizaciones');
+  }
+
+  // DOC-024 1 — PATCH /organizaciones/:id/estado. Bidireccional, sin cascada (ver DOC-024 1).
+  async patchOrganizacionEstado(
+    organizacionId: string,
+    request: PatchOrganizacionEstadoRequest,
+    correlationId: string,
+  ): Promise<OrganizacionResult> {
+    const data = await this.patch(
+      `/organizaciones/${encodeURIComponent(organizacionId)}/estado`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403] },
+    );
+    return this.parse(organizacionResponseSchema, data, 'organizaciones');
+  }
+
+  // Gap 2 (flujo real Admin->Directivo->Profesional AFT) — sin 409: el id lo genera CORE (UUID),
+  // no hay colisión posible a diferencia de Organizacion (id = org_id real de Zitadel).
+  async postSede(
+    request: PostSedeRequest,
+    correlationId: string,
+  ): Promise<SedeResult> {
+    const data = await this.post('/sedes', request, correlationId, {
+      passthroughStatuses: [400, 403],
+    });
+    return this.parse(sedeResponseSchema, data, 'sedes');
+  }
+
+  // DOC-024 1 — GET /sedes?organizacionId=, el picker que reemplaza copiar/pegar un id a mano en
+  // el formulario de Contrato de web_admin. Lectura abierta, mismo criterio que getOrganizaciones.
+  async getSedes(
+    organizacionId: string,
+    correlationId: string,
+  ): Promise<SedeResult[]> {
+    const data = await this.get(
+      '/sedes',
+      { organizacionId },
+      correlationId,
+    );
+    return this.parse(sedesResponseSchema, data, 'sedes');
+  }
+
+  // DOC-024 1 — PATCH /sedes/:id/estado.
+  async patchSedeEstado(
+    sedeId: string,
+    request: PatchSedeEstadoRequest,
+    correlationId: string,
+  ): Promise<SedeResult> {
+    const data = await this.patch(
+      `/sedes/${encodeURIComponent(sedeId)}/estado`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 404] },
+    );
+    return this.parse(sedeResponseSchema, data, 'sedes');
+  }
+
   // DOC-021 4 — lectura abierta, sin auditoria (CORE tampoco la exige).
   async getIndicadores(correlationId: string): Promise<IndicadoresResult> {
     const data = await this.get('/indicadores', undefined, correlationId);
@@ -364,6 +444,22 @@ export class CoreClientService {
     return this.parse(contratoResponseSchema, data, 'contratos');
   }
 
+  // DOC-024 2 — PATCH /contratos/:id/condiciones. Separado de patchContrato (que solo cambia
+  // `estado`) — ver DOC-024 2.
+  async patchContratoCondiciones(
+    contratoId: string,
+    request: PatchContratoCondicionesRequest,
+    correlationId: string,
+  ): Promise<ContratoResult> {
+    const data = await this.patch(
+      `/contratos/${encodeURIComponent(contratoId)}/condiciones`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 409] },
+    );
+    return this.parse(contratoResponseSchema, data, 'contratos');
+  }
+
   async getInventarioEstado(
     inventarioId: string,
     correlationId: string,
@@ -424,6 +520,21 @@ export class CoreClientService {
       correlationId,
     );
     return this.parse(auditoriaPaginaResponseSchema, data, 'auditoria');
+  }
+
+  // DOC-024 3 — POST /auditoria. Reporta a CORE el resultado de una operacion de identidad en
+  // Zitadel que nunca pasa por el Orquestador (asignar/quitar rol, crear organizacion en
+  // Zitadel) — ver cis/src/auditoria-identidad/auditoria-identidad.service.ts. Sin
+  // passthroughStatuses: si esto falla, no hay un rechazo de negocio que distinguir, es
+  // simplemente "no se pudo auditar" — 502 genérico alcanza (ver AuditoriaIdentidadService, que
+  // no atrapa este fallo a propósito, DOC-024 3).
+  async postAuditoria(
+    request: PostAuditoriaRequest,
+    correlationId: string,
+  ): Promise<void> {
+    await this.post('/auditoria', request, correlationId, {
+      passthroughStatuses: [],
+    });
   }
 
   // RF-05 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos. Paginado

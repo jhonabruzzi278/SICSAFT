@@ -207,6 +207,26 @@ no con un Zitadel real corriendo.
 corrección que `cis/` (ver su README) — `@eslint/eslintrc`, `source-map-support` y `ts-loader`
 fuera de `devDependencies`, `supertest`/`@types/supertest` verificados en uso real y conservados.
 
+**CRUD completo de Organización/Sede/Contrato + auditoría de identidad (2026-08-21,
+[DOC-024](../aidlc-docs/ccp/design-artifacts/DOC-024-crud-completo-auditoria-identidad.md))**:
+Organización y Sede ganan `estado` (`activo`/`inactivo`, bidireccional, nunca `DELETE` real — Tomo
+III 4.10 prohíbe borrar registros oficiales de la Base Patrimonial) vía
+`PATCH /organizaciones/:id(/estado)` y `PATCH /sedes/:id/estado` — deliberadamente **sin cascada**:
+desactivar una organización/sede no toca Zitadel ni cambia el estado de ningún Contrato existente,
+cortar el acceso real de una organización sigue siendo, como antes, un cambio de estado de su
+Contrato. Sede gana su primer `SedeController` de lectura (`GET /sedes?organizacionId=`) — hasta
+ahora solo se leía vía JOIN dentro de `ContratoRepository`. Contrato gana
+`PATCH /contratos/:id/condiciones` (vigencia/módulos/sedes), endpoint separado del
+`PATCH /contratos/:id` ya existente (que solo cambia `estado`) para no mezclar dos validaciones
+distintas en un mismo body. Tabla `auditoria` gana `categoria` (`patrimonial`/`identidad`) y
+`organizacion_id` — nuevo `AuditoriaEscrituraController` (`POST /auditoria`, sin pasar por
+`OrquestadorService`: no hay rol que verificar, es CIS reportando el resultado de una operación de
+identidad en Zitadel que nunca toca CORE) permite que esas operaciones dejen de ser un punto ciego
+del Motor de Auditoría de Tomo IV. Migración aditiva
+(`1755900000000_estado-organizacion-sede-y-auditoria-identidad.ts`), ninguna fila existente cambia
+de significado. Verificado real: unit 100% stmts/lines/funcs, e2e completo, y de punta a punta
+contra Docker real vía `web_admin/` en el navegador.
+
 ## Desarrollo local
 Requiere una base `core` real con las migraciones de [`migrations/`](migrations) aplicadas —
 `docker compose up -d` desde `../devops/local` ya lo hace solo (el servicio `core-migrate` corre

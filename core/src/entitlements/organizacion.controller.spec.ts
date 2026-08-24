@@ -29,7 +29,7 @@ describe('OrganizacionController', () => {
 
   it('listar delega en OrganizacionRepository.listar', async () => {
     const organizaciones: Organizacion[] = [
-      { id: 'duoc-uc', nombre: 'DUOC UC' },
+      { id: 'duoc-uc', nombre: 'DUOC UC', estado: 'activo' },
     ];
     repository.listar.mockResolvedValue(organizaciones);
 

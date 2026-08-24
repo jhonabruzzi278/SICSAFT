@@ -12,6 +12,7 @@ import { EstructuraEscrituraController } from '../estructura/estructura-escritur
 import { CatalogoTipoActivoEscrituraController } from '../patrimonial/catalogo-tipo-activo-escritura.controller';
 import { DocumentoActivoController } from '../patrimonial/documento-activo.controller';
 import { OrganizacionEscrituraController } from '../entitlements/organizacion-escritura.controller';
+import { SedeEscrituraController } from '../entitlements/sede-escritura.controller';
 import { OrquestadorService } from './orquestador.service';
 
 // DOC-007 — aloja acá todos los controllers de escritura oficial (no en sus modulos de dominio)
@@ -34,6 +35,7 @@ import { OrquestadorService } from './orquestador.service';
     CatalogoTipoActivoEscrituraController,
     DocumentoActivoController,
     OrganizacionEscrituraController,
+    SedeEscrituraController,
   ],
   providers: [OrquestadorService],
 })

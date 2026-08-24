@@ -23,13 +23,17 @@ import type {
   IndicadoresResult,
   OrganizacionResult,
   ResponsableResult,
+  SedeResult,
   UbicacionResult,
 } from '../core-client/core-client.types';
 import type { GrantUsuario } from '../zitadel-admin/zitadel-admin.types';
 import type {
   ActualizarAreaBody,
+  ActualizarCondicionesContratoBody,
   ActualizarContratoBody,
+  ActualizarEstadoOrganizacionBody,
   ActualizarEstadoResponsableBody,
+  ActualizarEstadoSedeBody,
   ActualizarUbicacionBody,
   AltaActivoBody,
   AltaAreaBody,
@@ -38,10 +42,13 @@ import type {
   AltaDocumentoActivoBody,
   AltaOrganizacionBody,
   AltaResponsableBody,
+  AltaSedeBody,
   AltaUbicacionBody,
   CambioResponsableActivoBody,
+  EditarOrganizacionBody,
   EscrituraOficialActivoBody,
   ImportacionContableBody,
+  QuitarRolUsuarioOrganizacionBody,
 } from './administrador.schemas';
 
 const CORRELATION_ID = 'correlation-test';
@@ -88,6 +95,7 @@ describe('AdministradorController', () => {
             getContratos: jest.fn(),
             altaContrato: jest.fn(),
             actualizarEstadoContrato: jest.fn(),
+            altaSede: jest.fn(),
             getAuditoria: jest.fn(),
             getAreas: jest.fn(),
             altaArea: jest.fn(),
@@ -110,9 +118,16 @@ describe('AdministradorController', () => {
             importarContable: jest.fn(),
             getOrganizaciones: jest.fn(),
             altaOrganizacion: jest.fn(),
+            editarOrganizacion: jest.fn(),
+            actualizarEstadoOrganizacion: jest.fn(),
             getIndicadores: jest.fn(),
             listarUsuariosOrganizacion: jest.fn(),
             asignarUsuarioOrganizacion: jest.fn(),
+            quitarRolUsuarioOrganizacion: jest.fn(),
+            desactivarUsuarioOrganizacion: jest.fn(),
+            getSedes: jest.fn(),
+            actualizarEstadoSede: jest.fn(),
+            actualizarCondicionesContrato: jest.fn(),
           },
         },
       ],
@@ -254,6 +269,111 @@ describe('AdministradorController', () => {
       controller.actualizarEstadoContrato('contrato-1', body, request),
     ).resolves.toBe(suspendido);
     expect(service.actualizarEstadoContrato).toHaveBeenCalledWith(
+      'contrato-1',
+      body,
+      auth,
+      CORRELATION_ID,
+    );
+  });
+
+  it('altaSede delega en el service con el body, el auth del guard y el correlationId', async () => {
+    const sede: SedeResult = {
+      id: 'sede-1',
+      organizacionId: 'duoc-uc',
+      nombre: 'Melipilla',
+      estado: 'activo',
+    };
+    service.altaSede.mockResolvedValue(sede);
+    const body: AltaSedeBody = { organizacionId: 'duoc-uc', nombre: 'Melipilla' };
+    const auth: ZitadelAuthContext = {
+      operadorId: 'op-1',
+      accessToken: 'zitadel-token',
+      expiresAt: '2026-08-12T10:15:00.000Z',
+      rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+    };
+    const request = buildAuthenticatedRequest(auth);
+
+    await expect(controller.altaSede(body, request)).resolves.toBe(sede);
+    expect(service.altaSede).toHaveBeenCalledWith(body, auth, CORRELATION_ID);
+  });
+
+  it('getSedes delega en el service con el organizacionId de la query y el correlationId (DOC-024 1)', async () => {
+    const sedes: SedeResult[] = [
+      {
+        id: 'sede-1',
+        organizacionId: 'duoc-uc',
+        nombre: 'Melipilla',
+        estado: 'activo',
+      },
+    ];
+    service.getSedes.mockResolvedValue(sedes);
+    const request = { correlationId: CORRELATION_ID } as RequestWithCorrelationId;
+
+    await expect(
+      controller.getSedes({ organizacionId: 'duoc-uc' }, request),
+    ).resolves.toBe(sedes);
+    expect(service.getSedes).toHaveBeenCalledWith('duoc-uc', CORRELATION_ID);
+  });
+
+  it('actualizarEstadoSede delega en el service con el id, el body, el auth del guard y el correlationId (DOC-024 1)', async () => {
+    const sede: SedeResult = {
+      id: 'sede-1',
+      organizacionId: 'duoc-uc',
+      nombre: 'Melipilla',
+      estado: 'inactivo',
+    };
+    service.actualizarEstadoSede.mockResolvedValue(sede);
+    const body: ActualizarEstadoSedeBody = {
+      organizacionId: 'duoc-uc',
+      estado: 'inactivo',
+    };
+    const auth: ZitadelAuthContext = {
+      operadorId: 'op-1',
+      accessToken: 'zitadel-token',
+      expiresAt: '2026-08-12T10:15:00.000Z',
+      rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+    };
+    const request = buildAuthenticatedRequest(auth);
+
+    await expect(
+      controller.actualizarEstadoSede('sede-1', body, request),
+    ).resolves.toBe(sede);
+    expect(service.actualizarEstadoSede).toHaveBeenCalledWith(
+      'sede-1',
+      body,
+      auth,
+      CORRELATION_ID,
+    );
+  });
+
+  it('actualizarCondicionesContrato delega en el service con el id, el body, el auth del guard y el correlationId (DOC-024 2)', async () => {
+    const actualizado: ContratoResult = {
+      id: 'contrato-1',
+      organizacionId: 'duoc-uc',
+      organizacionNombre: 'DUOC UC',
+      sedes: [{ id: 'melipilla', nombre: 'Melipilla' }],
+      vigenciaDesde: '2026-01-01T00:00:00.000Z',
+      vigenciaHasta: '2027-01-01T00:00:00.000Z',
+      estado: 'vigente',
+      modulosContratados: ['inventario-qr'],
+    };
+    service.actualizarCondicionesContrato.mockResolvedValue(actualizado);
+    const body: ActualizarCondicionesContratoBody = {
+      organizacionId: 'duoc-uc',
+      vigenciaHasta: '2027-01-01T00:00:00.000Z',
+    };
+    const auth: ZitadelAuthContext = {
+      operadorId: 'op-1',
+      accessToken: 'zitadel-token',
+      expiresAt: '2026-08-12T10:15:00.000Z',
+      rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+    };
+    const request = buildAuthenticatedRequest(auth);
+
+    await expect(
+      controller.actualizarCondicionesContrato('contrato-1', body, request),
+    ).resolves.toBe(actualizado);
+    expect(service.actualizarCondicionesContrato).toHaveBeenCalledWith(
       'contrato-1',
       body,
       auth,
@@ -489,24 +609,65 @@ describe('AdministradorController', () => {
     );
   });
 
-  // DOC-021 4 (Administrador del Sistema) — estos 2 endpoints usan AdministradorSistemaGuard, no
-  // ZitadelAuthGuard+requireAuthContext como el resto (el guard ya valida el rol antes de llegar
-  // acá), por eso el controller les pasa `request` completo, no `requireAuthContext(request)`.
-  it('asignarUsuarioOrganizacion delega en el service con el orgId, el body y el correlationId', async () => {
+  // DOC-021 4 (Administrador del Sistema) — usa AdministradorSistemaGuard (el guard ya valida el
+  // rol antes de llegar acá) ADEMAS de requireAuthContext (DOC-024 3: se agregó para tener un
+  // operadorId real que auditar via AuditoriaIdentidadService — antes este endpoint no lo
+  // capturaba, a diferencia de cada otro endpoint de escritura de este archivo).
+  it('asignarUsuarioOrganizacion delega en el service con el orgId, el body, el auth del guard y el correlationId', async () => {
     service.asignarUsuarioOrganizacion.mockResolvedValue(undefined);
     const body = {
       email: 'nuevo@duoc.cl',
       rol: 'administrador-patrimonial' as const,
     };
-    const request = {
-      correlationId: CORRELATION_ID,
-    } as RequestWithCorrelationId;
+    const request = buildAuthenticatedRequest(AUTH);
 
     await controller.asignarUsuarioOrganizacion('duoc-uc', body, request);
 
     expect(service.asignarUsuarioOrganizacion).toHaveBeenCalledWith(
       'duoc-uc',
       body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  // DOC-024 — inverso de asignarUsuarioOrganizacion.
+  it('quitarRolUsuarioOrganizacion delega en el service con el orgId, el userId, el body, el auth del guard y el correlationId', async () => {
+    service.quitarRolUsuarioOrganizacion.mockResolvedValue(undefined);
+    const body: QuitarRolUsuarioOrganizacionBody = { rol: 'directivo' };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await controller.quitarRolUsuarioOrganizacion(
+      'duoc-uc',
+      'usuario-1',
+      body,
+      request,
+    );
+
+    expect(service.quitarRolUsuarioOrganizacion).toHaveBeenCalledWith(
+      'duoc-uc',
+      'usuario-1',
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  // DOC-024 — dar de baja a un usuario en Zitadel.
+  it('desactivarUsuarioOrganizacion delega en el service con el orgId, el userId, el auth del guard y el correlationId', async () => {
+    service.desactivarUsuarioOrganizacion.mockResolvedValue(undefined);
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await controller.desactivarUsuarioOrganizacion(
+      'duoc-uc',
+      'usuario-1',
+      request,
+    );
+
+    expect(service.desactivarUsuarioOrganizacion).toHaveBeenCalledWith(
+      'duoc-uc',
+      'usuario-1',
+      AUTH,
       CORRELATION_ID,
     );
   });
@@ -716,7 +877,11 @@ describe('AdministradorController', () => {
     );
   });
 
-  const ORGANIZACION: OrganizacionResult = { id: 'duoc-uc', nombre: 'DUOC UC' };
+  const ORGANIZACION: OrganizacionResult = {
+    id: 'duoc-uc',
+    nombre: 'DUOC UC',
+    estado: 'activo',
+  };
 
   // DOC-021 4 (Administrador del Sistema).
   it('getOrganizaciones delega en el service con el correlationId', async () => {
@@ -733,16 +898,47 @@ describe('AdministradorController', () => {
 
   it('altaOrganizacion delega en el service con el body, el auth del guard y el correlationId', async () => {
     service.altaOrganizacion.mockResolvedValue(ORGANIZACION);
-    const body: AltaOrganizacionBody = {
-      id: 'zitadel-org-nueva',
-      nombre: 'Nueva Organización',
-    };
+    const body: AltaOrganizacionBody = { nombre: 'Nueva Organización' };
     const request = buildAuthenticatedRequest(AUTH);
 
     await expect(controller.altaOrganizacion(body, request)).resolves.toBe(
       ORGANIZACION,
     );
     expect(service.altaOrganizacion).toHaveBeenCalledWith(
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  it('editarOrganizacion delega en el service con el orgId, el body, el auth del guard y el correlationId (DOC-024 1)', async () => {
+    const renombrada = { ...ORGANIZACION, nombre: 'DUOC UC (renombrada)' };
+    service.editarOrganizacion.mockResolvedValue(renombrada);
+    const body: EditarOrganizacionBody = { nombre: 'DUOC UC (renombrada)' };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(
+      controller.editarOrganizacion('duoc-uc', body, request),
+    ).resolves.toBe(renombrada);
+    expect(service.editarOrganizacion).toHaveBeenCalledWith(
+      'duoc-uc',
+      body,
+      AUTH,
+      CORRELATION_ID,
+    );
+  });
+
+  it('actualizarEstadoOrganizacion delega en el service con el orgId, el body, el auth del guard y el correlationId (DOC-024 1)', async () => {
+    const inactiva = { ...ORGANIZACION, estado: 'inactivo' as const };
+    service.actualizarEstadoOrganizacion.mockResolvedValue(inactiva);
+    const body: ActualizarEstadoOrganizacionBody = { estado: 'inactivo' };
+    const request = buildAuthenticatedRequest(AUTH);
+
+    await expect(
+      controller.actualizarEstadoOrganizacion('duoc-uc', body, request),
+    ).resolves.toBe(inactiva);
+    expect(service.actualizarEstadoOrganizacion).toHaveBeenCalledWith(
+      'duoc-uc',
       body,
       AUTH,
       CORRELATION_ID,

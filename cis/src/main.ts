@@ -17,8 +17,13 @@ async function bootstrap(): Promise<void> {
     app.enableCors({
       origin: corsOrigin.split(',').map((origin) => origin.trim()),
       // PATCH: DOC-012 7 (Fase 5), PATCH /admin/contratos/:id — WEB es el primer cliente que
-      // necesita este método desde un navegador (APP QR solo usa GET/POST).
-      methods: ['GET', 'POST', 'PATCH'],
+      // necesita este método desde un navegador (APP QR solo usa GET/POST). DELETE: hallazgo real
+      // verificado en vivo (DOC-024) — DELETE /admin/activos/:id/documentos/:documentoId (DOC-021
+      // 3) y DELETE /admin/organizaciones/:orgId/usuarios/:userId (DOC-024) fallaban en el
+      // preflight de CORS desde un navegador real (nunca se habían probado así, solo via
+      // supertest/curl, que no aplican CORS) — sin este método, ambos devuelven "Failed to fetch"
+      // pese a que el propio endpoint funciona perfecto.
+      methods: ['GET', 'POST', 'PATCH', 'DELETE'],
       allowedHeaders: ['Authorization', 'Content-Type', CORRELATION_ID_HEADER],
       exposedHeaders: [CORRELATION_ID_HEADER],
     });

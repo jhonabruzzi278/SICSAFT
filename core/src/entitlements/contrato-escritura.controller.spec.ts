@@ -30,6 +30,7 @@ describe('ContratoEscrituraController', () => {
           useValue: {
             procesarAltaContrato: jest.fn(),
             procesarActualizacionContrato: jest.fn(),
+            procesarActualizarCondicionesContrato: jest.fn(),
           },
         },
       ],
@@ -76,6 +77,30 @@ describe('ContratoEscrituraController', () => {
     );
     expect(
       orquestadorService.procesarActualizacionContrato,
+    ).toHaveBeenCalledWith('contrato-1', body);
+  });
+
+  it('actualizarCondiciones delega en OrquestadorService.procesarActualizarCondicionesContrato (DOC-024 2)', async () => {
+    const actualizado = {
+      ...CONTRATO,
+      vigenciaHasta: '2027-01-01T00:00:00.000Z',
+    };
+    orquestadorService.procesarActualizarCondicionesContrato.mockResolvedValue(
+      actualizado,
+    );
+    const body = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+      vigenciaHasta: '2027-01-01T00:00:00.000Z',
+    };
+
+    await expect(
+      controller.actualizarCondiciones('contrato-1', body),
+    ).resolves.toBe(actualizado);
+    expect(
+      orquestadorService.procesarActualizarCondicionesContrato,
     ).toHaveBeenCalledWith('contrato-1', body);
   });
 });

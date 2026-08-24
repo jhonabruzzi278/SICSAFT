@@ -3,13 +3,28 @@
 ## Objetivo
 
 Portal WEB exclusivo del rol **Administrador del Sistema** (`administrador-sistema`) — administra
-la *plataforma* SICSAFT: organizaciones, contratos, usuarios (asignación de roles vía integración
-real con la API de administración de Zitadel) e indicadores. **Nunca** toca información
+la *plataforma* SICSAFT: organizaciones, sedes, contratos, usuarios (asignación de roles vía
+integración real con la API de administración de Zitadel) e indicadores, con CRUD completo
+(crear/editar/dar de baja) sin necesitar nunca la Consola de Zitadel. **Nunca** toca información
 patrimonial (Activos/Catálogo/Documentos son exclusivos de [`ccp/`](../ccp), Profesional de AFT) —
 ver [DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md)
 §1 y [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
 
 ## Estado
+
+🟢 **CRUD completo + matriz de roles (DOC-024, 2026-08-21)**: Organizaciones y Sedes ganan editar
+nombre y dar de baja/reactivar (`estado`, bidireccional, nunca borrado real — Tomo III 4.10);
+Contratos gana un endpoint de "editar condiciones" (hoy expone extender/acotar vigencia desde la
+UI) separado del cambio de estado que ya existía; el formulario de Contrato ya no pide copiar/
+pegar un id de Sede a mano — selecciona de un picker poblado en vivo; Usuarios gana "quitar rol"
+(revocar un grant puntual sin afectar los demás roles del usuario). Nueva pantalla **Matriz de
+roles**, de solo lectura, transcribiendo [DOC-023](../aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md)
+§2 (`src/lib/matriz-permisos.ts`) — no es un motor de roles configurable, los 3 roles siguen fijos.
+Verificado real de punta a punta contra Docker/Zitadel: editar nombre de organización, dar de
+baja/reactivar organización y sede, picker de sedes, editar vigencia de contrato, y quitar un rol
+sin afectar los demás — esto último destapó un bug real de CORS en CIS (`DELETE` no estaba en la
+lista de métodos permitidos, nunca antes ejercitado desde un navegador real), corregido en el
+mismo incremento, ver `../cis/README.md`.
 
 🟢 Extraído de `ccp/AdminPage.tsx` en la reestructuración de portales (DOC-022, 2026-08-18) — las
 4 secciones (Organizaciones, Contratos, Usuarios, Indicadores) migradas tal cual, mismo patrón de
@@ -60,6 +75,8 @@ Nada — es un cliente más de CIS, ningún otro sistema depende de `web_admin/`
 (diseño original del rol Administrador del Sistema, cuando todavía vivía dentro de `ccp/`).
 [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
 (diseño de la extracción a este sistema propio).
+[DOC-024](../aidlc-docs/ccp/design-artifacts/DOC-024-crud-completo-auditoria-identidad.md) (CRUD
+completo de Organización/Sede/Contrato sin Consola de Zitadel, matriz de roles de solo lectura).
 
 ## Próximo paso sugerido
 

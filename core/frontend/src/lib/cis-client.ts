@@ -25,6 +25,13 @@ export interface UsuarioOrganizacion {
   roles: string[];
 }
 
+// Gap 3 (flujo real Admin->Directivo->Profesional AFT) — misma forma que
+// AsignarProfesionalAftResult del lado de CIS (cis/src/directivo/directivo.schemas.ts).
+export interface AsignarProfesionalAftResult {
+  creado: boolean;
+  passwordInicial: string | null;
+}
+
 export class CisApiError extends Error {
   constructor(
     public readonly status: number,
@@ -92,11 +99,14 @@ export const cisClient = {
     return (await res.json()) as UsuarioOrganizacion[];
   },
 
-  async asignarProfesionalAft(email: string): Promise<void> {
-    await authorizedFetch('/directivo/usuarios', {
+  async asignarProfesionalAft(
+    email: string,
+  ): Promise<AsignarProfesionalAftResult> {
+    const res = await authorizedFetch('/directivo/usuarios', {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
+    return (await res.json()) as AsignarProfesionalAftResult;
   },
 };
 

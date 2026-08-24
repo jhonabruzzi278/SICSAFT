@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ContratoRepository } from './contrato.repository';
 import { EventoRepository } from '../eventos/evento.repository';
 import type {
+  CambiosCondicionesContrato,
   Contrato,
   EstadoContrato,
   NuevoContratoInput,
@@ -46,6 +47,29 @@ export class EscrituraContratoService {
       tipo: 'contrato_actualizado',
       usuario: operadorId,
       detalle: { estadoNuevo },
+    });
+    return contrato;
+  }
+
+  // DOC-024 2 — PATCH /contratos/:id/condiciones. Mismo tipo de evento que actualizarEstado
+  // ('contrato_actualizado', DOC-012 7) — el detalle distingue el caso por las claves que trae en
+  // vez de por un tipo de evento nuevo, mismo criterio ya usado para 'alta' vs 'actualizado' acá.
+  async actualizarCondiciones(
+    contratoId: string,
+    organizacionId: string,
+    cambios: CambiosCondicionesContrato,
+    operadorId: string,
+  ): Promise<Contrato> {
+    const contrato = await this.contratoRepository.actualizarCondiciones(
+      contratoId,
+      organizacionId,
+      cambios,
+    );
+    await this.eventoRepository.registrarContrato({
+      contratoId: contrato.id,
+      tipo: 'contrato_actualizado',
+      usuario: operadorId,
+      detalle: { condicionesActualizadas: cambios },
     });
     return contrato;
   }

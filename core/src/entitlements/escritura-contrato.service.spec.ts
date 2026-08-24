@@ -19,6 +19,7 @@ function buildService() {
   const contratoRepository = {
     crear: jest.fn(),
     actualizarEstado: jest.fn(),
+    actualizarCondiciones: jest.fn(),
   } as unknown as jest.Mocked<ContratoRepository>;
   const eventoRepository = {
     registrarContrato: jest.fn().mockResolvedValue(undefined),
@@ -81,6 +82,38 @@ describe('EscrituraContratoService', () => {
         tipo: 'contrato_actualizado',
         usuario: 'op-admin',
         detalle: { estadoNuevo: 'suspendido' },
+      });
+    });
+  });
+
+  describe('actualizarCondiciones', () => {
+    it('edita las condiciones y registra un evento contrato_actualizado (DOC-024 2)', async () => {
+      const { service, contratoRepository, eventoRepository } = buildService();
+      const actualizado = {
+        ...CONTRATO,
+        vigenciaHasta: '2027-01-01T00:00:00.000Z',
+      };
+      contratoRepository.actualizarCondiciones.mockResolvedValue(actualizado);
+      const cambios = { vigenciaHasta: '2027-01-01T00:00:00.000Z' };
+
+      const contrato = await service.actualizarCondiciones(
+        'contrato-1',
+        'duoc-uc',
+        cambios,
+        'op-admin',
+      );
+
+      expect(contrato).toBe(actualizado);
+      expect(contratoRepository.actualizarCondiciones).toHaveBeenCalledWith(
+        'contrato-1',
+        'duoc-uc',
+        cambios,
+      );
+      expect(eventoRepository.registrarContrato).toHaveBeenCalledWith({
+        contratoId: 'contrato-1',
+        tipo: 'contrato_actualizado',
+        usuario: 'op-admin',
+        detalle: { condicionesActualizadas: cambios },
       });
     });
   });

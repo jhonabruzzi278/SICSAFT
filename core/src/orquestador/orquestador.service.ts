@@ -5,6 +5,7 @@ import { EscrituraActivoService } from '../patrimonial/escritura-activo.service'
 import { ImportacionContableService } from '../patrimonial/importacion-contable.service';
 import { EscrituraContratoService } from '../entitlements/escritura-contrato.service';
 import { EscrituraOrganizacionService } from '../entitlements/escritura-organizacion.service';
+import { EscrituraSedeService } from '../entitlements/escritura-sede.service';
 import { EscrituraEstructuraService } from '../estructura/escritura-estructura.service';
 import { EscrituraDocumentoActivoService } from '../patrimonial/escritura-documento-activo.service';
 import { CatalogoTipoActivoRepository } from '../patrimonial/catalogo-tipo-activo.repository';
@@ -36,12 +37,22 @@ import type {
 } from '../patrimonial/documento-activo.schemas';
 import type { DocumentoActivo } from '../patrimonial/documento-activo.types';
 import type {
+  ActualizarCondicionesContratoBody,
   ActualizarContratoBody,
   AltaContratoBody,
 } from '../entitlements/contrato.schemas';
 import type { Contrato } from '../entitlements/contrato.types';
-import type { AltaOrganizacionBody } from '../entitlements/organizacion.schemas';
+import type {
+  ActualizarEstadoOrganizacionBody,
+  ActualizarOrganizacionBody,
+  AltaOrganizacionBody,
+} from '../entitlements/organizacion.schemas';
 import type { Organizacion } from '../entitlements/organizacion.types';
+import type {
+  ActualizarEstadoSedeBody,
+  AltaSedeBody,
+} from '../entitlements/sede.schemas';
+import type { Sede } from '../entitlements/sede.types';
 import type {
   AltaAreaBody,
   ActualizarAreaBody,
@@ -68,6 +79,7 @@ export class OrquestadorService {
     private readonly escrituraContratoService: EscrituraContratoService,
     private readonly escrituraEstructuraService: EscrituraEstructuraService,
     private readonly escrituraOrganizacionService: EscrituraOrganizacionService,
+    private readonly escrituraSedeService: EscrituraSedeService,
     private readonly escrituraDocumentoActivoService: EscrituraDocumentoActivoService,
     private readonly catalogoTipoActivoRepository: CatalogoTipoActivoRepository,
     private readonly auditoriaRepository: AuditoriaRepository,
@@ -273,6 +285,99 @@ export class OrquestadorService {
     );
   }
 
+  // DOC-024 1 — PATCH /organizaciones/:id (editar nombre). Mismo verificador que
+  // procesarAltaOrganizacion: administrador-sistema no pertenece a ninguna organizacion de
+  // negocio en particular, se chequea en CUALQUIERA.
+  procesarActualizarOrganizacion(
+    organizacionId: string,
+    payload: ActualizarOrganizacionBody,
+  ): Promise<Organizacion> {
+    return this.ejecutarOperacionOficial(
+      `PATCH /organizaciones/${organizacionId}`,
+      payload.operadorId,
+      '',
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraOrganizacionService.actualizarNombre(
+          organizacionId,
+          payload.nombre,
+        ),
+      (organizacion) => organizacion.id,
+      (roles) =>
+        verificarRolEnCualquierOrganizacion(roles, [
+          ADMINISTRADOR_SISTEMA_ROLE,
+        ]),
+    );
+  }
+
+  // DOC-024 1 — PATCH /organizaciones/:id/estado. Bidireccional, sin cascada a Contrato (DOC-024
+  // 1) — mismo verificador que el resto de operaciones sobre Organizacion.
+  procesarActualizarEstadoOrganizacion(
+    organizacionId: string,
+    payload: ActualizarEstadoOrganizacionBody,
+  ): Promise<Organizacion> {
+    return this.ejecutarOperacionOficial(
+      `PATCH /organizaciones/${organizacionId}/estado`,
+      payload.operadorId,
+      '',
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraOrganizacionService.actualizarEstado(
+          organizacionId,
+          payload.estado,
+        ),
+      (organizacion) => organizacion.estado,
+      (roles) =>
+        verificarRolEnCualquierOrganizacion(roles, [
+          ADMINISTRADOR_SISTEMA_ROLE,
+        ]),
+    );
+  }
+
+  // Gap 2 (flujo real Admin->Directivo->Profesional AFT) — POST /sedes. A diferencia de
+  // Organizacion, una Sede SI pertenece a una organizacion puntual (organizacionId obligatorio en
+  // el schema), asi que usa el mismo verificador que Contrato (administrador-patrimonial O
+  // administrador-sistema, contra ESA organizacion) — no verificarRolEnCualquierOrganizacion.
+  // ejecutarOperacionOficial (no el atajo ejecutarEscrituraOficial) porque Sede no tiene un campo
+  // `estado` que resumir en la auditoria, mismo motivo que procesarAltaOrganizacion de arriba.
+  procesarAltaSede(payload: AltaSedeBody): Promise<Sede> {
+    return this.ejecutarOperacionOficial(
+      'POST /sedes',
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraSedeService.crear({
+          organizacionId: payload.organizacionId,
+          nombre: payload.nombre,
+        }),
+      (sede) => sede.id,
+      OrquestadorService.VERIFICAR_ROL_CONTRATO,
+    );
+  }
+
+  // DOC-024 1 — PATCH /sedes/:id/estado. Mismos roles que pueden crear una Sede (VERIFICAR_ROL_
+  // CONTRATO), bidireccional, sin cascada a Contrato (DOC-024 1).
+  procesarActualizarEstadoSede(
+    sedeId: string,
+    payload: ActualizarEstadoSedeBody,
+  ): Promise<Sede> {
+    return this.ejecutarOperacionOficial(
+      `PATCH /sedes/${sedeId}/estado`,
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraSedeService.actualizarEstado(
+          sedeId,
+          payload.organizacionId,
+          payload.estado,
+        ),
+      (sede) => sede.estado,
+      OrquestadorService.VERIFICAR_ROL_CONTRATO,
+    );
+  }
+
   // DOC-012 6 — POST /importaciones/contable. Idempotente por fila (no atomico por request como
   // POST /inventarios) — el resultado siempre es 200 con el detalle de cada fila, el 403 por
   // falta de rol es el unico rechazo de todo el request.
@@ -334,6 +439,33 @@ export class OrquestadorService {
           contratoId,
           payload.organizacionId,
           payload.estado,
+          payload.operadorId,
+        ),
+      OrquestadorService.VERIFICAR_ROL_CONTRATO,
+    );
+  }
+
+  // DOC-024 2 — PATCH /contratos/:id/condiciones. Endpoint separado de procesarActualizacionContrato
+  // (que solo cambia `estado`) para no mezclar dos validaciones distintas en un mismo body — ver
+  // DOC-024 2.
+  procesarActualizarCondicionesContrato(
+    contratoId: string,
+    payload: ActualizarCondicionesContratoBody,
+  ): Promise<Contrato> {
+    return this.ejecutarEscrituraOficial(
+      `PATCH /contratos/${contratoId}/condiciones`,
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.escrituraContratoService.actualizarCondiciones(
+          contratoId,
+          payload.organizacionId,
+          {
+            sedeIds: payload.sedeIds,
+            vigenciaHasta: payload.vigenciaHasta,
+            modulosContratados: payload.modulosContratados,
+          },
           payload.operadorId,
         ),
       OrquestadorService.VERIFICAR_ROL_CONTRATO,
