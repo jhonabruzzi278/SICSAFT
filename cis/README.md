@@ -206,6 +206,45 @@ solo hace falta para `FlatCompat`, que `eslint.config.mjs` no usa). `supertest`/
 se verificaron en uso real (los 6 `*.e2e-spec.ts` de `test/`) antes de descartarlos como falso
 positivo de Knip — se quedan.
 
+**CRUD completo sin Consola de Zitadel + auditoría de identidad (2026-08-21,
+[DOC-024](../aidlc-docs/ccp/design-artifacts/DOC-024-crud-completo-auditoria-identidad.md))**:
+`ZitadelAdminService` gana `actualizarNombreOrganizacion`, `quitarRolDeGrant` y `desactivarUsuario`
+— verificados reales contra el Zitadel de `devops/local` antes de codearlos (mismo criterio que el
+resto de este módulo). Hallazgo real: un usuario en `USER_STATE_INITIAL` (cualquier Profesional de
+AFT recién creado en este stack sin SMTP) no se puede desactivar, Zitadel exige borrarlo — único
+caso donde este servicio borra un usuario de verdad. Nuevo módulo `src/auditoria-identidad/`
+(`AuditoriaIdentidadService`, calco de `OrquestadorService.ejecutarOperacionOficial` de CORE):
+`asignarUsuarioOrganizacion` y `DirectivoService.asignarProfesionalAft` — las dos únicas
+operaciones del ecosistema que nunca tocaban CORE — ahora reportan su resultado a un nuevo
+`POST /auditoria` de CORE, cerrando el punto ciego que dejaban fuera del Motor de Auditoría de
+Tomo IV. Nuevos endpoints: editar/dar de baja Organización y Sede (`estado`, bidireccional, nunca
+`DELETE` real — Tomo III 4.10), `GET /admin/sedes` (picker por organización), editar condiciones
+de Contrato (`PATCH /admin/contratos/:id/condiciones`, separado del cambio de `estado` que ya
+existía), y quitar/desactivar un usuario de una organización.
+**Hallazgo real verificado en vivo contra `web_admin/` en el navegador**: `DELETE` no estaba en la
+lista de métodos permitidos de `app.enableCors()` (`src/main.ts`) — el único `DELETE` que existía
+hasta ahora (`/admin/activos/:id/documentos/:documentoId`, DOC-021 3) nunca se había ejercitado
+desde un navegador real, solo via `supertest`/curl (que no aplican CORS), así que el gap quedó
+invisible hasta que la nueva pantalla de "quitar rol" de `web_admin/` lo disparó en vivo — corregido
+en el mismo incremento.
+
+**`GET /metrics` protegido con Bearer token (2026-08-24)**: hallazgo real durante el primer deploy
+contra Coolify (ver `devops/prod/README.md` "Hallazgo real") — CIS sí tiene router público en
+Traefik/Coolify (a diferencia de core/cip), así que `/metrics` quedaba públicamente alcanzable sin
+autenticar, un gap ya señalado sin resolver en el comentario original de `PrometheusModule` en
+`app.module.ts`. Nuevo módulo `src/common/metrics/` (`MetricsTokenGuard` + `MetricsController`,
+que extiende el `PrometheusController` de `@willsoto/nestjs-prometheus` — única forma que expone
+la librería para meterle un guard) exige `Authorization: Bearer <METRICS_TOKEN>`, comparación en
+tiempo constante como `ServiceTokenGuard` de CORE. `METRICS_TOKEN` es opcional a propósito (a
+diferencia de `CORE_SERVICE_TOKEN`/`CIP_SERVICE_TOKEN`): sin configurar, el guard deja pasar todo
+y avisa una vez por proceso con `Logger.warn` — el default correcto en `devops/local/` (sin
+exposición real que proteger), pero si ese warning aparece en logs de `devops/prod/` es una
+brecha real. `MetricsModule` es `@Global()` — `PrometheusModule.register({ controller })` registra
+el controller dentro de su propio módulo dinámico, no del nuestro, así que sin `@Global()` Nest no
+puede resolver la dependencia del guard (verificado real, no una suposición: falla al arrancar con
+"can't resolve dependencies... Symbol(METRICS_CONFIG)... is available in the PrometheusModule
+module" sin esto).
+
 ## Desarrollo local
 ```bash
 cd cis

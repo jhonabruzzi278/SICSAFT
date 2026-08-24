@@ -20,6 +20,8 @@ describe('AuditoriaRepository', () => {
       operacion: 'POST /inventarios',
       resultado: 'recibido',
       observaciones: 'ok',
+      categoria: 'identidad',
+      organizacionId: 'org-1',
     });
 
     expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
@@ -30,10 +32,12 @@ describe('AuditoriaRepository', () => {
       'POST /inventarios',
       'recibido',
       'ok',
+      'identidad',
+      'org-1',
     ]);
   });
 
-  it('inserta usando null para los campos opcionales ausentes', async () => {
+  it('inserta usando null/patrimonial para los campos opcionales ausentes (DOC-024 3, default)', async () => {
     const pool = buildPool();
     const repository = new AuditoriaRepository(pool);
 
@@ -51,7 +55,56 @@ describe('AuditoriaRepository', () => {
       'POST /inventarios',
       'rechazado:409',
       null,
+      'patrimonial',
+      null,
     ]);
+  });
+
+  // DOC-024 3 — un evento de auditoria nunca debe poder tumbar la operacion que esta registrando.
+  it('reintenta sin organizacionId cuando el INSERT falla por FK invalida (23503)', async () => {
+    const pool = {
+      query: jest
+        .fn()
+        .mockRejectedValueOnce({ code: '23503' })
+        .mockResolvedValueOnce({ rows: [] }),
+    } as unknown as jest.Mocked<Pool>;
+    const repository = new AuditoriaRepository(pool);
+
+    await repository.registrar({
+      usuario: 'op-1',
+      operacion: 'DELETE /admin/organizaciones/org-fantasma/usuarios/user-1',
+      resultado: 'ok',
+      organizacionId: 'org-fantasma',
+    });
+
+    expect(pool.query).toHaveBeenCalledTimes(2);
+    expect(pool.query).toHaveBeenNthCalledWith(
+      2,
+      expect.any(String),
+      expect.arrayContaining([null]),
+    );
+    const segundaLlamada = pool.query.mock.calls[1] as unknown as [
+      string,
+      unknown[],
+    ];
+    expect(segundaLlamada[1].at(-1)).toBeNull();
+  });
+
+  it('propaga otros errores del INSERT sin reintentar', async () => {
+    const error = new Error('conexion perdida');
+    const pool = {
+      query: jest.fn().mockRejectedValueOnce(error),
+    } as unknown as jest.Mocked<Pool>;
+    const repository = new AuditoriaRepository(pool);
+
+    await expect(
+      repository.registrar({
+        usuario: 'op-1',
+        operacion: 'POST /inventarios',
+        resultado: 'ok',
+      }),
+    ).rejects.toThrow(error);
+    expect(pool.query).toHaveBeenCalledTimes(1);
   });
 
   describe('listar', () => {
@@ -77,6 +130,8 @@ describe('AuditoriaRepository', () => {
             operacion: 'POST /inventarios',
             resultado: 'recibido',
             observaciones: null,
+            categoria: 'patrimonial',
+            organizacionId: null,
           },
         ],
         1,
@@ -96,12 +151,32 @@ describe('AuditoriaRepository', () => {
           operacion: 'POST /inventarios',
           resultado: 'recibido',
           observaciones: null,
+          categoria: 'patrimonial',
+          organizacionId: null,
         },
       ]);
       expect(pool.query).toHaveBeenNthCalledWith(
         2,
         expect.any(String),
         [20, 0],
+      );
+    });
+
+    it('filtra por categoria y organizacionId con igualdad exacta (DOC-024 3)', async () => {
+      const pool = buildPoolPara([], 0);
+      const repository = new AuditoriaRepository(pool);
+
+      await repository.listar({
+        categoria: 'identidad',
+        organizacionId: 'org-1',
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(pool.query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining('categoria = $1 AND organizacion_id = $2'),
+        ['identidad', 'org-1', 20, 0],
       );
     });
 

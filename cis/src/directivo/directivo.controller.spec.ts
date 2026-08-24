@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method -- jest.fn() mocks no usan `this`. */
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 import { DirectivoController } from './directivo.controller';
 import { DirectivoService } from './directivo.service';
 import { DirectivoGuard, type DirectivoRequest } from './directivo.guard';
@@ -14,7 +15,13 @@ function buildDirectivoRequest(): DirectivoRequest & RequestWithCorrelationId {
   return {
     directivoOrganizacionId: 'zitadel-org-1',
     correlationId: CORRELATION_ID,
-  } as DirectivoRequest & RequestWithCorrelationId;
+    auth: {
+      operadorId: 'op-directivo-1',
+      accessToken: 'token-1',
+      expiresAt: '2026-01-01T00:00:00.000Z',
+      rolesPorOrganizacion: { 'zitadel-org-1': ['directivo'] },
+    },
+  } as unknown as DirectivoRequest & RequestWithCorrelationId & Request;
 }
 
 describe('DirectivoController', () => {
@@ -66,15 +73,18 @@ describe('DirectivoController', () => {
   });
 
   it('asignarProfesionalAft delega en el service con el organizacionId que fijó DirectivoGuard, el body y el correlationId', async () => {
-    service.asignarProfesionalAft.mockResolvedValue(undefined);
+    const resultado = { creado: true, passwordInicial: 'Xy9!abcdEFGH12345678' };
+    service.asignarProfesionalAft.mockResolvedValue(resultado);
     const body = { email: 'nuevo@duoc.cl' };
     const request = buildDirectivoRequest();
 
-    await controller.asignarProfesionalAft(body, request);
-
+    await expect(controller.asignarProfesionalAft(body, request)).resolves.toBe(
+      resultado,
+    );
     expect(service.asignarProfesionalAft).toHaveBeenCalledWith(
       'zitadel-org-1',
       body,
+      'op-directivo-1',
       CORRELATION_ID,
     );
   });

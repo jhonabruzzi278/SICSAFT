@@ -312,4 +312,188 @@ describe('ContratoRepository', () => {
       ).rejects.toThrow(BadRequestException);
     });
   });
+
+  // DOC-024 2 — mismo motivo de transaccion dedicada que crear() (ver comentario ahi).
+  describe('actualizarCondiciones', () => {
+    function buildClient(
+      queryImpl: (sql: string) => { rows: unknown[] } | Promise<never>,
+    ) {
+      const query = jest.fn((sql: string) => {
+        const resultado = queryImpl(sql);
+        return resultado instanceof Promise
+          ? resultado
+          : Promise.resolve(resultado);
+      });
+      const release = jest.fn();
+      return { query, release };
+    }
+
+    it('lanza 404 si el contrato no existe', async () => {
+      const pool = buildPool([]);
+      const repository = new ContratoRepository(pool);
+
+      await expect(
+        repository.actualizarCondiciones('no-existe', 'duoc-uc', {
+          vigenciaHasta: '2027-01-01T00:00:00.000Z',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('lanza 404 si el contrato existe pero pertenece a otra organizacion', async () => {
+      const pool = buildPool([{ ...CONTRATO_ROW, organizacionId: 'otra-org' }]);
+      const repository = new ContratoRepository(pool);
+
+      await expect(
+        repository.actualizarCondiciones('contrato-1', 'duoc-uc', {
+          vigenciaHasta: '2027-01-01T00:00:00.000Z',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it.each(['vencido', 'cancelado'] as const)(
+      'lanza 400 si el contrato ya esta %s (DOC-024 2, editar reescribiria historia)',
+      async (estado) => {
+        const pool = buildPool([{ ...CONTRATO_ROW, estado }]);
+        const repository = new ContratoRepository(pool);
+
+        await expect(
+          repository.actualizarCondiciones('contrato-1', 'duoc-uc', {
+            vigenciaHasta: '2027-01-01T00:00:00.000Z',
+          }),
+        ).rejects.toThrow(BadRequestException);
+      },
+    );
+
+    it('actualiza solo vigenciaHasta sin tocar las sedes cuando sedeIds no viene', async () => {
+      const client = buildClient(() => ({ rows: [] }));
+      const pool = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [CONTRATO_ROW] }) // findById inicial
+          .mockResolvedValueOnce({ rows: [CONTRATO_ROW] }), // findById posterior
+        connect: jest.fn().mockResolvedValue(client),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new ContratoRepository(pool);
+
+      await repository.actualizarCondiciones('contrato-1', 'duoc-uc', {
+        vigenciaHasta: '2027-01-01T00:00:00.000Z',
+      });
+
+      expect(client.query).toHaveBeenCalledWith('BEGIN');
+      expect(client.query).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE contratos SET vigencia_hasta = $1'),
+        ['2027-01-01T00:00:00.000Z', 'contrato-1'],
+      );
+      expect(client.query).not.toHaveBeenCalledWith(
+        expect.stringContaining('DELETE FROM contrato_sedes'),
+      );
+      expect(client.query).toHaveBeenCalledWith('COMMIT');
+    });
+
+    it('re-chequea el invariante DOC-004 4 EXCLUYENDO las filas del propio contrato al cambiar sedes', async () => {
+      const query = jest
+        .fn()
+        .mockResolvedValueOnce({ rows: [CONTRATO_ROW] }) // findById inicial
+        .mockResolvedValueOnce({ rows: [] }); // SELECT sedes en conflicto (ninguna)
+      const client = buildClient(() => ({ rows: [] }));
+      const pool = {
+        query,
+        connect: jest.fn().mockResolvedValue(client),
+      } as unknown as jest.Mocked<Pool>;
+      // findById posterior (fuera de la transaccion) reusa el mismo `query` mockeado arriba —
+      // se agrega una 3ra resolucion para eso.
+      query.mockResolvedValueOnce({ rows: [CONTRATO_ROW] });
+      const repository = new ContratoRepository(pool);
+
+      await repository.actualizarCondiciones('contrato-1', 'duoc-uc', {
+        sedeIds: ['melipilla', 'otra-sede'],
+      });
+
+      expect(query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining("c.estado = 'vigente' AND c.id != $1"),
+        ['contrato-1', ['melipilla', 'otra-sede']],
+      );
+      expect(client.query).toHaveBeenCalledWith(
+        'DELETE FROM contrato_sedes WHERE contrato_id = $1',
+        ['contrato-1'],
+      );
+      expect(client.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO contrato_sedes'),
+        ['contrato-1', 'melipilla'],
+      );
+    });
+
+    it('lanza 409 (DOC-004 4) si alguna sede nueva ya esta cubierta por otro contrato vigente', async () => {
+      const pool = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [CONTRATO_ROW] }) // findById inicial
+          .mockResolvedValueOnce({ rows: [{ sedeId: 'otra-sede' }] }), // conflicto
+        connect: jest.fn(),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new ContratoRepository(pool);
+
+      await expect(
+        repository.actualizarCondiciones('contrato-1', 'duoc-uc', {
+          sedeIds: ['otra-sede'],
+        }),
+      ).rejects.toThrow(ConflictException);
+      expect(pool.connect).not.toHaveBeenCalled();
+    });
+
+    it('hace ROLLBACK y lanza 400 si alguna sedeId no existe (foreign key violation)', async () => {
+      const client = buildClient((sql) => {
+        if (sql === 'BEGIN' || sql === 'ROLLBACK') {
+          return { rows: [] };
+        }
+        if (sql === 'DELETE FROM contrato_sedes WHERE contrato_id = $1') {
+          return { rows: [] };
+        }
+        return Promise.reject(
+          Object.assign(new Error('foreign key violation'), {
+            code: '23503',
+          }),
+        );
+      });
+      const pool = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [CONTRATO_ROW] }) // findById inicial
+          .mockResolvedValueOnce({ rows: [] }), // SELECT sedes en conflicto
+        connect: jest.fn().mockResolvedValue(client),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new ContratoRepository(pool);
+
+      await expect(
+        repository.actualizarCondiciones('contrato-1', 'duoc-uc', {
+          sedeIds: ['sede-inexistente'],
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+      expect(client.release).toHaveBeenCalled();
+    });
+
+    it('relanza otros errores de Postgres sin envolver, despues del ROLLBACK', async () => {
+      const errorInesperado = new Error('conexion perdida');
+      const client = buildClient((sql) => {
+        if (sql === 'BEGIN' || sql === 'ROLLBACK') {
+          return { rows: [] };
+        }
+        return Promise.reject(errorInesperado);
+      });
+      const pool = {
+        query: jest.fn().mockResolvedValueOnce({ rows: [CONTRATO_ROW] }), // findById inicial
+        connect: jest.fn().mockResolvedValue(client),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new ContratoRepository(pool);
+
+      await expect(
+        repository.actualizarCondiciones('contrato-1', 'duoc-uc', {
+          modulosContratados: ['inventario-qr'],
+        }),
+      ).rejects.toBe(errorInesperado);
+      expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+    });
+  });
 });

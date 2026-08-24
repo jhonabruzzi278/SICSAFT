@@ -1,5 +1,11 @@
 // DOC-011 — equipo/ip nullable: CIS no le pasa a CORE ese dato todavia (ver DOC-011 "equipo/ip:
 // sin dato real en esta fase").
+// DOC-024 3 — `categoria` distingue lo que ya pasaba por el Orquestador ('patrimonial', default —
+// ninguna fila existente cambia de significado) de lo que CIS reporta despues de una operacion de
+// identidad en Zitadel ('identidad', ver AuditoriaEscrituraController). `organizacionId` nullable:
+// no todo evento tiene una organizacion puntual (ej. el propio alta de Organizacion).
+export type CategoriaAuditoria = 'patrimonial' | 'identidad';
+
 export interface RegistrarAuditoriaInput {
   usuario: string;
   equipo?: string;
@@ -7,11 +13,12 @@ export interface RegistrarAuditoriaInput {
   operacion: string;
   resultado: string;
   observaciones?: string;
+  categoria?: CategoriaAuditoria;
+  organizacionId?: string | null;
 }
 
 // RF-06 (Fase 5, WEB) — fila de auditoria para GET /auditoria. Mismas columnas que la tabla
-// (DOC-005 7), sin organizacionId: la tabla audita cualquier operacion del ecosistema, no solo
-// las que tocan una organizacion (ver AuditoriaRepository.listar).
+// (DOC-005 7 + DOC-024 3).
 export interface AuditoriaEntrada {
   id: string;
   usuario: string;
@@ -21,6 +28,8 @@ export interface AuditoriaEntrada {
   operacion: string;
   resultado: string;
   observaciones: string | null;
+  categoria: CategoriaAuditoria;
+  organizacionId: string | null;
 }
 
 // RF-06 — filtros de GET /auditoria (cierra el gap: el requisito original pedia "filtrable por
@@ -35,6 +44,8 @@ export interface AuditoriaFiltro {
   operacion?: string;
   fechaDesde?: string;
   fechaHasta?: string;
+  categoria?: CategoriaAuditoria;
+  organizacionId?: string;
   limit: number;
   offset: number;
 }

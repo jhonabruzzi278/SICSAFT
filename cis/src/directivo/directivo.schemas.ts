@@ -11,3 +11,12 @@ export const asignarProfesionalAftSchema = z.object({
 export type AsignarProfesionalAftBody = z.infer<
   typeof asignarProfesionalAftSchema
 >;
+
+// Gap 3 (flujo real Admin->Directivo->Profesional AFT) — antes este endpoint devolvía void y
+// exigía que el email ya existiera en Zitadel. `passwordInicial` solo viene no-null cuando
+// `creado` es true (usuario nuevo) — el Directivo la comparte con el profesional fuera de banda,
+// nunca se persiste en ningún lado del cliente.
+export interface AsignarProfesionalAftResult {
+  creado: boolean;
+  passwordInicial: string | null;
+}

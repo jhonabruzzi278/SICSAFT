@@ -8,7 +8,10 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { ZitadelAuthGuard } from '../common/auth/zitadel-auth.guard';
+import {
+  requireAuthContext,
+  ZitadelAuthGuard,
+} from '../common/auth/zitadel-auth.guard';
 import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 import { DirectivoService } from './directivo.service';
@@ -21,6 +24,7 @@ import type { GrantUsuario } from '../zitadel-admin/zitadel-admin.types';
 import {
   asignarProfesionalAftSchema,
   type AsignarProfesionalAftBody,
+  type AsignarProfesionalAftResult,
 } from './directivo.schemas';
 
 // DOC-022 3 — el Directivo designa quién es el Profesional de AFT de SU organización. Igual que
@@ -47,10 +51,11 @@ export class DirectivoController {
   asignarProfesionalAft(
     @Body() body: AsignarProfesionalAftBody,
     @Req() request: DirectivoRequest & RequestWithCorrelationId,
-  ): Promise<void> {
+  ): Promise<AsignarProfesionalAftResult> {
     return this.directivoService.asignarProfesionalAft(
       requireDirectivoOrganizacionId(request),
       body,
+      requireAuthContext(request).operadorId,
       request.correlationId,
     );
   }

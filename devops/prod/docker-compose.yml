@@ -28,10 +28,16 @@
 #    `*.sicsaft.localhost` — usados solo como referencia en variables VITE_*/ZITADEL_* que se
 #    hornean en build time o se validan al arrancar; el ruteo real lo decide el campo "Domains" de
 #    Coolify, no estos valores.
-# 6. `loki` usa `./observability/loki-config.yml` propio (retención 30 días), no el de
-#    `devops/local/observability/` (7 días, explícitamente marcado ahí como "ajustar en
-#    producción") — el resto de la config de observabilidad (Prometheus, Promtail, provisioning
-#    de Grafana) sí se comparte por referencia relativa, es idéntica en ambos ambientes.
+# 6. Toda la config de observabilidad (Prometheus, Promtail, provisioning de Grafana) y el
+#    build/init de `postgres` son copias propias bajo `./observability/`/`./postgres/`, no
+#    referencias relativas a `devops/local/` — ver devops/prod/README.md "Hallazgo real" (Coolify
+#    no resuelve de forma confiable un bind mount cuyo origen usa `..` para salir del directorio
+#    del compose file). `loki` además tiene contenido propio a propósito (retención 30 días vs.
+#    7 en local); el resto es copia idéntica al momento de escribirla, sin sincronización
+#    automática si diverge.
+# 7. `prometheus` recibe METRICS_TOKEN como Docker secret (no env var) — lee el bearer token para
+#    scrapear `GET /metrics` de CIS desde un archivo (`bearer_token_file`), nunca commiteado
+#    (ver devops/prod/observability/prometheus.yml y devops/prod/README.md "Hallazgo real").
 # 7. `depends_on` usa `condition: service_healthy` (no solo `service_started`) contra `cis`/
 #    `core`/`cip` porque sus Dockerfile ya definen `HEALTHCHECK` real contra `GET /health` — mismo
 #    cambio aplicado también en devops/local/docker-compose.yml, no es exclusivo de prod.
@@ -49,14 +55,25 @@ volumes:
   loki_data:
   grafana_data:
 
+secrets:
+  # Fuente = variable de entorno METRICS_TOKEN (cargada en el panel de Coolify, nunca en este
+  # archivo) — Compose la expone como archivo en /run/secrets/metrics_token dentro de los
+  # servicios que la listan abajo, en vez de interpolarla en texto plano dentro de
+  # observability/prometheus.yml (ese sí queda commiteado). Ver devops/prod/README.md "Hallazgo
+  # real".
+  metrics_token:
+    environment: METRICS_TOKEN
+
 services:
   postgres:
     # Mismo build que devops/local/ (pgaudit no viene precompilado en postgres:16-alpine) --
-    # reusa el Dockerfile de local por referencia relativa, mismo criterio que el volumen de
-    # postgres/init de abajo. Sin esto, el init de abajo (postgres/init/02-core.sh, compartido con
-    # local) falla: intenta CREATE EXTENSION pgaudit contra una imagen que no la tiene.
+    # copia propia en ./postgres (ver devops/prod/README.md "Hallazgo real": Coolify no resuelve
+    # de forma confiable un bind mount/build context cuyo origen usa `..` para salir del
+    # directorio del compose file, antes referenciaba ../local/postgres por relativa). Sin esto,
+    # el init de abajo (postgres/init/02-core.sh) falla: intenta CREATE EXTENSION pgaudit contra
+    # una imagen que no la tiene.
     build:
-      context: ../local/postgres
+      context: ./postgres
       dockerfile: Dockerfile
     # Mismo motivo que devops/local/docker-compose.yml -- shared_preload_libraries es de servidor
     # completo, requiere estar antes de aceptar conexiones (no alcanza con CREATE EXTENSION solo).
@@ -78,7 +95,7 @@ services:
       CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../local/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
     networks:
       - sicsaft
     healthcheck:
@@ -147,6 +164,10 @@ services:
       CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
       CIP_URL: http://cip:3002
       CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
+      # Protege GET /metrics -- CIS sí tiene router público en Coolify (a diferencia de
+      # core/cip), ver cis/src/common/metrics/metrics-token.guard.ts y devops/prod/README.md
+      # "Hallazgo real". Como env var normal (no secret) porque CIS ya lee todo lo demás así.
+      METRICS_TOKEN: ${METRICS_TOKEN}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       # Solo los 3 portales reales de producción — sin puertos de Vite (eso era solo para
       # `npm run dev` local).
@@ -358,8 +379,12 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
     volumes:
-      - ../local/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+    # Monta METRICS_TOKEN en /run/secrets/metrics_token -- prometheus.yml lo lee de ahí
+    # (bearer_token_file) para autenticar el scrape de GET /metrics de CIS.
+    secrets:
+      - metrics_token
     networks:
       - sicsaft
     restart: unless-stopped
@@ -380,7 +405,7 @@ services:
     image: grafana/promtail:3.1.0
     command: -config.file=/etc/promtail/promtail-config.yml
     volumes:
-      - ../local/observability/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - ./observability/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - sicsaft
@@ -398,8 +423,8 @@ services:
     expose:
       - "3000"
     volumes:
-      - ../local/observability/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ../local/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     networks:
       - sicsaft

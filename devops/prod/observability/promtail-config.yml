@@ -1,0 +1,61 @@
+# Promtail — envia los logs de TODOS los contenedores del stack a Loki, sin tocar codigo de
+# aplicacion (cis/core/etc siguen logueando a stdout como ya hacen, Promtail solo los recolecta).
+# Descubrimiento via el socket de Docker (docker_sd_configs) — a diferencia de Traefik (ver
+# traefik/dynamic.yml), Promtail SI puede leer el socket montado read-only sin pasar por la API de
+# management de Docker Desktop, mismo patron documentado en la guia oficial de Grafana Loki.
+#
+# Copia propia de devops/local/observability/promtail-config.yml. Hasta este archivo, era un
+# unico archivo COMPARTIDO (prod lo referenciaba via ../local/observability/) a proposito, para
+# que el filtro de abajo no pudiera divergir entre ambientes — la primera version de este filtro
+# reconocia contenedores por nombre exacto `sicsaft-local-*` y en prod (`sicsaft-prod-*`) ningun
+# contenedor matcheaba, dejando Loki vacio sin ningun error visible (ver devops/prod/README.md
+# "Revisión de la implementación" hallazgo 1). Ahora es una copia real porque Coolify no resuelve
+# de forma confiable un bind mount cuyo origen "escapa" del directorio del compose file con `..`
+# (verificado real contra un deploy real, ver devops/prod/README.md "Hallazgo real") — el filtro
+# de abajo ya es por label (`com.docker.compose.project`, acepta `sicsaft-(local|prod)`), no por
+# nombre de contenedor, así que el contenido de este archivo ya no necesita diferir entre
+# ambientes — pero si edita los relabel_configs, replique el cambio en
+# devops/local/observability/promtail-config.yml (o viceversa), no hay sincronización automática.
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+    relabel_configs:
+      # docker_sd_configs descubre TODOS los contenedores del host Docker, no solo los de este
+      # stack (verificado real: sin este filtro, contenedores de otros proyectos del mismo Docker
+      # Desktop terminaban en Loki) — se descartan acá, antes de cualquier otro relabel. Por
+      # label de compose, no por nombre de contenedor (ver comentario de arriba del porqué) —
+      # acepta los dos nombres de proyecto reales de este repo, local y producción.
+      - source_labels: [__meta_docker_container_label_com_docker_compose_project]
+        regex: "sicsaft-(local|prod)"
+        action: keep
+      # Nombre del contenedor sin el "/" inicial que docker_sd antepone.
+      - source_labels: [__meta_docker_container_name]
+        target_label: container
+        regex: "/(.*)"
+        replacement: "$1"
+      # Nombre del servicio de compose (ej. "cis", "core") — mismo label que Docker Compose ya
+      # asigna, en vez de derivarlo con una regex sobre el nombre del contenedor.
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: service
+      # Ambiente (local/producción) como label propio — separa los dos stacks en Grafana/Loki si
+      # alguna vez comparten el mismo Loki (hoy no es el caso, cada uno tiene el suyo).
+      - source_labels: [__meta_docker_container_label_com_docker_compose_project]
+        target_label: compose_project
+      # Label fijo, sin `source_labels` — garantiza que todo stream tenga al menos un label
+      # incluso si algún contenedor no tiene los labels de compose de arriba (ej. contenedores de
+      # migración que ya salieron). Verificado real: sin esto Loki rechazaba streams con
+      # "at least one label pair is required" cuando los otros relabels no aplicaban.
+      - target_label: job
+        replacement: docker

@@ -75,11 +75,21 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
         },
       ] satisfies GrantUsuario[]),
       crearGrant: jest.fn().mockResolvedValue(undefined),
+      // Gap 3 (flujo real Admin->Directivo->Profesional AFT) — usado cuando buscarUsuarioPorEmail
+      // no encuentra a nadie con ese email (ver el describe de mas abajo).
+      crearUsuarioHuman: jest.fn().mockResolvedValue({
+        userId: 'usuario-zitadel-nuevo',
+        passwordInicial: 'Xy9!abcdEFGH12345678',
+      }),
     };
 
     app = await crearAppE2e({
       jwks: localJwks,
-      coreClientService: {},
+      // DOC-024 3 — DirectivoService ahora envuelve asignarProfesionalAft en
+      // AuditoriaIdentidadService, que reporta el resultado via CoreClientService.postAuditoria.
+      coreClientService: {
+        postAuditoria: jest.fn().mockResolvedValue(undefined),
+      },
       redisClient: crearRedisStub(),
       zitadelAdminService,
     });
@@ -146,14 +156,31 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
       expect(zitadelAdminService.crearGrant).not.toHaveBeenCalled();
     });
 
-    it('devuelve 404 si el email no corresponde a ningún usuario de Zitadel', async () => {
+    // Gap 3 (flujo real Admin->Directivo->Profesional AFT) — ya no devuelve 404: si el email no
+    // corresponde a nadie, se crea el usuario en Zitadel con una contraseña inicial generada.
+    it('crea el usuario en Zitadel y le asigna el rol cuando el email no corresponde a nadie', async () => {
       zitadelAdminService.buscarUsuarioPorEmail.mockResolvedValue(null);
 
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/directivo/usuarios')
         .set('Authorization', `Bearer ${tokenDirectivoDuoc}`)
         .send({ email: 'no-existe@duoc.cl' })
-        .expect(404);
+        .expect(201);
+
+      expect(res.body).toEqual({
+        creado: true,
+        passwordInicial: 'Xy9!abcdEFGH12345678',
+      });
+      expect(zitadelAdminService.crearUsuarioHuman).toHaveBeenCalledWith(
+        'no-existe@duoc.cl',
+        expect.any(String),
+      );
+      expect(zitadelAdminService.crearGrant).toHaveBeenCalledWith(
+        DUOC_ORG_ID,
+        'usuario-zitadel-nuevo',
+        'administrador-patrimonial',
+        expect.any(String),
+      );
     });
 
     it('devuelve 400 si el body no incluye un email válido (no acepta un campo `rol`)', async () => {

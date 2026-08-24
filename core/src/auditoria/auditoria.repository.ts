@@ -8,16 +8,44 @@ import type {
   RegistrarAuditoriaInput,
 } from './auditoria.types';
 
-// DOC-011 — invocado una vez por transaccion, siempre, desde el Orquestador (DOC-007). Nunca
-// desde un motor individual, para no duplicar el registro si un motor falla a mitad de camino.
+const FOREIGN_KEY_VIOLATION = '23503';
+
+function esErrorPg(error: unknown): error is { code: string } {
+  return typeof error === 'object' && error !== null && 'code' in error;
+}
+
+// DOC-011 — invocado una vez por transaccion, siempre, desde el Orquestador (DOC-007) para
+// operaciones patrimoniales, y desde AuditoriaEscrituraController (DOC-024 3) para operaciones de
+// identidad reportadas por CIS. Nunca desde un motor individual, para no duplicar el registro si
+// un motor falla a mitad de camino.
 @Injectable()
 export class AuditoriaRepository {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
+  // DOC-024 3 — un evento de auditoria nunca debe poder tumbar la operacion que esta registrando:
+  // si `organizacionId` referencia una organizacion que ya no existe o nunca existio (ej. un
+  // 403 rechazado antes de confirmar que la organizacion objetivo era real), el INSERT falla por
+  // FK — se reintenta una vez sin organizacionId en vez de propagar un 500.
   async registrar(input: RegistrarAuditoriaInput): Promise<void> {
+    try {
+      await this.insertar(input, input.organizacionId ?? null);
+    } catch (error: unknown) {
+      if (esErrorPg(error) && error.code === FOREIGN_KEY_VIOLATION) {
+        await this.insertar(input, null);
+        return;
+      }
+      throw error;
+    }
+  }
+
+  private async insertar(
+    input: RegistrarAuditoriaInput,
+    organizacionId: string | null,
+  ): Promise<void> {
     await this.pool.query(
-      `INSERT INTO auditoria (id, usuario, equipo, ip, operacion, resultado, observaciones)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT INTO auditoria
+         (id, usuario, equipo, ip, operacion, resultado, observaciones, categoria, organizacion_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         randomUUID(),
         input.usuario,
@@ -26,6 +54,8 @@ export class AuditoriaRepository {
         input.operacion,
         input.resultado,
         input.observaciones ?? null,
+        input.categoria ?? 'patrimonial',
+        organizacionId,
       ],
     );
   }
@@ -56,6 +86,14 @@ export class AuditoriaRepository {
       valores.push(filtro.fechaHasta);
       condiciones.push(`fecha <= $${valores.length}`);
     }
+    if (filtro.categoria) {
+      valores.push(filtro.categoria);
+      condiciones.push(`categoria = $${valores.length}`);
+    }
+    if (filtro.organizacionId) {
+      valores.push(filtro.organizacionId);
+      condiciones.push(`organizacion_id = $${valores.length}`);
+    }
 
     const whereSql =
       condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';
@@ -75,8 +113,11 @@ export class AuditoriaRepository {
       operacion: string;
       resultado: string;
       observaciones: string | null;
+      categoria: 'patrimonial' | 'identidad';
+      organizacionId: string | null;
     }>(
-      `SELECT id, usuario, fecha, equipo, ip, operacion, resultado, observaciones
+      `SELECT id, usuario, fecha, equipo, ip, operacion, resultado, observaciones, categoria,
+              organizacion_id AS "organizacionId"
        FROM auditoria
        ${whereSql}
        ORDER BY fecha DESC

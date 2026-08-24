@@ -65,6 +65,73 @@ antes de darlo por listo. Se encontraron y corrigieron 4:
    instancia real hubiera sido peor que no tener ninguno (un healthcheck que siempre falla frena
    el deploy entero).
 
+## Hallazgo real (deploy contra Coolify, 2026-08-24)
+
+La sección anterior se escribió por revisión de código — según `devops/README.md`, sin una
+instancia de Coolify corriendo todavía. Un deploy real más reciente falló al montar
+`prometheus.yml`:
+
+```
+error mounting "/data/coolify/applications/<uuid>./local/observability/prometheus.yml" to
+rootfs at "/etc/prometheus/prometheus.yml": ... not a directory: Are you trying to mount a
+directory onto a file (or vice-versa)?
+```
+
+Coolify no resuelve de forma confiable un bind mount (ni un build context) cuyo origen usa `..`
+para salir del directorio del compose file — el path que terminó intentando montar ni siquiera
+contenía el segmento `devops/` esperado. `prometheus.yml`, `promtail-config.yml`,
+`grafana/provisioning`, `grafana/dashboards` y el build/init de `postgres` compartían config con
+`devops/local/` exactamente así (`../local/...`), deliberadamente, para no duplicar — el único que
+ya tenía copia propia era `loki-config.yml` (por una razón distinta: su retención debía diferir).
+
+**Corregido dándole a cada uno una copia propia dentro de `devops/prod/`**, mismo patrón que ya
+existía para Loki: `observability/prometheus.yml`, `observability/promtail-config.yml`,
+`observability/grafana/`, `postgres/Dockerfile` y `postgres/init/`. Contenido idéntico al de
+`devops/local/` al momento de copiar — sin sincronización automática; cada archivo copiado dice en
+su propio comentario dónde está su par y que hay que replicar los cambios a mano si diverge.
+
+Se evaluó y se descartó un symlink en vez de una copia real: este repo tiene `core.symlinks` en
+`false` y, al probarlo, este entorno de desarrollo (Windows) no pudo crear un symlink real —
+se hubiera commiteado como un archivo de texto con la ruta como contenido, no como el YAML real,
+un error silencioso peor que el que se está corrigiendo.
+
+**Sin verificar**: si el campo "Base Directory" del recurso Docker Compose en el panel de Coolify
+se puede fijar a `/devops/prod`, quizás ninguna de estas copias hiciera falta — no se probó
+porque el deploy no podía quedar bloqueado esperando esa vuelta. Si se confirma que funciona,
+evaluar volver al patrón de referencia relativa antes de duplicar config nueva en el futuro.
+
+**Relacionado, no confirmado**: `../local/postgres/init` usaba el mismo patrón pero era
+carpeta→carpeta en vez de archivo→archivo. A diferencia de `prometheus.yml` (que sí crasheó por
+choque de tipos), un mount de carpeta a carpeta con origen faltante no necesariamente crashea —
+Docker puede haber montado un directorio vacío en su lugar sin ningún error visible, en cuyo caso
+los scripts de `postgres/init/` (creación de `ZITADEL_DB_USER`/`CORE_DB_USER`/`CIP_DB_USER`,
+`CREATE EXTENSION pgaudit`) nunca habrían corrido. Si este stack ya llegó a levantar Postgres
+antes de este fix, verificar a mano que esas bases/usuarios existan antes de asumir que
+funcionan.
+
+**Brecha de seguridad relacionada, corregida en el mismo incremento**: `GET /metrics` de CIS
+quedaba públicamente alcanzable en este stack (CIS sí tiene router público en Traefik/Coolify, a
+diferencia de core/cip) — señalado, sin resolver, en el comentario de `cis/src/app.module.ts`
+sobre `PrometheusModule`. Se descartó resolverlo a nivel de Traefik/Coolify (ipAllowList o router
+de mayor prioridad): la sintaxis exacta de labels/entrypoints de la instancia de Coolify de este
+VPS no se puede verificar desde acá, y una regla mal escrita fallaría en silencio (el router
+simplemente no se activa, sin error visible) — el peor resultado posible para un fix de
+seguridad. En su lugar, `GET /metrics` ahora exige un Bearer token
+(`cis/src/common/metrics/metrics-token.guard.ts`, `MetricsConfig.token` desde `METRICS_TOKEN`) —
+verificable de punta a punta sin depender de Coolify. Sin la variable configurada el guard deja
+pasar todo (default esperado en `devops/local/`, donde no hay nada que proteger); en
+`devops/prod/` hace falta setear `METRICS_TOKEN` en el panel de Coolify (ver `.env.example`) o el
+propio guard deja un `WARN` en los logs de CIS avisando que quedó sin autenticar. Prometheus lo
+manda vía `bearer_token_file` (`observability/prometheus.yml`), leyendo un Docker secret
+(`secrets: metrics_token` en `docker-compose.yml`, con `environment: METRICS_TOKEN` como fuente)
+en vez de tenerlo en texto plano en un archivo commiteado — probado en este entorno que
+`secrets: <nombre>: environment: VAR` sí lo resuelve Docker Compose v5.1.3 (`docker compose
+config` expandiéndolo correctamente a `/run/secrets/metrics_token`); no verificado contra la
+versión de Compose que usa Coolify en el VPS real. Si esa versión no soporta ese campo, el modo
+de falla es seguro: Prometheus no puede leer el secret y no manda el header, así que el guard
+sigue rechazando — nunca queda `/metrics` abierto por accidente, en el peor caso deja de
+scrapearse (visible como target caído en Grafana, no como una brecha).
+
 ## Lo que sigue documentado abajo (SOPS + age) — histórico, ya no es el flujo activo
 
 Se deja el resto de este documento para quien necesite el detalle de por qué se había elegido

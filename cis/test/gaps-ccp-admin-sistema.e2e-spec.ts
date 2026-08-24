@@ -65,6 +65,7 @@ const DOCUMENTO_STUB: DocumentoActivoResult = {
 const ORGANIZACION_STUB: OrganizacionResult = {
   id: ZITADEL_ORG_ID,
   nombre: 'DUOC UC',
+  estado: 'activo',
 };
 
 const INDICADORES_STUB: IndicadoresResult = {
@@ -144,6 +145,9 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
       postOrganizacion: jest.fn().mockResolvedValue(ORGANIZACION_STUB),
       getIndicadores: jest.fn().mockResolvedValue(INDICADORES_STUB),
       postImportacionContable: jest.fn().mockResolvedValue(IMPORTACION_STUB),
+      // DOC-024 3 — AdministradorService ahora envuelve asignarUsuarioOrganizacion en
+      // AuditoriaIdentidadService, que reporta el resultado via CoreClientService.postAuditoria.
+      postAuditoria: jest.fn().mockResolvedValue(undefined),
     };
     zitadelAdminService = {
       buscarUsuarioPorEmail: jest.fn().mockResolvedValue({
@@ -160,6 +164,10 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
         },
       ] satisfies GrantUsuario[]),
       crearGrant: jest.fn().mockResolvedValue(undefined),
+      // Gap 1 (flujo real Admin->Directivo->Profesional AFT) — usados por
+      // AdministradorService.altaOrganizacion (ver el describe de organizaciones mas abajo).
+      crearOrganizacion: jest.fn().mockResolvedValue({ id: ZITADEL_ORG_ID }),
+      otorgarProyectoAOrganizacion: jest.fn().mockResolvedValue(undefined),
     };
 
     app = await crearAppE2e({

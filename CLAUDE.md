@@ -104,12 +104,23 @@ conocida de cAdvisor en Docker Desktop).
 No hay comando de build/test a nivel raíz del repo — cada sistema se construye y testea de forma
 aislada dentro de su propia carpeta.
 
-## Regla no negociable del ecosistema
+## Reglas no negociables del ecosistema
 
 **Ninguna fuente de captura (APP QR, WEB, RFID, ERP) puede modificar la Base Patrimonial Central
 directamente.** Todo pasa por `CIS → CORE`. Esto viene de Tomo IV 1.7 y está grabado en el
 diagrama de [README.md](README.md). Ningún cambio de código debe crear un atajo que la rompa
 (ej. un servicio nuevo que le escriba a `base-patrimonial`/Postgres sin pasar por `core/`).
+
+**Ningún registro oficial de la Base Patrimonial (Organización, Sede, Contrato, Activo,
+Responsable) se borra con `DELETE` real.** Se da de baja con un campo `estado` bidireccional
+(`activo`/`inactivo`, o la máquina de estados propia de la entidad), nunca eliminando la fila.
+Esto viene de Tomo III 4.10 y ya tiene precedente real en el esquema: `activos.estado`,
+`responsables.estado`, y desde
+[DOC-024](aidlc-docs/ccp/design-artifacts/DOC-024-crud-completo-auditoria-identidad.md) también
+`organizaciones.estado`/`sedes.estado`. La única excepción documentada es `documentos_activo`
+(comentario explícito en `core/migrations/1755800000000_gaps-ccp-y-admin-sistema.ts` sobre por qué
+no aplica). Antes de agregar un `DELETE` real a una tabla nueva de Base Patrimonial, confirmar
+primero que la entidad no sea un registro oficial cubierto por este invariante.
 
 ## Fuente de verdad de cada decisión
 

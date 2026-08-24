@@ -27,9 +27,12 @@ import { AdministradorSistemaEnCualquierOrganizacionGuard } from './administrado
 import type { GrantUsuario } from '../zitadel-admin/zitadel-admin.types';
 import {
   actualizarAreaSchema,
+  actualizarCondicionesContratoSchema,
   actualizarContratoSchema,
   actualizarDescripcionActivoSchema,
+  actualizarEstadoOrganizacionSchema,
   actualizarEstadoResponsableSchema,
+  actualizarEstadoSedeSchema,
   actualizarUbicacionSchema,
   altaActivoSchema,
   altaAreaSchema,
@@ -38,6 +41,7 @@ import {
   altaDocumentoActivoSchema,
   altaOrganizacionSchema,
   altaResponsableSchema,
+  altaSedeSchema,
   altaUbicacionSchema,
   areasQuerySchema,
   asignarUsuarioOrganizacionSchema,
@@ -45,16 +49,22 @@ import {
   cambioResponsableActivoSchema,
   contratosQuerySchema,
   documentosActivoQuerySchema,
+  editarOrganizacionSchema,
   escrituraOficialActivoSchema,
   importacionContableSchema,
+  quitarRolUsuarioOrganizacionSchema,
   responsablesQuerySchema,
+  sedesQuerySchema,
   ubicacionesQuerySchema,
 } from './administrador.schemas';
 import type {
   ActualizarAreaBody,
+  ActualizarCondicionesContratoBody,
   ActualizarContratoBody,
   ActualizarDescripcionActivoBody,
+  ActualizarEstadoOrganizacionBody,
   ActualizarEstadoResponsableBody,
+  ActualizarEstadoSedeBody,
   ActualizarUbicacionBody,
   AltaActivoBody,
   AltaAreaBody,
@@ -63,6 +73,7 @@ import type {
   AltaDocumentoActivoBody,
   AltaOrganizacionBody,
   AltaResponsableBody,
+  AltaSedeBody,
   AltaUbicacionBody,
   AreasQuery,
   AsignarUsuarioOrganizacionBody,
@@ -70,9 +81,12 @@ import type {
   CambioResponsableActivoBody,
   ContratosQuery,
   DocumentosActivoQuery,
+  EditarOrganizacionBody,
   EscrituraOficialActivoBody,
   ImportacionContableBody,
+  QuitarRolUsuarioOrganizacionBody,
   ResponsablesQuery,
+  SedesQuery,
   UbicacionesQuery,
 } from './administrador.schemas';
 import type {
@@ -89,6 +103,7 @@ import type {
   OrganizacionResult,
   ResponsableResult,
   ResponsablesPaginaResult,
+  SedeResult,
   UbicacionResult,
   UbicacionesPaginaResult,
 } from '../core-client/core-client.types';
@@ -282,6 +297,39 @@ export class AdministradorController {
     );
   }
 
+  // DOC-024 1 — editar nombre. Sin guard explicito: la autorizacion se resuelve dentro de
+  // OrquestadorService (mismo motivo que altaOrganizacion).
+  @Patch('organizaciones/:orgId')
+  editarOrganizacion(
+    @Param('orgId') orgId: string,
+    @Body(new ZodValidationPipe(editarOrganizacionSchema))
+    body: EditarOrganizacionBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<OrganizacionResult> {
+    return this.administradorService.editarOrganizacion(
+      orgId,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-024 1 — dar de baja/reactivar. Bidireccional, sin cascada a Contrato (DOC-024 1).
+  @Patch('organizaciones/:orgId/estado')
+  actualizarEstadoOrganizacion(
+    @Param('orgId') orgId: string,
+    @Body(new ZodValidationPipe(actualizarEstadoOrganizacionSchema))
+    body: ActualizarEstadoOrganizacionBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<OrganizacionResult> {
+    return this.administradorService.actualizarEstadoOrganizacion(
+      orgId,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
   // DOC-023 3 — hallazgo corregido: antes era lectura abierta sin auditoria (CORE tampoco la
   // exige, ver indicadores.controller.ts de CORE) y sin guard de rol en backend, solo ocultada en
   // la UI de web_admin. Sin organizacionId propio (son indicadores agregados de toda la
@@ -320,11 +368,52 @@ export class AdministradorController {
     @Param('orgId') orgId: string,
     @Body(new ZodValidationPipe(asignarUsuarioOrganizacionSchema))
     body: AsignarUsuarioOrganizacionBody,
-    @Req() request: RequestWithCorrelationId,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
   ): Promise<void> {
     return this.administradorService.asignarUsuarioOrganizacion(
       orgId,
       body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-024 — inverso de asignarUsuarioOrganizacion. Mismo guard, mismo motivo de pipe por
+  // parametro (evita validar @Param('userId') contra un schema de objeto).
+  @Delete('organizaciones/:orgId/usuarios/:userId')
+  @UseGuards(AdministradorSistemaGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  quitarRolUsuarioOrganizacion(
+    @Param('orgId') orgId: string,
+    @Param('userId') userId: string,
+    @Body(new ZodValidationPipe(quitarRolUsuarioOrganizacionSchema))
+    body: QuitarRolUsuarioOrganizacionBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<void> {
+    return this.administradorService.quitarRolUsuarioOrganizacion(
+      orgId,
+      userId,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-024 — dar de baja a un usuario en Zitadel (nunca borrar salvo el caso puntual ya
+  // documentado en ZitadelAdminService.desactivarUsuario). Mismo guard que el resto de este
+  // sub-recurso.
+  @Post('organizaciones/:orgId/usuarios/:userId/desactivar')
+  @UseGuards(AdministradorSistemaGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  desactivarUsuarioOrganizacion(
+    @Param('orgId') orgId: string,
+    @Param('userId') userId: string,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<void> {
+    return this.administradorService.desactivarUsuarioOrganizacion(
+      orgId,
+      userId,
+      requireAuthContext(request),
       request.correlationId,
     );
   }
@@ -372,6 +461,67 @@ export class AdministradorController {
     @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
   ): Promise<ContratoResult> {
     return this.administradorService.actualizarEstadoContrato(
+      id,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-024 2 — editar condiciones (vigencia/modulos/sedes). Endpoint separado de
+  // actualizarEstadoContrato (que solo cambia `estado`) — ver DOC-024 2.
+  @Patch('contratos/:id/condiciones')
+  actualizarCondicionesContrato(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(actualizarCondicionesContratoSchema))
+    body: ActualizarCondicionesContratoBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<ContratoResult> {
+    return this.administradorService.actualizarCondicionesContrato(
+      id,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // Gap 2 (flujo real Admin->Directivo->Profesional AFT) — cierra el gap "no hay ABM de Sede".
+  @Post('sedes')
+  @UsePipes(new ZodValidationPipe(altaSedeSchema))
+  altaSede(
+    @Body() body: AltaSedeBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<SedeResult> {
+    return this.administradorService.altaSede(
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-024 1 — el picker que reemplaza copiar/pegar un id a mano en el formulario de Contrato
+  // de web_admin. Lectura abierta, mismo criterio que getOrganizaciones.
+  @Get('sedes')
+  getSedes(
+    @Query(new ZodValidationPipe(sedesQuerySchema)) query: SedesQuery,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<SedeResult[]> {
+    return this.administradorService.getSedes(
+      query.organizacionId,
+      request.correlationId,
+    );
+  }
+
+  // DOC-024 1 — dar de baja/reactivar. Sin guard explicito: la autorizacion se resuelve dentro de
+  // OrquestadorService (mismo motivo que altaSede).
+  @Patch('sedes/:id/estado')
+  actualizarEstadoSede(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(actualizarEstadoSedeSchema))
+    body: ActualizarEstadoSedeBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<SedeResult> {
+    return this.administradorService.actualizarEstadoSede(
       id,
       body,
       requireAuthContext(request),

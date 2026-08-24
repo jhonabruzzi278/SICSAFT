@@ -1,0 +1,25 @@
+# Datasources provisionados automaticamente al arrancar Grafana — el operador no tiene que
+# configurarlos a mano en la UI cada vez que se recrea el contenedor (sin volumen persistente de
+# config, solo de datos).
+#
+# Copia de devops/local/observability/grafana/provisioning/datasources/datasources.yml — ver
+# devops/prod/README.md "Hallazgo real" (Coolify no resuelve de forma confiable un bind mount
+# cuyo origen usa `..` para salir del directorio del compose file). Contenido idéntico a propósito:
+# las URLs son nombres de servicio de Docker Compose (prometheus/loki), iguales en ambos stacks.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus-ds
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+
+  - name: Loki
+    uid: loki-ds
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false

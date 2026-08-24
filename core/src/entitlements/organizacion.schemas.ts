@@ -16,3 +16,28 @@ export const altaOrganizacionSchema = z.object({
   nombre: z.string().min(1),
 });
 export type AltaOrganizacionBody = z.infer<typeof altaOrganizacionSchema>;
+
+// DOC-024 1 — PATCH /organizaciones/:id (editar nombre). Mismo criterio sin `organizacionId` que
+// altaOrganizacionSchema: administrador-sistema se verifica en CUALQUIER organizacion, el `:id`
+// de la ruta es el objetivo, no la organizacion contra la que se autoriza.
+export const actualizarOrganizacionSchema = z.object({
+  correlationId: z.string().min(1),
+  operadorId: z.string().min(1),
+  rolesPorOrganizacion: z.record(z.string(), z.array(z.string())),
+  nombre: z.string().min(1),
+});
+export type ActualizarOrganizacionBody = z.infer<
+  typeof actualizarOrganizacionSchema
+>;
+
+// DOC-024 1 — PATCH /organizaciones/:id/estado. Bidireccional (activo ⇄ inactivo, nunca DELETE —
+// Tomo III 4.10), sin cascada a Contrato (ver DOC-024 1).
+export const actualizarEstadoOrganizacionSchema = z.object({
+  correlationId: z.string().min(1),
+  operadorId: z.string().min(1),
+  rolesPorOrganizacion: z.record(z.string(), z.array(z.string())),
+  estado: z.enum(['activo', 'inactivo']),
+});
+export type ActualizarEstadoOrganizacionBody = z.infer<
+  typeof actualizarEstadoOrganizacionSchema
+>;

@@ -1,0 +1,16 @@
+# Provider de dashboards — cualquier .json que se agregue a
+# devops/prod/observability/grafana/dashboards/ aparece solo al reiniciar Grafana, sin importar
+# a mano por la UI. Copia de devops/local/observability/grafana/provisioning/dashboards/
+# dashboards.yml — ver devops/prod/README.md "Hallazgo real" (Coolify no resuelve de forma
+# confiable un bind mount cuyo origen usa `..` para salir del directorio del compose file).
+apiVersion: 1
+
+providers:
+  - name: SICSAFT
+    orgId: 1
+    folder: SICSAFT
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards

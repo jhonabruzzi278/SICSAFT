@@ -414,10 +414,11 @@ export interface PostDocumentoActivoRequest extends EscrituraOficialRequest {
 }
 
 // DOC-021 4 (Administrador del Sistema) — `organizaciones` ya existia (Fase 0), sin
-// repository/endpoint propio hasta este incremento.
+// repository/endpoint propio hasta este incremento. DOC-024 1 agrega `estado`.
 export const organizacionResponseSchema = z.object({
   id: z.string(),
   nombre: z.string(),
+  estado: z.enum(['activo', 'inactivo']),
 });
 export type OrganizacionResult = z.infer<typeof organizacionResponseSchema>;
 export const organizacionesResponseSchema = z.array(organizacionResponseSchema);
@@ -431,6 +432,66 @@ export interface PostOrganizacionRequest {
   rolesPorOrganizacion: Record<string, string[]>;
   id: string;
   nombre: string;
+}
+
+// DOC-024 1 — PATCH /organizaciones/:id (editar nombre) y PATCH /organizaciones/:id/estado.
+// Mismo criterio sin `organizacionId` que PostOrganizacionRequest.
+export interface PatchOrganizacionRequest {
+  correlationId: string;
+  operadorId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
+  nombre: string;
+}
+
+export interface PatchOrganizacionEstadoRequest {
+  correlationId: string;
+  operadorId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
+  estado: 'activo' | 'inactivo';
+}
+
+// Gap 2 (flujo real Admin->Directivo->Profesional AFT) — POST /sedes. A diferencia de
+// Organizacion, SI lleva `organizacionId` (una Sede siempre pertenece a una organizacion
+// puntual, ver core/src/entitlements/sede.schemas.ts) y no lleva `id`: lo genera CORE. DOC-024 1
+// agrega `estado`.
+export const sedeResponseSchema = z.object({
+  id: z.string(),
+  organizacionId: z.string(),
+  nombre: z.string(),
+  estado: z.enum(['activo', 'inactivo']),
+});
+export type SedeResult = z.infer<typeof sedeResponseSchema>;
+export const sedesResponseSchema = z.array(sedeResponseSchema);
+
+export interface PostSedeRequest {
+  correlationId: string;
+  operadorId: string;
+  rolesPorOrganizacion: Record<string, string[]>;
+  organizacionId: string;
+  nombre: string;
+}
+
+// DOC-024 1 — PATCH /sedes/:id/estado.
+export interface PatchSedeEstadoRequest extends EscrituraOficialRequest {
+  estado: 'activo' | 'inactivo';
+}
+
+// DOC-024 2 — PATCH /contratos/:id/condiciones. Separado de PatchContratoRequest (que solo
+// cambia `estado`) — ver DOC-024 2.
+export interface PatchContratoCondicionesRequest extends EscrituraOficialRequest {
+  sedeIds?: string[];
+  vigenciaHasta?: string | null;
+  modulosContratados?: string[];
+}
+
+// DOC-024 3 — POST /auditoria. CORE fuerza `categoria: 'identidad'` server-side, así que este
+// cliente no lo manda — ver core/src/auditoria/auditoria-escritura.controller.ts.
+export interface PostAuditoriaRequest {
+  usuario: string;
+  operacion: string;
+  resultado: string;
+  observaciones?: string;
+  organizacionId?: string;
 }
 
 // DOC-021 4 — conteos de plataforma, sin auditoria (lectura abierta en CORE).

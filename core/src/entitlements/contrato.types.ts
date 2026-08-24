@@ -40,3 +40,12 @@ export interface ContratosPagina {
   contratos: Contrato[];
   total: number;
 }
+
+// DOC-024 2 — PATCH /contratos/:id/condiciones. `undefined` = no tocar ese campo, `null` en
+// `vigenciaHasta` = volverlo indefinido (mismo significado que en NuevoContratoInput). Separado
+// de un simple `Partial<NuevoContratoInput>` porque `organizacionId` nunca es editable acá.
+export interface CambiosCondicionesContrato {
+  sedeIds?: string[];
+  vigenciaHasta?: string | null;
+  modulosContratados?: ModuloContratado[];
+}

@@ -15,6 +15,8 @@ const ENTRADAS: AuditoriaEntrada[] = [
     operacion: 'POST /inventarios',
     resultado: 'recibido',
     observaciones: null,
+    categoria: 'patrimonial',
+    organizacionId: null,
   },
 ];
 const PAGINA: AuditoriaPagina = { entradas: ENTRADAS, total: 1 };

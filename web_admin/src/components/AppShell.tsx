@@ -8,18 +8,29 @@ import {
   IconFileText,
   IconLayers,
   IconLogOut,
+  IconShield,
   IconUsers,
 } from './icons';
 
 // DOC-022 — sidebar del portal del Administrador del Sistema. AdminPage sigue siendo una sola
-// ruta ("/") con secciones internas (Organizaciones/Contratos/Usuarios/Indicadores); el sidebar
-// las expone como ?seccion=X para que cada una sea un link real (compartible/recargable), en vez
-// de los botones de tab que había antes dentro de la propia página.
+// ruta ("/") con secciones internas (Organizaciones/Contratos/Usuarios/MatrizRoles/Indicadores);
+// el sidebar las expone como ?seccion=X para que cada una sea un link real (compartible/
+// recargable), en vez de los botones de tab que había antes dentro de la propia página.
+// DOC-024 4 — MatrizRoles es de solo lectura (los 3 roles fijos y qué puede hacer cada uno).
 const SECCION_ICONS: Record<Seccion, React.ComponentType> = {
   Organizaciones: IconLayers,
   Contratos: IconFileText,
   Usuarios: IconUsers,
+  MatrizRoles: IconShield,
   Indicadores: IconChart,
+};
+
+const SECCION_LABELS: Record<Seccion, string> = {
+  Organizaciones: 'Organizaciones',
+  Contratos: 'Contratos',
+  Usuarios: 'Usuarios',
+  MatrizRoles: 'Matriz de roles',
+  Indicadores: 'Indicadores',
 };
 
 function Sidebar({ seccionActiva }: { seccionActiva: Seccion }) {
@@ -49,7 +60,7 @@ function Sidebar({ seccionActiva }: { seccionActiva: Seccion }) {
               }`}
             >
               <Icon />
-              {seccion}
+              {SECCION_LABELS[seccion]}
             </Link>
           );
         })}

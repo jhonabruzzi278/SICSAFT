@@ -1,0 +1,49 @@
+# Copia propia de devops/local/observability/prometheus.yml — antes referenciado por ruta
+# relativa (../local/observability/prometheus.yml) desde devops/prod/docker-compose.yml, pero
+# Coolify no resuelve de forma confiable un bind mount cuyo origen "escapa" del directorio del
+# compose file con `..` (verificado real: un deploy real contra Coolify falló montando este mismo
+# archivo — "not a directory", src resuelto sin el segmento `devops/` esperado — ver
+# devops/prod/README.md "Hallazgo real" para el detalle). Contenido idéntico al de local a
+# propósito: los scrape targets son nombres de servicio de Docker Compose (cis/core/cip/
+# node-exporter/cadvisor), iguales en ambos stacks. Si edita los scrape_configs, replique el
+# cambio en devops/local/observability/prometheus.yml (o viceversa) — no hay mecanismo automático
+# de sincronización entre los dos.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Metricas de host (CPU/mem/disco/red) — equivalente a lo que CloudWatch da gratis por instancia
+  # EC2, pero self-hosted.
+  - job_name: node-exporter
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Metricas por contenedor (CPU/mem/red/IO por servicio) — equivalente a CloudWatch Container
+  # Insights.
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # Prometheus se scrapea a si mismo (metricas de salud del propio scraper).
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # /metrics real (prom-client via @willsoto/nestjs-prometheus) en los 3 backends NestJS — ver
+  # devops/local/README.md "Observabilidad". CIS tiene router publico en Traefik/Coolify (a
+  # diferencia de core/cip, sin exposicion real) — GET /metrics de CIS exige un Bearer token acá
+  # (ver cis/src/common/metrics/metrics-token.guard.ts y devops/prod/README.md "Hallazgo real").
+  # bearer_token_file, no un valor hardcodeado: METRICS_TOKEN vive en el panel de Coolify, nunca
+  # en este archivo commiteado — Compose lo monta como Docker secret (ver `secrets:` de
+  # docker-compose.yml) en /run/secrets/metrics_token.
+  - job_name: cis
+    bearer_token_file: /run/secrets/metrics_token
+    static_configs:
+      - targets: ["cis:3000"]
+  - job_name: core
+    static_configs:
+      - targets: ["core:3001"]
+  - job_name: cip
+    static_configs:
+      - targets: ["cip:3002"]
