@@ -228,6 +228,23 @@ desde un navegador real, solo via `supertest`/curl (que no aplican CORS), así q
 invisible hasta que la nueva pantalla de "quitar rol" de `web_admin/` lo disparó en vivo — corregido
 en el mismo incremento.
 
+**`GET /metrics` protegido con Bearer token (2026-08-24)**: hallazgo real durante el primer deploy
+contra Coolify (ver `devops/prod/README.md` "Hallazgo real") — CIS sí tiene router público en
+Traefik/Coolify (a diferencia de core/cip), así que `/metrics` quedaba públicamente alcanzable sin
+autenticar, un gap ya señalado sin resolver en el comentario original de `PrometheusModule` en
+`app.module.ts`. Nuevo módulo `src/common/metrics/` (`MetricsTokenGuard` + `MetricsController`,
+que extiende el `PrometheusController` de `@willsoto/nestjs-prometheus` — única forma que expone
+la librería para meterle un guard) exige `Authorization: Bearer <METRICS_TOKEN>`, comparación en
+tiempo constante como `ServiceTokenGuard` de CORE. `METRICS_TOKEN` es opcional a propósito (a
+diferencia de `CORE_SERVICE_TOKEN`/`CIP_SERVICE_TOKEN`): sin configurar, el guard deja pasar todo
+y avisa una vez por proceso con `Logger.warn` — el default correcto en `devops/local/` (sin
+exposición real que proteger), pero si ese warning aparece en logs de `devops/prod/` es una
+brecha real. `MetricsModule` es `@Global()` — `PrometheusModule.register({ controller })` registra
+el controller dentro de su propio módulo dinámico, no del nuestro, así que sin `@Global()` Nest no
+puede resolver la dependencia del guard (verificado real, no una suposición: falla al arrancar con
+"can't resolve dependencies... Symbol(METRICS_CONFIG)... is available in the PrometheusModule
+module" sin esto).
+
 ## Desarrollo local
 ```bash
 cd cis
