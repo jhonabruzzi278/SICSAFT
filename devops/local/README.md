@@ -117,6 +117,13 @@ cuando se agregue `prom-client`/`@willsoto/nestjs-prometheus`. Dashboards de la 
 ("Node Exporter Full", id `1860` en grafana.com) se pueden importar desde la propia UI de Grafana
 (Dashboards → New → Import → pegar el id) sin necesidad de versionarlos acá.
 
+## Pruebas de carga (k6)
+
+Prueba rápida de carga/estrés contra `cis`/`core`/`cip`, visualizada en el Grafana de arriba —
+ver [`k6/README.md`](k6/README.md) para cómo correrla y qué mide cada script. No es el
+entregable formal de `ROADMAP.md` Fase 5/OPS-5 (ese corre en cron contra staging); esto es una
+pasada rápida contra el stack local mientras se desarrolla.
+
 ## Cliente OIDC real (ROADMAP.md Fase 0) — ya hecho, pasos para reproducirlo
 1. Levantar el stack y entrar a `http://id.sicsaft.localhost`, login con
    `ZITADEL_ADMIN_USERNAME`/`ZITADEL_ADMIN_PASSWORD` (Zitadel obliga a cambiar la contraseña en
