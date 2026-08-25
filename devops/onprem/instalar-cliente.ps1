@@ -58,7 +58,10 @@ function New-ClaveConSimbolo {
 
 function Test-Wsl2 {
     Write-Paso "1. Verificando WSL2"
-    $status = wsl --status 2>&1
+    # Sin "2>&1": con $ErrorActionPreference = "Stop", cualquier linea que el comando nativo
+    # escriba a stderr se convierte en un error terminante aunque el exit code sea 0 (bug real
+    # encontrado en podman machine start, ver mas abajo) -- alcanza con revisar $LASTEXITCODE.
+    wsl --status | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Host "WSL2 no esta instalado. Instalando (wsl --install --no-distribution)..."
         wsl --install --no-distribution
@@ -94,13 +97,18 @@ function Test-Podman {
         Write-Host "Podman instalado."
     }
 
-    $machineList = podman machine list --format "{{.Name}}" 2>&1
+    # Sin "2>&1" en ninguno de los dos -- mismo motivo que Test-Wsl2 (bug real encontrado: un
+    # simple warning de podman en stderr, "your ... screen size is bogus", tiraba abajo el
+    # script entero por $ErrorActionPreference = "Stop" aunque el comando haya funcionado bien).
+    $machineList = podman machine list --format "{{.Name}}"
     if ($LASTEXITCODE -ne 0 -or -not $machineList) {
         Write-Host "Inicializando maquina Podman (podman machine init)..."
-        podman machine init
+        podman machine init | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman machine init'." }
     }
-    podman machine start 2>&1 | Out-Null
+    # No se falla si el exit code es distinto de 0 -- "la maquina ya esta corriendo" tambien
+    # devuelve no-cero segun la version de Podman, y es un caso valido (idempotente), no un error.
+    podman machine start | Out-Null
     Write-Host "Podman OK."
 }
 
