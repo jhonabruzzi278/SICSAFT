@@ -19,6 +19,15 @@ porqué) — herramientas SOPS+age quedan documentadas como histórico, no como 
 VPS real (dominios `sicsaft.cl` sin comprar/apuntar todavía, ni instancia de Coolify corriendo) —
 ver [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) y
 [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) para el stack ya decidido.
+**Instalación on-premise por cliente** (2026-08-25, ver
+[`aidlc-docs/devops/`](../aidlc-docs/devops)): además del VPS compartido de arriba, SICSAFT
+también se vende como instalación aislada por cliente (Nivel 1/Nivel 2, portal de precios propio
+del negocio) — [`devops/onprem/docker-compose.yml`](onprem/docker-compose.yml) levanta un tenant
+completo en el PC/servidor del cliente sobre **Podman** (no Docker Desktop, decisión de recursos),
+más [`devops/onprem/bootstrap-zitadel.ps1`](onprem/bootstrap-zitadel.ps1) para automatizar el alta
+de cada cliente contra Zitadel sin pasos manuales en su dashboard. Nivel 3 (RFID) documentado como
+gancho, sin implementación (`rfid/` no tiene código todavía). Empaquetado como instalador `.exe`
+real: pendiente, ver `devops/onprem/README.md` "Qué falta para el instalador `.exe` empaquetado".
 
 ## Modelo de despliegue: VPS propio, Docker Compose orquestado por Coolify
 El usuario administra su propio VPS (no una plataforma gestionada tipo Vercel/Render para
@@ -38,10 +47,16 @@ devops/
 │   ├── traefik/                    # Traefik propio, solo para local (Coolify trae el suyo)
 │   ├── observability/              # config compartida de Prometheus/Loki/Promtail/Grafana
 │   └── postgres/init/              # scripts de bootstrap de roles/bases, compartidos con prod
-└── prod/                           # stack de producción — ver devops/prod/README.md
-    ├── docker-compose.yml          # recurso "Docker Compose" en Coolify, sin traefik propio
-    ├── .env.example                # variables a cargar en el panel de Coolify (sin valores reales)
-    └── README.md                   # despliegue + histórico de la decisión SOPS+age
+├── prod/                           # stack de producción — ver devops/prod/README.md
+│   ├── docker-compose.yml          # recurso "Docker Compose" en Coolify, sin traefik propio
+│   ├── .env.example                # variables a cargar en el panel de Coolify (sin valores reales)
+│   └── README.md                   # despliegue + histórico de la decisión SOPS+age
+└── onprem/                         # instalación aislada por cliente — ver devops/onprem/README.md
+    ├── docker-compose.yml          # subconjunto de local/, Compose profiles nivel1/nivel2, sin
+    │                                # observabilidad/k6/cip, pensado para podman-compose
+    ├── bootstrap-zitadel.ps1       # automatiza el alta de un cliente contra Zitadel
+    ├── traefik/, postgres/         # copias propias, autocontenidas (mismo criterio que prod/)
+    └── .env.example
 ```
 
 Cada sistema (`cis/Dockerfile`, `core/Dockerfile`, `ccp/Dockerfile`, ...) vive en su propia
