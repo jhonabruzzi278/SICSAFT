@@ -236,7 +236,7 @@ function New-EnvDeCliente {
     if ((Test-Path $ComposeFile) -and (Get-Command podman-compose -ErrorAction SilentlyContinue)) {
         # Sin redirigir stderr (mismo motivo que el resto del script) -- si no habia nada que
         # tirar, podman-compose puede escribir un aviso a stderr sin que sea un error real.
-        podman-compose -f $ComposeFile --project-directory $InstallDir down -v | Out-Null
+        podman-compose -f $ComposeFile down -v | Out-Null
     }
     if (Test-Path (Split-Path -Parent $PatPath)) {
         Remove-Item -Recurse -Force (Split-Path -Parent $PatPath)
@@ -245,10 +245,12 @@ function New-EnvDeCliente {
 
 function Wait-PatDeZitadel {
     Write-Paso "5. Levantando postgres, redis y zitadel"
-    # --project-directory ademas de -f: los "build.context" del compose (ej. "../../cis") son
-    # relativos al directorio del proyecto, no necesariamente al cwd del proceso -- mismo motivo
-    # que el resto de este script evita depender del cwd.
-    podman-compose -f $ComposeFile --project-directory $InstallDir up -d postgres redis zitadel
+    # Sin "--project-directory": bug real encontrado -- a diferencia de docker compose,
+    # podman-compose 1.6.0 no tiene esa flag (su parser la confunde con el subcomando y tira
+    # "invalid choice"). "-f" con ruta absoluta alcanza: podman-compose resuelve los
+    # "build.context" relativos del compose (ej. "../../cis") contra el directorio del archivo
+    # -f, y Set-Location $InstallDir (arriba) ya deja el cwd correcto de todos modos.
+    podman-compose -f $ComposeFile up -d postgres redis zitadel
     if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose up -d postgres redis zitadel'." }
 
     Write-Host "Esperando el PAT auto-provisionado por Zitadel ($PatPath)..."
@@ -317,7 +319,7 @@ $valores = Invoke-BootstrapCliente -Pat $pat -ClienteNombre $ClienteNombre `
 Set-ValoresEnEnv -Valores $valores
 
 Write-Paso "8. Construyendo y levantando el stack completo (Nivel $Nivel)"
-podman-compose -f $ComposeFile --project-directory $InstallDir --profile "nivel$Nivel" up -d --build
+podman-compose -f $ComposeFile --profile "nivel$Nivel" up -d --build
 if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose --profile nivel$Nivel up -d --build'." }
 
 Write-Paso "9. Verificacion (smoke check)"
