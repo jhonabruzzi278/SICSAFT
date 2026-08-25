@@ -1,0 +1,34 @@
+# Build multi-stage — SPA/PWA estatica (Vite/React), mismo patron que ccp/Dockerfile — runtime
+# final es nginx sirviendo archivos, sin proceso Node corriendo. Se agrega en INST-RF-05
+# (aidlc-docs/devops/) para poder servir APP QR dentro del stack onprem — hoy solo se despliega en
+# Vercel (ver README.md raiz "Dónde está el trabajo activo hoy"), este Dockerfile no reemplaza ese
+# despliegue, es una via adicional para devops/onprem/.
+
+FROM node:24-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --ignore-scripts
+COPY . .
+
+# Variables VITE_* publicas (SPA sin secreto de cliente, PKCE) — Vite las incrusta en el bundle en
+# build time, asi que llegan como build args (ver devops/onprem/docker-compose.yml) y no como ENV
+# del contenedor final. Mismos 3 nombres que app-qr-sicsaft/.env.example.
+ARG VITE_ZITADEL_ISSUER
+ARG VITE_ZITADEL_CLIENT_ID
+ARG VITE_CIS_URL
+ENV VITE_ZITADEL_ISSUER=${VITE_ZITADEL_ISSUER} \
+    VITE_ZITADEL_CLIENT_ID=${VITE_ZITADEL_CLIENT_ID} \
+    VITE_CIS_URL=${VITE_CIS_URL}
+RUN npm run build
+
+# Imagen "unprivileged" — corre como usuario sin privilegios y escucha en 8080 por default, mismo
+# criterio que ccp/Dockerfile y cis/Dockerfile ("nunca root en el contenedor final").
+FROM nginxinc/nginx-unprivileged:1.29-alpine AS runtime
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

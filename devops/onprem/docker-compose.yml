@@ -1,0 +1,256 @@
+# Stack onprem por cliente — instalación aislada (Nivel 1/Nivel 2), ver
+# aidlc-docs/devops/design-artifacts/ARCHITECTURE.md para el diseño completo. Subconjunto de
+# devops/local/docker-compose.yml, no una copia: sin observabilidad (Prometheus/Loki/Grafana/
+# cAdvisor/node-exporter), sin k6, sin cip (fuera de los 3 niveles de producto, ver
+# aidlc-docs/devops/design-artifacts/DOC-025-niveles-producto-onprem.md 3), sin dashboard de
+# Traefik expuesto. Pensado para correr con `podman-compose` (INST-RNF-01), no Docker Desktop —
+# ver README.md de esta carpeta para el flujo de instalación completo.
+
+name: sicsaft-onprem
+
+networks:
+  sicsaft:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  zitadel_data:
+
+services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+      - --log.level=INFO
+    ports:
+      - "80:80"
+    volumes:
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic/dynamic.yml:ro
+    networks:
+      sicsaft:
+        # Mismo truco que devops/local/ — Zitadel es multi-tenant por dominio y rechaza requests
+        # cuyo Host no sea uno de sus dominios registrados, así que un contenedor que le pegue a
+        # Zitadel por el nombre de servicio interno (`zitadel:8080`) recibe "Instance not found".
+        # Este alias hace que `id.sicsaft.localhost` resuelva DENTRO de la red a este mismo
+        # Traefik, que enruta por Host igual que desde el host.
+        aliases:
+          - id.sicsaft.localhost
+    restart: unless-stopped
+
+  postgres:
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pgaudit"
+      - "-c"
+      - "pgaudit.log=write, ddl, role"
+    environment:
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      POSTGRES_DB: postgres
+      ZITADEL_DB_USER: ${ZITADEL_DB_USER}
+      ZITADEL_DB_PASSWORD: ${ZITADEL_DB_PASSWORD}
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - sicsaft
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ADMIN_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - /data
+    networks:
+      - sicsaft
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  zitadel:
+    image: ghcr.io/zitadel/zitadel:v2.65.0
+    command: start-from-init --masterkey "${ZITADEL_MASTERKEY}" --tlsMode disabled
+    environment:
+      ZITADEL_DATABASE_POSTGRES_HOST: postgres
+      ZITADEL_DATABASE_POSTGRES_PORT: 5432
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: ${ZITADEL_DB_USER}
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: ${ZITADEL_DB_PASSWORD}
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: ${POSTGRES_ADMIN_USER}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
+      ZITADEL_EXTERNALDOMAIN: id.sicsaft.localhost
+      ZITADEL_EXTERNALPORT: 80
+      ZITADEL_EXTERNALSECURE: "false"
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD}
+    volumes:
+      - zitadel_data:/zitadel
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  cis:
+    build:
+      context: ../../cis
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3000
+      ZITADEL_ISSUER: http://id.sicsaft.localhost
+      ZITADEL_AUDIENCE: ${CIS_ZITADEL_AUDIENCE}
+      CORE_URL: http://core:3001
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      # Solo el dominio local de este cliente — sin puertos de Vite (no hay `npm run dev` en una
+      # instalación de cliente) y sin CIP_URL/CIP_SERVICE_TOKEN (CIP no entra en ningún nivel de
+      # producto onprem, ver DOC-025 3).
+      CIS_CORS_ORIGIN: http://qr.sicsaft.localhost,http://ccp.sicsaft.localhost,http://admin.sicsaft.localhost,http://directivo.sicsaft.localhost
+      # Mapeo Zitadel org id -> organizacionId de CORE — bootstrap-zitadel.ps1 imprime el valor
+      # real a pegar acá (una sola organización por instalación onprem, a diferencia de
+      # devops/local/ que mapea varias).
+      ZITADEL_ORG_ID_MAP: ${ZITADEL_ORG_ID_MAP}
+      # Integración con la Management API de Zitadel (alta de organización/usuarios desde
+      # web-admin, DOC-021) — mismo PAT que ya generó bootstrap-zitadel.ps1 para sí mismo.
+      ZITADEL_ADMIN_TOKEN: ${ZITADEL_ADMIN_TOKEN}
+      ZITADEL_PROJECT_ID: ${ZITADEL_PROJECT_ID}
+    networks:
+      - sicsaft
+    depends_on:
+      zitadel:
+        condition: service_started
+      core:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  core-migrate:
+    build:
+      context: ../../core
+      dockerfile: Dockerfile
+    command: ["node", "scripts/migrate.js", "up"]
+    environment:
+      CORE_DB_HOST: postgres
+      CORE_DB_PORT: 5432
+      CORE_DB_NAME: core
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  core:
+    build:
+      context: ../../core
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3001
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      CORE_DB_HOST: postgres
+      CORE_DB_PORT: 5432
+      CORE_DB_NAME: core
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+      core-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    # Sin router en traefik/dynamic.yml a propósito: CORE solo lo consume CIS, mismo criterio que
+    # devops/local/ y devops/prod/.
+
+  app-qr-sicsaft:
+    build:
+      context: ../../app-qr-sicsaft
+      dockerfile: Dockerfile
+      args:
+        # INST-RF-05 — Vite hornea VITE_* en build time, así que esto debe construirse DESPUÉS de
+        # correr bootstrap-zitadel.ps1 (ver README.md "Orden obligatorio").
+        VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
+        VITE_ZITADEL_CLIENT_ID: ${APP_QR_VITE_ZITADEL_CLIENT_ID}
+        VITE_CIS_URL: http://api.sicsaft.localhost
+    networks:
+      - sicsaft
+    depends_on:
+      cis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- A partir de acá, solo perfil "nivel2" (INST-RF-02) — un cliente Nivel 1 nunca los levanta.
+
+  ccp:
+    profiles: ["nivel2"]
+    build:
+      context: ../../ccp
+      dockerfile: Dockerfile
+      args:
+        VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
+        VITE_ZITADEL_CLIENT_ID: ${CCP_VITE_ZITADEL_CLIENT_ID}
+        VITE_CIS_URL: http://api.sicsaft.localhost
+    networks:
+      - sicsaft
+    depends_on:
+      cis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web-admin:
+    profiles: ["nivel2"]
+    build:
+      context: ../../web_admin
+      dockerfile: Dockerfile
+      args:
+        VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
+        VITE_ZITADEL_CLIENT_ID: ${WEB_ADMIN_VITE_ZITADEL_CLIENT_ID}
+        VITE_CIS_URL: http://api.sicsaft.localhost
+    networks:
+      - sicsaft
+    depends_on:
+      cis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  core-frontend:
+    profiles: ["nivel2"]
+    build:
+      context: ../../core/frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
+        VITE_ZITADEL_CLIENT_ID: ${CORE_FRONTEND_VITE_ZITADEL_CLIENT_ID}
+        VITE_CIS_URL: http://api.sicsaft.localhost
+    networks:
+      - sicsaft
+    depends_on:
+      cis:
+        condition: service_healthy
+    restart: unless-stopped
