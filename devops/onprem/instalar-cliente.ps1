@@ -25,6 +25,13 @@
 .PARAMETER InstallDir
     Carpeta de devops/onprem/ a usar (default: donde vive este script).
 
+.PARAMETER DominioBase
+    Dominio local de este cliente (ej. "sicsaft-duoc-melipilla.test") — reemplaza el genérico
+    "sicsaft.localhost" en hosts, Traefik, Zitadel y las URLs que hornean los frontends. Si no se
+    pasa, se calcula automáticamente a partir de -ClienteNombre: "sicsaft-" + slug del nombre
+    (minúsculas, sin acentos ni espacios) + ".test" (RFC 2606, reservado para uso local, nunca
+    resuelve por internet).
+
 .EXAMPLE
     ./instalar-cliente.ps1 -ClienteNombre "Municipalidad de Melipilla" `
         -OrganizacionId "municipalidad-melipilla" -Nivel 2
@@ -33,10 +40,30 @@ param(
     [Parameter(Mandatory = $true)][string]$ClienteNombre,
     [Parameter(Mandatory = $true)][string]$OrganizacionId,
     [Parameter(Mandatory = $true)][ValidateSet(1, 2)][int]$Nivel,
-    [string]$InstallDir = $PSScriptRoot
+    [string]$InstallDir = $PSScriptRoot,
+    [string]$DominioBase
 )
 
 $ErrorActionPreference = "Stop"
+
+function New-DominioDesdeNombre {
+    # Slug DNS-safe: minusculas, sin acentos, espacios/simbolos -> guion, guiones repetidos
+    # colapsados, sin guion al inicio/final. ".test" (RFC 2606) nunca resuelve por internet ni
+    # choca con mDNS/Bonjour (a diferencia de ".local") -- pensado para que cada cliente onprem
+    # tenga sus propias URLs (ej. qr.duoc-melipilla.test) en vez del generico sicsaft.localhost.
+    param([string]$Nombre)
+    $normalizado = $Nombre.Normalize([System.Text.NormalizationForm]::FormD)
+    $sinAcentos = -join ($normalizado.ToCharArray() | Where-Object {
+        [System.Globalization.CharUnicodeInfo]::GetUnicodeCategory($_) -ne [System.Globalization.UnicodeCategory]::NonSpacingMark
+    })
+    $slug = ($sinAcentos.ToLowerInvariant() -replace '[^a-z0-9]+', '-').Trim('-')
+    if (-not $slug) { $slug = "cliente" }
+    return "sicsaft-$slug.test"
+}
+
+if (-not $DominioBase) {
+    $DominioBase = New-DominioDesdeNombre -Nombre $ClienteNombre
+}
 
 # $PSScriptRoot vino vacio en una corrida real (causa exacta no confirmada, algo especifico de
 # como Inno Setup invoca powershell.exe via [Run]) -- installer/sicsaft-onprem.iss ahora pasa
@@ -65,6 +92,8 @@ $EnvPath = Join-Path $InstallDir ".env"
 $EnvExamplePath = Join-Path $InstallDir ".env.example"
 $PatPath = Join-Path $InstallDir ".bootstrap\admin-pat.txt"
 $ComposeFile = Join-Path $InstallDir "docker-compose.yml"
+$DynamicYmlPath = Join-Path $InstallDir "traefik\dynamic.yml"
+$DynamicYmlTemplatePath = Join-Path $InstallDir "traefik\dynamic.yml.template"
 $LogPath = Join-Path $InstallDir "instalacion.log"
 
 # Deja un registro en archivo de toda la corrida -- necesario para poder diagnosticar despues
@@ -113,9 +142,11 @@ function Set-HostsLocales {
     # y el tecnico no puede entrar a los portales desde el navegador tampoco.
     Write-Paso "0. Configurando dominios locales (hosts)"
     $hostsPath = "$env:SystemRoot\System32\drivers\etc\hosts"
-    $dominios = @("id.sicsaft.localhost", "api.sicsaft.localhost", "qr.sicsaft.localhost")
+    # web-admin y core-frontend van siempre desde Nivel 1 (DOC-025 §1, revisado 2026-08-25); ccp
+    # (portal COMPLETO de AFT) sigue siendo exclusivo de Nivel 2.
+    $dominios = @("id.$DominioBase", "api.$DominioBase", "qr.$DominioBase", "admin.$DominioBase", "directivo.$DominioBase")
     if ($Nivel -eq 2) {
-        $dominios += @("ccp.sicsaft.localhost", "admin.sicsaft.localhost", "directivo.sicsaft.localhost")
+        $dominios += @("ccp.$DominioBase")
     }
     $contenidoActual = Get-Content $hostsPath -Raw -ErrorAction SilentlyContinue
     $lineasNuevas = @()
@@ -130,6 +161,24 @@ function Set-HostsLocales {
     } else {
         Write-Host "Dominios locales ya estaban en el hosts."
     }
+}
+
+function Set-DominioTraefik {
+    # traefik/dynamic.yml no admite interpolacion de variables de entorno (a diferencia de
+    # docker-compose.yml) -- Traefik lo lee tal cual desde el provider "file". Se regenera SIEMPRE
+    # desde dynamic.yml.template (placeholder "__DOMINIO_BASE__", nunca un dominio real) en vez de
+    # reemplazar en el archivo final -- bug real evitado a proposito: reemplazar sobre dynamic.yml
+    # directamente es idempotente solo la PRIMERA vez; si una corrida posterior usa un
+    # -DominioBase distinto, "sicsaft.localhost" ya no estaria en el archivo para encontrar y
+    # reemplazar, y Traefik quedaria enrutando al dominio viejo en silencio.
+    Write-Paso "0b. Configurando dominio de Traefik"
+    if (-not (Test-Path $DynamicYmlTemplatePath)) {
+        throw "No se encontro $DynamicYmlTemplatePath : reinstalar devops/onprem/ desde el repo."
+    }
+    $contenido = Get-Content $DynamicYmlTemplatePath -Raw
+    $contenido = $contenido -replace [regex]::Escape('__DOMINIO_BASE__'), $DominioBase
+    Set-Content $DynamicYmlPath $contenido -NoNewline
+    Write-Host "traefik/dynamic.yml generado para *.$DominioBase."
 }
 
 function Test-Wsl2 {
@@ -186,7 +235,35 @@ function Test-Podman {
     }
     # No se falla si el exit code es distinto de 0 -- "la maquina ya esta corriendo" tambien
     # devuelve no-cero segun la version de Podman, y es un caso valido (idempotente), no un error.
-    podman machine start | Out-Null
+    # "2>$null" + try/catch, no solo "sin redireccion" -- bug real encontrado corriendo el
+    # instalador elevado (Start-Process -Verb RunAs, ej. desde un wrapper o soporte remoto): bajo
+    # ese tipo de invocacion, PowerShell SI convierte el stderr de podman ("already running") en
+    # un NativeCommandError terminante pese a $ErrorActionPreference="Stop" nunca haber cambiado
+    # -- la consola de un proceso elevado via ShellExecute maneja el stream de error distinto que
+    # una consola interactiva normal. Confiar en "no redirigir" ya no alcanza en todos los
+    # contextos de invocacion.
+    try { podman machine start 2>$null | Out-Null } catch { }
+
+    # Bug real encontrado corriendo el instalador: la maquina de Podman en WSL2 corre en modo
+    # rootless, y por default Linux no deja a un proceso sin privilegios bindear puertos < 1024
+    # (net.ipv4.ip_unprivileged_port_start = 1024). Traefik publica el 80 ("80:80" en
+    # docker-compose.yml, ver comentario ahi) para que las URLs *.sicsaft.localhost no necesiten
+    # puerto -- sin este ajuste, "podman-compose up" de Traefik fallaba con "rootlessport cannot
+    # expose privileged port 80: bind: permission denied". Idempotente: sysctl -w no falla si ya
+    # esta seteado, y el archivo en sysctl.d persiste el valor entre reinicios de la maquina.
+    #
+    # "tee" en vez de "sudo sh -c '... > archivo ...'" -- segundo bug real encontrado: "podman
+    # machine ssh -- sudo sh -c \"... > archivo\"" llegaba al shell remoto con las comillas
+    # perdidas (podman/ssh reconstruye el comando remoto uniendo argumentos, no preserva quoting
+    # anidado como un shell local), asi que el "sudo" terminaba cubriendo solo "sh -c echo" y la
+    # redireccion ">" corria SIN privilegios en el shell exterior -- "Permission denied" al
+    # escribir en /etc/sysctl.d. "sudo tee" evita el problema porque no depende de que la
+    # redireccion de shell quede dentro del alcance de sudo: tee mismo es el proceso elevado.
+    $comandoSysctl = "sudo sh -c 'echo net.ipv4.ip_unprivileged_port_start=80 | tee /etc/sysctl.d/99-podman-rootless-port80.conf > /dev/null && sysctl -w net.ipv4.ip_unprivileged_port_start=80'"
+    podman machine ssh -- $comandoSysctl | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "No se pudo habilitar el puerto 80 sin privilegios dentro de la maquina Podman ('podman machine ssh ... sysctl'). Sin esto, Traefik no puede levantar. Revisar 'podman machine ssh' manualmente."
+    }
     Write-Host "Podman OK."
 }
 
@@ -248,7 +325,8 @@ function New-EnvDeCliente {
     $contenido = [regex]::Replace($contenido, 'cambiar-por-una-clave-unica-de-este-cliente', { New-ClavealAzar })
     $contenido = [regex]::Replace($contenido, 'cambiar-por-32-caracteres-random', { (New-ClavealAzar).Substring(0, 32) })
     $contenido = $contenido -replace 'cambiar-por-64-caracteres-hex-random', ((1..32 | ForEach-Object { "{0:x2}" -f (Get-Random -Max 256) }) -join '')
-    $contenido = $contenido -replace 'admin@sicsaft\.localhost', "admin@$OrganizacionId.sicsaft.localhost"
+    $contenido = $contenido -replace 'cambiar-por-dominio-base-de-este-cliente', $DominioBase
+    $contenido = $contenido -replace 'admin@sicsaft\.localhost', "admin@$DominioBase"
     Set-Content $EnvPath $contenido -NoNewline
     Write-Host ".env generado con credenciales unicas de este cliente."
 
@@ -276,8 +354,20 @@ function Wait-PatDeZitadel {
     # "invalid choice"). "-f" con ruta absoluta alcanza: podman-compose resuelve los
     # "build.context" relativos del compose (ej. "../../cis") contra el directorio del archivo
     # -f, y Set-Location $InstallDir (arriba) ya deja el cwd correcto de todos modos.
-    podman-compose -f $ComposeFile up -d postgres redis zitadel
-    if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose up -d postgres redis zitadel'." }
+    # "| Out-Null" es necesario, no cosmetico: sin el, la salida de este comando externo se mezcla
+    # con "return $pat" de abajo (todo lo no capturado dentro de una funcion de PowerShell va al
+    # stream de salida) -- bug real encontrado corriendo el instalador: $pat terminaba siendo un
+    # array con todas las lineas de progreso del pull de imagenes en vez de un string, y
+    # "Invoke-BootstrapCliente -Pat $pat" fallaba con "no se puede convertir el valor al tipo
+    # System.String".
+    #
+    # "traefik" tiene que estar arriba en este punto tambien -- bug real encontrado corriendo el
+    # instalador: zitadel no publica ningun puerto al host, solo es alcanzable via Traefik
+    # (id.sicsaft.localhost -> :80 de traefik, ver docker-compose.yml). Sin traefik, el bootstrap
+    # de abajo (Invoke-BootstrapCliente, que le pega a la Management API desde el HOST) fallaba
+    # con "No es posible conectar con el servidor remoto".
+    podman-compose -f $ComposeFile up -d postgres redis zitadel traefik | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose up -d postgres redis zitadel traefik'." }
 
     Write-Host "Esperando el PAT auto-provisionado por Zitadel ($PatPath)..."
     $intentos = 0
@@ -333,35 +423,54 @@ function Test-Servicio {
 try {
 
 Set-HostsLocales
+Set-DominioTraefik
 Test-Wsl2
 Test-Podman
 Test-PodmanCompose
 New-EnvDeCliente
 $pat = Wait-PatDeZitadel
 
+# Bug real encontrado corriendo el instalador: el PAT se escribe a disco durante el arranque de
+# Zitadel (start-from-init), pero eso no garantiza que su servidor HTTP ya este aceptando
+# requests -- Wait-PatDeZitadel solo espera el archivo, no que la API responda. Sin esto, el
+# primer llamado del bootstrap (Invoke-BootstrapCliente) llegaba antes de tiempo y Traefik
+# devolvia "502 Bad Gateway" (Traefik arriba y enrutando bien, pero sin poder conectarse todavia
+# al backend). El endpoint de discovery OIDC no requiere autenticacion y solo responde 200 cuando
+# Zitadel esta realmente sirviendo trafico.
+if (-not (Test-Servicio -Url "http://id.$DominioBase/.well-known/openid-configuration" -Nombre "Zitadel (API)")) {
+    throw "Zitadel no respondio en http://id.$DominioBase/.well-known/openid-configuration despues de 1 minuto. Revisar 'podman-compose logs zitadel' y 'podman-compose logs traefik'."
+}
+
 Write-Paso "6. Corriendo bootstrap de Zitadel (organizacion, proyecto, roles, apps OIDC)"
 Import-Module (Join-Path $InstallDir "lib/Bootstrap-Zitadel.psm1") -Force
 $valores = Invoke-BootstrapCliente -Pat $pat -ClienteNombre $ClienteNombre `
-    -OrganizacionId $OrganizacionId -Nivel $Nivel
+    -OrganizacionId $OrganizacionId -Nivel $Nivel -DominioBase $DominioBase
 
 Set-ValoresEnEnv -Valores $valores
 
-# .env y el PAT auto-provisionado (.bootstrap/) ya cumplieron su funcion en este script -- se
-# restringen ahora, antes de construir/levantar nada mas, para que queden protegidos el mayor
-# tiempo posible durante la instalacion.
-Protect-Archivo -Ruta $EnvPath
-Protect-Archivo -Ruta (Split-Path -Parent $PatPath)
-
 Write-Paso "8. Construyendo y levantando el stack completo (Nivel $Nivel)"
+# Bug real encontrado corriendo el instalador: proteger .env ANTES de este paso (como decia el
+# comentario original, "para que quede protegido el mayor tiempo posible") rompe este mismo paso
+# -- podman-compose todavia necesita LEER .env aca (interpola sus variables en el compose y en
+# los contenedores), y con el archivo restringido a Administradores+SYSTEM el proceso de Python
+# de podman-compose fallaba con "PermissionError: [Errno 13] Permission denied" al abrirlo. .env
+# se protege mas abajo, despues de que este paso ya no lo necesita.
 podman-compose -f $ComposeFile --profile "nivel$Nivel" up -d --build
 if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose --profile nivel$Nivel up -d --build'." }
 
+# .env y el PAT auto-provisionado (.bootstrap/) ya cumplieron su funcion en este script -- recien
+# ahora se restringen, una vez que nada mas en la instalacion necesita leerlos.
+Protect-Archivo -Ruta $EnvPath
+Protect-Archivo -Ruta (Split-Path -Parent $PatPath)
+
 Write-Paso "9. Verificacion (smoke check)"
-$servicios = @{ "CIS" = "http://api.sicsaft.localhost/health" }
+$servicios = @{
+    "CIS"           = "http://api.$DominioBase/health"
+    "web-admin"     = "http://admin.$DominioBase/"
+    "core-frontend" = "http://directivo.$DominioBase/"
+}
 if ($Nivel -eq 2) {
-    $servicios["ccp"] = "http://ccp.sicsaft.localhost/"
-    $servicios["web-admin"] = "http://admin.sicsaft.localhost/"
-    $servicios["core-frontend"] = "http://directivo.sicsaft.localhost/"
+    $servicios["ccp"] = "http://ccp.$DominioBase/"
 }
 $todoOk = $true
 foreach ($nombre in $servicios.Keys) {
@@ -374,11 +483,11 @@ if ($todoOk) {
 } else {
     Write-Host "Instalacion terminada con al menos un servicio que no respondio - revisar 'podman-compose logs' antes de entregar al cliente." -ForegroundColor Yellow
 }
-Write-Host "APP QR:    http://qr.sicsaft.localhost"
+Write-Host "APP QR:    http://qr.$DominioBase"
+Write-Host "Admin:     http://admin.$DominioBase"
+Write-Host "Directivo: http://directivo.$DominioBase"
 if ($Nivel -eq 2) {
-    Write-Host "CCP:       http://ccp.sicsaft.localhost"
-    Write-Host "Admin:     http://admin.sicsaft.localhost"
-    Write-Host "Directivo: http://directivo.sicsaft.localhost"
+    Write-Host "CCP:       http://ccp.$DominioBase"
 }
 Write-Host ""
 Write-Host "IMPORTANTE: guardar ZITADEL_ADMIN_TOKEN (en .env) en el gestor de secretos del admin" -ForegroundColor Yellow

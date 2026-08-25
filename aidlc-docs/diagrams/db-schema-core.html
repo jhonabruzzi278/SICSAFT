@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SICSAFT — Schema completo Base Patrimonial (CORE)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper: #f5f5f5; --color-ink: #2d3142; --color-muted: #4f5d75; --color-accent: #eb6c36;
+      --font-sans: 'Geist', system-ui, sans-serif; --font-serif: 'Instrument Serif', serif; --font-mono: 'Geist Mono', ui-monospace, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1300px; width: 100%; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 0.5rem; }
+    p.subtitle { font-family: var(--font-sans); font-size: 0.9rem; color: var(--color-muted); margin-bottom: 1.5rem; max-width: 82ch; }
+    svg { width: 100%; min-width: 1000px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Database schema · SICSAFT · Reference poster</p>
+    <h1>Base Patrimonial (CORE) — schema completo</h1>
+    <p class="subtitle">Las 15 tablas reales de <code>core/migrations/</code> a la fecha, agrupadas por subdominio. Diagrama de referencia denso a propósito — se dibujan solo las relaciones estructurales principales; el resto de las FK queda listado dentro de cada tabla con el prefijo <code>→</code> sin línea propia, para mantenerlo legible a esta escala.</p>
+
+    <svg viewBox="0 0 1080 680" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sicsaft-dbcore-title sicsaft-dbcore-desc">
+      <title id="sicsaft-dbcore-title">Schema completo de la base de datos CORE de SICSAFT</title>
+      <desc id="sicsaft-dbcore-desc">Quince tablas agrupadas en tres subdominios — identidad y contratación, patrimonio, y trazabilidad — con organizaciones y activos como anclas estructurales del esquema.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- SECTION HEADERS -->
+      <text x="20" y="84" fill="rgba(45,49,66,0.45)" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">IDENTIDAD Y CONTRATACIÓN</text>
+      <text x="20" y="264" fill="rgba(45,49,66,0.45)" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">PATRIMONIO</text>
+      <text x="20" y="444" fill="rgba(45,49,66,0.45)" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">TRAZABILIDAD</text>
+
+      <!-- ===== EDGES (before boxes) ===== -->
+      <!-- sedes -> organizaciones (straight) -->
+      <line x1="236" y1="152" x2="196" y2="152" stroke="#4f5d75" stroke-width="1" marker-end="url(#arrow)"/>
+      <!-- contratos -> organizaciones (detour below row1) -->
+      <path d="M 540,204 V 212 Q 540,220 532,220 H 116 Q 108,220 108,212 V 204" fill="none" stroke="#4f5d75" stroke-width="1" marker-end="url(#arrow)"/>
+      <!-- eventos_outbox -> eventos (straight) -->
+      <line x1="668" y1="512" x2="628" y2="512" stroke="#4f5d75" stroke-width="1" marker-end="url(#arrow)"/>
+      <!-- inventarios -> activos -->
+      <path d="M 324,460 V 420 Q 324,412 332,412 H 722 Q 730,412 730,404 V 384" fill="none" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <!-- eventos -> activos -->
+      <path d="M 540,460 V 428 Q 540,420 548,420 H 774 Q 782,420 782,412 V 384" fill="none" stroke="#4f5d75" stroke-width="1" marker-end="url(#arrow)"/>
+      <!-- activos -> organizaciones -->
+      <path d="M 756,280 V 260 Q 756,252 748,252 H 148 Q 140,252 140,260 V 204" fill="none" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <!-- sesiones_inventario -> organizaciones (outer-left channel) -->
+      <path d="M 20,512 H 12 Q 4,512 4,504 V 160 Q 4,152 12,152 H 20" fill="none" stroke="#4f5d75" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+
+      <!-- ===== ROW 1 — IDENTIDAD Y CONTRATACIÓN (y=100..204) ===== -->
+
+      <!-- organizaciones -->
+      <rect x="20" y="100" width="176" height="104" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <line x1="20" y1="124" x2="196" y2="124" stroke="#eb6c36" stroke-width="0.8"/>
+      <text x="108" y="117" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">organizaciones</text>
+      <text x="28" y="140" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="28" y="154" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">nombre</text>
+      <text x="28" y="168" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">estado</text>
+
+      <!-- sedes -->
+      <rect x="236" y="100" width="176" height="104" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <line x1="236" y1="124" x2="412" y2="124" stroke="#2d3142" stroke-width="0.8"/>
+      <text x="324" y="117" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">sedes</text>
+      <text x="244" y="140" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="244" y="154" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ organizacion_id</text>
+      <text x="244" y="168" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">estado</text>
+
+      <!-- contratos -->
+      <rect x="452" y="100" width="176" height="104" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <line x1="452" y1="124" x2="628" y2="124" stroke="#2d3142" stroke-width="0.8"/>
+      <text x="540" y="117" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">contratos</text>
+      <text x="460" y="140" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="460" y="154" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ organizacion_id</text>
+      <text x="460" y="168" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">estado</text>
+      <text x="460" y="182" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">modulos_contratados[]</text>
+
+      <!-- contrato_sedes -->
+      <rect x="668" y="100" width="176" height="104" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <line x1="668" y1="124" x2="844" y2="124" stroke="#4f5d75" stroke-width="0.8"/>
+      <text x="756" y="117" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">contrato_sedes</text>
+      <text x="676" y="140" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ contrato_id</text>
+      <text x="676" y="154" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ sede_id</text>
+      <text x="676" y="168" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace"># (contrato_id, sede_id)</text>
+
+      <!-- areas -->
+      <rect x="884" y="100" width="176" height="104" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <line x1="884" y1="124" x2="1060" y2="124" stroke="#2d3142" stroke-width="0.8"/>
+      <text x="972" y="117" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">areas</text>
+      <text x="892" y="140" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="892" y="154" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ organizacion_id</text>
+      <text x="892" y="168" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ responsable_id</text>
+      <text x="892" y="182" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ ubicacion_principal_id</text>
+
+      <!-- ===== ROW 2 — PATRIMONIO (y=280..384) ===== -->
+
+      <!-- ubicaciones -->
+      <rect x="20" y="280" width="176" height="104" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <line x1="20" y1="304" x2="196" y2="304" stroke="#2d3142" stroke-width="0.8"/>
+      <text x="108" y="297" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">ubicaciones</text>
+      <text x="28" y="320" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="28" y="334" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ sede_id</text>
+      <text x="28" y="348" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ area_id</text>
+
+      <!-- responsables -->
+      <rect x="236" y="280" width="176" height="104" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <line x1="236" y1="304" x2="412" y2="304" stroke="#2d3142" stroke-width="0.8"/>
+      <text x="324" y="297" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">responsables</text>
+      <text x="244" y="320" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="244" y="334" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">identificacion (UQ)</text>
+      <text x="244" y="348" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ area_id</text>
+      <text x="244" y="362" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">estado</text>
+
+      <!-- catalogo_activos -->
+      <rect x="452" y="280" width="176" height="104" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <line x1="452" y1="304" x2="628" y2="304" stroke="#2d3142" stroke-width="0.8"/>
+      <text x="540" y="297" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">catalogo_activos</text>
+      <text x="460" y="320" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="460" y="334" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">tipo · familia</text>
+      <text x="460" y="348" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">criticidad</text>
+
+      <!-- activos (focal) -->
+      <rect x="668" y="280" width="176" height="104" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <line x1="668" y1="304" x2="844" y2="304" stroke="#eb6c36" stroke-width="0.8"/>
+      <text x="756" y="297" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">activos</text>
+      <text x="676" y="320" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="676" y="334" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">codigo_patrimonial (UQ)</text>
+      <text x="676" y="348" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ catalogo_id · → responsable_id</text>
+      <text x="676" y="362" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">estado</text>
+
+      <!-- documentos_activo -->
+      <rect x="884" y="280" width="176" height="104" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <line x1="884" y1="304" x2="1060" y2="304" stroke="#2d3142" stroke-width="0.8"/>
+      <text x="972" y="297" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">documentos_activo</text>
+      <text x="892" y="320" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="892" y="334" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ activo_id</text>
+      <text x="892" y="348" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">tipo</text>
+
+      <!-- ===== ROW 3 — TRAZABILIDAD (y=460..564) ===== -->
+
+      <!-- sesiones_inventario -->
+      <rect x="20" y="460" width="176" height="104" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <line x1="20" y1="484" x2="196" y2="484" stroke="#2d3142" stroke-width="0.8"/>
+      <text x="108" y="477" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">sesiones_inventario</text>
+      <text x="28" y="500" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="28" y="514" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">idempotency_key (UQ)</text>
+      <text x="28" y="528" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ area_id · → ubicacion_id</text>
+
+      <!-- inventarios -->
+      <rect x="236" y="460" width="176" height="104" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <line x1="236" y1="484" x2="412" y2="484" stroke="#2d3142" stroke-width="0.8"/>
+      <text x="324" y="477" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">inventarios</text>
+      <text x="244" y="500" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="244" y="514" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ activo_id · → sesion_id</text>
+      <text x="244" y="528" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">resultado</text>
+
+      <!-- eventos -->
+      <rect x="452" y="460" width="176" height="104" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <line x1="452" y1="484" x2="628" y2="484" stroke="#2d3142" stroke-width="0.8"/>
+      <text x="540" y="477" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">eventos</text>
+      <text x="460" y="500" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="460" y="514" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ activo_id · → contrato_id</text>
+      <text x="460" y="528" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">tipo · detalle jsonb</text>
+
+      <!-- eventos_outbox -->
+      <rect x="668" y="460" width="176" height="104" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <line x1="668" y1="484" x2="844" y2="484" stroke="#4f5d75" stroke-width="0.8"/>
+      <text x="756" y="477" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">eventos_outbox</text>
+      <text x="676" y="500" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="676" y="514" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ evento_id</text>
+      <text x="676" y="528" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">publicado · solo vía trigger</text>
+
+      <!-- auditoria -->
+      <rect x="884" y="460" width="176" height="104" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <line x1="884" y1="484" x2="1060" y2="484" stroke="#2d3142" stroke-width="0.8"/>
+      <text x="972" y="477" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">auditoria</text>
+      <text x="892" y="500" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="892" y="514" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ organizacion_id</text>
+      <text x="892" y="528" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">categoria · sin FK a activos</text>
+
+      <!-- ===== LEGEND ===== -->
+      <line x1="20" y1="600" x2="1060" y2="600" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="20" y="616" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+
+      <rect x="140" y="608" width="12" height="12" rx="3" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="158" y="618" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Ancla estructural (organizaciones / activos)</text>
+
+      <rect x="460" y="608" width="12" height="12" rx="3" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <text x="478" y="618" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Tabla join / interna</text>
+
+      <text x="620" y="618" fill="#2d3142" font-size="9" font-weight="600" font-family="'Geist Mono', monospace">#</text>
+      <text x="632" y="618" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">PK</text>
+
+      <text x="670" y="618" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">→</text>
+      <text x="684" y="618" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">FK (no todas tienen línea propia)</text>
+    </svg>
+  </div>
+</body>
+</html>

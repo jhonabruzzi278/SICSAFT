@@ -21,8 +21,12 @@
     service user creado a mano en la Console — ver devops/local/README.md "Rol
     administrador-sistema + integracion Zitadel Admin API" para ese ultimo caso).
 
+.PARAMETER DominioBase
+    Dominio local de este cliente (ej. "duoc-melipilla.test") — determina el dominio de cada app
+    OIDC (qr.<dominio>, ccp.<dominio>, etc). Default: sicsaft.localhost.
+
 .PARAMETER Issuer
-    URL base de este Zitadel onprem. Default: http://id.sicsaft.localhost.
+    URL base de este Zitadel onprem. Default: http://id.<DominioBase>.
 
 .PARAMETER Pat
     Personal Access Token del service user IAM/Org Manager (ver DESCRIPTION).
@@ -42,7 +46,8 @@
         -OrganizacionId "municipalidad-melipilla" -Nivel 2
 #>
 param(
-    [string]$Issuer = "http://id.sicsaft.localhost",
+    [string]$DominioBase = "sicsaft.localhost",
+    [string]$Issuer,
     [Parameter(Mandatory = $true)][string]$Pat,
     [Parameter(Mandatory = $true)][string]$ClienteNombre,
     [Parameter(Mandatory = $true)][string]$OrganizacionId,
@@ -50,10 +55,11 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+if (-not $Issuer) { $Issuer = "http://id.$DominioBase" }
 
 Import-Module (Join-Path $PSScriptRoot "lib/Bootstrap-Zitadel.psm1") -Force
 
-$resultado = Invoke-BootstrapCliente -Issuer $Issuer -Pat $Pat -ClienteNombre $ClienteNombre `
+$resultado = Invoke-BootstrapCliente -DominioBase $DominioBase -Issuer $Issuer -Pat $Pat -ClienteNombre $ClienteNombre `
     -OrganizacionId $OrganizacionId -Nivel $Nivel
 
 Write-Host ""

@@ -61,3 +61,7 @@ npm-debug.log*
 
 .vercel
 devops/local/docker-compose.override.yml
+
+# Informes/entregables generados para el usuario — no son código ni documentación del repo
+/SICSAFT-informe-integral-proyecto*.docx
+~$*.docx

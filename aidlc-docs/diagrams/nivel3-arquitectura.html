@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SICSAFT — Arquitectura Nivel 3 (QR + WEB + RFID)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    .badge-planeado {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      border: 1px solid rgba(235,108,54,0.5);
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+    p.subtitle {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      color: var(--color-muted);
+      margin-bottom: 1.5rem;
+      max-width: 68ch;
+    }
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Architecture · SICSAFT · Nivel 3</p>
+    <h1>Nivel 3 — QR + WEB + RFID <span class="badge-planeado">Planificado — sin código</span></h1>
+    <p class="subtitle">Nivel 2 + un conector RFID hacia CIS, preservando la independencia tecnológica de CORE. DOC-025 marca este nivel "🔲 no iniciado, sin código que empaquetar" — este diagrama documenta el diseño previsto, no un sistema existente.</p>
+
+    <svg viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="n3-arq-title n3-arq-desc">
+      <title id="n3-arq-title">Arquitectura de componentes prevista para SICSAFT Nivel 3 (RFID) — planificado, sin código</title>
+      <desc id="n3-arq-desc">Sobre la base ya construida de Nivel 1 y 2, un conector RFID todavía no implementado entraría por CIS igual que las demás fuentes de captura, sin tocar directo a CORE ni a la Base Patrimonial.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+        <marker id="arrow-planned" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="rgba(235,108,54,0.55)"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- ===== ARROWS ===== -->
+
+      <!-- Base (Nivel 1+2) -> CIS -->
+      <line x1="160" y1="144" x2="160" y2="180" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="128" y="154" width="64" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="160" y="163" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">HTTPS ×4</text>
+
+      <!-- Lectores/Tags -> Conector RFID (planned, dashed) -->
+      <line x1="840" y1="72" x2="840" y2="108" stroke="rgba(235,108,54,0.55)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-planned)"/>
+
+      <!-- Conector RFID -> CIS (planned, dashed elbow) -->
+      <path d="M 740,140 H 620 Q 612,140 612,148 V 172 Q 612,180 604,180 H 220"
+            fill="none" stroke="rgba(235,108,54,0.55)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-planned)"/>
+      <rect x="612" y="152" width="90" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="657" y="161" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">CONECTOR</text>
+
+      <!-- CIS -> CORE -->
+      <line x1="160" y1="244" x2="160" y2="300" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="168" y="264" width="46" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="172" y="275" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">PROXY</text>
+
+      <!-- CORE -> BPI -->
+      <line x1="160" y1="364" x2="160" y2="420" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <rect x="168" y="384" width="46" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="172" y="395" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">WRITE</text>
+
+      <!-- ===== NODES ===== -->
+
+      <!-- Base Nivel 1+2 (compact, already built) -->
+      <rect x="60" y="40" width="200" height="104" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+      <rect x="68" y="48" width="60" height="12" rx="2" fill="transparent" stroke="#7a8399" stroke-width="0.8"/>
+      <text x="98" y="57" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">YA BUILT</text>
+      <text x="160" y="86" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">APP QR + 3 portales</text>
+      <text x="160" y="102" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Nivel 1 + Nivel 2</text>
+      <text x="160" y="118" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">app-qr · ccp · web-admin</text>
+      <text x="160" y="132" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">core-frontend</text>
+
+      <!-- Lectores / Tags RFID (planned, external, dashed) -->
+      <rect x="740" y="40" width="200" height="32" rx="6" fill="rgba(235,108,54,0.04)" stroke="rgba(235,108,54,0.45)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="840" y="61" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Lectores / Tags RFID</text>
+
+      <!-- Conector RFID (planned) -->
+      <rect x="740" y="108" width="200" height="64" rx="6" fill="rgba(235,108,54,0.04)" stroke="rgba(235,108,54,0.45)" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="748" y="116" width="52" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.45)" stroke-width="0.8"/>
+      <text x="774" y="125" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">RFID</text>
+      <text x="840" y="142" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Conector RFID</text>
+      <text x="840" y="158" fill="#eb6c36" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">🔲 no iniciado</text>
+
+      <!-- CIS -->
+      <rect x="60" y="180" width="200" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="68" y="188" width="32" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="84" y="197" fill="rgba(45,49,66,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">API</text>
+      <text x="160" y="218" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">CIS</text>
+      <text x="160" y="234" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">único punto de entrada</text>
+
+      <!-- CORE (focal) -->
+      <rect x="60" y="300" width="200" height="64" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <rect x="68" y="308" width="36" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
+      <text x="86" y="317" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">CORE</text>
+      <text x="160" y="338" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">SICSAFT CORE</text>
+      <text x="160" y="354" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">sin cambios — independiente de RFID</text>
+
+      <!-- BPI (focal) -->
+      <rect x="40" y="420" width="240" height="64" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <rect x="48" y="428" width="24" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
+      <text x="60" y="437" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">DB</text>
+      <text x="160" y="458" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Base Patrimonial Central</text>
+      <text x="160" y="474" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">PostgreSQL · fuente única de verdad</text>
+
+      <!-- Editorial annotation -->
+      <text x="620" y="220" fill="#2d3142" font-size="14" font-style="italic" font-family="'Instrument Serif', serif">"Preserva la independencia</text>
+      <text x="620" y="240" fill="#2d3142" font-size="14" font-style="italic" font-family="'Instrument Serif', serif">tecnológica del CORE" — DOC-025</text>
+
+      <!-- ===== LEGEND ===== -->
+      <line x1="30" y1="556" x2="970" y2="556" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="30" y="572" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+
+      <rect x="150" y="564" width="12" height="12" rx="3" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+      <text x="168" y="574" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Ya implementado (Nivel 1/2)</text>
+
+      <rect x="400" y="564" width="12" height="12" rx="3" fill="rgba(235,108,54,0.04)" stroke="rgba(235,108,54,0.45)" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="418" y="574" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Planificado — sin código</text>
+
+      <rect x="620" y="564" width="12" height="12" rx="3" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="638" y="574" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Focal (no cambia con RFID)</text>
+    </svg>
+  </div>
+</body>
+</html>

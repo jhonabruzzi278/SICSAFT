@@ -1,10 +1,15 @@
 # Stack onprem por cliente — instalación aislada (Nivel 1/Nivel 2), ver
 # aidlc-docs/devops/design-artifacts/ARCHITECTURE.md para el diseño completo. Subconjunto de
 # devops/local/docker-compose.yml, no una copia: sin observabilidad (Prometheus/Loki/Grafana/
-# cAdvisor/node-exporter), sin k6, sin cip (fuera de los 3 niveles de producto, ver
-# aidlc-docs/devops/design-artifacts/DOC-025-niveles-producto-onprem.md 3), sin dashboard de
-# Traefik expuesto. Pensado para correr con `podman-compose` (INST-RNF-01), no Docker Desktop —
-# ver README.md de esta carpeta para el flujo de instalación completo.
+# cAdvisor/node-exporter), sin k6, sin dashboard de Traefik expuesto. Pensado para correr con
+# `podman-compose` (INST-RNF-01), no Docker Desktop — ver README.md de esta carpeta para el flujo
+# de instalación completo.
+#
+# Niveles (DOC-025 §1, revisado 2026-08-25): Nivel 1 = app-qr-sicsaft + web-admin + core-frontend +
+# cip (Directivo, Administrador del Sistema y CIP/BI vienen desde el arranque, cierra INST-Q-01);
+# Nivel 2 agrega ccp (portal COMPLETO de Profesional de AFT, perfil "nivel2"). El portal liviano de
+# AFT propio de Nivel 1 ("web-aft") todavía no tiene código — no hay servicio para él en este
+# archivo (🔲, DOC-025 §1).
 
 name: sicsaft-onprem
 
@@ -33,10 +38,10 @@ services:
         # Mismo truco que devops/local/ — Zitadel es multi-tenant por dominio y rechaza requests
         # cuyo Host no sea uno de sus dominios registrados, así que un contenedor que le pegue a
         # Zitadel por el nombre de servicio interno (`zitadel:8080`) recibe "Instance not found".
-        # Este alias hace que `id.sicsaft.localhost` resuelva DENTRO de la red a este mismo
+        # Este alias hace que `id.${DOMINIO_BASE}` resuelva DENTRO de la red a este mismo
         # Traefik, que enruta por Host igual que desde el host.
         aliases:
-          - id.sicsaft.localhost
+          - id.${DOMINIO_BASE}
     restart: unless-stopped
 
   postgres:
@@ -57,6 +62,9 @@ services:
       ZITADEL_DB_PASSWORD: ${ZITADEL_DB_PASSWORD}
       CORE_DB_USER: ${CORE_DB_USER}
       CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+      # CIP entra a Nivel 1 on-premise desde 2026-08-25 (DOC-025 3, cierra INST-Q-01).
+      CIP_DB_USER: ${CIP_DB_USER}
+      CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
@@ -96,7 +104,7 @@ services:
       ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: ${POSTGRES_ADMIN_USER}
       ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
       ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
-      ZITADEL_EXTERNALDOMAIN: id.sicsaft.localhost
+      ZITADEL_EXTERNALDOMAIN: id.${DOMINIO_BASE}
       ZITADEL_EXTERNALPORT: 80
       ZITADEL_EXTERNALSECURE: "false"
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME}
@@ -130,15 +138,20 @@ services:
       dockerfile: Dockerfile
     environment:
       PORT: 3000
-      ZITADEL_ISSUER: http://id.sicsaft.localhost
+      ZITADEL_ISSUER: http://id.${DOMINIO_BASE}
       ZITADEL_AUDIENCE: ${CIS_ZITADEL_AUDIENCE}
       CORE_URL: http://core:3001
       CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      # CIP entra a Nivel 1 on-premise desde 2026-08-25 (DOC-025 3, cierra INST-Q-01) -- ya no es
+      # el workaround de relleno que era antes (cis/src/app.module.ts importa DashboardConnectorModule
+      # de forma incondicional y valida CIP_URL/CIP_SERVICE_TOKEN al arrancar, cip-client.config.ts):
+      # ahora apunta al servicio `cip` real de este mismo compose.
+      CIP_URL: http://cip:3002
+      CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
       # Solo el dominio local de este cliente — sin puertos de Vite (no hay `npm run dev` en una
-      # instalación de cliente) y sin CIP_URL/CIP_SERVICE_TOKEN (CIP no entra en ningún nivel de
-      # producto onprem, ver DOC-025 3).
-      CIS_CORS_ORIGIN: http://qr.sicsaft.localhost,http://ccp.sicsaft.localhost,http://admin.sicsaft.localhost,http://directivo.sicsaft.localhost
+      # instalación de cliente).
+      CIS_CORS_ORIGIN: http://qr.${DOMINIO_BASE},http://ccp.${DOMINIO_BASE},http://admin.${DOMINIO_BASE},http://directivo.${DOMINIO_BASE}
       # Mapeo Zitadel org id -> organizacionId de CORE — bootstrap-zitadel.ps1 imprime el valor
       # real a pegar acá (una sola organización por instalación onprem, a diferencia de
       # devops/local/ que mapea varias).
@@ -153,6 +166,8 @@ services:
       zitadel:
         condition: service_started
       core:
+        condition: service_healthy
+      cip:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -202,6 +217,57 @@ services:
     # Sin router en traefik/dynamic.yml a propósito: CORE solo lo consume CIS, mismo criterio que
     # devops/local/ y devops/prod/.
 
+  # CIP entra a Nivel 1 on-premise desde 2026-08-25 (DOC-025 3, cierra INST-Q-01) — antes solo
+  # vivía en devops/local/. Mismo patrón que core-migrate/core: base propia `cip` (RNF-01/RNF-05),
+  # consume eventos de CORE vía Redis/BullMQ (cola `cip-eventos`), sin Zitadel (no valida identidad
+  # de operador, ver cip/README.md) y sin router en Traefik (ningún consumidor externo todavía,
+  # mismo criterio que CORE).
+  cip-migrate:
+    build:
+      context: ../../cip
+      dockerfile: Dockerfile
+    command: ["node", "scripts/migrate.js", "up"]
+    environment:
+      CIP_DB_HOST: postgres
+      CIP_DB_PORT: 5432
+      CIP_DB_NAME: cip
+      CIP_DB_USER: ${CIP_DB_USER}
+      CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  cip:
+    build:
+      context: ../../cip
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3002
+      CIP_DB_HOST: postgres
+      CIP_DB_PORT: 5432
+      CIP_DB_NAME: cip
+      CIP_DB_USER: ${CIP_DB_USER}
+      CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
+      CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
+      CORE_URL: http://core:3001
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+      cip-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      core:
+        condition: service_healthy
+    restart: unless-stopped
+
   app-qr-sicsaft:
     build:
       context: ../../app-qr-sicsaft
@@ -209,9 +275,9 @@ services:
       args:
         # INST-RF-05 — Vite hornea VITE_* en build time, así que esto debe construirse DESPUÉS de
         # correr bootstrap-zitadel.ps1 (ver README.md "Orden obligatorio").
-        VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
+        VITE_ZITADEL_ISSUER: http://id.${DOMINIO_BASE}
         VITE_ZITADEL_CLIENT_ID: ${APP_QR_VITE_ZITADEL_CLIENT_ID}
-        VITE_CIS_URL: http://api.sicsaft.localhost
+        VITE_CIS_URL: http://api.${DOMINIO_BASE}
     networks:
       - sicsaft
     depends_on:
@@ -219,33 +285,19 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # --- A partir de acá, solo perfil "nivel2" (INST-RF-02) — un cliente Nivel 1 nunca los levanta.
-
-  ccp:
-    profiles: ["nivel2"]
-    build:
-      context: ../../ccp
-      dockerfile: Dockerfile
-      args:
-        VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
-        VITE_ZITADEL_CLIENT_ID: ${CCP_VITE_ZITADEL_CLIENT_ID}
-        VITE_CIS_URL: http://api.sicsaft.localhost
-    networks:
-      - sicsaft
-    depends_on:
-      cis:
-        condition: service_healthy
-    restart: unless-stopped
+  # web-admin y core-frontend van SIN perfil (Nivel 1, DOC-025 §1 rev. 2026-08-25): el portal
+  # Directivo y el de Administrador del Sistema se instalan siempre, junto con app-qr-sicsaft. Solo
+  # falta el portal liviano de Profesional de AFT propio de Nivel 1 ("web-aft") — no tiene código
+  # todavía (🔲, ver DOC-025 §1) y por eso no hay un servicio acá para él.
 
   web-admin:
-    profiles: ["nivel2"]
     build:
       context: ../../web_admin
       dockerfile: Dockerfile
       args:
-        VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
+        VITE_ZITADEL_ISSUER: http://id.${DOMINIO_BASE}
         VITE_ZITADEL_CLIENT_ID: ${WEB_ADMIN_VITE_ZITADEL_CLIENT_ID}
-        VITE_CIS_URL: http://api.sicsaft.localhost
+        VITE_CIS_URL: http://api.${DOMINIO_BASE}
     networks:
       - sicsaft
     depends_on:
@@ -254,14 +306,33 @@ services:
     restart: unless-stopped
 
   core-frontend:
-    profiles: ["nivel2"]
     build:
       context: ../../core/frontend
       dockerfile: Dockerfile
       args:
-        VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
+        VITE_ZITADEL_ISSUER: http://id.${DOMINIO_BASE}
         VITE_ZITADEL_CLIENT_ID: ${CORE_FRONTEND_VITE_ZITADEL_CLIENT_ID}
-        VITE_CIS_URL: http://api.sicsaft.localhost
+        VITE_CIS_URL: http://api.${DOMINIO_BASE}
+    networks:
+      - sicsaft
+    depends_on:
+      cis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- A partir de acá, solo perfil "nivel2" (INST-RF-02) — un cliente Nivel 1 nunca lo levanta.
+  # CCP (Centro de Control Patrimonial) es el portal COMPLETO de Profesional de AFT — se desbloquea
+  # recién en Nivel 2. El acceso básico de AFT en Nivel 1 es la APP QR (más, a futuro, "web-aft").
+
+  ccp:
+    profiles: ["nivel2"]
+    build:
+      context: ../../ccp
+      dockerfile: Dockerfile
+      args:
+        VITE_ZITADEL_ISSUER: http://id.${DOMINIO_BASE}
+        VITE_ZITADEL_CLIENT_ID: ${CCP_VITE_ZITADEL_CLIENT_ID}
+        VITE_CIS_URL: http://api.${DOMINIO_BASE}
     networks:
       - sicsaft
     depends_on:

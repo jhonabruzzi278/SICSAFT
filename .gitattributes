@@ -1,0 +1,6 @@
+# Scripts que un contenedor Linux ejecuta directo (shebang) deben mantener LF siempre —
+# un checkout en Windows con core.autocrlf=true los reescribe a CRLF, lo que rompe el shebang
+# ("cannot execute: required file not found") y hace fallar en silencio los init scripts de
+# Postgres montados en /docker-entrypoint-initdb.d/ (bug real encontrado instalando devops/onprem/:
+# 02-core.sh nunca creaba el rol "core", CORE fallaba con "password authentication failed").
+*.sh text eol=lf
