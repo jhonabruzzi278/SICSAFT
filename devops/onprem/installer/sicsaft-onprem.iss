@@ -48,10 +48,14 @@ begin
   ClientePage.Add('Nombre del cliente (ej. Municipalidad de Melipilla):', False);
   ClientePage.Add('Identificador corto (sin espacios):', False);
 
+  // Exclusive=True -- radio buttons (una sola opción posible), no checkboxes. Con False (como
+  // estaba antes) se podían marcar los dos niveles a la vez o ninguno, y SelectedValueIndex no
+  // se respetaba como default (quedaba tildado el índice 0 igual) -- confirmado visualmente al
+  // compilar y correr el instalador una primera vez.
   NivelPage := CreateInputOptionPage(ClientePage.ID,
     'Nivel de producto', 'Qué nivel contrató este cliente',
     'Nivel 1: APP QR + SICSAFT. Nivel 2: Nivel 1 + los 3 portales web.',
-    False, False);
+    True, False);
   NivelPage.Add('Nivel 1 (APP QR + SICSAFT)');
   NivelPage.Add('Nivel 2 (Nivel 1 + portales web)');
   NivelPage.SelectedValueIndex := 1;

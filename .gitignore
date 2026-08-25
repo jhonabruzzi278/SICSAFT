@@ -35,6 +35,9 @@ test-results/
 # PAT de Zitadel auto-provisionado por instalar-cliente.ps1 (devops/onprem/), secreto real por
 # instalación de cliente — ver ZITADEL_FIRSTINSTANCE_PATPATH en devops/onprem/docker-compose.yml.
 devops/onprem/.bootstrap/
+# Binario compilado del instalador (iscc sicsaft-onprem.iss) — se genera localmente, no se
+# versiona (mismo criterio que cualquier artefacto de build).
+devops/onprem/installer/output/
 id_rsa*
 *secret*
 *credential*
