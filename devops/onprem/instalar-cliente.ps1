@@ -38,6 +38,20 @@ param(
 
 $ErrorActionPreference = "Stop"
 Set-Location $InstallDir
+# Verificacion explicita en vez de confiar en que Set-Location silenciosamente funciono -- bug
+# real encontrado en una corrida verificada: el cwd efectivo termino siendo C:\WINDOWS\system32
+# en vez de $InstallDir (causa no confirmada -- posiblemente el proceso que lanza el script via
+# Inno Setup no hereda el cwd esperado), lo que rompia cualquier ruta relativa mas adelante
+# (Get-Content ".env.example"). De acá en mas, todo archivo se referencia con ruta absoluta
+# (Join-Path $InstallDir ...) para no depender de que esto funcione -- esta verificacion queda
+# solo para fallar rapido y claro si $InstallDir ni siquiera es un directorio valido.
+if ((Get-Location).ProviderPath -ne (Resolve-Path $InstallDir).ProviderPath) {
+    throw "No se pudo posicionar en '$InstallDir' (Get-Location quedo en '$((Get-Location).ProviderPath)'). Volver a correr el instalador, o correr este script manualmente pasando -InstallDir con la ruta completa."
+}
+$EnvPath = Join-Path $InstallDir ".env"
+$EnvExamplePath = Join-Path $InstallDir ".env.example"
+$PatPath = Join-Path $InstallDir ".bootstrap\admin-pat.txt"
+$ComposeFile = Join-Path $InstallDir "docker-compose.yml"
 
 function Write-Paso {
     param([string]$Texto)
@@ -157,10 +171,10 @@ function Test-PodmanCompose {
 
 function New-EnvDeCliente {
     Write-Paso "4. Generando .env de este cliente"
-    if (Test-Path ".env") {
-        throw ".env ya existe en $InstallDir - este script es para una instalacion NUEVA. Borrar o mover el .env existente si se quiere reinstalar desde cero."
+    if (Test-Path $EnvPath) {
+        throw "$EnvPath ya existe - este script es para una instalacion NUEVA. Borrar o mover el .env existente si se quiere reinstalar desde cero."
     }
-    $contenido = Get-Content ".env.example" -Raw
+    $contenido = Get-Content $EnvExamplePath -Raw
     # Cada placeholder "cambiar-por-..."/"cambiar-esta-clave..." se reemplaza por un valor
     # aleatorio unico — nunca reusar contraseñas entre clientes (INST-RNF-03). El placeholder con
     # sufijo "-Aa1!" (ZITADEL_ADMIN_PASSWORD) va primero y usa New-ClaveConSimbolo — si el
@@ -171,26 +185,28 @@ function New-EnvDeCliente {
     $contenido = [regex]::Replace($contenido, 'cambiar-por-32-caracteres-random', { (New-ClavealAzar).Substring(0, 32) })
     $contenido = $contenido -replace 'cambiar-por-64-caracteres-hex-random', ((1..32 | ForEach-Object { "{0:x2}" -f (Get-Random -Max 256) }) -join '')
     $contenido = $contenido -replace 'admin@sicsaft\.localhost', "admin@$OrganizacionId.sicsaft.localhost"
-    Set-Content ".env" $contenido -NoNewline
+    Set-Content $EnvPath $contenido -NoNewline
     Write-Host ".env generado con credenciales unicas de este cliente."
 }
 
 function Wait-PatDeZitadel {
     Write-Paso "5. Levantando postgres, redis y zitadel"
-    podman-compose up -d postgres redis zitadel
+    # --project-directory ademas de -f: los "build.context" del compose (ej. "../../cis") son
+    # relativos al directorio del proyecto, no necesariamente al cwd del proceso -- mismo motivo
+    # que el resto de este script evita depender del cwd.
+    podman-compose -f $ComposeFile --project-directory $InstallDir up -d postgres redis zitadel
     if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose up -d postgres redis zitadel'." }
 
-    Write-Host "Esperando el PAT auto-provisionado por Zitadel (.bootstrap/admin-pat.txt)..."
-    $patPath = ".bootstrap/admin-pat.txt"
+    Write-Host "Esperando el PAT auto-provisionado por Zitadel ($PatPath)..."
     $intentos = 0
-    while (-not (Test-Path $patPath) -and $intentos -lt 24) {
+    while (-not (Test-Path $PatPath) -and $intentos -lt 24) {
         Start-Sleep -Seconds 5
         $intentos++
     }
-    if (-not (Test-Path $patPath)) {
-        throw "No aparecio $patPath despues de 2 minutos. Revisar 'podman-compose logs zitadel' - el bootstrap de Zitadel (ZITADEL_FIRSTINSTANCE_ORG_MACHINE_*/PATPATH) puede no haber terminado, o el nombre/formato del archivo difiere del esperado (ver Nota de honestidad en docker-compose.yml)."
+    if (-not (Test-Path $PatPath)) {
+        throw "No aparecio $PatPath despues de 2 minutos. Revisar 'podman-compose logs zitadel' - el bootstrap de Zitadel (ZITADEL_FIRSTINSTANCE_ORG_MACHINE_*/PATPATH) puede no haber terminado, o el nombre/formato del archivo difiere del esperado (ver Nota de honestidad en docker-compose.yml)."
     }
-    $pat = (Get-Content $patPath -Raw).Trim()
+    $pat = (Get-Content $PatPath -Raw).Trim()
     Write-Host "PAT obtenido."
     return $pat
 }
@@ -198,7 +214,7 @@ function Wait-PatDeZitadel {
 function Set-ValoresEnEnv {
     param([hashtable]$Valores)
     Write-Paso "7. Completando .env con los datos del bootstrap"
-    $contenido = Get-Content ".env" -Raw
+    $contenido = Get-Content $EnvPath -Raw
     foreach ($clave in $Valores.Keys) {
         if ($null -eq $Valores[$clave]) { continue }
         $patron = "(?m)^$([regex]::Escape($clave))=.*$"
@@ -207,7 +223,7 @@ function Set-ValoresEnEnv {
         # del valor (ej. el JSON de ZITADEL_ORG_ID_MAP) se interpreten como sintaxis de regex.
         $contenido = [regex]::Replace($contenido, $patron, { "$clave=$valor" })
     }
-    Set-Content ".env" $contenido -NoNewline
+    Set-Content $EnvPath $contenido -NoNewline
     Write-Host ".env completo."
 }
 
@@ -246,7 +262,7 @@ $valores = Invoke-BootstrapCliente -Pat $pat -ClienteNombre $ClienteNombre `
 Set-ValoresEnEnv -Valores $valores
 
 Write-Paso "8. Construyendo y levantando el stack completo (Nivel $Nivel)"
-podman-compose --profile "nivel$Nivel" up -d --build
+podman-compose -f $ComposeFile --project-directory $InstallDir --profile "nivel$Nivel" up -d --build
 if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose --profile nivel$Nivel up -d --build'." }
 
 Write-Paso "9. Verificacion (smoke check)"
