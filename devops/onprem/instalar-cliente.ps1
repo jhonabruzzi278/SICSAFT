@@ -65,6 +65,30 @@ $EnvPath = Join-Path $InstallDir ".env"
 $EnvExamplePath = Join-Path $InstallDir ".env.example"
 $PatPath = Join-Path $InstallDir ".bootstrap\admin-pat.txt"
 $ComposeFile = Join-Path $InstallDir "docker-compose.yml"
+$LogPath = Join-Path $InstallDir "instalacion.log"
+
+# Deja un registro en archivo de toda la corrida -- necesario para poder diagnosticar despues
+# (soporte remoto, o cuando en el futuro la ventana deje de mostrarse en vivo, ver
+# aidlc-docs/devops/requirements/REQUIREMENTS.md "cuando este listo se oculta la ventana, el
+# cliente no debe tener acceso al codigo/secretos"). Ningun Write-Host de este script imprime un
+# secreto real (contraseñas/PAT) -- solo referencias a "ver .env" -- asi que el log tampoco los
+# contiene; igual se le restringen permisos al final (ver Protect-Archivo) por las dudas.
+Start-Transcript -Path $LogPath -Append | Out-Null
+
+function Protect-Archivo {
+    # Restringe un archivo/carpeta a Administradores + SYSTEM (SIDs conocidos, no el nombre del
+    # grupo -- que varia segun el idioma de Windows) -- para que una sesion sin privilegios de
+    # administrador en el PC del cliente no pueda ni abrir .env/.bootstrap ni leer el log.
+    # icacls en vez de Set-Acl: mas simple de razonar y mas facil de verificar a mano
+    # (`icacls archivo`) si algo no quedo como se espera.
+    param([string]$Ruta)
+    if (-not (Test-Path $Ruta)) { return }
+    icacls $Ruta /inheritance:r | Out-Null
+    icacls $Ruta /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Aviso: no se pudieron restringir los permisos de '$Ruta' (icacls fallo). Revisar manualmente." -ForegroundColor Yellow
+    }
+}
 
 function Write-Paso {
     param([string]$Texto)
@@ -120,7 +144,9 @@ function Test-Wsl2 {
         Write-Host ""
         Write-Host "WSL2 requiere reiniciar Windows para terminar de instalarse." -ForegroundColor Yellow
         Write-Host "Reiniciar el equipo y volver a correr este script." -ForegroundColor Yellow
-        exit 1
+        # "throw" en vez de "exit 1" -- "exit" corta el proceso entero sin pasar por el bloque
+        # "finally" de mas abajo (Stop-Transcript/Protect-Archivo del log no correrian).
+        throw "WSL2 recien instalado, reiniciar y volver a correr."
     }
     Write-Host "WSL2 OK."
 }
@@ -304,6 +330,8 @@ function Test-Servicio {
 
 # ============================================================================
 
+try {
+
 Set-HostsLocales
 Test-Wsl2
 Test-Podman
@@ -317,6 +345,12 @@ $valores = Invoke-BootstrapCliente -Pat $pat -ClienteNombre $ClienteNombre `
     -OrganizacionId $OrganizacionId -Nivel $Nivel
 
 Set-ValoresEnEnv -Valores $valores
+
+# .env y el PAT auto-provisionado (.bootstrap/) ya cumplieron su funcion en este script -- se
+# restringen ahora, antes de construir/levantar nada mas, para que queden protegidos el mayor
+# tiempo posible durante la instalacion.
+Protect-Archivo -Ruta $EnvPath
+Protect-Archivo -Ruta (Split-Path -Parent $PatPath)
 
 Write-Paso "8. Construyendo y levantando el stack completo (Nivel $Nivel)"
 podman-compose -f $ComposeFile --profile "nivel$Nivel" up -d --build
@@ -351,3 +385,11 @@ Write-Host "IMPORTANTE: guardar ZITADEL_ADMIN_TOKEN (en .env) en el gestor de se
 Write-Host "antes de irse del sitio - se necesita para soportar esta instalacion despues" -ForegroundColor Yellow
 Write-Host "(aidlc-docs/devops/requirements/REQUIREMENTS.md INST-Q-02). Crear las credenciales" -ForegroundColor Yellow
 Write-Host "reales del cliente y borrar cualquier usuario de prueba antes de entregar el sistema." -ForegroundColor Yellow
+
+} finally {
+    # Corre siempre, haya terminado bien o el script haya fallado a mitad de camino (por eso
+    # "throw" en vez de "exit" en Test-Wsl2) -- deja el log protegido en cualquier caso, no solo
+    # en el camino feliz.
+    Stop-Transcript | Out-Null
+    Protect-Archivo -Ruta $LogPath
+}

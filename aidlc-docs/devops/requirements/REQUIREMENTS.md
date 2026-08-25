@@ -32,6 +32,14 @@ colisionar con los RF/RNF ya numerados de otros sistemas (ver `REQUISITOS.md` ra
   todo el flujo de instalación (prerrequisitos, `.env`, levantar servicios, bootstrap, build,
   verificación) en un solo comando, y un instalador `.exe` (Inno Setup) que lo envuelva con una UI
   simple — ver `devops/onprem/installer/`.
+- **INST-RF-09**: `.env` (contraseñas + `ZITADEL_ADMIN_TOKEN`) y `.bootstrap/` (el PAT
+  auto-provisionado) deben quedar con permisos NTFS restringidos a Administradores + SYSTEM apenas
+  terminan de usarse en la instalación — una sesión sin privilegios de administrador en el PC del
+  cliente no debe poder abrirlos. El instalador debe además dejar un log detallado en archivo
+  (`instalacion.log`, mismos permisos restringidos) para que el admin pueda diagnosticar fallas
+  sin depender de la ventana en pantalla — confirmado con el usuario: es el requisito previo para
+  poder ocultar la ventana de PowerShell más adelante sin perder capacidad de diagnóstico
+  (INST-Q-04).
 
 ## No funcionales
 
@@ -58,3 +66,23 @@ colisionar con los RF/RNF ya numerados de otros sistemas (ver `REQUISITOS.md` ra
   alcance de este repo, pero se deja registrada como necesidad real.
 - **INST-Q-03**: Licenciamiento/activación por nivel — explícitamente fuera de esta fase (ver
   INTENT.md), pero se deja como pregunta para una fase de negocio futura.
+- **INST-Q-04**: Ocultar la ventana de PowerShell durante la instalación (confirmado con el
+  usuario: "cuando esté listo lo ocultamos") — deliberadamente NO implementado todavía. Mientras
+  el flujo sigue en verificación activa (ver historial de fixes reales en los PRs de
+  `devops/onprem/`), la ventana visible es lo que permitió diagnosticar cada bug real encontrado
+  hasta ahora — ocultarla antes de tener el flujo estable dejaría al admin sin forma de ver por
+  qué algo falló en el momento. INST-RF-09 (log en archivo) es el prerrequisito para poder hacerlo
+  sin perder esa capacidad de diagnóstico. Ni siquiera con la ventana oculta hay secreto en
+  pantalla — ningún `Write-Host` de `instalar-cliente.ps1` imprime un valor real de contraseña/PAT
+  (confirmado revisando el script), solo referencias a "ver .env"; el riesgo real siempre fue el
+  archivo en disco, no la pantalla, y ese ya está cerrado por INST-RF-09 independientemente de
+  cuándo se oculte la ventana.
+- **INST-Q-05**: "Que ni buscando en el disco encuentre nada legible" (pedido del usuario) — los
+  permisos NTFS de INST-RF-09 cierran el caso realista (cliente sin privilegios de administrador
+  en su propia PC). No cierran el caso de un cliente que SÍ tiene o consigue acceso de
+  administrador — ahí cualquier NTFS ACL es evadible trivialmente, y "compilar" los `.ps1` a un
+  `.exe` (ej. `ps2exe`) tampoco es cifrado real, solo sube la vara para alguien casual. Cerrar ese
+  caso de verdad (secretos nunca en disco en texto plano, ni siquiera para un admin local)
+  necesitaría un diseño distinto — ej. un vault/agente que el admin del negocio controle
+  remotamente — que es un cambio de arquitectura mayor, no un ajuste de este script. Se deja
+  documentado como pregunta abierta, no se resuelve en este incremento.
