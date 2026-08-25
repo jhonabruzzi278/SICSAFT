@@ -6,22 +6,23 @@
     devops/local/README.md "Cliente OIDC real" por un solo comando.
 
 .DESCRIPTION
-    NOTA DE HONESTIDAD (mismo criterio que cis/src/zitadel-admin/zitadel-admin.types.ts): los
-    shapes de la Management API que usa este script estan armados contra la documentacion publica
-    de Zitadel y el mismo patron que ya usa `cis/src/zitadel-admin/zitadel-admin.service.ts`
-    (headers, endpoints de orgs/proyectos/roles), pero la creacion de apps OIDC/roles vista acá NO
-    esta verificada todavia contra una instancia real — verificar contra el Zitadel de
-    devops/onprem/ (ver Verificacion en el plan de este incremento) antes de usarlo en la
-    instalacion de un cliente pagante, y ajustar los shapes si la forma real difiere.
+    Wrapper delgado sobre lib/Bootstrap-Zitadel.psm1 (Invoke-BootstrapCliente) — la misma logica
+    que usa instalar-cliente.ps1 en el flujo automatizado completo. Sirve para re-bootstrapear un
+    cliente a mano, o para instalaciones donde no se quiere/puede usar el orquestador end-to-end
+    (ver devops/onprem/README.md "Instalación manual (paso a paso)").
 
-    Requiere un Personal Access Token (PAT) de un service user con rol IAM/Org Manager, creado UNA
-    VEZ por instancia de Zitadel via la Console (mismo paso manual que ya documenta
-    devops/local/README.md "Rol administrador-sistema + integracion Zitadel Admin API" — este
-    script no automatiza ESE paso puntual, automatiza todo lo que viene despues).
+    NOTA DE HONESTIDAD: ver el encabezado de lib/Bootstrap-Zitadel.psm1 — los shapes de la
+    Management API usados aca no estan verificados todavia contra una instancia real.
+
+    Requiere un Personal Access Token (PAT). Con instalar-cliente.ps1 este PAT se obtiene solo
+    (ZITADEL_FIRSTINSTANCE_ORG_MACHINE_*/PATPATH, ver docker-compose.yml) — si se corre este
+    script suelto en cambio, hace falta pasar uno ya generado (por ejemplo, leyendo
+    devops/onprem/.bootstrap/admin-pat.txt despues de un `podman-compose up zitadel`, o el de un
+    service user creado a mano en la Console — ver devops/local/README.md "Rol
+    administrador-sistema + integracion Zitadel Admin API" para ese ultimo caso).
 
 .PARAMETER Issuer
-    URL base de este Zitadel onprem. Default: http://id.sicsaft.localhost (dominio local del
-    stack, ver devops/onprem/traefik/dynamic.yml).
+    URL base de este Zitadel onprem. Default: http://id.sicsaft.localhost.
 
 .PARAMETER Pat
     Personal Access Token del service user IAM/Org Manager (ver DESCRIPTION).
@@ -30,8 +31,7 @@
     Nombre de la Organizacion a crear para este cliente (ej. "Municipalidad de Melipilla").
 
 .PARAMETER OrganizacionId
-    Id de texto corto que CORE usara para este cliente (ej. "municipalidad-melipilla") — se
-    escribe en ZITADEL_ORG_ID_MAP.
+    Id de texto corto que CORE usara para este cliente — se escribe en ZITADEL_ORG_ID_MAP.
 
 .PARAMETER Nivel
     1 o 2 — determina que roles/apps OIDC se crean (ver
@@ -51,92 +51,18 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-function Invoke-ZitadelApi {
-    param(
-        [string]$Method,
-        [string]$Path,
-        [object]$Body = $null,
-        [string]$OrgId = $null
-    )
-    $headers = @{ Authorization = "Bearer $Pat" }
-    if ($OrgId) { $headers["x-zitadel-orgid"] = $OrgId }
-    $uri = "$Issuer$Path"
-    $jsonBody = if ($Body) { $Body | ConvertTo-Json -Depth 10 } else { "{}" }
-    return Invoke-RestMethod -Method $Method -Uri $uri -Headers $headers `
-        -ContentType "application/json" -Body $jsonBody
-}
+Import-Module (Join-Path $PSScriptRoot "lib/Bootstrap-Zitadel.psm1") -Force
 
-function New-OidcApp {
-    param([string]$ProjectId, [string]$OrgId, [string]$Nombre, [string]$Dominio)
-    $redirectUri = "http://$Dominio/auth/callback"
-    $body = @{
-        name                  = $Nombre
-        redirectUris          = @($redirectUri)
-        responseTypes         = @("OIDC_RESPONSE_TYPE_CODE")
-        grantTypes            = @("OIDC_GRANT_TYPE_AUTHORIZATION_CODE", "OIDC_GRANT_TYPE_REFRESH_TOKEN")
-        appType               = "OIDC_APP_TYPE_USER_AGENT"
-        authMethodType        = "OIDC_AUTH_METHOD_TYPE_NONE"
-        postLogoutRedirectUris = @("http://$Dominio/")
-        devMode               = $true
-        accessTokenType       = "OIDC_TOKEN_TYPE_JWT"
-        accessTokenRoleAssertion = $true
-        idTokenRoleAssertion  = $true
-    }
-    $resp = Invoke-ZitadelApi -Method Post -Path "/management/v1/projects/$ProjectId/apps/oidc" `
-        -Body $body -OrgId $OrgId
-    Write-Host "  $Nombre -> clientId: $($resp.clientId)"
-    return $resp.clientId
-}
-
-Write-Host "== 1. Creando organizacion '$ClienteNombre' =="
-$org = Invoke-ZitadelApi -Method Post -Path "/management/v1/orgs" -Body @{ name = $ClienteNombre }
-$orgId = $org.id
-Write-Host "   orgId: $orgId"
-
-Write-Host "== 2. Creando proyecto 'CIS' =="
-$project = Invoke-ZitadelApi -Method Post -Path "/management/v1/projects" `
-    -Body @{ name = "CIS"; projectRoleAssertion = $true } -OrgId $orgId
-$projectId = $project.id
-Write-Host "   projectId: $projectId"
-
-Write-Host "== 3. Creando roles de Proyecto =="
-$roles = @("administrador-patrimonial")
-if ($Nivel -eq 2) { $roles += @("directivo", "administrador-sistema") }
-foreach ($rol in $roles) {
-    Invoke-ZitadelApi -Method Post -Path "/management/v1/projects/$projectId/roles" `
-        -Body @{ roleKey = $rol; displayName = $rol } -OrgId $orgId | Out-Null
-    Write-Host "   rol creado: $rol"
-}
-
-Write-Host "== 4. Creando apps OIDC =="
-$appQrClientId = New-OidcApp -ProjectId $projectId -OrgId $orgId `
-    -Nombre "app-qr-sicsaft" -Dominio "qr.sicsaft.localhost"
-
-$ccpClientId = $null
-$webAdminClientId = $null
-$coreFrontendClientId = $null
-if ($Nivel -eq 2) {
-    $ccpClientId = New-OidcApp -ProjectId $projectId -OrgId $orgId `
-        -Nombre "ccp-sicsaft" -Dominio "ccp.sicsaft.localhost"
-    $webAdminClientId = New-OidcApp -ProjectId $projectId -OrgId $orgId `
-        -Nombre "web-admin-sicsaft" -Dominio "admin.sicsaft.localhost"
-    $coreFrontendClientId = New-OidcApp -ProjectId $projectId -OrgId $orgId `
-        -Nombre "core-frontend-sicsaft" -Dominio "directivo.sicsaft.localhost"
-}
+$resultado = Invoke-BootstrapCliente -Issuer $Issuer -Pat $Pat -ClienteNombre $ClienteNombre `
+    -OrganizacionId $OrganizacionId -Nivel $Nivel
 
 Write-Host ""
 Write-Host "== Listo. Pegar estos valores en devops/onprem/.env =="
-Write-Host "CIS_ZITADEL_AUDIENCE=$projectId"
-$orgMap = @{ $orgId = $OrganizacionId } | ConvertTo-Json -Compress
-Write-Host "ZITADEL_ORG_ID_MAP=$orgMap"
-Write-Host "ZITADEL_ADMIN_TOKEN=$Pat"
-Write-Host "ZITADEL_PROJECT_ID=$projectId"
-Write-Host "APP_QR_VITE_ZITADEL_CLIENT_ID=$appQrClientId"
-if ($Nivel -eq 2) {
-    Write-Host "CCP_VITE_ZITADEL_CLIENT_ID=$ccpClientId"
-    Write-Host "WEB_ADMIN_VITE_ZITADEL_CLIENT_ID=$webAdminClientId"
-    Write-Host "CORE_FRONTEND_VITE_ZITADEL_CLIENT_ID=$coreFrontendClientId"
+foreach ($clave in $resultado.Keys) {
+    if ($null -ne $resultado[$clave]) {
+        Write-Host "$clave=$($resultado[$clave])"
+    }
 }
 Write-Host ""
-Write-Host "Guardar ZITADEL_ADMIN_TOKEN tambien en el gestor de secretos del admin (por cliente) —"
+Write-Host "Guardar ZITADEL_ADMIN_TOKEN tambien en el gestor de secretos del admin (por cliente) -"
 Write-Host "ver aidlc-docs/devops/requirements/REQUIREMENTS.md INST-Q-02."

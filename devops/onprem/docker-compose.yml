@@ -101,8 +101,22 @@ services:
       ZITADEL_EXTERNALSECURE: "false"
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD}
+      # Auto-provisiona un service user (rol IAM_OWNER) + un PAT en el primer arranque
+      # (`start-from-init`), sin pasar por la Console — instalar-cliente.ps1 lee el PAT de
+      # PATPATH para llamar a la Management API sin intervención manual. Config real,
+      # verificada contra el código fuente de Zitadel (cmd/setup/steps.yaml del repo oficial:
+      # https://github.com/zitadel/zitadel/blob/main/cmd/setup/steps.yaml), no adivinada —
+      # pendiente igual una corrida real contra este compose para confirmar que el archivo
+      # aparece con el formato esperado (ver devops/onprem/installer/README.md).
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: sicsaft-onprem-bootstrap
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: "SICSAFT Onprem Bootstrap"
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "2099-01-01T00:00:00Z"
+      ZITADEL_FIRSTINSTANCE_PATPATH: /bootstrap/admin-pat.txt
     volumes:
       - zitadel_data:/zitadel
+      # Volumen local (no nombrado) — el PAT generado es un secreto real por instalación, nunca
+      # se commitea (ver .gitignore raíz, devops/onprem/.bootstrap/).
+      - ./.bootstrap:/bootstrap
     networks:
       - sicsaft
     depends_on:

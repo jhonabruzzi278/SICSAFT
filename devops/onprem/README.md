@@ -9,6 +9,25 @@ compartido. Ver [`../../aidlc-docs/devops/`](../../aidlc-docs/devops) para el di
 Subconjunto de [`devops/local/`](../local): sin observabilidad, sin `k6`, sin `cip` (fuera de los
 3 niveles de producto, ver `DOC-025`), sin dashboard de Traefik expuesto.
 
+## Instalación automatizada (recomendada)
+
+```powershell
+./instalar-cliente.ps1 -ClienteNombre "Municipalidad de Melipilla" `
+    -OrganizacionId "municipalidad-melipilla" -Nivel 2
+```
+
+Un solo comando hace todo lo que el flujo manual de abajo describe paso a paso: verifica/instala
+WSL2 y Podman, genera un `.env` con contraseñas únicas, levanta la base de identidad, obtiene el
+PAT de Zitadel solo (auto-provisionado, sin Console — ver
+`aidlc-docs/devops/design-artifacts/ARCHITECTURE.md`), corre el bootstrap del cliente, completa el
+`.env` y construye/levanta el stack completo, con una verificación (`smoke check`) al final.
+Empaquetado como instalador `.exe` con una UI simple: ver [`installer/`](installer).
+
+> ⚠️ Ni el script ni el instalador `.exe` fueron corridos de punta a punta contra una máquina
+> Windows real todavía (ver encabezado de `instalar-cliente.ps1` y `installer/README.md`) — es
+> código listo para correr, no algo ya verificado. El flujo manual de abajo sigue documentado como
+> fallback/debug si algún paso automatizado falla y hay que diagnosticar a mano.
+
 ## Runtime: Podman, no Docker Desktop
 
 Decisión confirmada (INST-RNF-01, ver `aidlc-docs/devops/requirements/REQUIREMENTS.md`): menor
@@ -24,7 +43,12 @@ consumo de recursos en reposo, sin licenciamiento comercial de Docker Desktop.
 `podman-compose` — probar `podman-compose --profile nivel1 up -d` de punta a punta antes de una
 instalación real.
 
-## 1. Resolver los dominios locales
+## Instalación manual (paso a paso)
+
+Fallback/debug si `instalar-cliente.ps1` falla en algún paso y hace falta diagnosticar a mano, o
+si se prefiere no usar el orquestador todavía.
+
+### 1. Resolver los dominios locales
 
 Igual que `devops/local/` — agregar al archivo hosts
 (`C:\Windows\System32\drivers\etc\hosts`, como administrador):
@@ -40,7 +64,7 @@ Igual que `devops/local/` — agregar al archivo hosts
 
 (Las últimas 3 solo hacen falta en instalaciones Nivel 2.)
 
-## 2. Variables de entorno de este cliente
+### 2. Variables de entorno de este cliente
 
 ```bash
 cp .env.example .env
@@ -52,7 +76,7 @@ Completar `POSTGRES_ADMIN_PASSWORD`, `REDIS_PASSWORD`, `ZITADEL_MASTERKEY` (32 c
 — nunca reusar los de otra instalación). Dejar el resto de las variables (`CIS_ZITADEL_AUDIENCE`,
 `ZITADEL_ORG_ID_MAP`, los `*_CLIENT_ID`, etc.) con el placeholder hasta el paso 4.
 
-## 3. Levantar la base de identidad primero
+### 3. Levantar la base de identidad primero
 
 **No levantar todo el stack junto todavía** — el bootstrap de Zitadel necesita correr antes de
 construir los frontends (ver "Orden obligatorio" abajo):
@@ -62,12 +86,16 @@ podman-compose up -d postgres redis zitadel
 podman-compose logs -f zitadel   # esperar a que termine el bootstrap (start-from-init)
 ```
 
-## 4. Bootstrap del cliente
+### 4. Bootstrap del cliente
 
-Requiere un Personal Access Token (PAT) de un service user con rol IAM/Org Manager — mismo paso
-manual, una sola vez por instancia de Zitadel, que ya documenta
+Requiere un Personal Access Token (PAT) de un service user con rol IAM/Org Manager. Con este
+compose ya no hace falta crearlo a mano en la Console: Zitadel lo auto-provisiona en el primer
+arranque (`ZITADEL_FIRSTINSTANCE_ORG_MACHINE_*`/`PATPATH`, ver `docker-compose.yml`) y lo escribe
+en `.bootstrap/admin-pat.txt` — leerlo de ahí después de `podman-compose up -d zitadel`. Si por lo
+que sea ese mecanismo no funcionara en la práctica, queda como respaldo crear el service user a
+mano en la Console, mismo paso que documenta
 [`devops/local/README.md` "Rol administrador-sistema + integración Zitadel Admin API"](../local/README.md#rol-administrador-sistema--integración-zitadel-admin-api-web--doc-021)
-(sección 2). Todo lo que viene después de tener ese PAT lo hace el script:
+(sección 2). Todo lo que viene después de tener el PAT lo hace el script:
 
 ```powershell
 ./bootstrap-zitadel.ps1 -Pat "pat_xxx" `
@@ -84,7 +112,7 @@ Copiar los valores que imprime al final (`CIS_ZITADEL_AUDIENCE`, `ZITADEL_ORG_ID
 > la instalación de un cliente pagante. Si algún shape de la API difiere, corregir el script, no
 > volver a los pasos manuales del dashboard salvo que sea estrictamente necesario.
 
-## 5. Orden obligatorio: bootstrap antes de build
+### 5. Orden obligatorio: bootstrap antes de build
 
 Los frontends (`app-qr-sicsaft`, y en Nivel 2 `ccp`/`web-admin`/`core-frontend`) hornean
 `VITE_ZITADEL_CLIENT_ID` en **build time** (mismo mecanismo que `devops/local/`, ver `args:` en
@@ -97,7 +125,7 @@ podman-compose --profile nivel1 up -d --build      # Nivel 1
 podman-compose --profile nivel2 up -d --build      # Nivel 2 (incluye Nivel 1 + los 3 portales)
 ```
 
-## 6. Verificar antes de cerrar la instalación
+### 6. Verificar antes de cerrar la instalación
 
 - Login real de un usuario de prueba por rol contratado (mismo criterio que
   `devops/local/README.md` para cada portal).
@@ -105,7 +133,7 @@ podman-compose --profile nivel2 up -d --build      # Nivel 2 (incluye Nivel 1 + 
 - Nivel 2: `ccp`/`web-admin`/`core-frontend` levantan y cada login aterriza donde corresponde según
   el rol.
 
-## 7. Después de verificar
+### 7. Después de verificar
 
 - Guardar `ZITADEL_ADMIN_TOKEN` y el `.env` completo de este cliente en el gestor de secretos del
   admin — necesario para volver a soportar esta instalación después (alta de usuarios, reset de
@@ -121,12 +149,12 @@ podman-compose down          # detiene, conserva los volúmenes
 podman-compose down -v       # borra todo — solo para reset completo de esta instalación
 ```
 
-## Qué falta para el instalador `.exe` empaquetado
+## Estado del instalador `.exe` empaquetado
 
-Este incremento entrega el stack parametrizado + el bootstrap, verificables a mano. Falta
-(incremento siguiente, ver `aidlc-docs/devops/design-artifacts/ARCHITECTURE.md` "Fase 3"):
-detección/instalación automática de WSL2 + Podman, un wizard simple para generar el `.env`, y
-empaquetado con Inno Setup o NSIS — a verificar primero contra una máquina Windows limpia real.
+Ya existe el código fuente (`instalar-cliente.ps1` + `installer/sicsaft-onprem.iss`) que cierra
+los 8 pasos manuales de arriba en un solo flujo — ver "Instalación automatizada" al inicio de este
+README y [`installer/README.md`](installer/README.md) para el estado real de verificación
+(todavía no corrido de punta a punta contra una máquina Windows limpia).
 
 ## Nivel 3 (RFID)
 
