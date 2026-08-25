@@ -37,11 +37,24 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# $PSScriptRoot vino vacio en una corrida real (causa exacta no confirmada, algo especifico de
+# como Inno Setup invoca powershell.exe via [Run]) -- installer/sicsaft-onprem.iss ahora pasa
+# -InstallDir explicito, pero este fallback cubre tambien el caso de correr el script suelto sin
+# ese parametro: $MyInvocation.MyCommand.Path es mas confiable que $PSScriptRoot en general (esta
+# poblado en mas contextos de invocacion).
+if (-not $InstallDir) {
+    if ($MyInvocation.MyCommand.Path) {
+        $InstallDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    } else {
+        throw "No se pudo determinar la carpeta de instalacion (ni -InstallDir, ni `$PSScriptRoot, ni `$MyInvocation.MyCommand.Path). Correr el script pasando -InstallDir explicito con la ruta completa de devops/onprem/."
+    }
+}
+
 Set-Location $InstallDir
 # Verificacion explicita en vez de confiar en que Set-Location silenciosamente funciono -- bug
 # real encontrado en una corrida verificada: el cwd efectivo termino siendo C:\WINDOWS\system32
-# en vez de $InstallDir (causa no confirmada -- posiblemente el proceso que lanza el script via
-# Inno Setup no hereda el cwd esperado), lo que rompia cualquier ruta relativa mas adelante
+# en vez de $InstallDir, lo que rompia cualquier ruta relativa mas adelante
 # (Get-Content ".env.example"). De acá en mas, todo archivo se referencia con ruta absoluta
 # (Join-Path $InstallDir ...) para no depender de que esto funcione -- esta verificacion queda
 # solo para fallar rapido y claro si $InstallDir ni siquiera es un directorio valido.
@@ -68,6 +81,31 @@ function New-ClaveConSimbolo {
     # el sufijo "-Aa1!" del placeholder en .env.example) — New-ClavealAzar sola no lo garantiza.
     $base = New-ClavealAzar
     return "$base-Aa1!"
+}
+
+function Set-HostsLocales {
+    # Paso "1. Resolver los dominios locales" de README.md -- hasta ahora 100% manual. Sin esto,
+    # el smoke check final (Test-Servicio) falla por resolucion de DNS aunque el stack este sano,
+    # y el tecnico no puede entrar a los portales desde el navegador tampoco.
+    Write-Paso "0. Configurando dominios locales (hosts)"
+    $hostsPath = "$env:SystemRoot\System32\drivers\etc\hosts"
+    $dominios = @("id.sicsaft.localhost", "api.sicsaft.localhost", "qr.sicsaft.localhost")
+    if ($Nivel -eq 2) {
+        $dominios += @("ccp.sicsaft.localhost", "admin.sicsaft.localhost", "directivo.sicsaft.localhost")
+    }
+    $contenidoActual = Get-Content $hostsPath -Raw -ErrorAction SilentlyContinue
+    $lineasNuevas = @()
+    foreach ($dominio in $dominios) {
+        if ($contenidoActual -notmatch [regex]::Escape($dominio)) {
+            $lineasNuevas += "127.0.0.1 $dominio"
+        }
+    }
+    if ($lineasNuevas.Count -gt 0) {
+        Add-Content -Path $hostsPath -Value $lineasNuevas
+        Write-Host "Agregados al hosts: $($lineasNuevas -join ', ')"
+    } else {
+        Write-Host "Dominios locales ya estaban en el hosts."
+    }
 }
 
 function Test-Wsl2 {
@@ -187,6 +225,22 @@ function New-EnvDeCliente {
     $contenido = $contenido -replace 'admin@sicsaft\.localhost', "admin@$OrganizacionId.sicsaft.localhost"
     Set-Content $EnvPath $contenido -NoNewline
     Write-Host ".env generado con credenciales unicas de este cliente."
+
+    # Si $InstallDir tiene contenedores/volumenes de un intento anterior (ej. una corrida previa
+    # que fallo despues de este paso), hay que tirarlos abajo antes de seguir: el compose usa
+    # "name: sicsaft-onprem" fijo, asi que los volumenes de Postgres/Zitadel de ese intento previo
+    # persistirian con las credenciales VIEJAS aunque el .env recien generado tenga contraseñas
+    # nuevas -- Postgres/Zitadel arrancarian con datos ya inicializados con el password anterior,
+    # y el resto del stack fallaria la autenticacion contra ellos de forma confusa. "down -v" es
+    # seguro aunque no haya nada que tirar (no falla si el proyecto no existe todavia).
+    if ((Test-Path $ComposeFile) -and (Get-Command podman-compose -ErrorAction SilentlyContinue)) {
+        # Sin redirigir stderr (mismo motivo que el resto del script) -- si no habia nada que
+        # tirar, podman-compose puede escribir un aviso a stderr sin que sea un error real.
+        podman-compose -f $ComposeFile --project-directory $InstallDir down -v | Out-Null
+    }
+    if (Test-Path (Split-Path -Parent $PatPath)) {
+        Remove-Item -Recurse -Force (Split-Path -Parent $PatPath)
+    }
 }
 
 function Wait-PatDeZitadel {
@@ -248,6 +302,7 @@ function Test-Servicio {
 
 # ============================================================================
 
+Set-HostsLocales
 Test-Wsl2
 Test-Podman
 Test-PodmanCompose

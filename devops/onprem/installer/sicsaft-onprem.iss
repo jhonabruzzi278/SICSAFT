@@ -87,7 +87,13 @@ end;
 [Run]
 ; -NoExit para que el técnico vea el resultado del script (WSL2/Podman pueden tardar varios
 ; minutos) en vez de que la ventana se cierre sola al terminar el instalador.
+;
+; -InstallDir explícito con "{app}" -- bug real encontrado corriendo el instalador compilado:
+; $PSScriptRoot vino vacío en este contexto de invocación (causa exacta no confirmada), lo que
+; hacía fallar Set-Location con "cadena vacía" apenas arrancaba el script. En vez de depender de
+; que PowerShell autodetecte su propio directorio acá, se lo pasamos nosotros -- Inno Setup ya
+; sabe "{app}" en este punto, no hace falta que el script lo adivine.
 Filename: "powershell.exe"; \
-  Parameters: "-NoExit -ExecutionPolicy Bypass -File ""{app}\instalar-cliente.ps1"" -ClienteNombre ""{code:GetClienteNombre}"" -OrganizacionId ""{code:GetOrganizacionId}"" -Nivel {code:GetNivel}"; \
+  Parameters: "-NoExit -ExecutionPolicy Bypass -File ""{app}\instalar-cliente.ps1"" -ClienteNombre ""{code:GetClienteNombre}"" -OrganizacionId ""{code:GetOrganizacionId}"" -Nivel {code:GetNivel} -InstallDir ""{app}"""; \
   Description: "Ejecutar instalar-cliente.ps1 (WSL2, Podman, bootstrap de Zitadel, build)"; \
   Flags: postinstall runascurrentuser
