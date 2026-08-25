@@ -105,6 +105,38 @@ que ya existe en `cis/src/zitadel-admin/zitadel-admin.service.ts` (service user 
 Token) — no se reinventa la integración, se adapta a un script standalone porque corre antes de
 que `cis` exista (el bootstrap es anterior al `up` completo del stack).
 
+## Automatización end-to-end (INST-RF-07/08)
+
+El flujo de bootstrap de arriba dependía de un PAT creado a mano en la Console de Zitadel. Se
+investigó (no se adivinó — fuente primaria:
+[`cmd/setup/steps.yaml`](https://github.com/zitadel/zitadel/blob/main/cmd/setup/steps.yaml) del
+repo oficial de Zitadel) si existe una forma de auto-provisionarlo, y sí:
+`ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME`/`_NAME` crea un service user con rol
+`IAM_OWNER` en el primer arranque, `ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE` genera
+un PAT para ese service user, y `ZITADEL_FIRSTINSTANCE_PATPATH` es la ruta donde Zitadel escribe
+ese PAT a un archivo — sin ningún paso en la Console. `devops/onprem/docker-compose.yml` monta
+`./.bootstrap:/bootstrap` para que ese archivo quede accesible fuera del contenedor (secreto
+runtime, nunca commiteado — ver `.gitignore` raíz).
+
+Con ese gap cerrado, `devops/onprem/instalar-cliente.ps1` orquesta el flujo completo: verifica/
+instala WSL2 y Podman (`winget install RedHat.Podman`) y `podman-compose` (`pip install
+podman-compose` — `podman compose` nativo desde Podman 4.7 es solo un wrapper que delega a un
+compose provider externo, no trae uno instalado por default, y no hay paquete de
+`podman-compose` en winget todavía), genera un `.env` con contraseñas únicas por cliente, levanta
+`postgres`/`redis`/`zitadel`, espera el PAT auto-provisionado, corre el mismo bootstrap que antes
+(ahora extraído a `devops/onprem/lib/Bootstrap-Zitadel.psm1`, reusado también por
+`bootstrap-zitadel.ps1` como wrapper delgado), completa el `.env` sin copy-paste manual, construye
+y levanta el stack completo, y termina con un smoke check por servicio.
+
+`devops/onprem/installer/sicsaft-onprem.iss` empaqueta todo lo anterior en un instalador `.exe`
+(Inno Setup) con una UI de 2 pantallas (datos del cliente, nivel) que corre
+`instalar-cliente.ps1` al final.
+
+**Ninguna parte de esta automatización fue verificada corriendo de punta a punta** — se escribió
+en un entorno sin Podman/WSL2/Inno Setup Compiler disponibles. Es código listo para correr y
+compilar, no algo ya probado. Ver `devops/onprem/installer/README.md` para el checklist de
+verificación pendiente antes de usarlo con un cliente pagante.
+
 ## Qué NO cambia
 
 - El esquema de base de datos (`core/migrations/`, `cip/migrations/`), los `Dockerfile`s de cada

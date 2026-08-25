@@ -24,6 +24,14 @@ colisionar con los RF/RNF ya numerados de otros sistemas (ver `REQUISITOS.md` ra
 - **INST-RF-06**: El `.env.example` de `devops/onprem/` debe incluir solo las variables que
   aplican a una instalación de cliente (sin `GRAFANA_*`, `METRICS_TOKEN`, ni nada de
   observabilidad/k6 — eso es herramienta del admin, no del cliente).
+- **INST-RF-07**: El PAT que usa el bootstrap de Zitadel debe auto-provisionarse en el primer
+  arranque (`ZITADEL_FIRSTINSTANCE_ORG_MACHINE_*`/`ZITADEL_FIRSTINSTANCE_PATPATH`, ver
+  `ARCHITECTURE.md` "Automatización end-to-end"), sin que el admin tenga que crear un service user
+  a mano en la Console de Zitadel para cada cliente nuevo.
+- **INST-RF-08**: Debe existir un orquestador (`devops/onprem/instalar-cliente.ps1`) que encadene
+  todo el flujo de instalación (prerrequisitos, `.env`, levantar servicios, bootstrap, build,
+  verificación) en un solo comando, y un instalador `.exe` (Inno Setup) que lo envuelva con una UI
+  simple — ver `devops/onprem/installer/`.
 
 ## No funcionales
 
