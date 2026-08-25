@@ -112,25 +112,44 @@ function Test-Podman {
     Write-Host "Podman OK."
 }
 
+function Get-PythonFuncional {
+    # Get-Command sola no alcanza: en Windows es comun que 'python'/'pip' existan en el PATH como
+    # un stub que no funciona de verdad (alias de Microsoft Store, o -- bug real encontrado en la
+    # segunda corrida verificada -- un "trampolin" de uv que no logra encontrar un interprete
+    # Python real detras). Se prueba ejecutando el interprete de verdad, no solo si el comando
+    # existe.
+    foreach ($candidato in @("python", "python3")) {
+        if (Get-Command $candidato -ErrorAction SilentlyContinue) {
+            try {
+                & $candidato --version *> $null
+                if ($LASTEXITCODE -eq 0) { return $candidato }
+            } catch {}
+        }
+    }
+    return $null
+}
+
 function Test-PodmanCompose {
     Write-Paso "3. Verificando podman-compose"
     if (-not (Get-Command podman-compose -ErrorAction SilentlyContinue)) {
-        if (-not (Get-Command python -ErrorAction SilentlyContinue) -and
-            -not (Get-Command python3 -ErrorAction SilentlyContinue)) {
-            Write-Host "Python no encontrado. Instalando con winget..."
+        $python = Get-PythonFuncional
+        if (-not $python) {
+            Write-Host "Python no encontrado o no funcional. Instalando con winget..."
             winget install -e --id Python.Python.3.12 --silent --accept-package-agreements --accept-source-agreements
             if ($LASTEXITCODE -ne 0) {
                 throw "Fallo la instalacion de Python via winget. Instalar manualmente y volver a correr este script."
             }
             Update-PathDeSesion
-            if (-not (Get-Command python -ErrorAction SilentlyContinue) -and
-                -not (Get-Command python3 -ErrorAction SilentlyContinue)) {
-                throw "Python se instalo pero no se encuentra ni despues de refrescar el PATH. Cerrar esta terminal, abrir una nueva como administrador, y volver a correr este script."
+            $python = Get-PythonFuncional
+            if (-not $python) {
+                throw "Python se instalo pero sigue sin funcionar (revisar si hay un 'python'/'pip' de otra herramienta -- ej. uv -- tapando al oficial en el PATH). Cerrar esta terminal, abrir una nueva como administrador, y volver a correr este script; si persiste, desinstalar manualmente el Python/uv conflictivo primero."
             }
         }
-        Write-Host "Instalando podman-compose (pip install podman-compose)..."
-        pip install podman-compose
-        if ($LASTEXITCODE -ne 0) { throw "Fallo 'pip install podman-compose'." }
+        Write-Host "Instalando podman-compose ($python -m pip install podman-compose)..."
+        # "python -m pip" en vez de un 'pip' suelto -- evita depender de que pip.exe en el PATH
+        # sea el correcto y no un shim roto de otra herramienta (mismo motivo que Get-PythonFuncional).
+        & $python -m pip install podman-compose
+        if ($LASTEXITCODE -ne 0) { throw "Fallo '$python -m pip install podman-compose'." }
         Update-PathDeSesion
     }
     Write-Host "podman-compose OK."
