@@ -23,10 +23,24 @@ PAT de Zitadel solo (auto-provisionado, sin Console — ver
 `.env` y construye/levanta el stack completo, con una verificación (`smoke check`) al final.
 Empaquetado como instalador `.exe` con una UI simple: ver [`installer/`](installer).
 
-> ⚠️ Ni el script ni el instalador `.exe` fueron corridos de punta a punta contra una máquina
-> Windows real todavía (ver encabezado de `instalar-cliente.ps1` y `installer/README.md`) — es
-> código listo para correr, no algo ya verificado. El flujo manual de abajo sigue documentado como
-> fallback/debug si algún paso automatizado falla y hay que diagnosticar a mano.
+Verificado corriendo de verdad contra Windows real (no solo en teoría) — varios bugs reales
+encontrados y corregidos en el camino (ver historial de PRs `fix(devops): ...` de
+`devops/onprem/`): PATH no refrescado tras `winget install`, warnings de stderr tirando el script
+abajo, un `pip` roto por un shim de `uv`, `$PSScriptRoot` vacío según el contexto de invocación,
+`--project-directory` (no existe en `podman-compose`, a diferencia de `docker compose`), y
+volúmenes de una corrida anterior fallida quedando con credenciales viejas. El flujo manual de
+abajo sigue documentado como fallback/debug si algún paso automatizado falla igual y hay que
+diagnosticar a mano.
+
+**Secretos**: `.env` (contraseñas + `ZITADEL_ADMIN_TOKEN`) y `.bootstrap/` (el PAT
+auto-provisionado) quedan con permisos NTFS restringidos a Administradores + SYSTEM apenas
+terminan de usarse — una sesión sin privilegios de administrador en el PC del cliente no puede
+abrirlos. El instalador deja además un log detallado (`instalacion.log`, mismos permisos) para
+diagnosticar sin depender de la ventana en pantalla. La ventana de PowerShell sigue visible por
+ahora a propósito (es lo que permitió diagnosticar cada bug real de la lista de arriba) — se oculta
+recién cuando el flujo esté verificado como estable, ver
+`aidlc-docs/devops/requirements/REQUIREMENTS.md` INST-Q-04/05 para el detalle y los límites reales
+de esta protección (no cubre a un cliente con acceso de administrador en su propia máquina).
 
 ## Runtime: Podman, no Docker Desktop
 
