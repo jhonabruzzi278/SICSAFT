@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SICSAFT — Dependencias entre módulos de CORE</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper: #f5f5f5; --color-ink: #2d3142; --color-muted: #4f5d75; --color-accent: #eb6c36;
+      --font-sans: 'Geist', system-ui, sans-serif; --font-serif: 'Instrument Serif', serif; --font-mono: 'Geist Mono', ui-monospace, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1200px; width: 100%; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 0.5rem; }
+    p.subtitle { font-family: var(--font-sans); font-size: 0.9rem; color: var(--color-muted); margin-bottom: 1.5rem; max-width: 74ch; }
+    svg { width: 100%; min-width: 940px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Dependency graph · SICSAFT</p>
+    <h1>Dependencias entre módulos de CORE</h1>
+    <p class="subtitle">Imports cruzados reales entre carpetas de <code>core/src/</code>. Orquestador es el hub estructural (fan-in 4) — también importa de <code>entitlements</code>/<code>estructura</code>/<code>inventarios</code> igual que de <code>patrimonial</code> (mismo patrón bidireccional en los cuatro), pero solo se resalta un ciclo por presupuesto del diagrama.</p>
+
+    <svg viewBox="0 0 1040 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sicsaft-dep-mod-title sicsaft-dep-mod-desc">
+      <title id="sicsaft-dep-mod-title">Grafo de dependencias entre módulos de CORE</title>
+      <desc id="sicsaft-dep-mod-desc">Entitlements, estructura, inventarios y patrimonial dependen de orquestador; orquestador a su vez depende de patrimonial formando el único ciclo destacado; eventos, auditoría y reglas son hojas sin dependencias salientes.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- ===== EDGES (before nodes) ===== -->
+
+      <!-- rank0 -> orquestador (straight verticals, shared x with orquestador's spread — use elbow since orquestador is single-column) -->
+      <path d="M 200,136 V 216 Q 200,224 208,224 H 412 Q 420,224 420,232 V 256" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <path d="M 400,136 V 256" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <path d="M 600,136 V 216 Q 600,224 592,224 H 588 Q 580,224 580,232 V 256" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <path d="M 800,136 V 216 Q 800,224 792,224 H 588 Q 580,224 580,232 V 256" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- entitlements -> eventos (rank0 -> rank2, skip rank1) -->
+      <path d="M 160,136 V 356 Q 160,364 168,364 H 452 Q 460,364 460,372 V 432" fill="none" stroke="#4f5d75" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <!-- inventarios -> eventos -->
+      <path d="M 560,136 V 396 Q 560,404 552,404 H 508 Q 500,404 500,412 V 432" fill="none" stroke="#4f5d75" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <!-- patrimonial -> eventos -->
+      <path d="M 760,136 V 356 Q 760,364 752,364 H 548 Q 540,364 540,372 V 432" fill="none" stroke="#4f5d75" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <!-- inventarios -> reglas -->
+      <path d="M 520,136 V 396 Q 520,404 512,404 H 268 Q 260,404 260,412 V 432" fill="none" stroke="#4f5d75" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <!-- orquestador -> auditoria -->
+      <path d="M 500,312 V 356 Q 500,364 508,364 H 692 Q 700,364 700,372 V 432" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- THE CYCLE — orquestador -> patrimonial, routed around the outside, upward -->
+      <path d="M 580,284 H 932 Q 940,284 940,276 V 116 Q 940,108 932,108 H 880"
+            fill="none" stroke="#eb6c36" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-accent)"/>
+      <rect x="700" y="264" width="112" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="756" y="273" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">CYCLE · IMPORTA</text>
+
+      <!-- ===== RANK 0 NODES (160x56) ===== -->
+      <!-- entitlements -->
+      <rect x="120" y="80" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="200" y="110" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">entitlements</text>
+      <text x="200" y="125" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">contratos/orgs · escritura</text>
+
+      <!-- estructura -->
+      <rect x="320" y="80" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="400" y="110" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">estructura</text>
+      <text x="400" y="125" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">áreas · ubicaciones</text>
+
+      <!-- inventarios -->
+      <rect x="520" y="80" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="600" y="110" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">inventarios</text>
+      <text x="600" y="125" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">sesiones · escaneo</text>
+
+      <!-- patrimonial -->
+      <rect x="720" y="80" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="820" y="84" width="52" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="846" y="93" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.04em">1 IN</text>
+      <text x="800" y="110" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">patrimonial</text>
+      <text x="800" y="125" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">activos · catálogo</text>
+
+      <!-- ===== RANK 1 NODE ===== -->
+      <rect x="420" y="256" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="520" y="260" width="52" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="546" y="269" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.04em">4 IN</text>
+      <text x="500" y="286" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">orquestador</text>
+      <text x="500" y="301" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">único punto de escritura</text>
+
+      <!-- ===== RANK 2 NODES (leaves) ===== -->
+      <rect x="180" y="432" width="160" height="56" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="280" y="436" width="52" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.50)" stroke-width="0.8"/>
+      <text x="306" y="445" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.04em">1 IN</text>
+      <text x="260" y="462" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">reglas</text>
+      <text x="260" y="477" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">clasificarEscaneo()</text>
+
+      <rect x="420" y="432" width="160" height="56" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="520" y="436" width="52" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.50)" stroke-width="0.8"/>
+      <text x="546" y="445" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.04em">3 IN</text>
+      <text x="500" y="462" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">eventos</text>
+      <text x="500" y="477" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">→ trigger outbox</text>
+
+      <rect x="620" y="432" width="160" height="56" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="720" y="436" width="52" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.50)" stroke-width="0.8"/>
+      <text x="746" y="445" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.04em">1 IN</text>
+      <text x="700" y="462" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">auditoria</text>
+      <text x="700" y="477" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">todo operador, no solo activos</text>
+
+      <!-- ===== LEGEND ===== -->
+      <line x1="60" y1="540" x2="980" y2="540" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="60" y="556" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+
+      <rect x="180" y="548" width="12" height="12" rx="3" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="198" y="558" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Módulo con dependencias salientes</text>
+
+      <rect x="460" y="548" width="12" height="12" rx="3" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <text x="478" y="558" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Hoja (sin dependencias salientes)</text>
+
+      <line x1="700" y1="554" x2="728" y2="554" stroke="#eb6c36" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-accent)"/>
+      <text x="736" y="558" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Ciclo destacado</text>
+    </svg>
+  </div>
+</body>
+</html>

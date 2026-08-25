@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SICSAFT — Flujo de captura QR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+    p.subtitle {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      color: var(--color-muted);
+      margin-bottom: 1.5rem;
+      max-width: 68ch;
+    }
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Flowchart · SICSAFT · Nivel 1 · detalle de APP QR</p>
+    <h1>Flujo de captura — APP QR SICSAFT</h1>
+    <p class="subtitle">Detalle del nodo "APP QR" de <a href="nivel1-capacidades.html">nivel1-capacidades.html</a>, grounded en <code>app-qr-sicsaft/README.md</code>: identificación una vez, escaneo por cámara o código manual, clasificación automática contra el catálogo, y envío con cola offline si no hay conexión.</p>
+
+    <svg viewBox="0 0 1000 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="n1-qr-title n1-qr-desc">
+      <title id="n1-qr-title">Flujo de captura de la APP QR SICSAFT</title>
+      <desc id="n1-qr-desc">El operador se identifica una vez, elige organización/área/ubicación, escanea por cámara o ingresa un código manual, el sistema clasifica la lectura contra el catálogo esperado en seis categorías, registra incidencias y un veredicto de sesión, y al confirmar envía directo a CIS/CORE si hay conexión o lo deja en una cola offline con reintento automático si no la hay.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- ===== ARROWS (before nodes) ===== -->
+      <line x1="500" y1="88" x2="500" y2="112" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="500" y1="176" x2="500" y2="192" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- diamond3 -> rect4, cámara (straight) -->
+      <line x1="500" y1="288" x2="500" y2="328" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="480" y="296" width="52" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="506" y="305" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">CÁMARA</text>
+
+      <!-- diamond3 -> rect4, manual (elbow) -->
+      <path d="M 600,240 H 680 Q 688,240 688,248 V 300 Q 688,308 680,308 H 588 Q 580,308 580,316 V 328"
+            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="616" y="220" width="52" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="642" y="229" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">MANUAL</text>
+
+      <line x1="500" y1="392" x2="500" y2="424" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="500" y1="488" x2="500" y2="520" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="500" y1="584" x2="500" y2="608" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- diamond7 -> oval8, sí (coral, happy path) -->
+      <line x1="500" y1="704" x2="500" y2="744" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <rect x="484" y="704" width="32" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="500" y="713" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.12em">SÍ</text>
+
+      <!-- diamond7 -> oval9, no (right) -->
+      <line x1="600" y1="656" x2="700" y2="656" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="634" y="636" width="32" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="650" y="645" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.12em">NO</text>
+
+      <!-- ===== NODES ===== -->
+
+      <!-- Oval1: start -->
+      <rect x="420" y="40" width="160" height="48" rx="24" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <text x="500" y="68" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Abrir APP QR</text>
+
+      <!-- Rect2: identificarse -->
+      <rect x="360" y="112" width="280" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="500" y="140" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Identificarse (una vez, persiste)</text>
+      <text x="500" y="158" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">operador → organización → área → ubicación</text>
+
+      <!-- Diamond3: cámara o manual -->
+      <polygon points="500,192 600,240 500,288 400,240" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="500" y="236" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">¿Cámara o</text>
+      <text x="500" y="250" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">código manual?</text>
+
+      <!-- Rect4: lectura capturada -->
+      <rect x="360" y="328" width="280" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="500" y="352" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Lectura capturada</text>
+      <text x="500" y="368" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">cámara: html5-qrcode · manual: campo BASE-VARIANTE</text>
+
+      <!-- Rect5: clasificación -->
+      <rect x="360" y="424" width="280" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="500" y="448" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Clasificación automática</text>
+      <text x="500" y="464" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">6 categorías vs. catálogo esperado</text>
+
+      <!-- Rect6: incidencias + resumen + veredicto -->
+      <rect x="360" y="520" width="280" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="500" y="544" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Incidencias, resumen y veredicto</text>
+      <text x="500" y="560" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">veredicto: exitoso / aceptable / defectuoso</text>
+
+      <!-- Diamond7: hay conexión -->
+      <polygon points="500,608 600,656 500,704 400,656" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="500" y="652" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">¿Hay</text>
+      <text x="500" y="666" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">conexión?</text>
+
+      <!-- Oval8: end, coral (confirmar y enviar) -->
+      <rect x="400" y="744" width="200" height="64" rx="32" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="500" y="770" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Confirmar y enviar</text>
+      <text x="500" y="786" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Conector QR → CIS → CORE</text>
+
+      <!-- Oval9: end, neutral (cola offline) -->
+      <rect x="700" y="624" width="240" height="64" rx="32" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <text x="820" y="650" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Cola offline (IndexedDB)</text>
+      <text x="820" y="666" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">reintento automático hasta conectar</text>
+
+      <!-- ===== LEGEND ===== -->
+      <line x1="30" y1="836" x2="970" y2="836" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="30" y="852" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND · LA FORMA INDICA EL TIPO</text>
+
+      <rect x="30" y="864" width="24" height="12" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <text x="62" y="874" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Inicio / fin (óvalo)</text>
+
+      <rect x="230" y="864" width="24" height="12" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="262" y="874" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Paso (rectángulo)</text>
+
+      <polygon points="442,870 454,864 466,870 454,876" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="478" y="874" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Decisión (rombo)</text>
+
+      <line x1="634" y1="872" x2="662" y2="872" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <text x="670" y="874" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Camino feliz (con conexión)</text>
+    </svg>
+  </div>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SICSAFT — Grafo de dependencias del sistema</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+    p.subtitle {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      color: var(--color-muted);
+      margin-bottom: 1.5rem;
+      max-width: 68ch;
+    }
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Dependency graph · SICSAFT · sistema completo</p>
+    <h1>Qué depende de qué — los 9 deployables</h1>
+    <p class="subtitle">Nivel de servicio (no de módulo interno — para eso ver <a href="dependencias-modulos-core.html">dependencias-modulos-core.html</a>). CIS es el único con más de un padre: los 4 frontends convergen ahí, nunca le hablan a CORE directo.</p>
+
+    <svg viewBox="0 0 1000 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="dep-sys-title dep-sys-desc">
+      <title id="dep-sys-title">Grafo de dependencias de los 9 servicios desplegables de SICSAFT</title>
+      <desc id="dep-sys-desc">Los cuatro frontends (APP QR, CCP, Web Admin, Core Frontend) y CIP convergen en capas hacia CIS y CORE; CIS es el nodo con mayor fan-in porque ningún frontend le habla a CORE directo, y Postgres es la hoja compartida por CORE y Zitadel.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- ===== EDGES (before nodes) ===== -->
+
+      <!-- rank0 -> cis (fan-in, 4 attach points on cis top edge: 352,384,416,448) -->
+      <path d="M 100,96 V 120 Q 100,128 108,128 H 344 Q 352,128 352,136 V 160" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <path d="M 300,96 V 120 Q 300,128 308,128 H 376 Q 384,128 384,136 V 160" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <path d="M 500,96 V 120 Q 500,128 492,128 H 424 Q 416,128 416,136 V 160" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <path d="M 700,96 V 120 Q 700,128 692,128 H 456 Q 448,128 448,136 V 160" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- cis -> core (attach 373 on cis bottom, 433 on core top) -->
+      <path d="M 373,216 V 240 Q 373,248 381,248 H 425 Q 433,248 433,256 V 280" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- cis -> zitadel (attach 427 on cis bottom) -->
+      <path d="M 427,216 V 260 Q 427,268 435,268 H 692 Q 700,268 700,276 V 280" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="440" y="188" width="34" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="457" y="197" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">HTTP</text>
+
+      <!-- cip -> core (routes above zitadel's row, attach 487 on core top) -->
+      <path d="M 900,96 V 232 Q 900,240 892,240 H 495 Q 487,240 487,248 V 280" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- core -> postgres (attach 553 on postgres top) -->
+      <path d="M 460,336 V 360 Q 460,368 468,368 H 545 Q 553,368 553,376 V 400" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- zitadel -> postgres (attach 607 on postgres top) -->
+      <path d="M 700,336 V 360 Q 700,368 692,368 H 615 Q 607,368 607,376 V 400" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- ===== RANK 0 (160x56, y=40) ===== -->
+      <g font-family="'Geist', sans-serif">
+        <rect x="20" y="40" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="140" y="46" width="34" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+        <text x="157" y="55" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">0 in</text>
+        <text x="100" y="68" fill="#2d3142" font-size="11" font-weight="600" text-anchor="middle">app-qr-sicsaft</text>
+        <text x="100" y="84" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">PWA</text>
+
+        <rect x="220" y="40" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="340" y="46" width="34" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+        <text x="357" y="55" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">0 in</text>
+        <text x="300" y="68" fill="#2d3142" font-size="11" font-weight="600" text-anchor="middle">ccp</text>
+        <text x="300" y="84" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">Profesional AFT</text>
+
+        <rect x="420" y="40" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="540" y="46" width="34" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+        <text x="557" y="55" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">0 in</text>
+        <text x="500" y="68" fill="#2d3142" font-size="11" font-weight="600" text-anchor="middle">web_admin</text>
+        <text x="500" y="84" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">Admin. Sistema</text>
+
+        <rect x="620" y="40" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="740" y="46" width="34" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+        <text x="757" y="55" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">0 in</text>
+        <text x="700" y="68" fill="#2d3142" font-size="11" font-weight="600" text-anchor="middle">core/frontend</text>
+        <text x="700" y="84" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">Directivo</text>
+
+        <rect x="820" y="40" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="940" y="46" width="34" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+        <text x="957" y="55" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">0 in</text>
+        <text x="900" y="68" fill="#2d3142" font-size="11" font-weight="600" text-anchor="middle">cip</text>
+        <text x="900" y="84" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">BI, lee de core</text>
+      </g>
+
+      <!-- ===== RANK 1 (y=160) ===== -->
+      <rect x="320" y="160" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="440" y="166" width="34" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+      <text x="457" y="175" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">4 in</text>
+      <text x="400" y="188" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">cis</text>
+      <text x="400" y="204" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">único punto de entrada</text>
+
+      <!-- ===== RANK 2 (y=280) ===== -->
+      <rect x="380" y="280" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="500" y="286" width="34" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+      <text x="517" y="295" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">2 in</text>
+      <text x="460" y="308" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">core</text>
+      <text x="460" y="324" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">orquestador</text>
+
+      <rect x="620" y="280" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="740" y="286" width="34" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+      <text x="757" y="295" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">1 in</text>
+      <text x="700" y="308" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Zitadel</text>
+      <text x="700" y="324" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">IAM</text>
+
+      <!-- ===== RANK 3 (y=400, leaf) ===== -->
+      <rect x="500" y="400" width="160" height="56" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="620" y="406" width="34" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+      <text x="637" y="415" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">2 in</text>
+      <text x="580" y="428" fill="#2d3142" font-size="11" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Postgres</text>
+      <text x="580" y="444" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">core + zitadel (bases propias)</text>
+
+      <!-- ===== LEGEND ===== -->
+      <line x1="30" y1="484" x2="970" y2="484" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="30" y="500" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+
+      <rect x="150" y="492" width="12" height="12" rx="3" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="168" y="502" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Servicio interno</text>
+
+      <rect x="340" y="492" width="12" height="12" rx="3" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <text x="358" y="502" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Hoja (sin dependencias salientes)</text>
+
+      <rect x="640" y="492" width="34" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
+      <text x="700" y="502" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">"N in" = cuántos servicios dependen de él</text>
+    </svg>
+  </div>
+</body>
+</html>

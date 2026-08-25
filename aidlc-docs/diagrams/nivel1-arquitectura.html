@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SICSAFT — Arquitectura Nivel 1 (QR + Directivo + Admin)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+    p.subtitle {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      color: var(--color-muted);
+      margin-bottom: 1.5rem;
+      max-width: 68ch;
+    }
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Architecture · SICSAFT · Nivel 1</p>
+    <h1>Nivel 1 — QR + Directivo + Admin</h1>
+    <p class="subtitle">DOC-025 (rev. 2026-08-25): APP QR (única fuente de captura) + portal Directivo + portal Administrador del Sistema, todos desde el arranque. El portal liviano de AFT ("web-aft") todavía no tiene código.</p>
+
+    <svg viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="n1-arq-title n1-arq-desc">
+      <title id="n1-arq-title">Arquitectura de componentes de SICSAFT Nivel 1</title>
+      <desc id="n1-arq-desc">La APP QR, el portal Directivo, el portal Administrador del Sistema y un futuro portal liviano de AFT entran por CIS, que hace de proxy hacia SICSAFT CORE; CORE escribe en la Base Patrimonial Central.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+        <marker id="arrow-planned" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="rgba(235,108,54,0.55)"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- ===== ZONE: entradas ===== -->
+      <rect x="40" y="36" width="920" height="112" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="0.8" stroke-dasharray="4,4"/>
+      <rect x="56" y="40" width="200" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="64" y="49" fill="rgba(45,49,66,0.40)" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.10em">ENTRADAS · NIVEL 1</text>
+
+      <!-- ===== ARROWS (before nodes) ===== -->
+
+      <path d="M 132,148 V 176 Q 132,184 140,184 H 452 Q 460,184 460,192 V 220"
+            fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <path d="M 372,148 V 176 Q 372,184 380,184 H 476 Q 484,184 484,192 V 220"
+            fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <path d="M 612,148 V 176 Q 612,184 604,184 H 516 Q 508,184 508,192 V 220"
+            fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <path d="M 852,148 V 176 Q 852,184 844,184 H 540 Q 532,184 532,192 V 220"
+            fill="none" stroke="rgba(235,108,54,0.55)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-planned)"/>
+      <rect x="676" y="164" width="44" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="698" y="173" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">HTTPS</text>
+
+      <!-- CIS -> CORE -->
+      <line x1="500" y1="284" x2="500" y2="340" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="508" y="304" width="46" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="512" y="315" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">PROXY</text>
+
+      <!-- CORE -> BPI -->
+      <line x1="500" y1="404" x2="500" y2="460" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <rect x="508" y="424" width="46" height="16" rx="2" fill="#f5f5f5"/>
+      <text x="512" y="435" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">WRITE</text>
+
+      <!-- ===== INPUT NODES (4) ===== -->
+      <g font-family="'Geist', sans-serif">
+        <rect x="52" y="68" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+        <text x="132" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">APP QR</text>
+        <text x="132" y="118" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Prof. AFT campo</text>
+
+        <rect x="292" y="68" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+        <text x="372" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Core Frontend</text>
+        <text x="372" y="118" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Directivo</text>
+
+        <rect x="532" y="68" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+        <text x="612" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Web Admin</text>
+        <text x="612" y="118" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Admin. Sistema</text>
+
+        <rect x="772" y="68" width="160" height="64" rx="6" fill="rgba(235,108,54,0.04)" stroke="rgba(235,108,54,0.45)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="852" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">web-aft</text>
+        <text x="852" y="118" fill="#eb6c36" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">🔲 planificado</text>
+      </g>
+
+      <!-- CIS -->
+      <rect x="400" y="220" width="200" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="408" y="228" width="32" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="424" y="237" fill="rgba(45,49,66,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">API</text>
+      <text x="500" y="258" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">CIS</text>
+      <text x="500" y="274" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">único punto de entrada</text>
+
+      <!-- CORE (focal) -->
+      <rect x="400" y="340" width="200" height="64" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <rect x="408" y="348" width="36" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
+      <text x="426" y="357" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">CORE</text>
+      <text x="500" y="378" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">SICSAFT CORE</text>
+      <text x="500" y="394" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">motores: patrimonial, reglas, auditoría</text>
+
+      <!-- BPI (focal) -->
+      <rect x="380" y="460" width="240" height="64" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <rect x="388" y="468" width="24" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
+      <text x="400" y="477" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">DB</text>
+      <text x="500" y="498" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Base Patrimonial Central</text>
+      <text x="500" y="514" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">PostgreSQL · fuente única de verdad</text>
+
+      <!-- ===== LEGEND ===== -->
+      <line x1="30" y1="556" x2="970" y2="556" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="30" y="572" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+
+      <rect x="150" y="564" width="12" height="12" rx="3" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+      <text x="168" y="574" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Portal / fuente de captura ya implementado</text>
+
+      <rect x="460" y="564" width="12" height="12" rx="3" fill="rgba(235,108,54,0.04)" stroke="rgba(235,108,54,0.45)" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="478" y="574" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Planificado — sin código</text>
+
+      <rect x="700" y="564" width="12" height="12" rx="3" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="718" y="574" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Focal</text>
+    </svg>
+  </div>
+</body>
+</html>

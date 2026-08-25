@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SICSAFT — Capacidades Nivel 2 (QR + WEB)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+    p.subtitle {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      color: var(--color-muted);
+      margin-bottom: 1.5rem;
+      max-width: 68ch;
+    }
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Data flow · SICSAFT · Nivel 2</p>
+    <h1>Capacidades habilitadas — Nivel 2</h1>
+    <p class="subtitle">Qué se puede hacer con CCP, no solo su nombre. CIP (BI) ya venía desde Nivel 1 — sigue disponible sin cambios, no es parte de lo nuevo aquí.</p>
+
+    <svg viewBox="0 0 1000 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="n2-cap-title n2-cap-desc">
+      <title id="n2-cap-title">Flujo de capacidades de SICSAFT Nivel 2 vía CCP</title>
+      <desc id="n2-cap-desc">El Profesional de AFT entra por CCP, el portal completo nuevo de este nivel, hacia CIS, que enruta a CORE; CORE resuelve contra la Base Patrimonial y expone siete capacidades administrativas, cada una con una descripción concreta de qué permite hacer.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- ===== PIPELINE ===== -->
+      <line x1="188" y1="112" x2="228" y2="112" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="368" y1="112" x2="408" y2="112" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="548" y1="112" x2="588" y2="112" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <line x1="728" y1="112" x2="768" y2="112" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="668" y1="144" x2="668" y2="180" stroke="#eb6c36" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- ===== STAGE NODES ===== -->
+      <rect x="28" y="80" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+      <rect x="36" y="88" width="32" height="12" rx="2" fill="transparent" stroke="#7a8399" stroke-width="0.8"/>
+      <text x="52" y="97" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ROL</text>
+      <text x="108" y="118" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Profesional AFT</text>
+      <text x="108" y="134" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">acceso completo</text>
+
+      <rect x="228" y="80" width="140" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="236" y="88" width="32" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="252" y="97" fill="rgba(45,49,66,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">WEB</text>
+      <text x="298" y="118" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">CCP</text>
+      <text x="298" y="134" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">nuevo en N2</text>
+
+      <rect x="408" y="80" width="140" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="416" y="88" width="32" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="432" y="97" fill="rgba(45,49,66,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">API</text>
+      <text x="478" y="118" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">CIS</text>
+      <text x="478" y="134" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">proxy + auth</text>
+
+      <rect x="588" y="80" width="160" height="64" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <rect x="596" y="88" width="36" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
+      <text x="614" y="97" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">CORE</text>
+      <text x="668" y="118" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">SICSAFT CORE</text>
+      <text x="668" y="134" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">RBAC por rol</text>
+
+      <rect x="768" y="80" width="180" height="64" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="776" y="88" width="24" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="788" y="97" fill="rgba(45,49,66,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">DB</text>
+      <text x="858" y="118" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Base Patrimonial</text>
+      <text x="858" y="134" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">fuente única</text>
+
+      <!-- ===== CAPACIDADES (con descripción, no solo nombre) ===== -->
+      <rect x="300" y="180" width="680" height="248" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.15)" stroke-width="0.8" stroke-dasharray="4,4"/>
+      <rect x="316" y="184" width="248" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="324" y="193" fill="rgba(45,49,66,0.45)" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.10em">CAPACIDADES · NIVEL 2 (SUMA A NIVEL 1)</text>
+
+      <g font-family="'Geist', sans-serif" fill="#2d3142">
+        <rect x="316" y="212" width="160" height="64" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="396" y="236" font-size="11" text-anchor="middle">Admin. Web</text>
+        <text x="396" y="254" font-size="8" font-family="'Geist Mono', monospace" fill="#4f5d75" text-anchor="middle">activos, sedes, contratos</text>
+
+        <rect x="492" y="212" width="160" height="64" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="572" y="236" font-size="11" text-anchor="middle">Gestión avanzada</text>
+        <text x="572" y="254" font-size="8" font-family="'Geist Mono', monospace" fill="#4f5d75" text-anchor="middle">reglas y excepciones</text>
+
+        <rect x="668" y="212" width="160" height="64" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="748" y="236" font-size="11" text-anchor="middle">Supervisión</text>
+        <text x="748" y="254" font-size="8" font-family="'Geist Mono', monospace" fill="#4f5d75" text-anchor="middle">sesiones de campo en vivo</text>
+
+        <rect x="844" y="212" width="152" height="64" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="920" y="228" font-size="10" text-anchor="middle">Consultas</text>
+        <text x="920" y="242" font-size="10" text-anchor="middle">institucionales</text>
+        <text x="920" y="258" font-size="7" font-family="'Geist Mono', monospace" fill="#4f5d75" text-anchor="middle">por org. / sede</text>
+
+        <rect x="316" y="292" width="160" height="64" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="396" y="316" font-size="11" text-anchor="middle">Reportes</text>
+        <text x="396" y="334" font-size="8" font-family="'Geist Mono', monospace" fill="#4f5d75" text-anchor="middle">exportables, auditoría</text>
+
+        <rect x="492" y="292" width="160" height="64" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="572" y="316" font-size="11" text-anchor="middle">Configuración</text>
+        <text x="572" y="334" font-size="8" font-family="'Geist Mono', monospace" fill="#4f5d75" text-anchor="middle">catálogos, áreas, ubicaciones</text>
+
+        <rect x="668" y="292" width="312" height="64" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="824" y="316" font-size="11" text-anchor="middle">Operación centralizada</text>
+        <text x="824" y="334" font-size="8" font-family="'Geist Mono', monospace" fill="#4f5d75" text-anchor="middle">un solo panel para todo el ciclo patrimonial</text>
+      </g>
+      <text x="640" y="412" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">DOC-025 (rev. 2026-08-25) — Nivel 1 + ccp · CIP sigue activo desde Nivel 1, sin cambios</text>
+
+      <!-- ===== LEGEND ===== -->
+      <line x1="28" y1="452" x2="972" y2="452" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="28" y="468" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+
+      <rect x="150" y="460" width="12" height="12" rx="3" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="168" y="470" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Motor que aplica RBAC por rol</text>
+
+      <rect x="440" y="460" width="12" height="12" rx="3" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+      <text x="458" y="470" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Capacidad de CCP, con qué permite hacer</text>
+    </svg>
+  </div>
+</body>
+</html>
