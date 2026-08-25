@@ -6,8 +6,8 @@ compartido. Ver [`../../aidlc-docs/devops/`](../../aidlc-docs/devops) para el di
 (contexto de negocio, arquitectura, niveles de producto) y
 [`../README.md`](../README.md) para cómo encaja con `devops/local/`/`devops/prod/`.
 
-Subconjunto de [`devops/local/`](../local): sin observabilidad, sin `k6`, sin `cip` (fuera de los
-3 niveles de producto, ver `DOC-025`), sin dashboard de Traefik expuesto.
+Subconjunto de [`devops/local/`](../local): sin observabilidad, sin `k6`, sin dashboard de Traefik
+expuesto. `cip` (BI) sí entra, desde Nivel 1 (ver `DOC-025` 1/3, cierra INST-Q-01).
 
 ## Instalación automatizada (recomendada)
 
@@ -71,12 +71,13 @@ Igual que `devops/local/` — agregar al archivo hosts
 127.0.0.1 id.sicsaft.localhost
 127.0.0.1 api.sicsaft.localhost
 127.0.0.1 qr.sicsaft.localhost
-127.0.0.1 ccp.sicsaft.localhost
 127.0.0.1 admin.sicsaft.localhost
 127.0.0.1 directivo.sicsaft.localhost
+127.0.0.1 ccp.sicsaft.localhost
 ```
 
-(Las últimas 3 solo hacen falta en instalaciones Nivel 2.)
+(DOC-025 §1, rev. 2026-08-25: `admin` y `directivo` ya hacen falta desde Nivel 1 — solo `ccp` es
+exclusivo de Nivel 2.)
 
 ### 2. Variables de entorno de este cliente
 
@@ -128,15 +129,15 @@ Copiar los valores que imprime al final (`CIS_ZITADEL_AUDIENCE`, `ZITADEL_ORG_ID
 
 ### 5. Orden obligatorio: bootstrap antes de build
 
-Los frontends (`app-qr-sicsaft`, y en Nivel 2 `ccp`/`web-admin`/`core-frontend`) hornean
-`VITE_ZITADEL_CLIENT_ID` en **build time** (mismo mecanismo que `devops/local/`, ver `args:` en
-`docker-compose.yml`). Construir las imágenes antes de tener los Client IDs reales de este cliente
-obliga a reconstruirlas después — por eso el bootstrap (paso 4) va antes de este paso:
+Los frontends (`app-qr-sicsaft`, `web-admin`, `core-frontend` desde Nivel 1, y `ccp` desde Nivel 2)
+hornean `VITE_ZITADEL_CLIENT_ID` en **build time** (mismo mecanismo que `devops/local/`, ver
+`args:` en `docker-compose.yml`). Construir las imágenes antes de tener los Client IDs reales de
+este cliente obliga a reconstruirlas después — por eso el bootstrap (paso 4) va antes de este paso:
 
 ```bash
-podman-compose --profile nivel1 up -d --build      # Nivel 1
+podman-compose --profile nivel1 up -d --build      # Nivel 1: app-qr-sicsaft + web-admin + core-frontend
 # o
-podman-compose --profile nivel2 up -d --build      # Nivel 2 (incluye Nivel 1 + los 3 portales)
+podman-compose --profile nivel2 up -d --build      # Nivel 2 (incluye Nivel 1 + ccp)
 ```
 
 ### 6. Verificar antes de cerrar la instalación
@@ -144,8 +145,8 @@ podman-compose --profile nivel2 up -d --build      # Nivel 2 (incluye Nivel 1 + 
 - Login real de un usuario de prueba por rol contratado (mismo criterio que
   `devops/local/README.md` para cada portal).
 - APP QR (`http://qr.sicsaft.localhost`) loguea y sincroniza contra este CIS/CORE local.
-- Nivel 2: `ccp`/`web-admin`/`core-frontend` levantan y cada login aterriza donde corresponde según
-  el rol.
+- `web-admin` y `core-frontend` levantan desde Nivel 1; `ccp` recién desde Nivel 2 — cada login
+  aterriza donde corresponde según el rol (DOC-025 §1, rev. 2026-08-25).
 
 ### 7. Después de verificar
 

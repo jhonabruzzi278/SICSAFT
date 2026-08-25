@@ -5,34 +5,34 @@
 http:
   routers:
     zitadel:
-      rule: "Host(`id.sicsaft-duoc-melipilla.test`)"
+      rule: "Host(`id.__DOMINIO_BASE__`)"
       entryPoints:
         - web
       service: zitadel
     cis:
-      rule: "Host(`api.sicsaft-duoc-melipilla.test`)"
+      rule: "Host(`api.__DOMINIO_BASE__`)"
       entryPoints:
         - web
       service: cis
     app-qr-sicsaft:
-      rule: "Host(`qr.sicsaft-duoc-melipilla.test`)"
+      rule: "Host(`qr.__DOMINIO_BASE__`)"
       entryPoints:
         - web
       service: app-qr-sicsaft
     # Los 3 routers de abajo solo resuelven a algo si el perfil "nivel2" levantó esos servicios —
     # Traefik no falla si el servicio no está corriendo, solo devuelve 502 hasta que se levante.
     ccp:
-      rule: "Host(`ccp.sicsaft-duoc-melipilla.test`)"
+      rule: "Host(`ccp.__DOMINIO_BASE__`)"
       entryPoints:
         - web
       service: ccp
     web-admin:
-      rule: "Host(`admin.sicsaft-duoc-melipilla.test`)"
+      rule: "Host(`admin.__DOMINIO_BASE__`)"
       entryPoints:
         - web
       service: web-admin
     core-frontend:
-      rule: "Host(`directivo.sicsaft-duoc-melipilla.test`)"
+      rule: "Host(`directivo.__DOMINIO_BASE__`)"
       entryPoints:
         - web
       service: core-frontend

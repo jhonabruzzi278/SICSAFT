@@ -68,12 +68,17 @@ function New-ZitadelOidcApp {
 #>
 function Invoke-BootstrapCliente {
     param(
-        [string]$Issuer = "http://id.sicsaft.localhost",
+        # Dominio local de este cliente (ej. "duoc-melipilla.test") — instalar-cliente.ps1 siempre
+        # lo pasa explicito; el default "sicsaft.localhost" solo cubre a quien invoque este modulo
+        # suelto sin pasar el parametro (compatibilidad hacia atras).
+        [string]$DominioBase = "sicsaft.localhost",
+        [string]$Issuer,
         [Parameter(Mandatory = $true)][string]$Pat,
         [Parameter(Mandatory = $true)][string]$ClienteNombre,
         [Parameter(Mandatory = $true)][string]$OrganizacionId,
         [Parameter(Mandatory = $true)][ValidateSet(1, 2)][int]$Nivel
     )
+    if (-not $Issuer) { $Issuer = "http://id.$DominioBase" }
 
     Write-Host "== 1. Creando organizacion '$ClienteNombre' =="
     $org = Invoke-ZitadelApi -Issuer $Issuer -Pat $Pat -Method Post -Path "/management/v1/orgs" `
@@ -87,9 +92,12 @@ function Invoke-BootstrapCliente {
     $projectId = $project.id
     Write-Host "   projectId: $projectId"
 
+    # Niveles (DOC-025 §1, revisado 2026-08-25): Nivel 1 ya incluye Directivo y Administrador del
+    # Sistema (antes solo entraban en Nivel 2) — el rol "profesional-aft" cubre tanto la APP QR
+    # como, a futuro, el portal liviano "web-aft" (🔲 sin código todavía, ver DOC-025 §1). CCP
+    # (portal COMPLETO de AFT) sigue gated a Nivel 2, igual que antes.
     Write-Host "== 3. Creando roles de Proyecto =="
-    $roles = @("administrador-patrimonial")
-    if ($Nivel -eq 2) { $roles += @("directivo", "administrador-sistema") }
+    $roles = @("profesional-aft", "directivo", "administrador-sistema")
     foreach ($rol in $roles) {
         Invoke-ZitadelApi -Issuer $Issuer -Pat $Pat -Method Post `
             -Path "/management/v1/projects/$projectId/roles" `
@@ -99,18 +107,16 @@ function Invoke-BootstrapCliente {
 
     Write-Host "== 4. Creando apps OIDC =="
     $appQrClientId = New-ZitadelOidcApp -Issuer $Issuer -Pat $Pat -ProjectId $projectId -OrgId $orgId `
-        -Nombre "app-qr-sicsaft" -Dominio "qr.sicsaft.localhost"
+        -Nombre "app-qr-sicsaft" -Dominio "qr.$DominioBase"
+    $webAdminClientId = New-ZitadelOidcApp -Issuer $Issuer -Pat $Pat -ProjectId $projectId -OrgId $orgId `
+        -Nombre "web-admin-sicsaft" -Dominio "admin.$DominioBase"
+    $coreFrontendClientId = New-ZitadelOidcApp -Issuer $Issuer -Pat $Pat -ProjectId $projectId -OrgId $orgId `
+        -Nombre "core-frontend-sicsaft" -Dominio "directivo.$DominioBase"
 
     $ccpClientId = $null
-    $webAdminClientId = $null
-    $coreFrontendClientId = $null
     if ($Nivel -eq 2) {
         $ccpClientId = New-ZitadelOidcApp -Issuer $Issuer -Pat $Pat -ProjectId $projectId -OrgId $orgId `
-            -Nombre "ccp-sicsaft" -Dominio "ccp.sicsaft.localhost"
-        $webAdminClientId = New-ZitadelOidcApp -Issuer $Issuer -Pat $Pat -ProjectId $projectId -OrgId $orgId `
-            -Nombre "web-admin-sicsaft" -Dominio "admin.sicsaft.localhost"
-        $coreFrontendClientId = New-ZitadelOidcApp -Issuer $Issuer -Pat $Pat -ProjectId $projectId -OrgId $orgId `
-            -Nombre "core-frontend-sicsaft" -Dominio "directivo.sicsaft.localhost"
+            -Nombre "ccp-sicsaft" -Dominio "ccp.$DominioBase"
     }
 
     $orgMap = @{ $orgId = $OrganizacionId } | ConvertTo-Json -Compress

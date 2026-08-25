@@ -59,8 +59,8 @@ colisionar con los RF/RNF ya numerados de otros sistemas (ver `REQUISITOS.md` ra
 
 ## Preguntas abiertas (no bloquean este incremento, se documentan)
 
-- **INST-Q-01**: ¿`cip/` (BI) entra en algún nivel de producto? El usuario no lo mencionó en los 3
-  niveles de precios — queda fuera hasta que se decida explícitamente.
+- **INST-Q-01** (cerrada 2026-08-25): ¿`cip/` (BI) entra en algún nivel de producto? Sí — entra en
+  Nivel 1, ver `DOC-025-niveles-producto-onprem.md` 1/3.
 - **INST-Q-02**: Gestión de secretos multi-cliente (dónde guarda el admin el
   `ZITADEL_ADMIN_TOKEN` de cada cliente instalado) — decisión operativa del admin, fuera del
   alcance de este repo, pero se deja registrada como necesidad real.
