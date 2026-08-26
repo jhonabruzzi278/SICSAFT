@@ -127,3 +127,11 @@ X" sin adivinar.
   drill-down final puede resolver contra `GET /inventarios/:id` de CORE directamente (lectura
   abierta, ya existe, bajo volumen) en vez de duplicar el dato.
 - **`contratos`** — sin relación con el dashboard operativo de activos.
+
+## 4. Extensión — inteligencia decisional (DOC-026, 2026-08-25)
+
+Segundo incremento, agregado sobre el modelo de arriba sin modificarlo: 5 agregados nuevos
+(`HISTORIAL_RESPONSABLE_ACTIVO`, `INCIDENCIA_AREA_RESUMEN`, `DIFERENCIA_UBICACION`,
+`RIESGO_ACTIVO`, `EVOLUCION_PATRIMONIO_SNAPSHOT` — este último el primer caso de serie temporal de
+CIP) más un `areaId` nuevo en `INCIDENCIA`. Diseño completo, diagrama ER y justificación en
+[DOC-026](DOC-026-cip-inteligencia-decisional.md) — no se duplica acá.

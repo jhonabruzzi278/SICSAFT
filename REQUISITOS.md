@@ -13,6 +13,7 @@
 | CORE | [`aidlc-docs/core/requirements/REQUIREMENTS.md`](aidlc-docs/core/requirements/REQUIREMENTS.md) | Fase 2 (Orquestador + 4 motores de lectura) | 7 | 5 | ✅ Completo, 1 parcial (RF-05), YAGNI/bajo riesgo deliberado — ver detalle |
 | WEB | [`aidlc-docs/ccp/requirements/REQUIREMENTS.md`](aidlc-docs/ccp/requirements/REQUIREMENTS.md) | Fase 5 (Portal WEB, 6 módulos) | 8 | 5 | ✅ Completo — 8/8 RF, 5/5 RNF |
 | CIS | *(sin `aidlc-docs/`, ver nota)* | Fase 0/3/4/5 (conector QR, escritura oficial) | — | — | Sin requisitos formalizados con ID — ver nota abajo |
+| CIP | [`aidlc-docs/cip/requirements/REQUIREMENTS.md`](aidlc-docs/cip/requirements/REQUIREMENTS.md) | Fase 6 (primer dashboard) + Fase 9 (inteligencia decisional) | 17 | 7 | ✅ RF-01 a RF-10 completo (Fase 6) — RF-11 a RF-17 diseño únicamente, sin código todavía (Fase 9, [DOC-026](aidlc-docs/cip/design-artifacts/DOC-026-cip-inteligencia-decisional.md)) |
 
 **CIS nunca tuvo su propio `REQUIREMENTS.md`** — se construyó antes de que el proyecto adoptara la
 metodología AI-DLC completa (`app-qr-sicsaft/` fue el primer sistema en usarla, `core/` el

@@ -587,6 +587,33 @@ la ubicación de los AFT extraordinarios y sus dispositivos de alarma en cada en
 área, desplegado en tiempo real dentro de WEB — mismo alcance del "dominio Zona RFID" ya anotado
 arriba; el pptx aporta el detalle de UI (mapa + alarmas) que todavía no estaba especificado.
 
+## Fase 9 — CIP: inteligencia decisional (segundo incremento)
+
+**Por qué acá y no antes**: depende solo de Fase 6 (✅ completa, ya da el primer dashboard) — no
+depende de Fase 7 (CON-CONTABILIDAD) ni de Fase 8 (RFID), puede construirse en paralelo a ambas.
+
+**Diseño, sin código todavía**:
+[DOC-026](aidlc-docs/cip/design-artifacts/DOC-026-cip-inteligencia-decisional.md) — contenido de
+negocio aportado directamente por el usuario 2026-08-25 ("CIP no debe limitarse a gráficos, debe
+responder preguntas"): RF-11 a RF-17 de
+[`aidlc-docs/cip/requirements/REQUIREMENTS.md`](aidlc-docs/cip/requirements/REQUIREMENTS.md).
+
+**Qué se construye**
+- Listado de activos sin verificar en el período (RF-11), ranking de áreas por incidencias
+  concentradas (RF-12), activos con mayor frecuencia de cambio de responsable (RF-13) — activa el
+  evento `cambio_responsable` que ya fluye por el outbox de CIP sin consumidor desde Fase 6
+  (`ARCHITECTURE.md` §3), ranking de ubicaciones por mayor cantidad de diferencias (RF-14).
+- Score de riesgo por activo (RF-15) — fórmula simple, explicable y versionada (nunca un modelo
+  predictivo/ML, excluido explícitamente por WAF 9/Tomo III, ver DOC-026 §5).
+- Evolución del patrimonio en el tiempo (RF-16) — primer patrón de serie temporal de CIP (snapshot
+  diario), distinto de los agregados "último valor" que existen desde Fase 6.
+- Vista "revisión sugerida" para el responsable patrimonial (RF-17) — consulta compuesta que
+  prioriza los hallazgos de RF-11 a RF-16.
+
+**Done**: DOC-026 mergeado; `aidlc-docs/cip/design-artifacts/DOMAIN_MODEL.md`/`ARCHITECTURE.md`
+actualizados referenciándolo; sin código todavía — la Construction (`cip/src/agregacion/` + nuevos
+endpoints de `DashboardModule`) es un incremento posterior, mismo criterio que DOC-014 → DOC-018.
+
 ## Track paralelo: OPS (no es una fase, es continuo)
 
 `devops/` no tiene una posición en la cadena de dependencias — tiene hitos atados a las fases:
@@ -643,8 +670,9 @@ Fase 0 (migraciones + correlationId + OIDC real) ✅
                  ├─ Fase 4 (Administrador Patrimonial + escritura oficial) ✅ completa
                  │    ├─ Fase 5 (WEB mínimo) ✅ 6/6 módulos implementados
                  │    └─ Fase 7 (CON-CONTABILIDAD)   [pieza nueva]
-                 └─ Fase 6 (CIP primer dashboard)
-                      └─ Fase 8 (RFID — cierra Etapa 1)
+                 └─ Fase 6 (CIP primer dashboard) ✅ completa
+                      ├─ Fase 8 (RFID — cierra Etapa 1)
+                      └─ Fase 9 (CIP: inteligencia decisional)   [diseño, DOC-026]
 
 Track OPS ─────── paralelo, con hitos atados a Fases 0/3/4/5
 ```
