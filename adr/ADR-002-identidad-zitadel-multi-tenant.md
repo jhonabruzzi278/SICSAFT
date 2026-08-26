@@ -1,7 +1,10 @@
 # ADR-002: Identidad y SSO — Zitadel self-hosted + modelo Organización → Contrato → Sede
 
 ## Status
-Aceptado
+Reemplazada por [ADR-004](ADR-004-identidad-keycloak-reemplaza-zitadel.md) — Zitadel no publica
+binario nativo de Windows, requisito para la distribución on-premise sin Docker/WSL2. El modelo de
+Organización → Contrato → Sede en sí no cambia (ver ADR-004 "Sin cambios en el modelo de
+Contrato/Sede"), solo el proveedor de identidad que lo implementa.
 
 ## Context
 `seguridad/README.md` (SEC) define el modelo `Usuario → Rol → Permisos → Organización → Área →
