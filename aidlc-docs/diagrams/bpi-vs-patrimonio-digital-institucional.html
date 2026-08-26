@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SICSAFT — BPI vs. Patrimonio Digital Institucional</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+    p.subtitle {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      color: var(--color-muted);
+      margin-bottom: 1.5rem;
+      max-width: 68ch;
+    }
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Nested · SICSAFT · Arquitectura</p>
+    <h1>BPI vs. Patrimonio Digital Institucional</h1>
+    <p class="subtitle">La BPI (Base Patrimonial Central, Nivel 4) es la estructura tecnológica que materializa el Patrimonio Digital Institucional — pero no es lo mismo. Un documento puede vivir fuera de la BPI y seguir siendo parte del Patrimonio Digital Institucional, mientras la BPI lo referencie desde el activo (ARQUITECTURA-WAF.md §0.1).</p>
+
+    <svg viewBox="0 0 1000 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="bpi-pdi-title bpi-pdi-desc">
+      <title id="bpi-pdi-title">BPI (Base Patrimonial Central) dentro del Patrimonio Digital Institucional, con un documento externo referenciado</title>
+      <desc id="bpi-pdi-desc">El Patrimonio Digital Institucional es el concepto de negocio más amplio; la BPI es la estructura tecnológica que lo materializa y contiene el Activo 000125 con sus campos (responsable, ubicación, estado, historial, inventarios). Un documento de ese activo (factura_000125.pdf) vive en un Repositorio Documental externo a la BPI, pero sigue siendo parte del Patrimonio Digital Institucional porque la BPI lo referencia por su Documento ID DOC-457.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- ===== OUTER RING: PATRIMONIO DIGITAL INSTITUCIONAL (el qué) ===== -->
+      <rect x="40" y="88" width="920" height="460" rx="8" fill="rgba(45,49,66,0.015)" stroke="rgba(45,49,66,0.32)" stroke-width="1"/>
+      <rect x="48" y="80" width="392" height="16" fill="#f5f5f5"/>
+      <text x="48" y="92" fill="rgba(45,49,66,0.55)" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.12em">PATRIMONIO DIGITAL INSTITUCIONAL — EL QUÉ</text>
+
+      <!-- ===== INNER RING: BPI / BASE PATRIMONIAL CENTRAL (el dónde) ===== -->
+      <rect x="72" y="124" width="520" height="384" rx="8" fill="rgba(45,49,66,0.025)" stroke="#7a8399" stroke-width="1"/>
+      <rect x="80" y="116" width="352" height="16" fill="#f5f5f5"/>
+      <text x="80" y="128" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.10em">BPI · BASE PATRIMONIAL CENTRAL — NIVEL 4 (EL DÓNDE)</text>
+
+      <!-- ===== ARROWS (before nodes) ===== -->
+
+      <!-- Activo -> Repositorio Documental: referencia externa, cruza el borde de la BPI -->
+      <path d="M 384,236 H 628" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="466" y="216" width="72" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="502" y="225" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">REFERENCIA</text>
+
+      <!-- ===== ACTIVO 000125 (focal, innermost) ===== -->
+      <rect x="104" y="180" width="280" height="112" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <rect x="112" y="188" width="32" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
+      <text x="128" y="197" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">DB</text>
+      <text x="244" y="214" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Activo 000125</text>
+      <text x="244" y="232" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Notebook Lenovo · serie XYZ-999</text>
+      <text x="244" y="248" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">QR-000125 · Finanzas · Oficina 203</text>
+      <text x="244" y="264" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">responsable: Profesional X · en uso</text>
+
+      <!-- Campos ya modelados en BPI para este activo (chips) -->
+      <text x="96" y="304" fill="rgba(45,49,66,0.45)" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.10em">CAMPOS YA MODELADOS EN LA BPI (DOC-005)</text>
+      <g font-family="'Geist', sans-serif" font-size="9" fill="#2d3142">
+        <rect x="96" y="316" width="84" height="24" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="138" y="332" text-anchor="middle">Responsable</text>
+
+        <rect x="188" y="316" width="84" height="24" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="230" y="332" text-anchor="middle">Ubicación</text>
+
+        <rect x="280" y="316" width="84" height="24" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="322" y="332" text-anchor="middle">Estado</text>
+
+        <rect x="372" y="316" width="84" height="24" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="414" y="332" text-anchor="middle">Historial</text>
+
+        <rect x="96" y="348" width="84" height="24" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="138" y="364" text-anchor="middle">Inventarios</text>
+
+        <rect x="188" y="348" width="84" height="24" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="230" y="364" text-anchor="middle">Eventos</text>
+
+        <rect x="280" y="348" width="84" height="24" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+        <text x="322" y="364" text-anchor="middle">Auditoría</text>
+      </g>
+
+      <!-- ===== REPOSITORIO DOCUMENTAL (external, fuera de la BPI pero dentro del PDI) ===== -->
+      <rect x="628" y="180" width="280" height="112" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <rect x="636" y="188" width="36" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="654" y="197" fill="rgba(45,49,66,0.70)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">DOC</text>
+      <text x="768" y="214" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Repositorio Documental</text>
+      <text x="768" y="232" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">fuera de la BPI — motor de Gestión Documental</text>
+      <text x="768" y="252" fill="#2d3142" font-size="10" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Documento ID DOC-457</text>
+      <text x="768" y="268" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">factura_000125.pdf</text>
+
+      <!-- ===== EDITORIAL CALLOUT ===== -->
+      <text x="932" y="128" fill="#2d3142" font-size="14" font-style="italic" font-family="'Instrument Serif', serif" text-anchor="end">referenciado, no contenido</text>
+      <path d="M 900 136 Q 860 150 772 176" fill="none" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+      <circle cx="772" cy="176" r="2" fill="#2d3142"/>
+
+      <!-- ===== LEGEND ===== -->
+      <line x1="30" y1="586" x2="970" y2="586" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="30" y="602" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+
+      <rect x="150" y="594" width="12" height="12" rx="3" fill="rgba(45,49,66,0.015)" stroke="rgba(45,49,66,0.32)" stroke-width="1"/>
+      <text x="168" y="604" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Patrimonio Digital Institucional (concepto)</text>
+
+      <rect x="440" y="594" width="12" height="12" rx="3" fill="rgba(45,49,66,0.025)" stroke="#7a8399" stroke-width="1"/>
+      <text x="458" y="604" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">BPI (estructura tecnológica)</text>
+
+      <rect x="630" y="594" width="12" height="12" rx="3" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="648" y="604" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Activo (foco)</text>
+
+      <rect x="760" y="594" width="12" height="12" rx="3" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <text x="778" y="604" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Externo, referenciado (--&gt;)</text>
+    </svg>
+  </div>
+</body>
+</html>
