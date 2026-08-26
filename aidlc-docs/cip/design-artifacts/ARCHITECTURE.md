@@ -58,11 +58,20 @@ debe hacerlo — bloquearía la transacción que lo disparó. El diseño separa:
 | `escaneo_qr` | `COBERTURA_ORGANIZACION`, `CONTROL_AREA` | Solo el área/organización de la sesión — **no** dispara por cada escaneo individual, ver 4 |
 | `mantenimiento` / `inactivo` | `ESTADO_ACTIVO_RESUMEN` | Solo la organización del activo |
 | `baja` / `reincorporacion` | `ESTADO_ACTIVO_RESUMEN`, `ACTIVO_NO_LOCALIZADO` (si aplica) | Solo la organización del activo |
-| `traslado` | `ACTIVO_FUERA_DE_AREA` | Solo el área origen/destino |
-| `cambio_responsable`, `movimiento`, `salida_autorizada`, `salida_no_autorizada`, `lectura_rfid` | Ninguno todavía — sin métrica que los use (YAGNI) | — |
+| `traslado` | `ACTIVO_FUERA_DE_AREA`, `DIFERENCIA_UBICACION` (DOC-026) | Solo el área/ubicación origen/destino |
+| `cambio_responsable` | `HISTORIAL_RESPONSABLE_ACTIVO` (DOC-026, RF-13, agregado 2026-08-25) | Solo el activo/organización afectados |
+| `movimiento`, `salida_autorizada`, `salida_no_autorizada`, `lectura_rfid` | Ninguno todavía — sin métrica que los use (YAGNI) | — |
+| — (job periódico, no evento) | `EVOLUCION_PATRIMONIO_SNAPSHOT` (DOC-026, RF-16) | Snapshot diario por organización, no reacciona a un evento puntual |
 
 `baja_sugerida` (Fase 3.1) queda deliberadamente fuera: es informativo para el Administrador
 Patrimonial dentro de WEB, no una métrica de dashboard todavía.
+
+**Dos agregados de DOC-026 no entran en esta tabla porque no reaccionan a un solo tipo de evento**:
+`INCIDENCIA_AREA_RESUMEN` se recalcula en el mismo mensaje debounced `sesion-cerrada` que ya
+recalcula `INCIDENCIA` hoy (ver §4) — solo le agrega el `areaId` resuelto en ese mismo paso.
+`RIESGO_ACTIVO` es un recálculo periódico (mismo job que `EVOLUCION_PATRIMONIO_SNAPSHOT`) que lee
+los demás agregados ya calculados (incidencias, cambios de responsable, criticidad, tiempo fuera de
+área) en vez de reaccionar a un evento puntual — ver DOC-026 §5.
 
 ## 4. `escaneo_qr` es de alto volumen — cómo se evita recalcular por cada lectura
 
