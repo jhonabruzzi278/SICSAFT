@@ -4,33 +4,40 @@
 Windows con una UI simple de 2 pantallas (nombre del cliente/id de organización, nivel de
 producto) que al terminar corre `instalar-cliente.ps1` con esos datos.
 
-## ⚠️ Estado real — no verificado todavía
+## Estado real — verificado corriendo, pendiente solo la VM limpia
 
-Este `.iss` **no fue compilado ni probado** en la sesión donde se escribió (no había Inno Setup
-Compiler disponible en ese entorno). Es código fuente listo para compilar, no un `.exe`
-verificado. Antes de usarlo con un cliente pagante:
+Corrección 2026-08-25: la versión anterior de esta nota decía "no fue compilado ni probado", pero
+eso quedó desactualizado apenas se corrigió el bug de `$PSScriptRoot` vacío (ver comentario del
+`[Run]` en `sicsaft-onprem.iss`, commit `72c15ec`) — ese hallazgo solo pudo salir de correr el
+`.exe` ya compilado, no el `.ps1` suelto. El `.exe` **sí se compiló y se corrió al menos una vez**,
+y `instalar-cliente.ps1` (el script que corre al final) está verificado corriendo de punta a punta
+contra Windows real varias veces, con bugs reales encontrados y corregidos en el camino (ver
+`devops/onprem/README.md` "Instalación automatizada" para la lista completa).
 
-1. Instalar [Inno Setup](https://jrsoftware.org/isinfo.php) en una máquina Windows.
+**Lo que sigue sin correrse**: el instalador `.exe` empaquetado contra una **VM Windows limpia**
+(sin WSL2/Podman preinstalados). Todas las corridas verificadas hasta ahora fueron sobre una
+máquina de desarrollo que ya tenía las herramientas instaladas — no se probó todavía la ruta real
+de un cliente nuevo desde cero. Antes de usarlo con un cliente pagante:
+
+1. Instalar [Inno Setup](https://jrsoftware.org/isinfo.php) en una máquina Windows (si hace falta
+   recompilar — `output/sicsaft-onprem-setup.exe` ya existe de una corrida anterior).
 2. Compilar: `iscc sicsaft-onprem.iss` (desde esta carpeta) — genera
    `output/sicsaft-onprem-setup.exe`.
-3. Correr el instalador en una **VM Windows limpia** (sin WSL2/Podman preinstalados — si se prueba
-   en la máquina de desarrollo, que ya tiene todo instalado, no se está probando la ruta real de
-   un cliente nuevo).
+3. Correr el instalador en una **VM Windows limpia** (sin WSL2/Podman preinstalados) — es el único
+   escenario que todavía no se verificó.
 4. Confirmar que:
-   - La UI del wizard pide los 3 datos y los pasa bien a `instalar-cliente.ps1` (revisar los
-     parámetros con los que arranca la ventana de PowerShell al final).
-   - `instalar-cliente.ps1` corre de punta a punta — este script en sí tampoco fue verificado
-     contra una instalación real (ver su propio encabezado y el de
-     `devops/onprem/lib/Bootstrap-Zitadel.psm1`).
+   - La UI del wizard pide los 3 datos y los pasa bien a `instalar-cliente.ps1` (ya verificado en
+     una corrida anterior — confirmar que sigue así tras cualquier cambio nuevo).
+   - `instalar-cliente.ps1` corre de punta a punta también quedando WSL2/Podman por instalar desde
+     cero (las corridas anteriores ya tenían ambos preinstalados).
    - El PAT auto-provisionado por Zitadel (`ZITADEL_FIRSTINSTANCE_ORG_MACHINE_*`/`PATPATH`, ver
-     `docker-compose.yml`) efectivamente aparece en `.bootstrap/admin-pat.txt` con el contenido
-     esperado (texto plano del PAT) — es una config real y documentada de Zitadel (ver
-     `aidlc-docs/devops/design-artifacts/ARCHITECTURE.md`), pero nunca se corrió contra este
-     compose específico.
+     `docker-compose.yml`) aparece en `.bootstrap/admin-pat.txt` con el contenido esperado — ya
+     confirmado en corridas anteriores, repetir en la VM limpia como parte de esta verificación.
 
 Si algo de lo anterior no coincide con lo esperado, corregir el script/`.iss` correspondiente —
-no hay que rehacer el diseño, es normal que el primer intento de automatizar un flujo así tenga
-ajustes menores al chocar con la realidad de un entorno Windows concreto.
+no hay que rehacer el diseño, es normal que automatizar un flujo así tenga ajustes menores al
+chocar con la realidad de un entorno Windows concreto (como ya pasó varias veces, ver la lista de
+bugs reales en `devops/onprem/README.md`).
 
 ## Qué NO cubre este instalador
 

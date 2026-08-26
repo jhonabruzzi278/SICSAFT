@@ -75,3 +75,28 @@ distinto: **una instancia de Zitadel completa por cliente**, no una Organizació
 instancia compartida. No contradice `ADR-002` — es un modelo de despliegue paralelo (VPS
 compartido vs. instalación aislada), ambos coexisten como opciones de venta distintas, no se
 reemplaza uno por otro.
+
+## 5. Justificación de negocio por nivel
+
+> Contenido de negocio aportado directamente por el usuario (2026-08-25), no un tomo oficial —
+> registrado acá porque razona **por qué** la tabla de la sección 1 tiene sentido comercial, no
+> solo qué contiene. No cambia ninguna definición técnica de las secciones 1-4.
+
+**Nivel 1 — alta prioridad**: tiene una lógica comercial clara y autosuficiente — bajo costo
+tecnológico, instalación sencilla, inventario digital, trazabilidad y una Base Patrimonial real
+desde el primer día, con camino de crecimiento hacia Nivel 2/3 sin migrar de plataforma. Es el
+nivel de entrada natural: no depende de que el cliente compre nada más para justificar su precio.
+
+**Nivel 2 — alta prioridad, viable**: lo que suma la WEB (CCP) es administración, supervisión,
+gestión avanzada y acceso institucional — pero ese valor está condicionado a que ya exista CORE y
+la Base Patrimonial detrás (Nivel 1). **WEB sola no es ventaja competitiva**: sin un CORE real
+gobernando qué operación puede tocar la base y sin una Base Patrimonial con datos reales, un
+portal de administración es una interfaz sobre nada. Por eso Nivel 2 nunca se vende suelto — es
+Nivel 1 obligatorio más CCP, nunca CCP sin la base debajo (consistente con la tabla de la sección
+1: Nivel 2 = Nivel 1 + `ccp`, no un stack alternativo).
+
+**Nivel 3 — viable, mediante integración**: RFID entra como conector adicional sobre lo que ya
+existe (Nivel 2), no como una reconstrucción — mismo criterio ya fijado en la sección 1 ("RFID,
+conectada a CIS preservando la independencia tecnológica de CORE"). La viabilidad comercial de
+Nivel 3 depende de que Nivel 1/2 ya estén sólidos: es una extensión del valor existente, no un
+producto aparte.
