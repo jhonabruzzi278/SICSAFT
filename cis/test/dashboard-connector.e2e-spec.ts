@@ -5,7 +5,7 @@ import { SignJWT, generateKeyPair, type JWTVerifyGetKey } from 'jose';
 import { crearAppE2e } from './support/e2e-app';
 import { crearRedisStub, type RedisStub } from './support/redis-stub';
 
-const ISSUER = 'http://id.sicsaft.localhost';
+const ISSUER = 'http://id.sicsaft.localhost/realms/sicsaft';
 const AUDIENCE = 'cis-api';
 
 const SYNC_INFO = { actualizadoEn: '2026-08-18T10:00:00.000Z', alDia: true };
@@ -13,8 +13,10 @@ const SYNC_INFO = { actualizadoEn: '2026-08-18T10:00:00.000Z', alDia: true };
 // DOC-019 3.1/4 — prueba DashboardConnectorController + guard de punta a punta vía HTTP real,
 // mismo patrón que qr-connector.e2e-spec.ts: CipClientService se reemplaza por un stub (ya tiene
 // su propia cobertura unitaria contra HttpService mockeado, ver cip-client.service.spec.ts) — acá
-// se prueba que el controller exige el mismo ZitadelAuthGuard que Activos/Inventarios (sin rol
-// adicional, DOC-019 2) y que delega correctamente en el cliente de CIP.
+// se prueba que el controller exige el mismo KeycloakAuthGuard que Activos/Inventarios (sin rol
+// adicional, DOC-019 2) y que delega correctamente en el cliente de CIP. Sin claim `organization`
+// en el token (mismo criterio que qr-connector.e2e-spec.ts): no hace falta stubear
+// KeycloakAdminService.
 describe('Dashboard (e2e) — DOC-019, proxy CIS→CIP', () => {
   let app: INestApplication<App>;
   let bearerToken: string;
@@ -29,11 +31,6 @@ describe('Dashboard (e2e) — DOC-019, proxy CIS→CIP', () => {
     getCategorias: jest.Mock;
   };
   let redisClient: RedisStub;
-
-  beforeAll(() => {
-    process.env.ZITADEL_ISSUER = ISSUER;
-    process.env.ZITADEL_AUDIENCE = AUDIENCE;
-  });
 
   beforeEach(async () => {
     const { publicKey, privateKey } = await generateKeyPair('RS256');

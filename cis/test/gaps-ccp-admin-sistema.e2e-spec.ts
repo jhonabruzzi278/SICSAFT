@@ -10,14 +10,16 @@ import type {
   IndicadoresResult,
   OrganizacionResult,
 } from './../src/core-client/core-client.types';
-import type { GrantUsuario } from './../src/zitadel-admin/zitadel-admin.types';
+import type { GrantUsuario } from './../src/keycloak-admin/keycloak-admin.types';
 import { crearAppE2e } from './support/e2e-app';
 import { crearRedisStub } from './support/redis-stub';
-import { firmarTokenZitadel } from './support/jwt';
+import { firmarTokenKeycloak } from './support/jwt';
 
-const ISSUER = 'http://id.sicsaft.localhost';
+const ISSUER = 'http://id.sicsaft.localhost/realms/sicsaft';
 const AUDIENCE = 'cis-api';
-const ZITADEL_ORG_ID = '386029528616558597';
+// ADR-004 — `organizacionId` ya es el alias de la Organization de Keycloak, sin traducción
+// numérica (ver el comentario equivalente en administrador.e2e-spec.ts).
+const ORGANIZACION_ID = 'duoc-uc';
 
 const ACTIVO_STUB: ActivoResult = {
   id: 'activo-1',
@@ -63,7 +65,7 @@ const DOCUMENTO_STUB: DocumentoActivoResult = {
 };
 
 const ORGANIZACION_STUB: OrganizacionResult = {
-  id: ZITADEL_ORG_ID,
+  id: ORGANIZACION_ID,
   nombre: 'DUOC UC',
   estado: 'activo',
 };
@@ -100,33 +102,39 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
     getIndicadores: jest.Mock;
     postImportacionContable: jest.Mock;
   };
-  let zitadelAdminService: {
+  let keycloakAdminService: {
     buscarUsuarioPorEmail: jest.Mock;
     listarGrants: jest.Mock;
     crearGrant: jest.Mock;
+    crearOrganizacion: jest.Mock;
+    resolverRolesPorOrganizacionDeUsuario: jest.Mock;
   };
-
-  beforeAll(() => {
-    process.env.ZITADEL_ISSUER = ISSUER;
-    process.env.ZITADEL_AUDIENCE = AUDIENCE;
-    process.env.ZITADEL_ORG_ID_MAP = JSON.stringify({
-      [ZITADEL_ORG_ID]: 'duoc-uc',
-    });
-  });
 
   beforeEach(async () => {
     const { publicKey, privateKey } = await generateKeyPair('RS256');
-    tokenPatrimonial = await firmarTokenZitadel(
+    // ADR-004 — sujetos distintos por persona (mismo criterio que directivo.e2e-spec.ts):
+    // KeycloakAuthGuard cachea rolesPorOrganizacion por `sub`, y el rol lo resuelve el servidor a
+    // partir del usuario, no del JWT presentado.
+    tokenPatrimonial = await firmarTokenKeycloak(
       privateKey,
-      { [ZITADEL_ORG_ID]: ['administrador-patrimonial'] },
-      { issuer: ISSUER, audience: AUDIENCE, subject: 'op-admin' },
+      [ORGANIZACION_ID],
+      {
+        issuer: ISSUER,
+        audience: AUDIENCE,
+        subject: 'op-patrimonial',
+      },
     );
-    tokenSistema = await firmarTokenZitadel(
-      privateKey,
-      { [ZITADEL_ORG_ID]: ['administrador-sistema'] },
-      { issuer: ISSUER, audience: AUDIENCE, subject: 'op-admin' },
-    );
+    tokenSistema = await firmarTokenKeycloak(privateKey, [ORGANIZACION_ID], {
+      issuer: ISSUER,
+      audience: AUDIENCE,
+      subject: 'op-sistema',
+    });
     const localJwks: JWTVerifyGetKey = () => Promise.resolve(publicKey);
+
+    const ROLES_POR_OPERADOR: Record<string, Record<string, string[]>> = {
+      'op-patrimonial': { [ORGANIZACION_ID]: ['administrador-patrimonial'] },
+      'op-sistema': { [ORGANIZACION_ID]: ['administrador-sistema'] },
+    };
 
     coreClientService = {
       postActivoBaja: jest.fn().mockResolvedValue({
@@ -149,32 +157,45 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
       // AuditoriaIdentidadService, que reporta el resultado via CoreClientService.postAuditoria.
       postAuditoria: jest.fn().mockResolvedValue(undefined),
     };
-    zitadelAdminService = {
+    keycloakAdminService = {
       buscarUsuarioPorEmail: jest.fn().mockResolvedValue({
-        id: 'usuario-zitadel-1',
+        id: 'usuario-keycloak-1',
         email: null,
         displayName: null,
       }),
       listarGrants: jest.fn().mockResolvedValue([
         {
-          userId: 'usuario-zitadel-1',
+          userId: 'usuario-keycloak-1',
           email: 'a@duoc.cl',
           displayName: null,
           roles: ['administrador-patrimonial'],
         },
       ] satisfies GrantUsuario[]),
       crearGrant: jest.fn().mockResolvedValue(undefined),
-      // Gap 1 (flujo real Admin->Directivo->Profesional AFT) — usados por
+      // Gap 1 (flujo real Admin->Directivo->Profesional AFT) — usado por
       // AdministradorService.altaOrganizacion (ver el describe de organizaciones mas abajo).
-      crearOrganizacion: jest.fn().mockResolvedValue({ id: ZITADEL_ORG_ID }),
-      otorgarProyectoAOrganizacion: jest.fn().mockResolvedValue(undefined),
+      crearOrganizacion: jest.fn().mockResolvedValue({ id: ORGANIZACION_ID }),
+      // ADR-004 — consumido por KeycloakAuthGuard para resolver rolesPorOrganizacion de cada
+      // operador de prueba (ver keycloak-auth.guard.ts).
+      resolverRolesPorOrganizacionDeUsuario: jest
+        .fn()
+        .mockImplementation((userId: string, organizaciones: string[]) => {
+          const roles = ROLES_POR_OPERADOR[userId] ?? {};
+          const resultado: Record<string, string[]> = {};
+          for (const organizacionId of organizaciones) {
+            if (roles[organizacionId]) {
+              resultado[organizacionId] = roles[organizacionId];
+            }
+          }
+          return Promise.resolve(resultado);
+        }),
     };
 
     app = await crearAppE2e({
       jwks: localJwks,
       coreClientService,
       redisClient: crearRedisStub(),
-      zitadelAdminService,
+      keycloakAdminService,
     });
   });
 
@@ -194,7 +215,7 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
       expect(coreClientService.postActivoBaja).toHaveBeenCalledWith(
         'activo-1',
         expect.objectContaining({
-          operadorId: 'op-admin',
+          operadorId: 'op-patrimonial',
           rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
         }),
         expect.any(String),
@@ -339,7 +360,7 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
     });
   });
 
-  describe('GET/POST /admin/organizaciones/:orgId/usuarios (asignar usuarios, Zitadel real)', () => {
+  describe('GET/POST /admin/organizaciones/:orgId/usuarios (asignar usuarios, Keycloak real)', () => {
     it('lista los usuarios de la organizacion cuando el operador tiene administrador-sistema', async () => {
       const res = await request(app.getHttpServer())
         .get('/admin/organizaciones/duoc-uc/usuarios')
@@ -347,10 +368,10 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
         .expect(200);
 
       expect(res.body).toEqual(
-        await zitadelAdminService.listarGrants.mock.results[0].value,
+        await keycloakAdminService.listarGrants.mock.results[0].value,
       );
-      expect(zitadelAdminService.listarGrants).toHaveBeenCalledWith(
-        ZITADEL_ORG_ID,
+      expect(keycloakAdminService.listarGrants).toHaveBeenCalledWith(
+        ORGANIZACION_ID,
         expect.any(String),
       );
     });
@@ -369,20 +390,20 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
         .send({ email: 'nuevo@duoc.cl', rol: 'administrador-patrimonial' })
         .expect(201);
 
-      expect(zitadelAdminService.buscarUsuarioPorEmail).toHaveBeenCalledWith(
+      expect(keycloakAdminService.buscarUsuarioPorEmail).toHaveBeenCalledWith(
         'nuevo@duoc.cl',
         expect.any(String),
       );
-      expect(zitadelAdminService.crearGrant).toHaveBeenCalledWith(
-        ZITADEL_ORG_ID,
-        'usuario-zitadel-1',
+      expect(keycloakAdminService.crearGrant).toHaveBeenCalledWith(
+        ORGANIZACION_ID,
+        'usuario-keycloak-1',
         'administrador-patrimonial',
         expect.any(String),
       );
     });
 
-    it('devuelve 404 si el email no corresponde a ningún usuario de Zitadel', async () => {
-      zitadelAdminService.buscarUsuarioPorEmail.mockResolvedValue(null);
+    it('devuelve 404 si el email no corresponde a ningún usuario de Keycloak', async () => {
+      keycloakAdminService.buscarUsuarioPorEmail.mockResolvedValue(null);
 
       await request(app.getHttpServer())
         .post('/admin/organizaciones/duoc-uc/usuarios')

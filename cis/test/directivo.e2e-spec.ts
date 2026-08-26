@@ -2,15 +2,17 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { generateKeyPair, type JWTVerifyGetKey } from 'jose';
-import type { GrantUsuario } from './../src/zitadel-admin/zitadel-admin.types';
+import type { GrantUsuario } from './../src/keycloak-admin/keycloak-admin.types';
 import { crearAppE2e } from './support/e2e-app';
 import { crearRedisStub } from './support/redis-stub';
-import { firmarTokenZitadel } from './support/jwt';
+import { firmarTokenKeycloak } from './support/jwt';
 
-const ISSUER = 'http://id.sicsaft.localhost';
+const ISSUER = 'http://id.sicsaft.localhost/realms/sicsaft';
 const AUDIENCE = 'cis-api';
-const DUOC_ORG_ID = '386029528616558597';
-const OTRA_ORG_ID = '386029528616558598';
+// ADR-004 — `organizacionId` ya es el alias de la Organization de Keycloak, sin traducción
+// numérica (ver el comentario equivalente en administrador.e2e-spec.ts).
+const DUOC_ORG_ID = 'duoc-uc';
+const OTRA_ORG_ID = 'otra-org';
 
 // DOC-022 3 — el Directivo designa quién es el Profesional de AFT de SU organización, sin poder
 // tocar usuarios de otra (límite de organización) ni asignar un rol distinto a
@@ -20,55 +22,54 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
   let tokenDirectivoDuoc: string;
   let tokenPatrimonialDuoc: string;
   let tokenDirectivoOtraOrg: string;
-  let zitadelAdminService: {
+  let keycloakAdminService: {
     buscarUsuarioPorEmail: jest.Mock;
     listarGrants: jest.Mock;
     crearGrant: jest.Mock;
+    crearUsuarioHuman: jest.Mock;
+    resolverRolesPorOrganizacionDeUsuario: jest.Mock;
   };
-
-  beforeAll(() => {
-    process.env.ZITADEL_ISSUER = ISSUER;
-    process.env.ZITADEL_AUDIENCE = AUDIENCE;
-    process.env.ZITADEL_ORG_ID_MAP = JSON.stringify({
-      [DUOC_ORG_ID]: 'duoc-uc',
-    });
-  });
 
   beforeEach(async () => {
     const { publicKey, privateKey } = await generateKeyPair('RS256');
-    const opcionesToken = {
+    // ADR-004 — sujetos distintos por persona: KeycloakAuthGuard cachea rolesPorOrganizacion por
+    // `sub` (ver keycloak-auth.guard.ts), y en Keycloak el rol lo resuelve el servidor a partir
+    // del usuario (grupos), no del JWT presentado — a diferencia de Zitadel, un mismo usuario no
+    // puede "elegir" su rol firmando un claim distinto. Tres subs simulan tres operadores reales.
+    tokenDirectivoDuoc = await firmarTokenKeycloak(privateKey, [DUOC_ORG_ID], {
       issuer: ISSUER,
       audience: AUDIENCE,
-      subject: 'op-directivo',
-    };
-    tokenDirectivoDuoc = await firmarTokenZitadel(
+      subject: 'op-directivo-duoc',
+    });
+    tokenPatrimonialDuoc = await firmarTokenKeycloak(
       privateKey,
-      { [DUOC_ORG_ID]: ['directivo'] },
-      opcionesToken,
-    );
-    tokenPatrimonialDuoc = await firmarTokenZitadel(
-      privateKey,
-      { [DUOC_ORG_ID]: ['administrador-patrimonial'] },
-      opcionesToken,
+      [DUOC_ORG_ID],
+      { issuer: ISSUER, audience: AUDIENCE, subject: 'op-patrimonial-duoc' },
     );
     // Mismo emisor/clave que tokenDirectivoDuoc — solo cambia la organización firmada en el
     // claim. Simula un segundo Directivo real (otra organización), no un token inválido.
-    tokenDirectivoOtraOrg = await firmarTokenZitadel(
+    tokenDirectivoOtraOrg = await firmarTokenKeycloak(
       privateKey,
-      { [OTRA_ORG_ID]: ['directivo'] },
-      opcionesToken,
+      [OTRA_ORG_ID],
+      { issuer: ISSUER, audience: AUDIENCE, subject: 'op-directivo-otra' },
     );
     const localJwks: JWTVerifyGetKey = () => Promise.resolve(publicKey);
 
-    zitadelAdminService = {
+    const ROLES_POR_OPERADOR: Record<string, Record<string, string[]>> = {
+      'op-directivo-duoc': { [DUOC_ORG_ID]: ['directivo'] },
+      'op-patrimonial-duoc': { [DUOC_ORG_ID]: ['administrador-patrimonial'] },
+      'op-directivo-otra': { [OTRA_ORG_ID]: ['directivo'] },
+    };
+
+    keycloakAdminService = {
       buscarUsuarioPorEmail: jest.fn().mockResolvedValue({
-        id: 'usuario-zitadel-1',
+        id: 'usuario-keycloak-1',
         email: 'nuevo@duoc.cl',
         displayName: null,
       }),
       listarGrants: jest.fn().mockResolvedValue([
         {
-          userId: 'usuario-zitadel-1',
+          userId: 'usuario-keycloak-1',
           email: 'a@duoc.cl',
           displayName: null,
           roles: ['administrador-patrimonial'],
@@ -78,9 +79,23 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
       // Gap 3 (flujo real Admin->Directivo->Profesional AFT) — usado cuando buscarUsuarioPorEmail
       // no encuentra a nadie con ese email (ver el describe de mas abajo).
       crearUsuarioHuman: jest.fn().mockResolvedValue({
-        userId: 'usuario-zitadel-nuevo',
+        userId: 'usuario-keycloak-nuevo',
         passwordInicial: 'Xy9!abcdEFGH12345678',
       }),
+      // ADR-004 — consumido por KeycloakAuthGuard (no por DirectivoService/Guard directo, ver
+      // keycloak-auth.guard.ts) para resolver rolesPorOrganizacion de cada operador de prueba.
+      resolverRolesPorOrganizacionDeUsuario: jest
+        .fn()
+        .mockImplementation((userId: string, organizaciones: string[]) => {
+          const roles = ROLES_POR_OPERADOR[userId] ?? {};
+          const resultado: Record<string, string[]> = {};
+          for (const organizacionId of organizaciones) {
+            if (roles[organizacionId]) {
+              resultado[organizacionId] = roles[organizacionId];
+            }
+          }
+          return Promise.resolve(resultado);
+        }),
     };
 
     app = await crearAppE2e({
@@ -91,7 +106,7 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
         postAuditoria: jest.fn().mockResolvedValue(undefined),
       },
       redisClient: crearRedisStub(),
-      zitadelAdminService,
+      keycloakAdminService,
     });
   });
 
@@ -107,9 +122,9 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
         .expect(200);
 
       expect(res.body).toEqual(
-        await zitadelAdminService.listarGrants.mock.results[0].value,
+        await keycloakAdminService.listarGrants.mock.results[0].value,
       );
-      expect(zitadelAdminService.listarGrants).toHaveBeenCalledWith(
+      expect(keycloakAdminService.listarGrants).toHaveBeenCalledWith(
         DUOC_ORG_ID,
         expect.any(String),
       );
@@ -135,13 +150,13 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
         .send({ email: 'nuevo@duoc.cl' })
         .expect(201);
 
-      expect(zitadelAdminService.buscarUsuarioPorEmail).toHaveBeenCalledWith(
+      expect(keycloakAdminService.buscarUsuarioPorEmail).toHaveBeenCalledWith(
         'nuevo@duoc.cl',
         expect.any(String),
       );
-      expect(zitadelAdminService.crearGrant).toHaveBeenCalledWith(
+      expect(keycloakAdminService.crearGrant).toHaveBeenCalledWith(
         DUOC_ORG_ID,
-        'usuario-zitadel-1',
+        'usuario-keycloak-1',
         'administrador-patrimonial',
         expect.any(String),
       );
@@ -153,13 +168,13 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
         .set('Authorization', `Bearer ${tokenPatrimonialDuoc}`)
         .send({ email: 'nuevo@duoc.cl' })
         .expect(403);
-      expect(zitadelAdminService.crearGrant).not.toHaveBeenCalled();
+      expect(keycloakAdminService.crearGrant).not.toHaveBeenCalled();
     });
 
     // Gap 3 (flujo real Admin->Directivo->Profesional AFT) — ya no devuelve 404: si el email no
-    // corresponde a nadie, se crea el usuario en Zitadel con una contraseña inicial generada.
-    it('crea el usuario en Zitadel y le asigna el rol cuando el email no corresponde a nadie', async () => {
-      zitadelAdminService.buscarUsuarioPorEmail.mockResolvedValue(null);
+    // corresponde a nadie, se crea el usuario en Keycloak con una contraseña inicial generada.
+    it('crea el usuario en Keycloak y le asigna el rol cuando el email no corresponde a nadie', async () => {
+      keycloakAdminService.buscarUsuarioPorEmail.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .post('/directivo/usuarios')
@@ -171,13 +186,13 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
         creado: true,
         passwordInicial: 'Xy9!abcdEFGH12345678',
       });
-      expect(zitadelAdminService.crearUsuarioHuman).toHaveBeenCalledWith(
+      expect(keycloakAdminService.crearUsuarioHuman).toHaveBeenCalledWith(
         'no-existe@duoc.cl',
         expect.any(String),
       );
-      expect(zitadelAdminService.crearGrant).toHaveBeenCalledWith(
+      expect(keycloakAdminService.crearGrant).toHaveBeenCalledWith(
         DUOC_ORG_ID,
-        'usuario-zitadel-nuevo',
+        'usuario-keycloak-nuevo',
         'administrador-patrimonial',
         expect.any(String),
       );
@@ -193,9 +208,9 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
       // El schema ignora campos extra como `rol` (zod no-strict) — lo que realmente importa es
       // que crearGrant se llamó SIEMPRE con administrador-patrimonial, sin importar qué mandó el
       // body: el rol asignable está fijo en el servicio, no en lo que envía el cliente.
-      expect(zitadelAdminService.crearGrant).toHaveBeenCalledWith(
+      expect(keycloakAdminService.crearGrant).toHaveBeenCalledWith(
         DUOC_ORG_ID,
-        'usuario-zitadel-1',
+        'usuario-keycloak-1',
         'administrador-patrimonial',
         expect.any(String),
       );
@@ -209,12 +224,12 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
         .set('Authorization', `Bearer ${tokenDirectivoOtraOrg}`)
         .expect(200);
       expect(listado.body).toEqual(
-        await zitadelAdminService.listarGrants.mock.results[0].value,
+        await keycloakAdminService.listarGrants.mock.results[0].value,
       );
       // La organización efectivamente consultada es la del propio token (OTRA_ORG_ID), nunca
       // DUOC_ORG_ID — el controller no expone ningún :orgId ni organizacionId de body con el que
       // un Directivo pudiera pedir la organización de otro.
-      expect(zitadelAdminService.listarGrants).toHaveBeenCalledWith(
+      expect(keycloakAdminService.listarGrants).toHaveBeenCalledWith(
         OTRA_ORG_ID,
         expect.any(String),
       );
@@ -224,13 +239,13 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
         .set('Authorization', `Bearer ${tokenDirectivoOtraOrg}`)
         .send({ email: 'nuevo@duoc.cl' })
         .expect(201);
-      expect(zitadelAdminService.crearGrant).toHaveBeenCalledWith(
+      expect(keycloakAdminService.crearGrant).toHaveBeenCalledWith(
         OTRA_ORG_ID,
-        'usuario-zitadel-1',
+        'usuario-keycloak-1',
         'administrador-patrimonial',
         expect.any(String),
       );
-      expect(zitadelAdminService.crearGrant).not.toHaveBeenCalledWith(
+      expect(keycloakAdminService.crearGrant).not.toHaveBeenCalledWith(
         DUOC_ORG_ID,
         expect.anything(),
         expect.anything(),

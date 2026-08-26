@@ -1,23 +1,17 @@
 import { SignJWT, type KeyLike } from 'jose';
 
-const ZITADEL_ROLES_CLAIM = 'urn:zitadel:iam:org:project:roles';
-
-// Antes duplicado en cada e2e-spec que necesita un JWT real firmado con roles de Zitadel
-// (SonarCloud lo marcaba como duplicación real, mismo criterio que crearAppE2e en e2e-app.ts). El
-// nombre de organización en el claim es solo de presentación (Zitadel lo usa para mostrar en el
-// Console) — ningún spec lo asertea, por eso queda fijo acá en vez de ser otro parámetro.
-export async function firmarTokenZitadel(
+// ADR-004 — reemplaza a firmarTokenZitadel. Keycloak no anida roles por organización en el JWT
+// (ver el comentario de keycloak-auth.guard.ts): el token de prueba solo firma el claim
+// `organization` (las organizaciones a las que el usuario dice pertenecer, igual que el mapper
+// real `oidc-organization-membership-mapper`) — los roles efectivos por organización los resuelve
+// KeycloakAuthGuard llamando a KeycloakAdminService.resolverRolesPorOrganizacionDeUsuario, que
+// cada e2e-spec stubea por separado (ver crearAppE2e, opción `keycloakAdminService`).
+export async function firmarTokenKeycloak(
   privateKey: KeyLike,
-  roles: Record<string, string[]>,
+  organizaciones: string[],
   opciones: { issuer: string; audience: string; subject: string },
 ): Promise<string> {
-  return new SignJWT({
-    [ZITADEL_ROLES_CLAIM]: Object.fromEntries(
-      Object.entries(roles).flatMap(([org, rolesEnOrg]) =>
-        rolesEnOrg.map((rol) => [rol, { [org]: 'Organización' }]),
-      ),
-    ),
-  })
+  return new SignJWT({ organization: organizaciones })
     .setProtectedHeader({ alg: 'RS256' })
     .setSubject(opciones.subject)
     .setIssuer(opciones.issuer)

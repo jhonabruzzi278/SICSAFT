@@ -8,9 +8,10 @@ Base Patrimonial Central ni al CORE — todo pasa por acá.
 
 ## Estado
 🟢 Esqueleto NestJS + **Conector QR real, proxy delgado hacia CORE** (contrato DOC-002, resuelto
-contra DOC-006 2-4) + **auth real vía Zitadel** (ADR-002) + **circuit breaker propio** (WAF 4):
-los 4 endpoints exigen `Authorization: Bearer <token>` y `ZitadelAuthGuard` valida
-firma/issuer/audience/vencimiento contra el JWKS de Zitadel — el CIS ya no acepta
+contra DOC-006 2-4) + **auth real vía Keycloak** ([ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md),
+reemplaza a ADR-002) + **circuit breaker propio** (WAF 4):
+los 4 endpoints exigen `Authorization: Bearer <token>` y `KeycloakAuthGuard` valida
+firma/issuer/audience/vencimiento contra el JWKS de Keycloak — el CIS ya no acepta
 `operadorId`/`credencial` en el body, la identidad viene del token. `QrConnectorService` ya no
 mantiene estado propio (sin `Map` en memoria, sin seed): las 4 operaciones —
 `getEntitlements`/`getCatalogo`/`postInventario`/`getInventarioEstado` — son pass-through hacia
@@ -54,7 +55,7 @@ nuevo **reemplaza** al anterior (nunca se rechaza) — no existe todavía un rol
 cualquiera que pierda o cambie de celular; el registro expira solo, con el mismo TTL que le queda
 al token, sin requerir logout explícito. Mismo criterio de resiliencia que el rate limiter: falla
 abierto ante cualquier error de Redis, porque es una restricción de negocio complementaria, no un
-control de seguridad (Zitadel ya autentica). El enforcement es parcial por diseño del contrato:
+control de seguridad (Keycloak ya autentica). El enforcement es parcial por diseño del contrato:
 `deviceId` solo llega en el body de `auth/session`, DOC-002 no lo manda en las otras 3 rutas — no
 hay forma de revalidar el dispositivo en cada request sin romper ese contrato ya acordado con
 APP QR.
@@ -62,7 +63,23 @@ CORS habilitado (`app.enableCors`, `src/main.ts`) vía `CIS_CORS_ORIGIN` (opcion
 primera vez que un navegador (`app-qr-sicsaft/`, TASK-007) le habla directo a CIS, no solo
 llamadas servicio-a-servicio; `app-qr-sicsaft` ya tiene un cliente HTTP real
 (`HttpQrConnectorClient`) contra los 4 endpoints, pendiente de verificar en vivo (falta crear la
-app OIDC en el dashboard de Zitadel, ver `../devops/local/README.md`).
+app OIDC/el client público en Keycloak, ver `../devops/local/README.md`).
+
+**ADR-004 Fase 1 (2026-08-26) — Keycloak reemplaza a Zitadel en la identidad de CIS**: reescribe
+`src/common/auth/` (`ZitadelAuthGuard` → `KeycloakAuthGuard`) y `src/zitadel-admin/` →
+`src/keycloak-admin/` contra la Admin REST API de Keycloak, verificada en vivo contra un Keycloak
+26.6 de prueba antes de escribir el código (no asumida de la documentación). Elimina la capa de
+traducción de ids (`organizacion-mapping.config.ts`/`OrganizacionMappingDinamicoService`,
+`ZITADEL_ORG_ID_MAP`): con Keycloak, el `organizacionId` que usa el resto del ecosistema es el
+mismo alias de la Organization que ya firma el JWT, sin Redis de por medio. Hallazgo real que
+cambia el diseño respecto al ADR: los realm roles de Keycloak son globales por usuario, no
+anidados por organización como el claim propietario de Zitadel — `KeycloakAuthGuard` resuelve
+`rolesPorOrganizacion` llamando a `KeycloakAdminService` (grupos `{organizacionId}::{rol}`, con
+caché corta de 30s en memoria del propio proceso) en vez de leerlo directo del token. Alcance de
+esta fase: solo `cis/`. Los 4 portales (`app-qr-sicsaft/`, `ccp/`, `web_admin/`, `core/frontend/`)
+y los 3 stacks de `devops/` siguen apuntando a Zitadel hasta que se ejecuten las fases siguientes
+(ver [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) "Consequences") — hasta
+entonces, `cis/` no tiene un Keycloak real contra el cual autenticar en `devops/local/`.
 
 **Fase 5 (Portal WEB) — `AdministradorModule` nuevo**: `POST /admin/activos`
 (`src/administrador/`) es el puente real WEB→CIS→CORE para la escritura oficial de `Activo`
@@ -249,8 +266,11 @@ module" sin esto).
 ```bash
 cd cis
 npm install
-export ZITADEL_ISSUER=http://id.sicsaft.localhost   # ver variables requeridas abajo
-export ZITADEL_AUDIENCE=<client-id-de-zitadel>
+export KEYCLOAK_URL=http://id.sicsaft.localhost      # ver variables requeridas abajo
+export KEYCLOAK_REALM=sicsaft
+export KEYCLOAK_AUDIENCE=<client-id-de-keycloak>
+export KEYCLOAK_ADMIN_CLIENT_ID=<client-confidencial-de-keycloak>
+export KEYCLOAK_ADMIN_CLIENT_SECRET=<secreto-del-client-confidencial>
 npm run start:dev     # http://localhost:3000 y http://localhost:3000/health
 npm run lint
 npm run test:cov       # unit tests, ver nota de cobertura abajo
@@ -259,19 +279,26 @@ npm run build
 ```
 (No hay un `.env`/dotenv loader todavía — `main.ts` lee `process.env` directo, igual que `PORT`.
 Corriendo dentro de `../devops/local/docker-compose.yml` estas variables ya vienen seteadas por
-el servicio `cis`, no hace falta exportarlas a mano.)
+el servicio `cis`, no hace falta exportarlas a mano — **nota**: hasta que `devops/local/` complete
+su propia fase de ADR-004, el stack de Docker Compose sigue levantando Zitadel, no Keycloak; estas
+variables solo aplican corriendo `cis/` contra un Keycloak levantado aparte.)
 
-**Variables de entorno requeridas** (ver `src/common/auth/zitadel-auth.config.ts` — el proceso no
-arranca sin ellas):
-- `ZITADEL_ISSUER`: el `iss` que Zitadel pone en el token (`ZITADEL_EXTERNALDOMAIN` del compose,
-  ej. `http://id.sicsaft.localhost`).
-- `ZITADEL_AUDIENCE`: Client ID / Resource ID de la app OIDC del CIS en Zitadel — se crea a mano
-  en el dashboard, ver `../devops/local/README.md` "Cliente OIDC real".
-- `ZITADEL_JWKS_URI` (opcional, default `${ZITADEL_ISSUER}/oauth/v2/keys`): solo hace falta
-  sobreescribirla si alguna vez la URL para *descargar* las llaves deja de ser la misma que el
-  `iss` — en Docker Compose local ya no es el caso: el servicio `traefik` tiene un alias de red
-  `id.sicsaft.localhost`, así que ese dominio resuelve igual adentro y afuera de la red de
-  contenedores (ver `docker-compose.yml` de `devops/local/` y su "Cliente OIDC real").
+**Variables de entorno requeridas** (ver `src/common/auth/keycloak-auth.config.ts` y
+`src/keycloak-admin/keycloak-admin.config.ts` — el proceso no arranca sin ellas):
+- `KEYCLOAK_URL`: URL base del servidor de Keycloak (ej. `http://keycloak:8080` dentro de la red
+  de contenedores, o `https://id.sicsaft.cl` en prod).
+- `KEYCLOAK_REALM`: el realm único del ecosistema (`sicsaft`, ver
+  [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)) — el `iss` del token se arma
+  como `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}`.
+- `KEYCLOAK_AUDIENCE`: Client ID de la app OIDC del CIS en Keycloak.
+- `KEYCLOAK_JWKS_URI` (opcional, default `${issuer}/protocol/openid-connect/certs`): solo hace
+  falta sobreescribirla si la URL para *descargar* las llaves deja de ser la misma que el `iss`
+  (mismo motivo que antes con Zitadel: el issuer externo no siempre resuelve dentro de la red de
+  contenedores/procesos).
+- `KEYCLOAK_ADMIN_CLIENT_ID` / `KEYCLOAK_ADMIN_CLIENT_SECRET`: client confidencial con
+  `serviceAccountsEnabled` que `KeycloakAdminService` usa para autenticarse contra la Admin REST
+  API de Keycloak vía `client_credentials` (reemplaza al PAT estático `ZITADEL_ADMIN_TOKEN` de
+  Zitadel — este token expira y se cachea/renueva en runtime, ver `keycloak-admin.service.ts`).
 - `CORE_URL`: URL base de SICSAFT CORE (`../core/`), ej. `http://core:3001` dentro de Docker
   Compose. Ver `src/core-client/core-client.config.ts` — el proceso tampoco arranca sin esta.
 - `CORE_SERVICE_TOKEN`: secreto compartido de auth servicio-a-servicio hacia CORE — debe ser
@@ -313,10 +340,10 @@ resuelto contra CORE vía
 [`../aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md`](../aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md).
 `QrConnectorService` no tiene lógica de negocio propia — valida con Zod el request de cada
 operación (`qr-connector.schemas.ts`) y delega en `CoreClientService`. Los 4 endpoints están
-detrás de `ZitadelAuthGuard` (`src/common/auth/zitadel-auth.guard.ts`, sin
+detrás de `KeycloakAuthGuard` (`src/common/auth/keycloak-auth.guard.ts`, sin
 `Authorization: Bearer <token>` válido, 401) y luego de `RateLimitGuard`
 (`src/rate-limit/rate-limit.guard.ts`, sobre el límite por operador, 429) — el orden importa,
-`RateLimitGuard` necesita el `operadorId` que ya dejó `ZitadelAuthGuard` en la request:
+`RateLimitGuard` necesita el `operadorId` que ya dejó `KeycloakAuthGuard` en la request:
 
 ```
 POST /auth/session                          -> valida el token, devuelve el mismo token (pass-through) + organizaciones/sedes reales via GET {CORE_URL}/entitlements
@@ -325,12 +352,13 @@ POST /inventarios                            -> proxy a POST {CORE_URL}/inventar
 GET  /inventarios/{id}/estado                -> proxy a GET {CORE_URL}/inventarios/{id}/estado; 404 si no existe
 ```
 
-**Auth (ADR-002)**: `operadorId`/`credencial` ya no van en el body de `auth/session` — Zitadel
-autentica al operador (OIDC, fuera del CIS) y el CIS solo valida el access token resultante
-(firma vía JWKS, `iss`, `aud`, vencimiento) y lee `operadorId` de su claim `sub`. El CIS no emite
-un token propio, hace pass-through del mismo token de Zitadel — coincide con ADR-002: "el punto
-de validación es el CIS, no el token" (el JWT no lleva `sedeId`, eso se resuelve en cada request
-contra CORE, ver `src/core-client/`).
+**Auth (ADR-002, principio vigente bajo Keycloak vía [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md))**:
+`operadorId`/`credencial` ya no van en el body de `auth/session` — Keycloak autentica al operador
+(OIDC, fuera del CIS) y el CIS solo valida el access token resultante (firma vía JWKS, `iss`,
+`aud`, vencimiento) y lee `operadorId` de su claim `sub`. El CIS no emite un token propio, hace
+pass-through del mismo token de Keycloak — coincide con ADR-002: "el punto de validación es el
+CIS, no el token" (el JWT no lleva `sedeId`, eso se resuelve en cada request contra CORE, ver
+`src/core-client/`).
 
 **`CoreClientService` (`src/core-client/`)**: expone `getEntitlements`/`getCatalogo`/
 `postInventario`/`getInventarioEstado`, todas contra `{CORE_URL}` con el header
@@ -349,11 +377,14 @@ supersede-en-vez-de-rechazo y el TTL atado al token.
   real todavía).
 
 ## Bloquea
-- Nada. `app-qr-sicsaft/` (TASK-007) ya tiene un cliente HTTP real (`HttpQrConnectorClient`)
-  contra estos 4 endpoints, con CORS habilitado acá (`CIS_CORS_ORIGIN`) — primera vez que un
-  navegador le habla directo a CIS. Falta la verificación en vivo (crear la app OIDC en el
-  dashboard de Zitadel, recorrido manual), no código de CIS — ver
-  `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` 7.
+- Nada directamente de código. `app-qr-sicsaft/` (TASK-007) ya tiene un cliente HTTP real
+  (`HttpQrConnectorClient`) contra estos 4 endpoints, con CORS habilitado acá
+  (`CIS_CORS_ORIGIN`) — primera vez que un navegador le habla directo a CIS. Falta la
+  verificación en vivo (crear el client OIDC público en Keycloak, recorrido manual), no código de
+  CIS — ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` 7. Esa verificación en sí está bloqueada
+  hasta que `devops/local/` reemplace Zitadel por Keycloak en el stack de Docker Compose (fase
+  siguiente de [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) — hoy solo `cis/`
+  migró).
 
 ## Documentos relacionados
 - [DOC-002](../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md) (contrato
@@ -361,8 +392,11 @@ supersede-en-vez-de-rechazo y el TTL atado al token.
 - [DOC-006](../aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md) (API CIS↔CORE) —
   implementado en ambos lados.
 - [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack: NestJS/TypeScript).
-- [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) — el CIS valida `organizacionId`,
-  `sedeId` y vigencia de contrato en cada request, no solo identidad.
+- [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (reemplazada por ADR-004 en el
+  proveedor de identidad, principio vigente) — el CIS valida `organizacionId`, `sedeId` y
+  vigencia de contrato en cada request, no solo identidad.
+- [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) — Keycloak self-hosted
+  reemplaza a Zitadel; Fase 1 (`cis/`) ya implementada, ver "Estado" arriba.
 - [`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
   — diseño del rol Administrador Patrimonial; `src/administrador/` es el lado CIS del camino de
   escritura oficial que DOC-012 define.
@@ -371,9 +405,12 @@ supersede-en-vez-de-rechazo y el TTL atado al token.
   y `src/rate-limit/`) y 3 (el CIS es el único punto que valida identidad de fuentes de captura).
 
 ## Próximo paso sugerido
-Verificación en vivo de TASK-007 (`app-qr-sicsaft/`, ver su `HANDOFF-APP-QR-SICSAFT.md` 7): crear
-la app OIDC real en el dashboard de Zitadel con `offline_access` habilitado
-(`../devops/local/README.md` "Cliente OIDC real"), decidir la estrategia de e2e de Playwright de
-APP QR, y un recorrido manual de punta a punta — lo que queda de ROADMAP.md Fase 3 que no es
-opcional (la caché de entitlements invalidada por evento está explícitamente marcada como
-diferible).
+Fases siguientes de [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md): reemplazar
+Zitadel por Keycloak en `devops/local/`/`devops/prod/`/`devops/onprem/` y en los 4 portales
+(`app-qr-sicsaft/`, `ccp/`, `web_admin/`, `core/frontend/`) — hoy solo `cis/` migró, así que no hay
+todavía un Keycloak real contra el cual verificar en vivo. Recién con eso resuelto vuelve a ser
+posible la verificación en vivo de TASK-007 (`app-qr-sicsaft/`, ver su
+`HANDOFF-APP-QR-SICSAFT.md` 7): crear el client OIDC público en Keycloak con `offline_access`
+habilitado, decidir la estrategia de e2e de Playwright de APP QR, y un recorrido manual de punta a
+punta — lo que queda de ROADMAP.md Fase 3 que no es opcional (la caché de entitlements invalidada
+por evento está explícitamente marcada como diferible).

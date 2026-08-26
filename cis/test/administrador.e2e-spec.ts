@@ -1,7 +1,7 @@
 import { ForbiddenException, INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { SignJWT, generateKeyPair, type JWTVerifyGetKey } from 'jose';
+import { generateKeyPair, type JWTVerifyGetKey } from 'jose';
 import type {
   ActivoResult,
   AreaResult,
@@ -12,11 +12,14 @@ import type {
 } from './../src/core-client/core-client.types';
 import { crearAppE2e } from './support/e2e-app';
 import { crearRedisStub } from './support/redis-stub';
+import { firmarTokenKeycloak } from './support/jwt';
 
-const ISSUER = 'http://id.sicsaft.localhost';
+const ISSUER = 'http://id.sicsaft.localhost/realms/sicsaft';
 const AUDIENCE = 'cis-api';
-const ZITADEL_ORG_ID = '386029528616558597';
-const ZITADEL_ROLES_CLAIM = 'urn:zitadel:iam:org:project:roles';
+// ADR-004 — `organizacionId` ya es el alias de la Organization de Keycloak, el mismo id que usa
+// CORE por construcción (ver KeycloakAdminService.crearOrganizacion) — sin traducción numérica
+// como la que exigía `ZITADEL_ORG_ID_MAP` con Zitadel.
+const ORGANIZACION_ID = 'duoc-uc';
 
 const ACTIVO_STUB: ActivoResult = {
   id: 'activo-1',
@@ -117,29 +120,24 @@ describe('Administrador Patrimonial — DOC-012 5/7 (e2e)', () => {
     patchResponsableEstado: jest.Mock;
   };
 
-  beforeAll(() => {
-    process.env.ZITADEL_ISSUER = ISSUER;
-    process.env.ZITADEL_AUDIENCE = AUDIENCE;
-    process.env.ZITADEL_ORG_ID_MAP = JSON.stringify({
-      [ZITADEL_ORG_ID]: 'duoc-uc',
-    });
-  });
-
   beforeEach(async () => {
     const { publicKey, privateKey } = await generateKeyPair('RS256');
-    bearerToken = await new SignJWT({
-      [ZITADEL_ROLES_CLAIM]: {
-        'administrador-patrimonial': { [ZITADEL_ORG_ID]: 'DUOC UC' },
-      },
-    })
-      .setProtectedHeader({ alg: 'RS256' })
-      .setSubject('op-admin')
-      .setIssuer(ISSUER)
-      .setAudience(AUDIENCE)
-      .setExpirationTime('15m')
-      .sign(privateKey);
+    bearerToken = await firmarTokenKeycloak(privateKey, [ORGANIZACION_ID], {
+      issuer: ISSUER,
+      audience: AUDIENCE,
+      subject: 'op-admin',
+    });
 
     const localJwks: JWTVerifyGetKey = () => Promise.resolve(publicKey);
+    // ADR-004 — KeycloakAuthGuard resuelve rolesPorOrganizacion llamando a KeycloakAdminService
+    // (el JWT solo confirma a qué organizaciones pertenece el operador, ver
+    // keycloak-auth.guard.ts) — se stubea con el rol fijo que antes venía directo en el claim de
+    // Zitadel.
+    const keycloakAdminService = {
+      resolverRolesPorOrganizacionDeUsuario: jest.fn().mockResolvedValue({
+        [ORGANIZACION_ID]: ['administrador-patrimonial'],
+      }),
+    };
 
     coreClientService = {
       postActivo: jest.fn().mockResolvedValue(ACTIVO_STUB),
@@ -178,6 +176,7 @@ describe('Administrador Patrimonial — DOC-012 5/7 (e2e)', () => {
       jwks: localJwks,
       coreClientService,
       redisClient: crearRedisStub(),
+      keycloakAdminService,
     });
   });
 
@@ -198,7 +197,7 @@ describe('Administrador Patrimonial — DOC-012 5/7 (e2e)', () => {
         .expect(401);
     });
 
-    it('traduce el rol de Zitadel a organizacionId de CORE y devuelve el activo creado', async () => {
+    it('resuelve rolesPorOrganizacion via Keycloak y devuelve el activo creado', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/activos')
         .set('Authorization', `Bearer ${bearerToken}`)
@@ -321,7 +320,7 @@ describe('Administrador Patrimonial — DOC-012 5/7 (e2e)', () => {
       expect(res.body).toEqual({ areas: [AREA_STUB], total: 1 });
     });
 
-    it('traduce el rol de Zitadel a organizacionId de CORE y devuelve el area creada', async () => {
+    it('resuelve rolesPorOrganizacion via Keycloak y devuelve el area creada', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/areas')
         .set('Authorization', `Bearer ${bearerToken}`)

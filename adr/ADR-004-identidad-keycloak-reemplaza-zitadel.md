@@ -1,7 +1,9 @@
 # ADR-004: Identidad y SSO — Keycloak self-hosted reemplaza a Zitadel
 
 ## Status
-Propuesta (reemplaza a [ADR-002](ADR-002-identidad-zitadel-multi-tenant.md) si se aprueba)
+Aceptada — reemplaza a [ADR-002](ADR-002-identidad-zitadel-multi-tenant.md). Fase 1 (`cis/`)
+implementada; fases siguientes (4 portales, 3 stacks de `devops/`) pendientes — ver
+"Consequences" y `cis/README.md` "Estado".
 
 ## Context
 
