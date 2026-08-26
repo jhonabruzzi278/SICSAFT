@@ -3,9 +3,10 @@
 ; instalar-cliente.ps1 al terminar, que hace todo lo demas (WSL2, Podman, .env, bootstrap de
 ; Zitadel, build) — ver aidlc-docs/devops/design-artifacts/ARCHITECTURE.md "Fase 3".
 ;
-; NOTA DE HONESTIDAD: este .iss no fue compilado ni probado en esta sesion (no hay Inno Setup
-; Compiler disponible en el entorno donde se escribio) — ver installer/README.md para como
-; compilarlo y que falta verificar antes de usarlo con un cliente real.
+; NOTA DE HONESTIDAD (corregida 2026-08-25): este .iss SI se compilo y se corrio al menos una vez
+; (el bug de $PSScriptRoot vacio de mas abajo solo pudo encontrarse corriendo el .exe compilado,
+; no el .ps1 suelto). Lo que sigue sin correrse es contra una VM Windows limpia (sin WSL2/Podman
+; preinstalados) — ver installer/README.md "Estado real" para el detalle completo.
 ;
 ; Compilar con: iscc sicsaft-onprem.iss  (requiere Inno Setup instalado, https://jrsoftware.org/isinfo.php)
 
