@@ -39,11 +39,14 @@ Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
   OIDC/PKCE contra Zitadel. No comparten sesión ni código entre sí.
 - **`base-patrimonial/`** — modelo de dominio de la Base Patrimonial Central, documentado y
   versionado en `core/migrations/` (Postgres real).
-- **`devops/local/docker-compose.yml`** — stack local completo: Traefik + Postgres + Redis +
-  Zitadel + los 6 sistemas desplegables (`cis`, `core`, `cip`, `ccp`, `web-admin`, `core-frontend`
-  — `app-qr-sicsaft/` es un PWA cliente sin contenedor propio en este stack) + observabilidad
-  self-hosted (Prometheus + Loki/Promtail + Grafana,
-  equivalente a CloudWatch/CloudTrail pero administrado por el operador del VPS).
+- **`devops/`** — tres stacks Docker Compose independientes, uno por entorno: `local/` (desarrollo
+  — Traefik + Postgres + Redis + Zitadel + los 6 sistemas desplegables `cis`/`core`/`cip`/`ccp`/
+  `web-admin`/`core-frontend` + observabilidad self-hosted Prometheus/Loki-Promtail/Grafana,
+  equivalente a CloudWatch/CloudTrail administrado por el operador del VPS — `app-qr-sicsaft/` es
+  un PWA cliente sin contenedor propio en ningún stack), `prod/` (mismo VPS propio, orquestado por
+  **Coolify** en vez de un Traefik propio) y `onprem/` (instalación aislada por cliente sobre
+  **Podman**, no Docker Desktop, empaquetada como instalador `.exe` con Inno Setup en
+  `devops/onprem/installer/`). Detalle de cada uno en [devops/README.md](devops/README.md).
 
 Estado real y detalle de cada sistema (qué está mockeado vs. real, endpoints, dependencias): tabla
 completa en [README.md](README.md) y el `README.md` propio de cada carpeta.
@@ -101,6 +104,19 @@ Ver [`devops/local/README.md`](devops/local/README.md) para variables de entorno
 locales, y la sección "Observabilidad" (URLs de Grafana, qué mide cada componente, limitación
 conocida de cAdvisor en Docker Desktop).
 
+**Instalación on-premise por cliente** (Nivel 1/Nivel 2, Podman — no Docker Desktop):
+```powershell
+cd devops/onprem
+./instalar-cliente.ps1 -ClienteNombre "Nombre Cliente" -OrganizacionId "id-cliente" -Nivel 2
+```
+Automatiza WSL2/Podman, genera `.env`, bootstrap de Zitadel (PAT auto-provisionado, sin Console) y
+levanta el stack con smoke check al final. Empaquetado como instalador `.exe` (Inno Setup) en
+[`devops/onprem/installer/`](devops/onprem/installer). Ver
+[`devops/onprem/README.md`](devops/onprem/README.md).
+
+**Producción** (`devops/prod/docker-compose.yml`) no se corre a mano — la redespliega **Coolify**
+vía webhook sobre el VPS propio. Ver [`devops/prod/README.md`](devops/prod/README.md).
+
 No hay comando de build/test a nivel raíz del repo — cada sistema se construye y testea de forma
 aislada dentro de su propia carpeta.
 
@@ -130,6 +146,9 @@ primero que la entidad no sea un registro oficial cubierto por este invariante.
   entran en conflicto, el tomo gana — corregir el código o levantar la discrepancia, nunca
   editar la cita para que calce.
 - **Cómo construir eso de forma escalable/resiliente**: [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md).
+- **Identidad visual / paleta de colores**: [BRAND.md](BRAND.md), origen canónico en
+  `landing/src/style.css` — no reinventar colores por sistema en trabajo de frontend (`ccp/`,
+  `web_admin/`, `core/frontend/`, `app-qr-sicsaft/`, `cip/`).
 - **Decisiones de stack ya tomadas**: [`adr/`](adr) (NestJS, Postgres, Redis, Zitadel
   self-hosted). No reabrir estas decisiones sin un ADR nuevo que las reemplace explícitamente.
 - **Qué puede hacer cada rol (RBAC), endpoint por endpoint**:
@@ -188,6 +207,10 @@ aidlc-docs/
 - **Ruta canónica**: `aidlc-docs/<sistema>/...` — nunca `<sistema>/aidlc-docs/...`. Al enlazar
   desde el README de un sistema (que sí vive dentro de `<sistema>/`) hacia su propia
   documentación AI-DLC, la ruta relativa sube un nivel primero: `../aidlc-docs/<sistema>/...`.
+- **Excepción para diagramas HTML sueltos** (no Mermaid, para diagramas más elaborados): no van en
+  el `design-artifacts/` de un sistema, viven todos juntos en `aidlc-docs/diagrams/`, nombrados por
+  tema y no por sistema, sea un diagrama de un sistema puntual (`db-schema-core.html`) o del
+  ecosistema completo (`organigrama-roles.html`, `grafo-dependencias-sistema.html`).
 - **Diseño antes que código**: cuando el usuario pide explícitamente diseñar primero, generar
   todo `aidlc-docs/<sistema>/` de la fase, presentarlo, y esperar confirmación antes de tocar
   `src/`.
@@ -238,6 +261,9 @@ aidlc-docs/
   (ver `.sonarcloud.properties` y el historial de `fix: corregir NOSONAR mal ubicado...`).
 - Boilerplate generado por Nest CLI (specs de humo, configs de eslint) está excluido del análisis
   de duplicación a propósito — no es señal de deuda técnica real entre `cis/`, `core/` y `cip/`.
+- `app-qr-sicsaft/` es la excepción al pipeline de arriba: se despliega directo a **Vercel**
+  (`.vercel/repo.json`, proyecto `sicsaft`), por eso no tiene workflow en `.github/workflows/`
+  ni `docker build`.
 
 ## Al agregar un sistema nuevo
 
