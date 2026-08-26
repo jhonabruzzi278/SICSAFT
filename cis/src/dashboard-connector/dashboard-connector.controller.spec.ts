@@ -3,7 +3,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DashboardConnectorController } from './dashboard-connector.controller';
 import { DashboardConnectorService } from './dashboard-connector.service';
-import { ZitadelAuthGuard } from '../common/auth/zitadel-auth.guard';
+import { KeycloakAuthGuard } from '../common/auth/keycloak-auth.guard';
 import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 
@@ -36,7 +36,7 @@ describe('DashboardConnectorController', () => {
         },
       ],
     })
-      .overrideGuard(ZitadelAuthGuard)
+      .overrideGuard(KeycloakAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RateLimitGuard)
       .useValue({ canActivate: () => true })

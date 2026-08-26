@@ -6,7 +6,7 @@ import { QrConnectorModule } from './qr-connector/qr-connector.module';
 import { AdministradorModule } from './administrador/administrador.module';
 import { DirectivoModule } from './directivo/directivo.module';
 import { DashboardConnectorModule } from './dashboard-connector/dashboard-connector.module';
-import { ZitadelAuthModule } from './common/auth/zitadel-auth.module';
+import { KeycloakAuthModule } from './common/auth/keycloak-auth.module';
 import { RateLimitModule } from './rate-limit/rate-limit.module';
 import { CorrelationIdMiddleware } from './common/correlation-id/correlation-id.middleware';
 import { MetricsModule } from './common/metrics/metrics.module';
@@ -17,7 +17,7 @@ import { MetricsModule } from './common/metrics/metrics.module';
     // configurado (siempre en devops/prod/, opcional en devops/local/) -- ver
     // common/metrics/metrics-token.guard.ts y devops/prod/README.md "Hallazgo real".
     MetricsModule,
-    ZitadelAuthModule,
+    KeycloakAuthModule,
     RateLimitModule,
     HealthModule,
     QrConnectorModule,

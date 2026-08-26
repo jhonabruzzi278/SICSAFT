@@ -1,9 +1,9 @@
 import { ExecutionContext, HttpException } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 import { RateLimitGuard } from './rate-limit.guard';
-import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
+import type { KeycloakAuthContext } from '../common/auth/keycloak-auth.guard';
 
-function buildContext(auth?: ZitadelAuthContext): ExecutionContext {
+function buildContext(auth?: KeycloakAuthContext): ExecutionContext {
   const request = { auth };
   return {
     switchToHttp: () => ({
@@ -13,7 +13,7 @@ function buildContext(auth?: ZitadelAuthContext): ExecutionContext {
 }
 
 describe('RateLimitGuard', () => {
-  const auth: ZitadelAuthContext = {
+  const auth: KeycloakAuthContext = {
     operadorId: 'op-1',
     accessToken: 'token',
     expiresAt: '2026-08-12T10:15:00.000Z',
@@ -62,7 +62,7 @@ describe('RateLimitGuard', () => {
     });
   });
 
-  it('lanza 401 si no hay contexto de auth (ZitadelAuthGuard no corrio antes)', async () => {
+  it('lanza 401 si no hay contexto de auth (KeycloakAuthGuard no corrio antes)', async () => {
     await expect(guard.canActivate(buildContext(undefined))).rejects.toThrow(
       'No hay contexto de autenticación',
     );

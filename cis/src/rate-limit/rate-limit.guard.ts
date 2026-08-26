@@ -10,7 +10,7 @@ import type { Redis } from 'ioredis';
 import {
   requireAuthContext,
   type AuthenticatedRequest,
-} from '../common/auth/zitadel-auth.guard';
+} from '../common/auth/keycloak-auth.guard';
 import { REDIS_CLIENT } from '../redis/redis.constants';
 import { RATE_LIMIT_OPTIONS } from './rate-limit.constants';
 import { RedisRateLimiter } from './redis-rate-limiter';
@@ -18,8 +18,8 @@ import type { RateLimitOptions } from './rate-limit.types';
 
 const RATE_LIMIT_KEY_PREFIX = 'rate-limit:operador:';
 
-// WAF 4 "rate limiting hacia el CORE", por operador — requiere que ZitadelAuthGuard ya haya
-// corrido y seteado `request.auth` (orden en @UseGuards: ZitadelAuthGuard, RateLimitGuard). Por
+// WAF 4 "rate limiting hacia el CORE", por operador — requiere que KeycloakAuthGuard ya haya
+// corrido y seteado `request.auth` (orden en @UseGuards: KeycloakAuthGuard, RateLimitGuard). Por
 // dispositivo sigue sin cubrir aca: `deviceId` solo llega en el body de auth/session, no en las
 // otras 3 rutas (ver src/device-registry/ para el enforcement de "un solo dispositivo").
 @Injectable()

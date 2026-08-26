@@ -10,16 +10,16 @@ describe('AppModule', () => {
   beforeEach(() => {
     process.env = {
       ...originalEnv,
-      ZITADEL_ISSUER: 'http://id.sicsaft.localhost',
-      ZITADEL_AUDIENCE: 'cis-api',
+      KEYCLOAK_URL: 'http://keycloak:8080',
+      KEYCLOAK_REALM: 'sicsaft',
+      KEYCLOAK_AUDIENCE: 'cis-api',
+      KEYCLOAK_ADMIN_CLIENT_ID: 'cis-admin',
+      KEYCLOAK_ADMIN_CLIENT_SECRET: 'secreto-compartido',
       CORE_URL: 'http://core:3001',
       CORE_SERVICE_TOKEN: 'secreto-compartido',
       CIP_URL: 'http://cip:3002',
       CIP_SERVICE_TOKEN: 'secreto-compartido-cip',
       REDIS_URL: 'redis://localhost:6379',
-      ZITADEL_ORG_ID_MAP: '{"386029528616558597":"duoc-uc"}',
-      ZITADEL_ADMIN_TOKEN: 'pat-e2e-fake',
-      ZITADEL_PROJECT_ID: 'proyecto-cis-fake',
     };
   });
 

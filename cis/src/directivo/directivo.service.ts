@@ -1,45 +1,43 @@
 import { Injectable } from '@nestjs/common';
 import { AuditoriaIdentidadService } from '../auditoria-identidad/auditoria-identidad.service';
-import { ZitadelAdminService } from '../zitadel-admin/zitadel-admin.service';
-import type { GrantUsuario } from '../zitadel-admin/zitadel-admin.types';
+import { KeycloakAdminService } from '../keycloak-admin/keycloak-admin.service';
+import type { GrantUsuario } from '../keycloak-admin/keycloak-admin.types';
 import type {
   AsignarProfesionalAftBody,
   AsignarProfesionalAftResult,
 } from './directivo.schemas';
 import { ADMINISTRADOR_PATRIMONIAL_ROLE } from './directivo.constants';
 
-// DOC-022 3 — reusa ZitadelAdminService tal cual (ya existente desde DOC-021 4, Administrador del
-// Sistema) sin ningún cambio ahí: la única diferencia con AdministradorService es que acá el
-// `zitadelOrgId` nunca viene de un parámetro de ruta, lo resuelve DirectivoGuard a partir del
-// propio JWT del Directivo.
+// DOC-022 3 — reusa KeycloakAdminService tal cual (ADR-004 reemplaza a ZitadelAdminService) sin
+// ningún cambio ahí: la única diferencia con AdministradorService es que acá el `organizacionId`
+// nunca viene de un parámetro de ruta, lo resuelve DirectivoGuard a partir del propio JWT del
+// Directivo (el claim `organization` de Keycloak).
 @Injectable()
 export class DirectivoService {
   constructor(
-    private readonly zitadelAdminService: ZitadelAdminService,
+    private readonly keycloakAdminService: KeycloakAdminService,
     private readonly auditoriaIdentidad: AuditoriaIdentidadService,
   ) {}
 
   listarUsuariosOrganizacion(
-    zitadelOrgId: string,
+    organizacionId: string,
     correlationId: string,
   ): Promise<GrantUsuario[]> {
-    return this.zitadelAdminService.listarGrants(zitadelOrgId, correlationId);
+    return this.keycloakAdminService.listarGrants(
+      organizacionId,
+      correlationId,
+    );
   }
 
   // Gap 3 (flujo real Admin->Directivo->Profesional AFT) — antes exigía que el email ya existiera
-  // en Zitadel (buscarUsuarioPorEmail -> 404 si no). Ahora, si no existe, lo crea
-  // (ZitadelAdminService.crearUsuarioHuman, con contraseña inicial generada) antes de asignarle
-  // el rol — mismo flujo, un solo paso para el Directivo.
+  // en el proveedor de identidad (buscarUsuarioPorEmail -> 404 si no). Ahora, si no existe, lo
+  // crea (KeycloakAdminService.crearUsuarioHuman, con contraseña inicial generada) antes de
+  // asignarle el rol — mismo flujo, un solo paso para el Directivo.
   //
   // DOC-024 3 — envuelto en AuditoriaIdentidadService.ejecutar: mismo motivo que
-  // AdministradorService.asignarUsuarioOrganizacion, esto nunca toca CORE. `organizacionId` se
-  // reporta como el `zitadelOrgId` recibido — para organizaciones creadas via Gap 1 este YA ES
-  // el id de CORE (mismo valor); para la organización sembrada (id de CORE distinto del real de
-  // Zitadel) el registro de auditoría degrada con gracia a `organizacionId: null`
-  // (AuditoriaRepository.registrar, ver DOC-024 3) en vez de fallar — sin necesidad de inyectar
-  // aquí el mapeo dinámico que sólo usa AdministradorService.
+  // AdministradorService.asignarUsuarioOrganizacion, esto nunca toca CORE.
   async asignarProfesionalAft(
-    zitadelOrgId: string,
+    organizacionId: string,
     body: AsignarProfesionalAftBody,
     operadorId: string,
     correlationId: string,
@@ -49,13 +47,13 @@ export class DirectivoService {
       operadorId,
       correlationId,
       async () => {
-        const usuario = await this.zitadelAdminService.buscarUsuarioPorEmail(
+        const usuario = await this.keycloakAdminService.buscarUsuarioPorEmail(
           body.email,
           correlationId,
         );
         if (usuario) {
-          await this.zitadelAdminService.crearGrant(
-            zitadelOrgId,
+          await this.keycloakAdminService.crearGrant(
+            organizacionId,
             usuario.id,
             ADMINISTRADOR_PATRIMONIAL_ROLE,
             correlationId,
@@ -63,19 +61,19 @@ export class DirectivoService {
           return { creado: false, passwordInicial: null };
         }
         const { userId, passwordInicial } =
-          await this.zitadelAdminService.crearUsuarioHuman(
+          await this.keycloakAdminService.crearUsuarioHuman(
             body.email,
             correlationId,
           );
-        await this.zitadelAdminService.crearGrant(
-          zitadelOrgId,
+        await this.keycloakAdminService.crearGrant(
+          organizacionId,
           userId,
           ADMINISTRADOR_PATRIMONIAL_ROLE,
           correlationId,
         );
         return { creado: true, passwordInicial };
       },
-      { organizacionId: zitadelOrgId },
+      { organizacionId },
     );
   }
 }

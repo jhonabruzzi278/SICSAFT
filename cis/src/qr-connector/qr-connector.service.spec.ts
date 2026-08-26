@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { QrConnectorService } from './qr-connector.service';
 import { CatalogoQuery, InventarioRequest } from './qr-connector.schemas';
-import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
+import type { KeycloakAuthContext } from '../common/auth/keycloak-auth.guard';
 import type { CoreClientService } from '../core-client/core-client.service';
 import type { DeviceRegistryService } from '../device-registry/device-registry.service';
 import type {
@@ -91,11 +91,11 @@ function buildDeviceRegistryService(): jest.Mocked<
 }
 
 function buildAuthContext(
-  overrides: Partial<ZitadelAuthContext> = {},
-): ZitadelAuthContext {
+  overrides: Partial<KeycloakAuthContext> = {},
+): KeycloakAuthContext {
   return {
     operadorId: 'op-1',
-    accessToken: 'zitadel-token',
+    accessToken: 'keycloak-token',
     expiresAt: '2026-08-12T10:15:00.000Z',
     rolesPorOrganizacion: {},
     ...overrides,
