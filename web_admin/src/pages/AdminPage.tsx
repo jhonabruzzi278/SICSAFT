@@ -220,8 +220,8 @@ function OrganizacionesSection({
     try {
       // DOC-022 3 — ya no hace falta decir "en qué organización tengo el rol" (era el bug que
       // motivó separar este portal): el rol administrador-sistema se verifica en cualquier
-      // organización del token del operador. Gap 1 — tampoco hace falta decir el id de Zitadel:
-      // CIS crea la organización en Zitadel y usa ese id.
+      // organización del token del operador. Gap 1 — tampoco hace falta decir el id de Keycloak:
+      // CIS crea la organización en Keycloak y usa ese id.
       await cisClient.altaOrganizacion({ nombre: values.nombre });
       setSubmitOk(true);
       reset();
@@ -754,7 +754,7 @@ function UsuariosSection({
   }
 
   // DOC-024 — inverso de asignar: quita un rol puntual, no borra al usuario de la organización si
-  // le quedan otros roles (mismo criterio que ZitadelAdminService.quitarRolDeGrant).
+  // le quedan otros roles (mismo criterio que KeycloakAdminService.quitarRolDeGrant).
   async function quitarRol(usuario: UsuarioOrganizacion, rol: string) {
     const busyKey = `${usuario.userId}:${rol}`;
     setRolBusy(busyKey);
@@ -847,7 +847,7 @@ function UsuariosSection({
           <FieldError>{errors.organizacionId?.message}</FieldError>
           <div>
             <Label htmlFor="usuario-email">
-              Email (usuario ya existente en Zitadel)
+              Email (usuario ya existente en Keycloak)
             </Label>
             <Input id="usuario-email" type="email" {...register('email')} />
             <FieldError>{errors.email?.message}</FieldError>

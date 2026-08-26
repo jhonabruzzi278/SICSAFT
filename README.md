@@ -25,16 +25,16 @@ Diagrama completo con los módulos internos de cada nivel:
 | Código | Carpeta | Sistema | Estado |
 |---|---|---|---|
 | SYS-01 | [`app-qr-sicsaft/`](app-qr-sicsaft) | APP QR SICSAFT (captura vía QR) | 🟢 En desarrollo activo — ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` |
-| SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🟢 Conector QR real, proxy delgado hacia CORE (DOC-002/DOC-006), auth real via Zitadel (ADR-002), circuit breaker + reintentos + rate limiting (WAF 4), `deviceId` enforced, CORS para APP QR/WEB, puente de escritura oficial para Administrador Patrimonial (DOC-012 5), CRUD completo contra Zitadel sin Consola (editar organización, quitar rol, dar de baja usuario) + auditoría de identidad hacia CORE (DOC-024) |
+| SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🟢 Conector QR real, proxy delgado hacia CORE (DOC-002/DOC-006), auth real via Keycloak (ADR-004, reemplaza a ADR-002), circuit breaker + reintentos + rate limiting (WAF 4), `deviceId` enforced, CORS para APP QR/WEB, puente de escritura oficial para Administrador Patrimonial (DOC-012 5), CRUD completo contra Keycloak sin Console (editar organización, quitar rol, dar de baja usuario) + auditoría de identidad hacia CORE (DOC-024) |
 | SYS-03 | [`core/`](core) | SICSAFT CORE | 🟡 Orquestador + 4 motores (Patrimonial, Reglas, Eventos, Auditoría — Fase 2) + escritura oficial de Activo/Contrato/importación masiva (Fase 4, DOC-012) sobre Postgres real, CRUD completo de Organización/Sede/Contrato con `estado` bidireccional (nunca DELETE real, Tomo III 4.10) y auditoría de identidad (DOC-024) — resto de los 9 motores de `core/README.md` sin implementar |
 | SYS-04 | [`base-patrimonial/`](base-patrimonial) | Base Patrimonial Central | 🟡 Modelo de Organización/Contrato/Sede documentado e implementado en Postgres (DOC-004), con CRUD completo y `estado` bidireccional (DOC-024) — resto de los 11 dominios sin definir |
 | SYS-05 | [`ccp/`](ccp) | CCP — Centro de Control Patrimonial (Portal WEB del Profesional de AFT) | 🟢 Los 6 módulos del MVP implementados — login OIDC/PKCE real + Activos/Contratos/Inventarios verificados de punta a punta contra Postgres real, Auditoría y Áreas/Ubicaciones/Responsables verificados con e2e de CORE/CIS. Exclusivo del rol `administrador-patrimonial` (DOC-022) — Administrador del Sistema y Directivo tienen sus propios portales, ver SYS-09/SYS-10 |
 | SYS-06 | [`cip/`](cip) | Centro de Inteligencia Patrimonial | 🟢 Primer dashboard (Fase 6): worker de agregación (Redis/BullMQ) + 8 endpoints de lectura sobre base propia, verificado real de punta a punta — sin frontend todavía |
 | SYS-07 | [`rfid/`](rfid) | RFID SICSAFT | 🔲 No iniciado (fase tardía) |
 | SYS-08 | [`integraciones/`](integraciones) | Integraciones externas (ERP, RRHH, BI...) | 🔲 No iniciado (fase tardía) |
-| SYS-09 | [`web_admin/`](web_admin) | web_admin — Portal WEB del Administrador del Sistema | 🟢 Extraído de `ccp/AdminPage.tsx` (DOC-022) — organizaciones/contratos/usuarios/indicadores. Verificado real de punta a punta contra Docker/Zitadel, incluida la integración con la API de administración de Zitadel (`cis/src/zitadel-admin/`). CRUD completo (editar/dar de baja organización y sede, editar condiciones de contrato, quitar rol) sin necesitar la Consola de Zitadel + matriz de roles de solo lectura (DOC-024) |
-| SYS-10 | [`core/frontend/`](core/frontend) | Portal WEB del Directivo | 🟢 Segundo deployable de `core/` (backend NestJS sin cambios) — dashboard ejecutivo (RF-09) + designar Profesional de AFT (`cis/src/directivo/`), le habla a CIS, nunca al backend de CORE directo (ADR-003). Verificado real de punta a punta contra Docker/Zitadel |
-| SEC | [`seguridad/`](seguridad) | Identidad / RBAC (transversal) | 🟡 Mecanismo (Zitadel/OIDC) y modelo de `Contrato` (DOC-004) resueltos e implementados en CIS/CORE |
+| SYS-09 | [`web_admin/`](web_admin) | web_admin — Portal WEB del Administrador del Sistema | 🟢 Extraído de `ccp/AdminPage.tsx` (DOC-022) — organizaciones/contratos/usuarios/indicadores. Verificado real de punta a punta en su momento contra Docker/Zitadel (integración con la API de administración, hoy `cis/src/keycloak-admin/` — ADR-004). CRUD completo (editar/dar de baja organización y sede, editar condiciones de contrato, quitar rol) sin necesitar la Console de Keycloak + matriz de roles de solo lectura (DOC-024) |
+| SYS-10 | [`core/frontend/`](core/frontend) | Portal WEB del Directivo | 🟢 Segundo deployable de `core/` (backend NestJS sin cambios) — dashboard ejecutivo (RF-09) + designar Profesional de AFT (`cis/src/directivo/`), le habla a CIS, nunca al backend de CORE directo (ADR-003). Verificado real de punta a punta en su momento contra Docker/Zitadel |
+| SEC | [`seguridad/`](seguridad) | Identidad / RBAC (transversal) | 🟡 Mecanismo (Keycloak/OIDC, [ADR-004](adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)) y modelo de `Contrato` (DOC-004) resueltos e implementados en CIS/CORE |
 | OPS | [`devops/`](devops) | Infraestructura / CI-CD / Observabilidad (transversal) | 🟡 Stack local (Traefik + Postgres + Redis + Zitadel + CIS + CORE) funcionando en Docker Compose. Instalación on-premise por cliente (Nivel 1/2, `devops/onprem/`) diseñada y con primer entregable construible sobre Podman — ver `aidlc-docs/devops/` |
 | — | [`landing/`](landing) | Landing comercial (cara al cliente) | 🟢 Construida — `npm install && npm run dev`. Sin datos internos de desarrollo. |
 
@@ -55,8 +55,9 @@ acá, no reinventar colores por sistema): [BRAND.md](BRAND.md).
 
 Decisiones de arquitectura del ecosistema (stack, identidad/SSO, dominios, infraestructura):
 [`adr/`](adr) — [ADR-001](adr/ADR-001-stack-backend-nestjs.md) (NestJS + Vite/React + Postgres +
-Redis), [ADR-002](adr/ADR-002-identidad-zitadel-multi-tenant.md) (Zitadel self-hosted, modelo
-Organización→Contrato→Sede, dominios bajo `sicsaft.cl`). Operación de infraestructura (VPS,
+Redis), [ADR-004](adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) (Keycloak self-hosted,
+reemplaza a [ADR-002](adr/ADR-002-identidad-zitadel-multi-tenant.md) — modelo
+Organización→Contrato→Sede sin cambios, dominios bajo `sicsaft.cl`). Operación de infraestructura (VPS,
 Docker Compose, CI/CD, DevSecOps): [`devops/README.md`](devops/README.md).
 
 Documentación de metodología AI-DLC (requisitos, historias, diseño y estrategia de testing por

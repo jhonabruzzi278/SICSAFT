@@ -1,4 +1,4 @@
-// Cliente OIDC — authorization code + PKCE contra Zitadel (ADR-002), ya probado real de punta a
+// Cliente OIDC — authorization code + PKCE contra Keycloak (ADR-004, reemplaza a ADR-002), ya probado real de punta a
 // punta con curl simulando el navegador (ver devops/local/README.md "Cliente OIDC real"). Este
 // módulo es la implementación real de ese mismo flujo desde la UI (TASK-007).
 import { generateCodeChallenge, generateCodeVerifier, generateState } from './pkce';
@@ -22,7 +22,7 @@ export class AuthenticationRequiredError extends Error {
 }
 
 // Refresh token explícito (no re-login silencioso) — decisión confirmada: requiere que la app
-// OIDC de app-qr-sicsaft en Zitadel tenga el scope `offline_access` habilitado (Token Settings),
+// OIDC de app-qr-sicsaft en Keycloak tenga el scope `offline_access` habilitado (Token Settings),
 // ver devops/local/README.md. Sin eso, `tokensFromResponse` falla fuerte en vez de degradar a un
 // re-login silencioso no pedido.
 const OIDC_SCOPE = 'openid profile offline_access';
@@ -43,7 +43,7 @@ function tokensFromResponse(
   const refreshToken = response.refresh_token ?? fallbackRefreshToken;
   if (!refreshToken) {
     throw new Error(
-      'Zitadel no devolvió refresh_token — falta el scope offline_access o no está habilitado en la app OIDC (ver devops/local/README.md "Cliente OIDC real").',
+      'Keycloak no devolvió refresh_token — falta el scope offline_access o no está habilitado en la app OIDC (ver devops/local/README.md "Cliente OIDC real").',
     );
   }
   return {
@@ -55,18 +55,18 @@ function tokensFromResponse(
 
 async function postTokenEndpoint(body: URLSearchParams): Promise<TokenResponse> {
   const config = loadOidcConfig();
-  const res = await fetch(new URL('/oauth/v2/token', config.issuer), {
+  const res = await fetch(new URL('/protocol/openid-connect/token', config.issuer), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
   });
   if (!res.ok) {
-    throw new Error(`Zitadel devolvió ${res.status} en /oauth/v2/token`);
+    throw new Error(`Keycloak devolvió ${res.status} en /protocol/openid-connect/token`);
   }
   return (await res.json()) as TokenResponse;
 }
 
-// Redirige a Zitadel — se llama desde un gesto explícito del operador (botón), no automático,
+// Redirige a Keycloak — se llama desde un gesto explícito del operador (botón), no automático,
 // para no sorprender a alguien reabriendo la PWA con un redirect inesperado.
 async function startLogin(): Promise<void> {
   const config = loadOidcConfig();
@@ -75,7 +75,7 @@ async function startLogin(): Promise<void> {
   const state = generateState();
   savePendingPkce({ codeVerifier, state });
 
-  const url = new URL('/oauth/v2/authorize', config.issuer);
+  const url = new URL('/protocol/openid-connect/auth', config.issuer);
   url.searchParams.set('client_id', config.clientId);
   url.searchParams.set('redirect_uri', config.redirectUri);
   url.searchParams.set('response_type', 'code');
@@ -95,7 +95,7 @@ async function handleCallback(searchParams: URLSearchParams): Promise<void> {
   clearPendingPkce();
 
   if (oauthError) {
-    throw new Error(`Zitadel rechazó el login: ${oauthError}`);
+    throw new Error(`Keycloak rechazó el login: ${oauthError}`);
   }
 
   const code = searchParams.get('code');

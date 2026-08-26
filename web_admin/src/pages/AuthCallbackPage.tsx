@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { oidcClient } from '@/lib/oidc/oidc-client';
 import { Alert, Button, Card } from '@/components/ui';
 
-// Destino del redirect_uri configurado en la app OIDC `web-admin-sicsaft` de Zitadel — ver
+// Destino del redirect_uri configurado en el client OIDC `web-admin-sicsaft` de Keycloak — ver
 // devops/local/README.md "Cliente OIDC real (web_admin)", DOC-022. Canjea el `code` por tokens y
 // vuelve a la pantalla de administración.
 export function AuthCallbackPage() {

@@ -35,13 +35,16 @@ pasar la request y devolvió solo los datos de la organización del token).
 
 ```bash
 cd core/frontend
-cp .env.example .env   # completar VITE_ZITADEL_CLIENT_ID, ver devops/local/README.md
+cp .env.example .env   # completar VITE_KEYCLOAK_CLIENT_ID, ver devops/local/README.md
 npm install
 npm run dev             # puerto 5177
 ```
 
 Contra el stack completo: `docker compose up -d --build core-frontend` en `devops/local/`, sirve
-en `http://directivo.sicsaft.localhost` (Traefik).
+en `http://directivo.sicsaft.localhost` (Traefik). **Nota (2026-08-26)**: `devops/local/docker-compose.yml`
+todavía no migró a Keycloak ([ADR-004](../../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)
+Fase 1 solo cubrió `cis/`) — hoy el stack de Docker Compose sigue levantando Zitadel, así que este
+flujo queda temporalmente inconsistente hasta que esa fase se complete.
 
 ## Depende de
 

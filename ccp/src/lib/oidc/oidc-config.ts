@@ -1,4 +1,4 @@
-// Config del cliente OIDC (ADR-002) — falla rapido al importarse en vez de con errores cripticos
+// Config del cliente OIDC (ADR-002/ADR-004) — falla rapido al importarse en vez de con errores cripticos
 // a mitad del flujo de login (mismo criterio que app-qr-sicsaft/src/lib/oidc/oidc-config.ts).
 export interface OidcConfig {
   issuer: string;
@@ -19,8 +19,8 @@ function requireEnv(name: string): string {
 
 export function loadOidcConfig(): OidcConfig {
   return {
-    issuer: requireEnv('VITE_ZITADEL_ISSUER'),
-    clientId: requireEnv('VITE_ZITADEL_CLIENT_ID'),
+    issuer: requireEnv('VITE_KEYCLOAK_ISSUER'),
+    clientId: requireEnv('VITE_KEYCLOAK_CLIENT_ID'),
     redirectUri: `${window.location.origin}/auth/callback`,
     cisUrl: requireEnv('VITE_CIS_URL'),
   };

@@ -1,5 +1,5 @@
 // Handlers de MSW para los 4 endpoints reales de CIS que usa qr-connector.ts (DOC-006) — sólo se
-// registran en modo mock (ver src/main.tsx, VITE_MOCK_API). Zitadel nunca se mockea acá: CIS es
+// registran en modo mock (ver src/main.tsx, VITE_MOCK_API). Keycloak nunca se mockea acá: CIS es
 // quien valida el JWT server-side, el cliente sólo mira si hay tokens guardados
 // (oidcClient.isAuthenticated(), sessionStorage) — ver plan de e2e en HANDOFF 7.
 import { http, HttpResponse } from 'msw';
