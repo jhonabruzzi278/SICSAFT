@@ -9,6 +9,7 @@
 // credenciales al arrancar keycloak-service.ts (ver AdminBootstrapKeycloak) y las pasa directo,
 // sin que el vendedor las vea ni las escriba en ningún lado.
 
+import { randomBytes } from "node:crypto";
 import type { AdminBootstrapKeycloak } from "./services/keycloak-service";
 import { KEYCLOAK_CONFIG } from "./services/keycloak-service";
 
@@ -281,4 +282,141 @@ export async function bootstrapPrimeraInstalacion(
   await crearClientPublico(token, "sicsaft-core", puertoRenderer);
 
   return { organizacionId, adminCis };
+}
+
+// Paso 2 del wizard ("alta del Director") — port de
+// cis/src/keycloak-admin/keycloak-admin.service.ts `crearUsuarioHuman`/`crearGrant`, recortado a
+// lo que este wizard necesita (crear el usuario + darle el rol "directivo" en su organización),
+// no el `KeycloakAdminService` completo (listar grants, desactivar usuario, etc. no aplican acá).
+// Mismo comportamiento verificado: password inicial de 20 caracteres sin ambigüedad visual,
+// `temporary: true` (fuerza cambio en el primer login), y el modelo de "rol por organización" de
+// ADR-004 (grupo `{organizacionId}::{rol}` con el realm role asignado al grupo — ver el
+// comentario de KeycloakAdminService sobre por qué los realm roles de Keycloak son globales, no
+// nativos por organización).
+
+const LONGITUD_PASSWORD_INICIAL = 20;
+// Debe calzar exacto con GRUPO_ORGANIZACION_ROL_SEPARADOR
+// (cis/src/common/auth/keycloak-auth.constants.ts) -- keycloak-auth.guard.ts de cis/ interpreta
+// los grupos de un usuario con este mismo separador para resolver sus roles por organización.
+const GRUPO_ORGANIZACION_ROL_SEPARADOR = "::";
+const ROL_DIRECTIVO = "directivo";
+
+function generarPasswordInicial(): string {
+  const alfabeto =
+    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const bytes = randomBytes(LONGITUD_PASSWORD_INICIAL);
+  let password = "";
+  for (let i = 0; i < LONGITUD_PASSWORD_INICIAL; i += 1) {
+    password += alfabeto[bytes[i] % alfabeto.length];
+  }
+  return password;
+}
+
+async function resolverOrganizacionPorAlias(
+  token: string,
+  organizacionId: string,
+): Promise<{ id: string }> {
+  const organizaciones = (await (
+    await adminApi(token, "GET", "/organizations")
+  ).json()) as Array<{ id: string; alias: string }>;
+  const organizacion = organizaciones.find((o) => o.alias === organizacionId);
+  if (!organizacion) {
+    throw new Error(
+      `No se encontró en Keycloak ninguna Organization con alias '${organizacionId}'`,
+    );
+  }
+  return organizacion;
+}
+
+async function agregarMiembroSiHaceFalta(
+  token: string,
+  organizacionUuid: string,
+  userId: string,
+): Promise<void> {
+  const res = await fetch(
+    `${KEYCLOAK_CONFIG.url}/admin/realms/${KEYCLOAK_CONFIG.realm}/organizations/${organizacionUuid}/members`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userId),
+    },
+  );
+  // 409 = ya era miembro -- idempotente, no un error real (mismo criterio que
+  // KeycloakAdminService.agregarMiembroSiHaceFalta). Cualquier otro status sí se propaga.
+  if (!res.ok && res.status !== 409) {
+    throw new Error(
+      `No se pudo agregar el usuario a la Organization: HTTP ${res.status}`,
+    );
+  }
+}
+
+async function resolverOCrearGrupoRol(
+  token: string,
+  organizacionId: string,
+  rol: string,
+): Promise<string> {
+  const nombre = `${organizacionId}${GRUPO_ORGANIZACION_ROL_SEPARADOR}${rol}`;
+  const gruposExistentes = (await (
+    await adminApi(
+      token,
+      "GET",
+      `/groups?search=${encodeURIComponent(nombre)}&exact=true`,
+    )
+  ).json()) as Array<{ id: string; name: string }>;
+  const existente = gruposExistentes.find((g) => g.name === nombre);
+  if (existente) return existente.id;
+
+  const location = await adminApi(token, "POST", "/groups", { name: nombre });
+  const grupoId = idDeLocation(location.location);
+  const rolDef = (await (
+    await adminApi(token, "GET", `/roles/${encodeURIComponent(rol)}`)
+  ).json()) as { id: string; name: string };
+  await adminApi(token, "POST", `/groups/${grupoId}/role-mappings/realm`, [
+    { id: rolDef.id, name: rolDef.name },
+  ]);
+  return grupoId;
+}
+
+export interface UsuarioDirectorCreado {
+  userId: string;
+  passwordInicial: string;
+}
+
+export async function crearUsuarioDirector(
+  admin: AdminBootstrapKeycloak,
+  organizacionId: string,
+  email: string,
+): Promise<UsuarioDirectorCreado> {
+  const token = await obtenerTokenAdmin(admin);
+  const passwordInicial = generarPasswordInicial();
+
+  const creado = await adminApi(token, "POST", "/users", {
+    username: email,
+    email,
+    enabled: true,
+    emailVerified: true,
+    firstName: email,
+    lastName: email,
+    credentials: [
+      { type: "password", value: passwordInicial, temporary: true },
+    ],
+  });
+  const userId = idDeLocation(creado.location);
+
+  const organizacion = await resolverOrganizacionPorAlias(
+    token,
+    organizacionId,
+  );
+  await agregarMiembroSiHaceFalta(token, organizacion.id, userId);
+  const grupoId = await resolverOCrearGrupoRol(
+    token,
+    organizacionId,
+    ROL_DIRECTIVO,
+  );
+  await adminApi(token, "PUT", `/users/${userId}/groups/${grupoId}`, {});
+
+  return { userId, passwordInicial };
 }

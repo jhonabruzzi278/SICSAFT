@@ -39,6 +39,7 @@ export function WizardApp() {
         )}
         {paso === "director" && bootstrap && (
           <PasoDirector
+            organizacionId={bootstrap.organizacionId}
             onListo={(resultado) => {
               setDirector(resultado);
               setPaso("profesional-aft");

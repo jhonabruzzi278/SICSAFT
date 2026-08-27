@@ -7,16 +7,19 @@ import type { AltaDirectorResultado } from "@shared/ipc-contract";
 // Paso 2 del wizard (aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md "Primer arranque")
 // — el vendedor completa el email del Director acá mismo, en la PC del Director, y la app genera
 // el password inicial (nunca lo tipea el vendedor) -- mismo mecanismo que
-// KeycloakAdminService.crearUsuarioHuman ya implementado en cis/ (temporary: true, cambio
-// obligatorio en el primer login), pendiente de portar acá (ver ipc/handlers.ts altaDirector).
+// KeycloakAdminService.crearUsuarioHuman/crearGrant de cis/, portado a
+// keycloak-bootstrap.ts crearUsuarioDirector() (temporary: true, cambio obligatorio en el primer
+// login, rol "directivo" en la organización creada en el paso 1).
 const schema = z.object({
   email: z.string().email("Email inválido"),
 });
 type FormValues = z.infer<typeof schema>;
 
 export function PasoDirector({
+  organizacionId,
   onListo,
 }: {
+  organizacionId: string;
   onListo: (resultado: AltaDirectorResultado) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +35,10 @@ export function PasoDirector({
   async function onSubmit(values: FormValues) {
     setError(null);
     try {
-      const res = await window.sicsaftCore.altaDirector(values);
+      const res = await window.sicsaftCore.altaDirector({
+        ...values,
+        organizacionId,
+      });
       setResultado(res);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error desconocido");

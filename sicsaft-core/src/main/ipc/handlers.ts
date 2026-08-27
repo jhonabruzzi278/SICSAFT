@@ -6,8 +6,10 @@ import type {
   DatosClienteInput,
 } from "@shared/ipc-contract";
 import type { ServiceOrchestrator } from "../services/service-orchestrator";
-import { bootstrapPrimeraInstalacion } from "../keycloak-bootstrap";
-import { KEYCLOAK_CONFIG } from "../services/keycloak-service";
+import {
+  bootstrapPrimeraInstalacion,
+  crearUsuarioDirector,
+} from "../keycloak-bootstrap";
 import { PUERTO_RENDERER } from "../renderer-config";
 
 // Todos los handlers reciben el ServiceOrchestrator ya arrancado -- ningún handler expone
@@ -32,6 +34,12 @@ export function registrarIpcHandlers(orquestador: ServiceOrchestrator): void {
         input.organizacionId,
         PUERTO_RENDERER,
       );
+      // cis recién puede arrancar acá -- necesita el client "cis-admin" (KEYCLOAK_ADMIN_CLIENT_ID/
+      // SECRET) que bootstrapPrimeraInstalacion() acaba de crear, ver la nota de secuencia en
+      // service-orchestrator.ts iniciarCis(). El wizard espera a que quede "listo" antes de
+      // avanzar al siguiente paso (alta del Director, que si necesita cis arriba en el futuro
+      // pasaría a llamarlo directo -- hoy altaDirector todavía no depende de cis, ver más abajo).
+      await orquestador.iniciarCis(resultado.adminCis);
       return { organizacionId: resultado.organizacionId };
     },
   );
@@ -40,17 +48,10 @@ export function registrarIpcHandlers(orquestador: ServiceOrchestrator): void {
     "sicsaft-core:altaDirector",
     async (
       _event,
-      _input: AltaDirectorInput,
+      input: AltaDirectorInput,
     ): Promise<AltaDirectorResultado> => {
-      // TODO real: portar KeycloakAdminService.crearUsuarioHuman (cis/src/keycloak-admin/) a este
-      // proceso principal -- mismo patrón que keycloak-bootstrap.ts ya hizo con
-      // Bootstrap-Keycloak.psm1, pendiente para el siguiente incremento (ADR-005 sacó a Redis del
-      // ecosistema, ya no es el bloqueante -- falta el wiring real de cis/ al orquestador, ver
-      // service-orchestrator.ts).
-      throw new Error(
-        `No implementado todavía -- pendiente portar KeycloakAdminService.crearUsuarioHuman ` +
-          `(ver cis/src/keycloak-admin/keycloak-admin.service.ts) a ${KEYCLOAK_CONFIG.realm}.`,
-      );
+      const admin = orquestador.getKeycloakAdmin();
+      return crearUsuarioDirector(admin, input.organizacionId, input.email);
     },
   );
 }

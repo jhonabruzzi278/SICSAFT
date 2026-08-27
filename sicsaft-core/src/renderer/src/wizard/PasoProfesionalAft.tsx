@@ -1,9 +1,10 @@
 // Paso 3 del wizard — designar al Profesional de AFT. Reusa el mismo endpoint que ya existe
 // (`POST /admin/organizaciones/:orgId/usuarios`, ver core/frontend/src/pages/
-// GestionarProfesionalAftPage.tsx), pero ese endpoint vive en `cis/`, todavía no integrado a este
-// scaffold (ADR-005 sacó a Redis del ecosistema, ya no es el bloqueante — falta el wiring real de
-// cis/core/cip al orquestador, ver src/main/services/service-orchestrator.ts). Placeholder
-// honesto: no simula una llamada que no existe.
+// GestionarProfesionalAftPage.tsx), que vive en `cis/`. `cis/` ya corre embebido y arranca de
+// verdad (ver `ServiceOrchestrator.iniciarCis`, llamado desde el paso 1 del wizard) -- lo que
+// falta acá es cablear ESTE paso a esa llamada HTTP real (nuevo handler IPC, mismo patrón que
+// `altaDirector`), no la infraestructura de por debajo. Placeholder honesto: no simula una llamada
+// que no existe.
 export function PasoProfesionalAft({ onListo }: { onListo: () => void }) {
   return (
     <div className="w-full max-w-sm space-y-4 text-center">
@@ -15,10 +16,10 @@ export function PasoProfesionalAft({ onListo }: { onListo: () => void }) {
         <code className="text-[var(--faint-foreground)]">
           core/frontend/GestionarProfesionalAftPage.tsx
         </code>
-        , pero necesita{" "}
-        <code className="text-[var(--faint-foreground)]">cis/</code> corriendo
-        embebido — todavía sin integrar al orquestador (ver{" "}
-        <code>service-orchestrator.ts</code>).
+        , llamando al endpoint real de{" "}
+        <code className="text-[var(--faint-foreground)]">cis/</code> (ya
+        corriendo embebido) — falta agregar el handler IPC que la haga, ver{" "}
+        <code>ipc/handlers.ts</code>.
       </p>
       <button
         type="button"

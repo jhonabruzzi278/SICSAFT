@@ -40,9 +40,12 @@ export interface BootstrapClienteResultado {
 }
 
 // Paso 2 — alta del Director (KeycloakAdminService.crearUsuarioHuman del lado de cis/, portado acá
-// para no depender de que cis/ ya esté arriba en este punto del wizard).
+// para no depender de que cis/ ya esté arriba en este punto del wizard). organizacionId viaja
+// desde el resultado del paso 1 (BootstrapClienteResultado) -- el Director necesita quedar como
+// miembro de ESA organización con el rol "directivo", no alcanza con crear el usuario suelto.
 export interface AltaDirectorInput {
   email: string;
+  organizacionId: string;
 }
 
 export interface AltaDirectorResultado {
