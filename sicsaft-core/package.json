@@ -25,6 +25,52 @@
     "pg": "^8.23.0",
     "zod": "^3.25.76"
   },
+  "build": {
+    "appId": "cl.sicsaft.core",
+    "productName": "SICSAFT CORE",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      { "from": "resources/postgres", "to": "postgres" },
+      { "from": "resources/keycloak", "to": "keycloak" },
+      {
+        "from": "../cis",
+        "to": "cis",
+        "filter": ["dist/**/*", "package.json"]
+      },
+      {
+        "from": "../core",
+        "to": "core",
+        "filter": [
+          "dist/**/*",
+          "package.json",
+          "migrations/**/*",
+          "scripts/**/*",
+          "src/**/*"
+        ]
+      },
+      {
+        "from": "../cip",
+        "to": "cip",
+        "filter": ["dist/**/*", "package.json", "migrations/**/*", "scripts/**/*"]
+      }
+    ],
+    "afterPack": "./scripts/electron-builder-after-pack.cjs",
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
     "@tailwindcss/vite": "^4.3.3",
