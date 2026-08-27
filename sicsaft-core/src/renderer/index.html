@@ -2,9 +2,21 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      Bug real encontrado en esta sesión (2026-08-27): sin 'unsafe-eval' en script-src, `npm run
+      dev` mostraba una ventana completamente en blanco -- el CSS cargaba (fondo oscuro visible)
+      pero React nunca renderizaba nada. El runtime de HMR de Vite en dev usa eval()/new
+      Function() para el módulo transform; el CSP lo bloqueaba en silencio, sin ningún error
+      visible salvo en la consola de DevTools del renderer (que no se mira desde curl/tests).
+      script-src sigue en 'self' -- esto no habilita cargar scripts remotos, solo eval() de
+      código que ya vino del propio origin. Sigue aplicando igual en el build de producción
+      (Vite bundlea sin eval ahí, así que no debería hacer falta en runtime real) -- separar el
+      CSP por modo dev/prod es una mejora futura, no crítica para un desktop app sin contenido
+      remoto.
+    -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+      content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'"
     />
     <title>SICSAFT CORE</title>
   </head>

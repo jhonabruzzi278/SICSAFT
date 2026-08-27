@@ -24,7 +24,15 @@ function crearVentana(): BrowserWindow {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
-      preload: join(__dirname, "../preload/index.js"),
+      // 2 bugs reales encontrados hoy con DevTools abierto, en cadena: (1) electron-vite
+      // compilaba el preload a `index.mjs` con `"type": "module"` en package.json, mientras
+      // esto apuntaba a `.js` -- ENOENT real. (2) Corregido a `.mjs`, Electron con
+      // `sandbox: true` (ver webPreferences de acá abajo) no soporta ESM en preload bajo
+      // ninguna extensión -- "Cannot use import statement outside a module" real, su loader
+      // sandboxeado solo entiende CommonJS. Fix real: forzar el build del preload a CJS +
+      // extensión `.cjs` en electron.vite.config.ts (Node/Electron siempre tratan `.cjs` como
+      // CommonJS, sin importar "type": "module") -- acá apunta a esa misma extensión.
+      preload: join(__dirname, "../preload/index.cjs"),
     },
   });
 
@@ -41,6 +49,14 @@ function crearVentana(): BrowserWindow {
     void ventana.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
     void ventana.loadFile(join(__dirname, "../renderer/index.html"));
+  }
+
+  // Solo en dev -- diagnosticar una ventana en blanco sin esto obliga a que el vendedor sepa el
+  // atajo de teclado o el menú de Electron; abrirlo solo hace más fácil ver errores reales del
+  // renderer (CSP, excepciones de React, etc.) que nunca llegan a la terminal del proceso
+  // principal.
+  if (!app.isPackaged) {
+    ventana.webContents.openDevTools({ mode: "detach" });
   }
 
   return ventana;

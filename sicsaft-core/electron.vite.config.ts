@@ -22,6 +22,18 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: { index: resolve(__dirname, "src/preload/index.ts") },
+        // Bug real (2026-08-27): con "type": "module" en package.json, electron-vite compila
+        // el preload como ESM (out/preload/index.mjs) por default -- pero Electron con
+        // `sandbox: true` (ver src/main/index.ts) carga preload scripts con su propio loader
+        // sandboxeado, que NO soporta `import`/`export` bajo ninguna extensión ("Cannot use
+        // import statement outside a module", encontrado con DevTools real). Forzar CJS acá +
+        // extensión .cjs (que Node/Electron siempre trata como CommonJS, sin importar
+        // "type": "module") es la combinación real que lo resuelve -- src/main/index.ts
+        // apunta a esta misma extensión.
+        output: {
+          format: "cjs",
+          entryFileNames: "[name].cjs",
+        },
       },
     },
   },
