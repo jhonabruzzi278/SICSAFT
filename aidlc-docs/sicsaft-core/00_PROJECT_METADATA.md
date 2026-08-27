@@ -55,6 +55,19 @@ Director con el rol `directivo` — verificado real de punta a punta contra un K
 incluyendo confirmar contra la Admin API que el usuario quedó en el grupo/rol correcto y con
 `UPDATE_PASSWORD` forzado.
 
+**Empaquetado real (`electron-builder`) y wizard verificado visualmente por el usuario, mismo
+día**: `npm run dist:win` produce un instalador NSIS real con Postgres/Keycloak/`cis`/`core`/`cip`
+adentro (`package.json` `"build"` + `scripts/electron-builder-after-pack.cjs` — workaround real:
+`extraResources` de electron-builder no copia carpetas llamadas `node_modules` vía su `filter`,
+hay que copiarlas a mano en un hook `afterPack`). Recién ahí, mirando la ventana de verdad (no
+solo los health-checks de backend, que ya venían en verde), aparecieron **3 bugs reales del
+renderer**: `index.ts` apuntaba el `preload` a `.js` pero electron-vite compila `.mjs` con
+`"type": "module"`; corregido, Electron con `sandbox: true` tampoco soporta ESM en preload bajo
+ninguna extensión; fix real: forzar el build del preload a CJS + `.cjs` en
+`electron.vite.config.ts`. El usuario confirmó visualmente que el wizard ya renderiza ("Datos de
+esta instalación") después del fix — primera verificación visual real de esta app en toda la
+sesión, no solo verificación por `curl`/tests.
+
 ## Depende de
 
 `cis/`, `core/`, `cip/`, `web_admin/`, `core/frontend/` (código de aplicación reusado tal cual,
@@ -72,10 +85,8 @@ Nada de forma dura — `devops/onprem/` (Podman) sigue existiendo en paralelo de
 1. Cablear el paso "Profesional de AFT" del wizard al endpoint real de `cis/`
    (`PasoProfesionalAft.tsx` + nuevo handler IPC, mismo patrón que `altaDirector`) — `cis/` ya
    corre embebido, solo falta este último handler.
-2. Empaquetado real (`electron-builder`, `npm run dist:win`): configurar `extraResources` para
-   copiar `dist/`+`node_modules/`+`migrations/`+`scripts/` de `cis`/`core`/`cip` a
-   `resources/<sistema>/`, y automatizar el paso `kc.bat build --db=postgres --health-enabled=true`
-   (hoy manual, ver `resources/README.md`).
+2. Automatizar el paso manual de `kc.bat build --db=postgres --health-enabled=true` como parte del
+   empaquetado (hoy se corre a mano una vez después de vendorizar, ver `resources/README.md`).
 3. Decidir cuándo/cómo se construye la APK Android (`CORE-Q-01`, reabierta — no existe todavía) —
    incremento aparte, no bloqueante para lo de arriba.
 4. CORE-Q-03 (Nivel 2/3 en `sicsaft-core.exe`) sigue sin resolverse, fuera de alcance por ahora.

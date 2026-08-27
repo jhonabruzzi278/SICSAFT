@@ -42,7 +42,26 @@ verde:
   `KeycloakAdminService.crearUsuarioHuman`/`crearGrant`), mismas llamadas a la Admin REST API ya
   verificadas reales en ADR-004 Fase 3.
 - Wizard de primer arranque (datos del cliente → alta del Director → alta del Profesional de AFT)
-  — UI completa, con los 2 primeros pasos ya llamando IPC real de punta a punta.
+  — UI completa, con los 2 primeros pasos ya llamando IPC real de punta a punta, **verificado
+  visualmente** (no solo por health-check de backend, ver hallazgos abajo).
+- **Empaquetado `electron-builder` real** (`npm run dist:win`) — instalador NSIS con Postgres/
+  Keycloak/`cis`/`core`/`cip` (`dist`+`node_modules`+`migrations`+`scripts`+`src` donde aplica)
+  empaquetados adentro, ver `package.json` `"build"` y `scripts/electron-builder-after-pack.cjs`
+  (workaround real: el `filter` de `extraResources` de electron-builder no copia carpetas
+  literalmente llamadas `node_modules`, hay que copiarlas a mano en un hook `afterPack`).
+
+**3 bugs reales del renderer, encontrados recién con DevTools abierto (2026-08-27)** — todos con
+la app arrancando "bien" por fuera (los 5 servicios en verde), pero la ventana quedaba en blanco
+porque nunca se había mirado la consola del renderer, solo los health-checks del backend:
+
+1. `index.ts` apuntaba el `preload` a `index.js`, pero electron-vite compila a `index.mjs` con
+   `"type": "module"` en `package.json` — `ENOENT` real.
+2. Corregido a `.mjs`, Electron con `sandbox: true` no soporta ESM en preload bajo ninguna
+   extensión — `"Cannot use import statement outside a module"` real, su loader sandboxeado solo
+   entiende CommonJS.
+3. Fix real: forzar el build del preload a CJS + extensión `.cjs` en `electron.vite.config.ts`
+   (`.cjs` siempre es CommonJS para Node/Electron, sin importar `"type": "module"`) — `index.ts`
+   apunta a esa extensión. Ver los comentarios en ambos archivos para el detalle completo.
 
 **Lo que NO está resuelto todavía** (ver
 [`aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md`](../aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md)
@@ -51,10 +70,6 @@ para el detalle real de cada uno, sin minimizar):
 - **Paso "Profesional de AFT" del wizard**: `cis/` ya corre embebido, pero este último paso
   todavía no tiene el handler IPC que llame a su endpoint real (`PasoProfesionalAft.tsx` sigue
   siendo un placeholder honesto).
-- **Empaquetado `electron-builder`** (`dist:win`): en `npm run dev` no hace falta (los binarios se
-  resuelven directo desde `resources/`/el monorepo), pero el instalador final necesita copiar
-  `dist/`+`node_modules/`+`migrations/`+`scripts/` de `cis`/`core`/`cip` a `resources/<sistema>/`,
-  y automatizar el paso de `kc.bat build` — pendiente.
 - **La APK Android no existe todavía** — a diferencia de lo que se pensó en un momento, no hay una
   APK Capacitor ya construida fuera de este repo (`CORE-Q-01` reabierta, corregido
   2026-08-27). Construirla (o decidir si entra a este repo) es un incremento aparte; mientras
@@ -84,21 +99,26 @@ resuelta: no lo reemplaza).
 
 ```bash
 npm install
-npm run dev          # electron-vite dev — abre la ventana, HMR real en el renderer
+npm run dev          # electron-vite dev — abre la ventana + DevTools (solo dev), HMR real
 npm run typecheck
 npm run lint:ci
 npm test
 npm run build         # compila main/preload/renderer a out/
+npm run pack           # electron-builder --dir -- empaquetado sin instalador, rápido de iterar
+npm run dist:win       # instalador NSIS real -- lento (comprime ~1.3GB con LZMA), usar solo
+                        # cuando hace falta el .exe final, no para cada cambio chico
 ```
 
-`npm run dev`/`npm run build` arrancan la ventana pero **no** los servicios embebidos reales
-todavía — `service-orchestrator.ts` va a fallar apenas intente arrancar Keycloak/Postgres sin los
-binarios vendorizados en `resources/` (ver `resources/README.md`).
+`npm run dev` necesita los binarios vendorizados en `resources/` (ver `resources/README.md`) —
+sin ellos, `service-orchestrator.ts` falla apenas intenta arrancar Postgres/Keycloak con un error
+claro. `npm run dev`/`npm run pack`/`npm run dist:win` abren DevTools automáticamente en modo no
+empaquetado (`!app.isPackaged`) — mirar la consola ahí es el primer paso real para diagnosticar
+cualquier pantalla en blanco, no asumir que el problema está en el backend solo porque los
+health-checks respondan bien.
 
 ## Próximo paso sugerido
 
 Ver "Próximo paso sugerido" en
 [`aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md`](../aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md)
-— confirmar el `capacitor.config.ts` real de la APK, vendorizar binarios (Postgres, JRE+Keycloak),
-y completar la integración de `cis`/`core`/`cip` al orquestador (ya sin bloqueante externo desde
-ADR-005).
+— cablear el paso "Profesional de AFT" del wizard al endpoint real de `cis/`, y decidir cuándo/cómo
+se construye la APK Android (`CORE-Q-01`, reabierta).
