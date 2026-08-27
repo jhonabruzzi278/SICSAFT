@@ -9,8 +9,10 @@
 // token") — acá el equivalente es "el punto de validación/secretos es el proceso principal, no
 // el renderer".
 
-export type NombreServicio =
-  "postgres" | "redis" | "keycloak" | "cis" | "core" | "cip";
+// ADR-005 (2026-08-27) — sin "redis": cis/core/cip dejaron de depender de Redis en todo el
+// ecosistema (rate-limiter/device-registry de cis pasaron a memoria del propio proceso, la cola
+// CORE->CIP pasa a pg-boss sobre Postgres) — un servicio menos que embeber acá.
+export type NombreServicio = "postgres" | "keycloak" | "cis" | "core" | "cip";
 
 export type EstadoServicio = "detenido" | "iniciando" | "listo" | "error";
 

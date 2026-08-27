@@ -1,9 +1,9 @@
 // Paso 3 del wizard — designar al Profesional de AFT. Reusa el mismo endpoint que ya existe
 // (`POST /admin/organizaciones/:orgId/usuarios`, ver core/frontend/src/pages/
 // GestionarProfesionalAftPage.tsx), pero ese endpoint vive en `cis/`, todavía no integrado a este
-// scaffold (bloqueado por el spike de Redis, ver
-// aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md y src/main/services/
-// service-orchestrator.ts). Placeholder honesto: no simula una llamada que no existe.
+// scaffold (ADR-005 sacó a Redis del ecosistema, ya no es el bloqueante — falta el wiring real de
+// cis/core/cip al orquestador, ver src/main/services/service-orchestrator.ts). Placeholder
+// honesto: no simula una llamada que no existe.
 export function PasoProfesionalAft({ onListo }: { onListo: () => void }) {
   return (
     <div className="w-full max-w-sm space-y-4 text-center">
@@ -17,8 +17,8 @@ export function PasoProfesionalAft({ onListo }: { onListo: () => void }) {
         </code>
         , pero necesita{" "}
         <code className="text-[var(--faint-foreground)]">cis/</code> corriendo
-        embebido — bloqueado por el spike de Redis (ver{" "}
-        <code>ARCHITECTURE.md</code>).
+        embebido — todavía sin integrar al orquestador (ver{" "}
+        <code>service-orchestrator.ts</code>).
       </p>
       <button
         type="button"

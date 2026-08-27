@@ -2,21 +2,13 @@ import type { EstadoServicios, NombreServicio } from "@shared/ipc-contract";
 
 const ETIQUETAS: Record<NombreServicio, string> = {
   postgres: "Base de datos",
-  redis: "Cola de tareas",
   keycloak: "Identidad",
   cis: "Interoperabilidad (CIS)",
   core: "Orquestador (CORE)",
   cip: "Inteligencia patrimonial (CIP)",
 };
 
-const ORDEN: NombreServicio[] = [
-  "postgres",
-  "redis",
-  "keycloak",
-  "cis",
-  "core",
-  "cip",
-];
+const ORDEN: NombreServicio[] = ["postgres", "keycloak", "cis", "core", "cip"];
 
 // CORE-RNF-02 (aidlc-docs/sicsaft-core/requirements/REQUIREMENTS.md): nunca una ventana en
 // blanco mientras Postgres/Keycloak (la JVM, la más lenta) arrancan -- se muestra el progreso

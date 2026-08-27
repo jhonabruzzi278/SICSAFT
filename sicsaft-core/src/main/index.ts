@@ -62,8 +62,8 @@ app.whenReady().then(async () => {
   } catch (err: unknown) {
     // No se cierra la app -- el wizard (renderer) recibe el estado de error vía
     // 'estado-cambio' y lo muestra (ver CORE-RNF-02: nunca una ventana en blanco sin feedback).
-    // El error real (hoy: Redis embebido pendiente, ver service-orchestrator.ts) queda en el log
-    // de la app, no oculto.
+    // El error real (hoy: cis/core/cip sin integrar al orquestador, ver service-orchestrator.ts)
+    // queda en el log de la app, no oculto.
 
     console.error("[sicsaft-core] Fallo iniciando servicios embebidos:", err);
   }

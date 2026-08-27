@@ -11,8 +11,9 @@ procesos nativos dentro de la propia app — **sin Podman, sin Docker, sin WSL2,
 visible para el cliente**.
 
 Decisión de arquitectura confirmada con el usuario (`AskUserQuestion`, 2026-08-27): Electron o
-Tauri, con Postgres/Keycloak/Redis/CIS/CORE/CIP corriendo como procesos embebidos dentro del
-`.exe`, no como contenedores. Esto vuelve obsoleta la capa de empaquetado que
+Tauri, con Postgres/Keycloak/CIS/CORE/CIP corriendo como procesos embebidos dentro del `.exe`, no
+como contenedores (sin Redis — ver ADR-005, decidido más tarde ese mismo día: sacado del
+ecosistema completo). Esto vuelve obsoleta la capa de empaquetado que
 `devops/onprem/docker-compose.yml`/`instalar-cliente.ps1`/Podman construían — el código de
 aplicación de `cis/`, `core/`, `cip/`, y los 4 portales (`app-qr-sicsaft`, `ccp`, `web_admin`,
 `core/frontend`) NO cambia, solo cómo se empaqueta y arranca todo junto.
@@ -62,9 +63,10 @@ dominios locales" — lo reemplaza por una app nativa que no expone nada de eso 
 - **No incluye la APK de Android** en el alcance de código de este incremento — ya existe y se
   mantiene fuera de este repo (ver CORE-Q-01, resuelto arriba); este incremento solo debe dejar
   `cis`/Keycloak alcanzables por esa APK desde la LAN, no construirla.
-- **No decide todavía el mecanismo de Redis embebido** (ver `ARCHITECTURE.md` "Riesgos reales, no
-  supuestos") — es la pieza con menos certeza técnica y se trata como spike/decisión propia, no se
-  asume una solución.
+- **Redis, resuelto (ADR-005, 2026-08-27)**: no se decide un mecanismo para embeberlo — se saca del
+  ecosistema completo. `core/`+`cip/` mueven la cola `cip-eventos` a `pg-boss` sobre Postgres (que
+  ya era una dependencia dura embebida acá), `cis/` mueve rate-limiter/device-registry a memoria
+  del propio proceso. Ver `ARCHITECTURE.md` "Redis — resuelto".
 
 ## Preguntas abiertas (no bloquean el diseño, se documentan)
 

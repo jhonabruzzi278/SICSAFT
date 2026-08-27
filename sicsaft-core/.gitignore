@@ -10,4 +10,3 @@ release/
 # aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md).
 resources/postgres/
 resources/keycloak/
-resources/redis/

@@ -1,8 +1,9 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 
-// Wrapper reusado por los 6 servicios embebidos (Postgres, Redis, Keycloak, cis, core, cip) —
-// evita repetir la misma lógica de spawn/log/espera de 6 formas ligeramente distintas. Cada
+// Wrapper reusado por los 5 servicios embebidos (Postgres, Keycloak, cis, core, cip — ADR-005
+// sacó a Redis del ecosistema) — evita repetir la misma lógica de spawn/log/espera de 5 formas
+// ligeramente distintas. Cada
 // servicio concreto (ver postgres-service.ts, keycloak-service.ts, node-backend-service.ts)
 // extiende o compone esto con su propio comando y su propia forma de detectar "ya está listo"
 // (health endpoint HTTP, o un patrón en stdout — cada proceso lo señala distinto).

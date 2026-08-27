@@ -8,9 +8,9 @@ prefijo; este prefijo es solo para requisitos de ESTE incremento (la app de escr
 ## Funcionales
 
 - **CORE-RF-01**: `sicsaft-core.exe` debe instalar y arrancar, sin Podman/Docker/WSL2, todos los
-  servicios de Nivel 1 (Postgres, Keycloak, Redis, `cis`, `core`, `cip`) como procesos hijos del
-  proceso principal de Electron, escuchando en `127.0.0.1` en puertos fijos no estándar (evitar
-  colisión con instalaciones previas del cliente).
+  servicios de Nivel 1 (Postgres, Keycloak, `cis`, `core`, `cip` — sin Redis, ver ADR-005) como
+  procesos hijos del proceso principal de Electron, escuchando en `127.0.0.1` en puertos fijos no
+  estándar (evitar colisión con instalaciones previas del cliente).
 - **CORE-RF-02**: Debe existir un wizard de primer arranque, corrido por el vendedor
   (administrador del sistema) en la PC del Director, que — en un solo flujo dentro de la app —
   cree el realm/Organization/roles/clients de Keycloak de este cliente (misma lógica que
@@ -34,15 +34,15 @@ prefijo; este prefijo es solo para requisitos de ESTE incremento (la app de escr
 ## No funcionales
 
 - **CORE-RNF-01**: El instalador final (`.exe`, NSIS vía `electron-builder`) debe dejar claro para
-  el usuario/soporte cuánto pesa realmente (Postgres + JRE/Keycloak + Redis + Node + Chromium
-  suman varios cientos de MB) — no se oculta ni se subestima ese costo en la documentación de este
-  incremento (ver `ARCHITECTURE.md` "Costo real, no minimizado").
+  el usuario/soporte cuánto pesa realmente (Postgres + JRE/Keycloak + Node + Chromium suman varios
+  cientos de MB) — no se oculta ni se subestima ese costo en la documentación de este incremento
+  (ver `ARCHITECTURE.md` "Costo real, no minimizado").
 - **CORE-RNF-02**: El arranque en frío (primera vez que se abre la app tras instalar, o después de
   reiniciar la PC) debe mostrar una pantalla de carga mientras los procesos hijos (sobre todo
   Keycloak, la JVM más lenta de arrancar) quedan listos — nunca una ventana en blanco o sin
   feedback mientras tanto.
 - **CORE-RNF-03**: Ningún puerto de los servicios embebidos debe quedar expuesto más allá de lo
-  estrictamente necesario — Postgres/Redis solo en `127.0.0.1` (nunca en la IP de LAN); solo `cis`
+  estrictamente necesario — Postgres solo en `127.0.0.1` (nunca en la IP de LAN); solo `cis`
   (y Keycloak, para que la APK pueda loguearse) escuchan en la IP de LAN, cuando CORE-RF-05 quede
   resuelto.
 - **CORE-RNF-04**: Los datos de cada instalación (Postgres, config de Keycloak) deben vivir en
@@ -52,5 +52,5 @@ prefijo; este prefijo es solo para requisitos de ESTE incremento (la app de escr
 ## Preguntas abiertas
 
 Ver "Preguntas abiertas" en `INTENT.md` (CORE-Q-01/02 resueltas 2026-08-27, CORE-Q-03 sigue
-abierta) y "Redis — riesgo real, sin solución perfecta" en `ARCHITECTURE.md` (sin binario oficial
-de Windows; decisión de default actualizada el 2026-08-27).
+abierta). Redis quedó resuelto el mismo día (ADR-005, ver "Redis — resuelto" en `ARCHITECTURE.md`)
+— sacado del ecosistema completo, ya no es una pregunta abierta.

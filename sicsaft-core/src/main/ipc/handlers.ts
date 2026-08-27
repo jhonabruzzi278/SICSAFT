@@ -44,8 +44,9 @@ export function registrarIpcHandlers(orquestador: ServiceOrchestrator): void {
     ): Promise<AltaDirectorResultado> => {
       // TODO real: portar KeycloakAdminService.crearUsuarioHuman (cis/src/keycloak-admin/) a este
       // proceso principal -- mismo patrón que keycloak-bootstrap.ts ya hizo con
-      // Bootstrap-Keycloak.psm1, pendiente para el siguiente incremento (bloqueado, como el resto
-      // de cis/, por el spike de Redis -- ver service-orchestrator.ts).
+      // Bootstrap-Keycloak.psm1, pendiente para el siguiente incremento (ADR-005 sacó a Redis del
+      // ecosistema, ya no es el bloqueante -- falta el wiring real de cis/ al orquestador, ver
+      // service-orchestrator.ts).
       throw new Error(
         `No implementado todavía -- pendiente portar KeycloakAdminService.crearUsuarioHuman ` +
           `(ver cis/src/keycloak-admin/keycloak-admin.service.ts) a ${KEYCLOAK_CONFIG.realm}.`,

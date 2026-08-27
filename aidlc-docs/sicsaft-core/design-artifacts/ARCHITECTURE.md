@@ -50,81 +50,32 @@ trabajo de ADR-004 Fases 1-3 (guards, admin service, roles por Organization, boo
 hecho y verificado real end-to-end — reabrir esa decisión de nuevo tendría un costo mayor al de
 aceptar el peso de la JVM.
 
-### Redis — riesgo real, sin solución perfecta (NOTA DE HONESTIDAD, investigación actualizada 2026-08-27)
+### Redis — resuelto: sacado del ecosistema completo (ADR-005, 2026-08-27)
 
-Uso real de Redis en el ecosistema, confirmado leyendo el código (no asumido) — toca **tres**
-sistemas, no solo `cis`/`cip`:
+Investigado el mismo día en dos rondas: primero qué tan viable era empaquetar Redis para Windows
+(Memurai gratis prohíbe producción, Memurai Enterprise es pago sin precio público,
+`redis-windows/redis-windows` es la opción sin costo más al día pero sin respaldo del fabricante),
+después si hacía falta empaquetar *algo* — la respuesta fue no. El usuario confirmó sacar Redis del
+**ecosistema completo** (los 3 perfiles de `devops/`, no solo el embebido), documentado en
+[ADR-005](../../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md) e implementado ese mismo día:
 
-- `cis/`: rate-limiting (`rate-limit/redis-rate-limiter.ts` — `INCR`+`PEXPIRE` atómico vía script
-  Lua, falla abierto si Redis no responde) y device-registry (`device-registry/
-  device-registry.service.ts` — un `SET ... PX <ttlMs>` por operador, también falla abierto; es un
-  tracking de "un dispositivo por operador" complementario, no un control de seguridad, Keycloak ya
-  autentica).
-- `core/`: productor BullMQ del outbox de eventos (`eventos-outbox/`).
-- `cip/`: consumidor BullMQ del mismo outbox (`agregacion/eventos-outbox.worker.ts`).
+- `core/`+`cip/`: la cola `cip-eventos` (antes BullMQ/Redis) pasa a
+  [`pg-boss`](https://github.com/timgit/pg-boss) sobre una base Postgres dedicada
+  (`eventos_outbox`, `EVENTOS_OUTBOX_DATABASE_URL`) — separada de las bases `core`/`cip` a
+  propósito (RNF-01/RNF-05), pero infraestructura de mensajería explícitamente compartida entre
+  ambos, mismo tipo de recurso que Redis ya era.
+- `cis/`: el rate limiter (`InMemoryRateLimiter`) y el device-registry pasan a memoria del propio
+  proceso — `cis/` no tiene Postgres propio y corre como instancia única en los 3 perfiles hoy, así
+  que no hace falta ningún backend externo (excepción documentada a "multi-instancia sin estado en
+  memoria compartido" de WAF 4, ver `ARQUITECTURA-WAF.md`).
 
-No es un uso decorativo — sacar Redis requiere reescribir estas piezas, no solo cambiar de binario.
-
-**Redis Inc. sigue sin publicar un binario propio de Windows** — pero desde 2025 sí tiene un socio
-oficial para eso: [Memurai](https://redis.io/partners/memurai/), listado directamente en
-`redis.io/partners`. Quedan cuatro caminos reales, investigados hoy (no asumidos):
-
-1. **Memurai Developer (gratis)** — descartada para este uso. Es la build más alineada con Redis
-   Inc., pero su licencia prohíbe explícitamente producción, fuerza un reinicio/apagado automático
-   cada 10 días de uptime, limita RAM al 50% del sistema y a 10 IPs conectadas — condiciones
-   pensadas para un entorno de desarrollo, no para la PC del Director corriendo de forma continua.
-2. **Memurai Enterprise (pago)** — production-ready de verdad (uptime/RAM/conexiones sin límite,
-   soporte real de Redis 7.4 y Redis 8 anunciado para Windows), pero sin lista de precios pública
-   (hay que contactar ventas) y con trial de 90 días, no gratis indefinido. Introduce un costo de
-   licencia recurrente por cada instalación de cliente — **esto es una decisión de negocio, no
-   técnica, que le corresponde al usuario** si en algún momento se quiere el camino con respaldo
-   oficial de Redis Inc.
-3. **Build comunitario sin costo, sin respaldo de Redis Inc.** — acá cambió el panorama respecto a
-   lo que se había documentado antes: `tporadowski/redis` (el fork que se había propuesto como
-   default) quedó desactualizado, solo publica hasta Redis 5.0.14. El fork
-   [`redis-windows/redis-windows`](https://github.com/redis-windows/redis-windows) está más al día
-   — cubre Redis 6.0.20 hasta **8.0.0** y trae `RedisService.exe` para instalar/correr como
-   servicio nativo de Windows (encaja bien con el patrón `ManagedProcess`/`spawn` que ya usa el
-   resto de `sicsaft-core/`). Más rápido de implementar que la opción 4 (no toca código de
-   `cis`/`core`/`cip`), pero sigue siendo no oficial — mismo riesgo de fondo si el mantenedor lo
-   abandona.
-4. **Sacar Redis del todo para el perfil embebido, no reemplazarlo por otro Redis** — la opción
-   correcta a más largo plazo, ahora con tecnología concreta identificada (no genérica "SQLite o
-   memoria" como se había dejado antes), porque Postgres **ya es una dependencia dura embebida** en
-   `sicsaft-core.exe` — no agrega ningún proceso nuevo:
-   - BullMQ (`core/eventos-outbox/` productor + `cip/agregacion/eventos-outbox.worker.ts`
-     consumidor) → **[`pg-boss`](https://github.com/timgit/pg-boss)** — cola de trabajos sobre
-     Postgres (`SKIP LOCKED`, garantías ACID), activamente mantenida (`v12.18.2` verificado
-     mayo 2026), pensada exactamente para "no querer sumar Redis". BullMQ es Redis-only por diseño
-     (usa Streams/sorted sets internamente) — no hay forma de darle otro backend sin cambiar de
-     librería.
-   - Rate limiter (`cis/rate-limit/redis-rate-limiter.ts`) →
-     **[`rate-limiter-flexible`](https://github.com/animir/node-rate-limiter-flexible)** con su
-     store `RateLimiterPostgres` — misma librería podría reemplazar el script Lua actual
-     manteniendo el mismo comportamiento de "falla abierto" ya documentado.
-   - Device-registry (`cis/device-registry/device-registry.service.ts`) → ni siquiera necesita
-     Postgres: es un `Map` en memoria del propio proceso con un `setTimeout` como TTL. Encaja mejor
-     todavía con su propio diseño actual ("falla abierto", tracking best-effort, no es un control de
-     seguridad) — perder ese estado en un reinicio del proceso ya era aceptable con Redis.
-
-   **Costo real, no minimizado**: esto es trabajo de backend genuino, no de empaquetado — toca 4
-   módulos en 3 sistemas (`cis`, `core`, `cip`), y esos módulos hoy están escritos contra
-   `ioredis`/`bullmq` sin ninguna capa de abstracción, compartidos tal cual con `devops/local/` y
-   `devops/prod/` (que sí tienen Redis real vía Docker, sin este problema). Migrar sin romper esos
-   dos perfiles implica una de dos: (a) introducir una interfaz pluggable por sistema (ej.
-   `RateLimiterPort`, `ColaEventosPort`) con una implementación Redis y otra Postgres/memoria
-   elegida por config — más código a mantener, pero no reabre la decisión de stack ya tomada para
-   `local`/`prod`; o (b) sacar Redis de raíz en los tres perfiles (local/prod/onprem incluidos) —
-   simplifica el stack completo pero es una decisión de arquitectura mayor, que además chocaría con
-   la regla del repo de no reabrir decisiones de stack ya tomadas sin un ADR nuevo. **No se decide
-   acá cuál** — es la pregunta que le corresponde al usuario antes de empezar a implementar esto.
-
-**Default de este incremento**: opción 3 (`redis-windows/redis-windows`) por ser la de menor costo
-de implementación inmediata — no toca código de `cis`/`core`/`cip`, solo empaquetado. La opción 4 es
-la recomendada a mediano plazo si el usuario confirma el camino (a) o (b) de arriba; ninguna de las
-dos se asume que "simplemente funciona" sin verificarla real — sigue siendo el primer punto a
-confirmar con un spike (igual que se hizo hoy con Keycloak) antes de dar por cerrado este
-componente.
+**Para este incremento (el perfil embebido) esto es una simplificación directa, no un costo
+nuevo**: Postgres ya era una dependencia dura embebida en `sicsaft-core.exe` — la cola de eventos
+la usa sin agregar ningún proceso nuevo, y `cis/` sin Redis significa un componente menos por
+vendorizar (`resources/redis/` ya no existe, ver `resources/README.md`). El spike de "Redis
+embebido en Windows" que bloqueaba la integración de `cis`/`core`/`cip` al orquestador
+(`service-orchestrator.ts`) queda cerrado — el bloqueante real ahora es solo el wiring en sí
+(env vars, migraciones, la base `eventos_outbox` nueva), no una dependencia externa sin resolver.
 
 ### `cis`/`core`/`cip` — bajo riesgo
 

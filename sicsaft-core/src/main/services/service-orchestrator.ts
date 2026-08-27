@@ -15,10 +15,12 @@ import {
 // Arranca los servicios embebidos EN ORDEN (mismo criterio que
 // devops/onprem/docker-compose.yml `depends_on: condition: service_healthy`, pero acá lo maneja
 // código propio en vez de Compose): postgres -> keycloak -> cis (necesita keycloak arriba para
-// validar tokens) -> core -> cip. Redis queda deliberadamente afuera de este primer scaffold (ver
-// aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md "Redis — riesgo real, sin solución
-// perfecta") -- cis/cip van a fallar al arrancar hasta que ese spike se resuelva; se deja así
-// a propósito, no se oculta el problema con un mock.
+// validar tokens) -> core -> cip. ADR-005 (2026-08-27) saca a Redis del ecosistema completo
+// (rate-limiter/device-registry de cis pasan a memoria del propio proceso, la cola CORE->CIP pasa
+// a pg-boss sobre Postgres) -- ya no es un bloqueante para este scaffold, un servicio menos que
+// embeber. cis/core/cip siguen sin integrarse acá todavía (ver el `throw` de abajo): falta escribir
+// el wiring real (env vars apuntando a postgres/keycloak embebidos, migraciones, la base
+// `eventos_outbox` nueva), no un problema de dependencias externas.
 export class ServiceOrchestrator extends EventEmitter {
   private readonly estado: EstadoServicios = {};
   private keycloakAdmin: AdminBootstrapKeycloak | null = null;
@@ -43,14 +45,15 @@ export class ServiceOrchestrator extends EventEmitter {
     this.keycloakAdmin = admin;
     await this.iniciar("keycloak", Promise.resolve(keycloakProceso));
 
-    // TODO real, no resuelto en este scaffold: falta Redis embebido antes de que cis/cip puedan
-    // arrancar de verdad (rate-limiter, device-registry, cola BullMQ de cip -- ver
-    // ARCHITECTURE.md). Se documenta el punto de integración acá mismo en vez de mockear un Redis
-    // falso que ocultaría el problema.
+    // TODO real, no resuelto en este scaffold: cis/core/cip todavía no se integran acá -- falta
+    // el wiring real (env vars apuntando a postgres/keycloak embebidos vía POSTGRES_CONFIG/
+    // KEYCLOAK_CONFIG de abajo, aplicar migraciones, crear la base `eventos_outbox` nueva de
+    // ADR-005). Ya no depende de resolver Redis primero (ver ARCHITECTURE.md "Redis — riesgo
+    // real", sección eliminada por ADR-005) -- se documenta el punto de integración acá mismo en
+    // vez de mockear un arranque falso que ocultaría que todavía no está hecho.
     throw new Error(
-      "Redis embebido todavía no está resuelto (ver aidlc-docs/sicsaft-core/design-artifacts/" +
-        'ARCHITECTURE.md "Redis — riesgo real") -- postgres y keycloak arrancaron bien, cis/core/' +
-        "cip quedan pendientes de ese spike antes de poder integrarse acá.",
+      "cis/core/cip todavía no se integran a este orquestador (próximo paso, ver " +
+        "aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md) -- postgres y keycloak arrancaron bien.",
     );
   }
 
@@ -80,7 +83,6 @@ export class ServiceOrchestrator extends EventEmitter {
       "cis",
       "keycloak",
       "postgres",
-      "redis",
     ];
     for (const nombre of orden) {
       const proceso = this.procesos.get(nombre);
@@ -94,10 +96,11 @@ export class ServiceOrchestrator extends EventEmitter {
   }
 }
 
-// Referencias no usadas todavía en este primer scaffold (cis/core no se integran hasta resolver
-// Redis) -- se dejan importadas para que el próximo incremento solo tenga que llamarlas, no
-// reescribir la integración desde cero. rutaDistDeSistema/crearNodeBackendService/POSTGRES_CONFIG/
-// KEYCLOAK_CONFIG documentan la forma exacta que va a tener esa llamada.
+// Referencias no usadas todavía en este primer scaffold (cis/core/cip no se integran hasta
+// escribir el wiring real, ver el `throw` de arriba) -- se dejan importadas para que el próximo
+// incremento solo tenga que llamarlas, no reescribir la integración desde cero.
+// rutaDistDeSistema/crearNodeBackendService/POSTGRES_CONFIG/KEYCLOAK_CONFIG documentan la forma
+// exacta que va a tener esa llamada.
 export {
   crearNodeBackendService,
   rutaDistDeSistema,
