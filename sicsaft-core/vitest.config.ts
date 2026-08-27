@@ -12,9 +12,16 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Bug real encontrado empaquetando (Fase 8, electron-builder): release/ ahora contiene una
+    // copia completa de cis/core/cip (incluye core/src/**/*.spec.ts, necesarios en runtime para
+    // la migración de seed -- ver package.json "build" extraResources) -- sin excluirlo acá,
+    // Vitest los recogía como tests propios y explotaba con "describe is not defined" (son specs
+    // de Jest, no de Vitest, un test runner distinto). Default de Vitest ya excluye node_modules/
+    // dist/.git, pero no algo tan específico de este proyecto como release/.
+    exclude: ["**/node_modules/**", "**/release/**", "**/out/**"],
     coverage: {
       provider: "v8",
-      exclude: ["out/**", "resources/**", "src/renderer/**"],
+      exclude: ["out/**", "resources/**", "release/**", "src/renderer/**"],
     },
   },
 });

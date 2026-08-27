@@ -43,6 +43,21 @@ export default tseslint.config(
     },
   },
   {
+    // Hook de electron-builder (afterPack) -- .cjs a propósito (ver el comentario real en el
+    // propio archivo: "type": "module" en package.json rompe require() si no fuera .cjs), corre
+    // como script Node plano fuera del pipeline de TypeScript de la app, no como parte de
+    // src/main/.
+    files: ["scripts/**/*.cjs"],
+    languageOptions: {
+      globals: globals.node,
+      sourceType: "commonjs",
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "prettier/prettier": ["error", { endOfLine: "auto" }],
+    },
+  },
+  {
     files: ["src/renderer/**/*.{ts,tsx}"],
     languageOptions: {
       globals: globals.browser,
