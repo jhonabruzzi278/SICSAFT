@@ -11,7 +11,7 @@
 #    la pestaña "Domains" de ese servicio en el panel de Coolify (no hace falta editar labels de
 #    Traefik a mano) — Coolify emite el certificado TLS solo (Let's Encrypt) apenas el dominio
 #    resuelve al VPS.
-# 2. Sin puertos de host expuestos en `postgres`/`redis` (en local existen solo para poder correr
+# 2. Sin puertos de host expuestos en `postgres` (en local existen solo para poder correr
 #    tests fuera de Docker) — en producción reduce superficie de ataque, ver devops/README.md
 #    "Cyberseguridad del VPS" ("Solo 80/443 públicos").
 # 3. Sin el alias de red `id.sicsaft.localhost` en el proxy: ese truco existía para que Zitadel
@@ -93,6 +93,10 @@ services:
       CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
       CIP_DB_USER: ${CIP_DB_USER}
       CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
+      # ADR-005 — base dedicada para la cola de eventos CORE→CIP (pg-boss), ver
+      # postgres/init/04-eventos-outbox.sh.
+      EVENTOS_OUTBOX_DB_USER: ${EVENTOS_OUTBOX_DB_USER}
+      EVENTOS_OUTBOX_DB_PASSWORD: ${EVENTOS_OUTBOX_DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
@@ -100,20 +104,6 @@ services:
       - sicsaft
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ADMIN_USER}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
-    volumes:
-      - /data # anonimo — cache/colas no necesitan persistir entre despliegues
-    networks:
-      - sicsaft
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -168,7 +158,6 @@ services:
       # core/cip), ver cis/src/common/metrics/metrics-token.guard.ts y devops/prod/README.md
       # "Hallazgo real". Como env var normal (no secret) porque CIS ya lee todo lo demás así.
       METRICS_TOKEN: ${METRICS_TOKEN}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       # Solo los 3 portales reales de producción — sin puertos de Vite (eso era solo para
       # `npm run dev` local).
       CIS_CORS_ORIGIN: https://app.sicsaft.cl,https://admin.sicsaft.cl,https://directivo.sicsaft.cl
@@ -195,8 +184,6 @@ services:
       core:
         condition: service_healthy
       cip:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     restart: unless-stopped
 
@@ -230,7 +217,9 @@ services:
       CORE_DB_NAME: core
       CORE_DB_USER: ${CORE_DB_USER}
       CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      # ADR-005 — cola hacia el worker de CIP vía pg-boss, base dedicada (no la base `core`), ver
+      # postgres/init/04-eventos-outbox.sh.
+      EVENTOS_OUTBOX_DATABASE_URL: postgres://${EVENTOS_OUTBOX_DB_USER}:${EVENTOS_OUTBOX_DB_PASSWORD}@postgres:5432/eventos_outbox
     networks:
       - sicsaft
     depends_on:
@@ -238,8 +227,6 @@ services:
         condition: service_healthy
       core-migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
     restart: unless-stopped
     # Sin `expose`/dominio a propósito: CORE solo lo consume CIS dentro de la red interna, nunca
     # un navegador directo — mismo criterio que devops/local/docker-compose.yml.
@@ -276,7 +263,7 @@ services:
       CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
       CORE_URL: http://core:3001
       CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      EVENTOS_OUTBOX_DATABASE_URL: postgres://${EVENTOS_OUTBOX_DB_USER}:${EVENTOS_OUTBOX_DB_PASSWORD}@postgres:5432/eventos_outbox
     networks:
       - sicsaft
     depends_on:
@@ -284,8 +271,6 @@ services:
         condition: service_healthy
       cip-migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
       core:
         condition: service_healthy
     restart: unless-stopped

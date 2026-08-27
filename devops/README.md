@@ -5,7 +5,7 @@ Capacidad transversal de infraestructura, CI/CD, seguridad operacional y observa
 todos los sistemas del ecosistema (APP QR, CIS, CORE, WEB, CIP, RFID, Integraciones).
 
 ## Estado
-🟡 Stack local funcionando (`devops/local/`: Traefik + Postgres + Redis + Zitadel + los 5 sistemas
+🟡 Stack local funcionando (`devops/local/`: Traefik + Postgres + Zitadel + los 5 sistemas
 + observabilidad self-hosted en Docker Compose, ver su README para cómo levantarlo). Observabilidad
 (2026-08-19): Prometheus (métricas de host y contenedores) + Loki/Promtail (logs de todos los
 contenedores) + Grafana (dashboards provisionados solos) — equivalente self-hosted a
@@ -107,7 +107,7 @@ deploy automático al VPS todavía no exista:
 ```
 lint + type-check
   → unit tests
-    → integration tests (Testcontainers: Postgres/Redis reales en contenedor, no mocks)
+    → integration tests (Testcontainers: Postgres real en contenedor, no mocks)
       → SAST (Semgrep) + secret scan (gitleaks) + dependency scan (npm audit / Trivy)
         → build de imagen Docker (multi-stage)
           → scan de imagen (Trivy)

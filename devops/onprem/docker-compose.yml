@@ -69,6 +69,10 @@ services:
       # CIP entra a Nivel 1 on-premise desde 2026-08-25 (DOC-025 3, cierra INST-Q-01).
       CIP_DB_USER: ${CIP_DB_USER}
       CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
+      # ADR-005 — base dedicada para la cola de eventos CORE→CIP (pg-boss), ver
+      # postgres/init/04-eventos-outbox.sh.
+      EVENTOS_OUTBOX_DB_USER: ${EVENTOS_OUTBOX_DB_USER}
+      EVENTOS_OUTBOX_DB_PASSWORD: ${EVENTOS_OUTBOX_DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
@@ -76,20 +80,6 @@ services:
       - sicsaft
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ADMIN_USER}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
-    volumes:
-      - /data
-    networks:
-      - sicsaft
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -146,7 +136,6 @@ services:
       KEYCLOAK_AUDIENCE: cis
       CORE_URL: http://core:3001
       CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       # CIP entra a Nivel 1 on-premise desde 2026-08-25 (DOC-025 3, cierra INST-Q-01) -- ya no es
       # el workaround de relleno que era antes (cis/src/app.module.ts importa DashboardConnectorModule
       # de forma incondicional y valida CIP_URL/CIP_SERVICE_TOKEN al arrancar, cip-client.config.ts):
@@ -175,8 +164,6 @@ services:
       core:
         condition: service_healthy
       cip:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     restart: unless-stopped
 
@@ -210,7 +197,9 @@ services:
       CORE_DB_NAME: core
       CORE_DB_USER: ${CORE_DB_USER}
       CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      # ADR-005 — cola hacia el worker de CIP vía pg-boss, base dedicada (no la base `core`), ver
+      # postgres/init/04-eventos-outbox.sh.
+      EVENTOS_OUTBOX_DATABASE_URL: postgres://${EVENTOS_OUTBOX_DB_USER}:${EVENTOS_OUTBOX_DB_PASSWORD}@postgres:5432/eventos_outbox
     networks:
       - sicsaft
     depends_on:
@@ -218,17 +207,15 @@ services:
         condition: service_healthy
       core-migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
     restart: unless-stopped
     # Sin router en traefik/dynamic.yml a propósito: CORE solo lo consume CIS, mismo criterio que
     # devops/local/ y devops/prod/.
 
   # CIP entra a Nivel 1 on-premise desde 2026-08-25 (DOC-025 3, cierra INST-Q-01) — antes solo
   # vivía en devops/local/. Mismo patrón que core-migrate/core: base propia `cip` (RNF-01/RNF-05),
-  # consume eventos de CORE vía Redis/BullMQ (cola `cip-eventos`), sin Zitadel (no valida identidad
-  # de operador, ver cip/README.md) y sin router en Traefik (ningún consumidor externo todavía,
-  # mismo criterio que CORE).
+  # consume eventos de CORE vía pg-boss (ADR-005, cola `cip-eventos`), sin Zitadel (no valida
+  # identidad de operador, ver cip/README.md) y sin router en Traefik (ningún consumidor externo
+  # todavía, mismo criterio que CORE).
   cip-migrate:
     build:
       context: ../../cip
@@ -261,7 +248,7 @@ services:
       CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
       CORE_URL: http://core:3001
       CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      EVENTOS_OUTBOX_DATABASE_URL: postgres://${EVENTOS_OUTBOX_DB_USER}:${EVENTOS_OUTBOX_DB_PASSWORD}@postgres:5432/eventos_outbox
     networks:
       - sicsaft
     depends_on:
@@ -269,8 +256,6 @@ services:
         condition: service_healthy
       cip-migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
       core:
         condition: service_healthy
     restart: unless-stopped

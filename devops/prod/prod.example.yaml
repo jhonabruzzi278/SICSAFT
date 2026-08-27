@@ -14,9 +14,6 @@
 POSTGRES_ADMIN_USER: sicsaft_admin
 POSTGRES_ADMIN_PASSWORD: cambiar-esta-clave-produccion
 
-# --- Redis ---
-REDIS_PASSWORD: cambiar-esta-clave-produccion
-
 # --- Zitadel ---
 ZITADEL_MASTERKEY: cambiar-por-32-caracteres-random
 ZITADEL_DB_USER: zitadel
@@ -38,6 +35,10 @@ CORE_DB_PASSWORD: cambiar-esta-clave-produccion
 CIP_DB_USER: cip
 CIP_DB_PASSWORD: cambiar-esta-clave-produccion
 CIP_SERVICE_TOKEN: cambiar-por-64-caracteres-hex-random
+
+# --- Cola de eventos CORE→CIP (pg-boss, ADR-005 — reemplaza a Redis) ---
+EVENTOS_OUTBOX_DB_USER: eventos_outbox
+EVENTOS_OUTBOX_DB_PASSWORD: cambiar-esta-clave-produccion
 
 # --- WEB ---
 WEB_VITE_ZITADEL_CLIENT_ID: cambiar-por-el-client-id-de-la-app-oidc-web-de-produccion

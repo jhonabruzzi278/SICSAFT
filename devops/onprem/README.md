@@ -56,7 +56,7 @@ consumo de recursos en reposo, sin licenciamiento comercial de Docker Desktop.
 
 **Riesgo a verificar antes de usar en un cliente real** (no asumido): los `healthcheck`/
 `depends_on: condition: service_healthy` que este compose usa fuerte (`core-migrate` → `core`,
-`postgres`/`redis` healthy antes de levantar `cis`/`core`) deben comportarse igual bajo
+`postgres` healthy antes de levantar `cis`/`core`) deben comportarse igual bajo
 `podman-compose` — probar `podman-compose --profile nivel1 up -d` de punta a punta antes de una
 instalación real.
 
@@ -88,11 +88,11 @@ exclusivo de Nivel 2.)
 cp .env.example .env
 ```
 
-Completar `POSTGRES_ADMIN_PASSWORD`, `REDIS_PASSWORD`, `KEYCLOAK_DB_PASSWORD`,
-`KEYCLOAK_ADMIN_USERNAME`/`PASSWORD`, `CORE_DB_PASSWORD` y `CORE_SERVICE_TOKEN`
-(`openssl rand -hex 32`) con valores **únicos de este cliente** (INST-RNF-03 — nunca reusar los de
-otra instalación). Dejar el resto de las variables (`KEYCLOAK_ADMIN_CLIENT_ID`/`SECRET`, los
-`*_CLIENT_ID`, etc.) con el placeholder hasta el paso 4.
+Completar `POSTGRES_ADMIN_PASSWORD`, `KEYCLOAK_DB_PASSWORD`,
+`KEYCLOAK_ADMIN_USERNAME`/`PASSWORD`, `CORE_DB_PASSWORD`, `CORE_SERVICE_TOKEN`
+(`openssl rand -hex 32`) y `EVENTOS_OUTBOX_DB_PASSWORD` con valores **únicos de este cliente**
+(INST-RNF-03 — nunca reusar los de otra instalación). Dejar el resto de las variables
+(`KEYCLOAK_ADMIN_CLIENT_ID`/`SECRET`, los `*_CLIENT_ID`, etc.) con el placeholder hasta el paso 4.
 
 ### 3. Levantar la base de identidad primero
 
@@ -100,7 +100,7 @@ otra instalación). Dejar el resto de las variables (`KEYCLOAK_ADMIN_CLIENT_ID`/
 construir los frontends (ver "Orden obligatorio" abajo):
 
 ```bash
-podman-compose up -d postgres redis keycloak traefik
+podman-compose up -d postgres keycloak traefik
 ```
 
 Esperar a que responda 200 (Keycloak inicializó su esquema de base de datos y ya sirve tráfico):

@@ -357,7 +357,7 @@ function New-EnvDeCliente {
 }
 
 function Wait-KeycloakListo {
-    Write-Paso "5. Levantando postgres, redis y keycloak"
+    Write-Paso "5. Levantando postgres y keycloak"
     # Sin "--project-directory": bug real encontrado -- a diferencia de docker compose,
     # podman-compose 1.6.0 no tiene esa flag (su parser la confunde con el subcomando y tira
     # "invalid choice"). "-f" con ruta absoluta alcanza: podman-compose resuelve los
@@ -368,9 +368,10 @@ function Wait-KeycloakListo {
     # Zitadel: Keycloak no publica ningun puerto al host, solo es alcanzable via Traefik
     # (id.sicsaft.localhost -> :80 de traefik, ver docker-compose.yml). Sin traefik, el bootstrap
     # de abajo (Invoke-BootstrapCliente, que le pega a la Admin REST API desde el HOST) fallaria
-    # con "No es posible conectar con el servidor remoto".
-    podman-compose -f $ComposeFile up -d postgres redis keycloak traefik | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose up -d postgres redis keycloak traefik'." }
+    # con "No es posible conectar con el servidor remoto". Sin "redis" a proposito (ADR-005): el
+    # servicio ya no existe en docker-compose.yml.
+    podman-compose -f $ComposeFile up -d postgres keycloak traefik | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose up -d postgres keycloak traefik'." }
 
     # A diferencia de Zitadel (esperaba un archivo de PAT auto-provisionado), Keycloak no genera
     # nada solo -- bootstrap-keycloak.ps1 se autentica directo con KEYCLOAK_ADMIN_USERNAME/
