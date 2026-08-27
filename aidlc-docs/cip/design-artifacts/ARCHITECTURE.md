@@ -11,7 +11,7 @@ flowchart LR
     end
 
     OB -- "poll cada N s" --> DISP[core: EventosOutboxDispatcher\nsrc/eventos-outbox/]
-    DISP -- "publica" --> Q[(Redis — cola BullMQ\ncip-eventos)]
+    DISP -- "publica" --> Q[(Postgres 'eventos_outbox'\ncola pg-boss, cip-eventos)]
 
     Q -- "consume" --> W[cip: worker de agregacion\nsrc/agregacion/]
     W -- "lee vía GET /catalogo, /inventarios,\n/inventarios/:id (CORE, ServiceTokenGuard)" --> COREAPI[CORE API]
@@ -31,21 +31,23 @@ nuevos en CORE para este incremento. Igual que CIS habla con CORE, CIP también 
 `ServiceTokenGuard` (`CIP_SERVICE_TOKEN`, mismo mecanismo que `CORE_SERVICE_TOKEN`) — nunca toca
 la base `core` directamente.
 
-## 2. Por qué dos saltos (CORE→Redis→worker) y no un trigger que llame HTTP directo
+## 2. Por qué dos saltos (CORE→cola→worker) y no un trigger que llame HTTP directo
 
 Un trigger de Postgres no puede llamar HTTP de forma confiable (sin extensiones no estándar) ni
 debe hacerlo — bloquearía la transacción que lo disparó. El diseño separa:
 
 1. **`eventos_outbox`** (dentro de la transacción de CORE, ver `DOMAIN_MODEL.md` 1) — garantiza
-   que ningún evento se pierde, sin acoplar la escritura transaccional a la disponibilidad de
-   Redis.
+   que ningún evento se pierde, sin acoplar la escritura transaccional a la disponibilidad de la
+   cola.
 2. **`EventosOutboxDispatcher`** (proceso separado dentro de `core/`, un `@Cron`/intervalo simple
    de NestJS — no un endpoint HTTP) — hace polling de `eventos_outbox WHERE publicado = false`,
-   publica a la cola, marca `publicado = true`. Si Redis está caído, simplemente no avanza — los
-   eventos quedan pendientes, no se pierden (RNF-03).
-3. **Cola Redis/BullMQ `cip-eventos`** — ya provisionado (`devops/local/docker-compose.yml`
-   servicio `redis`, mismo `REDIS_PASSWORD` que ya usa el rate limiter de CIS). Primer consumidor
-   real de colas en el ecosistema (ADR-001 ya lo declaraba, sin uso hasta ahora).
+   publica a la cola, marca `publicado = true`. Si la base de la cola está caída, simplemente no
+   avanza — los eventos quedan pendientes, no se pierden (RNF-03).
+3. **Cola `cip-eventos` (pg-boss)** — [ADR-005](../../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md)
+   (2026-08-27) reemplaza a Redis/BullMQ: una base Postgres dedicada (`eventos_outbox`, separada de
+   `core`/`cip` a propósito — RNF-01/RNF-05, `EVENTOS_OUTBOX_DATABASE_URL`) que comparten CORE
+   (productor) y CIP (consumidor). Antes de ese ADR era Redis/BullMQ (ya provisionado desde
+   ADR-001, primer consumidor real de colas del ecosistema en su momento).
 4. **Worker de CIP** — proceso propio de `cip/` (no un módulo dentro de CORE) para cumplir WAF 8
    "CIP: escala independiente del CORE" — un pico de recalculo de agregados no puede competir por
    CPU/memoria con el camino síncrono de `POST /inventarios`.
@@ -124,11 +126,11 @@ ingesta).
 
 ## 7. Degradación (RF-10, WAF 8)
 
-- Si Redis está caído: el dispatcher deja de publicar, los eventos se acumulan en
-  `eventos_outbox` (nunca se pierden) — `POST /inventarios` de CORE sigue funcionando normal, no
-  depende de Redis para su camino síncrono.
-- Si el worker de CIP está caído: los mensajes se acumulan en la cola (BullMQ persiste en Redis)
-  — se procesan al volver.
+- Si la base `eventos_outbox` está caída: el dispatcher deja de publicar, los eventos se acumulan
+  en `eventos_outbox` (nunca se pierden) — `POST /inventarios` de CORE sigue funcionando normal, no
+  depende de esa base para su camino síncrono.
+- Si el worker de CIP está caído: los mensajes se acumulan en la cola (pg-boss persiste en
+  Postgres, ADR-005) — se procesan al volver.
 - Si la base `cip` está caída: la API de lectura de CIP devuelve 503 explícito (nunca un dashboard
   a medio pintar) — pero esto es un caso distinto de "datos atrasados": es la fuente de lectura la
   que no responde, no algo que "últimos datos conocidos" pueda resolver.

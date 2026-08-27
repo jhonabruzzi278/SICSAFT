@@ -16,8 +16,9 @@ agregados + `SYNC_ESTADO` (en `cip`, base nueva y separada).
 
 ## 3. Arquitectura de ingesta y lectura
 [`design-artifacts/ARCHITECTURE.md`](ARCHITECTURE.md) — outbox transaccional (trigger Postgres) →
-dispatcher de CORE (polling) → Redis/BullMQ (`cip-eventos`) → worker de CIP → agregados → API de
-lectura de CIP.
+dispatcher de CORE (polling) → pg-boss (`cip-eventos`, antes Redis/BullMQ — ver
+[ADR-005](../../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md), 2026-08-27) → worker de CIP →
+agregados → API de lectura de CIP.
 
 ## 4. Autenticación y autorización
 Mismo mecanismo que CIS↔CORE (`ServiceTokenGuard`, DOC-006 4): CIP se autentica ante CORE con
@@ -72,7 +73,7 @@ del camino síncrono.
 satisface con la escritura atómica de la fila en `eventos_outbox` (misma transacción que
 `eventos`, ver `DOMAIN_MODEL.md` 1) **antes** de responder al usuario — la garantía de que la
 publicación va a ocurrir queda persistida y confirmada de forma síncrona, aunque el envío de red
-real a Redis/CIP ocurra después, de forma asíncrona. Esto cumple la secuencia del tomo en su
+real a la cola/CIP ocurra después, de forma asíncrona. Esto cumple la secuencia del tomo en su
 intención (ninguna transacción se da por "Publicada" sin que la publicación esté garantizada) sin
 pagar el costo de resiliencia/latencia de esperar una respuesta real del CIP dentro del request
 del usuario, que WAF 5 prohíbe explícitamente y que además contradice WAF 8 (CIP debe "escalar

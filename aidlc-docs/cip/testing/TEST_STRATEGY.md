@@ -6,10 +6,10 @@ el umbral por ser un sistema nuevo.
 
 ## 1. CORE — outbox
 - **Unit**: el trigger de Postgres no es testeable con Jest — se prueba con un e2e real (abajo).
-  `EventosOutboxDispatcher` sí: mock del `Pool`/cliente Redis, casos: publica pendientes, no
-  publica ya publicados, agrupa por `sesionId` (4 de ARCHITECTURE.md — un solo mensaje por
-  sesión, no uno por evento), no revienta si Redis no responde (deja pendiente, no marca
-  `publicado`).
+  `EventosOutboxDispatcher` sí: mock del `Pool`/cliente pg-boss (ADR-005, antes Redis), casos:
+  publica pendientes, no publica ya publicados, agrupa por `sesionId` (4 de ARCHITECTURE.md — un
+  solo mensaje por sesión, no uno por evento), no revienta si la base de la cola no responde (deja
+  pendiente, no marca `publicado`).
 - **e2e (Postgres real)**: insertar en `eventos` vía el flujo real (`POST /inventarios`,
   `POST /activos`, etc. ya existentes) y verificar que `eventos_outbox` recibe la fila esperada
   con `publicado = false` — prueba el trigger de verdad, no un mock de él. Caso de idempotencia:
@@ -26,9 +26,10 @@ el umbral por ser un sistema nuevo.
   `app-qr-sicsaft/tests/fase-3.1.spec.js` (exitoso/aceptable/defectuoso) como unit tests de la
   función de veredicto propia de CIP (`ARCHITECTURE.md` 5) — mismos 3 casos, misma tabla de
   verdad, implementación independiente pero comportamiento idéntico verificado.
-- **Integration**: consumidor BullMQ real contra un Redis de test (mismo patrón que
-  Testcontainers-style ya usa CI para Postgres, `CLAUDE.md` CI/calidad) — publica un mensaje
-  `sesion-cerrada`, verifica que el worker escribe los agregados esperados en la base `cip` real.
+- **Integration**: consumidor pg-boss real contra un Postgres de test (ADR-005, antes BullMQ/Redis
+  — mismo patrón que Testcontainers-style ya usa CI para Postgres, `CLAUDE.md` CI/calidad) — publica
+  un mensaje `sesion-cerrada`, verifica que el worker escribe los agregados esperados en la base
+  `cip` real.
 
 ## 3. CIP — API de lectura
 - **e2e (Postgres real, base `cip`)**: cada endpoint de `ARCHITECTURE.md` 6 contra datos ya
@@ -39,10 +40,11 @@ el umbral por ser un sistema nuevo.
   — límite por defecto, tope máximo, `total` correcto.
 
 ## 4. Degradación (RF-10) — caso explícito
-- Simular Redis caído (contenedor detenido en el entorno de test) → `POST /inventarios` de CORE
-  sigue devolviendo 2xx (no depende de Redis en su camino síncrono) → `eventos_outbox` acumula
-  filas sin publicar → al levantar Redis, el dispatcher las publica en el siguiente ciclo, sin
-  pérdida. Este es el test que valida RNF-03 de punta a punta, no solo por unidad.
+- Simular la base `eventos_outbox` caída (contenedor detenido en el entorno de test) →
+  `POST /inventarios` de CORE sigue devolviendo 2xx (no depende de esa base en su camino síncrono)
+  → `eventos_outbox` acumula filas sin publicar → al levantarla de nuevo, el dispatcher las publica
+  en el siguiente ciclo, sin pérdida. Este es el test que valida RNF-03 de punta a punta, no solo
+  por unidad.
 
 ## 5. Fuera de alcance de testing en este incremento
 Frontend de CIP (no existe todavía, ver `requirements/INTENT.md`), informe diario automático (no

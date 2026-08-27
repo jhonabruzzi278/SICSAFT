@@ -19,7 +19,7 @@ de cliente que `devops/prod/` (pensado para Linux/Coolify, no para un PC Windows
 flowchart TB
     subgraph local["devops/local/ (desarrollador)"]
         L1[traefik + dashboard]
-        L2[postgres + redis + zitadel]
+        L2[postgres + zitadel]
         L3[cis + core + cip]
         L4[ccp + web-admin + core-frontend]
         L5[Prometheus + Loki + Grafana + cAdvisor + node-exporter]
@@ -28,7 +28,7 @@ flowchart TB
 
     subgraph onprem["devops/onprem/ (cliente, Nivel 1/2)"]
         O1[traefik, ruteo estático — sin dashboard expuesto]
-        O2["postgres + redis + keycloak (ADR-004 Fase 3)"]
+        O2["postgres + keycloak (ADR-004 Fase 3)"]
         O3[cis + core]
         O4["app-qr-sicsaft (nuevo Dockerfile)"]
         O5["ccp + web-admin + core-frontend — solo perfil nivel2"]
@@ -53,13 +53,13 @@ flowchart TB
 
 | Nivel | Servicios que se levantan |
 |---|---|
-| Nivel 1 | `postgres`, `redis`, `keycloak`, `core-migrate`→`core`, `cis`, `cip-migrate`→`cip`, `app-qr-sicsaft`, `web-admin`, `core-frontend` |
+| Nivel 1 | `postgres`, `keycloak`, `core-migrate`→`core`, `cis`, `cip-migrate`→`cip`, `app-qr-sicsaft`, `web-admin`, `core-frontend` |
 | Nivel 2 | Nivel 1 + `ccp` |
 | Nivel 3 | Nivel 2 + RFID — **no implementado, `rfid/` no tiene código todavía** |
 
 Implementado con **Compose profiles** (`nivel2`) en un solo `docker-compose.yml` — mismo mecanismo
 que ya usa `devops/local/docker-compose.yml` para aislar el servicio `k6` (`profiles: ["k6"]`).
-Los servicios base (postgres/redis/keycloak/cis/core/cip/app-qr-sicsaft/web-admin/core-frontend) no
+Los servicios base (postgres/keycloak/cis/core/cip/app-qr-sicsaft/web-admin/core-frontend) no
 llevan profile (siempre se levantan, desde Nivel 1 — DOC-025 §1 revisado 2026-08-25); `ccp` es el
 único con `profiles: ["nivel2"]`.
 
@@ -73,7 +73,7 @@ Hyper-V/WSL2 + GUI + licenciamiento comercial por tamaño de empresa). En su lug
 - Sigue apoyándose en una máquina WSL2 propia (`podman machine init && podman machine start`) —
   WSL2 no desaparece, pero sí el daemon Docker Desktop con GUI.
 - **Riesgo a verificar, no asumido**: los `healthcheck` + `depends_on: condition:
-  service_healthy` que el compose actual usa fuerte (`core-migrate` → `core`, `postgres`/`redis`
+  service_healthy` que el compose actual usa fuerte (`core-migrate` → `core`, `postgres`
   healthy antes de levantar `cis`/`core`) deben comportarse igual bajo `podman-compose` — se
   verifica al implementar `devops/onprem/docker-compose.yml`, no se da por hecho que la paridad
   con Docker Compose es 100%.
@@ -91,7 +91,7 @@ sequenceDiagram
     participant Keycloak
     participant Env as .env del cliente
 
-    Admin->>Keycloak: podman-compose up postgres redis keycloak traefik
+    Admin->>Keycloak: podman-compose up postgres keycloak traefik
     Admin->>Keycloak: bootstrap-keycloak.ps1 (Admin REST API)
     Keycloak-->>Admin: Realm "sicsaft" + scopes/roles creados
     Keycloak-->>Admin: Organization del cliente creada
@@ -125,7 +125,7 @@ menos que proteger (`.bootstrap/` ya no existe).
 (`winget install RedHat.Podman`) y `podman-compose` (`pip install podman-compose` — `podman
 compose` nativo desde Podman 4.7 es solo un wrapper que delega a un compose provider externo, no
 trae uno instalado por default, y no hay paquete de `podman-compose` en winget todavía), genera un
-`.env` con contraseñas únicas por cliente, levanta `postgres`/`redis`/`keycloak`/`traefik`, espera
+`.env` con contraseñas únicas por cliente, levanta `postgres`/`keycloak`/`traefik`, espera
 a que Keycloak responda en su endpoint de discovery OIDC, corre el bootstrap (extraído a
 `devops/onprem/lib/Bootstrap-Keycloak.psm1`, reusado también por `bootstrap-keycloak.ps1` como
 wrapper delgado), completa el `.env` sin copy-paste manual, construye y levanta el stack completo,

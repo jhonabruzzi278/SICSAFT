@@ -5,9 +5,10 @@ colisionar con los RF/RNF ya numerados de otros sistemas (ver `REQUISITOS.md` ra
 
 ## Funcionales
 
-- **INST-RF-01**: El stack debe poder levantarse en modo Nivel 1 (Postgres, Redis, Keycloak —
-  ADR-004 Fase 3, reemplaza a Zitadel —, CIS, CORE, CIP, APP QR SICSAFT, portal Directivo y portal
-  Administrador del Sistema; DOC-025 §1 rev. 2026-08-25) sin `ccp` (Profesional de AFT completo,
+- **INST-RF-01**: El stack debe poder levantarse en modo Nivel 1 (Postgres, Keycloak — ADR-004
+  Fase 3, reemplaza a Zitadel —, CIS, CORE, CIP, APP QR SICSAFT, portal Directivo y portal
+  Administrador del Sistema; sin Redis desde ADR-005; DOC-025 §1 rev. 2026-08-25) sin `ccp`
+  (Profesional de AFT completo,
   exclusivo de Nivel 2).
 - **INST-RF-02**: El stack debe poder levantarse en modo Nivel 2 (Nivel 1 + `ccp` + `web-admin` +
   `core-frontend`) desde el mismo `docker-compose.yml`, vía Compose profiles — sin mantener
@@ -60,8 +61,9 @@ colisionar con los RF/RNF ya numerados de otros sistemas (ver `REQUISITOS.md` ra
   contra `podman-compose`, no se asume compatibilidad 1:1 con Docker Compose.
 - **INST-RNF-02**: Ningún servicio de observabilidad/desarrollo (Prometheus, Loki, Grafana,
   cAdvisor, node-exporter, k6, dashboard de Traefik) se instala en el PC del cliente.
-- **INST-RNF-03**: Las credenciales generadas para un cliente (Postgres, Redis, Keycloak admin,
-  `KEYCLOAK_ADMIN_CLIENT_SECRET`) deben ser únicas por instalación — nunca reusar valores entre
+- **INST-RNF-03**: Las credenciales generadas para un cliente (Postgres, `eventos_outbox`
+  (ADR-005), Keycloak admin, `KEYCLOAK_ADMIN_CLIENT_SECRET`) deben ser únicas por instalación —
+  nunca reusar valores entre
   clientes distintos.
 - **INST-RNF-04**: El README de `devops/onprem/` debe dejar explícito el orden obligatorio
   bootstrap-antes-de-build (los frontends hornean `VITE_KEYCLOAK_CLIENT_ID` en build time) para
