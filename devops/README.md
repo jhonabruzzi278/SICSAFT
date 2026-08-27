@@ -24,10 +24,12 @@ ver [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) y
 también se vende como instalación aislada por cliente (Nivel 1/Nivel 2, portal de precios propio
 del negocio) — [`devops/onprem/docker-compose.yml`](onprem/docker-compose.yml) levanta un tenant
 completo en el PC/servidor del cliente sobre **Podman** (no Docker Desktop, decisión de recursos),
-más [`devops/onprem/bootstrap-zitadel.ps1`](onprem/bootstrap-zitadel.ps1) para automatizar el alta
-de cada cliente contra Zitadel sin pasos manuales en su dashboard. Nivel 3 (RFID) documentado como
-gancho, sin implementación (`rfid/` no tiene código todavía). Empaquetado como instalador `.exe`
-real: pendiente, ver `devops/onprem/README.md` "Qué falta para el instalador `.exe` empaquetado".
+más [`devops/onprem/bootstrap-keycloak.ps1`](onprem/bootstrap-keycloak.ps1) para automatizar el
+alta de cada cliente contra Keycloak sin pasos manuales en su Console (ADR-004 Fase 3, 2026-08-26 —
+`devops/onprem/` reemplazó a Zitadel por Keycloak; `local/`/`prod/`, abajo, todavía no migraron).
+Nivel 3 (RFID) documentado como gancho, sin implementación (`rfid/` no tiene código todavía).
+Empaquetado como instalador `.exe` real: pendiente, ver `devops/onprem/README.md` "Qué falta para
+el instalador `.exe` empaquetado".
 
 ## Modelo de despliegue: VPS propio, Docker Compose orquestado por Coolify
 El usuario administra su propio VPS (no una plataforma gestionada tipo Vercel/Render para
@@ -52,9 +54,10 @@ devops/
 │   ├── .env.example                # variables a cargar en el panel de Coolify (sin valores reales)
 │   └── README.md                   # despliegue + histórico de la decisión SOPS+age
 └── onprem/                         # instalación aislada por cliente — ver devops/onprem/README.md
-    ├── docker-compose.yml          # subconjunto de local/, Compose profiles nivel1/nivel2, sin
-    │                                # observabilidad/k6/cip, pensado para podman-compose
-    ├── bootstrap-zitadel.ps1       # automatiza el alta de un cliente contra Zitadel
+    ├── docker-compose.yml          # subconjunto de local/, Compose profile nivel2, sin
+    │                                # observabilidad/k6, pensado para podman-compose (CIP SÍ entra,
+    │                                # a diferencia de la nota vieja de esta misma línea)
+    ├── bootstrap-keycloak.ps1      # automatiza el alta de un cliente contra Keycloak (ADR-004 F3)
     ├── traefik/, postgres/         # copias propias, autocontenidas (mismo criterio que prod/)
     └── .env.example
 ```

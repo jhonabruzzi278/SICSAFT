@@ -19,7 +19,8 @@ networks:
 
 volumes:
   postgres_data:
-  zitadel_data:
+  # Sin volumen propio para Keycloak (a diferencia de zitadel_data que existía acá antes) — todo su
+  # estado real vive en Postgres (KC_DB=postgres), el contenedor en sí es stateless entre reinicios.
 
 services:
   traefik:
@@ -35,11 +36,14 @@ services:
       - ./traefik/dynamic.yml:/etc/traefik/dynamic/dynamic.yml:ro
     networks:
       sicsaft:
-        # Mismo truco que devops/local/ — Zitadel es multi-tenant por dominio y rechaza requests
-        # cuyo Host no sea uno de sus dominios registrados, así que un contenedor que le pegue a
-        # Zitadel por el nombre de servicio interno (`zitadel:8080`) recibe "Instance not found".
-        # Este alias hace que `id.${DOMINIO_BASE}` resuelva DENTRO de la red a este mismo
-        # Traefik, que enruta por Host igual que desde el host.
+        # ADR-004 — a diferencia de Zitadel (multi-tenant por dominio, rechazaba requests cuyo Host
+        # no fuera uno de sus dominios registrados), Keycloak no necesita este alias por esa razón:
+        # el realm va en el path (`/realms/sicsaft/...`), no en el Host. Se mantiene igual porque
+        # KC_HOSTNAME queda fijado a `http://id.${DOMINIO_BASE}` (define el `iss` que firma en cada
+        # token — verificado real contra un Keycloak 26.0 de prueba, 2026-08-26) y CIS/los
+        # frontends arman URLs contra ese mismo host tanto desde el navegador como desde dentro de
+        # la red de contenedores — sin este alias, un contenedor que le pegue a `id.${DOMINIO_BASE}`
+        # no tendría cómo resolverlo.
         aliases:
           - id.${DOMINIO_BASE}
     restart: unless-stopped
@@ -58,8 +62,8 @@ services:
       POSTGRES_USER: ${POSTGRES_ADMIN_USER}
       POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
       POSTGRES_DB: postgres
-      ZITADEL_DB_USER: ${ZITADEL_DB_USER}
-      ZITADEL_DB_PASSWORD: ${ZITADEL_DB_PASSWORD}
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       CORE_DB_USER: ${CORE_DB_USER}
       CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
       # CIP entra a Nivel 1 on-premise desde 2026-08-25 (DOC-025 3, cierra INST-Q-01).
@@ -91,40 +95,35 @@ services:
       retries: 10
     restart: unless-stopped
 
-  zitadel:
-    image: ghcr.io/zitadel/zitadel:v2.65.0
-    command: start-from-init --masterkey "${ZITADEL_MASTERKEY}" --tlsMode disabled
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    # "start" (modo producción), no "start-dev" — exige KC_HOSTNAME/KC_HTTP_ENABLED explícitos en
+    # vez de asumir defaults de desarrollo. Sin "--optimized": ese flag requiere una imagen ya
+    # compilada con `kc.sh build` (Dockerfile propio) — la imagen oficial sin building extra falla
+    # con "was used for first ever server start" (verificado real, 2026-08-26). Costo: unos
+    # segundos más de arranque en cada `up`, aceptable para una instalación de cliente que no
+    # reinicia seguido.
+    command: start
     environment:
-      ZITADEL_DATABASE_POSTGRES_HOST: postgres
-      ZITADEL_DATABASE_POSTGRES_PORT: 5432
-      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
-      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: ${ZITADEL_DB_USER}
-      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: ${ZITADEL_DB_PASSWORD}
-      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
-      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: ${POSTGRES_ADMIN_USER}
-      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
-      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
-      ZITADEL_EXTERNALDOMAIN: id.${DOMINIO_BASE}
-      ZITADEL_EXTERNALPORT: 80
-      ZITADEL_EXTERNALSECURE: "false"
-      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME}
-      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD}
-      # Auto-provisiona un service user (rol IAM_OWNER) + un PAT en el primer arranque
-      # (`start-from-init`), sin pasar por la Console — instalar-cliente.ps1 lee el PAT de
-      # PATPATH para llamar a la Management API sin intervención manual. Config real,
-      # verificada contra el código fuente de Zitadel (cmd/setup/steps.yaml del repo oficial:
-      # https://github.com/zitadel/zitadel/blob/main/cmd/setup/steps.yaml), no adivinada —
-      # pendiente igual una corrida real contra este compose para confirmar que el archivo
-      # aparece con el formato esperado (ver devops/onprem/installer/README.md).
-      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: sicsaft-onprem-bootstrap
-      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: "SICSAFT Onprem Bootstrap"
-      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "2099-01-01T00:00:00Z"
-      ZITADEL_FIRSTINSTANCE_PATPATH: /bootstrap/admin-pat.txt
-    volumes:
-      - zitadel_data:/zitadel
-      # Volumen local (no nombrado) — el PAT generado es un secreto real por instalación, nunca
-      # se commitea (ver .gitignore raíz, devops/onprem/.bootstrap/).
-      - ./.bootstrap:/bootstrap
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      # Define el `iss` que Keycloak firma en cada token (verificado real: coincide byte a byte
+      # con esto, no con el nombre de servicio interno) — CIS (KEYCLOAK_URL) y los 4 frontends
+      # (VITE_KEYCLOAK_ISSUER) apuntan al mismo valor exacto, tanto desde el navegador como desde
+      # dentro de la red de contenedores (de ahí el alias de Traefik de arriba).
+      KC_HOSTNAME: http://id.${DOMINIO_BASE}
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      # Admin humano del realm "master" — solo lo usa bootstrap-keycloak.ps1 (grant_type=password
+      # contra admin-cli) para aprovisionar todo lo demás sin pasar por la Console. Equivalente al
+      # ZITADEL_ADMIN_USERNAME/PASSWORD que reemplaza; a diferencia de Zitadel, Keycloak no
+      # auto-provisiona un PAT de service user — el bootstrap se autentica con estas credenciales
+      # directamente (ver lib/Bootstrap-Keycloak.psm1, Get-KeycloakAdminToken).
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USERNAME}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     networks:
       - sicsaft
     depends_on:
@@ -138,8 +137,13 @@ services:
       dockerfile: Dockerfile
     environment:
       PORT: 3000
-      ZITADEL_ISSUER: http://id.${DOMINIO_BASE}
-      ZITADEL_AUDIENCE: ${CIS_ZITADEL_AUDIENCE}
+      KEYCLOAK_URL: http://id.${DOMINIO_BASE}
+      KEYCLOAK_REALM: sicsaft
+      # Constante fija, no generada por el bootstrap (a diferencia de CIS_ZITADEL_AUDIENCE, que
+      # era el id de Proyecto que Zitadel generaba) — bootstrap-keycloak.ps1 crea un client scope
+      # "cis-audience" con un Audience mapper fijo a este mismo valor, ver
+      # lib/Bootstrap-Keycloak.psm1.
+      KEYCLOAK_AUDIENCE: cis
       CORE_URL: http://core:3001
       CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
@@ -152,18 +156,21 @@ services:
       # Solo el dominio local de este cliente — sin puertos de Vite (no hay `npm run dev` en una
       # instalación de cliente).
       CIS_CORS_ORIGIN: http://qr.${DOMINIO_BASE},http://ccp.${DOMINIO_BASE},http://admin.${DOMINIO_BASE},http://directivo.${DOMINIO_BASE}
-      # Mapeo Zitadel org id -> organizacionId de CORE — bootstrap-zitadel.ps1 imprime el valor
-      # real a pegar acá (una sola organización por instalación onprem, a diferencia de
-      # devops/local/ que mapea varias).
-      ZITADEL_ORG_ID_MAP: ${ZITADEL_ORG_ID_MAP}
-      # Integración con la Management API de Zitadel (alta de organización/usuarios desde
-      # web-admin, DOC-021) — mismo PAT que ya generó bootstrap-zitadel.ps1 para sí mismo.
-      ZITADEL_ADMIN_TOKEN: ${ZITADEL_ADMIN_TOKEN}
-      ZITADEL_PROJECT_ID: ${ZITADEL_PROJECT_ID}
+      # Sin equivalente a ZITADEL_ORG_ID_MAP — Keycloak no lo necesita: el organizacionId que usa
+      # el resto del ecosistema ES el alias de la Organization en Keycloak, decidido por CIS mismo
+      # al crearla (slugificando el nombre, ver keycloak-admin.service.ts `crearOrganizacion`), no
+      # un id externo que haya que mapear a mano acá.
+      # Integración con la Admin REST API de Keycloak (alta de organización/usuarios desde
+      # web-admin, DOC-021) — client confidencial con service account que crea
+      # bootstrap-keycloak.ps1 (ver lib/Bootstrap-Keycloak.psm1). A diferencia del PAT estático de
+      # Zitadel, este secreto autentica un flujo client_credentials — KeycloakAdminService lo
+      # cambia por un token de vida corta y lo cachea (ver cis/src/keycloak-admin/).
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID}
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
     networks:
       - sicsaft
     depends_on:
-      zitadel:
+      keycloak:
         condition: service_started
       core:
         condition: service_healthy
@@ -274,9 +281,9 @@ services:
       dockerfile: Dockerfile
       args:
         # INST-RF-05 — Vite hornea VITE_* en build time, así que esto debe construirse DESPUÉS de
-        # correr bootstrap-zitadel.ps1 (ver README.md "Orden obligatorio").
-        VITE_ZITADEL_ISSUER: http://id.${DOMINIO_BASE}
-        VITE_ZITADEL_CLIENT_ID: ${APP_QR_VITE_ZITADEL_CLIENT_ID}
+        # correr bootstrap-keycloak.ps1 (ver README.md "Orden obligatorio").
+        VITE_KEYCLOAK_ISSUER: http://id.${DOMINIO_BASE}
+        VITE_KEYCLOAK_CLIENT_ID: ${APP_QR_VITE_KEYCLOAK_CLIENT_ID}
         VITE_CIS_URL: http://api.${DOMINIO_BASE}
     networks:
       - sicsaft
@@ -295,8 +302,8 @@ services:
       context: ../../web_admin
       dockerfile: Dockerfile
       args:
-        VITE_ZITADEL_ISSUER: http://id.${DOMINIO_BASE}
-        VITE_ZITADEL_CLIENT_ID: ${WEB_ADMIN_VITE_ZITADEL_CLIENT_ID}
+        VITE_KEYCLOAK_ISSUER: http://id.${DOMINIO_BASE}
+        VITE_KEYCLOAK_CLIENT_ID: ${WEB_ADMIN_VITE_KEYCLOAK_CLIENT_ID}
         VITE_CIS_URL: http://api.${DOMINIO_BASE}
     networks:
       - sicsaft
@@ -310,8 +317,8 @@ services:
       context: ../../core/frontend
       dockerfile: Dockerfile
       args:
-        VITE_ZITADEL_ISSUER: http://id.${DOMINIO_BASE}
-        VITE_ZITADEL_CLIENT_ID: ${CORE_FRONTEND_VITE_ZITADEL_CLIENT_ID}
+        VITE_KEYCLOAK_ISSUER: http://id.${DOMINIO_BASE}
+        VITE_KEYCLOAK_CLIENT_ID: ${CORE_FRONTEND_VITE_KEYCLOAK_CLIENT_ID}
         VITE_CIS_URL: http://api.${DOMINIO_BASE}
     networks:
       - sicsaft
@@ -330,8 +337,8 @@ services:
       context: ../../ccp
       dockerfile: Dockerfile
       args:
-        VITE_ZITADEL_ISSUER: http://id.${DOMINIO_BASE}
-        VITE_ZITADEL_CLIENT_ID: ${CCP_VITE_ZITADEL_CLIENT_ID}
+        VITE_KEYCLOAK_ISSUER: http://id.${DOMINIO_BASE}
+        VITE_KEYCLOAK_CLIENT_ID: ${CCP_VITE_KEYCLOAK_CLIENT_ID}
         VITE_CIS_URL: http://api.${DOMINIO_BASE}
     networks:
       - sicsaft

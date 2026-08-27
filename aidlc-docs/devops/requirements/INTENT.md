@@ -26,8 +26,9 @@ construirse (`CLAUDE.md` — "Metodología AI-DLC para features nuevas").
 - **No incluye Nivel 3 (RFID)**: `rfid/` está "No iniciado" en `ROADMAP.md` — no hay código que
   empaquetar todavía. Se documenta el gancho (dónde encajaría), no se implementa nada.
 - **No es el instalador `.exe` empaquetado**: este incremento entrega el stack de contenedores
-  parametrizado por nivel + el script de bootstrap de Zitadel, verificables a mano
-  (`podman-compose up`). El empaquetado final (Inno Setup/NSIS, detección/instalación de
+  parametrizado por nivel + el script de bootstrap de identidad (Keycloak desde ADR-004 Fase 3,
+  2026-08-26 — originalmente Zitadel), verificables a mano (`podman-compose up`). El empaquetado
+  final (Inno Setup/NSIS, detección/instalación de
   WSL2+Podman) es un incremento posterior, una vez verificado el stack en una máquina Windows
   limpia real.
 - **No es licenciamiento ni activación por cliente**: no hay DRM, no hay validación de licencia
@@ -42,6 +43,6 @@ construirse (`CLAUDE.md` — "Metodología AI-DLC para features nuevas").
 ## Resultado esperado
 
 Un admin puede clonar `devops/onprem/`, completar un `.env` con datos de un cliente nuevo, correr
-`bootstrap-zitadel.ps1` y `podman-compose --profile nivelX up -d --build`, y terminar con un
+`bootstrap-keycloak.ps1` y `podman-compose --profile nivelX up -d --build`, y terminar con un
 stack SICSAFT aislado, funcionando de punta a punta (login OIDC real, APP QR sincronizando,
-portales operando según el nivel contratado) sin tocar el dashboard de Zitadel a mano.
+portales operando según el nivel contratado) sin tocar la Console de Keycloak a mano.

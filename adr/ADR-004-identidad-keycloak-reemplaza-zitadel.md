@@ -1,9 +1,10 @@
 # ADR-004: Identidad y SSO — Keycloak self-hosted reemplaza a Zitadel
 
 ## Status
-Aceptada — reemplaza a [ADR-002](ADR-002-identidad-zitadel-multi-tenant.md). Fase 1 (`cis/`)
-implementada; fases siguientes (4 portales, 3 stacks de `devops/`) pendientes — ver
-"Consequences" y `cis/README.md` "Estado".
+Aceptada — reemplaza a [ADR-002](ADR-002-identidad-zitadel-multi-tenant.md). Fase 1 (`cis/`) y
+Fase 2 (4 portales) implementadas. Fase 3 (`devops/`) implementada solo en `devops/onprem/`
+(`local/`/`prod/` siguen con Zitadel, pendientes) — ver "Consequences",
+`aidlc-docs/devops/00_PROJECT_METADATA.md` y el README de cada sistema para el detalle vigente.
 
 ## Context
 
@@ -104,8 +105,9 @@ mediano plazo aunque el costo de migración inicial sea mayor.
 - **DOC-023** (matriz RBAC Rol×Módulo×Acción) y **DOC-024** (auditoría de identidad) se actualizan
   para reflejar los guards/patrones de integración nuevos — el contenido de la matriz de permisos
   en sí (qué rol puede qué acción) no cambia, cambia cómo se obtiene el rol del token.
-- Bootstrap de identidad en los 3 stacks de devops (`devops/onprem/lib/Bootstrap-Zitadel.psm1` y
-  equivalentes de `local/`/`prod/`) se reescribe contra la Admin REST API de Keycloak.
+- Bootstrap de identidad en los 3 stacks de devops se reescribe contra la Admin REST API de
+  Keycloak — `devops/onprem/lib/Bootstrap-Keycloak.psm1` (reemplaza a Bootstrap-Zitadel.psm1) ya
+  hecho; los equivalentes de `local/`/`prod/` quedan pendientes.
 - **Sin migración de datos**: confirmado que `devops/prod/` todavía no tiene organizaciones/usuarios
   reales corriendo (2026-08-26) — el corte es una instalación limpia de Keycloak, no una migración
   de datos existentes desde Zitadel.

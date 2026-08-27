@@ -12,7 +12,7 @@ Documento citable desde otros DOC-XXX del repo, mismo esquema que DOC-002/004/00
 
 | Nivel | Qué incluye | Servicios concretos del monorepo |
 |---|---|---|
-| **Nivel 1** | APP QR SICSAFT (única fuente de captura) + SICSAFT CORE + Base Patrimonial Central + CIS + portal Directivo + portal Administrador del Sistema + CIP (BI/dashboards) | `postgres`, `redis`, `zitadel`, `core` (con `core-migrate`), `cis`, `app-qr-sicsaft`, `core-frontend` (Directivo), `web-admin` (Administrador del Sistema), `cip` (con `cip-migrate`) |
+| **Nivel 1** | APP QR SICSAFT (única fuente de captura) + SICSAFT CORE + Base Patrimonial Central + CIS + portal Directivo + portal Administrador del Sistema + CIP (BI/dashboards) | `postgres`, `redis`, `keycloak` (ADR-004 Fase 3, reemplaza a `zitadel`), `core` (con `core-migrate`), `cis`, `app-qr-sicsaft`, `core-frontend` (Directivo), `web-admin` (Administrador del Sistema), `cip` (con `cip-migrate`) |
 | **Nivel 2** | Nivel 1 + CCP (Centro de Control Patrimonial, portal **completo** de Profesional de AFT) | Nivel 1 + `ccp` |
 | **Nivel 3** | Nivel 2 + integración RFID, conectada a CIS preservando la independencia tecnológica de CORE | Nivel 2 + `rfid/` — **🔲 no iniciado, sin código que empaquetar (ver `ROADMAP.md`)** |
 
@@ -67,14 +67,21 @@ de este documento — hoy el nivel lo decide qué se instaló, no un flag que el
 > `docker-compose.yml` antes de esta fecha) y pasa a hablarle al `cip` real de esta misma
 > instalación.
 
-## 4. Relación con `ADR-002` (Zitadel multi-tenant)
+## 4. Relación con `ADR-004` (Keycloak, reemplaza a `ADR-002`/Zitadel)
 
-`ADR-002` diseñó Zitadel para multi-tenant **dentro de un mismo VPS** (`ZITADEL_ORG_ID_MAP`,
-varias Organizaciones en una sola instancia de Zitadel). El modelo on-premise de este documento es
-distinto: **una instancia de Zitadel completa por cliente**, no una Organización más dentro de una
-instancia compartida. No contradice `ADR-002` — es un modelo de despliegue paralelo (VPS
-compartido vs. instalación aislada), ambos coexisten como opciones de venta distintas, no se
-reemplaza uno por otro.
+> **Nota histórica**: esta sección originalmente describía la relación con `ADR-002` (Zitadel
+> multi-tenant) — `ADR-004` (2026-08-26) reemplazó a Zitadel por Keycloak en todo el ecosistema
+> (Fase 3 de esa migración es justamente `devops/onprem/`, ver `ARCHITECTURE.md`). El razonamiento
+> de esta sección sigue aplicando igual, solo cambia el IdP concreto.
+
+`ADR-004` diseñó Keycloak para multi-tenant **dentro de un mismo realm compartido**
+(`devops/local/`/`devops/prod/`: varias Organizations de Keycloak en un único realm `sicsaft`,
+reemplazo directo del modelo de varias Organizaciones de Zitadel en una instancia compartida que
+usaba `ADR-002`). El modelo on-premise de este documento es distinto: **una instancia de Keycloak
+completa por cliente**, con un único realm `sicsaft` y una sola Organization activa — no una
+Organization más dentro de una instancia compartida. No contradice `ADR-004` — es un modelo de
+despliegue paralelo (VPS compartido vs. instalación aislada), ambos coexisten como opciones de
+venta distintas, no se reemplaza uno por otro.
 
 ## 5. Justificación de negocio por nivel
 
