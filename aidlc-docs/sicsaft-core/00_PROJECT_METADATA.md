@@ -41,10 +41,15 @@ Nada de forma dura — `devops/onprem/` (Podman) sigue existiendo en paralelo de
 
 ## Próximo paso sugerido
 
-1. Spike de Redis embebido en Windows (ver `ARCHITECTURE.md` "Redis — riesgo real") — confirmar
-   real, no asumir, que `redis-windows/redis-windows` (el default actualizado, cubre hasta Redis
-   8.0.0 y trae `RedisService.exe`) arranca y sostiene la carga de BullMQ/rate-limiting de
-   `cis`/`cip` antes de comprometerse a esa opción. Si falla, decidir con el usuario si absorbe el
+1. **Decisión pendiente del usuario** antes de tocar código: ¿empaquetar un Redis para Windows
+   (opción 3 de `ARCHITECTURE.md`, `redis-windows/redis-windows` — más rápido, no toca `cis`/
+   `core`/`cip`) o sacar Redis del todo con `pg-boss` (reemplaza BullMQ) +
+   `rate-limiter-flexible`/`RateLimiterPostgres` + un `Map` en memoria para device-registry (opción
+   4 — más correcto a mediano plazo, pero toca 4 módulos en 3 sistemas, y exige decidir si
+   `devops/local/`/`devops/prod/` migran también o quedan con Redis real vía Docker detrás de una
+   interfaz pluggable)? Ver "Redis — riesgo real" en `ARCHITECTURE.md` para el detalle completo de
+   ambos caminos. Sea cual sea, no se asume que funciona sin un spike real (igual que se hizo hoy
+   con Keycloak). Si el camino elegido falla o no alcanza, decidir con el usuario si absorbe el
    costo de licencia de Memurai Enterprise (el camino con respaldo oficial de Redis Inc., sin lista
    de precios pública).
 2. Confirmar el `capacitor.config.ts` real de la APK ya construida (sub-pregunta de CORE-Q-01 en

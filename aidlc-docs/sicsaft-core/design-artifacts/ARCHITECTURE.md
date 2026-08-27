@@ -52,15 +52,22 @@ aceptar el peso de la JVM.
 
 ### Redis — riesgo real, sin solución perfecta (NOTA DE HONESTIDAD, investigación actualizada 2026-08-27)
 
-`cis/` usa Redis para rate-limiting (`rate-limit/redis-rate-limiter.ts`), device-registry, y
-config general (`redis/`); `cip/` lo usa para la cola BullMQ del worker de agregación
-(`agregacion/eventos-outbox.worker.ts`) — no es un uso decorativo, sacarlo requeriría reescribir
-esas piezas para otro backend de estado.
+Uso real de Redis en el ecosistema, confirmado leyendo el código (no asumido) — toca **tres**
+sistemas, no solo `cis`/`cip`:
+
+- `cis/`: rate-limiting (`rate-limit/redis-rate-limiter.ts` — `INCR`+`PEXPIRE` atómico vía script
+  Lua, falla abierto si Redis no responde) y device-registry (`device-registry/
+  device-registry.service.ts` — un `SET ... PX <ttlMs>` por operador, también falla abierto; es un
+  tracking de "un dispositivo por operador" complementario, no un control de seguridad, Keycloak ya
+  autentica).
+- `core/`: productor BullMQ del outbox de eventos (`eventos-outbox/`).
+- `cip/`: consumidor BullMQ del mismo outbox (`agregacion/eventos-outbox.worker.ts`).
+
+No es un uso decorativo — sacar Redis requiere reescribir estas piezas, no solo cambiar de binario.
 
 **Redis Inc. sigue sin publicar un binario propio de Windows** — pero desde 2025 sí tiene un socio
 oficial para eso: [Memurai](https://redis.io/partners/memurai/), listado directamente en
-`redis.io/partners`. Investigado real hoy (no asumido), quedan tres caminos, ninguno gratis-y-sin-
-condiciones para un `.exe` que corre en producción en la PC de cada cliente:
+`redis.io/partners`. Quedan cuatro caminos reales, investigados hoy (no asumidos):
 
 1. **Memurai Developer (gratis)** — descartada para este uso. Es la build más alineada con Redis
    Inc., pero su licencia prohíbe explícitamente producción, fuerza un reinicio/apagado automático
@@ -72,23 +79,52 @@ condiciones para un `.exe` que corre en producción en la PC de cada cliente:
    licencia recurrente por cada instalación de cliente — **esto es una decisión de negocio, no
    técnica, que le corresponde al usuario** si en algún momento se quiere el camino con respaldo
    oficial de Redis Inc.
-3. **Build comunitario sin costo, sin respaldo de Redis Inc.** — accá cambió el panorama respecto a
+3. **Build comunitario sin costo, sin respaldo de Redis Inc.** — acá cambió el panorama respecto a
    lo que se había documentado antes: `tporadowski/redis` (el fork que se había propuesto como
    default) quedó desactualizado, solo publica hasta Redis 5.0.14. El fork
    [`redis-windows/redis-windows`](https://github.com/redis-windows/redis-windows) está más al día
    — cubre Redis 6.0.20 hasta **8.0.0** y trae `RedisService.exe` para instalar/correr como
    servicio nativo de Windows (encaja bien con el patrón `ManagedProcess`/`spawn` que ya usa el
-   resto de `sicsaft-core/`). **Recomendado como default de este incremento** en vez de
-   `tporadowski/redis` — sigue siendo no oficial, mismo riesgo de fondo si el mantenedor lo
-   abandona, pero es la opción sin costo más actualizada verificada hoy.
+   resto de `sicsaft-core/`). Más rápido de implementar que la opción 4 (no toca código de
+   `cis`/`core`/`cip`), pero sigue siendo no oficial — mismo riesgo de fondo si el mantenedor lo
+   abandona.
+4. **Sacar Redis del todo para el perfil embebido, no reemplazarlo por otro Redis** — la opción
+   correcta a más largo plazo, ahora con tecnología concreta identificada (no genérica "SQLite o
+   memoria" como se había dejado antes), porque Postgres **ya es una dependencia dura embebida** en
+   `sicsaft-core.exe` — no agrega ningún proceso nuevo:
+   - BullMQ (`core/eventos-outbox/` productor + `cip/agregacion/eventos-outbox.worker.ts`
+     consumidor) → **[`pg-boss`](https://github.com/timgit/pg-boss)** — cola de trabajos sobre
+     Postgres (`SKIP LOCKED`, garantías ACID), activamente mantenida (`v12.18.2` verificado
+     mayo 2026), pensada exactamente para "no querer sumar Redis". BullMQ es Redis-only por diseño
+     (usa Streams/sorted sets internamente) — no hay forma de darle otro backend sin cambiar de
+     librería.
+   - Rate limiter (`cis/rate-limit/redis-rate-limiter.ts`) →
+     **[`rate-limiter-flexible`](https://github.com/animir/node-rate-limiter-flexible)** con su
+     store `RateLimiterPostgres` — misma librería podría reemplazar el script Lua actual
+     manteniendo el mismo comportamiento de "falla abierto" ya documentado.
+   - Device-registry (`cis/device-registry/device-registry.service.ts`) → ni siquiera necesita
+     Postgres: es un `Map` en memoria del propio proceso con un `setTimeout` como TTL. Encaja mejor
+     todavía con su propio diseño actual ("falla abierto", tracking best-effort, no es un control de
+     seguridad) — perder ese estado en un reinicio del proceso ya era aceptable con Redis.
 
-No se asume que la opción 3 "simplemente funciona" bajo la carga real de BullMQ/rate-limiting de
-`cis`/`cip` — sigue siendo el primer punto a verificar con un spike real (igual que se hizo hoy con
-Keycloak) antes de dar por cerrado este componente. Si ese spike falla o el fork deja de
-mantenerse, el camino de respaldo es la opción 2 (Memurai Enterprise, con el usuario decidiendo si
-absorbe el costo de licencia) — la opción de reescribir `cis`/`cip` para no depender de Redis en
-modo desktop (SQLite o backend en memoria) queda como alternativa de más largo plazo, no se
-implementa en este incremento por tocar código compartido con `devops/local/`/`devops/prod/`.
+   **Costo real, no minimizado**: esto es trabajo de backend genuino, no de empaquetado — toca 4
+   módulos en 3 sistemas (`cis`, `core`, `cip`), y esos módulos hoy están escritos contra
+   `ioredis`/`bullmq` sin ninguna capa de abstracción, compartidos tal cual con `devops/local/` y
+   `devops/prod/` (que sí tienen Redis real vía Docker, sin este problema). Migrar sin romper esos
+   dos perfiles implica una de dos: (a) introducir una interfaz pluggable por sistema (ej.
+   `RateLimiterPort`, `ColaEventosPort`) con una implementación Redis y otra Postgres/memoria
+   elegida por config — más código a mantener, pero no reabre la decisión de stack ya tomada para
+   `local`/`prod`; o (b) sacar Redis de raíz en los tres perfiles (local/prod/onprem incluidos) —
+   simplifica el stack completo pero es una decisión de arquitectura mayor, que además chocaría con
+   la regla del repo de no reabrir decisiones de stack ya tomadas sin un ADR nuevo. **No se decide
+   acá cuál** — es la pregunta que le corresponde al usuario antes de empezar a implementar esto.
+
+**Default de este incremento**: opción 3 (`redis-windows/redis-windows`) por ser la de menor costo
+de implementación inmediata — no toca código de `cis`/`core`/`cip`, solo empaquetado. La opción 4 es
+la recomendada a mediano plazo si el usuario confirma el camino (a) o (b) de arriba; ninguna de las
+dos se asume que "simplemente funciona" sin verificarla real — sigue siendo el primer punto a
+confirmar con un spike (igual que se hizo hoy con Keycloak) antes de dar por cerrado este
+componente.
 
 ### `cis`/`core`/`cip` — bajo riesgo
 
