@@ -32,10 +32,13 @@ Flujo de instalación/primer uso que el usuario describió explícitamente:
    /admin/organizaciones/:orgId/usuarios`), pero embebido en la app de escritorio en vez de un
    portal web aparte.
 4. Además de la app de escritorio, el usuario menciona una **APK de Android ya desarrollada** que
-   quiere poder instalarle a cada cliente junto con `sicsaft-core.exe` — no está en este repo
-   todavía (confirmado por búsqueda: sin Capacitor/Cordova/Tauri-mobile en
-   `app-qr-sicsaft/package.json` ni en ningún otro `package.json` del monorepo) — **pendiente que
-   el usuario aporte ese artefacto o aclare de dónde sale**, ver "Preguntas abiertas" abajo.
+   quiere poder instalarle a cada cliente junto con `sicsaft-core.exe`. **Resuelto (2026-08-27,
+   CORE-Q-01)**: es un wrap de `app-qr-sicsaft/` hecho con **Capacitor**, ya compilado, mantenido
+   fuera de este repo (no hay tooling de Capacitor en ningún `package.json` del monorepo — confirmado
+   por búsqueda ese mismo día). Este incremento no necesita traer ese tooling ni el proyecto Android
+   al repo; solo necesita que `cis`/Keycloak embebidos sean alcanzables por esa APK desde la red
+   local del cliente (ver CORE-RF-05 en `REQUIREMENTS.md` y la nota de Capacitor/secure-context en
+   `ARCHITECTURE.md` "Red: localhost para el escritorio, LAN para el teléfono").
 
 ## Por qué ahora
 
@@ -52,25 +55,32 @@ dominios locales" — lo reemplaza por una app nativa que no expone nada de eso 
   siguen siendo los mismos backends NestJS y frontends Vite/React, con la misma matriz RBAC
   (DOC-023) y los mismos endpoints (DOC-006, DOC-021, DOC-024). Este incremento es de empaquetado y
   orquestación de procesos, no de dominio.
-- **No decide todavía si `devops/onprem/` (Podman) se abandona por completo o queda como opción
-  paralela** (ej. para un cliente con un servidor Linux dedicado en vez de una sola PC Windows) —
-  se documenta como pregunta abierta, no se borra el trabajo de ADR-004 Fase 3 sin confirmación
-  explícita.
-- **No incluye la APK de Android** en el alcance de código de este incremento — se documenta como
-  dependencia externa pendiente de aportar por el usuario.
+- **`devops/onprem/` (Podman) no se abandona — resuelto (2026-08-27, CORE-Q-02)**: queda como
+  alternativa para un perfil de cliente distinto (ej. servidor Linux dedicado), pero
+  `sicsaft-core.exe` es el camino **prioritario** de instalación de acá en adelante. El trabajo de
+  ADR-004 Fase 3 sigue vigente sin cambios — no se archiva ni se reescribe.
+- **No incluye la APK de Android** en el alcance de código de este incremento — ya existe y se
+  mantiene fuera de este repo (ver CORE-Q-01, resuelto arriba); este incremento solo debe dejar
+  `cis`/Keycloak alcanzables por esa APK desde la LAN, no construirla.
 - **No decide todavía el mecanismo de Redis embebido** (ver `ARCHITECTURE.md` "Riesgos reales, no
   supuestos") — es la pieza con menos certeza técnica y se trata como spike/decisión propia, no se
   asume una solución.
 
 ## Preguntas abiertas (no bloquean el diseño, se documentan)
 
-- **CORE-Q-01**: ¿La APK de Android ya desarrollada es un build de `app-qr-sicsaft/` (vía
-  Capacitor/Bubblewrap/PWABuilder u otra herramienta), o es un proyecto Android nativo aparte no
-  versionado en este repo? Determina si hay que traer tooling de build de APK a este monorepo o si
-  el usuario simplemente entrega un `.apk` ya compilado para distribuir.
-- **CORE-Q-02**: ¿`sicsaft-core.exe` reemplaza a `devops/onprem/` (Podman) por completo, o
-  coexisten como dos opciones de instalación según el perfil de cliente (PC única del Director vs.
-  servidor dedicado)? Afecta si el trabajo de ADR-004 Fase 3 sigue vigente o queda archivado.
+- **CORE-Q-01 — RESUELTA (2026-08-27)**: La APK ya desarrollada es un wrap de `app-qr-sicsaft/`
+  hecho con Capacitor. Sub-pregunta nueva que queda abierta por esto (no bloquea, es de bajo
+  riesgo): confirmar el `capacitor.config.ts` real de esa APK — si sirve los assets embebidos por
+  el scheme propio de Capacitor (`https://localhost`/`capacitor://localhost`, el comportamiento
+  default de una build de producción), el origen ya es secure context y no repite el bug de
+  `crypto.subtle` encontrado hoy con `.test`; si en cambio usa `server.url` apuntando a una URL de
+  LAN real (típico de un build con `--livereload` de desarrollo, no de producción), sí puede
+  repetirlo — hay reportes de esto mismo en el foro de Ionic/Capacitor. Confirmar cuál es antes de
+  diseñar el mecanismo de descubrimiento LAN de CORE-RF-05.
+- **CORE-Q-02 — RESUELTA (2026-08-27)**: `sicsaft-core.exe` **no** reemplaza a `devops/onprem/`
+  (Podman) — coexisten. `sicsaft-core.exe` es el camino prioritario; `devops/onprem/` queda como
+  alternativa para un perfil de cliente con servidor dedicado. El trabajo de ADR-004 Fase 3 sigue
+  vigente.
 - **CORE-Q-03**: Nivel 2 (CCP) y Nivel 3 (RFID) — ¿entran a `sicsaft-core.exe` en incrementos
   futuros con el mismo patrón (procesos embebidos), o Nivel 2/3 siguen necesitando el modelo
   Podman/servidor por su mayor carga? No se asume una respuesta — Nivel 1 es el alcance confirmado

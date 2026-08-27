@@ -18,10 +18,15 @@ del Profesional de AFT).
 
 ## Estado
 
-🔴 Solo diseño — recién decidido con el usuario (2026-08-27), sin código todavía. Ver
-`ARCHITECTURE.md` para la factibilidad investigada de cada componente embebido (Postgres bajo
-riesgo, Keycloak factible con costo real de tamaño/arranque, Redis es el punto de mayor
-incertidumbre — sin binario oficial de Windows).
+🔴 Scaffold Electron construido (2026-08-27, ver `sicsaft-core/README.md`) — typecheck/lint/build/
+test en verde, 0 vulnerabilidades, pero sin binarios embebidos vendorizados todavía. CORE-Q-01 y
+CORE-Q-02 resueltas ese mismo día (ver `requirements/INTENT.md`): la APK es un wrap Capacitor de
+`app-qr-sicsaft/` ya construido fuera de este repo, y `devops/onprem/` (Podman) se mantiene como
+alternativa — `sicsaft-core.exe` es el camino prioritario. Ver `ARCHITECTURE.md` para la
+factibilidad investigada de cada componente embebido (Postgres bajo riesgo, Keycloak factible con
+costo real de tamaño/arranque, Redis con la investigación de mercado actualizada ese día — sin
+binario oficial de Windows, default sin costo firmado en `redis-windows/redis-windows` pendiente de
+spike real).
 
 ## Depende de
 
@@ -31,16 +36,23 @@ sin cambios) — y de todo el trabajo de identidad de ADR-004 Fases 1-3 (`Keyclo
 
 ## Bloquea
 
-Nada de forma dura todavía — `devops/onprem/` (Podman) sigue existiendo en paralelo hasta que se
-confirme (CORE-Q-02) si `sicsaft-core.exe` lo reemplaza por completo o coexisten.
+Nada de forma dura — `devops/onprem/` (Podman) sigue existiendo en paralelo de forma permanente
+(CORE-Q-02 resuelta: coexisten, no se reemplaza).
 
 ## Próximo paso sugerido
 
-1. Cerrar CORE-Q-01 (qué es la APK de Android) con el usuario — determina el alcance real de
-   CORE-RF-05.
-2. Spike de Redis embebido en Windows (ver `ARCHITECTURE.md` "Redis — riesgo real") — confirmar
-   real, no asumir, que un build comunitario arranca y sostiene la carga de BullMQ/rate-limiting
-   antes de comprometerse a esa opción.
-3. Scaffold del proyecto Electron (`sicsaft-core/`) con el wizard de primer arranque como primer
-   entregable vertical — Postgres + Keycloak + `cis` embebidos y el alta real de un Director de
-   punta a punta, antes de sumar `core`/`cip`/los portales embebidos.
+1. Spike de Redis embebido en Windows (ver `ARCHITECTURE.md` "Redis — riesgo real") — confirmar
+   real, no asumir, que `redis-windows/redis-windows` (el default actualizado, cubre hasta Redis
+   8.0.0 y trae `RedisService.exe`) arranca y sostiene la carga de BullMQ/rate-limiting de
+   `cis`/`cip` antes de comprometerse a esa opción. Si falla, decidir con el usuario si absorbe el
+   costo de licencia de Memurai Enterprise (el camino con respaldo oficial de Redis Inc., sin lista
+   de precios pública).
+2. Confirmar el `capacitor.config.ts` real de la APK ya construida (sub-pregunta de CORE-Q-01 en
+   `INTENT.md`) — determina si el mecanismo de descubrimiento LAN de CORE-RF-05 necesita lidiar con
+   el bug de secure context otra vez o no.
+3. Vendorizar los binarios en `sicsaft-core/resources/` (Postgres, JRE+Keycloak, Redis una vez
+   resuelto el punto 1) e integrar `cis`/`core`/`cip` al `service-orchestrator.ts` (código ya
+   escrito en `node-backend-service.ts`, sin integrar) — hoy bloqueado por el spike de Redis.
+4. Portar `KeycloakAdminService.crearUsuarioHuman` para implementar el alta real del Director
+   (`ipc/handlers.ts`, hoy tira "no implementado") y conectar el paso del Profesional de AFT al
+   endpoint real de `cis` una vez esté embebido.

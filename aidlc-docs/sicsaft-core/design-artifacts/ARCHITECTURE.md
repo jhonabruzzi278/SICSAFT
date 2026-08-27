@@ -50,30 +50,45 @@ trabajo de ADR-004 Fases 1-3 (guards, admin service, roles por Organization, boo
 hecho y verificado real end-to-end — reabrir esa decisión de nuevo tendría un costo mayor al de
 aceptar el peso de la JVM.
 
-### Redis — riesgo real, sin solución perfecta (NOTA DE HONESTIDAD)
+### Redis — riesgo real, sin solución perfecta (NOTA DE HONESTIDAD, investigación actualizada 2026-08-27)
 
 `cis/` usa Redis para rate-limiting (`rate-limit/redis-rate-limiter.ts`), device-registry, y
 config general (`redis/`); `cip/` lo usa para la cola BullMQ del worker de agregación
 (`agregacion/eventos-outbox.worker.ts`) — no es un uso decorativo, sacarlo requeriría reescribir
 esas piezas para otro backend de estado.
 
-**Redis Inc. no publica binario oficial de Windows** desde hace años (el port de Microsoft
-quedó archivado, basado en Redis 3.x viejo). Las opciones reales:
+**Redis Inc. sigue sin publicar un binario propio de Windows** — pero desde 2025 sí tiene un socio
+oficial para eso: [Memurai](https://redis.io/partners/memurai/), listado directamente en
+`redis.io/partners`. Investigado real hoy (no asumido), quedan tres caminos, ninguno gratis-y-sin-
+condiciones para un `.exe` que corre en producción en la PC de cada cliente:
 
-1. **Bundlear un build comunitario mantenido de Redis para Windows** (ej. el fork
-   `tporadowski/redis`, basado en releases más nuevos de Redis, usado ampliamente para desarrollo
-   local en Windows) — no es oficial ni tiene el respaldo de Redis Inc., pero es la opción más
-   rápida de implementar sin tocar el código de `cis/`/`cip/`. **Recomendado como default de este
-   incremento**, documentado explícitamente como riesgo a revisar (si ese fork deja de mantenerse,
-   hay que migrar).
-2. **Reescribir el rate-limiter/device-registry/cola de `cip/` para no depender de Redis** en modo
-   desktop embebido (ej. SQLite o un backend en memoria del propio proceso) — más correcto a largo
-   plazo, pero es trabajo de backend real, no de empaquetado, y toca código que hoy es compartido
-   con `devops/local/`/`devops/prod/` (que si tienen Redis real disponible). Se deja como
-   alternativa futura, no se implementa en este incremento.
+1. **Memurai Developer (gratis)** — descartada para este uso. Es la build más alineada con Redis
+   Inc., pero su licencia prohíbe explícitamente producción, fuerza un reinicio/apagado automático
+   cada 10 días de uptime, limita RAM al 50% del sistema y a 10 IPs conectadas — condiciones
+   pensadas para un entorno de desarrollo, no para la PC del Director corriendo de forma continua.
+2. **Memurai Enterprise (pago)** — production-ready de verdad (uptime/RAM/conexiones sin límite,
+   soporte real de Redis 7.4 y Redis 8 anunciado para Windows), pero sin lista de precios pública
+   (hay que contactar ventas) y con trial de 90 días, no gratis indefinido. Introduce un costo de
+   licencia recurrente por cada instalación de cliente — **esto es una decisión de negocio, no
+   técnica, que le corresponde al usuario** si en algún momento se quiere el camino con respaldo
+   oficial de Redis Inc.
+3. **Build comunitario sin costo, sin respaldo de Redis Inc.** — accá cambió el panorama respecto a
+   lo que se había documentado antes: `tporadowski/redis` (el fork que se había propuesto como
+   default) quedó desactualizado, solo publica hasta Redis 5.0.14. El fork
+   [`redis-windows/redis-windows`](https://github.com/redis-windows/redis-windows) está más al día
+   — cubre Redis 6.0.20 hasta **8.0.0** y trae `RedisService.exe` para instalar/correr como
+   servicio nativo de Windows (encaja bien con el patrón `ManagedProcess`/`spawn` que ya usa el
+   resto de `sicsaft-core/`). **Recomendado como default de este incremento** en vez de
+   `tporadowski/redis` — sigue siendo no oficial, mismo riesgo de fondo si el mantenedor lo
+   abandona, pero es la opción sin costo más actualizada verificada hoy.
 
-No se asume que la opción 1 "simplemente funciona" — se marca como el primer punto a verificar real
-(igual que se hizo hoy con Keycloak) antes de dar por cerrado este componente.
+No se asume que la opción 3 "simplemente funciona" bajo la carga real de BullMQ/rate-limiting de
+`cis`/`cip` — sigue siendo el primer punto a verificar con un spike real (igual que se hizo hoy con
+Keycloak) antes de dar por cerrado este componente. Si ese spike falla o el fork deja de
+mantenerse, el camino de respaldo es la opción 2 (Memurai Enterprise, con el usuario decidiendo si
+absorbe el costo de licencia) — la opción de reescribir `cis`/`cip` para no depender de Redis en
+modo desktop (SQLite o backend en memoria) queda como alternativa de más largo plazo, no se
+implementa en este incremento por tocar código compartido con `devops/local/`/`devops/prod/`.
 
 ### `cis`/`core`/`cip` — bajo riesgo
 
@@ -100,13 +115,13 @@ rompieron `crypto.subtle` en el navegador con dominios `.test`) — de ahí la e
 por `http://127.0.0.1:<puerto>` (loopback SÍ es secure context, verificado ya hoy en el hallazgo de
 `.localhost` vs `.test`) en vez de `file://`, para no repetir el mismo bug en un contexto nuevo.
 
-### La APK de Android — bloqueada en información, no en factibilidad
+### La APK de Android — resuelta (CORE-Q-01, 2026-08-27): wrap Capacitor de `app-qr-sicsaft/`
 
-Sin tooling de empaquetado mobile (Capacitor/Cordova/Tauri-mobile) en este repo hoy — búsqueda
-confirmada (`grep` sobre todos los `package.json` del monorepo, 2026-08-27). Ver CORE-Q-01 en
-`INTENT.md`: si la APK es un wrap de `app-qr-sicsaft/` con una herramienta externa al repo, este
-incremento no necesita tocar nada de mobile — solo asegurarse de que la APK pueda alcanzar `cis`
-corriendo en la PC del Director **por la red local**, no solo `127.0.0.1` (ver siguiente sección).
+Confirmado con el usuario: es un wrap de `app-qr-sicsaft/` hecho con Capacitor, ya compilado y
+mantenido fuera de este repo (sin tooling de Capacitor/Cordova/Tauri-mobile en ningún
+`package.json` del monorepo, confirmado por `grep` el mismo día). Este incremento no necesita
+tocar nada de mobile — solo asegurarse de que la APK pueda alcanzar `cis`/Keycloak corriendo en la
+PC del Director **por la red local**, no solo `127.0.0.1` (ver siguiente sección).
 
 ## Red: localhost para el escritorio, LAN para el teléfono (riesgo nuevo, mismo tipo que el ya encontrado)
 
@@ -114,12 +129,19 @@ Todo lo de arriba asume `127.0.0.1` —válido para la ventana de Electron misma
 en el teléfono, no en la PC del Director** — para que la APP QR sincronice contra `cis`, este tiene
 que escuchar en la IP de LAN de la PC del Director (no solo loopback), y Keycloak necesita un
 `KC_HOSTNAME` alcanzable desde el teléfono también (no `127.0.0.1`, que desde el teléfono apunta a
-sí mismo). Esto reabre una versión del mismo problema que ya resolvimos hoy para el navegador
-(dominio/origin correcto, secure context) pero ahora del lado de una app Android nativa — cuya
-reglas de red son distintas (OkHttp/Retrofit no tienen el concepto de "secure context" de un
-navegador, así que `crypto.subtle` no aplica ahí; pero si la APK es un WebView de la PWA, sí podría
-volver a aplicar). **No se resuelve en este documento** — depende de la respuesta a CORE-Q-01, se
-deja marcado como punto a cerrar antes de implementar la sincronización real APK↔`sicsaft-core.exe`.
+sí mismo).
+
+Con CORE-Q-01 resuelta (la APK es un WebView de Capacitor, no una app 100% nativa OkHttp/Retrofit),
+la regla de secure context/`crypto.subtle` que ya rompió `.test` hoy **sí puede volver a aplicar**,
+con un matiz investigado hoy (no asumido): una build de **producción** de Capacitor sirve los
+assets embebidos por su propio scheme (`https://localhost`/`capacitor://localhost`), que el
+WebView trata como secure context — ahí el riesgo no se repite, solo las llamadas `fetch`/XHR
+salientes hacia `cis` necesitan alcanzar la LAN. El riesgo real reaparece si esa APK está compilada
+con `server.url` apuntando a una URL de LAN (típico de `--livereload` en desarrollo, no en
+producción) — hay reportes de exactamente este problema en el foro de Ionic/Capacitor. **No se
+resuelve en este documento**: falta confirmar el `capacitor.config.ts` real de la APK ya construida
+(sub-pregunta de CORE-Q-01 en `INTENT.md`) antes de implementar la sincronización real
+APK↔`sicsaft-core.exe`.
 
 ## Primer arranque — wizard nativo (reemplaza a `bootstrap-keycloak.ps1` + logins manuales)
 
@@ -160,9 +182,10 @@ PowerShell + logins de navegador separados.
 ## Qué queda obsoleto o en pausa
 
 - `devops/onprem/docker-compose.yml`, `instalar-cliente.ps1`, Podman — dejan de ser el camino de
-  instalación principal. Ver CORE-Q-02 en `INTENT.md`: no se borran todavía, quedan como posible
-  alternativa para un perfil de cliente distinto (servidor dedicado) hasta que el usuario confirme
-  si conviene mantenerlos.
+  instalación **principal**. Resuelto (CORE-Q-02, 2026-08-27): no se borran ni se archivan, siguen
+  vigentes como alternativa para un perfil de cliente con servidor dedicado (en vez de una sola PC
+  Windows del Director) — coexisten con `sicsaft-core.exe`, que es el camino prioritario de acá en
+  adelante.
 - El bug de dominios `.test`/`.localhost` (`fix-devops-onprem-dominios-localhost`, encontrado hoy)
-  deja de ser urgente si `devops/onprem/` deja de ser el camino principal — pero el fix ya escrito
-  no se descarta, sigue siendo correcto para quien use ese camino alternativo.
+  sigue siendo correcto y necesario para quien use `devops/onprem/` como alternativa — no se
+  descarta.

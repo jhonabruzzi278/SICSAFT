@@ -4,10 +4,14 @@
 
 Instalador `.exe` único que empaqueta todos los beneficios de Nivel 1 (Postgres, Keycloak, Redis,
 `cis/`, `core/`, `cip/`) como procesos nativos embebidos en una app Electron — sin Podman, sin
-Docker, sin WSL2, sin navegador visible para el cliente. Reemplaza a `devops/onprem/` como camino
-principal de instalación por cliente (ver
+Docker, sin WSL2, sin navegador visible para el cliente. Es el camino **prioritario** de
+instalación por cliente; `devops/onprem/` (Podman) se mantiene como alternativa para un perfil de
+cliente con servidor dedicado — confirmado con el usuario 2026-08-27, ver
 [`aidlc-docs/sicsaft-core/requirements/INTENT.md`](../aidlc-docs/sicsaft-core/requirements/INTENT.md)
-CORE-Q-02 — no se descarta `devops/onprem/` hasta confirmarlo).
+CORE-Q-02.
+
+La APK de Android que se instala junto a esta app es un wrap de `app-qr-sicsaft/` hecho con
+Capacitor, ya construido fuera de este repo (CORE-Q-01, mismo documento).
 
 ## Estado
 
@@ -30,15 +34,17 @@ verificado (`npm run typecheck`/`lint:ci`/`build`/`test` en verde):
 para el detalle real de cada uno, sin minimizar):
 
 - **Binarios embebidos sin vendorizar** (`resources/README.md`) — Postgres, JRE+Keycloak, y sobre
-  todo Redis (sin binario oficial de Windows, es el mayor riesgo real del incremento).
-  `service-orchestrator.ts` tira un error claro apenas llega a ese punto, a propósito — no lo
-  oculta con un mock.
+  todo Redis (sin binario oficial de Windows; investigación de mercado actualizada 2026-08-27 en
+  `ARCHITECTURE.md` — default sin costo firmado en `redis-windows/redis-windows`, pendiente el
+  spike real de carga). `service-orchestrator.ts` tira un error claro apenas llega a ese punto, a
+  propósito — no lo oculta con un mock.
 - `cis/`/`core/`/`cip/` embebidos: el código para correrlos (`node-backend-service.ts`) está
-  escrito pero sin integrar al orquestador — bloqueado por Redis.
+  escrito pero sin integrar al orquestador — bloqueado por el spike de Redis.
 - `KeycloakAdminService.crearUsuarioHuman` sin portar (paso "alta del Director" del wizard tira
   "no implementado" a propósito).
-- La APK de Android que el usuario va a instalar junto con esta app — no está en este repo, sin
-  definir todavía (CORE-Q-01).
+- El `capacitor.config.ts` real de la APK (ya construida fuera de este repo, ver arriba) sin
+  confirmar todavía — determina si el mecanismo de red LAN de CORE-RF-05 repite el bug de secure
+  context que ya rompió `.test` (ver `ARCHITECTURE.md`).
 
 ## Depende de
 
@@ -48,8 +54,8 @@ de todo el trabajo de identidad de ADR-004 (Fases 1-3) — `KeycloakAdminService
 
 ## Bloquea
 
-Nada de forma dura — convive con `devops/onprem/` (Podman) hasta que se confirme si lo reemplaza
-por completo.
+Nada de forma dura — convive con `devops/onprem/` (Podman) de forma permanente (CORE-Q-02
+resuelta: no lo reemplaza).
 
 ## Documentos relacionados
 
@@ -78,5 +84,6 @@ arrancar Keycloak/Postgres sin los binarios vendorizados en `resources/` (ver
 
 Ver "Próximo paso sugerido" en
 [`aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md`](../aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md)
-— cerrar CORE-Q-01 (qué es la APK), spike de Redis embebido en Windows, y completar la integración
-de `cis`/`core`/`cip` al orquestador una vez resuelto ese spike.
+— spike de Redis embebido en Windows (`redis-windows/redis-windows`), confirmar el
+`capacitor.config.ts` real de la APK, vendorizar binarios, y completar la integración de
+`cis`/`core`/`cip` al orquestador una vez resuelto el spike.
