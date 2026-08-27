@@ -25,30 +25,47 @@ introducir Rust.
 
 ## Componente por componente — factibilidad real
 
-### Postgres — bajo riesgo, camino conocido
+### Postgres — hecho y verificado real (2026-08-27)
 
 EDB (EnterpriseDB) publica binarios oficiales de Postgres para Windows como ZIP portable (sin
-instalador) — se empaquetan dentro de `resources/` del `.exe`. Al primer arranque:
-`initdb.exe` crea un data directory nuevo en `%APPDATA%/sicsaft-core/postgres-data` (nunca dentro
-de `Program Files`, por permisos), después `pg_ctl.exe`/`postgres.exe` corre como proceso hijo del
-proceso principal de Electron, escuchando en `127.0.0.1` en un puerto fijo (ej. 55432, no el 5432
-estándar, para no chocar con un Postgres que el cliente ya tenga instalado).
+instalador) — vendorizados en `resources/postgres/` (PostgreSQL 16.15-1, solo `bin/`/`lib/`/
+`share/`, ver `resources/README.md`). Al primer arranque: `initdb.exe` crea un data directory
+nuevo en `%APPDATA%/sicsaft-core/postgres-data` (nunca dentro de `Program Files`, por permisos),
+después `pg_ctl.exe`/`postgres.exe` corre como proceso hijo del proceso principal de Electron,
+escuchando en `127.0.0.1:55432` (no el 5432 estándar, para no chocar con un Postgres que el
+cliente ya tenga instalado). Verificado real: `initdb`, arranque, y un `SELECT version()` real vía
+`psql.exe` contra el proceso arrancado.
 
-### Keycloak — factible, pero con costo real de tamaño/arranque
+### Keycloak — hecho y verificado real (2026-08-27), con 3 hallazgos reales en el camino
 
 Confirmado en ADR-004 (Context): Keycloak sí tiene distribución Windows oficial (ZIP + `kc.bat`,
-JVM, Java 17 mínimo). Se bundlea un JRE redistribuible (Eclipse Temurin publica builds oficiales
-para Windows) + la distribución de Keycloak, y se corre `kc.bat build` en tiempo de EMPAQUETADO
-(no en el cliente) para poder arrancar con `--optimized` sin el error real que ya encontramos hoy
-("was used for first ever server start" si no se pre-compila).
+JVM, Java 17 mínimo). Vendorizados Eclipse Temurin JRE 17.0.20.1+1 + Keycloak **26.0.8** (no
+26.0.0 — ver hallazgo 3) en `resources/keycloak/` (ver `resources/README.md`), con `kc.bat build
+--db=postgres --health-enabled=true` corrido en tiempo de EMPAQUETADO (hoy a mano, pendiente
+automatizar) para poder arrancar con `--optimized` sin el error real que ya encontramos ("was used
+for first ever server start" si no se pre-compila).
 
-**Costo real, no minimizado**: JRE + Keycloak suman fácilmente 250-350MB al instalador, y el
-arranque en frío de la JVM (aunque optimizado) típicamente toma varios segundos — hace falta un
-splash/loading screen mientras arrancan los servicios de fondo, no un arranque instantáneo. Se
-mantiene Keycloak (no se vuelve a cambiar de identity provider por tercera vez) porque todo el
-trabajo de ADR-004 Fases 1-3 (guards, admin service, roles por Organization, bootstrap) ya está
-hecho y verificado real end-to-end — reabrir esa decisión de nuevo tendría un costo mayor al de
-aceptar el peso de la JVM.
+**3 hallazgos reales adicionales, no anticipados, encontrados arrancando de verdad**: (1)
+`--db`/`--health-enabled` son opciones de BUILD TIME en Keycloak 26, no de runtime — pasarlas solo
+a `start --optimized` sin haberlas compilado con `kc.bat build` tira "ERROR: build time options
+have values that differ from what is persisted" y el proceso muere sin arrancar. (2) El
+health-check (`/health/ready`) vive en una interfaz de **management separada** del puerto HTTP
+principal (default 9000, acá fijo en `KC_HTTP_MANAGEMENT_PORT`) — `keycloak-service.ts` apuntaba
+originalmente al puerto HTTP principal y nunca hubiera quedado "listo". (3) Keycloak **26.0.0**
+tiene un bug real en `POST /organizations/{id}/members` (usado por `crearGrant`/
+`crearUsuarioDirector` para asignar el rol "directivo") — responde `HTTP 400 "User does not
+exist"` con el body/headers correctos, arreglado en 26.0.6 (confirmado real: falla en 26.0.0, pasa
+en 26.0.8 con el mismo código sin cambios). `devops/onprem/docker-compose.yml` usa el tag flotante
+`26.0` de la imagen oficial, que probablemente ya resuelve a un patch parcheado — acá, al
+vendorizar un ZIP fijo, había que elegir el patch a mano.
+
+**Costo real, no minimizado**: JRE + Keycloak suman ~282MB al instalador (verificado, no
+estimado), y el arranque en frío de la JVM (aunque optimizado) tomó ~21s en la verificación real —
+hace falta un splash/loading screen mientras arrancan los servicios de fondo, no un arranque
+instantáneo. Se mantiene Keycloak (no se vuelve a cambiar de identity provider por tercera vez)
+porque todo el trabajo de ADR-004 Fases 1-3 (guards, admin service, roles por Organization,
+bootstrap) ya está hecho y verificado real end-to-end — reabrir esa decisión de nuevo tendría un
+costo mayor al de aceptar el peso de la JVM.
 
 ### Redis — resuelto: sacado del ecosistema completo (ADR-005, 2026-08-27)
 
@@ -77,14 +94,21 @@ embebido en Windows" que bloqueaba la integración de `cis`/`core`/`cip` al orqu
 (`service-orchestrator.ts`) queda cerrado — el bloqueante real ahora es solo el wiring en sí
 (env vars, migraciones, la base `eventos_outbox` nueva), no una dependencia externa sin resolver.
 
-### `cis`/`core`/`cip` — bajo riesgo
+### `cis`/`core`/`cip` — hecho y verificado real (2026-08-27)
 
 Ya son apps Node/NestJS compiladas (`node dist/main.js`) — corren como procesos hijos usando el
-propio Node embebido de Electron (`child_process.fork` o `spawn` apuntando al Node bundleado), cada
-uno en un puerto distinto de `127.0.0.1`, con las mismas env vars que ya usa
-`devops/onprem/docker-compose.yml` hoy (`KEYCLOAK_URL`, `CORE_DB_*`, etc.) apuntando a los procesos
-locales en vez de a nombres de servicio de un compose. Ningún cambio de código en estos tres
-sistemas — solo cambia qué los arranca y con qué env vars.
+propio Node embebido de Electron (`spawn` apuntando a `process.execPath` con
+`ELECTRON_RUN_AS_NODE=1`), cada uno en un puerto fijo distinto de `127.0.0.1` (56000/56001/56002),
+con las mismas env vars que ya usa `devops/onprem/docker-compose.yml` hoy (`KEYCLOAK_URL`,
+`CORE_DB_*`, etc. — ver `backend-configs.ts`) apuntando a los procesos locales en vez de a nombres
+de servicio de un compose. Ningún cambio de código en estos tres sistemas — solo cambia qué los
+arranca y con qué env vars. `core`/`cip` migran su esquema (`node scripts/migrate.js up`) antes de
+arrancar, vía `migration-runner.ts`. `cis` arranca en un segundo momento (`iniciarCis()`, llamado
+desde el paso 1 del wizard), porque necesita el client OIDC (`KEYCLOAK_ADMIN_CLIENT_ID/SECRET`)
+que `keycloak-bootstrap.ts` recién crea ahí — `postgres`/`keycloak`/`core`/`cip` arrancan solos en
+`iniciarTodo()`. Simplificación deliberada sobre `devops/`: un solo usuario Postgres
+(`sicsaft_admin`) para las 4 bases (`postgres-bootstrap.ts`), en vez de un usuario por sistema —
+acá el único cliente de Postgres es esta misma app, no hay superficie multi-tenant que aislar.
 
 ### Los 4 portales web (`app-qr-sicsaft`, `ccp`, `web_admin`, `core/frontend`)
 
@@ -102,13 +126,15 @@ rompieron `crypto.subtle` en el navegador con dominios `.test`) — de ahí la e
 por `http://127.0.0.1:<puerto>` (loopback SÍ es secure context, verificado ya hoy en el hallazgo de
 `.localhost` vs `.test`) en vez de `file://`, para no repetir el mismo bug en un contexto nuevo.
 
-### La APK de Android — resuelta (CORE-Q-01, 2026-08-27): wrap Capacitor de `app-qr-sicsaft/`
+### La APK de Android — CORE-Q-01 reabierta (2026-08-27): no existe todavía
 
-Confirmado con el usuario: es un wrap de `app-qr-sicsaft/` hecho con Capacitor, ya compilado y
-mantenido fuera de este repo (sin tooling de Capacitor/Cordova/Tauri-mobile en ningún
-`package.json` del monorepo, confirmado por `grep` el mismo día). Este incremento no necesita
-tocar nada de mobile — solo asegurarse de que la APK pueda alcanzar `cis`/Keycloak corriendo en la
-PC del Director **por la red local**, no solo `127.0.0.1` (ver siguiente sección).
+Se había dado por resuelta el mismo día asumiendo que era un wrap Capacitor de
+`app-qr-sicsaft/` "ya compilado, mantenido fuera de este repo" (confirmado por `grep` que no hay
+tooling de Capacitor/Cordova/Tauri-mobile en ningún `package.json` del monorepo) — el usuario
+corrigió que esa APK **no existe todavía**, esa afirmación era incorrecta. Este incremento no la
+construye ni diseña su mecanismo de red (ver siguiente sección, que queda sin resolver hasta que
+la APK exista) — es un incremento aparte, no bloqueante para Nivel 1 embebido
+(Postgres/Keycloak/`cis`/`core`/`cip`, que no depende de la APK para nada).
 
 ## Red: localhost para el escritorio, LAN para el teléfono (riesgo nuevo, mismo tipo que el ya encontrado)
 
@@ -118,17 +144,17 @@ que escuchar en la IP de LAN de la PC del Director (no solo loopback), y Keycloa
 `KC_HOSTNAME` alcanzable desde el teléfono también (no `127.0.0.1`, que desde el teléfono apunta a
 sí mismo).
 
-Con CORE-Q-01 resuelta (la APK es un WebView de Capacitor, no una app 100% nativa OkHttp/Retrofit),
-la regla de secure context/`crypto.subtle` que ya rompió `.test` hoy **sí puede volver a aplicar**,
-con un matiz investigado hoy (no asumido): una build de **producción** de Capacitor sirve los
-assets embebidos por su propio scheme (`https://localhost`/`capacitor://localhost`), que el
-WebView trata como secure context — ahí el riesgo no se repite, solo las llamadas `fetch`/XHR
-salientes hacia `cis` necesitan alcanzar la LAN. El riesgo real reaparece si esa APK está compilada
-con `server.url` apuntando a una URL de LAN (típico de `--livereload` en desarrollo, no en
-producción) — hay reportes de exactamente este problema en el foro de Ionic/Capacitor. **No se
-resuelve en este documento**: falta confirmar el `capacitor.config.ts` real de la APK ya construida
-(sub-pregunta de CORE-Q-01 en `INTENT.md`) antes de implementar la sincronización real
-APK↔`sicsaft-core.exe`.
+Si la APK termina siendo un WebView de Capacitor (no una app 100% nativa OkHttp/Retrofit) — todavía
+sin confirmar, ver CORE-Q-01 reabierta —, la regla de secure context/`crypto.subtle` que ya rompió
+`.test` **podría volver a aplicar**, con un matiz investigado (no asumido): una build de
+**producción** de Capacitor sirve los assets embebidos por su propio scheme
+(`https://localhost`/`capacitor://localhost`), que el WebView trata como secure context — ahí el
+riesgo no se repite, solo las llamadas `fetch`/XHR salientes hacia `cis` necesitan alcanzar la LAN.
+El riesgo real reaparece si esa APK está compilada con `server.url` apuntando a una URL de LAN
+(típico de `--livereload` en desarrollo, no en producción) — hay reportes de exactamente este
+problema en el foro de Ionic/Capacitor. **No se resuelve en este documento**: la APK no existe
+todavía (CORE-Q-01), así que ni el `capacitor.config.ts` ni la sincronización real
+APK↔`sicsaft-core.exe` tienen nada concreto que confirmar por ahora.
 
 ## Primer arranque — wizard nativo (reemplaza a `bootstrap-keycloak.ps1` + logins manuales)
 

@@ -15,8 +15,9 @@ Capacitor, ya construido fuera de este repo (CORE-Q-01, mismo documento).
 
 ## Estado
 
-🔴 Scaffold inicial (2026-08-27) — sin binarios embebidos todavía. Lo que SÍ está real y
-verificado (`npm run typecheck`/`lint:ci`/`build`/`test` en verde):
+🟢 Los 5 servicios de Nivel 1 (Postgres, Keycloak, `cis`, `core`, `cip`) arrancan de verdad,
+verificado real (2026-08-27) — no solo compilado. `npm run typecheck`/`lint:ci`/`build`/`test` en
+verde:
 
 - Estructura Electron completa (`electron-vite`: main/preload/renderer) con contextIsolation +
   sandbox — el renderer nunca tiene acceso directo a Node/secretos, todo pasa por IPC tipado
@@ -24,27 +25,40 @@ verificado (`npm run typecheck`/`lint:ci`/`build`/`test` en verde):
 - `ManagedProcess` (`src/main/services/managed-process.ts`) — wrapper genérico de spawn/health-
   check/shutdown limpio, reusado por los 5 servicios embebidos (ADR-005 sacó a Redis, un servicio
   menos). Con tests reales.
+- **Binarios vendorizados y verificados end-to-end**: PostgreSQL 16.15-1, Keycloak 26.0.8 + JRE
+  Temurin 17.0.20.1+1 en `resources/` (ver `resources/README.md` para versiones/fuentes exactas y
+  3 hallazgos reales encontrados arrancándolos de verdad: el health-check de Keycloak 26 vive en
+  un puerto de management separado; `--db`/`--health-enabled` son opciones de build time, no de
+  runtime; Keycloak 26.0.0 tiene un bug real en el alta de miembros de una Organization, arreglado
+  en 26.0.6 — de ahí vendorizar 26.0.8).
+- `postgres-bootstrap.ts` crea las 4 bases (`keycloak`/`core`/`cip`/`eventos_outbox`) bajo un
+  único usuario admin — simplificación deliberada frente al modelo multi-usuario de `devops/`
+  (documentada, no un descuido: acá el único cliente de Postgres es esta misma app).
+- `service-orchestrator.ts` arranca Postgres → bootstrap de bases → Keycloak → migra y arranca
+  `core` → migra y arranca `cip`; `cis` arranca aparte (`iniciarCis()`) una vez que el wizard crea
+  sus credenciales de Keycloak.
 - `keycloak-bootstrap.ts` — port a TypeScript de `devops/onprem/lib/Bootstrap-Keycloak.psm1`
-  (realm, scopes, roles, Organization, clients OIDC), mismas llamadas a la Admin REST API ya
+  (realm, scopes, roles, Organization, clients OIDC) + `crearUsuarioDirector` (port recortado de
+  `KeycloakAdminService.crearUsuarioHuman`/`crearGrant`), mismas llamadas a la Admin REST API ya
   verificadas reales en ADR-004 Fase 3.
 - Wizard de primer arranque (datos del cliente → alta del Director → alta del Profesional de AFT)
-  — UI completa, con los 2 primeros pasos ya llamando IPC real.
+  — UI completa, con los 2 primeros pasos ya llamando IPC real de punta a punta.
 
 **Lo que NO está resuelto todavía** (ver
 [`aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md`](../aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md)
 para el detalle real de cada uno, sin minimizar):
 
-- **Binarios embebidos sin vendorizar** (`resources/README.md`) — Postgres, JRE+Keycloak (ya no
-  Redis, ADR-005 lo sacó del ecosistema completo). `service-orchestrator.ts` tira un error claro
-  apenas llega al punto de arrancar `cis`/`core`/`cip`, a propósito — no lo oculta con un mock.
-- `cis/`/`core/`/`cip/` embebidos: el código para correrlos (`node-backend-service.ts`) está
-  escrito pero sin integrar al orquestador — sin bloqueante externo ahora, falta el wiring en sí
-  (env vars, migraciones, la base `eventos_outbox` nueva de ADR-005).
-- `KeycloakAdminService.crearUsuarioHuman` sin portar (paso "alta del Director" del wizard tira
-  "no implementado" a propósito).
-- El `capacitor.config.ts` real de la APK (ya construida fuera de este repo, ver arriba) sin
-  confirmar todavía — determina si el mecanismo de red LAN de CORE-RF-05 repite el bug de secure
-  context que ya rompió `.test` (ver `ARCHITECTURE.md`).
+- **Paso "Profesional de AFT" del wizard**: `cis/` ya corre embebido, pero este último paso
+  todavía no tiene el handler IPC que llame a su endpoint real (`PasoProfesionalAft.tsx` sigue
+  siendo un placeholder honesto).
+- **Empaquetado `electron-builder`** (`dist:win`): en `npm run dev` no hace falta (los binarios se
+  resuelven directo desde `resources/`/el monorepo), pero el instalador final necesita copiar
+  `dist/`+`node_modules/`+`migrations/`+`scripts/` de `cis`/`core`/`cip` a `resources/<sistema>/`,
+  y automatizar el paso de `kc.bat build` — pendiente.
+- **La APK Android no existe todavía** — a diferencia de lo que se pensó en un momento, no hay una
+  APK Capacitor ya construida fuera de este repo (`CORE-Q-01` reabierta, corregido
+  2026-08-27). Construirla (o decidir si entra a este repo) es un incremento aparte; mientras
+  tanto `CORE-RF-05` (alcance LAN) queda sin diseñar.
 
 ## Depende de
 

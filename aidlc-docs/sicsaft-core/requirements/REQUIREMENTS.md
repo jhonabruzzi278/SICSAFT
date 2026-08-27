@@ -25,11 +25,10 @@ prefijo; este prefijo es solo para requisitos de ESTE incremento (la app de escr
   (Directivo) deben quedar accesibles dentro de la misma app (vista embebida, no una ventana de
   navegador aparte con URL visible) — servidos desde `127.0.0.1` en vez de `file://`, para no
   repetir el bug de secure context/`crypto.subtle` ya encontrado hoy con dominios `.test`.
-- **CORE-RF-05** (CORE-Q-01 resuelta — la APK es un wrap Capacitor de `app-qr-sicsaft/`, ver
-  `INTENT.md`): la APK debe poder alcanzar `cis`/Keycloak corriendo en la PC del Director por la
-  red local (no solo `127.0.0.1`). Mecanismo exacto (IP fija vs. mDNS/descubrimiento, ver
-  CORE-RNF-03) sin definir todavía — pendiente confirmar el `capacitor.config.ts` real de la APK
-  (sub-pregunta de CORE-Q-01 en `INTENT.md`) antes de diseñarlo.
+- **CORE-RF-05** (CORE-Q-01 reabierta — la APK todavía no existe, ver `INTENT.md`): cuando exista,
+  debe poder alcanzar `cis`/Keycloak corriendo en la PC del Director por la red local (no solo
+  `127.0.0.1`). Mecanismo exacto (IP fija vs. mDNS/descubrimiento, ver CORE-RNF-03) sin definir —
+  bloqueado hasta que exista la APK y se confirme su `capacitor.config.ts` real.
 
 ## No funcionales
 
@@ -51,6 +50,7 @@ prefijo; este prefijo es solo para requisitos de ESTE incremento (la app de escr
 
 ## Preguntas abiertas
 
-Ver "Preguntas abiertas" en `INTENT.md` (CORE-Q-01/02 resueltas 2026-08-27, CORE-Q-03 sigue
-abierta). Redis quedó resuelto el mismo día (ADR-005, ver "Redis — resuelto" en `ARCHITECTURE.md`)
-— sacado del ecosistema completo, ya no es una pregunta abierta.
+Ver "Preguntas abiertas" en `INTENT.md` — CORE-Q-01 reabierta 2026-08-27 (la APK no existe
+todavía), CORE-Q-02 resuelta (convivencia con `devops/onprem/`), CORE-Q-03 sigue abierta. Redis
+quedó resuelto el mismo día (ADR-005, ver "Redis — resuelto" en `ARCHITECTURE.md`) — sacado del
+ecosistema completo, ya no es una pregunta abierta.

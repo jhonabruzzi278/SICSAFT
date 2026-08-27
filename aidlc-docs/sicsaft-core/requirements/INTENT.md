@@ -32,14 +32,13 @@ Flujo de instalación/primer uso que el usuario describió explícitamente:
    ya existe en `core/frontend` (`GestionarProfesionalAftPage.tsx`, `POST
    /admin/organizaciones/:orgId/usuarios`), pero embebido en la app de escritorio en vez de un
    portal web aparte.
-4. Además de la app de escritorio, el usuario menciona una **APK de Android ya desarrollada** que
-   quiere poder instalarle a cada cliente junto con `sicsaft-core.exe`. **Resuelto (2026-08-27,
-   CORE-Q-01)**: es un wrap de `app-qr-sicsaft/` hecho con **Capacitor**, ya compilado, mantenido
-   fuera de este repo (no hay tooling de Capacitor en ningún `package.json` del monorepo — confirmado
-   por búsqueda ese mismo día). Este incremento no necesita traer ese tooling ni el proyecto Android
-   al repo; solo necesita que `cis`/Keycloak embebidos sean alcanzables por esa APK desde la red
-   local del cliente (ver CORE-RF-05 en `REQUIREMENTS.md` y la nota de Capacitor/secure-context en
-   `ARCHITECTURE.md` "Red: localhost para el escritorio, LAN para el teléfono").
+4. Además de la app de escritorio, el usuario menciona una **APK de Android** que quiere poder
+   instalarle a cada cliente junto con `sicsaft-core.exe`. **Corrección (2026-08-27)**: se había
+   dado por resuelto (CORE-Q-01) asumiendo que era un wrap Capacitor de `app-qr-sicsaft/` "ya
+   compilado, mantenido fuera de este repo" — el usuario aclaró que eso es incorrecto, **esa APK
+   todavía no existe**. Queda reabierta (ver "Preguntas abiertas" más abajo). Este incremento no
+   la construye — decidir cuándo/cómo hacerlo (dentro de este monorepo con tooling Capacitor nuevo,
+   o afuera) es un incremento aparte, no bloqueante para Nivel 1 embebido.
 
 ## Por qué ahora
 
@@ -60,9 +59,10 @@ dominios locales" — lo reemplaza por una app nativa que no expone nada de eso 
   alternativa para un perfil de cliente distinto (ej. servidor Linux dedicado), pero
   `sicsaft-core.exe` es el camino **prioritario** de instalación de acá en adelante. El trabajo de
   ADR-004 Fase 3 sigue vigente sin cambios — no se archiva ni se reescribe.
-- **No incluye la APK de Android** en el alcance de código de este incremento — ya existe y se
-  mantiene fuera de este repo (ver CORE-Q-01, resuelto arriba); este incremento solo debe dejar
-  `cis`/Keycloak alcanzables por esa APK desde la LAN, no construirla.
+- **No incluye construir la APK de Android** en el alcance de este incremento — no existe todavía
+  (ver CORE-Q-01, reabierta abajo); cuando se construya, este incremento debería dejar `cis`/
+  Keycloak alcanzables por esa APK desde la LAN, pero diseñar ESE mecanismo tampoco es parte de
+  este incremento mientras la APK no exista.
 - **Redis, resuelto (ADR-005, 2026-08-27)**: no se decide un mecanismo para embeberlo — se saca del
   ecosistema completo. `core/`+`cip/` mueven la cola `cip-eventos` a `pg-boss` sobre Postgres (que
   ya era una dependencia dura embebida acá), `cis/` mueve rate-limiter/device-registry a memoria
@@ -70,15 +70,18 @@ dominios locales" — lo reemplaza por una app nativa que no expone nada de eso 
 
 ## Preguntas abiertas (no bloquean el diseño, se documentan)
 
-- **CORE-Q-01 — RESUELTA (2026-08-27)**: La APK ya desarrollada es un wrap de `app-qr-sicsaft/`
-  hecho con Capacitor. Sub-pregunta nueva que queda abierta por esto (no bloquea, es de bajo
-  riesgo): confirmar el `capacitor.config.ts` real de esa APK — si sirve los assets embebidos por
-  el scheme propio de Capacitor (`https://localhost`/`capacitor://localhost`, el comportamiento
-  default de una build de producción), el origen ya es secure context y no repite el bug de
-  `crypto.subtle` encontrado hoy con `.test`; si en cambio usa `server.url` apuntando a una URL de
-  LAN real (típico de un build con `--livereload` de desarrollo, no de producción), sí puede
-  repetirlo — hay reportes de esto mismo en el foro de Ionic/Capacitor. Confirmar cuál es antes de
-  diseñar el mecanismo de descubrimiento LAN de CORE-RF-05.
+- **CORE-Q-01 — REABIERTA (2026-08-27)**: se había marcado "resuelta" el mismo día asumiendo que
+  la APK Android ya existía como un wrap Capacitor de `app-qr-sicsaft/` compilado fuera del repo —
+  el usuario corrigió que eso es falso, no hay ninguna APK construida todavía. Preguntas reales,
+  sin resolver: ¿se construye dentro de este monorepo (tooling Capacitor nuevo, ver
+  "Qué NO es esta fase") o afuera? ¿Quién la mantiene? Una vez que exista (sea cual sea la
+  respuesta), sigue pendiente confirmar su `capacitor.config.ts` real — si sirve los assets
+  embebidos por el scheme propio de Capacitor (`https://localhost`/`capacitor://localhost`,
+  comportamiento default de una build de producción), el origen ya es secure context y no repite
+  el bug de `crypto.subtle` encontrado con `.test`; si en cambio usa `server.url` apuntando a una
+  URL de LAN real (típico de `--livereload` de desarrollo, no de producción), sí puede repetirlo —
+  hay reportes de esto mismo en el foro de Ionic/Capacitor. No bloquea Nivel 1 embebido
+  (Postgres/Keycloak/cis/core/cip), que no depende de la APK.
 - **CORE-Q-02 — RESUELTA (2026-08-27)**: `sicsaft-core.exe` **no** reemplaza a `devops/onprem/`
   (Podman) — coexisten. `sicsaft-core.exe` es el camino prioritario; `devops/onprem/` queda como
   alternativa para un perfil de cliente con servidor dedicado. El trabajo de ADR-004 Fase 3 sigue
