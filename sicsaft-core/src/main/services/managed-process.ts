@@ -49,6 +49,13 @@ export class ManagedProcess extends EventEmitter {
       // que se pierdan en la consola del proceso principal, que el vendedor nunca ve.
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
+      // Bug real encontrado corriendo `npm run dev` por primera vez (2026-08-27): spawn() de
+      // Windows no puede ejecutar un .bat/.cmd directo (kc.bat, ver keycloak-service.ts) -- no es
+      // un PE ejecutable, Windows necesita cmd.exe de por medio para interpretarlo. Sin esto tira
+      // "spawn EINVAL" apenas intenta arrancar Keycloak. postgres.exe/node.exe (los otros 4
+      // servicios) son PE reales, no lo necesitan -- shell:true solo cuando hace falta, no
+      // siempre (evita el riesgo de escaping de shell:true global con args que vengan de fuera).
+      shell: this.opciones.command.toLowerCase().endsWith(".bat"),
     });
 
     this.proceso.stdout?.on("data", (chunk: Buffer) => {

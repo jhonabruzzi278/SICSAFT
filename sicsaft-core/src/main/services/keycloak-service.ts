@@ -5,15 +5,22 @@ import { randomBytes } from "node:crypto";
 import { ManagedProcess, esperarCondicion } from "./managed-process";
 import { POSTGRES_CONFIG } from "./postgres-service";
 
-// NOTA DE HONESTIDAD (2026-08-27): igual que postgres-service.ts, asume un JRE + Keycloak ya
-// vendorizados en `resources/keycloak/` (JRE de Eclipse Temurin + la distribución ZIP oficial de
-// Keycloak, ya construida con `kc.bat build` en tiempo de empaquetado -- ver
-// aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md "Keycloak — factible, pero con costo
-// real"). Nada de eso está descargado/vendorizado todavía. El costo real de arranque (varios
-// segundos de JVM) tampoco está resuelto acá -- CORE-RNF-02 (pantalla de carga) es
-// responsabilidad del renderer/wizard, no de este archivo.
+// Vendorizado real (2026-08-27): Eclipse Temurin JRE 17.0.20.1+1 en `resources/keycloak/jre/` +
+// Keycloak 26.0.0 (misma versión que devops/onprem/) en `resources/keycloak/` -- ver
+// resources/README.md para las versiones/fuentes exactas. `kc.bat` no trae su propio JRE (a
+// diferencia de un JDK completo) -- necesita `JAVA_HOME` apuntando al JRE vendorizado, si no
+// intenta resolver un Java del sistema que la PC del cliente no tiene por qué tener instalado
+// (todo el punto de vendorizarlo). El costo real de arranque (varios segundos de JVM) sigue sin
+// resolver acá -- CORE-RNF-02 (pantalla de carga) es responsabilidad del renderer/wizard, no de
+// este archivo.
 
 const PUERTO_KEYCLOAK = 58080;
+// Keycloak 26 mueve el health-check a una interfaz de management SEPARADA del puerto HTTP
+// principal (default 9000) -- verificado real arrancando Keycloak de punta a punta hoy:
+// GET http://127.0.0.1:<PUERTO_KEYCLOAK>/health/ready nunca responde (404), el real está en
+// http://127.0.0.1:<PUERTO_KEYCLOAK_MANAGEMENT>/health/ready. Puerto fijo no estándar, mismo
+// criterio que el resto de los puertos acá.
+const PUERTO_KEYCLOAK_MANAGEMENT = 58081;
 
 export interface AdminBootstrapKeycloak {
   usuario: string;
@@ -21,13 +28,15 @@ export interface AdminBootstrapKeycloak {
 }
 
 function rutaRecursosKeycloak(): string {
+  // Mismo bug real de "../" de más que tenía postgres-service.ts (ver rutaRecursosPostgres) --
+  // corregido con la misma verificación real (`npm run dev`, 2026-08-27).
   const base = app.isPackaged
     ? join(process.resourcesPath, "keycloak")
-    : join(__dirname, "..", "..", "..", "resources", "keycloak");
+    : join(__dirname, "..", "..", "resources", "keycloak");
   if (!existsSync(base)) {
     throw new Error(
-      `No se encontró ${base} -- el JRE + Keycloak no están vendorizados todavía (ver NOTA DE ` +
-        "HONESTIDAD en keycloak-service.ts).",
+      `No se encontró ${base} -- el JRE + Keycloak no están vendorizados ahí (ver ` +
+        "resources/README.md).",
     );
   }
   return base;
@@ -56,15 +65,27 @@ export async function crearKeycloakService(): Promise<{
     args: ["start", "--optimized"],
     env: {
       ...process.env,
+      // Sin esto, kc.bat busca `java` en PATH/JAVA_HOME del sistema -- puede no existir en la PC
+      // del cliente, o ser una versión distinta a la que se probó acá. `JRE_HOME` también se
+      // setea porque kc.bat lo prueba primero (ver el propio script); JAVA_HOME es el que
+      // realmente usa Quarkus/Keycloak internamente.
+      JAVA_HOME: join(recursos, "jre"),
+      JRE_HOME: join(recursos, "jre"),
       KC_DB: "postgres",
       KC_DB_URL_HOST: "127.0.0.1",
       KC_DB_URL_PORT: String(POSTGRES_CONFIG.puerto),
       KC_DB_URL_DATABASE: "keycloak",
       KC_DB_USERNAME: POSTGRES_CONFIG.usuarioAdmin,
       KC_HTTP_PORT: String(PUERTO_KEYCLOAK),
+      KC_HTTP_MANAGEMENT_PORT: String(PUERTO_KEYCLOAK_MANAGEMENT),
       KC_HOSTNAME: `http://127.0.0.1:${PUERTO_KEYCLOAK}`,
       KC_HTTP_ENABLED: "true",
-      KC_HEALTH_ENABLED: "true",
+      // KC_HEALTH_ENABLED NO se pasa acá a propósito -- "health-enabled" es una opción de BUILD
+      // TIME en Keycloak 26 (verificado real: `start --optimized` con un valor de runtime distinto
+      // al que se compiló con `kc.bat build` tira "ERROR: build time options have values that
+      // differ from what is persisted" y el proceso muere sin arrancar). Se hornea en el paso de
+      // empaquetado (`kc.bat build --db=postgres --health-enabled=true`, ver resources/README.md),
+      // no acá en runtime.
       KEYCLOAK_ADMIN: admin.usuario,
       KEYCLOAK_ADMIN_PASSWORD: admin.password,
     },
@@ -72,7 +93,7 @@ export async function crearKeycloakService(): Promise<{
       esperarCondicion(
         async () => {
           const res = await fetch(
-            `http://127.0.0.1:${PUERTO_KEYCLOAK}/health/ready`,
+            `http://127.0.0.1:${PUERTO_KEYCLOAK_MANAGEMENT}/health/ready`,
           );
           return res.ok;
         },

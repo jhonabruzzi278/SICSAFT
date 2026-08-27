@@ -7,24 +7,38 @@ import {
   KEYCLOAK_CONFIG,
   type AdminBootstrapKeycloak,
 } from "./keycloak-service";
+import { crearNodeBackendService } from "./node-backend-service";
+import { crearBasesDeDatosSiHacenFalta } from "./postgres-bootstrap";
+import { correrMigraciones } from "./migration-runner";
 import {
-  crearNodeBackendService,
-  rutaDistDeSistema,
-} from "./node-backend-service";
+  crearConfigCip,
+  crearConfigCis,
+  crearConfigCore,
+  crearEventosOutboxUrl,
+  generarTokenServicio,
+  type TokensServicio,
+} from "./backend-configs";
 
 // Arranca los servicios embebidos EN ORDEN (mismo criterio que
 // devops/onprem/docker-compose.yml `depends_on: condition: service_healthy`, pero acá lo maneja
-// código propio en vez de Compose): postgres -> keycloak -> cis (necesita keycloak arriba para
-// validar tokens) -> core -> cip. ADR-005 (2026-08-27) saca a Redis del ecosistema completo
-// (rate-limiter/device-registry de cis pasan a memoria del propio proceso, la cola CORE->CIP pasa
-// a pg-boss sobre Postgres) -- ya no es un bloqueante para este scaffold, un servicio menos que
-// embeber. cis/core/cip siguen sin integrarse acá todavía (ver el `throw` de abajo): falta escribir
-// el wiring real (env vars apuntando a postgres/keycloak embebidos, migraciones, la base
-// `eventos_outbox` nueva), no un problema de dependencias externas.
+// código propio en vez de Compose): postgres -> (bootstrap de bases) -> keycloak -> core ->
+// cip. ADR-005 (2026-08-27) saca a Redis del ecosistema completo -- un servicio menos que embeber.
+//
+// cis NO arranca acá -- a diferencia de core/cip (que solo necesitan Postgres), cis necesita
+// KEYCLOAK_ADMIN_CLIENT_ID/SECRET, que recién existen después de que el wizard corre
+// bootstrapPrimeraInstalacion() (keycloak-bootstrap.ts, paso 1 del wizard, "datos del cliente").
+// Por eso cis arranca desde `iniciarCis()`, llamado por el handler IPC `bootstrapCliente` (ver
+// ipc/handlers.ts) una vez que esas credenciales existen, no desde acá.
+//
+// Vendorizado real (2026-08-27): Postgres 16.15/JRE 17.0.20.1/Keycloak 26.0.0 en resources/ (ver
+// resources/README.md) -- este orquestador ya arranca los 5 servicios de punta a punta, verificado
+// real (no solo compilado).
 export class ServiceOrchestrator extends EventEmitter {
   private readonly estado: EstadoServicios = {};
   private keycloakAdmin: AdminBootstrapKeycloak | null = null;
   private readonly procesos = new Map<NombreServicio, ManagedProcess>();
+  private tokens: TokensServicio | null = null;
+  private eventosOutboxUrl: string | null = null;
 
   getEstado(): EstadoServicios {
     return { ...this.estado };
@@ -41,19 +55,74 @@ export class ServiceOrchestrator extends EventEmitter {
   async iniciarTodo(): Promise<void> {
     await this.iniciar("postgres", crearPostgresService());
 
+    // Entre Postgres listo y Keycloak arrancando -- Keycloak necesita que la base `keycloak` ya
+    // exista (Postgres no la autocrea a partir de KC_DB_URL_DATABASE), y core/cip necesitan las
+    // suyas para poder migrar. No es un servicio propio que el wizard muestre (ver
+    // PasoIniciandoServicios.tsx ETIQUETAS/ORDEN) -- si falla, se propaga igual que cualquier otro
+    // paso de iniciarTodo(), el error real llega a index.ts sin ocultarlo.
+    await crearBasesDeDatosSiHacenFalta();
+
     const { proceso: keycloakProceso, admin } = await crearKeycloakService();
     this.keycloakAdmin = admin;
     await this.iniciar("keycloak", Promise.resolve(keycloakProceso));
 
-    // TODO real, no resuelto en este scaffold: cis/core/cip todavía no se integran acá -- falta
-    // el wiring real (env vars apuntando a postgres/keycloak embebidos vía POSTGRES_CONFIG/
-    // KEYCLOAK_CONFIG de abajo, aplicar migraciones, crear la base `eventos_outbox` nueva de
-    // ADR-005). Ya no depende de resolver Redis primero (ver ARCHITECTURE.md "Redis — riesgo
-    // real", sección eliminada por ADR-005) -- se documenta el punto de integración acá mismo en
-    // vez de mockear un arranque falso que ocultaría que todavía no está hecho.
-    throw new Error(
-      "cis/core/cip todavía no se integran a este orquestador (próximo paso, ver " +
-        "aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md) -- postgres y keycloak arrancaron bien.",
+    this.tokens = {
+      coreServiceToken: generarTokenServicio(),
+      cipServiceToken: generarTokenServicio(),
+    };
+    this.eventosOutboxUrl = crearEventosOutboxUrl();
+
+    const configCore = crearConfigCore(this.eventosOutboxUrl, this.tokens);
+    correrMigraciones({
+      sistema: "core",
+      env: {
+        CORE_DB_HOST: configCore.env.CORE_DB_HOST,
+        CORE_DB_PORT: configCore.env.CORE_DB_PORT,
+        CORE_DB_NAME: configCore.env.CORE_DB_NAME,
+        CORE_DB_USER: configCore.env.CORE_DB_USER,
+        CORE_DB_PASSWORD: configCore.env.CORE_DB_PASSWORD,
+      },
+    });
+    await this.iniciar(
+      "core",
+      Promise.resolve(crearNodeBackendService(configCore)),
+    );
+
+    const configCip = crearConfigCip(this.eventosOutboxUrl, this.tokens);
+    correrMigraciones({
+      sistema: "cip",
+      env: {
+        CIP_DB_HOST: configCip.env.CIP_DB_HOST,
+        CIP_DB_PORT: configCip.env.CIP_DB_PORT,
+        CIP_DB_NAME: configCip.env.CIP_DB_NAME,
+        CIP_DB_USER: configCip.env.CIP_DB_USER,
+        CIP_DB_PASSWORD: configCip.env.CIP_DB_PASSWORD,
+      },
+    });
+    await this.iniciar(
+      "cip",
+      Promise.resolve(crearNodeBackendService(configCip)),
+    );
+  }
+
+  // Llamado por el handler IPC `bootstrapCliente` (ipc/handlers.ts) una vez que
+  // bootstrapPrimeraInstalacion() (keycloak-bootstrap.ts) ya creó el client `cis-admin` -- ver la
+  // nota de secuencia en iniciarTodo(). Tira si se llama antes de iniciarTodo() (tokens/
+  // eventosOutboxUrl todavía null) -- error de programación, no un caso a tolerar en silencio.
+  async iniciarCis(adminCis: {
+    clientId: string;
+    secret: string;
+  }): Promise<void> {
+    if (!this.tokens) {
+      throw new Error(
+        "iniciarCis() llamado antes de iniciarTodo() -- core/cip todavía no generaron los " +
+          "tokens de servicio que cis necesita.",
+      );
+    }
+    const configCis = crearConfigCis(this.tokens, adminCis);
+    await this.iniciar(
+      "cis",
+      Promise.resolve(crearNodeBackendService(configCis)),
     );
   }
 
@@ -75,12 +144,12 @@ export class ServiceOrchestrator extends EventEmitter {
   }
 
   async detenerTodo(): Promise<void> {
-    // Orden inverso al de arranque -- cis/core/cip (si llegaran a estar arriba) se paran antes que
-    // keycloak/postgres, de los que dependen.
+    // Orden inverso al de arranque -- cis (si llegó a arrancar) se para antes que core/cip, de
+    // los que depende, y esos antes que keycloak/postgres.
     const orden: NombreServicio[] = [
+      "cis",
       "cip",
       "core",
-      "cis",
       "keycloak",
       "postgres",
     ];
@@ -96,14 +165,4 @@ export class ServiceOrchestrator extends EventEmitter {
   }
 }
 
-// Referencias no usadas todavía en este primer scaffold (cis/core/cip no se integran hasta
-// escribir el wiring real, ver el `throw` de arriba) -- se dejan importadas para que el próximo
-// incremento solo tenga que llamarlas, no reescribir la integración desde cero.
-// rutaDistDeSistema/crearNodeBackendService/POSTGRES_CONFIG/KEYCLOAK_CONFIG documentan la forma
-// exacta que va a tener esa llamada.
-export {
-  crearNodeBackendService,
-  rutaDistDeSistema,
-  POSTGRES_CONFIG,
-  KEYCLOAK_CONFIG,
-};
+export { POSTGRES_CONFIG, KEYCLOAK_CONFIG };

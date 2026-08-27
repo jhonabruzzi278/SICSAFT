@@ -22,12 +22,14 @@
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.84.0",
     "@hookform/resolvers": "^5.7.1",
+    "pg": "^8.23.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.1.2",
+    "@types/pg": "^8.15.5",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^5.2.0",

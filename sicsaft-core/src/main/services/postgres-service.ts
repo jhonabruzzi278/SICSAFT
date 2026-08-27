@@ -3,27 +3,30 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { ManagedProcess } from "./managed-process";
 
-// NOTA DE HONESTIDAD (2026-08-27): esto arranca Postgres asumiendo que el binario ya está en
-// `resources/postgres/` — ese binario NO está vendorizado en el repo todavía. Pendiente real (ver
-// aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md "Próximo paso sugerido"): descargar los binarios
-// oficiales de Windows de EDB (ZIP portable, sin instalador) y sumarlos a `resources/postgres/`,
-// o resolver la descarga en tiempo de build de electron-builder. Este archivo asume esa carpeta
-// ya existe con `bin/initdb.exe`/`bin/pg_ctl.exe`/`bin/postgres.exe` adentro — falla con un error
-// claro si no la encuentra, no falla en silencio.
+// Vendorizado real (2026-08-27): PostgreSQL 16.15-1 (binarios portables oficiales de EDB para
+// Windows x64) en `resources/postgres/` -- solo `bin/`/`lib/`/`share/` (sin pgAdmin4/StackBuilder/
+// docs, que no hacen falta para un server headless embebido) -- ver resources/README.md para la
+// fuente exacta. Este archivo sigue fallando con un error claro si no encuentra la carpeta, no en
+// silencio -- ver rutaRecursosPostgres().
 
 const PUERTO_POSTGRES = 55432; // no el 5432 estándar -- evita chocar con un Postgres que el
 // cliente ya tenga instalado en su PC (a diferencia de devops/onprem/, donde el puerto de
 // Postgres nunca se publica al host, acá SÍ corre directo en la PC del Director).
 
 function rutaRecursosPostgres(): string {
+  // __dirname en dev es <repo>/sicsaft-core/out/main -- 2 niveles arriba llega a
+  // <repo>/sicsaft-core, ahí vive resources/. Bug real encontrado corriendo `npm run dev` por
+  // primera vez (2026-08-27): tenía un "../" de más (3 en vez de 2), resolvía a
+  // <repo>/resources/postgres (afuera de sicsaft-core/) en vez de <repo>/sicsaft-core/resources/
+  // postgres -- nunca se había ejecutado de verdad hasta ahora.
   const base = app.isPackaged
     ? join(process.resourcesPath, "postgres")
-    : join(__dirname, "..", "..", "..", "resources", "postgres");
+    : join(__dirname, "..", "..", "resources", "postgres");
   if (!existsSync(base)) {
     throw new Error(
       `No se encontró ${base} -- los binarios de Postgres para Windows no están vendorizados ` +
-        "todavía (ver NOTA DE HONESTIDAD en postgres-service.ts). Descargar el ZIP portable " +
-        "oficial de EDB y descomprimirlo ahí antes de poder arrancar este servicio.",
+        "ahí (ver resources/README.md). Descargar el ZIP portable oficial de EDB y " +
+        "descomprimirlo ahí antes de poder arrancar este servicio.",
     );
   }
   return base;

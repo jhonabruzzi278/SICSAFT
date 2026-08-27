@@ -58,11 +58,13 @@ export function crearNodeBackendService(
 // Resuelve la ruta al dist/main.js de un sistema del monorepo -- en dev, sicsaft-core/ vive como
 // hermano de cis/core/cip en la raíz del repo (mismo patrón que devops/onprem/docker-compose.yml
 // usa "../../cis" para el build.context). En producción esto cambia a `process.resourcesPath`
-// (dentro del .exe empaquetado) -- placeholder documentado, no implementado todavía (ver
-// aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md "Próximo paso sugerido").
+// (dentro del .exe empaquetado) -- pendiente configurar `electron-builder` `extraResources` para
+// copiar cis/core/cip ahí (ver aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md "Próximo paso
+// sugerido"); el branch de dev SÍ está verificado real (`npm run dev`, 2026-08-27) -- tenía el
+// mismo bug de un "../" de más que rutaRecursosPostgres()/rutaRecursosKeycloak(), ya corregido.
 export function rutaDistDeSistema(sistema: "cis" | "core" | "cip"): string {
   if (app.isPackaged) {
     return join(process.resourcesPath, sistema, "dist", "main.js");
   }
-  return join(__dirname, "..", "..", "..", "..", sistema, "dist", "main.js");
+  return join(__dirname, "..", "..", "..", sistema, "dist", "main.js");
 }
