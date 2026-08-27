@@ -14,7 +14,6 @@ import {
   PostInventarioResponse,
 } from './../src/qr-connector/qr-connector.types';
 import { crearAppE2e } from './support/e2e-app';
-import { crearRedisStub, type RedisStub } from './support/redis-stub';
 
 const ISSUER = 'http://id.sicsaft.localhost/realms/sicsaft';
 const AUDIENCE = 'cis-api';
@@ -54,7 +53,6 @@ describe('Conector QR (e2e) — DOC-002 + auth Keycloak (ADR-004) + entitlements
     getInventarios: jest.Mock;
     getInventarioDetalle: jest.Mock;
   };
-  let redisClient: RedisStub;
 
   beforeEach(async () => {
     const { publicKey, privateKey } = await generateKeyPair('RS256');
@@ -158,15 +156,13 @@ describe('Conector QR (e2e) — DOC-002 + auth Keycloak (ADR-004) + entitlements
       }),
     };
 
-    // Idem para Redis (RateLimitGuard, WAF 4): se reemplaza el cliente real por un stub que por
-    // defecto siempre permite (count=1) — no hace falta un Redis real para probar el resto del
-    // conector. El test dedicado de 429 más abajo simula el conteo por encima del límite.
-    redisClient = crearRedisStub();
-
+    // ADR-005 — RateLimitGuard/DeviceRegistryService ya no dependen de un cliente externo (viven
+    // en memoria del propio proceso, ver InMemoryRateLimiter/DeviceRegistryService) — no hace
+    // falta stubear nada para el resto del conector. El test dedicado de 429 más abajo dispara el
+    // límite real haciendo suficientes requests.
     app = await crearAppE2e({
       jwks: localJwks,
       coreClientService,
-      redisClient,
     });
   });
 
@@ -200,19 +196,22 @@ describe('Conector QR (e2e) — DOC-002 + auth Keycloak (ADR-004) + entitlements
     );
   });
 
-  it('POST /auth/session registra el deviceId como dispositivo activo del operador (DOC-002 1)', async () => {
+  it('POST /auth/session con un dispositivo nuevo nunca rechaza al operador (DOC-002 1: reemplaza, no bloquea)', async () => {
+    // El detalle de que DeviceRegistryService.registerDevice() se haya llamado con estos
+    // argumentos exactos ya lo cubre qr-connector.service.spec.ts (unitario) — acá se verifica el
+    // comportamiento observable end-to-end: registrar un dispositivo nuevo para el mismo operador
+    // nunca bloquea la sesión (supersede al anterior, no lo rechaza).
     await request(app.getHttpServer())
       .post('/auth/session')
       .set('Authorization', `Bearer ${bearerToken}`)
-      .send({ deviceId: 'device-e2e' })
+      .send({ deviceId: 'device-e2e-1' })
       .expect(201);
 
-    expect(redisClient.set).toHaveBeenCalledWith(
-      'device:operador:op-1',
-      'device-e2e',
-      'PX',
-      expect.any(Number),
-    );
+    await request(app.getHttpServer())
+      .post('/auth/session')
+      .set('Authorization', `Bearer ${bearerToken}`)
+      .send({ deviceId: 'device-e2e-2' })
+      .expect(201);
   });
 
   it('POST /auth/session devuelve 502 si CORE no responde', async () => {
@@ -360,9 +359,17 @@ describe('Conector QR (e2e) — DOC-002 + auth Keycloak (ADR-004) + entitlements
   });
 
   it('devuelve 429 cuando el operador supera el limite de requests (RateLimitGuard, WAF 4)', async () => {
-    // El stub de Redis simula que este operador ya superó el límite de la ventana actual.
-    redisClient.eval.mockResolvedValue(31);
-    redisClient.pttl.mockResolvedValue(4_000);
+    // ADR-005 — InMemoryRateLimiter no se puede pre-cargar como el stub de Redis: se dispara el
+    // límite real (30 requests/10s, ver rate-limit.module.ts) haciendo suficientes requests. Cada
+    // test tiene su propia app (beforeEach), así que arranca con la ventana vacía.
+    const LIMITE = 30;
+    for (let i = 0; i < LIMITE; i += 1) {
+      await request(app.getHttpServer())
+        .get('/catalogo')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .query({ organizacionId: 'duoc-uc' })
+        .expect(200);
+    }
 
     const res = await request(app.getHttpServer())
       .get('/catalogo')
@@ -371,6 +378,7 @@ describe('Conector QR (e2e) — DOC-002 + auth Keycloak (ADR-004) + entitlements
       .expect(429);
 
     const body = res.body as { retryAfterMs: number };
-    expect(body.retryAfterMs).toBe(4_000);
+    expect(body.retryAfterMs).toBeGreaterThan(0);
+    expect(body.retryAfterMs).toBeLessThanOrEqual(10_000);
   });
 });

@@ -12,7 +12,6 @@ import type {
 } from './../src/core-client/core-client.types';
 import type { GrantUsuario } from './../src/keycloak-admin/keycloak-admin.types';
 import { crearAppE2e } from './support/e2e-app';
-import { crearRedisStub } from './support/redis-stub';
 import { firmarTokenKeycloak } from './support/jwt';
 
 const ISSUER = 'http://id.sicsaft.localhost/realms/sicsaft';
@@ -194,7 +193,6 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
     app = await crearAppE2e({
       jwks: localJwks,
       coreClientService,
-      redisClient: crearRedisStub(),
       keycloakAdminService,
     });
   });

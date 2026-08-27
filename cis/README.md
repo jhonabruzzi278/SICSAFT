@@ -43,19 +43,24 @@ pero no se corrió ese `docker exec` específico todavía). Toda ruta pasa por
 `X-Correlation-Id` hasta `CoreClientService` — sin logging estructurado que lo use todavía (WAF
 2, pendiente). Los 4 endpoints también están detrás de `RateLimitGuard`
 (`src/rate-limit/`, WAF 4 "rate limiting hacia el CORE"), por operador: 30 requests cada 10s
-respaldado en Redis (ventana fija atómica vía Lua, `INCR`+`PEXPIRE`) — primer consumidor de Redis
-en el código del ecosistema (ya estaba en el stack decidido, ADR-001). Elegido sobre un limiter en
-memoria de proceso porque WAF 4 exige "multi-instancia sin estado en memoria compartido"; si
-Redis no responde, el limiter **falla abierto** (deja pasar la request) en vez de bloquear el
-flujo real Captura→CIS→CORE por una caída de un componente de protección secundario.
-`auth/session` también registra en Redis el `deviceId` de la request como dispositivo activo del
+respaldado en memoria del propio proceso (`InMemoryRateLimiter`, ventana fija — mismo algoritmo que
+el script Lua `INCR`+`PEXPIRE` que usaba antes contra Redis). **ADR-005 (2026-08-27)**: reemplaza a
+Redis en todo el ecosistema (ver también `core/README.md`/`cip/README.md`) — `cis/` no tiene
+Postgres propio y corre como instancia única en los 3 perfiles de `devops/` hoy, así que no hace
+falta un backend compartido entre procesos para esto (excepción documentada a "multi-instancia sin
+estado en memoria compartido" de WAF 4, ver `ARQUITECTURA-WAF.md`). Sin backend externo no hay
+error de red que gestionar — el "falla abierto" que exigía WAF 4 (dejar pasar la request antes que
+bloquear el flujo real Captura→CIS→CORE por una caída de un componente de protección secundario)
+queda automáticamente satisfecho.
+`auth/session` también registra en memoria el `deviceId` de la request como dispositivo activo del
 operador (`src/device-registry/`, DOC-002 1 "un solo dispositivo por operador"): un dispositivo
 nuevo **reemplaza** al anterior (nunca se rechaza) — no existe todavía un rol Administrador
 (ROADMAP.md Fase 4) para destrabar manualmente a un operador, así que rechazar dejaría varado a
-cualquiera que pierda o cambie de celular; el registro expira solo, con el mismo TTL que le queda
-al token, sin requerir logout explícito. Mismo criterio de resiliencia que el rate limiter: falla
-abierto ante cualquier error de Redis, porque es una restricción de negocio complementaria, no un
-control de seguridad (Keycloak ya autentica). El enforcement es parcial por diseño del contrato:
+cualquiera que pierda o cambie de celular; el registro expira solo (timer en memoria), con el mismo
+TTL que le queda al token, sin requerir logout explícito. Es una restricción de negocio
+complementaria, no un control de seguridad (Keycloak ya autentica) — perder este estado en un
+reinicio del proceso ya era aceptable con Redis, que tampoco persistía en disco por defecto acá. El
+enforcement es parcial por diseño del contrato:
 `deviceId` solo llega en el body de `auth/session`, DOC-002 no lo manda en las otras 3 rutas — no
 hay forma de revalidar el dispositivo en cada request sin romper ese contrato ya acordado con
 APP QR.
@@ -71,7 +76,7 @@ app OIDC/el client público en Keycloak, ver `../devops/local/README.md`).
 26.6 de prueba antes de escribir el código (no asumida de la documentación). Elimina la capa de
 traducción de ids (`organizacion-mapping.config.ts`/`OrganizacionMappingDinamicoService`,
 `ZITADEL_ORG_ID_MAP`): con Keycloak, el `organizacionId` que usa el resto del ecosistema es el
-mismo alias de la Organization que ya firma el JWT, sin Redis de por medio. Hallazgo real que
+mismo alias de la Organization que ya firma el JWT, sin mapeo externo de por medio. Hallazgo real que
 cambia el diseño respecto al ADR: los realm roles de Keycloak son globales por usuario, no
 anidados por organización como el claim propietario de Zitadel — `KeycloakAuthGuard` resuelve
 `rolesPorOrganizacion` llamando a `KeycloakAdminService` (grupos `{organizacionId}::{rol}`, con
@@ -304,12 +309,9 @@ variables solo aplican corriendo `cis/` contra un Keycloak levantado aparte.)
 - `CORE_SERVICE_TOKEN`: secreto compartido de auth servicio-a-servicio hacia CORE — debe ser
   exactamente el mismo valor que `CORE_SERVICE_TOKEN` en el proceso de CORE (ver
   `../core/README.md`). Generar con `openssl rand -hex 32`.
-- `REDIS_URL`: URL de conexión a Redis (ver `src/redis/`), compartida por `RateLimitGuard`
-  (`src/rate-limit/`) y `DeviceRegistryService` (`src/device-registry/`), ej.
-  `redis://:password@redis:6379` dentro de Docker Compose. El cliente usa `lazyConnect` (no
-  conecta hasta el primer comando) y ambos consumidores fallan abiertos ante cualquier error, así
-  que un Redis temporalmente caído no bloquea el arranque ni las requests — solo se pierde esa
-  protección mientras dura.
+- Sin variable de entorno para `RateLimitGuard`/`DeviceRegistryService` — desde ADR-005
+  (2026-08-27) ambos viven en memoria del propio proceso (`InMemoryRateLimiter`,
+  `src/device-registry/device-registry.service.ts`), sin backend externo que configurar.
 - `CIS_CORS_ORIGIN` (opcional, sin default — CORS deshabilitado si no está seteada): origen(es)
   permitidos separados por coma, ej. `http://localhost:5173`. Necesaria para que un navegador
   (APP QR, TASK-007) le hable directo a CIS — las llamadas servicio-a-servicio (CIS→CORE) no

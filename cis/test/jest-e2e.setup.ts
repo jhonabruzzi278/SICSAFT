@@ -21,7 +21,3 @@ process.env.CORE_SERVICE_TOKEN ??= 'secreto-compartido';
 // esta config al arrancar aunque el test no le hable a CIP de verdad.
 process.env.CIP_URL ??= 'http://cip:3002'; // NOSONAR
 process.env.CIP_SERVICE_TOKEN ??= 'secreto-compartido-cip';
-// Igual que CORE_URL arriba: solo hace falta para que RateLimitModule cargue su config al
-// arrancar (RATE_LIMIT_CONFIG usa `lazyConnect`, nunca conecta de verdad en estos tests) —
-// qr-connector.e2e-spec.ts además reemplaza el proveedor REDIS_CLIENT por un stub.
-process.env.REDIS_URL ??= 'redis://localhost:6379'; // NOSONAR

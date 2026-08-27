@@ -13,7 +13,7 @@ import { CircuitBreaker } from '../core-client/circuit-breaker';
 // lo era): KeycloakAuthGuard -- ya @Global() vía KeycloakAuthModule -- depende de
 // KeycloakAdminService para resolver rolesPorOrganizacion, y un guard expuesto por @UseGuards()
 // necesita que sus propias dependencias sean resolubles globalmente (mismo criterio ya usado por
-// RedisModule para RateLimitModule/DeviceRegistryModule).
+// RateLimitModule, también @Global()).
 @Global()
 @Module({
   imports: [HttpModule],

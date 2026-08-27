@@ -52,7 +52,7 @@ describe('QrConnectorController', () => {
       // El controller no ejecuta los guards en estos tests (se llaman los metodos directo, sin
       // HTTP) — se sobreescriben igual porque Nest resuelve sus dependencias al armar el modulo
       // aunque nunca corra canActivate (KeycloakAuthGuard necesita JWKS/config, RateLimitGuard
-      // necesita un cliente Redis).
+      // necesita RATE_LIMIT_OPTIONS).
       .overrideGuard(KeycloakAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RateLimitGuard)

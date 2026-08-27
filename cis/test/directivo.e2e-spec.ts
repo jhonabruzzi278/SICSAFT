@@ -4,7 +4,6 @@ import { App } from 'supertest/types';
 import { generateKeyPair, type JWTVerifyGetKey } from 'jose';
 import type { GrantUsuario } from './../src/keycloak-admin/keycloak-admin.types';
 import { crearAppE2e } from './support/e2e-app';
-import { crearRedisStub } from './support/redis-stub';
 import { firmarTokenKeycloak } from './support/jwt';
 
 const ISSUER = 'http://id.sicsaft.localhost/realms/sicsaft';
@@ -105,7 +104,6 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
       coreClientService: {
         postAuditoria: jest.fn().mockResolvedValue(undefined),
       },
-      redisClient: crearRedisStub(),
       keycloakAdminService,
     });
   });

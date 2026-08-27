@@ -16,7 +16,7 @@ import type { KeycloakAuthContext } from '../common/auth/keycloak-auth.guard';
 import { CoreClientService } from '../core-client/core-client.service';
 import { DeviceRegistryService } from '../device-registry/device-registry.service';
 
-// Piso del TTL de registro de dispositivo — evita mandarle a Redis un PX <= 0 en el caso limite
+// Piso del TTL de registro de dispositivo — evita programar un timeout <= 0 en el caso limite
 // de que el token ya este por expirar en el instante exacto en que se procesa la request
 // (KeycloakAuthGuard ya valido que no este vencido, pero el margen puede ser de milisegundos).
 const MIN_DEVICE_TTL_MS = 1_000;
@@ -43,7 +43,7 @@ export class QrConnectorService {
       new Date(auth.expiresAt).getTime() - Date.now(),
       MIN_DEVICE_TTL_MS,
     );
-    await this.deviceRegistryService.registerDevice(
+    this.deviceRegistryService.registerDevice(
       auth.operadorId,
       request.deviceId,
       ttlMs,

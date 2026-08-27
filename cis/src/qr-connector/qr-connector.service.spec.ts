@@ -87,7 +87,7 @@ function buildCoreClientService(
 function buildDeviceRegistryService(): jest.Mocked<
   Pick<DeviceRegistryService, 'registerDevice'>
 > {
-  return { registerDevice: jest.fn().mockResolvedValue(undefined) };
+  return { registerDevice: jest.fn().mockReturnValue(undefined) };
 }
 
 function buildAuthContext(
@@ -174,7 +174,7 @@ describe('QrConnectorService', () => {
       expect(ttlMs).toBeLessThanOrEqual(900_000);
     });
 
-    it('usa un TTL minimo si el token esta a punto de expirar (evita un PX <= 0 en Redis)', async () => {
+    it('usa un TTL minimo si el token esta a punto de expirar (evita programar un timeout <= 0)', async () => {
       const auth = buildAuthContext({
         expiresAt: new Date(Date.now() + 10).toISOString(),
       });

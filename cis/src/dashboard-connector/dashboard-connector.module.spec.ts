@@ -18,7 +18,6 @@ describe('DashboardConnectorModule', () => {
       KEYCLOAK_ADMIN_CLIENT_SECRET: 'secreto-compartido',
       CIP_URL: 'http://cip:3002',
       CIP_SERVICE_TOKEN: 'secreto-compartido',
-      REDIS_URL: 'redis://localhost:6379',
     };
   });
 

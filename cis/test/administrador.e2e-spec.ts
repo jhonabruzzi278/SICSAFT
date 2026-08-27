@@ -11,7 +11,6 @@ import type {
   UbicacionResult,
 } from './../src/core-client/core-client.types';
 import { crearAppE2e } from './support/e2e-app';
-import { crearRedisStub } from './support/redis-stub';
 import { firmarTokenKeycloak } from './support/jwt';
 
 const ISSUER = 'http://id.sicsaft.localhost/realms/sicsaft';
@@ -175,7 +174,6 @@ describe('Administrador Patrimonial — DOC-012 5/7 (e2e)', () => {
     app = await crearAppE2e({
       jwks: localJwks,
       coreClientService,
-      redisClient: crearRedisStub(),
       keycloakAdminService,
     });
   });
