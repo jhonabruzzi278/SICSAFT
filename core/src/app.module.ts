@@ -27,7 +27,7 @@ import { IndicadoresModule } from './indicadores/indicadores.module';
     PatrimonialModule,
     OrquestadorModule,
     // Fase 6 (ROADMAP.md, cip/aidlc-docs/): dispatcher que publica eventos_outbox hacia la cola
-    // Redis/BullMQ que consumirá el worker de CIP — CORE no depende de CIP para responder al
+    // pg-boss (ADR-005) que consumirá el worker de CIP — CORE no depende de CIP para responder al
     // usuario (ver DOC-014 8, reconciliación con Tomo IV 2.15/2.19).
     EventosOutboxModule,
     // DOC-021 4 (Administrador del Sistema) — conteos de plataforma, sin OrquestadorService (solo

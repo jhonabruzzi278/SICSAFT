@@ -1,45 +1,44 @@
 import { Inject, Module, type OnModuleDestroy } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-import { Queue } from 'bullmq';
-import type Redis from 'ioredis';
-import { createRedisConnection } from './create-redis-connection';
+import type { PgBoss } from 'pg-boss';
+import { createPgBossClient } from './create-pgboss-client';
 import {
-  CIP_EVENTOS_QUEUE,
+  CIP_EVENTOS_PGBOSS,
   CIP_EVENTOS_QUEUE_NAME,
-  CIP_EVENTOS_REDIS_CONNECTION,
 } from './eventos-outbox.constants';
+import { loadEventosOutboxQueueConfig } from './eventos-outbox-queue.config';
 import { EventosOutboxDispatcher } from './eventos-outbox.dispatcher';
 import { EventosOutboxRepository } from './eventos-outbox.repository';
-import { loadRedisConfig } from './redis.config';
 
-// Fase 6 — unico consumidor de @nestjs/schedule en CORE hoy, ScheduleModule.forRoot() se importa
-// acá en vez de en AppModule (mismo criterio de localidad que el resto de modulos de CORE: cada
+// Fase 6 — único consumidor de @nestjs/schedule en CORE hoy, ScheduleModule.forRoot() se importa
+// acá en vez de en AppModule (mismo criterio de localidad que el resto de módulos de CORE: cada
 // feature module trae lo que necesita).
+//
+// ADR-005 — `boss.start()` aplica la migración del esquema propio de pg-boss (`pgboss` por
+// defecto) y `createQueue` es idempotente (no falla si la cola ya existe) — ambos se llaman acá,
+// una sola vez al armar el módulo, en vez de en cada `send()`.
 @Module({
   imports: [ScheduleModule.forRoot()],
   providers: [
     EventosOutboxRepository,
     {
-      provide: CIP_EVENTOS_REDIS_CONNECTION,
-      useFactory: (): Redis => createRedisConnection(loadRedisConfig().url),
-    },
-    {
-      provide: CIP_EVENTOS_QUEUE,
-      useFactory: (connection: Redis): Queue =>
-        new Queue(CIP_EVENTOS_QUEUE_NAME, { connection }),
-      inject: [CIP_EVENTOS_REDIS_CONNECTION],
+      provide: CIP_EVENTOS_PGBOSS,
+      useFactory: async (): Promise<PgBoss> => {
+        const boss = await createPgBossClient(
+          loadEventosOutboxQueueConfig().connectionString,
+        );
+        await boss.start();
+        await boss.createQueue(CIP_EVENTOS_QUEUE_NAME);
+        return boss;
+      },
     },
     EventosOutboxDispatcher,
   ],
 })
 export class EventosOutboxModule implements OnModuleDestroy {
-  constructor(
-    @Inject(CIP_EVENTOS_QUEUE) private readonly queue: Queue,
-    @Inject(CIP_EVENTOS_REDIS_CONNECTION) private readonly connection: Redis,
-  ) {}
+  constructor(@Inject(CIP_EVENTOS_PGBOSS) private readonly boss: PgBoss) {}
 
   async onModuleDestroy(): Promise<void> {
-    await this.queue.close();
-    this.connection.disconnect();
+    await this.boss.stop();
   }
 }

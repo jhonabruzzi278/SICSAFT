@@ -11,10 +11,10 @@ export interface EventoOutboxPendiente {
   organizacionId: string | null;
 }
 
-// Mensaje publicado a la cola `cip-eventos` (BullMQ) — consumido por el worker de agregacion de
-// CIP (cip/aidlc-docs/design-artifacts/ARCHITECTURE.md 1/4, DOC-018 5). El worker relee el
-// dato real desde las APIs de lectura de CORE (GET /catalogo, GET /inventarios/:id) usando este
-// mensaje solo como señal de "que recalcular", no como el dato completo.
+// Mensaje publicado a la cola `cip-eventos` (pg-boss, ADR-005) — consumido por el worker de
+// agregacion de CIP (cip/aidlc-docs/design-artifacts/ARCHITECTURE.md 1/4, DOC-018 5). El worker
+// relee el dato real desde las APIs de lectura de CORE (GET /catalogo, GET /inventarios/:id)
+// usando este mensaje solo como señal de "que recalcular", no como el dato completo.
 export type EventosOutboxMensaje =
   | { kind: 'sesion-cerrada'; sesionId: string }
   | {
