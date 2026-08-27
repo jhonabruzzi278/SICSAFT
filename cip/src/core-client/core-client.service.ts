@@ -14,9 +14,9 @@ import type {
 
 // DOC-018 3 — deliberadamente sin circuit breaker ni retry (a diferencia de
 // cis/src/core-client/): CIS los necesita porque multiplexa requests sincronas de usuarios
-// reales concurrentes; CIP es un worker de background de un solo consumidor por vez, y BullMQ ya
-// da reintentos con backoff a nivel de job si un mensaje falla — agregar una segunda capa de
-// resiliencia acá seria redundante (YAGNI, WAF 9).
+// reales concurrentes; CIP es un worker de background de un solo consumidor por vez, y pg-boss
+// (ADR-005) ya da reintentos con backoff a nivel de job si un mensaje falla — agregar una segunda
+// capa de resiliencia acá seria redundante (YAGNI, WAF 9).
 @Injectable()
 export class CoreClientService {
   constructor(
