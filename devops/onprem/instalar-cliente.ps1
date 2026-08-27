@@ -30,12 +30,11 @@
     Carpeta de devops/onprem/ a usar (default: donde vive este script).
 
 .PARAMETER DominioBase
-    Dominio local de este cliente (ej. "sicsaft-duoc-melipilla.test") — reemplaza el genérico
-    "sicsaft.localhost" en hosts, Traefik, Keycloak (KC_HOSTNAME) y las URLs que hornean los
-    frontends. Si no se
-    pasa, se calcula automáticamente a partir de -ClienteNombre: "sicsaft-" + slug del nombre
-    (minúsculas, sin acentos ni espacios) + ".test" (RFC 2606, reservado para uso local, nunca
-    resuelve por internet).
+    Dominio local de este cliente (ej. "sicsaft-duoc-melipilla.localhost") — reemplaza el genérico
+    "sicsaft.localhost" en Traefik, Keycloak (KC_HOSTNAME) y las URLs que hornean los frontends. Si
+    no se pasa, se calcula automáticamente a partir de -ClienteNombre: "sicsaft-" + slug del nombre
+    (minúsculas, sin acentos ni espacios) + ".localhost" (RFC 6761 — ver New-DominioDesdeNombre
+    para el motivo del cambio desde ".test", encontrado real 2026-08-27).
 
 .EXAMPLE
     ./instalar-cliente.ps1 -ClienteNombre "Municipalidad de Melipilla" `
@@ -53,9 +52,27 @@ $ErrorActionPreference = "Stop"
 
 function New-DominioDesdeNombre {
     # Slug DNS-safe: minusculas, sin acentos, espacios/simbolos -> guion, guiones repetidos
-    # colapsados, sin guion al inicio/final. ".test" (RFC 2606) nunca resuelve por internet ni
-    # choca con mDNS/Bonjour (a diferencia de ".local") -- pensado para que cada cliente onprem
-    # tenga sus propias URLs (ej. qr.duoc-melipilla.test) en vez del generico sicsaft.localhost.
+    # colapsados, sin guion al inicio/final.
+    #
+    # ".localhost" (RFC 6761), no ".test" (RFC 2606, usado hasta 2026-08-26) -- CAMBIO DE DISEÑO
+    # real, no cosmetico: bug real encontrado probando un login de verdad en un navegador
+    # (2026-08-27) -- un origin "http://algo.test" tiene window.isSecureContext === false y
+    # crypto.subtle/crypto.randomUUID son undefined (verificado real, Chromium), mientras que
+    # "http://algo.localhost" es secure context completo con el mismo HTTP plano sin TLS (RFC 6761
+    # exige tratar cualquier hostname bajo ".localhost" como loopback/confiable). Esto rompia el
+    # login OIDC/PKCE de los 4 portales de punta a punta (pkce.ts usa crypto.subtle.digest) en
+    # CUALQUIER instalacion onprem real, con Zitadel o con Keycloak -- no es un problema del
+    # identity provider, es el esquema de dominio. El slug por cliente sigue evitando la colision
+    # que motivaba huir de ".localhost" originalmente (cada cliente tiene su propio
+    # "sicsaft-<slug>.localhost", no el generico "sicsaft.localhost" compartido).
+    #
+    # OJO -- distinto de lo que decía una version anterior de este comentario: la auto-resolucion
+    # de "*.localhost" a loopback SIN entrada en hosts (RFC 6761) se confirmó real en Chromium
+    # (`window.isSecureContext` da true igual), pero NO a nivel de resolver de Windows -- probado
+    # real: `Invoke-RestMethod` contra un "*.localhost" nunca agregado a hosts tira "No se puede
+    # resolver el nombre remoto" desde PowerShell. Set-HostsLocales de abajo SIGUE haciendo falta
+    # -- bootstrap-keycloak.ps1 (que corre por PowerShell, no por navegador) necesita esas entradas
+    # igual que antes con ".test".
     param([string]$Nombre)
     $normalizado = $Nombre.Normalize([System.Text.NormalizationForm]::FormD)
     $sinAcentos = -join ($normalizado.ToCharArray() | Where-Object {
@@ -63,7 +80,7 @@ function New-DominioDesdeNombre {
     })
     $slug = ($sinAcentos.ToLowerInvariant() -replace '[^a-z0-9]+', '-').Trim('-')
     if (-not $slug) { $slug = "cliente" }
-    return "sicsaft-$slug.test"
+    return "sicsaft-$slug.localhost"
 }
 
 if (-not $DominioBase) {

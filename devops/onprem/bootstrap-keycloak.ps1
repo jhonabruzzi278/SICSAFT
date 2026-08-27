@@ -22,8 +22,9 @@
     docker-compose.yml) — no hace falta ningun archivo de bootstrap previo.
 
 .PARAMETER DominioBase
-    Dominio local de este cliente (ej. "duoc-melipilla.test") — determina el dominio de cada app
-    OIDC (qr.<dominio>, ccp.<dominio>, etc). Default: sicsaft.localhost.
+    Dominio local de este cliente (ej. "sicsaft-duoc-melipilla.localhost", ver
+    instalar-cliente.ps1 New-DominioDesdeNombre) — determina el dominio de cada app OIDC
+    (qr.<dominio>, ccp.<dominio>, etc). Default: sicsaft.localhost.
 
 .PARAMETER KeycloakUrl
     URL base de este Keycloak onprem. Default: http://id.<DominioBase>.
