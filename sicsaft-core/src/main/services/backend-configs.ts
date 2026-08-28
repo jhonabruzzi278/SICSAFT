@@ -39,10 +39,11 @@ export function generarTokenServicio(): string {
 // CORE_DB_PASSWORD/CIP_DB_PASSWORD son campos requeridos por loadDatabaseConfig() (zod
 // `.min(1)`) en core/ y cip/, pero el Postgres embebido corre con autenticación "trust" en
 // 127.0.0.1 (ver postgres-service.ts inicializarSiHaceFalta -- initdb sin -A, TODO real pendiente
-// de decidir si algún día hace falta un password de verdad). El valor acá es un placeholder no
-// verificado por Postgres, solo para satisfacer el schema de cis/core/cip -- no es un secreto de
-// seguridad real en este perfil embebido de un solo proceso local.
-const DB_PASSWORD_PLACEHOLDER = "sicsaft-embebido-trust-auth";
+// de decidir si algún día hace falta un password de verdad). Postgres nunca verifica este valor;
+// solo existe para satisfacer el schema de cis/core/cip. Se genera aleatorio por proceso en vez
+// de una constante literal -- no cambia nada funcionalmente (trust auth lo ignora) y evita que
+// parezca (o sea, si algún día se copia mal) un secreto hardcodeado.
+const DB_PASSWORD_PLACEHOLDER = randomBytes(18).toString("hex");
 
 export interface TokensServicio {
   coreServiceToken: string;

@@ -1,7 +1,35 @@
 import { resolve } from "node:path";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
+import type { Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+
+// CSP por modo: en dev el runtime de HMR de Vite necesita eval()/new Function() para el module
+// transform y sirve el CSS inline (bug real 2026-08-27: sin 'unsafe-eval' la ventana quedaba en
+// blanco). En el build de producción Vite bundlea sin eval y `@tailwindcss/vite` emite el CSS a
+// un archivo con <link> (nada inline), así que el CSP puede ser estricto -- sin 'unsafe-eval' ni
+// 'unsafe-inline', que es lo que SonarCloud (Web:S7039) marca. El renderer del wizard solo habla
+// con el proceso principal por IPC (contextBridge), nunca hace fetch, de ahí `connect-src 'self'`.
+const CSP_DEV =
+  "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws:";
+const CSP_PROD =
+  "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'";
+
+function cspPorModo(): Plugin {
+  return {
+    name: "sicsaft-csp-por-modo",
+    transformIndexHtml: {
+      order: "pre",
+      handler(html, ctx) {
+        const csp = ctx.server ? CSP_DEV : CSP_PROD;
+        return html.replace(
+          "<!--CSP-->",
+          `<meta http-equiv="Content-Security-Policy" content="${csp}" />`,
+        );
+      },
+    },
+  };
+}
 
 // electron-vite compila los 3 procesos (main/preload/renderer) con Vite en un solo comando —
 // evita mantener 3 pipelines de build a mano. `externalizeDepsPlugin` deja las dependencias de
@@ -44,6 +72,6 @@ export default defineConfig({
         "@shared": resolve(__dirname, "src/shared"),
       },
     },
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), cspPorModo()],
   },
 });
