@@ -35,13 +35,16 @@ pasar la request y devolvió solo los datos de la organización del token).
 
 ```bash
 cd core/frontend
-cp .env.example .env   # completar VITE_ZITADEL_CLIENT_ID, ver devops/local/README.md
+cp .env.example .env   # completar VITE_KEYCLOAK_CLIENT_ID, ver devops/local/README.md
 npm install
 npm run dev             # puerto 5177
 ```
 
 Contra el stack completo: `docker compose up -d --build core-frontend` en `devops/local/`, sirve
-en `http://directivo.sicsaft.localhost` (Traefik).
+en `http://directivo.sicsaft.localhost` (Traefik). **Nota (2026-08-26)**: `devops/local/docker-compose.yml`
+todavía no migró a Keycloak ([ADR-004](../../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)
+Fase 1 solo cubrió `cis/`) — hoy el stack de Docker Compose sigue levantando Zitadel, así que este
+flujo queda temporalmente inconsistente hasta que esa fase se complete.
 
 ## Depende de
 
@@ -62,6 +65,11 @@ habla a CIS).
 (diseño original del rol Directivo, cuando todavía era solo-lectura dentro de `ccp/`).
 [DOC-019](../../aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md) (diseño
 original del Dashboard, del que este portal reusa el código tal cual).
+[DOC-027](../../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) —
+bitácora de bugs reales. Los que tocaron `core/frontend/`: `AppShell` perdiendo la sidebar y
+"Cerrar sesión" tras el login client-side por leer `isAuthenticated()` no reactivo durante el
+render (BUG-44), el mismo bug de armado de URL de OIDC que `ccp` (BUG-09) y el correo duplicado en
+el display name (BUG-43). Salieron cuando `sicsaft-core` embebió este portal.
 
 ## Próximo paso sugerido
 

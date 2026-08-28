@@ -53,7 +53,7 @@ export function clearPendingPkce(): void {
 
 // Decodifica el payload del JWT SIN verificar firma — solo para leer claims de presentacion
 // (nombre del operador, roles para ocultar/mostrar UI). El limite de confianza real es CIS
-// (ZitadelAuthGuard) y CORE (verificarRolAdministradorPatrimonial) — nada de lo que se lea acá
+// (KeycloakAuthGuard) y CORE (verificarRolAdministradorPatrimonial) — nada de lo que se lea acá
 // autoriza nada del lado del cliente (DOC-013 4).
 export function decodeJwtClaims(token: string): Record<string, unknown> | null {
   const parts = token.split('.');

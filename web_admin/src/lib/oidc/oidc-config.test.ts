@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { loadOidcConfig } from './oidc-config';
 
 const REQUIRED_VARS = [
-  'VITE_ZITADEL_ISSUER',
-  'VITE_ZITADEL_CLIENT_ID',
+  'VITE_KEYCLOAK_ISSUER',
+  'VITE_KEYCLOAK_CLIENT_ID',
   'VITE_CIS_URL',
 ] as const;
 type RequiredVar = (typeof REQUIRED_VARS)[number];
@@ -28,8 +28,8 @@ describe('loadOidcConfig', () => {
 
   it('arma la config completa cuando las 3 env vars requeridas están presentes', () => {
     setEnv({
-      VITE_ZITADEL_ISSUER: 'http://id.sicsaft.localhost',
-      VITE_ZITADEL_CLIENT_ID: 'client-1',
+      VITE_KEYCLOAK_ISSUER: 'http://id.sicsaft.localhost',
+      VITE_KEYCLOAK_CLIENT_ID: 'client-1',
       VITE_CIS_URL: 'http://api.sicsaft.localhost',
     });
 
@@ -47,8 +47,8 @@ describe('loadOidcConfig', () => {
     'lanza un error mencionando la variable cuando falta %s',
     (missing) => {
       setEnv({
-        VITE_ZITADEL_ISSUER: 'http://id.sicsaft.localhost',
-        VITE_ZITADEL_CLIENT_ID: 'client-1',
+        VITE_KEYCLOAK_ISSUER: 'http://id.sicsaft.localhost',
+        VITE_KEYCLOAK_CLIENT_ID: 'client-1',
         VITE_CIS_URL: 'http://api.sicsaft.localhost',
         [missing]: undefined,
       });
@@ -59,11 +59,11 @@ describe('loadOidcConfig', () => {
 
   it('trata un string vacío como "no configurada", no como valor válido', () => {
     setEnv({
-      VITE_ZITADEL_ISSUER: '',
-      VITE_ZITADEL_CLIENT_ID: 'client-1',
+      VITE_KEYCLOAK_ISSUER: '',
+      VITE_KEYCLOAK_CLIENT_ID: 'client-1',
       VITE_CIS_URL: 'http://api.sicsaft.localhost',
     });
 
-    expect(() => loadOidcConfig()).toThrow('VITE_ZITADEL_ISSUER');
+    expect(() => loadOidcConfig()).toThrow('VITE_KEYCLOAK_ISSUER');
   });
 });

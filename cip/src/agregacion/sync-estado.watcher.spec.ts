@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method -- jest.fn() mocks no usan `this`. */
-import type { Queue } from 'bullmq';
+import type { PgBoss } from 'pg-boss';
 import { AgregacionRepository } from './agregacion.repository';
 import { SyncEstadoWatcher } from './sync-estado.watcher';
 
@@ -10,10 +10,16 @@ function buildRepository(): jest.Mocked<AgregacionRepository> {
   } as unknown as jest.Mocked<AgregacionRepository>;
 }
 
-function buildQueue(waitingCount: number): jest.Mocked<Queue> {
+function buildBoss(
+  readyCount: number | null,
+): jest.Mocked<Pick<PgBoss, 'getQueue'>> {
   return {
-    getWaitingCount: jest.fn().mockResolvedValue(waitingCount),
-  } as unknown as jest.Mocked<Queue>;
+    getQueue: jest
+      .fn()
+      .mockResolvedValue(
+        readyCount === null ? null : ({ readyCount } as never),
+      ),
+  };
 }
 
 describe('SyncEstadoWatcher', () => {
@@ -25,12 +31,28 @@ describe('SyncEstadoWatcher', () => {
 
   it('no hace nada si la cola está vacía', async () => {
     const repository = buildRepository();
-    const queue = buildQueue(0);
-    const watcher = new SyncEstadoWatcher(repository, queue);
+    const boss = buildBoss(0);
+    const watcher = new SyncEstadoWatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await watcher.verificar();
 
     expect(repository.obtenerSyncEstado).not.toHaveBeenCalled();
+    expect(repository.marcarAtrasado).not.toHaveBeenCalled();
+  });
+
+  it('trata una cola inexistente (getQueue null) como vacía', async () => {
+    const repository = buildRepository();
+    const boss = buildBoss(null);
+    const watcher = new SyncEstadoWatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
+
+    await watcher.verificar();
+
     expect(repository.marcarAtrasado).not.toHaveBeenCalled();
   });
 
@@ -40,8 +62,11 @@ describe('SyncEstadoWatcher', () => {
       ultimoEventoProcesadoEn: null,
       alDia: true,
     });
-    const queue = buildQueue(3);
-    const watcher = new SyncEstadoWatcher(repository, queue);
+    const boss = buildBoss(3);
+    const watcher = new SyncEstadoWatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await watcher.verificar();
 
@@ -54,8 +79,11 @@ describe('SyncEstadoWatcher', () => {
       ultimoEventoProcesadoEn: new Date(Date.now() - 60000).toISOString(),
       alDia: true,
     });
-    const queue = buildQueue(1);
-    const watcher = new SyncEstadoWatcher(repository, queue);
+    const boss = buildBoss(1);
+    const watcher = new SyncEstadoWatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await watcher.verificar();
 
@@ -69,8 +97,11 @@ describe('SyncEstadoWatcher', () => {
       ultimoEventoProcesadoEn: new Date(Date.now() - 6 * 60000).toISOString(),
       alDia: true,
     });
-    const queue = buildQueue(1);
-    const watcher = new SyncEstadoWatcher(repository, queue);
+    const boss = buildBoss(1);
+    const watcher = new SyncEstadoWatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await watcher.verificar();
 
@@ -85,8 +116,11 @@ describe('SyncEstadoWatcher', () => {
       ultimoEventoProcesadoEn: new Date(Date.now() - 10 * 60000).toISOString(),
       alDia: true,
     });
-    const queue = buildQueue(1);
-    const watcher = new SyncEstadoWatcher(repository, queue);
+    const boss = buildBoss(1);
+    const watcher = new SyncEstadoWatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await watcher.verificar();
 

@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DashboardConnectorModule } from './dashboard-connector.module';
 import { DashboardConnectorController } from './dashboard-connector.controller';
-import { ZitadelAuthModule } from '../common/auth/zitadel-auth.module';
+import { KeycloakAuthModule } from '../common/auth/keycloak-auth.module';
+import { KeycloakAdminModule } from '../keycloak-admin/keycloak-admin.module';
 import { RateLimitModule } from '../rate-limit/rate-limit.module';
 
 describe('DashboardConnectorModule', () => {
@@ -10,11 +11,13 @@ describe('DashboardConnectorModule', () => {
   beforeEach(() => {
     process.env = {
       ...originalEnv,
-      ZITADEL_ISSUER: 'http://id.sicsaft.localhost',
-      ZITADEL_AUDIENCE: 'cis-api',
+      KEYCLOAK_URL: 'http://keycloak:8080',
+      KEYCLOAK_REALM: 'sicsaft',
+      KEYCLOAK_AUDIENCE: 'cis-api',
+      KEYCLOAK_ADMIN_CLIENT_ID: 'cis-admin',
+      KEYCLOAK_ADMIN_CLIENT_SECRET: 'secreto-compartido',
       CIP_URL: 'http://cip:3002',
       CIP_SERVICE_TOKEN: 'secreto-compartido',
-      REDIS_URL: 'redis://localhost:6379',
     };
   });
 
@@ -24,7 +27,12 @@ describe('DashboardConnectorModule', () => {
 
   it('wires DashboardConnectorController', async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ZitadelAuthModule, RateLimitModule, DashboardConnectorModule],
+      imports: [
+        KeycloakAuthModule,
+        KeycloakAdminModule,
+        RateLimitModule,
+        DashboardConnectorModule,
+      ],
     }).compile();
 
     expect(module.get(DashboardConnectorController)).toBeInstanceOf(

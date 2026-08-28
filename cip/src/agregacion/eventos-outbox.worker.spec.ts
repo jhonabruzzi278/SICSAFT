@@ -1,89 +1,73 @@
 /* eslint-disable @typescript-eslint/unbound-method -- jest.fn() mocks no usan `this`. */
-const onMock = jest.fn<void, [string, (...args: never[]) => void]>();
-const closeMock = jest.fn().mockResolvedValue(undefined);
-let capturedProcessor:
-  ((job: { id: string; data: unknown }) => unknown) | undefined;
-let capturedConnection: unknown;
-
-jest.mock('bullmq', () => ({
-  Worker: jest.fn().mockImplementation((_queueName, processor, opts) => {
-    capturedProcessor = processor as typeof capturedProcessor;
-    capturedConnection = (opts as { connection: unknown }).connection;
-    return { on: onMock, close: closeMock };
-  }),
-}));
-
+import type { PgBoss } from 'pg-boss';
 import { AgregacionService } from './agregacion.service';
+import { CIP_EVENTOS_QUEUE_NAME } from './eventos-outbox.constants';
 import { EventosOutboxWorker } from './eventos-outbox.worker';
 
+type Handler = (jobs: [{ id: string; data: unknown }]) => Promise<void>;
+
+function buildBoss(): jest.Mocked<Pick<PgBoss, 'work' | 'offWork'>> {
+  return {
+    work: jest.fn().mockResolvedValue('worker-id'),
+    offWork: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
 describe('EventosOutboxWorker', () => {
-  const originalEnv = process.env;
-
-  beforeEach(() => {
-    process.env = { ...originalEnv, REDIS_URL: 'redis://localhost:6379' };
-    onMock.mockClear();
-    closeMock.mockClear();
-    capturedProcessor = undefined;
-    capturedConnection = undefined;
-  });
-
-  afterEach(() => {
-    process.env = originalEnv;
-  });
-
-  it('crea el Worker sobre la cola cip-eventos y delega cada job a AgregacionService', async () => {
+  it('registra el handler sobre la cola cip-eventos y delega cada job a AgregacionService', async () => {
     const agregacionService = {
       procesarMensaje: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<AgregacionService>;
-    const worker = new EventosOutboxWorker(agregacionService);
+    const boss = buildBoss();
+    const worker = new EventosOutboxWorker(
+      agregacionService,
+      boss as unknown as PgBoss,
+    );
 
-    worker.onModuleInit();
+    await worker.onModuleInit();
 
-    expect(capturedProcessor).toBeDefined();
-    expect(capturedConnection).toBeDefined();
+    expect(boss.work).toHaveBeenCalledWith(
+      CIP_EVENTOS_QUEUE_NAME,
+      expect.any(Function),
+    );
+    const handler = boss.work.mock.calls[0][1] as Handler;
 
     const mensaje = { kind: 'sesion-cerrada', sesionId: 'ses-1' };
-    await capturedProcessor?.({ id: 'job-1', data: mensaje });
+    await handler([{ id: 'job-1', data: mensaje }]);
 
     expect(agregacionService.procesarMensaje).toHaveBeenCalledWith(mensaje);
-    expect(onMock).toHaveBeenCalledWith('failed', expect.any(Function));
   });
 
-  it('loguea (sin tirar) cuando el listener failed se dispara', () => {
+  it('loguea y relanza si procesarMensaje falla, para que pg-boss reintente', async () => {
+    const agregacionService = {
+      procesarMensaje: jest.fn().mockRejectedValue(new Error('boom')),
+    } as unknown as jest.Mocked<AgregacionService>;
+    const boss = buildBoss();
+    const worker = new EventosOutboxWorker(
+      agregacionService,
+      boss as unknown as PgBoss,
+    );
+
+    await worker.onModuleInit();
+    const handler = boss.work.mock.calls[0][1] as Handler;
+
+    await expect(
+      handler([{ id: 'job-1', data: { kind: 'evento' } }]),
+    ).rejects.toThrow('boom');
+  });
+
+  it('desregistra el handler en onModuleDestroy', async () => {
     const agregacionService = {
       procesarMensaje: jest.fn(),
     } as unknown as jest.Mocked<AgregacionService>;
-    const worker = new EventosOutboxWorker(agregacionService);
-    worker.onModuleInit();
-
-    const failedHandler = onMock.mock.calls.find(
-      ([evento]) => evento === 'failed',
-    )?.[1] as (job: { id: string } | undefined, error: Error) => void;
-
-    expect(() =>
-      failedHandler({ id: 'job-1' }, new Error('boom')),
-    ).not.toThrow();
-    expect(() => failedHandler(undefined, new Error('boom'))).not.toThrow();
-  });
-
-  it('cierra el worker en onModuleDestroy', async () => {
-    const agregacionService = {
-      procesarMensaje: jest.fn(),
-    } as unknown as jest.Mocked<AgregacionService>;
-    const worker = new EventosOutboxWorker(agregacionService);
-    worker.onModuleInit();
+    const boss = buildBoss();
+    const worker = new EventosOutboxWorker(
+      agregacionService,
+      boss as unknown as PgBoss,
+    );
 
     await worker.onModuleDestroy();
 
-    expect(closeMock).toHaveBeenCalled();
-  });
-
-  it('onModuleDestroy no falla si nunca se inicializó', async () => {
-    const agregacionService = {
-      procesarMensaje: jest.fn(),
-    } as unknown as jest.Mocked<AgregacionService>;
-    const worker = new EventosOutboxWorker(agregacionService);
-
-    await expect(worker.onModuleDestroy()).resolves.toBeUndefined();
+    expect(boss.offWork).toHaveBeenCalledWith(CIP_EVENTOS_QUEUE_NAME);
   });
 });

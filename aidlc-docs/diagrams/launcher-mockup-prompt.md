@@ -54,7 +54,7 @@ lo que el cliente tiene contratado, y abre cada portal en su propia ventana/pest
 3. **Estado "nivel 2"** — variante mostrando los 3 botones activos (Directivo, Admin, CCP).
 4. **Pantalla "acerca de / sistemas"** — una vista secundaria (no la primera que se ve) con el
    detalle técnico para el administrador: qué versión de cada portal está instalada, el dominio
-   base de esta instalación (ej. `sicsaft-duoc-melipilla.test`), y un botón de soporte.
+   base de esta instalación (ej. `sicsaft-duoc-melipilla.localhost`), y un botón de soporte.
 5. **Estado de transición al hacer clic en un botón** — micro-estado de carga breve mientras abre
    la ventana del portal correspondiente (no un splash largo — esto es un launcher, tiene que
    sentirse instantáneo).

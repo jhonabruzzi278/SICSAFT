@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { oidcClient } from '@/lib/oidc/oidc-client';
 
-// Identificación de operador vía Zitadel (ADR-002, TASK-007) — ya no hay nombre tipeado, el CIS
-// resuelve la identidad real del access token (ver ZitadelAuthGuard, cis/src/common/auth/). El
+// Identificación de operador vía Keycloak (ADR-004, TASK-007) — ya no hay nombre tipeado, el CIS
+// resuelve la identidad real del access token (ver KeycloakAuthGuard, cis/src/common/auth/). El
 // redirect solo se dispara con un gesto explícito del operador (este botón), nunca automático al
 // cargar la página, para no sorprender a alguien reabriendo la PWA.
 export function OperatorGate() {

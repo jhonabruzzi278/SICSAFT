@@ -3,10 +3,9 @@ import { NotFoundException } from '@nestjs/common';
 import { AdministradorService } from './administrador.service';
 import { CoreClientService } from '../core-client/core-client.service';
 import { AuditoriaIdentidadService } from '../auditoria-identidad/auditoria-identidad.service';
-import { ZitadelAdminService } from '../zitadel-admin/zitadel-admin.service';
-import { OrganizacionMappingDinamicoService } from './organizacion-mapping-dinamico.service';
-import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
-import type { GrantUsuario } from '../zitadel-admin/zitadel-admin.types';
+import { KeycloakAdminService } from '../keycloak-admin/keycloak-admin.service';
+import type { KeycloakAuthContext } from '../common/auth/keycloak-auth.guard';
+import type { GrantUsuario } from '../keycloak-admin/keycloak-admin.types';
 import type {
   ActivoResult,
   AreaResult,
@@ -73,7 +72,11 @@ const CONTRATO: ContratoResult = {
   modulosContratados: ['inventario-qr'],
 };
 
-function buildService(mapping: Record<string, string>) {
+// ADR-004 — buildService ya no recibe un mapa de organizacionId->id-de-Zitadel: con Keycloak,
+// rolesPorOrganizacion viene keyed por el mismo organizacionId que usa CORE (el alias de la
+// Organization), así que AdministradorService no traduce nada — solo pasa `auth.rolesPorOrganizacion`
+// tal cual a CoreClientService.
+function buildService() {
   const coreClientService = {
     postActivo: jest.fn(),
     postActivoBaja: jest.fn(),
@@ -110,24 +113,18 @@ function buildService(mapping: Record<string, string>) {
     postResponsable: jest.fn(),
     patchResponsableEstado: jest.fn(),
   } as unknown as jest.Mocked<CoreClientService>;
-  const zitadelAdminService = {
+  const keycloakAdminService = {
     buscarUsuarioPorEmail: jest.fn(),
     listarGrants: jest.fn(),
     crearGrant: jest.fn(),
     crearOrganizacion: jest.fn(),
-    otorgarProyectoAOrganizacion: jest.fn(),
     actualizarNombreOrganizacion: jest.fn(),
     quitarRolDeGrant: jest.fn(),
     desactivarUsuario: jest.fn(),
-  } as unknown as jest.Mocked<ZitadelAdminService>;
-  const organizacionMappingDinamico = {
-    registrar: jest.fn(),
-    resolverOrganizacionId: jest.fn(),
-    resolverZitadelOrgId: jest.fn(),
-  } as unknown as jest.Mocked<OrganizacionMappingDinamicoService>;
+  } as unknown as jest.Mocked<KeycloakAdminService>;
   // DOC-024 3 — pass-through por defecto: ejecuta la accion tal cual, sin auditar de verdad, para
   // que los tests de cada metodo puedan seguir verificando solo la llamada a
-  // CoreClientService/ZitadelAdminService que les importa. El comportamiento real del wrapper
+  // CoreClientService/KeycloakAdminService que les importa. El comportamiento real del wrapper
   // (que SI audita) tiene su propia cobertura en auditoria-identidad.service.spec.ts — acá solo
   // se verifica que cada metodo LO LLAME con el `operacion`/`organizacionId` correctos.
   const auditoriaIdentidad = {
@@ -142,26 +139,23 @@ function buildService(mapping: Record<string, string>) {
   } as unknown as jest.Mocked<AuditoriaIdentidadService>;
   const service = new AdministradorService(
     coreClientService,
-    zitadelAdminService,
-    organizacionMappingDinamico,
+    keycloakAdminService,
     auditoriaIdentidad,
-    mapping,
   );
   return {
     service,
     coreClientService,
-    zitadelAdminService,
-    organizacionMappingDinamico,
+    keycloakAdminService,
     auditoriaIdentidad,
   };
 }
 
-const AUTH: ZitadelAuthContext = {
+const AUTH: KeycloakAuthContext = {
   operadorId: 'op-1',
   accessToken: 'token-1',
   expiresAt: '2026-01-01T00:00:00.000Z',
   rolesPorOrganizacion: {
-    '386029528616558597': ['administrador-patrimonial'],
+    'duoc-uc': ['administrador-patrimonial'],
   },
 };
 
@@ -173,22 +167,12 @@ describe('AdministradorService', () => {
       codigoQr: 'QR-1',
       catalogoId: 'catalogo-notebook',
     };
-    const auth: ZitadelAuthContext = {
-      operadorId: 'op-1',
-      accessToken: 'token-1',
-      expiresAt: '2026-01-01T00:00:00.000Z',
-      rolesPorOrganizacion: {
-        '386029528616558597': ['administrador-patrimonial'],
-      },
-    };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService (sin traduccion, ADR-004)', async () => {
+      const { service, coreClientService } = buildService();
       coreClientService.postActivo.mockResolvedValue(ACTIVO);
 
-      const activo = await service.altaActivo(body, auth, 'corr-1');
+      const activo = await service.altaActivo(body, AUTH, 'corr-1');
 
       expect(activo).toBe(ACTIVO);
       expect(coreClientService.postActivo).toHaveBeenCalledWith(
@@ -201,64 +185,13 @@ describe('AdministradorService', () => {
         'corr-1',
       );
     });
-
-    it('omite organizaciones sin entrada en NINGUNO de los dos mapeos (nunca inventa una clave)', async () => {
-      const { service, coreClientService, organizacionMappingDinamico } =
-        buildService({});
-      organizacionMappingDinamico.resolverOrganizacionId.mockResolvedValue(
-        null,
-      );
-      coreClientService.postActivo.mockResolvedValue(ACTIVO);
-
-      await service.altaActivo(body, auth, 'corr-1');
-
-      expect(coreClientService.postActivo).toHaveBeenCalledWith(
-        expect.objectContaining({ rolesPorOrganizacion: {} }),
-        'corr-1',
-      );
-    });
-
-    it('Gap 0: si el mapeo estatico no tiene la organizacion, prueba el mapeo dinamico antes de omitirla', async () => {
-      const { service, coreClientService, organizacionMappingDinamico } =
-        buildService({});
-      organizacionMappingDinamico.resolverOrganizacionId.mockResolvedValue(
-        'org-nueva',
-      );
-      coreClientService.postActivo.mockResolvedValue(ACTIVO);
-
-      await service.altaActivo(body, auth, 'corr-1');
-
-      expect(
-        organizacionMappingDinamico.resolverOrganizacionId,
-      ).toHaveBeenCalledWith('386029528616558597');
-      expect(coreClientService.postActivo).toHaveBeenCalledWith(
-        expect.objectContaining({
-          rolesPorOrganizacion: { 'org-nueva': ['administrador-patrimonial'] },
-        }),
-        'corr-1',
-      );
-    });
-
-    it('no consulta el mapeo dinamico si el mapeo estatico ya tiene la organizacion (evita un round-trip a Redis innecesario)', async () => {
-      const { service, coreClientService, organizacionMappingDinamico } =
-        buildService({ '386029528616558597': 'duoc-uc' });
-      coreClientService.postActivo.mockResolvedValue(ACTIVO);
-
-      await service.altaActivo(body, auth, 'corr-1');
-
-      expect(
-        organizacionMappingDinamico.resolverOrganizacionId,
-      ).not.toHaveBeenCalled();
-    });
   });
 
   describe('bajaActivo', () => {
     const body: EscrituraOficialActivoBody = { organizacionId: 'duoc-uc' };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       const dadoDeBaja = { ...ACTIVO, estado: 'dado_de_baja' as const };
       coreClientService.postActivoBaja.mockResolvedValue(dadoDeBaja);
 
@@ -281,10 +214,8 @@ describe('AdministradorService', () => {
   describe('reincorporarActivo', () => {
     const body: EscrituraOficialActivoBody = { organizacionId: 'duoc-uc' };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       coreClientService.postActivoReincorporacion.mockResolvedValue(ACTIVO);
 
       const activo = await service.reincorporarActivo(
@@ -314,10 +245,8 @@ describe('AdministradorService', () => {
       responsableId: 'responsable-1',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       const conResponsable = { ...ACTIVO, responsableId: 'responsable-1' };
       coreClientService.patchActivoResponsable.mockResolvedValue(
         conResponsable,
@@ -350,10 +279,8 @@ describe('AdministradorService', () => {
       descripcion: 'Con rayón',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       const conDescripcion = { ...ACTIVO, descripcion: 'Con rayón' };
       coreClientService.patchActivoDescripcion.mockResolvedValue(
         conDescripcion,
@@ -395,7 +322,7 @@ describe('AdministradorService', () => {
 
   describe('getCatalogoTipos', () => {
     it('delega en CoreClientService.getCatalogoTipos sin traducir roles (lectura abierta)', async () => {
-      const { service, coreClientService } = buildService({});
+      const { service, coreClientService } = buildService();
       coreClientService.getCatalogoTipos.mockResolvedValue([CATALOGO_TIPO]);
 
       await expect(service.getCatalogoTipos('corr-1')).resolves.toEqual([
@@ -414,10 +341,8 @@ describe('AdministradorService', () => {
       tecnologiaIdentificacion: 'qr',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       coreClientService.postCatalogoTipo.mockResolvedValue(CATALOGO_TIPO);
 
       const catalogoTipo = await service.altaCatalogoTipo(body, AUTH, 'corr-1');
@@ -448,7 +373,7 @@ describe('AdministradorService', () => {
 
   describe('getDocumentosActivo', () => {
     it('delega en CoreClientService.getDocumentosActivo con activoId y organizacionId', async () => {
-      const { service, coreClientService } = buildService({});
+      const { service, coreClientService } = buildService();
       coreClientService.getDocumentosActivo.mockResolvedValue([
         DOCUMENTO_ACTIVO,
       ]);
@@ -471,10 +396,8 @@ describe('AdministradorService', () => {
       url: 'https://ejemplo.cl/documento.pdf',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       coreClientService.postDocumentoActivo.mockResolvedValue(DOCUMENTO_ACTIVO);
 
       const documento = await service.altaDocumentoActivo(
@@ -501,10 +424,8 @@ describe('AdministradorService', () => {
   describe('eliminarDocumentoActivo', () => {
     const body: EscrituraOficialActivoBody = { organizacionId: 'duoc-uc' };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       coreClientService.deleteDocumentoActivo.mockResolvedValue(undefined);
 
       await service.eliminarDocumentoActivo(
@@ -547,10 +468,8 @@ describe('AdministradorService', () => {
       conflictos: 0,
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       coreClientService.postImportacionContable.mockResolvedValue(resultado);
 
       const importado = await service.importarContable(body, AUTH, 'corr-1');
@@ -576,7 +495,7 @@ describe('AdministradorService', () => {
 
   describe('getOrganizaciones', () => {
     it('delega en CoreClientService.getOrganizaciones sin traducir roles (lectura abierta)', async () => {
-      const { service, coreClientService } = buildService({});
+      const { service, coreClientService } = buildService();
       coreClientService.getOrganizaciones.mockResolvedValue([ORGANIZACION]);
 
       await expect(service.getOrganizaciones('corr-1')).resolves.toEqual([
@@ -591,45 +510,32 @@ describe('AdministradorService', () => {
   describe('altaOrganizacion', () => {
     const body: AltaOrganizacionBody = { nombre: 'Nueva Organización' };
     const ORGANIZACION_NUEVA: OrganizacionResult = {
-      id: 'zitadel-org-nueva',
+      id: 'nueva-organizacion',
       nombre: 'Nueva Organización',
       estado: 'activo',
     };
 
-    // Gap 1 (flujo real Admin->Directivo->Profesional AFT) — ya no recibe el id de Zitadel del
-    // cliente: lo crea primero en Zitadel y usa ESE id para escribir en CORE y para registrar el
-    // mapeo dinamico (Gap 0), en ese orden.
-    it('crea la organizacion en Zitadel, escribe en CORE con el id real, y registra el mapeo dinamico — en ese orden', async () => {
-      const {
-        service,
-        coreClientService,
-        zitadelAdminService,
-        organizacionMappingDinamico,
-      } = buildService({
-        '386029528616558597': 'duoc-uc',
+    // ADR-004 — ya no hay paso de ProjectGrant (concepto propio de Zitadel) ni registro de mapeo
+    // dinámico: KeycloakAdminService.crearOrganizacion decide el organizacionId (alias) y CORE usa
+    // ese mismo id directo.
+    it('crea la organizacion en Keycloak y escribe en CORE con el id que devuelve, en ese orden', async () => {
+      const { service, coreClientService, keycloakAdminService } =
+        buildService();
+      keycloakAdminService.crearOrganizacion.mockResolvedValue({
+        id: 'nueva-organizacion',
       });
-      zitadelAdminService.crearOrganizacion.mockResolvedValue({
-        id: 'zitadel-org-nueva',
-      });
-      zitadelAdminService.otorgarProyectoAOrganizacion.mockResolvedValue(
-        undefined,
-      );
       coreClientService.postOrganizacion.mockResolvedValue(ORGANIZACION_NUEVA);
-      organizacionMappingDinamico.registrar.mockResolvedValue(undefined);
 
       const organizacion = await service.altaOrganizacion(body, AUTH, 'corr-1');
 
       expect(organizacion).toBe(ORGANIZACION_NUEVA);
-      expect(zitadelAdminService.crearOrganizacion).toHaveBeenCalledWith(
+      expect(keycloakAdminService.crearOrganizacion).toHaveBeenCalledWith(
         'Nueva Organización',
         'corr-1',
       );
-      expect(
-        zitadelAdminService.otorgarProyectoAOrganizacion,
-      ).toHaveBeenCalledWith('zitadel-org-nueva', 'corr-1');
       expect(coreClientService.postOrganizacion).toHaveBeenCalledWith(
         {
-          id: 'zitadel-org-nueva',
+          id: 'nueva-organizacion',
           nombre: 'Nueva Organización',
           correlationId: 'corr-1',
           operadorId: 'op-1',
@@ -637,106 +543,37 @@ describe('AdministradorService', () => {
         },
         'corr-1',
       );
-      expect(organizacionMappingDinamico.registrar).toHaveBeenCalledWith(
-        'zitadel-org-nueva',
-        'zitadel-org-nueva',
-      );
-      // Orden: crear org -> otorgar ProjectGrant -> CORE -> mapeo dinamico (ver comentario en
-      // altaOrganizacion: una organizacion sin ProjectGrant es inutil, mejor fallar antes de
-      // registrarla en CORE que dejarla creada pero inoperable).
-      const ordenZitadel =
-        zitadelAdminService.crearOrganizacion.mock.invocationCallOrder[0];
-      const ordenProjectGrant =
-        zitadelAdminService.otorgarProyectoAOrganizacion.mock
-          .invocationCallOrder[0];
+      const ordenKeycloak =
+        keycloakAdminService.crearOrganizacion.mock.invocationCallOrder[0];
       const ordenCore =
         coreClientService.postOrganizacion.mock.invocationCallOrder[0];
-      const ordenRegistro =
-        organizacionMappingDinamico.registrar.mock.invocationCallOrder[0];
-      expect(ordenZitadel).toBeLessThan(ordenProjectGrant);
-      expect(ordenProjectGrant).toBeLessThan(ordenCore);
-      expect(ordenCore).toBeLessThan(ordenRegistro);
+      expect(ordenKeycloak).toBeLessThan(ordenCore);
     });
 
-    it('si Zitadel falla al crear la organizacion, nunca otorga el ProjectGrant ni llama a CORE', async () => {
-      const {
-        service,
-        coreClientService,
-        zitadelAdminService,
-        organizacionMappingDinamico,
-      } = buildService({});
-      zitadelAdminService.crearOrganizacion.mockRejectedValue(
-        new Error('Zitadel no disponible'),
+    it('si Keycloak falla al crear la organizacion, nunca llama a CORE', async () => {
+      const { service, coreClientService, keycloakAdminService } =
+        buildService();
+      keycloakAdminService.crearOrganizacion.mockRejectedValue(
+        new Error('Keycloak no disponible'),
       );
 
       await expect(
         service.altaOrganizacion(body, AUTH, 'corr-1'),
-      ).rejects.toThrow('Zitadel no disponible');
-      expect(
-        zitadelAdminService.otorgarProyectoAOrganizacion,
-      ).not.toHaveBeenCalled();
+      ).rejects.toThrow('Keycloak no disponible');
       expect(coreClientService.postOrganizacion).not.toHaveBeenCalled();
-      expect(organizacionMappingDinamico.registrar).not.toHaveBeenCalled();
-    });
-
-    // Gap 1 — hallazgo real: sin el ProjectGrant, la organizacion queda inutil (nadie puede
-    // recibir un rol ahi). Mejor fallar antes de registrarla en CORE.
-    it('si falla el ProjectGrant, nunca llama a CORE ni registra el mapeo', async () => {
-      const {
-        service,
-        coreClientService,
-        zitadelAdminService,
-        organizacionMappingDinamico,
-      } = buildService({});
-      zitadelAdminService.crearOrganizacion.mockResolvedValue({
-        id: 'zitadel-org-nueva',
-      });
-      zitadelAdminService.otorgarProyectoAOrganizacion.mockRejectedValue(
-        new Error('Zitadel no disponible'),
-      );
-
-      await expect(
-        service.altaOrganizacion(body, AUTH, 'corr-1'),
-      ).rejects.toThrow('Zitadel no disponible');
-      expect(coreClientService.postOrganizacion).not.toHaveBeenCalled();
-      expect(organizacionMappingDinamico.registrar).not.toHaveBeenCalled();
-    });
-
-    it('si CORE falla despues de crear en Zitadel, no registra el mapeo dinamico', async () => {
-      const {
-        service,
-        coreClientService,
-        zitadelAdminService,
-        organizacionMappingDinamico,
-      } = buildService({});
-      zitadelAdminService.crearOrganizacion.mockResolvedValue({
-        id: 'zitadel-org-nueva',
-      });
-      zitadelAdminService.otorgarProyectoAOrganizacion.mockResolvedValue(
-        undefined,
-      );
-      coreClientService.postOrganizacion.mockRejectedValue(
-        new Error('CORE no disponible'),
-      );
-
-      await expect(
-        service.altaOrganizacion(body, AUTH, 'corr-1'),
-      ).rejects.toThrow('CORE no disponible');
-      expect(organizacionMappingDinamico.registrar).not.toHaveBeenCalled();
     });
   });
 
   describe('editarOrganizacion', () => {
-    it('actualiza el nombre en Zitadel primero, despues en CORE (mismo orden que altaOrganizacion)', async () => {
-      const { service, coreClientService, zitadelAdminService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('actualiza el nombre en Keycloak primero, despues en CORE (mismo orden que altaOrganizacion)', async () => {
+      const { service, coreClientService, keycloakAdminService } =
+        buildService();
       const renombrada: OrganizacionResult = {
         id: 'duoc-uc',
         nombre: 'DUOC UC (renombrada)',
         estado: 'activo',
       };
-      zitadelAdminService.actualizarNombreOrganizacion.mockResolvedValue(
+      keycloakAdminService.actualizarNombreOrganizacion.mockResolvedValue(
         undefined,
       );
       coreClientService.patchOrganizacion.mockResolvedValue(renombrada);
@@ -750,12 +587,8 @@ describe('AdministradorService', () => {
 
       expect(organizacion).toBe(renombrada);
       expect(
-        zitadelAdminService.actualizarNombreOrganizacion,
-      ).toHaveBeenCalledWith(
-        '386029528616558597',
-        'DUOC UC (renombrada)',
-        'corr-1',
-      );
+        keycloakAdminService.actualizarNombreOrganizacion,
+      ).toHaveBeenCalledWith('duoc-uc', 'DUOC UC (renombrada)', 'corr-1');
       expect(coreClientService.patchOrganizacion).toHaveBeenCalledWith(
         'duoc-uc',
         {
@@ -766,20 +599,19 @@ describe('AdministradorService', () => {
         },
         'corr-1',
       );
-      const ordenZitadel =
-        zitadelAdminService.actualizarNombreOrganizacion.mock
+      const ordenKeycloak =
+        keycloakAdminService.actualizarNombreOrganizacion.mock
           .invocationCallOrder[0];
       const ordenCore =
         coreClientService.patchOrganizacion.mock.invocationCallOrder[0];
-      expect(ordenZitadel).toBeLessThan(ordenCore);
+      expect(ordenKeycloak).toBeLessThan(ordenCore);
     });
 
-    it('si Zitadel falla, nunca llama a CORE', async () => {
-      const { service, coreClientService, zitadelAdminService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
-      zitadelAdminService.actualizarNombreOrganizacion.mockRejectedValue(
-        new Error('Zitadel no disponible'),
+    it('si Keycloak falla, nunca llama a CORE', async () => {
+      const { service, coreClientService, keycloakAdminService } =
+        buildService();
+      keycloakAdminService.actualizarNombreOrganizacion.mockRejectedValue(
+        new Error('Keycloak no disponible'),
       );
 
       await expect(
@@ -789,16 +621,15 @@ describe('AdministradorService', () => {
           AUTH,
           'corr-1',
         ),
-      ).rejects.toThrow('Zitadel no disponible');
+      ).rejects.toThrow('Keycloak no disponible');
       expect(coreClientService.patchOrganizacion).not.toHaveBeenCalled();
     });
   });
 
   describe('actualizarEstadoOrganizacion', () => {
-    it('delega en CoreClientService.patchOrganizacionEstado sin tocar Zitadel — sin cascada (DOC-024 1)', async () => {
-      const { service, coreClientService, zitadelAdminService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('delega en CoreClientService.patchOrganizacionEstado sin tocar Keycloak — sin cascada (DOC-024 1)', async () => {
+      const { service, coreClientService, keycloakAdminService } =
+        buildService();
       const inactiva: OrganizacionResult = {
         id: 'duoc-uc',
         nombre: 'DUOC UC',
@@ -825,14 +656,14 @@ describe('AdministradorService', () => {
         'corr-1',
       );
       expect(
-        zitadelAdminService.actualizarNombreOrganizacion,
+        keycloakAdminService.actualizarNombreOrganizacion,
       ).not.toHaveBeenCalled();
     });
   });
 
   describe('getIndicadores', () => {
     it('delega en CoreClientService.getIndicadores sin traducir roles (lectura abierta)', async () => {
-      const { service, coreClientService } = buildService({});
+      const { service, coreClientService } = buildService();
       const indicadores: IndicadoresResult = {
         totalOrganizaciones: 1,
         totalSedes: 1,
@@ -853,10 +684,8 @@ describe('AdministradorService', () => {
   });
 
   describe('listarUsuariosOrganizacion', () => {
-    it('traduce organizacionId de CORE al id de Zitadel antes de llamar a ZitadelAdminService', async () => {
-      const { service, zitadelAdminService } = buildService({
-        'zitadel-org-1': 'duoc-uc',
-      });
+    it('delega en KeycloakAdminService.listarGrants con el organizacionId recibido (sin traduccion, ADR-004)', async () => {
+      const { service, keycloakAdminService } = buildService();
       const grants: GrantUsuario[] = [
         {
           userId: 'usuario-1',
@@ -865,41 +694,13 @@ describe('AdministradorService', () => {
           roles: ['administrador-patrimonial'],
         },
       ];
-      zitadelAdminService.listarGrants.mockResolvedValue(grants);
+      keycloakAdminService.listarGrants.mockResolvedValue(grants);
 
       await expect(
         service.listarUsuariosOrganizacion('duoc-uc', 'corr-1'),
       ).resolves.toEqual(grants);
-      expect(zitadelAdminService.listarGrants).toHaveBeenCalledWith(
-        'zitadel-org-1',
-        'corr-1',
-      );
-    });
-
-    it('lanza NotFoundException cuando organizacionId no tiene mapeo a un id de Zitadel (ni estatico ni dinamico)', async () => {
-      const { service, organizacionMappingDinamico } = buildService({});
-      organizacionMappingDinamico.resolverZitadelOrgId.mockResolvedValue(null);
-
-      await expect(
-        service.listarUsuariosOrganizacion('sin-mapeo', 'corr-1'),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('Gap 0: si el mapeo estatico no tiene la organizacion, prueba el mapeo dinamico (organizacion creada via altaOrganizacion)', async () => {
-      const { service, zitadelAdminService, organizacionMappingDinamico } =
-        buildService({});
-      organizacionMappingDinamico.resolverZitadelOrgId.mockResolvedValue(
-        'zitadel-org-nueva',
-      );
-      zitadelAdminService.listarGrants.mockResolvedValue([]);
-
-      await service.listarUsuariosOrganizacion('org-nueva', 'corr-1');
-
-      expect(
-        organizacionMappingDinamico.resolverZitadelOrgId,
-      ).toHaveBeenCalledWith('org-nueva');
-      expect(zitadelAdminService.listarGrants).toHaveBeenCalledWith(
-        'zitadel-org-nueva',
+      expect(keycloakAdminService.listarGrants).toHaveBeenCalledWith(
+        'duoc-uc',
         'corr-1',
       );
     });
@@ -911,59 +712,45 @@ describe('AdministradorService', () => {
       rol: 'administrador-patrimonial',
     };
 
-    it('busca el usuario por email en Zitadel y le crea un grant en la organizacion traducida', async () => {
-      const { service, zitadelAdminService } = buildService({
-        'zitadel-org-1': 'duoc-uc',
-      });
-      zitadelAdminService.buscarUsuarioPorEmail.mockResolvedValue({
+    it('busca el usuario por email en Keycloak y le crea un grant en la organizacion recibida', async () => {
+      const { service, keycloakAdminService } = buildService();
+      keycloakAdminService.buscarUsuarioPorEmail.mockResolvedValue({
         id: 'usuario-1',
         email: 'nuevo@duoc.cl',
         displayName: 'Nuevo Usuario',
       });
-      zitadelAdminService.crearGrant.mockResolvedValue(undefined);
+      keycloakAdminService.crearGrant.mockResolvedValue(undefined);
 
       await service.asignarUsuarioOrganizacion('duoc-uc', body, AUTH, 'corr-1');
 
-      expect(zitadelAdminService.buscarUsuarioPorEmail).toHaveBeenCalledWith(
+      expect(keycloakAdminService.buscarUsuarioPorEmail).toHaveBeenCalledWith(
         'nuevo@duoc.cl',
         'corr-1',
       );
-      expect(zitadelAdminService.crearGrant).toHaveBeenCalledWith(
-        'zitadel-org-1',
+      expect(keycloakAdminService.crearGrant).toHaveBeenCalledWith(
+        'duoc-uc',
         'usuario-1',
         'administrador-patrimonial',
         'corr-1',
       );
     });
 
-    it('lanza NotFoundException cuando no existe ningun usuario de Zitadel con ese email', async () => {
-      const { service, zitadelAdminService } = buildService({
-        'zitadel-org-1': 'duoc-uc',
-      });
-      zitadelAdminService.buscarUsuarioPorEmail.mockResolvedValue(null);
+    it('lanza NotFoundException cuando no existe ningun usuario de Keycloak con ese email', async () => {
+      const { service, keycloakAdminService } = buildService();
+      keycloakAdminService.buscarUsuarioPorEmail.mockResolvedValue(null);
 
       await expect(
         service.asignarUsuarioOrganizacion('duoc-uc', body, AUTH, 'corr-1'),
       ).rejects.toThrow(NotFoundException);
-      expect(zitadelAdminService.crearGrant).not.toHaveBeenCalled();
-    });
-
-    it('lanza NotFoundException cuando organizacionId no tiene mapeo a un id de Zitadel', async () => {
-      const { service, zitadelAdminService } = buildService({});
-
-      await expect(
-        service.asignarUsuarioOrganizacion('sin-mapeo', body, AUTH, 'corr-1'),
-      ).rejects.toThrow(NotFoundException);
-      expect(zitadelAdminService.buscarUsuarioPorEmail).not.toHaveBeenCalled();
+      expect(keycloakAdminService.crearGrant).not.toHaveBeenCalled();
     });
 
     // DOC-024 3 — esta operacion nunca toca CORE, asi que sin este wrapper quedaba fuera del
     // Motor de Auditoria por completo.
     it('envuelve la operacion en AuditoriaIdentidadService.ejecutar con el operador y la organizacion (DOC-024 3)', async () => {
-      const { service, zitadelAdminService, auditoriaIdentidad } = buildService(
-        { 'zitadel-org-1': 'duoc-uc' },
-      );
-      zitadelAdminService.buscarUsuarioPorEmail.mockResolvedValue({
+      const { service, keycloakAdminService, auditoriaIdentidad } =
+        buildService();
+      keycloakAdminService.buscarUsuarioPorEmail.mockResolvedValue({
         id: 'usuario-1',
         email: 'nuevo@duoc.cl',
         displayName: 'Nuevo Usuario',
@@ -982,11 +769,10 @@ describe('AdministradorService', () => {
   });
 
   describe('quitarRolUsuarioOrganizacion', () => {
-    it('resuelve el id de Zitadel y quita el rol via ZitadelAdminService', async () => {
-      const { service, zitadelAdminService, auditoriaIdentidad } = buildService(
-        { 'zitadel-org-1': 'duoc-uc' },
-      );
-      zitadelAdminService.quitarRolDeGrant.mockResolvedValue(undefined);
+    it('quita el rol via KeycloakAdminService (sin traduccion, ADR-004)', async () => {
+      const { service, keycloakAdminService, auditoriaIdentidad } =
+        buildService();
+      keycloakAdminService.quitarRolDeGrant.mockResolvedValue(undefined);
 
       await service.quitarRolUsuarioOrganizacion(
         'duoc-uc',
@@ -996,8 +782,8 @@ describe('AdministradorService', () => {
         'corr-1',
       );
 
-      expect(zitadelAdminService.quitarRolDeGrant).toHaveBeenCalledWith(
-        'zitadel-org-1',
+      expect(keycloakAdminService.quitarRolDeGrant).toHaveBeenCalledWith(
+        'duoc-uc',
         'usuario-1',
         'directivo',
         'corr-1',
@@ -1013,11 +799,12 @@ describe('AdministradorService', () => {
   });
 
   describe('desactivarUsuarioOrganizacion', () => {
-    it('resuelve el id de Zitadel y desactiva al usuario via ZitadelAdminService', async () => {
-      const { service, zitadelAdminService, auditoriaIdentidad } = buildService(
-        { 'zitadel-org-1': 'duoc-uc' },
-      );
-      zitadelAdminService.desactivarUsuario.mockResolvedValue(undefined);
+    // ADR-004 — deshabilitar una cuenta de Keycloak es global (no scoped a una organización, a
+    // diferencia del estado "initial" de Zitadel) — desactivarUsuario ya no recibe organizacionId.
+    it('desactiva al usuario via KeycloakAdminService', async () => {
+      const { service, keycloakAdminService, auditoriaIdentidad } =
+        buildService();
+      keycloakAdminService.desactivarUsuario.mockResolvedValue(undefined);
 
       await service.desactivarUsuarioOrganizacion(
         'duoc-uc',
@@ -1026,8 +813,7 @@ describe('AdministradorService', () => {
         'corr-1',
       );
 
-      expect(zitadelAdminService.desactivarUsuario).toHaveBeenCalledWith(
-        'zitadel-org-1',
+      expect(keycloakAdminService.desactivarUsuario).toHaveBeenCalledWith(
         'usuario-1',
         'corr-1',
       );
@@ -1043,7 +829,7 @@ describe('AdministradorService', () => {
 
   describe('getContratos', () => {
     it('delega en CoreClientService.getContratos sin traducir roles (lectura abierta)', async () => {
-      const { service, coreClientService } = buildService({});
+      const { service, coreClientService } = buildService();
       const pagina = { contratos: [CONTRATO], total: 1 };
       coreClientService.getContratos.mockResolvedValue(pagina);
 
@@ -1059,7 +845,7 @@ describe('AdministradorService', () => {
 
   describe('getAuditoria', () => {
     it('delega en CoreClientService.getAuditoria sin traducir roles (lectura abierta)', async () => {
-      const { service, coreClientService } = buildService({});
+      const { service, coreClientService } = buildService();
       const entradas: AuditoriaEntradaResult[] = [
         {
           id: 'audit-1',
@@ -1094,10 +880,8 @@ describe('AdministradorService', () => {
       modulosContratados: ['inventario-qr'],
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       coreClientService.postContrato.mockResolvedValue(CONTRATO);
 
       const contrato = await service.altaContrato(body, AUTH, 'corr-1');
@@ -1121,10 +905,8 @@ describe('AdministradorService', () => {
       estado: 'suspendido',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       const suspendido = { ...CONTRATO, estado: 'suspendido' as const };
       coreClientService.patchContrato.mockResolvedValue(suspendido);
 
@@ -1151,9 +933,7 @@ describe('AdministradorService', () => {
 
   describe('actualizarCondicionesContrato', () => {
     it('delega en CoreClientService.patchContratoCondiciones (DOC-024 2)', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+      const { service, coreClientService } = buildService();
       const actualizado = {
         ...CONTRATO,
         vigenciaHasta: '2027-01-01T00:00:00.000Z',
@@ -1197,10 +977,8 @@ describe('AdministradorService', () => {
       estado: 'activo',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       coreClientService.postSede.mockResolvedValue(SEDE);
 
       const sede = await service.altaSede(body, AUTH, 'corr-1');
@@ -1220,7 +998,7 @@ describe('AdministradorService', () => {
 
   describe('getSedes', () => {
     it('delega en CoreClientService.getSedes (DOC-024 1)', async () => {
-      const { service, coreClientService } = buildService({});
+      const { service, coreClientService } = buildService();
       const sedes: SedeResult[] = [
         {
           id: 'sede-1',
@@ -1241,9 +1019,7 @@ describe('AdministradorService', () => {
 
   describe('actualizarEstadoSede', () => {
     it('delega en CoreClientService.patchSedeEstado — sin cascada a Contrato (DOC-024 1)', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+      const { service, coreClientService } = buildService();
       const inactiva: SedeResult = {
         id: 'sede-1',
         organizacionId: 'duoc-uc',
@@ -1311,7 +1087,7 @@ describe('AdministradorService', () => {
 
   describe('getAreas', () => {
     it('delega en CoreClientService.getAreas sin traducir roles (lectura abierta)', async () => {
-      const { service, coreClientService } = buildService({});
+      const { service, coreClientService } = buildService();
       const pagina = { areas: [AREA], total: 1 };
       coreClientService.getAreas.mockResolvedValue(pagina);
 
@@ -1333,10 +1109,8 @@ describe('AdministradorService', () => {
       nombre: 'Biblioteca',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       coreClientService.postArea.mockResolvedValue(AREA);
 
       const area = await service.altaArea(body, AUTH, 'corr-1');
@@ -1360,10 +1134,8 @@ describe('AdministradorService', () => {
       nombre: 'Biblioteca Central',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       const actualizada = { ...AREA, nombre: 'Biblioteca Central' };
       coreClientService.patchArea.mockResolvedValue(actualizada);
 
@@ -1385,7 +1157,7 @@ describe('AdministradorService', () => {
 
   describe('getUbicaciones', () => {
     it('delega en CoreClientService.getUbicaciones sin traducir roles (lectura abierta)', async () => {
-      const { service, coreClientService } = buildService({});
+      const { service, coreClientService } = buildService();
       const pagina = { ubicaciones: [UBICACION], total: 1 };
       coreClientService.getUbicaciones.mockResolvedValue(pagina);
 
@@ -1406,10 +1178,8 @@ describe('AdministradorService', () => {
       sedeId: 'melipilla',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       coreClientService.postUbicacion.mockResolvedValue(UBICACION);
 
       const ubicacion = await service.altaUbicacion(body, AUTH, 'corr-1');
@@ -1433,10 +1203,8 @@ describe('AdministradorService', () => {
       edificio: 'Torre A',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       const actualizada = { ...UBICACION, edificio: 'Torre A' };
       coreClientService.patchUbicacion.mockResolvedValue(actualizada);
 
@@ -1463,7 +1231,7 @@ describe('AdministradorService', () => {
 
   describe('getResponsables', () => {
     it('delega en CoreClientService.getResponsables sin traducir roles (lectura abierta)', async () => {
-      const { service, coreClientService } = buildService({});
+      const { service, coreClientService } = buildService();
       const pagina = { responsables: [RESPONSABLE], total: 1 };
       coreClientService.getResponsables.mockResolvedValue(pagina);
 
@@ -1486,10 +1254,8 @@ describe('AdministradorService', () => {
       areaId: 'area-1',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       coreClientService.postResponsable.mockResolvedValue(RESPONSABLE);
 
       const responsable = await service.altaResponsable(body, AUTH, 'corr-1');
@@ -1513,10 +1279,8 @@ describe('AdministradorService', () => {
       estado: 'inactivo',
     };
 
-    it('traduce rolesPorOrganizacion de Zitadel a organizacionId de CORE antes de llamar a CoreClientService', async () => {
-      const { service, coreClientService } = buildService({
-        '386029528616558597': 'duoc-uc',
-      });
+    it('pasa rolesPorOrganizacion tal cual a CoreClientService', async () => {
+      const { service, coreClientService } = buildService();
       const inactivo = { ...RESPONSABLE, estado: 'inactivo' as const };
       coreClientService.patchResponsableEstado.mockResolvedValue(inactivo);
 

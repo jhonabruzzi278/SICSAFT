@@ -13,11 +13,11 @@ COPY . .
 # Variables VITE_* publicas (SPA sin secreto de cliente, PKCE) — Vite las incrusta en el bundle en
 # build time, asi que llegan como build args (ver devops/onprem/docker-compose.yml) y no como ENV
 # del contenedor final. Mismos 3 nombres que app-qr-sicsaft/.env.example.
-ARG VITE_ZITADEL_ISSUER
-ARG VITE_ZITADEL_CLIENT_ID
+ARG VITE_KEYCLOAK_ISSUER
+ARG VITE_KEYCLOAK_CLIENT_ID
 ARG VITE_CIS_URL
-ENV VITE_ZITADEL_ISSUER=${VITE_ZITADEL_ISSUER} \
-    VITE_ZITADEL_CLIENT_ID=${VITE_ZITADEL_CLIENT_ID} \
+ENV VITE_KEYCLOAK_ISSUER=${VITE_KEYCLOAK_ISSUER} \
+    VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID} \
     VITE_CIS_URL=${VITE_CIS_URL}
 RUN npm run build
 

@@ -1,7 +1,7 @@
 ; Instalador Windows de SICSAFT onprem (Inno Setup) — copia devops/onprem/ al equipo del cliente,
 ; pide 3 datos simples (nombre del cliente, id de organizacion, nivel) y corre
 ; instalar-cliente.ps1 al terminar, que hace todo lo demas (WSL2, Podman, .env, bootstrap de
-; Zitadel, build) — ver aidlc-docs/devops/design-artifacts/ARCHITECTURE.md "Fase 3".
+; Keycloak, build) — ver aidlc-docs/devops/design-artifacts/ARCHITECTURE.md "Fase 3".
 ;
 ; NOTA DE HONESTIDAD (corregida 2026-08-25): este .iss SI se compilo y se corrio al menos una vez
 ; (el bug de $PSScriptRoot vacio de mas abajo solo pudo encontrarse corriendo el .exe compilado,
@@ -32,9 +32,10 @@ ArchitecturesInstallIn64BitMode=x64
 
 [Files]
 ; Todo devops/onprem/ menos lo que nunca debe viajar en el instalador: .env real (no existe en
-; el repo, solo por si alguien lo generó a mano antes de empaquetar) y .bootstrap/ (secreto
-; runtime, se genera en el equipo del cliente, no en el instalador).
-Source: "..\*"; DestDir: "{app}"; Excludes: ".env,.bootstrap\*,installer\*"; Flags: recursesubdirs createallsubdirs
+; el repo, solo por si alguien lo generó a mano antes de empaquetar). A diferencia del flujo de
+; Zitadel que esto reemplazó (ADR-004 Fase 3), Keycloak no genera ningún directorio de secretos
+; en runtime -- no hay un ".bootstrap/" que excluir acá.
+Source: "..\*"; DestDir: "{app}"; Excludes: ".env,installer\*"; Flags: recursesubdirs createallsubdirs
 
 [Code]
 var
@@ -96,5 +97,5 @@ end;
 ; sabe "{app}" en este punto, no hace falta que el script lo adivine.
 Filename: "powershell.exe"; \
   Parameters: "-NoExit -ExecutionPolicy Bypass -File ""{app}\instalar-cliente.ps1"" -ClienteNombre ""{code:GetClienteNombre}"" -OrganizacionId ""{code:GetOrganizacionId}"" -Nivel {code:GetNivel} -InstallDir ""{app}"""; \
-  Description: "Ejecutar instalar-cliente.ps1 (WSL2, Podman, bootstrap de Zitadel, build)"; \
+  Description: "Ejecutar instalar-cliente.ps1 (WSL2, Podman, bootstrap de Keycloak, build)"; \
   Flags: postinstall runascurrentuser

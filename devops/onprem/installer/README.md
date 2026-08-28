@@ -30,9 +30,15 @@ de un cliente nuevo desde cero. Antes de usarlo con un cliente pagante:
      una corrida anterior — confirmar que sigue así tras cualquier cambio nuevo).
    - `instalar-cliente.ps1` corre de punta a punta también quedando WSL2/Podman por instalar desde
      cero (las corridas anteriores ya tenían ambos preinstalados).
-   - El PAT auto-provisionado por Zitadel (`ZITADEL_FIRSTINSTANCE_ORG_MACHINE_*`/`PATPATH`, ver
-     `docker-compose.yml`) aparece en `.bootstrap/admin-pat.txt` con el contenido esperado — ya
-     confirmado en corridas anteriores, repetir en la VM limpia como parte de esta verificación.
+   - El bootstrap de Keycloak (`bootstrap-keycloak.ps1` vía `Wait-KeycloakListo` +
+     `Invoke-BootstrapCliente`, ver `lib/Bootstrap-Keycloak.psm1`) deja el `.env` completo con
+     `KEYCLOAK_ADMIN_CLIENT_ID`/`SECRET` y los `*_VITE_KEYCLOAK_CLIENT_ID` — **pendiente**, ADR-004
+     Fase 3 (2026-08-26) reemplazó el PAT auto-provisionado de Zitadel (que sí estaba confirmado en
+     corridas anteriores contra ese flujo viejo) por este bootstrap nuevo. Cada llamada a la Admin
+     REST API se verificó real contra un Keycloak 26.0 de prueba fuera de este instalador (ver
+     Nota de honestidad en `lib/Bootstrap-Keycloak.psm1`), pero el flujo completo dentro del
+     `.exe` empaquetado todavía no se corrió — repetir esta verificación junto con el resto de la
+     lista.
 
 Si algo de lo anterior no coincide con lo esperado, corregir el script/`.iss` correspondiente —
 no hay que rehacer el diseño, es normal que automatizar un flujo así tenga ajustes menores al

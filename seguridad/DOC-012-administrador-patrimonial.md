@@ -1,5 +1,15 @@
 # DOC-012: Administrador Patrimonial — rol y camino de escritura oficial
 
+> **Nota de proveedor de identidad (2026-08-27, [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md))**:
+> este documento se escribió cuando el proveedor era Zitadel. Donde dice "rol de Proyecto en
+> Zitadel", "claim de Zitadel" o `urn:zitadel:iam:org:project:roles`, léase hoy **realm role de
+> Keycloak** resuelto por `KeycloakAuthGuard` vía `KeycloakAdminService` (grupos
+> `{organizacionId}::{rol}`) — los realm roles de Keycloak son una lista plana global por
+> usuario, la organización la resuelve el guard server-side, no el JWT del cliente (ver
+> [DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) BUG-02).
+> El **modelo** de rol/organización/permisos que este documento define no cambió; solo el
+> proveedor que lo implementa y de dónde sale el rol.
+
 > **Estado**: los 4 ítems de código de esta fase están implementados y verificados (unit + e2e
 > contra Postgres real) — ítem 1 (rol + claim + autorización), ítem 3 (Motor Patrimonial: alta/
 > baja/reincorporación/cambio de responsable), ítem 4 (importación masiva idempotente de base

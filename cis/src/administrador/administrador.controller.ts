@@ -15,16 +15,16 @@ import {
 } from '@nestjs/common';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import {
-  ZitadelAuthGuard,
+  KeycloakAuthGuard,
   requireAuthContext,
   type AuthenticatedRequest,
-} from '../common/auth/zitadel-auth.guard';
+} from '../common/auth/keycloak-auth.guard';
 import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 import { AdministradorService } from './administrador.service';
 import { AdministradorSistemaGuard } from './administrador-sistema.guard';
 import { AdministradorSistemaEnCualquierOrganizacionGuard } from './administrador-sistema-cualquier-organizacion.guard';
-import type { GrantUsuario } from '../zitadel-admin/zitadel-admin.types';
+import type { GrantUsuario } from '../keycloak-admin/keycloak-admin.types';
 import {
   actualizarAreaSchema,
   actualizarCondicionesContratoSchema,
@@ -109,12 +109,12 @@ import type {
 } from '../core-client/core-client.types';
 
 // DOC-012 5 (Fase 5) — endpoints de escritura oficial para WEB (Administrador Patrimonial).
-// Mismos guards que QrConnectorController (ZitadelAuthGuard autentica al operador real, luego
+// Mismos guards que QrConnectorController (KeycloakAuthGuard autentica al operador real, luego
 // RateLimitGuard por operador) — WEB y APP QR son clientes intercambiables del mismo mecanismo
 // de auth (ARQUITECTURA-WAF.md 8), la autorizacion de ROL la re-verifica CORE (WAF 3, cero
 // confianza entre niveles) — este controller no decide "puede escribir", solo transporta.
 @Controller('admin')
-@UseGuards(ZitadelAuthGuard, RateLimitGuard)
+@UseGuards(KeycloakAuthGuard, RateLimitGuard)
 export class AdministradorController {
   constructor(private readonly administradorService: AdministradorService) {}
 
@@ -399,9 +399,8 @@ export class AdministradorController {
     );
   }
 
-  // DOC-024 — dar de baja a un usuario en Zitadel (nunca borrar salvo el caso puntual ya
-  // documentado en ZitadelAdminService.desactivarUsuario). Mismo guard que el resto de este
-  // sub-recurso.
+  // DOC-024 — dar de baja a un usuario en el proveedor de identidad (nunca borrar, ver
+  // KeycloakAdminService.desactivarUsuario). Mismo guard que el resto de este sub-recurso.
   @Post('organizaciones/:orgId/usuarios/:userId/desactivar')
   @UseGuards(AdministradorSistemaGuard)
   @HttpCode(HttpStatus.NO_CONTENT)

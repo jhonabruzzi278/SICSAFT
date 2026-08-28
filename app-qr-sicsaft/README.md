@@ -6,7 +6,8 @@ clasifica cada escaneo contra el catálogo esperado, registra incidencias y enco
 SICSAFT CORE (sin conexión inclusive). No escribe directo a la Base Patrimonial Central — todo pasa
 por el Conector QR, que ya habla HTTP real contra CIS→CORE (TASK-007, verificado de punta a punta
 el 2026-08-13, ver `HANDOFF-APP-QR-SICSAFT.md` sección 7), con autenticación real de operador vía
-Zitadel (OIDC + PKCE, ver `src/lib/oidc/`). Conserva además el generador de etiquetas QR / catálogo
+Keycloak (OIDC + PKCE, [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md), ver
+`src/lib/oidc/`). Conserva además el generador de etiquetas QR / catálogo
 de productos como herramienta aparte, fuera del flujo oficial.
 
 1. **Inventario** (`/`): selector de modo 1/2/3 (informativo, Modo 3/RFID deshabilitado hasta
@@ -95,7 +96,7 @@ src/
   components/ui/            Primitivos shadcn/ui
   pages/                     ScanPage (flujo de inventario), HistoryPage, CatalogPage
   lib/                       db.ts (IndexedDB), qr-connector.ts (Conector QR real, contrato
-                             DOC-002/DOC-006 contra CIS), oidc/ (login real Zitadel OIDC+PKCE),
+                             DOC-002/DOC-006 contra CIS), oidc/ (login real Keycloak OIDC+PKCE),
                              sync-queue.ts (cola offline con backoff),
                              audit-log.ts + device-id.ts (auditoría/trazabilidad),
                              scan-resolve.ts (clasificación, función pura), operator.ts,

@@ -1,9 +1,8 @@
 import { ExecutionContext, HttpException } from '@nestjs/common';
-import type { Redis } from 'ioredis';
 import { RateLimitGuard } from './rate-limit.guard';
-import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
+import type { KeycloakAuthContext } from '../common/auth/keycloak-auth.guard';
 
-function buildContext(auth?: ZitadelAuthContext): ExecutionContext {
+function buildContext(auth?: KeycloakAuthContext): ExecutionContext {
   const request = { auth };
   return {
     switchToHttp: () => ({
@@ -12,60 +11,58 @@ function buildContext(auth?: ZitadelAuthContext): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-describe('RateLimitGuard', () => {
-  const auth: ZitadelAuthContext = {
-    operadorId: 'op-1',
+function buildAuth(operadorId: string): KeycloakAuthContext {
+  return {
+    operadorId,
     accessToken: 'token',
     expiresAt: '2026-08-12T10:15:00.000Z',
     rolesPorOrganizacion: {},
   };
-  let redis: jest.Mocked<Pick<Redis, 'eval' | 'pttl'>>;
+}
+
+describe('RateLimitGuard', () => {
   let guard: RateLimitGuard;
 
   beforeEach(() => {
-    redis = { eval: jest.fn(), pttl: jest.fn() };
-    guard = new RateLimitGuard(redis as unknown as Redis, {
-      maxRequests: 3,
-      windowMs: 10_000,
-    });
+    guard = new RateLimitGuard({ maxRequests: 3, windowMs: 10_000 });
   });
 
-  it('permite la request cuando no se supera el limite', async () => {
-    redis.eval.mockResolvedValue(1);
-
-    await expect(guard.canActivate(buildContext(auth))).resolves.toBe(true);
+  it('permite la request cuando no se supera el limite', () => {
+    expect(guard.canActivate(buildContext(buildAuth('op-1')))).toBe(true);
   });
 
-  it('usa una clave distinta por operador (aisla el limite entre operadores)', async () => {
-    redis.eval.mockResolvedValue(1);
-
-    await guard.canActivate(buildContext(auth));
-
-    expect(redis.eval).toHaveBeenCalledWith(
-      expect.any(String),
-      1,
-      'rate-limit:operador:op-1',
-      10_000,
+  it('aisla el limite entre operadores (clave distinta por operador)', () => {
+    for (let i = 0; i < 3; i += 1) {
+      guard.canActivate(buildContext(buildAuth('op-1')));
+    }
+    expect(() => guard.canActivate(buildContext(buildAuth('op-1')))).toThrow(
+      HttpException,
     );
+
+    // op-2 nunca consumió su propia ventana — no se ve afectado por op-1.
+    expect(guard.canActivate(buildContext(buildAuth('op-2')))).toBe(true);
   });
 
-  it('lanza 429 cuando se supera el limite', async () => {
-    redis.eval.mockResolvedValue(4);
-    redis.pttl.mockResolvedValue(5_000);
+  it('lanza 429 cuando se supera el limite', () => {
+    for (let i = 0; i < 3; i += 1) {
+      guard.canActivate(buildContext(buildAuth('op-1')));
+    }
 
-    const promise = guard.canActivate(buildContext(auth));
-
-    await expect(promise).rejects.toThrow(HttpException);
-    await expect(promise).rejects.toMatchObject({
-      status: 429,
-      response: { retryAfterMs: 5_000 },
-    });
+    try {
+      guard.canActivate(buildContext(buildAuth('op-1')));
+      throw new Error('no debería llegar acá');
+    } catch (error) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(429);
+      expect((error as HttpException).getResponse()).toMatchObject({
+        retryAfterMs: expect.any(Number) as number,
+      });
+    }
   });
 
-  it('lanza 401 si no hay contexto de auth (ZitadelAuthGuard no corrio antes)', async () => {
-    await expect(guard.canActivate(buildContext(undefined))).rejects.toThrow(
+  it('lanza 401 si no hay contexto de auth (KeycloakAuthGuard no corrio antes)', () => {
+    expect(() => guard.canActivate(buildContext(undefined))).toThrow(
       'No hay contexto de autenticación',
     );
-    expect(redis.eval).not.toHaveBeenCalled();
   });
 });

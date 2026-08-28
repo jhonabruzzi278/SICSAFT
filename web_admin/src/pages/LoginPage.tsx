@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { oidcClient } from '@/lib/oidc/oidc-client';
 import { Button, Card } from '@/components/ui';
 
-// RF-01 — login vía Zitadel (authorization code + PKCE), mismo mecanismo probado end-to-end en
+// RF-01 — login vía Keycloak (authorization code + PKCE, ADR-004), mismo mecanismo probado end-to-end en
 // Fase 0/3. Sin credenciales propias del portal.
 export function LoginPage() {
   if (oidcClient.isAuthenticated()) {

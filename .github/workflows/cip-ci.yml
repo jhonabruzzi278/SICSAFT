@@ -33,29 +33,22 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-      # Sin password — mismo criterio que core-ci.yml (services: de GitHub Actions no soporta
-      # pasar --requirepass sin una imagen custom).
-      redis:
-        image: redis:7-alpine
-        ports:
-          - "6379:6379"
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     env:
       CIP_DB_HOST: localhost
       CIP_DB_PORT: "5432"
       CIP_DB_NAME: cip
       CIP_DB_USER: cip
       CIP_DB_PASSWORD: cip
-      # CIP_SERVICE_TOKEN/CORE_SERVICE_TOKEN/REDIS_URL: sin fijar acá a propósito — mismo criterio
-      # que core-ci.yml con CORE_SERVICE_TOKEN. test/jest-e2e.setup.ts ya define un default
+      # CIP_SERVICE_TOKEN/CORE_SERVICE_TOKEN: sin fijar acá a propósito — mismo criterio que
+      # core-ci.yml con CORE_SERVICE_TOKEN. test/jest-e2e.setup.ts ya define un default
       # ('secreto-compartido-e2e') que test/support/e2e-app.ts usa como SERVICE_TOKEN — fijarlos
       # acá los desincroniza (hallazgo real: rompió los e2e con 401 en la primera corrida de este
       # workflow).
       CORE_URL: http://localhost:3001
+      # ADR-005 — mismo criterio que core-ci.yml: este job nunca corre junto con core-ci.yml, así
+      # que reusa el mismo Postgres efímero y credenciales de arriba para pg-boss en vez de una
+      # base `eventos_outbox` separada.
+      EVENTOS_OUTBOX_DATABASE_URL: postgres://cip:cip@localhost:5432/cip
     steps:
       - uses: actions/checkout@v4
 

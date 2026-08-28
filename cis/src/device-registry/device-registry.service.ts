@@ -1,13 +1,16 @@
-import { Inject, Injectable } from '@nestjs/common';
-import type { Redis } from 'ioredis';
-import { REDIS_CLIENT } from '../redis/redis.constants';
+import { Injectable } from '@nestjs/common';
 
 const DEVICE_KEY_PREFIX = 'device:operador:';
+
+interface RegistroDispositivo {
+  deviceId: string;
+  timer: NodeJS.Timeout;
+}
 
 // DOC-002 1: "un solo dispositivo por operador". El contrato de APP QR solo manda `deviceId` en
 // POST /auth/session (no en catalogo/inventarios/estado) — ahí es el único punto donde CIS puede
 // registrar o comparar el dispositivo activo; las otras 3 rutas siguen dependiendo solo del
-// access token de Zitadel, que no lleva `deviceId`.
+// access token de Keycloak, que no lleva `deviceId`.
 //
 // Decisión de conflicto (confirmada explícitamente, no inferida de DOC-002 — el documento solo
 // declara la restricción, no la resolución): el dispositivo nuevo **reemplaza** al viejo en vez
@@ -16,28 +19,28 @@ const DEVICE_KEY_PREFIX = 'device:operador:';
 // registro expira solo (TTL = vigencia del token, ver QrConnectorService.authSession) — no hace
 // falta un logout explícito.
 //
-// Mismo criterio de resiliencia que RedisRateLimiter (WAF 4, aislamiento de fallos): esto es una
-// restricción de negocio complementaria, no un control de seguridad — Zitadel ya es quien
-// autentica. Si Redis falla, no vale la pena bloquear auth/session por perder el tracking de
-// dispositivo.
+// ADR-005 — reemplaza al backend Redis por un Map en memoria del propio proceso (mismo criterio
+// que InMemoryRateLimiter: cis/ no tiene Postgres, corre como instancia única). Es una restricción
+// de negocio complementaria, no un control de seguridad (Keycloak ya autentica) — perder este
+// estado en un reinicio del proceso ya era aceptable con Redis, que tampoco persistía en disco por
+// defecto acá.
 @Injectable()
 export class DeviceRegistryService {
-  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
+  private readonly registros = new Map<string, RegistroDispositivo>();
 
-  async registerDevice(
-    operadorId: string,
-    deviceId: string,
-    ttlMs: number,
-  ): Promise<void> {
-    try {
-      await this.redis.set(
-        `${DEVICE_KEY_PREFIX}${operadorId}`,
-        deviceId,
-        'PX',
-        ttlMs,
-      );
-    } catch {
-      // Falla abierto — ver comentario de clase.
+  registerDevice(operadorId: string, deviceId: string, ttlMs: number): void {
+    const clave = `${DEVICE_KEY_PREFIX}${operadorId}`;
+
+    // Un dispositivo nuevo reemplaza al viejo (ver comentario de clase) — hay que cancelar el
+    // timer anterior explícitamente, si no, cuando venza terminaría borrando el registro nuevo en
+    // vez del que reemplazó.
+    const anterior = this.registros.get(clave);
+    if (anterior) {
+      clearTimeout(anterior.timer);
     }
+
+    const timer = setTimeout(() => this.registros.delete(clave), ttlMs);
+    timer.unref();
+    this.registros.set(clave, { deviceId, timer });
   }
 }

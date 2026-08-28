@@ -40,7 +40,7 @@ Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
 - **`base-patrimonial/`** — modelo de dominio de la Base Patrimonial Central, documentado y
   versionado en `core/migrations/` (Postgres real).
 - **`devops/`** — tres stacks Docker Compose independientes, uno por entorno: `local/` (desarrollo
-  — Traefik + Postgres + Redis + Zitadel + los 6 sistemas desplegables `cis`/`core`/`cip`/`ccp`/
+  — Traefik + Postgres + Zitadel + los 6 sistemas desplegables `cis`/`core`/`cip`/`ccp`/
   `web-admin`/`core-frontend` + observabilidad self-hosted Prometheus/Loki-Promtail/Grafana,
   equivalente a CloudWatch/CloudTrail administrado por el operador del VPS — `app-qr-sicsaft/` es
   un PWA cliente sin contenedor propio en ningún stack), `prod/` (mismo VPS propio, orquestado por
@@ -72,8 +72,8 @@ npm run build                # nest build
 ```
 `core/` y `cip/` además tienen `npm run migrate:up` / `migrate:down` (`node-pg-migrate` sobre
 `core/migrations/` y `cip/migrations/` respectivamente — bases Postgres separadas, RNF-01/RNF-05).
-`cip/` además corre un worker BullMQ (`AgregacionModule`) contra la cola `cip-eventos` que puebla
-consumiendo eventos reales de `core/`, no expone frontend propio — ver `cip/README.md`.
+`cip/` además corre un worker `pg-boss` (`AgregacionModule`, ADR-005) contra la cola `cip-eventos`
+que puebla consumiendo eventos reales de `core/`, no expone frontend propio — ver `cip/README.md`.
 
 **Frontends, todas (`ccp/`, `web_admin/`, `app-qr-sicsaft/`, `core/frontend/`):**
 ```bash
@@ -85,6 +85,7 @@ npm run build                 # tsc -b && vite build
 ```bash
 npm run lint:ci               # eslint --max-warnings=0 (mismo criterio que cis/core)
 npm test                      # vitest run — hoy solo cubre src/lib/oidc/ (PKCE/tokens/refresh, DOC-023)
+npx vitest run src/lib/oidc/pkce.test.ts   # un solo archivo de test
 npm run test:cov              # vitest run --coverage
 ```
 
@@ -149,7 +150,7 @@ primero que la entidad no sea un registro oficial cubierto por este invariante.
 - **Identidad visual / paleta de colores**: [BRAND.md](BRAND.md), origen canónico en
   `landing/src/style.css` — no reinventar colores por sistema en trabajo de frontend (`ccp/`,
   `web_admin/`, `core/frontend/`, `app-qr-sicsaft/`, `cip/`).
-- **Decisiones de stack ya tomadas**: [`adr/`](adr) (NestJS, Postgres, Redis, Zitadel
+- **Decisiones de stack ya tomadas**: [`adr/`](adr) (NestJS, Postgres, `pg-boss`, Zitadel
   self-hosted). No reabrir estas decisiones sin un ADR nuevo que las reemplace explícitamente.
 - **Qué puede hacer cada rol (RBAC), endpoint por endpoint**:
   [`ccp/DOC-023`](aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md) — matriz
@@ -252,10 +253,14 @@ aidlc-docs/
 
 ## CI / calidad
 
-- Cada sistema (`cis/`, `core/`, `cip/`) tiene su propio workflow en `.github/workflows/` — corre
-  lint, unit tests con cobertura, e2e contra Postgres real (Testcontainers-style service en GitHub
-  Actions, no mocks), build y `docker build`. Ver `core-ci.yml`/`cis-ci.yml` como plantilla al
-  agregar un sistema nuevo.
+- Los seis sistemas desplegables (`cis/`, `core/`, `cip/`, `ccp/`, `web_admin/`, `core/frontend/`)
+  tienen su propio workflow en `.github/workflows/` con `paths` filtrado a su carpeta. `cis/`,
+  `core/` y `cip/` corren lint, unit tests con cobertura, e2e contra Postgres real
+  (Testcontainers-style service en GitHub Actions, no mocks), build y `docker build`. `ccp/`,
+  `web_admin/` y `core/frontend/` corren lint, `vitest run --coverage`, build y `docker build` (con
+  placeholders `VITE_*`, nunca hosts reales); solo `ccp/` corre además Playwright e2e en CI. Ver
+  `core-ci.yml`/`cis-ci.yml` como plantilla para un sistema backend nuevo, o `ccp-ci.yml` para uno
+  frontend.
 - Quality Gate de SonarCloud es obligatorio — no usar `// NOSONAR` para silenciar un hallazgo
   real; solo para falsos positivos confirmados, y siempre con un comentario explicando por qué
   (ver `.sonarcloud.properties` y el historial de `fix: corregir NOSONAR mal ubicado...`).

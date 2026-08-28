@@ -37,7 +37,7 @@ const SERVICE_TOKEN_HEADER = 'x-internal-service-token';
 // Mismos parámetros conservadores que CoreClientService (WAF 4) — CIS→CIP es, igual que CIS→CORE,
 // una llamada síncrona dentro del camino de respuesta a un operador de WEB (DOC-019 3), a
 // diferencia de CIP→CORE (DOC-018 3, deliberadamente sin retry/breaker porque ahí el llamador es
-// un worker BullMQ que ya reintenta el job completo).
+// un worker de pg-boss que ya reintenta el job completo, ADR-005).
 const CIP_RETRY_MAX_ATTEMPTS = 3;
 const CIP_RETRY_BASE_DELAY_MS = 200;
 

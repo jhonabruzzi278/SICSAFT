@@ -6,7 +6,8 @@ terceros. Cada integración pasa por CIS igual que cualquier otra fuente/destino
 
 ## Estado
 🔲 No iniciado, salvo `CON-CONTABILIDAD`: 🟡 diseñado (`DOC-016`), sin código todavía. El resto
-de conectores previstos sigue en fase tardía del plan maestro (después de CORE + CIS + WEB + CIP).
+de conectores previstos sigue en fase tardía del plan maestro (después de CORE + CIS + los
+portales WEB (`ccp/`/`web_admin/`/`core/frontend/`, DOC-022) + CIP).
 
 **Corrección de clasificación (2026-08-28, ver ROADMAP.md Fase 7)**: esta carpeta decía "todo el
 sistema es fase tardía" citando Tomo III 1.2 (Etapa 5). Eso es correcto para CON-ERP/RRHH/EMAIL/

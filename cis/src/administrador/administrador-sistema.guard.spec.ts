@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/unbound-method -- jest.fn() mocks no usan `this`. */
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { AdministradorSistemaGuard } from './administrador-sistema.guard';
-import { OrganizacionMappingDinamicoService } from './organizacion-mapping-dinamico.service';
-import type { AuthenticatedRequest } from '../common/auth/zitadel-auth.guard';
+import type { AuthenticatedRequest } from '../common/auth/keycloak-auth.guard';
 
 function buildContext(
   params: Record<string, string>,
@@ -16,21 +14,13 @@ function buildContext(
   } as unknown as ExecutionContext;
 }
 
-function buildOrganizacionMappingDinamico() {
-  return {
-    registrar: jest.fn(),
-    resolverOrganizacionId: jest.fn(),
-    resolverZitadelOrgId: jest.fn(),
-  } as unknown as jest.Mocked<OrganizacionMappingDinamicoService>;
-}
-
 describe('AdministradorSistemaGuard', () => {
-  it('permite el acceso cuando el rol administrador-sistema esta firmado para la organizacion del :orgId (mapeo estatico)', async () => {
-    const organizacionMappingDinamico = buildOrganizacionMappingDinamico();
-    const guard = new AdministradorSistemaGuard(
-      { 'zitadel-org-1': 'duoc-uc' },
-      organizacionMappingDinamico,
-    );
+  const guard = new AdministradorSistemaGuard();
+
+  // ADR-004 — ya no hay traduccion de ids: rolesPorOrganizacion viene keyed por el mismo
+  // organizacionId que usa CORE (el alias de la Organization en Keycloak), asi que el guard
+  // compara directo contra `:orgId` sin resolver nada.
+  it('permite el acceso cuando el rol administrador-sistema esta firmado para la organizacion del :orgId', () => {
     const context = buildContext(
       { orgId: 'duoc-uc' },
       {
@@ -38,52 +28,15 @@ describe('AdministradorSistemaGuard', () => {
         accessToken: 'token-1',
         expiresAt: '2026-01-01T00:00:00.000Z',
         rolesPorOrganizacion: {
-          'zitadel-org-1': ['administrador-sistema'],
+          'duoc-uc': ['administrador-sistema'],
         },
       },
     );
 
-    await expect(guard.canActivate(context)).resolves.toBe(true);
-    expect(
-      organizacionMappingDinamico.resolverOrganizacionId,
-    ).not.toHaveBeenCalled();
+    expect(guard.canActivate(context)).toBe(true);
   });
 
-  // Gap 0 (hallazgo real) — este guard tenia su propia traduccion, separada de
-  // AdministradorService.traducirAOrganizacionesCore, que nunca consultaba el mapeo dinamico.
-  it('Gap 0: permite el acceso cuando el mapeo estatico no tiene la organizacion pero el mapeo dinamico si', async () => {
-    const organizacionMappingDinamico = buildOrganizacionMappingDinamico();
-    organizacionMappingDinamico.resolverOrganizacionId.mockResolvedValue(
-      'org-nueva',
-    );
-    const guard = new AdministradorSistemaGuard(
-      {},
-      organizacionMappingDinamico,
-    );
-    const context = buildContext(
-      { orgId: 'org-nueva' },
-      {
-        operadorId: 'op-1',
-        accessToken: 'token-1',
-        expiresAt: '2026-01-01T00:00:00.000Z',
-        rolesPorOrganizacion: {
-          'zitadel-org-nueva': ['administrador-sistema'],
-        },
-      },
-    );
-
-    await expect(guard.canActivate(context)).resolves.toBe(true);
-    expect(
-      organizacionMappingDinamico.resolverOrganizacionId,
-    ).toHaveBeenCalledWith('zitadel-org-nueva');
-  });
-
-  it('rechaza con 403 cuando el operador no tiene el rol administrador-sistema en esa organizacion', async () => {
-    const organizacionMappingDinamico = buildOrganizacionMappingDinamico();
-    const guard = new AdministradorSistemaGuard(
-      { 'zitadel-org-1': 'duoc-uc' },
-      organizacionMappingDinamico,
-    );
+  it('rechaza con 403 cuando el operador no tiene el rol administrador-sistema en esa organizacion', () => {
     const context = buildContext(
       { orgId: 'duoc-uc' },
       {
@@ -91,50 +44,33 @@ describe('AdministradorSistemaGuard', () => {
         accessToken: 'token-1',
         expiresAt: '2026-01-01T00:00:00.000Z',
         rolesPorOrganizacion: {
-          'zitadel-org-1': ['administrador-patrimonial'],
+          'duoc-uc': ['administrador-patrimonial'],
         },
       },
     );
 
-    await expect(guard.canActivate(context)).rejects.toThrow(
-      ForbiddenException,
-    );
+    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
   });
 
-  it('rechaza con 403 cuando el :orgId no esta mapeado a ninguna organizacion de Zitadel (ni estatico ni dinamico)', async () => {
-    const organizacionMappingDinamico = buildOrganizacionMappingDinamico();
-    organizacionMappingDinamico.resolverOrganizacionId.mockResolvedValue(null);
-    const guard = new AdministradorSistemaGuard(
-      { 'zitadel-org-1': 'duoc-uc' },
-      organizacionMappingDinamico,
-    );
+  it('rechaza con 403 cuando el operador tiene el rol pero en otra organizacion', () => {
     const context = buildContext(
-      { orgId: 'organizacion-sin-mapeo' },
+      { orgId: 'organizacion-sin-rol' },
       {
         operadorId: 'op-1',
         accessToken: 'token-1',
         expiresAt: '2026-01-01T00:00:00.000Z',
         rolesPorOrganizacion: {
-          'zitadel-org-1': ['administrador-sistema'],
+          'duoc-uc': ['administrador-sistema'],
         },
       },
     );
 
-    await expect(guard.canActivate(context)).rejects.toThrow(
-      ForbiddenException,
-    );
+    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
   });
 
-  it('rechaza con 403 cuando la request no trae contexto de auth (sin rolesPorOrganizacion)', async () => {
-    const organizacionMappingDinamico = buildOrganizacionMappingDinamico();
-    const guard = new AdministradorSistemaGuard(
-      { 'zitadel-org-1': 'duoc-uc' },
-      organizacionMappingDinamico,
-    );
+  it('rechaza con 403 cuando la request no trae contexto de auth (sin rolesPorOrganizacion)', () => {
     const context = buildContext({ orgId: 'duoc-uc' }, undefined);
 
-    await expect(guard.canActivate(context)).rejects.toThrow(
-      ForbiddenException,
-    );
+    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
   });
 });

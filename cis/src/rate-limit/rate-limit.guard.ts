@@ -6,38 +6,37 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import type { Redis } from 'ioredis';
 import {
   requireAuthContext,
   type AuthenticatedRequest,
-} from '../common/auth/zitadel-auth.guard';
-import { REDIS_CLIENT } from '../redis/redis.constants';
+} from '../common/auth/keycloak-auth.guard';
+import { InMemoryRateLimiter } from './in-memory-rate-limiter';
 import { RATE_LIMIT_OPTIONS } from './rate-limit.constants';
-import { RedisRateLimiter } from './redis-rate-limiter';
 import type { RateLimitOptions } from './rate-limit.types';
 
 const RATE_LIMIT_KEY_PREFIX = 'rate-limit:operador:';
 
-// WAF 4 "rate limiting hacia el CORE", por operador — requiere que ZitadelAuthGuard ya haya
-// corrido y seteado `request.auth` (orden en @UseGuards: ZitadelAuthGuard, RateLimitGuard). Por
+// WAF 4 "rate limiting hacia el CORE", por operador — requiere que KeycloakAuthGuard ya haya
+// corrido y seteado `request.auth` (orden en @UseGuards: KeycloakAuthGuard, RateLimitGuard). Por
 // dispositivo sigue sin cubrir aca: `deviceId` solo llega en el body de auth/session, no en las
 // otras 3 rutas (ver src/device-registry/ para el enforcement de "un solo dispositivo").
+//
+// ADR-005 — `InMemoryRateLimiter` se instancia una sola vez acá (el guard es un provider
+// singleton, mismo criterio que ya usaba `new RedisRateLimiter(...)` en el constructor) — el
+// estado vive en el propio proceso, no en un backend externo.
 @Injectable()
 export class RateLimitGuard implements CanActivate {
-  private readonly limiter: RedisRateLimiter;
+  private readonly limiter: InMemoryRateLimiter;
 
-  constructor(
-    @Inject(REDIS_CLIENT) redis: Redis,
-    @Inject(RATE_LIMIT_OPTIONS) options: RateLimitOptions,
-  ) {
-    this.limiter = new RedisRateLimiter(redis, options);
+  constructor(@Inject(RATE_LIMIT_OPTIONS) options: RateLimitOptions) {
+    this.limiter = new InMemoryRateLimiter(options);
   }
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const auth = requireAuthContext(request);
 
-    const result = await this.limiter.consume(
+    const result = this.limiter.consume(
       `${RATE_LIMIT_KEY_PREFIX}${auth.operadorId}`,
     );
     if (!result.allowed) {

@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import type { AuthenticatedRequest } from '../common/auth/zitadel-auth.guard';
+import type { AuthenticatedRequest } from '../common/auth/keycloak-auth.guard';
 
 const ADMINISTRADOR_SISTEMA_ROLE = 'administrador-sistema';
 

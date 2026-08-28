@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { oidcClient } from '@/lib/oidc/oidc-client';
 
-// Destino del redirect_uri configurado en la app OIDC de Zitadel (TASK-007, ver
+// Destino del redirect_uri configurado en el client OIDC de Keycloak (TASK-007, ver
 // devops/local/README.md "Cliente OIDC real"). Canjea el `code` por tokens y vuelve a la app —
-// nunca se navega acá directo, solo Zitadel redirige.
+// nunca se navega acá directo, solo Keycloak redirige.
 export function AuthCallbackPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ export function AuthCallbackPage() {
           <Loader2Icon className="size-5 animate-spin text-brand" />
           Iniciando sesión…
         </CardTitle>
-        <CardDescription>Un momento, estamos validando tu login con Zitadel.</CardDescription>
+        <CardDescription>Un momento, estamos validando tu login con Keycloak.</CardDescription>
       </CardHeader>
     </Card>
   );

@@ -2,14 +2,18 @@
 .SYNOPSIS
     Orquestador end-to-end de una instalacion onprem de SICSAFT para un cliente nuevo — cierra
     los pasos manuales que devops/onprem/README.md documentaba a mano (WSL2, Podman, .env,
-    bootstrap de Zitadel, build) en un solo comando.
+    bootstrap de Keycloak, build) en un solo comando.
 
 .DESCRIPTION
-    NOTA DE HONESTIDAD: este script no fue corrido de punta a punta contra una maquina Windows
-    real en esta sesion (sin Podman/WSL2 disponibles en el entorno donde se escribio) — es codigo
-    listo para correr, no algo ya verificado. Ver devops/onprem/installer/README.md para el
-    checklist de verificacion pendiente antes de usarlo con un cliente pagante. Si un paso falla,
-    el script se detiene con un mensaje claro en vez de seguir en un estado a medias.
+    NOTA DE HONESTIDAD: la parte de Keycloak (Wait-KeycloakListo, bootstrap-keycloak.ps1) fue
+    verificada real llamada por llamada contra un Keycloak 26.0 de prueba (2026-08-26, ver
+    lib/Bootstrap-Keycloak.psm1) — la parte de WSL2/Podman/winget de mas abajo hereda la
+    verificacion real ya hecha para el flujo de Zitadel que reemplaza (ver historial de PRs
+    `fix(devops): ...` de devops/onprem/), pero el flujo COMPLETO end-to-end con Keycloak en vez
+    de Zitadel todavia no se corrio de punta a punta contra una maquina Windows limpia — ver
+    devops/onprem/installer/README.md para el checklist de verificacion pendiente antes de usarlo
+    con un cliente pagante. Si un paso falla, el script se detiene con un mensaje claro en vez de
+    seguir en un estado a medias.
 
     Requiere PowerShell con permisos de administrador para los pasos de winget/wsl.
 
@@ -26,11 +30,11 @@
     Carpeta de devops/onprem/ a usar (default: donde vive este script).
 
 .PARAMETER DominioBase
-    Dominio local de este cliente (ej. "sicsaft-duoc-melipilla.test") — reemplaza el genérico
-    "sicsaft.localhost" en hosts, Traefik, Zitadel y las URLs que hornean los frontends. Si no se
-    pasa, se calcula automáticamente a partir de -ClienteNombre: "sicsaft-" + slug del nombre
-    (minúsculas, sin acentos ni espacios) + ".test" (RFC 2606, reservado para uso local, nunca
-    resuelve por internet).
+    Dominio local de este cliente (ej. "sicsaft-duoc-melipilla.localhost") — reemplaza el genérico
+    "sicsaft.localhost" en Traefik, Keycloak (KC_HOSTNAME) y las URLs que hornean los frontends. Si
+    no se pasa, se calcula automáticamente a partir de -ClienteNombre: "sicsaft-" + slug del nombre
+    (minúsculas, sin acentos ni espacios) + ".localhost" (RFC 6761 — ver New-DominioDesdeNombre
+    para el motivo del cambio desde ".test", encontrado real 2026-08-27).
 
 .EXAMPLE
     ./instalar-cliente.ps1 -ClienteNombre "Municipalidad de Melipilla" `
@@ -48,9 +52,27 @@ $ErrorActionPreference = "Stop"
 
 function New-DominioDesdeNombre {
     # Slug DNS-safe: minusculas, sin acentos, espacios/simbolos -> guion, guiones repetidos
-    # colapsados, sin guion al inicio/final. ".test" (RFC 2606) nunca resuelve por internet ni
-    # choca con mDNS/Bonjour (a diferencia de ".local") -- pensado para que cada cliente onprem
-    # tenga sus propias URLs (ej. qr.duoc-melipilla.test) en vez del generico sicsaft.localhost.
+    # colapsados, sin guion al inicio/final.
+    #
+    # ".localhost" (RFC 6761), no ".test" (RFC 2606, usado hasta 2026-08-26) -- CAMBIO DE DISEÑO
+    # real, no cosmetico: bug real encontrado probando un login de verdad en un navegador
+    # (2026-08-27) -- un origin "http://algo.test" tiene window.isSecureContext === false y
+    # crypto.subtle/crypto.randomUUID son undefined (verificado real, Chromium), mientras que
+    # "http://algo.localhost" es secure context completo con el mismo HTTP plano sin TLS (RFC 6761
+    # exige tratar cualquier hostname bajo ".localhost" como loopback/confiable). Esto rompia el
+    # login OIDC/PKCE de los 4 portales de punta a punta (pkce.ts usa crypto.subtle.digest) en
+    # CUALQUIER instalacion onprem real, con Zitadel o con Keycloak -- no es un problema del
+    # identity provider, es el esquema de dominio. El slug por cliente sigue evitando la colision
+    # que motivaba huir de ".localhost" originalmente (cada cliente tiene su propio
+    # "sicsaft-<slug>.localhost", no el generico "sicsaft.localhost" compartido).
+    #
+    # OJO -- distinto de lo que decía una version anterior de este comentario: la auto-resolucion
+    # de "*.localhost" a loopback SIN entrada en hosts (RFC 6761) se confirmó real en Chromium
+    # (`window.isSecureContext` da true igual), pero NO a nivel de resolver de Windows -- probado
+    # real: `Invoke-RestMethod` contra un "*.localhost" nunca agregado a hosts tira "No se puede
+    # resolver el nombre remoto" desde PowerShell. Set-HostsLocales de abajo SIGUE haciendo falta
+    # -- bootstrap-keycloak.ps1 (que corre por PowerShell, no por navegador) necesita esas entradas
+    # igual que antes con ".test".
     param([string]$Nombre)
     $normalizado = $Nombre.Normalize([System.Text.NormalizationForm]::FormD)
     $sinAcentos = -join ($normalizado.ToCharArray() | Where-Object {
@@ -58,7 +80,7 @@ function New-DominioDesdeNombre {
     })
     $slug = ($sinAcentos.ToLowerInvariant() -replace '[^a-z0-9]+', '-').Trim('-')
     if (-not $slug) { $slug = "cliente" }
-    return "sicsaft-$slug.test"
+    return "sicsaft-$slug.localhost"
 }
 
 if (-not $DominioBase) {
@@ -90,7 +112,6 @@ if ((Get-Location).ProviderPath -ne (Resolve-Path $InstallDir).ProviderPath) {
 }
 $EnvPath = Join-Path $InstallDir ".env"
 $EnvExamplePath = Join-Path $InstallDir ".env.example"
-$PatPath = Join-Path $InstallDir ".bootstrap\admin-pat.txt"
 $ComposeFile = Join-Path $InstallDir "docker-compose.yml"
 $DynamicYmlPath = Join-Path $InstallDir "traefik\dynamic.yml"
 $DynamicYmlTemplatePath = Join-Path $InstallDir "traefik\dynamic.yml.template"
@@ -107,8 +128,8 @@ Start-Transcript -Path $LogPath -Append | Out-Null
 function Protect-Archivo {
     # Restringe un archivo/carpeta a Administradores + SYSTEM (SIDs conocidos, no el nombre del
     # grupo -- que varia segun el idioma de Windows) -- para que una sesion sin privilegios de
-    # administrador en el PC del cliente no pueda ni abrir .env/.bootstrap ni leer el log.
-    # icacls en vez de Set-Acl: mas simple de razonar y mas facil de verificar a mano
+    # administrador en el PC del cliente no pueda ni abrir .env ni leer el log. icacls en vez de
+    # Set-Acl: mas simple de razonar y mas facil de verificar a mano
     # (`icacls archivo`) si algo no quedo como se espera.
     param([string]$Ruta)
     if (-not (Test-Path $Ruta)) { return }
@@ -127,13 +148,6 @@ function Write-Paso {
 
 function New-ClavealAzar {
     -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object { [char]$_ })
-}
-
-function New-ClaveConSimbolo {
-    # Zitadel exige mayuscula+minuscula+digito+simbolo en la contraseña del admin humano (de ahi
-    # el sufijo "-Aa1!" del placeholder en .env.example) — New-ClavealAzar sola no lo garantiza.
-    $base = New-ClavealAzar
-    return "$base-Aa1!"
 }
 
 function Set-HostsLocales {
@@ -317,70 +331,58 @@ function New-EnvDeCliente {
     }
     $contenido = Get-Content $EnvExamplePath -Raw
     # Cada placeholder "cambiar-por-..."/"cambiar-esta-clave..." se reemplaza por un valor
-    # aleatorio unico — nunca reusar contraseñas entre clientes (INST-RNF-03). El placeholder con
-    # sufijo "-Aa1!" (ZITADEL_ADMIN_PASSWORD) va primero y usa New-ClaveConSimbolo — si el
-    # reemplazo generico corriera antes, perderia la garantia de mayuscula/minuscula/digito/
-    # simbolo que Zitadel exige para el admin humano.
-    $contenido = [regex]::Replace($contenido, 'cambiar-por-una-clave-unica-de-este-cliente-Aa1!', { New-ClaveConSimbolo })
+    # aleatorio unico — nunca reusar contraseñas entre clientes (INST-RNF-03). A diferencia del
+    # flujo de Zitadel que esto reemplaza, Keycloak no exige mayuscula/minuscula/digito/simbolo en
+    # KEYCLOAK_ADMIN_PASSWORD (sin politica de password por defecto) — un solo patron de reemplazo
+    # alcanza para todas las claves "cambiar-por-una-clave-unica-de-este-cliente".
     $contenido = [regex]::Replace($contenido, 'cambiar-por-una-clave-unica-de-este-cliente', { New-ClavealAzar })
-    $contenido = [regex]::Replace($contenido, 'cambiar-por-32-caracteres-random', { (New-ClavealAzar).Substring(0, 32) })
     $contenido = $contenido -replace 'cambiar-por-64-caracteres-hex-random', ((1..32 | ForEach-Object { "{0:x2}" -f (Get-Random -Max 256) }) -join '')
     $contenido = $contenido -replace 'cambiar-por-dominio-base-de-este-cliente', $DominioBase
-    $contenido = $contenido -replace 'admin@sicsaft\.localhost', "admin@$DominioBase"
     Set-Content $EnvPath $contenido -NoNewline
     Write-Host ".env generado con credenciales unicas de este cliente."
 
     # Si $InstallDir tiene contenedores/volumenes de un intento anterior (ej. una corrida previa
     # que fallo despues de este paso), hay que tirarlos abajo antes de seguir: el compose usa
-    # "name: sicsaft-onprem" fijo, asi que los volumenes de Postgres/Zitadel de ese intento previo
-    # persistirian con las credenciales VIEJAS aunque el .env recien generado tenga contraseñas
-    # nuevas -- Postgres/Zitadel arrancarian con datos ya inicializados con el password anterior,
-    # y el resto del stack fallaria la autenticacion contra ellos de forma confusa. "down -v" es
-    # seguro aunque no haya nada que tirar (no falla si el proyecto no existe todavia).
+    # "name: sicsaft-onprem" fijo, asi que los volumenes de Postgres/Keycloak de ese intento
+    # previo persistirian con las credenciales VIEJAS aunque el .env recien generado tenga
+    # contraseñas nuevas -- Postgres/Keycloak arrancarian con datos ya inicializados con el
+    # password anterior, y el resto del stack fallaria la autenticacion contra ellos de forma
+    # confusa. "down -v" es seguro aunque no haya nada que tirar (no falla si el proyecto no
+    # existe todavia).
     if ((Test-Path $ComposeFile) -and (Get-Command podman-compose -ErrorAction SilentlyContinue)) {
         # Sin redirigir stderr (mismo motivo que el resto del script) -- si no habia nada que
         # tirar, podman-compose puede escribir un aviso a stderr sin que sea un error real.
         podman-compose -f $ComposeFile down -v | Out-Null
     }
-    if (Test-Path (Split-Path -Parent $PatPath)) {
-        Remove-Item -Recurse -Force (Split-Path -Parent $PatPath)
-    }
 }
 
-function Wait-PatDeZitadel {
-    Write-Paso "5. Levantando postgres, redis y zitadel"
+function Wait-KeycloakListo {
+    Write-Paso "5. Levantando postgres y keycloak"
     # Sin "--project-directory": bug real encontrado -- a diferencia de docker compose,
     # podman-compose 1.6.0 no tiene esa flag (su parser la confunde con el subcomando y tira
     # "invalid choice"). "-f" con ruta absoluta alcanza: podman-compose resuelve los
     # "build.context" relativos del compose (ej. "../../cis") contra el directorio del archivo
     # -f, y Set-Location $InstallDir (arriba) ya deja el cwd correcto de todos modos.
-    # "| Out-Null" es necesario, no cosmetico: sin el, la salida de este comando externo se mezcla
-    # con "return $pat" de abajo (todo lo no capturado dentro de una funcion de PowerShell va al
-    # stream de salida) -- bug real encontrado corriendo el instalador: $pat terminaba siendo un
-    # array con todas las lineas de progreso del pull de imagenes en vez de un string, y
-    # "Invoke-BootstrapCliente -Pat $pat" fallaba con "no se puede convertir el valor al tipo
-    # System.String".
     #
-    # "traefik" tiene que estar arriba en este punto tambien -- bug real encontrado corriendo el
-    # instalador: zitadel no publica ningun puerto al host, solo es alcanzable via Traefik
+    # "traefik" tiene que estar arriba en este punto tambien -- mismo motivo que ya valia para
+    # Zitadel: Keycloak no publica ningun puerto al host, solo es alcanzable via Traefik
     # (id.sicsaft.localhost -> :80 de traefik, ver docker-compose.yml). Sin traefik, el bootstrap
-    # de abajo (Invoke-BootstrapCliente, que le pega a la Management API desde el HOST) fallaba
-    # con "No es posible conectar con el servidor remoto".
-    podman-compose -f $ComposeFile up -d postgres redis zitadel traefik | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose up -d postgres redis zitadel traefik'." }
+    # de abajo (Invoke-BootstrapCliente, que le pega a la Admin REST API desde el HOST) fallaria
+    # con "No es posible conectar con el servidor remoto". Sin "redis" a proposito (ADR-005): el
+    # servicio ya no existe en docker-compose.yml.
+    podman-compose -f $ComposeFile up -d postgres keycloak traefik | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose up -d postgres keycloak traefik'." }
 
-    Write-Host "Esperando el PAT auto-provisionado por Zitadel ($PatPath)..."
-    $intentos = 0
-    while (-not (Test-Path $PatPath) -and $intentos -lt 24) {
-        Start-Sleep -Seconds 5
-        $intentos++
+    # A diferencia de Zitadel (esperaba un archivo de PAT auto-provisionado), Keycloak no genera
+    # nada solo -- bootstrap-keycloak.ps1 se autentica directo con KEYCLOAK_ADMIN_USERNAME/
+    # PASSWORD (ya conocidos, generados en New-EnvDeCliente). Lo unico que hay que esperar es que
+    # el servidor HTTP realmente este sirviendo trafico -- el endpoint de discovery OIDC del realm
+    # "master" no requiere autenticacion y solo responde 200 cuando Keycloak ya inicializo su
+    # esquema de base de datos y esta listo.
+    if (-not (Test-Servicio -Url "http://id.$DominioBase/realms/master/.well-known/openid-configuration" -Nombre "Keycloak (API)")) {
+        throw "Keycloak no respondio en http://id.$DominioBase/realms/master/.well-known/openid-configuration despues de 1 minuto. Revisar 'podman-compose logs keycloak' y 'podman-compose logs traefik'."
     }
-    if (-not (Test-Path $PatPath)) {
-        throw "No aparecio $PatPath despues de 2 minutos. Revisar 'podman-compose logs zitadel' - el bootstrap de Zitadel (ZITADEL_FIRSTINSTANCE_ORG_MACHINE_*/PATPATH) puede no haber terminado, o el nombre/formato del archivo difiere del esperado (ver Nota de honestidad en docker-compose.yml)."
-    }
-    $pat = (Get-Content $PatPath -Raw).Trim()
-    Write-Host "PAT obtenido."
-    return $pat
+    Write-Host "Keycloak listo."
 }
 
 function Set-ValoresEnEnv {
@@ -392,7 +394,8 @@ function Set-ValoresEnEnv {
         $patron = "(?m)^$([regex]::Escape($clave))=.*$"
         $valor = $Valores[$clave]
         # MatchEvaluator (scriptblock) en vez de un string de reemplazo — evita que $/\\ dentro
-        # del valor (ej. el JSON de ZITADEL_ORG_ID_MAP) se interpreten como sintaxis de regex.
+        # del valor (ej. KEYCLOAK_ADMIN_CLIENT_SECRET, que puede traer cualquiera de esos
+        # caracteres) se interpreten como sintaxis de regex.
         $contenido = [regex]::Replace($contenido, $patron, { "$clave=$valor" })
     }
     Set-Content $EnvPath $contenido -NoNewline
@@ -428,23 +431,19 @@ Test-Wsl2
 Test-Podman
 Test-PodmanCompose
 New-EnvDeCliente
-$pat = Wait-PatDeZitadel
+Wait-KeycloakListo
 
-# Bug real encontrado corriendo el instalador: el PAT se escribe a disco durante el arranque de
-# Zitadel (start-from-init), pero eso no garantiza que su servidor HTTP ya este aceptando
-# requests -- Wait-PatDeZitadel solo espera el archivo, no que la API responda. Sin esto, el
-# primer llamado del bootstrap (Invoke-BootstrapCliente) llegaba antes de tiempo y Traefik
-# devolvia "502 Bad Gateway" (Traefik arriba y enrutando bien, pero sin poder conectarse todavia
-# al backend). El endpoint de discovery OIDC no requiere autenticacion y solo responde 200 cuando
-# Zitadel esta realmente sirviendo trafico.
-if (-not (Test-Servicio -Url "http://id.$DominioBase/.well-known/openid-configuration" -Nombre "Zitadel (API)")) {
-    throw "Zitadel no respondio en http://id.$DominioBase/.well-known/openid-configuration despues de 1 minuto. Revisar 'podman-compose logs zitadel' y 'podman-compose logs traefik'."
-}
+# Las credenciales de KEYCLOAK_ADMIN_USERNAME/PASSWORD ya las genero New-EnvDeCliente y ya
+# arrancaron el propio contenedor (ver docker-compose.yml) -- se leen de vuelta del .env recien
+# escrito en vez de mantenerlas en una variable aparte, para no tener dos fuentes de verdad.
+$envContenido = Get-Content $EnvPath -Raw
+$adminUsername = [regex]::Match($envContenido, '(?m)^KEYCLOAK_ADMIN_USERNAME=(.*)$').Groups[1].Value
+$adminPassword = [regex]::Match($envContenido, '(?m)^KEYCLOAK_ADMIN_PASSWORD=(.*)$').Groups[1].Value
 
-Write-Paso "6. Corriendo bootstrap de Zitadel (organizacion, proyecto, roles, apps OIDC)"
-Import-Module (Join-Path $InstallDir "lib/Bootstrap-Zitadel.psm1") -Force
-$valores = Invoke-BootstrapCliente -Pat $pat -ClienteNombre $ClienteNombre `
-    -OrganizacionId $OrganizacionId -Nivel $Nivel -DominioBase $DominioBase
+Write-Paso "6. Corriendo bootstrap de Keycloak (realm, organizacion, roles, apps OIDC)"
+Import-Module (Join-Path $InstallDir "lib/Bootstrap-Keycloak.psm1") -Force
+$valores = Invoke-BootstrapCliente -AdminUsername $adminUsername -AdminPassword $adminPassword `
+    -ClienteNombre $ClienteNombre -OrganizacionId $OrganizacionId -Nivel $Nivel -DominioBase $DominioBase
 
 Set-ValoresEnEnv -Valores $valores
 
@@ -458,10 +457,10 @@ Write-Paso "8. Construyendo y levantando el stack completo (Nivel $Nivel)"
 podman-compose -f $ComposeFile --profile "nivel$Nivel" up -d --build
 if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose --profile nivel$Nivel up -d --build'." }
 
-# .env y el PAT auto-provisionado (.bootstrap/) ya cumplieron su funcion en este script -- recien
-# ahora se restringen, una vez que nada mas en la instalacion necesita leerlos.
+# .env ya cumplio su funcion en este script -- recien ahora se restringe, una vez que nada mas en
+# la instalacion necesita leerlo. A diferencia del flujo de Zitadel que esto reemplaza, no hay un
+# directorio ".bootstrap/" que proteger — Keycloak no auto-provisiona ningun archivo de secretos.
 Protect-Archivo -Ruta $EnvPath
-Protect-Archivo -Ruta (Split-Path -Parent $PatPath)
 
 Write-Paso "9. Verificacion (smoke check)"
 $servicios = @{
@@ -490,10 +489,11 @@ if ($Nivel -eq 2) {
     Write-Host "CCP:       http://ccp.$DominioBase"
 }
 Write-Host ""
-Write-Host "IMPORTANTE: guardar ZITADEL_ADMIN_TOKEN (en .env) en el gestor de secretos del admin" -ForegroundColor Yellow
-Write-Host "antes de irse del sitio - se necesita para soportar esta instalacion despues" -ForegroundColor Yellow
-Write-Host "(aidlc-docs/devops/requirements/REQUIREMENTS.md INST-Q-02). Crear las credenciales" -ForegroundColor Yellow
-Write-Host "reales del cliente y borrar cualquier usuario de prueba antes de entregar el sistema." -ForegroundColor Yellow
+Write-Host "IMPORTANTE: guardar KEYCLOAK_ADMIN_CLIENT_SECRET y KEYCLOAK_ADMIN_PASSWORD (en .env) en" -ForegroundColor Yellow
+Write-Host "el gestor de secretos del admin antes de irse del sitio - se necesitan para soportar" -ForegroundColor Yellow
+Write-Host "esta instalacion despues (aidlc-docs/devops/requirements/REQUIREMENTS.md INST-Q-02)." -ForegroundColor Yellow
+Write-Host "Crear las credenciales reales del cliente y borrar cualquier usuario de prueba antes de" -ForegroundColor Yellow
+Write-Host "entregar el sistema." -ForegroundColor Yellow
 
 } finally {
     # Corre siempre, haya terminado bien o el script haya fallado a mitad de camino (por eso
