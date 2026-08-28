@@ -19,6 +19,16 @@ import {
   type StoredTokens,
 } from './token-store';
 
+// Bug real encontrado 2026-08-28 (mismo que ya se había arreglado en app-qr-sicsaft/src/lib/oidc/
+// oidc-client.ts) -- new URL('/path', issuer) con slash inicial descarta el path del issuer
+// (`/realms/sicsaft`) porque una ruta absoluta reemplaza el path completo de la base, no lo
+// extiende. Keycloak devuelve "Page not found" contra `<host>/protocol/openid-connect/auth` en
+// vez de `<host>/realms/sicsaft/protocol/openid-connect/auth`. Se arregla con un path relativo
+// (sin slash inicial) contra el issuer normalizado con slash final.
+function endpointUrl(issuer: string, path: string): URL {
+  return new URL(path, `${issuer.replace(/\/$/, '')}/`);
+}
+
 export class AuthenticationRequiredError extends Error {
   constructor() {
     super('Se requiere iniciar sesión');
@@ -59,7 +69,7 @@ async function postTokenEndpoint(
 ): Promise<TokenResponse> {
   const config = loadOidcConfig();
   const res = await fetch(
-    new URL('/protocol/openid-connect/token', config.issuer),
+    endpointUrl(config.issuer, 'protocol/openid-connect/token'),
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -81,7 +91,7 @@ async function startLogin(): Promise<void> {
   const state = generateState();
   savePendingPkce({ codeVerifier, state });
 
-  const url = new URL('/protocol/openid-connect/auth', config.issuer);
+  const url = endpointUrl(config.issuer, 'protocol/openid-connect/auth');
   url.searchParams.set('client_id', config.clientId);
   url.searchParams.set('redirect_uri', config.redirectUri);
   url.searchParams.set('response_type', 'code');
@@ -166,7 +176,15 @@ function getCurrentOperatorDisplayName(): string | null {
   const tokens = loadTokens();
   if (!tokens) return null;
   const claims = decodeJwtClaims(tokens.accessToken);
-  const name = claims?.name ?? claims?.preferred_username ?? claims?.sub;
+  // preferred_username primero, no `name` -- bug real encontrado 2026-08-28: los usuarios que
+  // crea este ecosistema (crearUsuarioHuman en cis/, crearUsuarioDirector en sicsaft-core/) mandan
+  // firstName=lastName=email a Keycloak a propósito (Keycloak exige ambos campos no vacíos para
+  // dejar loguear, ver el comentario de Gap 3 en
+  // cis/src/keycloak-admin/keycloak-admin.service.ts) -- el mapper "full name" de Keycloak arma
+  // `name` como `"${firstName} ${lastName}"`, así que con este dato queda el correo duplicado
+  // ("x@y.com x@y.com"). `preferred_username` es un solo valor (el username, que acá siempre es
+  // el email) y no tiene ese problema.
+  const name = claims?.preferred_username ?? claims?.name ?? claims?.sub;
   return typeof name === 'string' ? name : null;
 }
 

@@ -271,12 +271,20 @@ describe('KeycloakAdminService', () => {
         'corr-1',
       );
 
+      // Body como string JSON (con comillas) + Content-Type explícito -- bug real encontrado
+      // 2026-08-28, ver el comentario de agregarMiembroSiHaceFalta en keycloak-admin.service.ts.
       expect(axiosRef.post).toHaveBeenNthCalledWith(
         2,
         `${CONFIG.adminBaseUrl}/organizations/org-uuid-1/members`,
-        'usuario-1',
+        '"usuario-1"',
         expect.any(Object),
       );
+      const [, , opcionesMembers] = axiosRef.post.mock.calls[1] as [
+        string,
+        string,
+        { headers: Record<string, string> },
+      ];
+      expect(opcionesMembers.headers['Content-Type']).toBe('application/json');
       expect(axiosRef.post).toHaveBeenNthCalledWith(
         4,
         `${CONFIG.adminBaseUrl}/groups/grupo-1/role-mappings/realm`,

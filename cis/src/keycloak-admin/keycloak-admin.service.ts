@@ -272,11 +272,22 @@ export class KeycloakAdminService {
     correlationId: string,
   ): Promise<void> {
     try {
+      // Bug real encontrado 2026-08-28: este endpoint de Keycloak (POST .../organizations/{id}/
+      // members) es el único de todo este archivo cuyo body es un string plano en vez de un
+      // objeto -- axios serializa y pone Content-Type: application/json automático para bodies
+      // objeto (todas las demás llamadas de acá), pero un string lo manda tal cual, sin ese
+      // header. Keycloak responde 415 ("content-type header value did not match @Consumes")
+      // porque espera literalmente un string JSON (`"uuid"`, con comillas) con ese content-type
+      // explícito -- verificado real contra la Admin API (curl -d '"$USER_ID"' -H
+      // 'Content-Type: application/json' -> 201).
       await this.post(
         `/organizations/${organizacionUuid}/members`,
-        userId,
+        JSON.stringify(userId),
         correlationId,
-        { translateConflict: true },
+        {
+          translateConflict: true,
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
     } catch (error: unknown) {
       // Idempotente SOLO para el 409 "ya era miembro" — cualquier otra falla (Keycloak caído,
@@ -506,14 +517,20 @@ export class KeycloakAdminService {
     path: string,
     body: unknown,
     correlationId: string,
-    options: { translateConflict?: boolean } = {},
+    options: {
+      translateConflict?: boolean;
+      headers?: Record<string, string>;
+    } = {},
   ): Promise<unknown> {
     return this.call(
       path,
       correlationId,
       async () =>
         this.httpService.axiosRef.post(this.adminPath(path), body, {
-          headers: await this.headers(correlationId),
+          headers: {
+            ...(await this.headers(correlationId)),
+            ...options.headers,
+          },
         }),
       options.translateConflict ?? false,
     );
