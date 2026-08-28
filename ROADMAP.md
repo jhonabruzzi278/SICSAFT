@@ -624,6 +624,45 @@ responder preguntas"): RF-11 a RF-17 de
 actualizados referenciándolo; sin código todavía — la Construction (`cip/src/agregacion/` + nuevos
 endpoints de `DashboardModule`) es un incremento posterior, mismo criterio que DOC-014 → DOC-018.
 
+## Track paralelo: sicsaft-core (app de escritorio) + identidad Keycloak/pg-boss
+
+No es una fase de la cadena de dependencias — es un track transversal que arrancó el 2026-08-27
+al redirigir `devops/onprem/` de "el cliente instala Podman + entra por navegador a dominios
+locales" hacia un instalador `.exe` nativo (Electron). El disparador fue un bug real: los
+dominios `.test` que generaba `instalar-cliente.ps1` no son "secure context" y rompían
+`crypto.subtle`/PKCE. Documentación completa en
+[`aidlc-docs/sicsaft-core/`](aidlc-docs/sicsaft-core/) y la bitácora de ~44 bugs reales de toda
+esta línea en
+[DOC-027](aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md).
+
+**Hecho (mergeado a `main`, PR #57):**
+- **[ADR-004](adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)** — Keycloak self-hosted
+  reemplaza a Zitadel (Zitadel no publica binario nativo de Windows, requisito del `.exe`
+  on-premise sin Docker/WSL2). Fase 1 (`cis/`), Fase 2 (los 4 portales) y Fase 3
+  (`devops/onprem/`) implementadas y verificadas real. El modelo Organización→Contrato→Sede no
+  cambia, solo el proveedor.
+- **[ADR-005](adr/ADR-005-postgres-pgboss-reemplaza-redis.md)** — Redis sale del ecosistema
+  completo: `core/`+`cip/` mueven la cola `cip-eventos` a `pg-boss` sobre una base Postgres
+  dedicada (`eventos_outbox`), `cis/` mueve rate-limiter/device-registry a memoria del propio
+  proceso.
+- **`sicsaft-core/` (SYS-11)** — CORE-RF-01/02/03/05 y CORE-RF-04:
+  Postgres/Keycloak/`cis`/`core`/`cip` embebidos con binarios reales vendorizados, wizard de
+  primer arranque con alta real del Director, login único embebido que detecta el rol del JWT y
+  muestra `ccp` (Profesional de AFT) o `core/frontend` (Directivo), APP QR alcanzable por LAN
+  (HTTPS autofirmado). Empaquetado `.exe` real con `electron-builder`. Coexiste con
+  `devops/onprem/` (Podman) de forma permanente (CORE-Q-02).
+
+**Pendiente:**
+
+| Ítem | Detalle | Fuente |
+|---|---|---|
+| Paso "Profesional de AFT" del wizard | `PasoProfesionalAft.tsx` sigue siendo un placeholder — falta el handler IPC que llame al endpoint real de `cis/` (mismo patrón que `altaDirector`). Al hacerlo, cerrar también el gap silencioso de `crearGrant()` en `cis/src/keycloak-admin/` (reporta éxito aunque el role mapping falle). | DOC-027 "Gaps abiertos" |
+| Empaquetado final de los portales embebidos | `ccp`/`core-frontend` a `extraResources` de `electron-builder` (hoy `static-portal-server.ts` resuelve el `dist/` hermano solo en dev) + automatizar `kc.bat build --db=postgres --health-enabled=true` como paso del empaquetado (hoy manual). | DOC-027, `sicsaft-core/resources/README.md` |
+| ADR-004 Fases 4-5 | `devops/local/` y `devops/prod/` siguen en Zitadel — migración pendiente (estado mixto con `cis/`, los portales y `devops/onprem/` ya en Keycloak). | commits ADR-004, `devops/README.md` |
+| APK Android — CORE-Q-01 (reabierta 2026-08-27) | No existe ninguna APK construida. Decidir si se construye dentro de este monorepo (tooling Capacitor nuevo) o afuera, y quién la mantiene. No bloquea Nivel 1 embebido. | `aidlc-docs/sicsaft-core/requirements/INTENT.md` |
+| Nivel 2/3 en `sicsaft-core.exe` — CORE-Q-03 | ¿Entran `ccp` completo (Nivel 2) y RFID (Nivel 3) al `.exe` con el mismo patrón de procesos embebidos, o Nivel 2/3 siguen necesitando el modelo Podman/servidor por su mayor carga? Sin resolver. | `INTENT.md` CORE-Q-03 |
+| Deuda menor de SonarCloud en el código nuevo | props `readonly` (S6759) en los `Paso*.tsx`, `.find` vs `.filter` (S7750) en `lan-ip.ts`, `Write-Host` en `Bootstrap-Keycloak.psm1` (S8677) — code smells, no vulnerabilities, no bloquean el gate. | análisis SonarCloud PR #57 |
+
 ## Track paralelo: OPS (no es una fase, es continuo)
 
 `devops/` no tiene una posición en la cadena de dependencias — tiene hitos atados a las fases:
@@ -668,6 +707,7 @@ aparezca en documentos:
 | Construir CON-CONTABILIDAD contra un sistema contable hipotético | Importación manual primero (Fase 4, ✅); mitigación original "el conector solo con un sistema real identificado" reemplazada por decisión explícita del usuario (2026-08-28) de diseñar igual contra un formato CSV genérico — ver Fase 7 "Riesgo aceptado" |
 | Contradicción tomo vs. código al implementar Administrador Patrimonial | `CLAUDE.md` es claro: gana el tomo, se levanta la discrepancia — no editar la cita |
 | READMEs quedan desactualizados fase a fase | Regla de `CLAUDE.md`: README del sistema actualizado en el mismo commit o el inmediatamente siguiente |
+| Estado mixto de identidad durante ADR-004 Fases 4-5: `cis/`, los portales y `devops/onprem/` en Keycloak, pero `devops/local/` y `devops/prod/` todavía en Zitadel | Cerrar Fases 4-5 antes de tocar `devops/local/`/`prod/` para features nuevas; hasta entonces, el flujo "contra el stack de Docker local" queda temporalmente inconsistente (documentado en cada README de portal) |
 
 ## Cadena de dependencias
 
@@ -684,13 +724,19 @@ Fase 0 (migraciones + correlationId + OIDC real) ✅
                       ├─ Fase 8 (RFID — cierra Etapa 1)
                       └─ Fase 9 (CIP: inteligencia decisional)   [diseño, DOC-026]
 
-Track OPS ─────── paralelo, con hitos atados a Fases 0/3/4/5
+Track OPS ─────────── paralelo, con hitos atados a Fases 0/3/4/5
+Track sicsaft-core ── paralelo, transversal a devops/onprem/
+                      ADR-004 (Keycloak) ✅ · ADR-005 (pg-boss) ✅ · CORE-RF-01..05 (parcial, ver track arriba)
 ```
 
 Archivos clave para quien implemente cada fase: [CLAUDE.md](CLAUDE.md),
 [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md),
 [base-patrimonial/DOC-004-modelo-contrato.md](base-patrimonial/DOC-004-modelo-contrato.md),
 [aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md](aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md),
-[adr/ADR-002-identidad-zitadel-multi-tenant.md](adr/ADR-002-identidad-zitadel-multi-tenant.md),
+[adr/ADR-002-identidad-zitadel-multi-tenant.md](adr/ADR-002-identidad-zitadel-multi-tenant.md)
+(reemplazada en el proveedor por [ADR-004](adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)),
+[adr/ADR-005-postgres-pgboss-reemplaza-redis.md](adr/ADR-005-postgres-pgboss-reemplaza-redis.md),
 [core/migrations](core/migrations),
 `cis/src/qr-connector/qr-connector.service.ts`, `core/src/entitlements/contrato.repository.ts`.
+Para el track de escritorio: [aidlc-docs/sicsaft-core/](aidlc-docs/sicsaft-core/) y
+[DOC-027](aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md).
