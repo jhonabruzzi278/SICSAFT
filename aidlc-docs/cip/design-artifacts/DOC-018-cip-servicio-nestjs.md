@@ -6,6 +6,13 @@ Contrato de implementación del segundo incremento de Construction de Fase 6. El
 decisiones ya tomadas en [DOC-014](DOC-014-cip-dashboard.md)/[ARCHITECTURE.md](ARCHITECTURE.md) —
 las hace concretas: nombres de archivo, columnas exactas, contrato del worker, endpoints.
 
+**Nota (2026-08-27)**: este documento describía la cola `cip-eventos` sobre BullMQ/Redis, como
+estaba escrito en el stack de ADR-001. [ADR-005](../../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md)
+reemplaza esa tecnología por `pg-boss` sobre Postgres — el contrato de mensajes, la semántica
+at-least-once y la lógica de agregación de abajo **no cambian**, solo el mecanismo de entrega. Las
+menciones a BullMQ/Redis que siguen abajo se dejan como registro histórico de la decisión original;
+el código real ya corre sobre pg-boss.
+
 ## 1. Alcance de este incremento
 
 - Esqueleto NestJS de `cip/` (mismo patrón que `core/`/`cis/`, `CLAUDE.md` "Al agregar un
@@ -325,16 +332,23 @@ upsert por cada escaneo con `resultado = 'con_incidencia'` de la sesión).
 
 ## 7. Docker / CI
 
+**Actualizado (ADR-005, 2026-08-27)** — vigente, a diferencia del resto de este documento (ver
+nota al inicio):
+
 - `cip/Dockerfile` — copia exacta de `core/Dockerfile` (mismo stack, mismo patrón multi-stage).
 - `.github/workflows/cip-ci.yml` — copia de `core-ci.yml` con `working-directory: cip` y su propio
-  servicio Postgres (`CIP_DB_*`); reusa el mismo servicio Redis efímero (ya lo necesita para el
-  test del worker).
+  servicio Postgres (`CIP_DB_*`); sin servicio Redis — pg-boss reusa ese mismo Postgres efímero
+  (`EVENTOS_OUTBOX_DATABASE_URL` apunta a la base `CIP_DB_*`, este job nunca corre junto con
+  `core-ci.yml`).
 - `devops/local/docker-compose.yml`: `cip-migrate` (mismo patrón que `core-migrate`), `cip`
   (`CIP_DB_*`, `CORE_URL: http://core:3001`, `CORE_SERVICE_TOKEN` compartido, `CIP_SERVICE_TOKEN`
-  nuevo, `REDIS_URL` compartido) — sin router de Traefik todavía (mismo criterio que `core`: sin
-  consumidor externo real hasta que exista frontend).
-- `devops/local/postgres/init/03-cip.sh` — mismo patrón que `02-core.sh`.
-- `.env.example` — agrega `CIP_DB_USER`, `CIP_DB_PASSWORD`, `CIP_SERVICE_TOKEN`.
+  nuevo, `EVENTOS_OUTBOX_DATABASE_URL` compartido con `core`) — sin router de Traefik todavía
+  (mismo criterio que `core`: sin consumidor externo real hasta que exista frontend).
+- `devops/local/postgres/init/03-cip.sh` — mismo patrón que `02-core.sh`;
+  `04-eventos-outbox.sh` crea la base dedicada de la cola (RNF-01/RNF-05: ni `core` ni `cip` se dan
+  acceso a la base de datos del otro).
+- `.env.example` — agrega `CIP_DB_USER`, `CIP_DB_PASSWORD`, `CIP_SERVICE_TOKEN`,
+  `EVENTOS_OUTBOX_DB_USER`, `EVENTOS_OUTBOX_DB_PASSWORD`.
 
 ## 8. Orden de construcción sugerido
 

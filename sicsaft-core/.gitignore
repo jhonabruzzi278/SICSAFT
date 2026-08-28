@@ -1,0 +1,12 @@
+node_modules/
+out/
+dist/
+release/
+*.tsbuildinfo
+
+# Binarios vendorizados (Postgres/JRE/Keycloak) -- ver NOTA DE HONESTIDAD en
+# src/main/services/postgres-service.ts y keycloak-service.ts. Pesan cientos de MB, no se
+# versionan en git -- se descargan/documentan aparte (pendiente, ver
+# aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md).
+resources/postgres/
+resources/keycloak/

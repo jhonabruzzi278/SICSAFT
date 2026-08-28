@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
-import type { Queue } from 'bullmq';
+import type { PgBoss } from 'pg-boss';
 import {
-  CIP_EVENTOS_QUEUE,
+  CIP_EVENTOS_PGBOSS,
   CIP_EVENTOS_QUEUE_NAME,
 } from './eventos-outbox.constants';
 import { EventosOutboxRepository } from './eventos-outbox.repository';
@@ -12,9 +12,9 @@ import type {
 } from './eventos-outbox.types';
 
 // Fase 6 / ARCHITECTURE.md 2-4 — proceso de polling separado del camino sincrono de
-// POST /inventarios: si Redis esta caido, `queue.add` tira, este metodo no marca nada como
-// publicado y simplemente reintenta en el proximo ciclo (RNF-03) — el resto de CORE sigue
-// funcionando normal, no depende de esto.
+// POST /inventarios: si la base de la cola esta caida, `boss.send` tira, este metodo no marca
+// nada como publicado y simplemente reintenta en el proximo ciclo (RNF-03) — el resto de CORE
+// sigue funcionando normal, no depende de esto.
 const INTERVALO_POLLING_MS = 5000;
 const LOTE_MAXIMO = 200;
 
@@ -24,8 +24,8 @@ export class EventosOutboxDispatcher {
 
   constructor(
     private readonly repository: EventosOutboxRepository,
-    @Inject(CIP_EVENTOS_QUEUE)
-    private readonly queue: Queue<EventosOutboxMensaje>,
+    @Inject(CIP_EVENTOS_PGBOSS)
+    private readonly boss: PgBoss,
   ) {}
 
   @Interval(INTERVALO_POLLING_MS)
@@ -40,10 +40,11 @@ export class EventosOutboxDispatcher {
   }
 
   // Agrupa por sesionId (ARCHITECTURE.md 4 — un solo mensaje `sesion-cerrada` por sesion, no uno
-  // por escaneo) y publica el resto individualmente. Publica lo que pueda: si Redis falla a mitad
-  // de camino, devuelve solo los ids que sí llegaron a la cola — el resto queda pendiente para el
-  // proximo ciclo (at-least-once, el worker de CIP debe ser idempotente ante un mensaje repetido,
-  // igual que ya lo es InventariosService.registrarEventosDeEscaneo del lado de CORE).
+  // por escaneo) y publica el resto individualmente. Publica lo que pueda: si la base de la cola
+  // falla a mitad de camino, devuelve solo los ids que sí llegaron a la cola — el resto queda
+  // pendiente para el proximo ciclo (at-least-once, el worker de CIP debe ser idempotente ante un
+  // mensaje repetido, igual que ya lo es InventariosService.registrarEventosDeEscaneo del lado de
+  // CORE).
   private async publicarLote(
     pendientes: readonly EventoOutboxPendiente[],
   ): Promise<string[]> {
@@ -92,7 +93,7 @@ export class EventosOutboxDispatcher {
     mensaje: EventosOutboxMensaje,
   ): Promise<boolean> {
     try {
-      await this.queue.add(mensaje.kind, mensaje);
+      await this.boss.send(CIP_EVENTOS_QUEUE_NAME, mensaje);
       return true;
     } catch (error: unknown) {
       const detalle = error instanceof Error ? error.message : String(error);

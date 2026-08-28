@@ -14,15 +14,15 @@ export interface Sede {
 export type EstadoOrganizacion = 'activo' | 'inactivo';
 
 // DOC-021 4 (Administrador del Sistema). DOC-024 1 agrega `estado` — bookkeeping de plataforma,
-// sin cascada a Zitadel ni a Contrato.
+// sin cascada a Keycloak ni a Contrato.
 export interface OrganizacionAdmin {
   id: string;
   nombre: string;
   estado: EstadoOrganizacion;
 }
 
-// Gap 1 (flujo real Admin->Directivo->Profesional AFT) — ya no pide el id de Zitadel: CIS crea la
-// organización en Zitadel y usa ese id, ver cis/src/administrador/administrador.service.ts.
+// Gap 1 (flujo real Admin->Directivo->Profesional AFT) — ya no pide el id de Keycloak: CIS crea la
+// organización en Keycloak y usa ese id, ver cis/src/administrador/administrador.service.ts.
 export interface AltaOrganizacionInput {
   nombre: string;
 }
@@ -93,7 +93,7 @@ export interface AltaSedeInput {
   nombre: string;
 }
 
-// DOC-024 1 agrega `estado` — bookkeeping de plataforma, sin cascada a Zitadel ni a Contrato.
+// DOC-024 1 agrega `estado` — bookkeeping de plataforma, sin cascada a Keycloak ni a Contrato.
 export interface SedeCreada {
   id: string;
   organizacionId: string;
@@ -215,7 +215,7 @@ export const cisClient = {
     );
   },
 
-  // DOC-024 — dar de baja a un usuario en Zitadel.
+  // DOC-024 — dar de baja a un usuario en Keycloak.
   async desactivarUsuarioOrganizacion(
     orgId: string,
     userId: string,

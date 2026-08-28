@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import type { AuthenticatedRequest } from '../common/auth/zitadel-auth.guard';
+import type { AuthenticatedRequest } from '../common/auth/keycloak-auth.guard';
 import { DIRECTIVO_ROLE } from './directivo.constants';
 
 export interface DirectivoRequest extends AuthenticatedRequest {

@@ -39,6 +39,7 @@ sin ningún código (`cip/README.md` Estado: "🔲 No iniciado").
 `cip/README.md` Depende de decía "idealmente vía un almacén de solo lectura / reporting, no
 contra la Base Patrimonial transaccional directamente" — sin especificar el mecanismo. Este
 documento fija esa decisión: outbox transaccional (trigger de Postgres, no cambios de código en
-cada repositorio que ya escribe `eventos`) + cola Redis/BullMQ (ya provisionado, ADR-001) + tablas
-de agregados propias de CIP en una base Postgres separada de `core` (ver
+cada repositorio que ya escribe `eventos`) + cola pg-boss (`cip-eventos`, antes Redis/BullMQ desde
+ADR-001 — ver [ADR-005](../../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md), 2026-08-27) +
+tablas de agregados propias de CIP en una base Postgres separada de `core` (ver
 `design-artifacts/ARCHITECTURE.md`).

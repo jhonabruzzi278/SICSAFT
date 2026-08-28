@@ -4,10 +4,10 @@ import type { Request } from 'express';
 import { DirectivoController } from './directivo.controller';
 import { DirectivoService } from './directivo.service';
 import { DirectivoGuard, type DirectivoRequest } from './directivo.guard';
-import { ZitadelAuthGuard } from '../common/auth/zitadel-auth.guard';
+import { KeycloakAuthGuard } from '../common/auth/keycloak-auth.guard';
 import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
-import type { GrantUsuario } from '../zitadel-admin/zitadel-admin.types';
+import type { GrantUsuario } from '../keycloak-admin/keycloak-admin.types';
 
 const CORRELATION_ID = 'correlation-test';
 
@@ -41,7 +41,7 @@ describe('DirectivoController', () => {
         },
       ],
     })
-      .overrideGuard(ZitadelAuthGuard)
+      .overrideGuard(KeycloakAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RateLimitGuard)
       .useValue({ canActivate: () => true })

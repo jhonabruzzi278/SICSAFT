@@ -18,13 +18,14 @@ empaquetar como `.exe`.
 ## Estado
 
 🟡 Diseño completo + primer entregable construible (stack Podman parametrizado por nivel +
-bootstrap de Zitadel). Empaquetado como instalador `.exe` real es un incremento siguiente, no
-cubierto acá.
+bootstrap de Keycloak, ADR-004 Fase 3 — reemplazó al bootstrap de Zitadel original, 2026-08-26).
+Empaquetado como instalador `.exe` real es un incremento siguiente, no cubierto acá.
 
 ## Depende de
 
-`devops/local/docker-compose.yml` (base reusada), `cis/src/zitadel-admin/` (cliente HTTP de la
-Management API de Zitadel, reusado por `bootstrap-zitadel.ps1`).
+`devops/local/docker-compose.yml` (base reusada — todavía en Zitadel, no migró en esta fase),
+`cis/src/keycloak-admin/` (cliente HTTP de la Admin REST API de Keycloak, mismos shapes que reusa
+`bootstrap-keycloak.ps1`).
 
 ## Bloquea
 

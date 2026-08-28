@@ -1,6 +1,6 @@
-// Config del cliente OIDC (ADR-002, DOC-002 sección 3) — falla rápido al importarse en vez de
+// Config del cliente OIDC (ADR-002/ADR-004, DOC-002 sección 3) — falla rápido al importarse en vez de
 // con errores crípticos a mitad del flujo de login, mismo criterio que los config loaders de
-// CIS (ver cis/src/common/auth/zitadel-auth.config.ts). Variables públicas de Vite (`VITE_*`):
+// CIS (ver cis/src/common/auth/keycloak-auth.config.ts). Variables públicas de Vite (`VITE_*`):
 // esto es una SPA, no hay secreto de cliente que proteger (PKCE, ver pkce.ts).
 export interface OidcConfig {
   issuer: string;
@@ -21,8 +21,8 @@ function requireEnv(name: string): string {
 
 export function loadOidcConfig(): OidcConfig {
   return {
-    issuer: requireEnv('VITE_ZITADEL_ISSUER'),
-    clientId: requireEnv('VITE_ZITADEL_CLIENT_ID'),
+    issuer: requireEnv('VITE_KEYCLOAK_ISSUER'),
+    clientId: requireEnv('VITE_KEYCLOAK_CLIENT_ID'),
     redirectUri: `${window.location.origin}/auth/callback`,
     cisUrl: requireEnv('VITE_CIS_URL'),
   };

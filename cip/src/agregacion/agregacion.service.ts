@@ -25,8 +25,8 @@ export type MensajeAgregacion =
     };
 
 // DOC-018 5 — orquesta que recalcular por tipo de mensaje. Deliberadamente sin manejo de
-// reintentos/idempotencia propio: BullMQ ya reintenta el job si este metodo tira, y todas las
-// escrituras de AgregacionRepository son upserts o DELETE+INSERT completos (DOC-018 5.3).
+// reintentos/idempotencia propio: pg-boss (ADR-005) ya reintenta el job si este metodo tira, y
+// todas las escrituras de AgregacionRepository son upserts o DELETE+INSERT completos (DOC-018 5.3).
 @Injectable()
 export class AgregacionService {
   constructor(

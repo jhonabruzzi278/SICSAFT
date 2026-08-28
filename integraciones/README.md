@@ -5,7 +5,9 @@ Conectores hacia sistemas externos: ERP, contabilidad, RRHH, correo, Power BI, c
 terceros. Cada integración pasa por CIS igual que cualquier otra fuente/destino externo.
 
 ## Estado
-🔲 No iniciado. Fase tardía del plan maestro (después de CORE + CIS + WEB + CIP).
+🔲 No iniciado. Fase tardía del plan maestro (después de CORE + CIS + los portales WEB
+(`ccp/`/`web_admin/`/`core/frontend/`, DOC-022) + CIP). `CON-CONTABILIDAD` tiene diseño en curso
+en una rama aparte (DOC-016), sin código todavía.
 
 ## Conectores previstos
 CON-ERP, CON-CONTABILIDAD, CON-RRHH, CON-EMAIL, CON-POWERBI, CON-RFID, CON-API.

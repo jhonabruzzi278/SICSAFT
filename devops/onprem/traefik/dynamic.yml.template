@@ -4,11 +4,11 @@
 # observabilidad en el PC del cliente).
 http:
   routers:
-    zitadel:
+    keycloak:
       rule: "Host(`id.__DOMINIO_BASE__`)"
       entryPoints:
         - web
-      service: zitadel
+      service: keycloak
     cis:
       rule: "Host(`api.__DOMINIO_BASE__`)"
       entryPoints:
@@ -38,10 +38,10 @@ http:
       service: core-frontend
 
   services:
-    zitadel:
+    keycloak:
       loadBalancer:
         servers:
-          - url: "http://zitadel:8080"
+          - url: "http://keycloak:8080"
     cis:
       loadBalancer:
         servers:

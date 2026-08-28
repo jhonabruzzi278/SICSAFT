@@ -1,7 +1,7 @@
 // Cliente del Conector QR (DOC-002) — implementación HTTP real contra CIS (TASK-007). Las 4
 // preguntas que bloqueaban esta tarea (HANDOFF-APP-QR-SICSAFT.md sección 6) ya tienen respuesta:
 // CIS expone exactamente estas 4 rutas (DOC-006), la identidad viene de un access token real de
-// Zitadel vía PKCE (ADR-002, oidc-client.ts), `correlationId` de negocio (este payload) convive
+// Keycloak vía PKCE (ADR-004, oidc-client.ts), `correlationId` de negocio (este payload) convive
 // con el header transversal `X-Correlation-Id` que CIS agrega solo, y la idempotencia es
 // idéntica a la propuesta acá (misma key + mismo payload = mismo resultado, distinto payload =
 // 409).

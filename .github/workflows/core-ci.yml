@@ -39,26 +39,17 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-      # Fase 6 (EventosOutboxModule) — sin password: `services:` de GitHub Actions no soporta
-      # pasar `--requirepass` sin una imagen custom (a diferencia de docker-compose local, que sí
-      # lo exige, ver devops/local/docker-compose.yml). Contenedor efímero del job, no expone
-      # nada real.
-      redis:
-        image: redis:7-alpine
-        ports:
-          - "6379:6379"
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     env:
       CORE_DB_HOST: localhost
       CORE_DB_PORT: "5432"
       CORE_DB_NAME: core
       CORE_DB_USER: core
       CORE_DB_PASSWORD: core
-      REDIS_URL: redis://localhost:6379
+      # ADR-005 — pg-boss (cola de eventos CORE→CIP) necesita su propia conexión Postgres, pero
+      # este job nunca corre junto con cip-ci.yml (jobs aislados, sin intercambio real de mensajes
+      # que verificar acá) — reusa el mismo Postgres efímero y credenciales de arriba, en vez de
+      # levantar una base `eventos_outbox` separada solo para CI.
+      EVENTOS_OUTBOX_DATABASE_URL: postgres://core:core@localhost:5432/core
     steps:
       - uses: actions/checkout@v4
 

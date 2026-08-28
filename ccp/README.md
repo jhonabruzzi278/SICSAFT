@@ -7,7 +7,9 @@ negociable de `CLAUDE.md`).
 
 ## Estado
 🟢 Los 6 módulos del MVP de Fase 5 implementados, RF-05/RF-06 cerrados por completo — login
-OIDC/PKCE real contra Zitadel + **Activos** (consulta + alta), **Contratos** (consulta + alta +
+OIDC/PKCE real contra Keycloak ([ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md),
+verificado en su momento contra Zitadel bajo ADR-002, ver "Desarrollo local" abajo para el estado
+real de `devops/local/`) + **Activos** (consulta + alta), **Contratos** (consulta + alta +
 cambio de estado), **Inventarios** (consulta de sesiones + detalle de escaneos), **Auditoría**
 (consulta, filtrable por usuario/operación/rango de fecha, sin filtro por organización — gap
 distinto, conocido, ver "Gaps" abajo) y **Áreas/Ubicaciones/Responsables** (alta/edición/consulta
@@ -22,8 +24,8 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
 
 **Qué existe hoy** (`src/`):
 - `lib/oidc/` — cliente OIDC authorization code + PKCE, puerto por puerto idéntico al patrón ya
-  probado en `app-qr-sicsaft/src/lib/oidc/` (mismo proyecto "CIS" en Zitadel, aplicación OIDC
-  propia `web-sicsaft`, ver `devops/local/README.md`). `sessionStorage`, no `localStorage` — el
+  probado en `app-qr-sicsaft/src/lib/oidc/` (mismo realm `sicsaft` en Keycloak, client OIDC
+  propio `web-sicsaft`, ver `devops/local/README.md`). `sessionStorage`, no `localStorage` — el
   Administrador Patrimonial re-autentica cada sesión de navegador (mayor blast radius que APP QR,
   ver `../aidlc-docs/ccp/design-artifacts/ARCHITECTURE.md` "Decisión abierta"). La segmentación por rol
   Directivo de DOC-020 (`esDirectivo()`/`esAdministradorPatrimonial()`, bifurcación en
@@ -196,7 +198,7 @@ Movimientos, QR, RFID, Reportes, Roles, Configuración, Integraciones — sigue 
 consumidor real).
 
 ## Roles previstos
-**Profesional de AFT** (nombre funcional del rol `administrador-patrimonial` de Zitadel, ver
+**Profesional de AFT** (nombre funcional del realm role `administrador-patrimonial` de Keycloak, ver
 [DOC-012 "Nomenclatura"](../seguridad/DOC-012-administrador-patrimonial.md)) es el usuario
 principal de Nivel 1 responsable de cargar y mantener la información patrimonial desde el CCP —
 activos, códigos patrimoniales, descripciones, familias/categorías, áreas, ubicaciones,
@@ -207,25 +209,31 @@ Dashboard + gestión de roles acotada a su organización.
 **Administrador del Sistema** (`administrador-sistema`, DOC-021) ya implementado — administra la
 plataforma (organizaciones, contratos, usuarios, indicadores), nunca información patrimonial; el
 Profesional de AFT, simétricamente, nunca administra la plataforma. Perfiles futuros anticipados,
-sin diseño ni rol de Zitadel todavía: Supervisor, Auditor — sin que ninguno reemplace la
+sin diseño ni realm role de Keycloak todavía: Supervisor, Auditor — sin que ninguno reemplace la
 responsabilidad de Nivel 1 del Profesional de AFT.
 
 ## Desarrollo local
-Requiere el stack de `../devops/local` corriendo (Zitadel + CIS + CORE + Postgres) y la app OIDC
-`web-sicsaft` ya creada (ver `../devops/local/README.md` "Cliente OIDC real (WEB)").
+Requiere un Keycloak con el realm `sicsaft` y el client OIDC `web-sicsaft` ya creado (ver
+`../devops/local/README.md` "Cliente OIDC real (WEB)") + CIS + CORE + Postgres.
 ```bash
 cd ccp
 npm install
-cp .env.example .env   # completar VITE_ZITADEL_CLIENT_ID con el Client ID real
+cp .env.example .env   # completar VITE_KEYCLOAK_CLIENT_ID con el Client ID real
 npm run dev            # http://localhost:5174
 ```
 
 **Dentro del stack de Docker** (en vez de `npm run dev` suelto): completar
-`WEB_VITE_ZITADEL_CLIENT_ID` en `devops/local/.env` y correr `docker compose up -d --build ccp`
+`WEB_VITE_KEYCLOAK_CLIENT_ID` en `devops/local/.env` y correr `docker compose up -d --build ccp`
 desde `devops/local/` — sirve el build de producción vía nginx en
 `http://ccp.sicsaft.localhost` (Traefik, `devops/local/traefik/dynamic.yml`). Como Vite incrusta
-las `VITE_*` en build time, cambiar `WEB_VITE_ZITADEL_CLIENT_ID` exige reconstruir la imagen
+las `VITE_*` en build time, cambiar `WEB_VITE_KEYCLOAK_CLIENT_ID` exige reconstruir la imagen
 (`docker compose build ccp`), no solo reiniciar el contenedor.
+
+**Nota (2026-08-26)**: `devops/local/docker-compose.yml` todavía no migró a Keycloak
+([ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) Fase 1 solo cubrió `cis/`) —
+hoy el stack de Docker Compose sigue levantando Zitadel, no Keycloak, así que el flujo "Dentro del
+stack de Docker" de arriba queda temporalmente inconsistente (`cis/` y `ccp/` ya esperan Keycloak,
+`devops/local/` todavía no lo sirve) hasta que esa fase se complete.
 
 ## Depende de
 CORE (escritura oficial de `Activo`/`Contrato`/`Area`/`Ubicacion`/`Responsable`, Fases 4/5 — ✅) y
@@ -243,6 +251,11 @@ rol (Rol × Módulo × Acción), extraída de los guards reales de CIS/CORE; con
 este portal solo linkea a módulos donde `administrador-patrimonial` tiene una acción real.
 [`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
 — contrato de escritura oficial que `POST /admin/activos` y `POST/PATCH /admin/contratos` exponen.
+[DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) — bitácora
+de bugs reales. Los que tocaron `ccp/`: `new URL('/protocol/...', issuer)` descartando
+`/realms/sicsaft` (BUG-09), y `getCurrentOperatorDisplayName` mostrando el correo duplicado por
+usar `claims.name` en vez de `preferred_username` (BUG-43). Ambos salieron cuando `sicsaft-core`
+embebió este portal por primera vez.
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 8 (WEB y APP QR son clientes intercambiables
 del mismo contrato de CIS/CORE).
 
@@ -277,7 +290,7 @@ WEB). Lo que queda:
 
 ✅ e2e Playwright del flujo de login + alta (`tests/login-alta.spec.js`) — mismo patrón que
 `app-qr-sicsaft/tests/` (MSW mockea CIS en modo `VITE_MOCK_API=true`, `.env.e2e`; el redirect real
-a Zitadel se salta sembrando `sessionStorage` con un JWT sin firmar, `tests/helpers.js`
+a Keycloak se salta sembrando `sessionStorage` con un JWT sin firmar, `tests/helpers.js`
 `seedAuth()` — CIS es quien valida de verdad server-side, el cliente solo mira si hay tokens
 guardados). Cubre: operador sin sesión redirigido a `/login`, y login + alta de Activo visible de
 inmediato en el mismo catálogo (RF-08). Corre en CI (`ccp-ci.yml`) y local con `npm run test:e2e`.

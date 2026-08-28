@@ -13,11 +13,11 @@ COPY . .
 # incrusta en el bundle en build time, no en runtime, asi que tienen que llegar como build args
 # (ver devops/local/docker-compose.yml, servicio `core-frontend`) y no como ENV del contenedor
 # final.
-ARG VITE_ZITADEL_ISSUER
-ARG VITE_ZITADEL_CLIENT_ID
+ARG VITE_KEYCLOAK_ISSUER
+ARG VITE_KEYCLOAK_CLIENT_ID
 ARG VITE_CIS_URL
-ENV VITE_ZITADEL_ISSUER=${VITE_ZITADEL_ISSUER} \
-    VITE_ZITADEL_CLIENT_ID=${VITE_ZITADEL_CLIENT_ID} \
+ENV VITE_KEYCLOAK_ISSUER=${VITE_KEYCLOAK_ISSUER} \
+    VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID} \
     VITE_CIS_URL=${VITE_CIS_URL}
 RUN npm run build
 

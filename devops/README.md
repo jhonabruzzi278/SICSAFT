@@ -5,7 +5,7 @@ Capacidad transversal de infraestructura, CI/CD, seguridad operacional y observa
 todos los sistemas del ecosistema (APP QR, CIS, CORE, WEB, CIP, RFID, Integraciones).
 
 ## Estado
-🟡 Stack local funcionando (`devops/local/`: Traefik + Postgres + Redis + Zitadel + los 5 sistemas
+🟡 Stack local funcionando (`devops/local/`: Traefik + Postgres + Zitadel + los 5 sistemas
 + observabilidad self-hosted en Docker Compose, ver su README para cómo levantarlo). Observabilidad
 (2026-08-19): Prometheus (métricas de host y contenedores) + Loki/Promtail (logs de todos los
 contenedores) + Grafana (dashboards provisionados solos) — equivalente self-hosted a
@@ -24,10 +24,12 @@ ver [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) y
 también se vende como instalación aislada por cliente (Nivel 1/Nivel 2, portal de precios propio
 del negocio) — [`devops/onprem/docker-compose.yml`](onprem/docker-compose.yml) levanta un tenant
 completo en el PC/servidor del cliente sobre **Podman** (no Docker Desktop, decisión de recursos),
-más [`devops/onprem/bootstrap-zitadel.ps1`](onprem/bootstrap-zitadel.ps1) para automatizar el alta
-de cada cliente contra Zitadel sin pasos manuales en su dashboard. Nivel 3 (RFID) documentado como
-gancho, sin implementación (`rfid/` no tiene código todavía). Empaquetado como instalador `.exe`
-real: pendiente, ver `devops/onprem/README.md` "Qué falta para el instalador `.exe` empaquetado".
+más [`devops/onprem/bootstrap-keycloak.ps1`](onprem/bootstrap-keycloak.ps1) para automatizar el
+alta de cada cliente contra Keycloak sin pasos manuales en su Console (ADR-004 Fase 3, 2026-08-26 —
+`devops/onprem/` reemplazó a Zitadel por Keycloak; `local/`/`prod/`, abajo, todavía no migraron).
+Nivel 3 (RFID) documentado como gancho, sin implementación (`rfid/` no tiene código todavía).
+Empaquetado como instalador `.exe` real: pendiente, ver `devops/onprem/README.md` "Qué falta para
+el instalador `.exe` empaquetado".
 
 ## Modelo de despliegue: VPS propio, Docker Compose orquestado por Coolify
 El usuario administra su propio VPS (no una plataforma gestionada tipo Vercel/Render para
@@ -52,9 +54,10 @@ devops/
 │   ├── .env.example                # variables a cargar en el panel de Coolify (sin valores reales)
 │   └── README.md                   # despliegue + histórico de la decisión SOPS+age
 └── onprem/                         # instalación aislada por cliente — ver devops/onprem/README.md
-    ├── docker-compose.yml          # subconjunto de local/, Compose profiles nivel1/nivel2, sin
-    │                                # observabilidad/k6/cip, pensado para podman-compose
-    ├── bootstrap-zitadel.ps1       # automatiza el alta de un cliente contra Zitadel
+    ├── docker-compose.yml          # subconjunto de local/, Compose profile nivel2, sin
+    │                                # observabilidad/k6, pensado para podman-compose (CIP SÍ entra,
+    │                                # a diferencia de la nota vieja de esta misma línea)
+    ├── bootstrap-keycloak.ps1      # automatiza el alta de un cliente contra Keycloak (ADR-004 F3)
     ├── traefik/, postgres/         # copias propias, autocontenidas (mismo criterio que prod/)
     └── .env.example
 ```
@@ -104,7 +107,7 @@ deploy automático al VPS todavía no exista:
 ```
 lint + type-check
   → unit tests
-    → integration tests (Testcontainers: Postgres/Redis reales en contenedor, no mocks)
+    → integration tests (Testcontainers: Postgres real en contenedor, no mocks)
       → SAST (Semgrep) + secret scan (gitleaks) + dependency scan (npm audit / Trivy)
         → build de imagen Docker (multi-stage)
           → scan de imagen (Trivy)
@@ -168,7 +171,14 @@ APP QR (hoy en Vercel).
 ## Documentos relacionados
 [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) — pilar de Excelencia Operacional (2) y de
 Seguridad (3). [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack).
-[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (identidad/SSO/dominios).
+[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (modelo Organización→Contrato→Sede,
+flujo de login — **reemplazada en el proveedor por [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)**:
+`devops/onprem/` ya está en Keycloak, `devops/local/` y `devops/prod/` siguen en Zitadel).
+[DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) — bitácora
+de bugs reales de la migración a Keycloak. Los que tocaron `devops/onprem/`: dominios `.test` que
+no son secure context y rompían PKCE (BUG-08, el hallazgo que disparó `sicsaft-core.exe`),
+`Invoke-WebRequest` sin `-UseBasicParsing` en modo no interactivo (BUG-06), y un `.psm1` que no
+hereda `$ErrorActionPreference` del script que lo importa (BUG-07).
 [`devops/prod/README.md`](prod/README.md) (gestión de secretos, SOPS + age).
 
 ## Próximo paso sugerido

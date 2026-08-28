@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { oidcClient } from '@/lib/oidc/oidc-client';
 import { Alert, Button, Card } from '@/components/ui';
 
-// Destino del redirect_uri configurado en la app OIDC `web-sicsaft` de Zitadel — ver
+// Destino del redirect_uri configurado en el client OIDC `web-sicsaft` de Keycloak — ver
 // devops/local/README.md "Cliente OIDC real (WEB)". Canjea el `code` por tokens y vuelve al hub.
 export function AuthCallbackPage() {
   const location = useLocation();

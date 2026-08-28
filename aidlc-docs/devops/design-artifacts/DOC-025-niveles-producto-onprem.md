@@ -7,12 +7,20 @@ Documento citable desde otros DOC-XXX del repo, mismo esquema que DOC-002/004/00
 > cliente de negocio. Reemplaza la versión anterior de este documento (Nivel 1 sin portal web,
 > los 3 portales juntos recién en Nivel 2) — ver historial de git para la versión previa si hace
 > falta reconstruir una instalación vieja.
+>
+> **Excepción 2026-08-28 (`sicsaft-core.exe` específicamente)**: el camino de instalación de
+> escritorio ([`aidlc-docs/sicsaft-core/`](../../sicsaft-core/requirements/REQUIREMENTS.md)
+> CORE-RF-04) embebe `ccp` completo para el Profesional de AFT sin condicionarlo al nivel
+> contratado — decisión explícita del usuario, tomada porque el "web-aft" liviano de Nivel 1 de
+> abajo sigue sin una sola línea de código y `ccp` ya existe, probado de punta a punta. Esta
+> excepción aplica **solo** a `sicsaft-core.exe` — el modelo de niveles de `devops/onprem/`
+> (Compose profiles) de este documento sigue sin cambios para ese camino de instalación.
 
 ## 1. Los 3 niveles (modelo de precios del usuario)
 
 | Nivel | Qué incluye | Servicios concretos del monorepo |
 |---|---|---|
-| **Nivel 1** | APP QR SICSAFT (única fuente de captura) + SICSAFT CORE + Base Patrimonial Central + CIS + portal Directivo + portal Administrador del Sistema + CIP (BI/dashboards) | `postgres`, `redis`, `zitadel`, `core` (con `core-migrate`), `cis`, `app-qr-sicsaft`, `core-frontend` (Directivo), `web-admin` (Administrador del Sistema), `cip` (con `cip-migrate`) |
+| **Nivel 1** | APP QR SICSAFT (única fuente de captura) + SICSAFT CORE + Base Patrimonial Central + CIS + portal Directivo + portal Administrador del Sistema + CIP (BI/dashboards) | `postgres`, `keycloak` (ADR-004 Fase 3, reemplaza a `zitadel`), `core` (con `core-migrate`), `cis`, `app-qr-sicsaft`, `core-frontend` (Directivo), `web-admin` (Administrador del Sistema), `cip` (con `cip-migrate`) — sin `redis` desde [ADR-005](../../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md) |
 | **Nivel 2** | Nivel 1 + CCP (Centro de Control Patrimonial, portal **completo** de Profesional de AFT) | Nivel 1 + `ccp` |
 | **Nivel 3** | Nivel 2 + integración RFID, conectada a CIS preservando la independencia tecnológica de CORE | Nivel 2 + `rfid/` — **🔲 no iniciado, sin código que empaquetar (ver `ROADMAP.md`)** |
 
@@ -67,14 +75,21 @@ de este documento — hoy el nivel lo decide qué se instaló, no un flag que el
 > `docker-compose.yml` antes de esta fecha) y pasa a hablarle al `cip` real de esta misma
 > instalación.
 
-## 4. Relación con `ADR-002` (Zitadel multi-tenant)
+## 4. Relación con `ADR-004` (Keycloak, reemplaza a `ADR-002`/Zitadel)
 
-`ADR-002` diseñó Zitadel para multi-tenant **dentro de un mismo VPS** (`ZITADEL_ORG_ID_MAP`,
-varias Organizaciones en una sola instancia de Zitadel). El modelo on-premise de este documento es
-distinto: **una instancia de Zitadel completa por cliente**, no una Organización más dentro de una
-instancia compartida. No contradice `ADR-002` — es un modelo de despliegue paralelo (VPS
-compartido vs. instalación aislada), ambos coexisten como opciones de venta distintas, no se
-reemplaza uno por otro.
+> **Nota histórica**: esta sección originalmente describía la relación con `ADR-002` (Zitadel
+> multi-tenant) — `ADR-004` (2026-08-26) reemplazó a Zitadel por Keycloak en todo el ecosistema
+> (Fase 3 de esa migración es justamente `devops/onprem/`, ver `ARCHITECTURE.md`). El razonamiento
+> de esta sección sigue aplicando igual, solo cambia el IdP concreto.
+
+`ADR-004` diseñó Keycloak para multi-tenant **dentro de un mismo realm compartido**
+(`devops/local/`/`devops/prod/`: varias Organizations de Keycloak en un único realm `sicsaft`,
+reemplazo directo del modelo de varias Organizaciones de Zitadel en una instancia compartida que
+usaba `ADR-002`). El modelo on-premise de este documento es distinto: **una instancia de Keycloak
+completa por cliente**, con un único realm `sicsaft` y una sola Organization activa — no una
+Organization más dentro de una instancia compartida. No contradice `ADR-004` — es un modelo de
+despliegue paralelo (VPS compartido vs. instalación aislada), ambos coexisten como opciones de
+venta distintas, no se reemplaza uno por otro.
 
 ## 5. Justificación de negocio por nivel
 

@@ -155,15 +155,17 @@ filtra los tipos relevantes para CIP (`alta`, `escaneo_qr`, `mantenimiento`, `in
 `reincorporacion`, `traslado` — ver
 [DOC-014](../aidlc-docs/cip/design-artifacts/DOC-014-cip-dashboard.md) 1/3).
 `EventosOutboxDispatcher` (polling cada 5s, `@nestjs/schedule`) agrupa los `escaneo_qr` de una
-misma sesión en un solo mensaje `sesion-cerrada` antes de publicar a la cola Redis/BullMQ
-`cip-eventos` (primer consumidor real de colas del ecosistema, ADR-001 ya lo declaraba sin uso) —
-y solo marca `publicado` lo que realmente llegó a la cola, así que si Redis está caído
-`POST /inventarios` sigue respondiendo normal y los eventos quedan pendientes para el próximo
-ciclo (RNF-03 de DOC-014), sin perderlos. Verificado real de punta a punta: `docker exec` con un
-`POST /inventarios` contra el contenedor `core` corriendo en `devops/local/docker-compose.yml`,
-confirmando la fila en `eventos_outbox` (`publicado = true`) y el job aparecido en
-`bull:cip-eventos:*` de Redis — no solo con mocks. Unit 100% stmts/lines/funcs + e2e reales contra
-Postgres. **Segundo incremento (mismo día) — completo**: migración `1755600000000` agrega
+misma sesión en un solo mensaje `sesion-cerrada` antes de publicar a la cola `cip-eventos` — vía
+[`pg-boss`](https://github.com/timgit/pg-boss) desde **ADR-005** (2026-08-27, reemplaza a Redis/
+BullMQ en todo el ecosistema — ver `adr/ADR-005-postgres-pgboss-reemplaza-redis.md`), sobre una
+base Postgres dedicada (`EVENTOS_OUTBOX_DATABASE_URL`, separada de la base `core` a propósito,
+RNF-01/RNF-05) que comparte con `cip/`. Solo marca `publicado` lo que realmente llegó a la cola,
+así que si esa base está caída `POST /inventarios` sigue respondiendo normal y los eventos quedan
+pendientes para el próximo ciclo (RNF-03 de DOC-014), sin perderlos. Verificado real de punta a
+punta: `docker exec` con un `POST /inventarios` contra el contenedor `core` corriendo en
+`devops/local/docker-compose.yml`, confirmando la fila en `eventos_outbox` (`publicado = true`) y
+el job encontrable con `boss.findJobs('cip-eventos', ...)` — no solo con mocks. Unit 100%
+stmts/lines/funcs + e2e reales contra Postgres. **Segundo incremento (mismo día) — completo**: migración `1755600000000` agrega
 `eventos_outbox.organizacion_id` (resuelto por el trigger vía `LEFT JOIN` contra `activos` — el
 worker de CIP la necesita y no puede leer la base `core` directamente, RNF-01) y `ActivoCatalogo`
 (`GET /catalogo`) gana `familia` (extensión aditiva, no rompe a WEB) — ambas encontradas al

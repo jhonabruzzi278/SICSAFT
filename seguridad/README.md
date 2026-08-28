@@ -1,18 +1,26 @@
 # Seguridad / Identidad / Permisos SICSAFT (capacidad transversal — SEC)
 
 ## Objetivo
-No es un sistema aislado: es una capa transversal que atraviesa CIS, CORE, WEB y toda fuente de
-captura. Modelo: Usuario → Organización → Contrato (vigencia, módulos, sedes cubiertas) → Sede/
-Área → Rol → Permisos → Acción — ver [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md)
-para el porqué de agregar "Contrato" al modelo original.
+No es un sistema aislado: es una capa transversal que atraviesa CIS, CORE, los tres portales WEB
+y toda fuente de captura. Modelo: Usuario → Organización → Contrato (vigencia, módulos, sedes
+cubiertas) → Sede/Área → Rol → Permisos → Acción — ver
+[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) para el porqué de agregar "Contrato"
+al modelo original. El **proveedor** de identidad cambió de Zitadel a Keycloak self-hosted
+([ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md), 2026-08-27, porque Zitadel no
+publica binario nativo de Windows y la instalación on-premise sin Docker/WSL2 — `sicsaft-core.exe`
+— lo necesita); el modelo Organización→Contrato→Sede no cambió.
 
 ## Estado
-🟡 Mecanismo de identidad decidido **e implementado en CIS**: Zitadel, self-hosted, OIDC/OAuth2 —
-ver [ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md). `cis/src/common/auth/` valida
-tokens Zitadel reales (firma/JWKS, `iss`, `aud`, vencimiento) en los 4 endpoints del Conector QR
-mock — ya no está bloqueado por la pregunta de "qué mecanismo de auth" (una de las 4 preguntas
-abiertas del handoff de APP QR queda respondida a nivel de mecanismo). El modelo de dominio de
-`Contrato` también está documentado **e implementado sobre Postgres real**:
+🟡 Mecanismo de identidad decidido **e implementado en CIS**: **Keycloak** self-hosted, OIDC/OAuth2
+(realm `sicsaft`, Organizations habilitado) — ver
+[ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) (reemplaza a ADR-002 en el
+proveedor). `cis/src/common/auth/` (`KeycloakAuthGuard`) valida tokens de Keycloak reales
+(firma/JWKS, `iss`, `aud`, vencimiento) y resuelve `rolesPorOrganizacion` vía
+`cis/src/keycloak-admin/` (`KeycloakAdminService`, grupos `{organizacionId}::{rol}` con caché
+corta) — los realm roles de Keycloak son una lista plana global por usuario, no un claim anidado
+por organización como el de Zitadel (DOC-027 BUG-02), así que la organización no viaja en el JWT
+del cliente, se resuelve server-side. El modelo de dominio de `Contrato` también está documentado
+**e implementado sobre Postgres real**:
 [`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md) +
 `core/src/entitlements/` sirviendo `GET /entitlements` contra la base `core` (esquema versionado
 en `core/migrations/`), ya consumido por CIS en `auth/session`
@@ -22,7 +30,7 @@ constante, CIS es el único llamador válido). Lo que sigue sin resolver: `sedeI
 contrato con **datos reales de negocio** (la base `core` hoy solo tiene el caso DUOC UC/Melipilla
 precargado y no hay mapeo operador→organización — cualquier operador ve el mismo resultado hoy,
 ver DOC-004 7). El token del operador solo trae `sub`/identidad, no sede — coincide con ADR-002
-"Punto de validación": eso se resuelve en CORE, no en el token.
+"Punto de validación" (vigente bajo ADR-004): eso se resuelve en CORE, no en el token.
 
 ## Permisos previstos
 Consultar, crear, modificar, eliminar, autorizar, exportar, administrar, configurar — bajo
@@ -30,8 +38,8 @@ principio de mínimo privilegio necesario.
 
 ### Rol ✅ implementado: Administrador Patrimonial (Tomo III 1.4, Entrada 4) — nombre funcional: Profesional de AFT
 El tomo oficial define un rol que hasta la Fase 4 no existía en ningún sistema del ecosistema: el
-**Administrador Patrimonial** (`administrador-patrimonial` es el nombre técnico del rol de
-Zitadel; **Profesional de AFT** es el nombre funcional/oficial con el que el negocio identifica a
+**Administrador Patrimonial** (`administrador-patrimonial` es el nombre técnico del realm role de
+Keycloak; **Profesional de AFT** es el nombre funcional/oficial con el que el negocio identifica a
 quien lo ejerce — ver [DOC-012 "Nomenclatura"](DOC-012-administrador-patrimonial.md)), el único
 autorizado a modificar oficialmente la Base Patrimonial
 (incorporar/eliminar activos, modificar responsables/áreas, actualizar estados oficiales,
@@ -39,10 +47,11 @@ importar bases contables). Ninguna otra entrada (APP QR, Plataforma WEB, RFID) p
 directamente — ver [ARQUITECTURA-WAF.md 11](../ARQUITECTURA-WAF.md#11-entradas-y-salidas-oficiales-del-ecosistema-tomo-iii-cap1)
 para la matriz completa de permisos por entrada. Diseño completo en
 [DOC-012](DOC-012-administrador-patrimonial.md). **Ya implementado, las 3 operaciones que Tomo
-III 1.4 le exige**: rol de Proyecto en Zitadel, claim
-`urn:zitadel:iam:org:project:roles` leído por `ZitadelAuthGuard` en CIS y reenviado como
-`rolesPorOrganizacion` (nunca una lista plana sin organización — corrige un hallazgo real de
-revisión de seguridad), autorización verificada en CORE por organización dentro de
+III 1.4 le exige**: realm role de Keycloak, resuelto por `KeycloakAuthGuard` en CIS vía
+`KeycloakAdminService` (grupos `{organizacionId}::{rol}`) y expuesto como `rolesPorOrganizacion`
+(nunca una lista plana sin organización — corrige un hallazgo real de revisión de seguridad;
+bajo Zitadel esto venía en el claim `urn:zitadel:iam:org:project:roles`, con Keycloak lo resuelve
+el guard, DOC-027 BUG-02), autorización verificada en CORE por organización dentro de
 `OrquestadorService`, los 4 endpoints de escritura de `Activo` (alta/baja/reincorporación/
 cambio de responsable, `core/src/patrimonial/activo-escritura.controller.ts`), importación masiva
 idempotente por fila de base contable (`POST /importaciones/contable`,
@@ -53,7 +62,7 @@ escritura de `Contrato` (`POST /contratos`, `PATCH /contratos/:id`,
 Configurar) — sin consumidor real hasta que WEB (Fase 5) tenga su propio ABM.
 
 ### Rol ✅ implementado: Administrador del Sistema (DOC-021, sin fuente en un tomo — vision del usuario 2026-08-18)
-Segundo rol de Proyecto en Zitadel (`administrador-sistema`), administra la **plataforma**
+Segundo realm role de Keycloak (`administrador-sistema`), administra la **plataforma**
 (organizaciones, contratos además del Profesional de AFT, usuarios, indicadores) — nunca
 información patrimonial (Activos/Catálogo/Documentos siguen exclusivos de
 `administrador-patrimonial`, y simétricamente el Profesional de AFT nunca administra la
@@ -66,16 +75,21 @@ extraído a su propio portal (`web_admin/`) por
 Orquestador de CORE — `verificarRolEnCualquierOrganizacion`, DOC-022 2, no una organización
 puntual como el resto de las escrituras oficiales) y `GET/POST /organizaciones/:orgId/usuarios`
 (guard normal de CIS, `AdministradorSistemaGuard` — no pasa por CORE, es gestión de identidad en
-Zitadel, no información patrimonial auditable por Tomo IV). `POST/PATCH /contratos` generalizado
-para aceptar este rol además de `administrador-patrimonial` (Tomo III 1.4 no le quita esa
-capacidad al Profesional de AFT). Integración real con la API de administración de Zitadel para
-asignar usuarios — `cis/src/zitadel-admin/`, **verificada real contra una instancia de Zitadel el
-2026-08-19** (DOC-022 4): corrigió dos bugs genuinos que la documentación pública no revelaba
+el proveedor de identidad, no información patrimonial auditable por Tomo IV). `POST/PATCH /contratos`
+generalizado para aceptar este rol además de `administrador-patrimonial` (Tomo III 1.4 no le quita
+esa capacidad al Profesional de AFT). Integración real con la Admin REST API para asignar usuarios
+— hoy `cis/src/keycloak-admin/` (`KeycloakAdminService`, ADR-004 Fase 1). La versión Zitadel de
+esto (`cis/src/zitadel-admin/`, **verificada real contra Zitadel v2.65 el 2026-08-19**, DOC-022 4)
+corrigió en su momento dos bugs de la API de Zitadel que la documentación pública no revelaba
 (`listarGrants` pedía un filtro de organización que la API real no tiene; `crearGrant` no sabía
-sumar un rol a un usuario que ya tenía otro rol en el mismo proyecto) — ver `cis/README.md`.
+sumar un rol a un usuario que ya tenía otro rol en el mismo proyecto) — ese módulo ya no existe,
+pero la lógica de negocio se portó tal cual a `keycloak-admin/`. El equivalente de Keycloak trajo
+sus propios hallazgos: `POST /organizations/{id}/members` roto en Keycloak 26.0.0-26.0.5 y luego
+exigiendo string JSON con comillas + `Content-Type` explícito (DOC-027 BUG-25/26) — ver
+`cis/README.md`.
 
 ### Rol ✅ implementado: Directivo (DOC-020, reestructurado por DOC-022 3/4 el 2026-08-19)
-Tercer rol de Proyecto en Zitadel (`directivo`) — el de **mayor privilegio a nivel de
+Tercer realm role de Keycloak (`directivo`) — el de **mayor privilegio a nivel de
 organización**: dashboard ejecutivo de solo lectura (RF-09/DOC-019) y designación de quién es el
 Profesional de AFT de su propia organización (`administrador-patrimonial`). Nunca información
 patrimonial en sí (Activos/Catálogo/Documentos exclusivos del Profesional de AFT en CCP) ni
@@ -86,23 +100,28 @@ verificado por tests**: `DirectivoGuard` (`cis/src/directivo/directivo.guard.ts`
 organizacionId de ruta o body para este rol, siempre lo deriva del propio JWT — si el rol
 `directivo` no aparece en exactamente una organización del token, rechaza con 403. Mismo enfoque
 de autorización en dos niveles que Administrador del Sistema: `GET/POST /directivo/usuarios` es
-gestión de identidad en Zitadel (guard normal de CIS, no pasa por CORE), reusando el mismo
-`ZitadelAdminService` verificado real (ver arriba). Diseño completo en
+gestión de identidad en el proveedor de identidad (guard normal de CIS, no pasa por CORE),
+reusando el mismo `KeycloakAdminService` (ver arriba). Diseño completo en
 [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
 La tercera capacidad que el usuario mencionó para este rol ("valida") queda explícitamente fuera
 de alcance — sin tomo ni definición todavía, ver DOC-022 "Fuera de alcance".
 
 ## Mapeo rol → portal → hostname (local)
 
-| Rol (Zitadel) | Nombre funcional | Portal | Hostname (local) |
+| Realm role (Keycloak) | Nombre funcional | Portal | Hostname (local) |
 |---|---|---|---|
 | `administrador-patrimonial` | Profesional de AFT | `ccp/` | `ccp.sicsaft.localhost` |
 | `administrador-sistema` | Administrador del Sistema | `web_admin/` | `admin.sicsaft.localhost` |
 | `directivo` | Directivo | `core/frontend/` | `directivo.sicsaft.localhost` |
 
 Tres portales, tres roles, tres logins — nunca uno compartido (DOC-022, regla no negociable de
-`CLAUDE.md`). Los tres son SPAs independientes contra el mismo proyecto "CIS" de Zitadel, cada uno
-con su propia Application OIDC (ver `devops/local/README.md` "Cliente OIDC real" para cada uno).
+`CLAUDE.md`). Los tres son SPAs independientes contra el mismo realm `sicsaft` de Keycloak, cada
+uno con su propio client OIDC público con PKCE (ver `devops/local/README.md` "Cliente OIDC real"
+para cada uno). **Excepción — `sicsaft-core.exe`** (CORE-RF-04): la app de escritorio embebe `ccp`
+y `core/frontend` detrás de **un** login embebido (el formulario real de Keycloak en una
+`WebContentsView`) que lee `realm_access.roles` del JWT y muestra el portal que corresponde —
+sigue siendo un token por portal, pero el operador tipea sus credenciales una sola vez. `web_admin`
+no se embebe. Ver [DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) §F.
 
 ## Capacidades previstas
 Autenticación, refresh/expiración de sesión, RBAC, segregación por organización, segregación
@@ -111,17 +130,23 @@ contraseña, protección de APIs, logs de acceso.
 
 ## Depende de
 Más datos reales de Base Patrimonial (hoy solo un caso precargado) y mapeo operador→organización
-(membership real de Zitadel) para que `GET /entitlements` deje de devolver el mismo resultado a
-cualquier operador — ver DOC-004 7.
+(membership real de la Organization en Keycloak) para que `GET /entitlements` deje de devolver el
+mismo resultado a cualquier operador — ver DOC-004 7.
 
 ## Bloquea
 CIS (validar `sedeId`/contrato vigente en cada request — ver ADR-002), CORE (autorización), los
 tres portales WEB (`ccp/`, `web_admin/`, `core/frontend/` — roles/permisos), APP QR (login de
-operador — TASK futura).
+operador — TASK futura), `sicsaft-core.exe` (reusa `KeycloakAdminService`/`KeycloakAuthGuard` y el
+modelo de roles por Organization tal cual, ver `aidlc-docs/sicsaft-core/`).
 
 ## Documentos relacionados
-[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (mecanismo de identidad, modelo
-Organización→Contrato→Sede, flujo de login).
+[ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) (proveedor de identidad actual:
+Keycloak self-hosted; reemplaza a ADR-002 en el proveedor, no en el modelo).
+[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (modelo Organización→Contrato→Sede,
+flujo de login — vigente; el proveedor Zitadel que describe fue reemplazado por ADR-004).
+[DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) — bitácora
+de bugs reales de la migración a Keycloak (realm roles globales no anidados, Admin API con
+comportamientos no documentados, secure context y armado de URLs OIDC).
 [`base-patrimonial/DOC-004-modelo-contrato.md`](../base-patrimonial/DOC-004-modelo-contrato.md)
 (modelo de `Contrato` — entidades, estados, invariantes, cómo lo consume CIS).
 [DOC-012](DOC-012-administrador-patrimonial.md) — diseño del rol Administrador Patrimonial y el

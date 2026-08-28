@@ -1,7 +1,7 @@
 # SICSAFT — entorno local (Docker Compose)
 
-Réplica local de la base de infraestructura del VPS (Traefik + Postgres + Redis + Zitadel + CIS +
-CORE), para probar todo antes de tocar producción. Ver [`../README.md`](../README.md) para el plan completo
+Réplica local de la base de infraestructura del VPS (Traefik + Postgres + Zitadel + CIS + CORE),
+para probar todo antes de tocar producción. Ver [`../README.md`](../README.md) para el plan completo
 (dominios reales, CI/CD, DevSecOps) y [`../../adr/ADR-002-identidad-zitadel-multi-tenant.md`](../../adr/ADR-002-identidad-zitadel-multi-tenant.md)
 para el porqué de Zitadel.
 

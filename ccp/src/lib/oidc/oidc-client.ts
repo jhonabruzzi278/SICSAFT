@@ -1,6 +1,6 @@
-// Cliente OIDC — authorization code + PKCE contra Zitadel (ADR-002), mismo mecanismo probado
+// Cliente OIDC — authorization code + PKCE contra Keycloak (ADR-004, reemplaza a ADR-002), mismo mecanismo probado
 // real de punta a punta en app-qr-sicsaft/src/lib/oidc/oidc-client.ts (TASK-007). WEB reusa el
-// mismo proyecto "CIS" en Zitadel con una Aplicacion OIDC propia (`web-sicsaft`, User Agent,
+// mismo proyecto "CIS" en Keycloak con una Aplicacion OIDC propia (`web-sicsaft`, User Agent,
 // PKCE) — ver devops/local/README.md "Cliente OIDC real (WEB)".
 import {
   generateCodeChallenge,
@@ -19,6 +19,16 @@ import {
   type StoredTokens,
 } from './token-store';
 
+// Bug real encontrado 2026-08-28 (mismo que ya se había arreglado en app-qr-sicsaft/src/lib/oidc/
+// oidc-client.ts) -- new URL('/path', issuer) con slash inicial descarta el path del issuer
+// (`/realms/sicsaft`) porque una ruta absoluta reemplaza el path completo de la base, no lo
+// extiende. Keycloak devuelve "Page not found" contra `<host>/protocol/openid-connect/auth` en
+// vez de `<host>/realms/sicsaft/protocol/openid-connect/auth`. Se arregla con un path relativo
+// (sin slash inicial) contra el issuer normalizado con slash final.
+function endpointUrl(issuer: string, path: string): URL {
+  return new URL(path, `${issuer.replace(/\/$/, '')}/`);
+}
+
 export class AuthenticationRequiredError extends Error {
   constructor() {
     super('Se requiere iniciar sesión');
@@ -27,7 +37,7 @@ export class AuthenticationRequiredError extends Error {
 }
 
 // offline_access: refresh token explicito, mismo criterio que app-qr-sicsaft (requiere el scope
-// habilitado en la app OIDC de Zitadel).
+// habilitado en la app OIDC de Keycloak).
 const OIDC_SCOPE = 'openid profile offline_access';
 const TOKEN_EXPIRY_SAFETY_MARGIN_MS = 30_000;
 
@@ -44,7 +54,7 @@ function tokensFromResponse(
   const refreshToken = response.refresh_token ?? fallbackRefreshToken;
   if (!refreshToken) {
     throw new Error(
-      'Zitadel no devolvió refresh_token — falta el scope offline_access o no está habilitado en la app OIDC.',
+      'Keycloak no devolvió refresh_token — falta el scope offline_access o no está habilitado en la app OIDC.',
     );
   }
   return {
@@ -58,13 +68,18 @@ async function postTokenEndpoint(
   body: URLSearchParams,
 ): Promise<TokenResponse> {
   const config = loadOidcConfig();
-  const res = await fetch(new URL('/oauth/v2/token', config.issuer), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  });
+  const res = await fetch(
+    endpointUrl(config.issuer, 'protocol/openid-connect/token'),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    },
+  );
   if (!res.ok) {
-    throw new Error(`Zitadel devolvió ${res.status} en /oauth/v2/token`);
+    throw new Error(
+      `Keycloak devolvió ${res.status} en /protocol/openid-connect/token`,
+    );
   }
   return (await res.json()) as TokenResponse;
 }
@@ -76,7 +91,7 @@ async function startLogin(): Promise<void> {
   const state = generateState();
   savePendingPkce({ codeVerifier, state });
 
-  const url = new URL('/oauth/v2/authorize', config.issuer);
+  const url = endpointUrl(config.issuer, 'protocol/openid-connect/auth');
   url.searchParams.set('client_id', config.clientId);
   url.searchParams.set('redirect_uri', config.redirectUri);
   url.searchParams.set('response_type', 'code');
@@ -94,7 +109,7 @@ async function handleCallback(searchParams: URLSearchParams): Promise<void> {
   clearPendingPkce();
 
   if (oauthError) {
-    throw new Error(`Zitadel rechazó el login: ${oauthError}`);
+    throw new Error(`Keycloak rechazó el login: ${oauthError}`);
   }
 
   const code = searchParams.get('code');
@@ -161,7 +176,15 @@ function getCurrentOperatorDisplayName(): string | null {
   const tokens = loadTokens();
   if (!tokens) return null;
   const claims = decodeJwtClaims(tokens.accessToken);
-  const name = claims?.name ?? claims?.preferred_username ?? claims?.sub;
+  // preferred_username primero, no `name` -- bug real encontrado 2026-08-28: los usuarios que
+  // crea este ecosistema (crearUsuarioHuman en cis/, crearUsuarioDirector en sicsaft-core/) mandan
+  // firstName=lastName=email a Keycloak a propósito (Keycloak exige ambos campos no vacíos para
+  // dejar loguear, ver el comentario de Gap 3 en
+  // cis/src/keycloak-admin/keycloak-admin.service.ts) -- el mapper "full name" de Keycloak arma
+  // `name` como `"${firstName} ${lastName}"`, así que con este dato queda el correo duplicado
+  // ("x@y.com x@y.com"). `preferred_username` es un solo valor (el username, que acá siempre es
+  // el email) y no tiene ese problema.
+  const name = claims?.preferred_username ?? claims?.name ?? claims?.sub;
   return typeof name === 'string' ? name : null;
 }
 

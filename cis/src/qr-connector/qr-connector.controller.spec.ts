@@ -5,10 +5,10 @@ import type { Request } from 'express';
 import { QrConnectorController } from './qr-connector.controller';
 import { QrConnectorService } from './qr-connector.service';
 import {
-  ZitadelAuthGuard,
+  KeycloakAuthGuard,
   type AuthenticatedRequest,
-  type ZitadelAuthContext,
-} from '../common/auth/zitadel-auth.guard';
+  type KeycloakAuthContext,
+} from '../common/auth/keycloak-auth.guard';
 import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import {
   AuthSessionResponse,
@@ -21,7 +21,7 @@ import type { RequestWithCorrelationId } from '../common/correlation-id/correlat
 const CORRELATION_ID = 'correlation-test';
 
 function buildAuthenticatedRequest(
-  auth: ZitadelAuthContext,
+  auth: KeycloakAuthContext,
 ): AuthenticatedRequest & RequestWithCorrelationId {
   return { auth, correlationId: CORRELATION_ID } as AuthenticatedRequest &
     RequestWithCorrelationId &
@@ -51,9 +51,9 @@ describe('QrConnectorController', () => {
     })
       // El controller no ejecuta los guards en estos tests (se llaman los metodos directo, sin
       // HTTP) — se sobreescriben igual porque Nest resuelve sus dependencias al armar el modulo
-      // aunque nunca corra canActivate (ZitadelAuthGuard necesita JWKS/config, RateLimitGuard
-      // necesita un cliente Redis).
-      .overrideGuard(ZitadelAuthGuard)
+      // aunque nunca corra canActivate (KeycloakAuthGuard necesita JWKS/config, RateLimitGuard
+      // necesita RATE_LIMIT_OPTIONS).
+      .overrideGuard(KeycloakAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RateLimitGuard)
       .useValue({ canActivate: () => true })
@@ -72,9 +72,9 @@ describe('QrConnectorController', () => {
     service.authSession.mockResolvedValue(expected);
 
     const body = { deviceId: 'd-1' };
-    const auth: ZitadelAuthContext = {
+    const auth: KeycloakAuthContext = {
       operadorId: 'op-1',
-      accessToken: 'zitadel-token',
+      accessToken: 'keycloak-token',
       expiresAt: '2026-08-12T10:15:00.000Z',
       rolesPorOrganizacion: {},
     };

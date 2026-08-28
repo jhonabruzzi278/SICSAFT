@@ -63,6 +63,18 @@ function Sidebar() {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  // Bug real encontrado 2026-08-28: oidcClient.isAuthenticated() lee un valor no-reactivo
+  // (localStorage/sessionStorage vía token-store.ts) directo durante el render. AppShell envuelve
+  // <Routes> en App.tsx -- cuando AuthCallbackPage navega de /auth/callback a "/" con
+  // navigate({replace:true}) (client-side, sin recargar la página), react-router re-renderiza la
+  // página de destino pero NO a AppShell (sus props no cambiaron), así que `authenticated` se
+  // queda con el valor `false` calculado en el primer render, antes de que el login terminara --
+  // la sidebar y "Cerrar sesión" desaparecen aunque el usuario ya esté logueado (el contenido de
+  // la página sí se actualiza porque hace sus propios fetches). useLocation() suscribe a AppShell
+  // al location del router -- se vuelve a renderizar en cada navegación y recalcula
+  // isAuthenticated() con el valor real. Mismo mecanismo que ya tiene ccp/AppShell.tsx por
+  // useSearchParams() (que usa useLocation() por debajo), ahí de casualidad.
+  useLocation();
   const authenticated = oidcClient.isAuthenticated();
   const nombre = oidcClient.getCurrentOperatorDisplayName();
 

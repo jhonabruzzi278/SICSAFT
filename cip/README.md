@@ -6,20 +6,21 @@ No se implementa dentro del CORE — el CORE produce datos, el CIP los interpret
 
 ## Estado
 🟢 Primer dashboard implementado y verificado real de punta a punta (Fase 6, ROADMAP.md) —
-`POST /inventarios` en CORE → trigger → `eventos_outbox` → `EventosOutboxDispatcher` → Redis/BullMQ
-(`cip-eventos`) → `EventosOutboxWorker` de CIP → agregados en la base `cip` (propia, separada de
-`core` — RNF-01/RNF-05) → `GET /dashboard/...`. Diseño completo en
+`POST /inventarios` en CORE → trigger → `eventos_outbox` → `EventosOutboxDispatcher` → pg-boss
+(ADR-005, cola `cip-eventos`) → `EventosOutboxWorker` de CIP → agregados en la base `cip` (propia,
+separada de `core` — RNF-01/RNF-05) → `GET /dashboard/...`. Diseño completo en
 [`aidlc-docs/`](../aidlc-docs/cip/00_PROJECT_METADATA.md) ([DOC-014](../aidlc-docs/cip/design-artifacts/DOC-014-cip-dashboard.md),
 [DOC-018](../aidlc-docs/cip/design-artifacts/DOC-018-cip-servicio-nestjs.md)).
 
 **Esqueleto NestJS** (`src/`, mismo patrón que `core/`/`cis/`, sin Zitadel — CIP no valida
 identidad de operador): `DatabaseModule` (base `cip`), `ServiceTokenModule`
 (`CIP_SERVICE_TOKEN`, protege la API propia), `CoreClientModule` (cliente HTTP hacia CORE con
-`CORE_SERVICE_TOKEN`, deliberadamente sin circuit breaker/retry — BullMQ ya reintenta el job si
+`CORE_SERVICE_TOKEN`, deliberadamente sin circuit breaker/retry — pg-boss ya reintenta el job si
 falla, ver DOC-018 3), `AgregacionModule` (worker + watcher), `DashboardModule` (API de lectura).
 
 **`AgregacionModule`** (`src/agregacion/`):
-- `EventosOutboxWorker` — consumidor BullMQ de `cip-eventos`, delega en `AgregacionService`.
+- `EventosOutboxWorker` — consumidor pg-boss (ADR-005) de `cip-eventos`, delega en
+  `AgregacionService`.
 - `AgregacionService` — por tipo de mensaje: `sesion-cerrada` recalcula veredicto (puerto de
   `app-qr-sicsaft/src/lib/verdict.ts`, DOC-018 5.1), cobertura incremental, activos fuera de área
   e incidencias; `evento` recalcula estado/categoría de activos y cobertura registrada desde el

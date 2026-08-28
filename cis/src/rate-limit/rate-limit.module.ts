@@ -1,5 +1,4 @@
 import { Global, Module } from '@nestjs/common';
-import { RedisModule } from '../redis/redis.module';
 import { RATE_LIMIT_OPTIONS } from './rate-limit.constants';
 import { RateLimitGuard } from './rate-limit.guard';
 import type { RateLimitOptions } from './rate-limit.types';
@@ -11,11 +10,11 @@ const RATE_LIMIT_OPTIONS_VALUE: RateLimitOptions = {
   windowMs: 10_000,
 };
 
-// Global: el guard se usa en cualquier controller detras de ZitadelAuthGuard (hoy solo
-// QrConnectorController), mismo patron que ZitadelAuthModule.
+// Global: el guard se usa en cualquier controller detras de KeycloakAuthGuard (hoy solo
+// QrConnectorController), mismo patron que KeycloakAuthModule. ADR-005 — ya no importa
+// RedisModule (el limiter vive en memoria del propio proceso).
 @Global()
 @Module({
-  imports: [RedisModule],
   providers: [
     {
       provide: RATE_LIMIT_OPTIONS,

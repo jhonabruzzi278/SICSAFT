@@ -12,13 +12,13 @@ import {
   SesionDetalle,
   SesionResumen,
 } from './qr-connector.types';
-import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
+import type { KeycloakAuthContext } from '../common/auth/keycloak-auth.guard';
 import { CoreClientService } from '../core-client/core-client.service';
 import { DeviceRegistryService } from '../device-registry/device-registry.service';
 
-// Piso del TTL de registro de dispositivo — evita mandarle a Redis un PX <= 0 en el caso limite
+// Piso del TTL de registro de dispositivo — evita programar un timeout <= 0 en el caso limite
 // de que el token ya este por expirar en el instante exacto en que se procesa la request
-// (ZitadelAuthGuard ya valido que no este vencido, pero el margen puede ser de milisegundos).
+// (KeycloakAuthGuard ya valido que no este vencido, pero el margen puede ser de milisegundos).
 const MIN_DEVICE_TTL_MS = 1_000;
 
 @Injectable()
@@ -30,11 +30,11 @@ export class QrConnectorService {
 
   async authSession(
     request: AuthSessionRequest,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<AuthSessionResponse> {
-    // ZitadelAuthGuard ya validó el token — el operador viene autenticado por Zitadel, no por
-    // este metodo. `accessToken`/`expiresAt` son pass-through del mismo token (ver ADR-002: el
+    // KeycloakAuthGuard ya validó el token — el operador viene autenticado por Keycloak, no por
+    // este metodo. `accessToken`/`expiresAt` son pass-through del mismo token (ver ADR-004: el
     // CIS valida, no emite uno propio).
     // DOC-002 1 "un solo dispositivo por operador": el dispositivo de esta request pasa a ser
     // el activo (supersede al anterior, ver DeviceRegistryService) — el registro expira solo
@@ -43,7 +43,7 @@ export class QrConnectorService {
       new Date(auth.expiresAt).getTime() - Date.now(),
       MIN_DEVICE_TTL_MS,
     );
-    await this.deviceRegistryService.registerDevice(
+    this.deviceRegistryService.registerDevice(
       auth.operadorId,
       request.deviceId,
       ttlMs,
