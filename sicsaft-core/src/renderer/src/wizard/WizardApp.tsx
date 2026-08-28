@@ -127,8 +127,11 @@ export function WizardApp() {
             }}
           />
         )}
-        {paso === "profesional-aft" && director && (
-          <PasoProfesionalAft onListo={() => setPaso("listo")} />
+        {paso === "profesional-aft" && bootstrap && director && (
+          <PasoProfesionalAft
+            organizacionId={bootstrap.organizacionId}
+            onListo={() => setPaso("listo")}
+          />
         )}
         {paso === "listo" && (
           <PasoListoConLogin onPortalCargado={() => setPortalCargado(true)} />

@@ -2,6 +2,8 @@ import { ipcMain, type BrowserWindow } from "electron";
 import type {
   AltaDirectorInput,
   AltaDirectorResultado,
+  AltaProfesionalAftInput,
+  AltaProfesionalAftResultado,
   BootstrapClienteResultado,
   DatosClienteInput,
   RectanguloPantalla,
@@ -10,6 +12,7 @@ import type { ServiceOrchestrator } from "../services/service-orchestrator";
 import {
   bootstrapPrimeraInstalacion,
   crearUsuarioDirector,
+  crearUsuarioProfesionalAft,
   resolverCredencialesClienteAdminCis,
 } from "../keycloak-bootstrap";
 import { PUERTO_RENDERER } from "../renderer-config";
@@ -130,6 +133,25 @@ export function registrarIpcHandlers(
     ): Promise<AltaDirectorResultado> => {
       const admin = orquestador.getKeycloakAdmin();
       return crearUsuarioDirector(admin, input.organizacionId, input.email);
+    },
+  );
+
+  // Paso 3 -- mismo patrón que altaDirector, rol "administrador-patrimonial". cis/ ya corre
+  // embebido en este punto (lo arrancó bootstrapCliente), pero el alta se hace igual contra la
+  // Admin API de Keycloak: en el wizard no hay un JWT de Director con el que pasar el guard del
+  // endpoint real de cis/ (ver el comentario de crearUsuarioHumano en keycloak-bootstrap.ts).
+  ipcMain.handle(
+    "sicsaft-core:altaProfesionalAft",
+    async (
+      _event,
+      input: AltaProfesionalAftInput,
+    ): Promise<AltaProfesionalAftResultado> => {
+      const admin = orquestador.getKeycloakAdmin();
+      return crearUsuarioProfesionalAft(
+        admin,
+        input.organizacionId,
+        input.email,
+      );
     },
   );
 }
