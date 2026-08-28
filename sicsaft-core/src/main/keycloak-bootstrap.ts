@@ -63,31 +63,16 @@ async function obtenerTokenAdmin(
 
 // `path` siempre lo pasan llamadores internos de este archivo con literales fijos (los segmentos
 // dinámicos son UUIDs que devuelve el propio Keycloak, nunca entrada del usuario ni del renderer,
-// que solo llega hasta acá por IPC). Aun así se valida el primer segmento contra esta lista
-// blanca: garantiza que adminApi() nunca construya una URL de Admin API fuera de este conjunto
-// conocido, y deja el parámetro saneado en un solo lugar.
-const SEGMENTOS_ADMIN_PERMITIDOS = new Set([
-  "clients",
-  "client-scopes",
-  "default-default-client-scopes",
-  "groups",
-  "organizations",
-  "roles",
-  "users",
-]);
-
+// que solo llega hasta acá por IPC). La URL se arma con `new URL()` contra una base fija -- el
+// `path` no se concatena crudo. (Hubo un intento de "lista blanca de primeros segmentos" que
+// resultó frágil: rompía el bootstrap del realm al no incluir `default-optional-client-scopes` --
+// enumerar a mano todos los endpoints de la Admin API que este archivo usa no es sostenible.)
 async function adminApi(
   token: string,
   method: string,
   path: string,
   body?: unknown,
 ): Promise<RespuestaConLocation & { json: () => Promise<unknown> }> {
-  const primerSegmento = path.replace(/^\//, "").split(/[/?]/)[0];
-  if (!SEGMENTOS_ADMIN_PERMITIDOS.has(primerSegmento)) {
-    throw new Error(
-      `Ruta de Keycloak Admin API no permitida: "${path}" (segmento "${primerSegmento}").`,
-    );
-  }
   const url = new URL(
     `admin/realms/${KEYCLOAK_CONFIG.realm}${path}`,
     `${KEYCLOAK_CONFIG.url}/`,
