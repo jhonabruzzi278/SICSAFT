@@ -452,6 +452,38 @@ por primera vez y probarlo de punta a punta.
 
 ---
 
+## G. Verificación real del wizard contra Keycloak embebido (2026-08-28, post-merge)
+
+Al correr `npm run dev` de punta a punta (`initdb` fresco → Postgres → Keycloak 26 → `core`/`cip`
+migrados → wizard completo: cliente → Director → Profesional de AFT) aparecieron dos cosas.
+
+### BUG-45 — La lista blanca de `adminApi()` rompía el bootstrap del realm
+- **Dónde**: `sicsaft-core/src/main/keycloak-bootstrap.ts` (`adminApi`)
+- **Síntoma**: el paso 1 del wizard (`bootstrapCliente`) fallaba con
+  `Ruta de Keycloak Admin API no permitida: "/default-optional-client-scopes/{uuid}"`.
+- **Causa raíz**: el commit que cerró `tssecurity:S7044` (ver "Estado", endurecimiento de
+  SonarCloud) agregó a `adminApi()` una validación del primer segmento del `path` contra un
+  `Set` de segmentos permitidos. Se enumeraron los segmentos de `crearUsuarioDirector` pero
+  **no** los de `crearRealmScaffold` — `default-optional-client-scopes` faltaba, y cualquier
+  endpoint nuevo de la Admin API rompería igual sin aviso.
+- **Fix**: se quita la lista blanca. El armado de URL con `new URL()` contra una base fija (que
+  es lo que S7044 pide de verdad: no concatenar `path` crudo en la URL) se mantiene. Enumerar a
+  mano cada endpoint de la Admin API que este archivo toca no es sostenible.
+
+### El login embebido carga una IP de LAN muerta horneada en `ccp/dist`
+- **No es un bug del código de esta línea** — es el gap "empaquetado final de los portales
+  embebidos" (ver "Gaps abiertos"): `ccp/dist` y `core/frontend/dist` que sirve
+  `static-portal-server.ts` son builds viejos con `VITE_KEYCLOAK_ISSUER` (y todavía
+  `VITE_ZITADEL_*`) apuntando a una IP de LAN de otra red. `PasoListoConLogin` → el portal `ccp`
+  redirige a esa IP y da `ERR_CONNECTION_TIMED_OUT`.
+- **Qué sí quedó verificado**: `crearUsuarioProfesionalAft` crea el usuario, lo hace miembro de
+  la Organization y lo pone en el grupo `{org}::administrador-patrimonial` con el realm role
+  mapeado — confirmado consultando la Admin API del Keycloak embebido tras correr el wizard real
+  (mismo estándar que la verificación del paso del Director). El paso del Director y
+  `resolverOCrearGrupoRol` (role mapping siempre) también verificados igual.
+
+---
+
 ## Patrones que se repiten (la parte reusable)
 
 1. **"Verde por fuera, roto por dentro"** — los health-checks de backend en verde no dicen que
@@ -500,9 +532,10 @@ por primera vez y probarlo de punta a punta.
 
 - **BUG-01 a BUG-25** — corregidos y commiteados en la rama `feat-sicsaft-core-wiring-cis-core-cip`
   (ver el commit citado en cada uno). CI en verde.
-- **BUG-26 a BUG-44** — en el árbol de trabajo, sin commitear a la fecha de creación de este
-  documento (lote CORE-RF-04 + endurecimiento de OIDC/Keycloak del 2026-08-28). `typecheck`,
-  `lint:ci` y tests en verde en `sicsaft-core`, `cis`, `ccp` y `core/frontend`.
+- **BUG-26 a BUG-44** — mergeados a `main` en el PR #57 (CORE-RF-04 + endurecimiento de
+  OIDC/Keycloak + los 4 fixes de seguridad de SonarCloud del 2026-08-28).
+- **BUG-45** (§G) — regresión introducida por el fix de S7044 en el PR #57, encontrada
+  verificando el wizard real; corregida aparte.
 
 ## Gaps abiertos, no bugs
 
@@ -517,7 +550,11 @@ por primera vez y probarlo de punta a punta.
 - **Automatizar `kc.bat build`** como paso de `electron-builder` (BUG-24) — hoy manual.
 - **`extraResources` de `ccp`/`core/frontend`** para el empaquetado final — hoy los sirve
   `static-portal-server.ts` resolviendo el `dist/` hermano en dev; en producción hay que
-  copiarlos junto a `cis`/`core`/`cip` (ver `package.json` `"build"`).
+  copiarlos junto a `cis`/`core`/`cip` (ver `package.json` `"build"`). Además, esos `dist/` traen
+  `VITE_KEYCLOAK_ISSUER` (y variables viejas) **horneadas en el bundle** con la IP de LAN de
+  cuando se corrió su `npm run build` — el login embebido apunta a una IP muerta si esa red
+  cambió (visto en la verificación de §G). Hace falta rebuildear los portales con la URL de
+  Keycloak de runtime, o inyectarla al servir el `dist/`.
 
 ## Documentos relacionados
 
