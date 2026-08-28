@@ -17,7 +17,7 @@ export interface Organizacion {
   sedes: Sede[];
 }
 
-// DOC-022 3 — misma forma que GrantUsuario del lado de CIS (cis/src/zitadel-admin/zitadel-admin.types.ts).
+// DOC-022 3 — misma forma que GrantUsuario del lado de CIS (cis/src/keycloak-admin/keycloak-admin.types.ts).
 export interface UsuarioOrganizacion {
   userId: string;
   email: string | null;

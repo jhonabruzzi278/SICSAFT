@@ -2,7 +2,8 @@
 
 Ver `../requirements/INTENT.md` y `../requirements/REQUIREMENTS.md` para el contexto y los
 requisitos completos. Este documento cubre cómo `devops/onprem/` deriva de `devops/local/`, qué
-entra en cada nivel, y el flujo del bootstrap de Zitadel.
+entra en cada nivel, y el flujo del bootstrap de Keycloak (ADR-004 Fase 3, reemplaza al de Zitadel
+descrito originalmente acá — `devops/local/` sigue en Zitadel, no migró en esta fase).
 
 ## De dónde parte
 
@@ -18,7 +19,7 @@ de cliente que `devops/prod/` (pensado para Linux/Coolify, no para un PC Windows
 flowchart TB
     subgraph local["devops/local/ (desarrollador)"]
         L1[traefik + dashboard]
-        L2[postgres + redis + zitadel]
+        L2[postgres + zitadel]
         L3[cis + core + cip]
         L4[ccp + web-admin + core-frontend]
         L5[Prometheus + Loki + Grafana + cAdvisor + node-exporter]
@@ -27,7 +28,7 @@ flowchart TB
 
     subgraph onprem["devops/onprem/ (cliente, Nivel 1/2)"]
         O1[traefik, ruteo estático — sin dashboard expuesto]
-        O2[postgres + redis + zitadel]
+        O2["postgres + keycloak (ADR-004 Fase 3)"]
         O3[cis + core]
         O4["app-qr-sicsaft (nuevo Dockerfile)"]
         O5["ccp + web-admin + core-frontend — solo perfil nivel2"]
@@ -52,15 +53,15 @@ flowchart TB
 
 | Nivel | Servicios que se levantan |
 |---|---|
-| Nivel 1 | `postgres`, `redis`, `zitadel`, `core-migrate`→`core`, `cis`, `app-qr-sicsaft` |
-| Nivel 2 | Nivel 1 + `ccp` + `web-admin` + `core-frontend` |
+| Nivel 1 | `postgres`, `keycloak`, `core-migrate`→`core`, `cis`, `cip-migrate`→`cip`, `app-qr-sicsaft`, `web-admin`, `core-frontend` |
+| Nivel 2 | Nivel 1 + `ccp` |
 | Nivel 3 | Nivel 2 + RFID — **no implementado, `rfid/` no tiene código todavía** |
 
-Implementado con **Compose profiles** (`nivel1`, `nivel2`) en un solo `docker-compose.yml` — mismo
-mecanismo que ya usa `devops/local/docker-compose.yml` para aislar el servicio `k6`
-(`profiles: ["k6"]`). Los servicios base (postgres/redis/zitadel/cis/core/app-qr-sicsaft) no
-llevan profile (siempre se levantan); `ccp`/`web-admin`/`core-frontend` llevan `profiles:
-["nivel2"]`.
+Implementado con **Compose profiles** (`nivel2`) en un solo `docker-compose.yml` — mismo mecanismo
+que ya usa `devops/local/docker-compose.yml` para aislar el servicio `k6` (`profiles: ["k6"]`).
+Los servicios base (postgres/keycloak/cis/core/cip/app-qr-sicsaft/web-admin/core-frontend) no
+llevan profile (siempre se levantan, desde Nivel 1 — DOC-025 §1 revisado 2026-08-25); `ccp` es el
+único con `profiles: ["nivel2"]`.
 
 ## Runtime: Podman, no Docker Desktop
 
@@ -72,7 +73,7 @@ Hyper-V/WSL2 + GUI + licenciamiento comercial por tamaño de empresa). En su lug
 - Sigue apoyándose en una máquina WSL2 propia (`podman machine init && podman machine start`) —
   WSL2 no desaparece, pero sí el daemon Docker Desktop con GUI.
 - **Riesgo a verificar, no asumido**: los `healthcheck` + `depends_on: condition:
-  service_healthy` que el compose actual usa fuerte (`core-migrate` → `core`, `postgres`/`redis`
+  service_healthy` que el compose actual usa fuerte (`core-migrate` → `core`, `postgres`
   healthy antes de levantar `cis`/`core`) deben comportarse igual bajo `podman-compose` — se
   verifica al implementar `devops/onprem/docker-compose.yml`, no se da por hecho que la paridad
   con Docker Compose es 100%.
@@ -82,60 +83,69 @@ Hyper-V/WSL2 + GUI + licenciamiento comercial por tamaño de empresa). En su lug
   provider `file` (ruteo estático) por simplicidad y paridad con `devops/local/`, no por esa
   restricción puntual.
 
-## Flujo del bootstrap de Zitadel
+## Flujo del bootstrap de Keycloak (ADR-004 Fase 3)
 
 ```mermaid
 sequenceDiagram
     participant Admin
-    participant Zitadel
+    participant Keycloak
     participant Env as .env del cliente
 
-    Admin->>Zitadel: podman-compose up postgres redis zitadel
-    Admin->>Zitadel: bootstrap-zitadel.ps1 (Management API)
-    Zitadel-->>Admin: Organización creada
-    Zitadel-->>Admin: Proyecto "CIS" + roles creados
-    Zitadel-->>Admin: Apps OIDC creadas (Client IDs)
-    Admin->>Env: completar VITE_ZITADEL_CLIENT_ID por app
-    Admin->>Zitadel: podman-compose --profile nivelX up -d --build
-    Note over Admin,Zitadel: build de frontends recién acá — ya tienen<br/>los Client IDs reales para hornear en Vite
+    Admin->>Keycloak: podman-compose up postgres keycloak traefik
+    Admin->>Keycloak: bootstrap-keycloak.ps1 (Admin REST API)
+    Keycloak-->>Admin: Realm "sicsaft" + scopes/roles creados
+    Keycloak-->>Admin: Organization del cliente creada
+    Keycloak-->>Admin: Client confidencial (service account) creado
+    Keycloak-->>Admin: Apps OIDC públicas creadas (Client IDs)
+    Admin->>Env: completar VITE_KEYCLOAK_CLIENT_ID por app
+    Admin->>Keycloak: podman-compose --profile nivelX up -d --build
+    Note over Admin,Keycloak: build de frontends recién acá — ya tienen<br/>los Client IDs reales para hornear en Vite
 ```
 
-`bootstrap-zitadel.ps1` reusa el mismo patrón de cliente HTTP contra la Management API de Zitadel
-que ya existe en `cis/src/zitadel-admin/zitadel-admin.service.ts` (service user + Personal Access
-Token) — no se reinventa la integración, se adapta a un script standalone porque corre antes de
-que `cis` exista (el bootstrap es anterior al `up` completo del stack).
+`bootstrap-keycloak.ps1` reusa el mismo patrón de cliente HTTP contra la Admin REST API de Keycloak
+que ya existe en `cis/src/keycloak-admin/keycloak-admin.service.ts` — no se reinventa la
+integración, se adapta a un script standalone porque corre antes de que `cis` exista (el bootstrap
+es anterior al `up` completo del stack).
 
 ## Automatización end-to-end (INST-RF-07/08)
 
-El flujo de bootstrap de arriba dependía de un PAT creado a mano en la Console de Zitadel. Se
-investigó (no se adivinó — fuente primaria:
-[`cmd/setup/steps.yaml`](https://github.com/zitadel/zitadel/blob/main/cmd/setup/steps.yaml) del
-repo oficial de Zitadel) si existe una forma de auto-provisionarlo, y sí:
-`ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME`/`_NAME` crea un service user con rol
-`IAM_OWNER` en el primer arranque, `ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE` genera
-un PAT para ese service user, y `ZITADEL_FIRSTINSTANCE_PATPATH` es la ruta donde Zitadel escribe
-ese PAT a un archivo — sin ningún paso en la Console. `devops/onprem/docker-compose.yml` monta
-`./.bootstrap:/bootstrap` para que ese archivo quede accesible fuera del contenedor (secreto
-runtime, nunca commiteado — ver `.gitignore` raíz).
+**Nota histórica**: la versión original de esta sección documentaba el bootstrap de Zitadel — el
+flujo dependía de un PAT que Zitadel auto-provisionaba en el primer arranque
+(`ZITADEL_FIRSTINSTANCE_ORG_MACHINE_*`/`PATPATH`, investigado contra `cmd/setup/steps.yaml` del
+repo oficial de Zitadel). ADR-004 Fase 3 (2026-08-26) reemplazó ese mecanismo por completo — el
+resto de esta sección describe el flujo actual con Keycloak.
 
-Con ese gap cerrado, `devops/onprem/instalar-cliente.ps1` orquesta el flujo completo: verifica/
-instala WSL2 y Podman (`winget install RedHat.Podman`) y `podman-compose` (`pip install
-podman-compose` — `podman compose` nativo desde Podman 4.7 es solo un wrapper que delega a un
-compose provider externo, no trae uno instalado por default, y no hay paquete de
-`podman-compose` en winget todavía), genera un `.env` con contraseñas únicas por cliente, levanta
-`postgres`/`redis`/`zitadel`, espera el PAT auto-provisionado, corre el mismo bootstrap que antes
-(ahora extraído a `devops/onprem/lib/Bootstrap-Zitadel.psm1`, reusado también por
-`bootstrap-zitadel.ps1` como wrapper delgado), completa el `.env` sin copy-paste manual, construye
-y levanta el stack completo, y termina con un smoke check por servicio.
+Keycloak no auto-provisiona nada: `bootstrap-keycloak.ps1` se autentica directo contra el realm
+`master` con las credenciales `KEYCLOAK_ADMIN_USERNAME`/`PASSWORD` que ya arrancaron el propio
+contenedor (`docker-compose.yml`) — sin PAT, sin archivo de secretos runtime que montar aparte.
+Esto simplifica el flujo respecto al de Zitadel: un paso menos ("esperar el PAT") y un directorio
+menos que proteger (`.bootstrap/` ya no existe).
+
+`devops/onprem/instalar-cliente.ps1` orquesta el flujo completo: verifica/instala WSL2 y Podman
+(`winget install RedHat.Podman`) y `podman-compose` (`pip install podman-compose` — `podman
+compose` nativo desde Podman 4.7 es solo un wrapper que delega a un compose provider externo, no
+trae uno instalado por default, y no hay paquete de `podman-compose` en winget todavía), genera un
+`.env` con contraseñas únicas por cliente, levanta `postgres`/`keycloak`/`traefik`, espera
+a que Keycloak responda en su endpoint de discovery OIDC, corre el bootstrap (extraído a
+`devops/onprem/lib/Bootstrap-Keycloak.psm1`, reusado también por `bootstrap-keycloak.ps1` como
+wrapper delgado), completa el `.env` sin copy-paste manual, construye y levanta el stack completo,
+y termina con un smoke check por servicio.
 
 `devops/onprem/installer/sicsaft-onprem.iss` empaqueta todo lo anterior en un instalador `.exe`
 (Inno Setup) con una UI de 2 pantallas (datos del cliente, nivel) que corre
 `instalar-cliente.ps1` al final.
 
-**Ninguna parte de esta automatización fue verificada corriendo de punta a punta** — se escribió
-en un entorno sin Podman/WSL2/Inno Setup Compiler disponibles. Es código listo para correr y
-compilar, no algo ya probado. Ver `devops/onprem/installer/README.md` para el checklist de
-verificación pendiente antes de usarlo con un cliente pagante.
+**Estado de verificación real (2026-08-26)**: la parte de WSL2/Podman/winget/build de este flujo
+ya está verificada corriendo de punta a punta contra Windows real varias veces — ver
+`devops/onprem/README.md` "Instalación automatizada" y `devops/onprem/installer/README.md` para el
+historial de bugs reales encontrados y corregidos (con el bootstrap de Zitadel original). La parte
+de Keycloak (`Bootstrap-Keycloak.psm1`) se verificó real llamada por llamada contra un Keycloak
+26.0 de prueba — realm, Organizations, client scopes con Audience mapper, roles, clients OIDC
+públicos con PKCE, client confidencial con service account, y el login completo de un usuario de
+prueba con inspección del JWT resultante. Lo que falta es correr el flujo COMPLETO (WSL2 + Podman +
+Keycloak + build) de punta a punta en una sola corrida contra este `docker-compose.yml` — ver
+`devops/onprem/installer/README.md` para el checklist pendiente antes de usarlo con un cliente
+pagante.
 
 ## Qué NO cambia
 

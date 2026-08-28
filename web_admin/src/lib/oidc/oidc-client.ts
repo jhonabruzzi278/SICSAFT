@@ -1,7 +1,7 @@
-// Cliente OIDC — authorization code + PKCE contra Zitadel (ADR-002), mismo mecanismo probado
-// real de punta a punta en app-qr-sicsaft/src/lib/oidc/oidc-client.ts (TASK-007) y ccp/. Este
-// portal reusa el mismo proyecto "CIS" en Zitadel con una Aplicacion OIDC propia
-// (`web-admin-sicsaft`, User Agent, PKCE) — ver devops/local/README.md "Cliente OIDC real
+// Cliente OIDC — authorization code + PKCE contra Keycloak (ADR-004, reemplaza a ADR-002), mismo
+// mecanismo probado real de punta a punta en app-qr-sicsaft/src/lib/oidc/oidc-client.ts
+// (TASK-007) y ccp/. Este portal reusa el mismo realm `sicsaft` en Keycloak con un client OIDC
+// propio (`web-admin-sicsaft`, público, PKCE) — ver devops/local/README.md "Cliente OIDC real
 // (web_admin)", DOC-022.
 import {
   generateCodeChallenge,
@@ -28,7 +28,7 @@ export class AuthenticationRequiredError extends Error {
 }
 
 // offline_access: refresh token explicito, mismo criterio que app-qr-sicsaft (requiere el scope
-// habilitado en la app OIDC de Zitadel).
+// habilitado en el client OIDC de Keycloak).
 const OIDC_SCOPE = 'openid profile offline_access';
 const TOKEN_EXPIRY_SAFETY_MARGIN_MS = 30_000;
 
@@ -45,7 +45,7 @@ function tokensFromResponse(
   const refreshToken = response.refresh_token ?? fallbackRefreshToken;
   if (!refreshToken) {
     throw new Error(
-      'Zitadel no devolvió refresh_token — falta el scope offline_access o no está habilitado en la app OIDC.',
+      'Keycloak no devolvió refresh_token — falta el scope offline_access o no está habilitado en el client OIDC.',
     );
   }
   return {
@@ -59,13 +59,18 @@ async function postTokenEndpoint(
   body: URLSearchParams,
 ): Promise<TokenResponse> {
   const config = loadOidcConfig();
-  const res = await fetch(new URL('/oauth/v2/token', config.issuer), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  });
+  const res = await fetch(
+    new URL('/protocol/openid-connect/token', config.issuer),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    },
+  );
   if (!res.ok) {
-    throw new Error(`Zitadel devolvió ${res.status} en /oauth/v2/token`);
+    throw new Error(
+      `Keycloak devolvió ${res.status} en /protocol/openid-connect/token`,
+    );
   }
   return (await res.json()) as TokenResponse;
 }
@@ -77,7 +82,7 @@ async function startLogin(): Promise<void> {
   const state = generateState();
   savePendingPkce({ codeVerifier, state });
 
-  const url = new URL('/oauth/v2/authorize', config.issuer);
+  const url = new URL('/protocol/openid-connect/auth', config.issuer);
   url.searchParams.set('client_id', config.clientId);
   url.searchParams.set('redirect_uri', config.redirectUri);
   url.searchParams.set('response_type', 'code');
@@ -95,7 +100,7 @@ async function handleCallback(searchParams: URLSearchParams): Promise<void> {
   clearPendingPkce();
 
   if (oauthError) {
-    throw new Error(`Zitadel rechazó el login: ${oauthError}`);
+    throw new Error(`Keycloak rechazó el login: ${oauthError}`);
   }
 
   const code = searchParams.get('code');
@@ -158,20 +163,28 @@ async function getValidAccessToken(): Promise<string> {
   }
 }
 
-const ZITADEL_PROJECT_ROLES_CLAIM = 'urn:zitadel:iam:org:project:roles';
+// ADR-004 — reemplaza al claim propietario de Zitadel (`urn:zitadel:iam:org:project:roles`,
+// {"<rol>": {"<orgId>": "<nombre>"}}). Keycloak firma los realm roles en `realm_access.roles`,
+// una lista plana GLOBAL por usuario, no anidada por organización (verificado real contra un
+// Keycloak 26.6 de prueba, ver cis/src/keycloak-admin/keycloak-admin.service.ts) — así que acá
+// "tiene el rol" ya no puede decir en qué organización, solo que lo tiene en alguna. Sigue siendo
+// solo para UI (mostrar/ocultar el boton de alta, DOC-013 4 — "ocultar un item del menu no es
+// autorizacion", el 403 real lo aplica CIS/CORE contra el organizacionId puntual de la request,
+// ver AdministradorSistemaGuard). Generico por nombre de rol — DOC-020 reusa esto para
+// `directivo`, mismo criterio que `administrador-patrimonial`.
+interface KeycloakRealmAccessClaim {
+  roles?: unknown;
+}
 
-// Solo para UI (mostrar/ocultar el boton de alta, DOC-013 4 — "ocultar un item del menu no es
-// autorizacion", el 403 real lo aplica CORE). Forma del claim: {"<rol>": {"<orgId>": "<nombre>"}}.
-// Generico por nombre de rol — DOC-020 reusa esto para `directivo`, mismo criterio que
-// `administrador-patrimonial` (rol de Proyecto en Zitadel, sin cambios de codigo para agregarlo).
 function tieneRol(
   claims: Record<string, unknown> | null,
   rol: string,
 ): boolean {
   if (!claims) return false;
-  const rolesClaim = claims[ZITADEL_PROJECT_ROLES_CLAIM];
-  if (!rolesClaim || typeof rolesClaim !== 'object') return false;
-  return rol in rolesClaim;
+  const realmAccess = claims.realm_access as
+    KeycloakRealmAccessClaim | undefined;
+  const roles = realmAccess?.roles;
+  return Array.isArray(roles) && roles.includes(rol);
 }
 
 function getCurrentOperatorDisplayName(): string | null {

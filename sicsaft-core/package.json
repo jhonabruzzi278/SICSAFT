@@ -1,0 +1,99 @@
+{
+  "name": "sicsaft-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "App de escritorio SICSAFT CORE — Nivel 1 completo (Postgres/Keycloak/CIS/CORE/CIP) embebido en un instalador .exe, sin Podman/Docker/WSL2. Ver aidlc-docs/sicsaft-core/.",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "lint": "eslint . --fix",
+    "lint:ci": "eslint . --max-warnings=0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "pack": "electron-vite build && electron-builder --dir",
+    "dist:win": "electron-vite build && electron-builder --win"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-hook-form": "^7.84.0",
+    "@hookform/resolvers": "^5.7.1",
+    "pg": "^8.23.0",
+    "zod": "^3.25.76"
+  },
+  "build": {
+    "appId": "cl.sicsaft.core",
+    "productName": "SICSAFT CORE",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      { "from": "resources/postgres", "to": "postgres" },
+      { "from": "resources/keycloak", "to": "keycloak" },
+      {
+        "from": "../cis",
+        "to": "cis",
+        "filter": ["dist/**/*", "package.json"]
+      },
+      {
+        "from": "../core",
+        "to": "core",
+        "filter": [
+          "dist/**/*",
+          "package.json",
+          "migrations/**/*",
+          "scripts/**/*",
+          "src/**/*"
+        ]
+      },
+      {
+        "from": "../cip",
+        "to": "cip",
+        "filter": ["dist/**/*", "package.json", "migrations/**/*", "scripts/**/*"]
+      }
+    ],
+    "afterPack": "./scripts/electron-builder-after-pack.cjs",
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.1.2",
+    "@types/pg": "^8.15.5",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.2.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.2",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2",
+    "typescript-eslint": "^8.20.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.7.3",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.11"
+  }
+}

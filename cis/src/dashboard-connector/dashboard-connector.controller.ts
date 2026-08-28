@@ -1,6 +1,6 @@
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { ZitadelAuthGuard } from '../common/auth/zitadel-auth.guard';
+import { KeycloakAuthGuard } from '../common/auth/keycloak-auth.guard';
 import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import { DashboardConnectorService } from './dashboard-connector.service';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
@@ -34,12 +34,12 @@ import type {
 } from '../cip-client/cip-client.types';
 
 // DOC-019 2/3.1 — septimo módulo del hub de WEB (RF-09): mismo criterio de autorización que
-// Activos/Inventarios (ZitadelAuthGuard + RateLimitGuard, sin rol adicional) porque es información
+// Activos/Inventarios (KeycloakAuthGuard + RateLimitGuard, sin rol adicional) porque es información
 // agregada de organización completa, no PII ni una escritura — no el patrón de
 // AdministradorController (/admin/..., reservado para escritura oficial). Pipes por parámetro, no
 // @UsePipes de método (DOC-012 5 ya dejó ese hallazgo real).
 @Controller('dashboard')
-@UseGuards(ZitadelAuthGuard, RateLimitGuard)
+@UseGuards(KeycloakAuthGuard, RateLimitGuard)
 export class DashboardConnectorController {
   constructor(
     private readonly dashboardConnectorService: DashboardConnectorService,

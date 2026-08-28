@@ -6,10 +6,10 @@ import { AdministradorService } from './administrador.service';
 import { AdministradorSistemaGuard } from './administrador-sistema.guard';
 import { AdministradorSistemaEnCualquierOrganizacionGuard } from './administrador-sistema-cualquier-organizacion.guard';
 import {
-  ZitadelAuthGuard,
+  KeycloakAuthGuard,
   type AuthenticatedRequest,
-  type ZitadelAuthContext,
-} from '../common/auth/zitadel-auth.guard';
+  type KeycloakAuthContext,
+} from '../common/auth/keycloak-auth.guard';
 import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 import type {
@@ -26,7 +26,7 @@ import type {
   SedeResult,
   UbicacionResult,
 } from '../core-client/core-client.types';
-import type { GrantUsuario } from '../zitadel-admin/zitadel-admin.types';
+import type { GrantUsuario } from '../keycloak-admin/keycloak-admin.types';
 import type {
   ActualizarAreaBody,
   ActualizarCondicionesContratoBody,
@@ -54,7 +54,7 @@ import type {
 const CORRELATION_ID = 'correlation-test';
 
 function buildAuthenticatedRequest(
-  auth: ZitadelAuthContext,
+  auth: KeycloakAuthContext,
 ): AuthenticatedRequest & RequestWithCorrelationId {
   return { auth, correlationId: CORRELATION_ID } as AuthenticatedRequest &
     RequestWithCorrelationId &
@@ -132,7 +132,7 @@ describe('AdministradorController', () => {
         },
       ],
     })
-      .overrideGuard(ZitadelAuthGuard)
+      .overrideGuard(KeycloakAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RateLimitGuard)
       .useValue({ canActivate: () => true })
@@ -154,11 +154,11 @@ describe('AdministradorController', () => {
       codigoQr: 'QR-1',
       catalogoId: 'catalogo-notebook',
     };
-    const auth: ZitadelAuthContext = {
+    const auth: KeycloakAuthContext = {
       operadorId: 'op-1',
-      accessToken: 'zitadel-token',
+      accessToken: 'keycloak-token',
       expiresAt: '2026-08-12T10:15:00.000Z',
-      rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
     };
     const request = buildAuthenticatedRequest(auth);
 
@@ -232,11 +232,11 @@ describe('AdministradorController', () => {
       vigenciaDesde: '2026-01-01T00:00:00.000Z',
       modulosContratados: ['inventario-qr'],
     };
-    const auth: ZitadelAuthContext = {
+    const auth: KeycloakAuthContext = {
       operadorId: 'op-1',
-      accessToken: 'zitadel-token',
+      accessToken: 'keycloak-token',
       expiresAt: '2026-08-12T10:15:00.000Z',
-      rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
     };
     const request = buildAuthenticatedRequest(auth);
 
@@ -257,11 +257,11 @@ describe('AdministradorController', () => {
       organizacionId: 'duoc-uc',
       estado: 'suspendido',
     };
-    const auth: ZitadelAuthContext = {
+    const auth: KeycloakAuthContext = {
       operadorId: 'op-1',
-      accessToken: 'zitadel-token',
+      accessToken: 'keycloak-token',
       expiresAt: '2026-08-12T10:15:00.000Z',
-      rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
     };
     const request = buildAuthenticatedRequest(auth);
 
@@ -288,11 +288,11 @@ describe('AdministradorController', () => {
       organizacionId: 'duoc-uc',
       nombre: 'Melipilla',
     };
-    const auth: ZitadelAuthContext = {
+    const auth: KeycloakAuthContext = {
       operadorId: 'op-1',
-      accessToken: 'zitadel-token',
+      accessToken: 'keycloak-token',
       expiresAt: '2026-08-12T10:15:00.000Z',
-      rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
     };
     const request = buildAuthenticatedRequest(auth);
 
@@ -332,11 +332,11 @@ describe('AdministradorController', () => {
       organizacionId: 'duoc-uc',
       estado: 'inactivo',
     };
-    const auth: ZitadelAuthContext = {
+    const auth: KeycloakAuthContext = {
       operadorId: 'op-1',
-      accessToken: 'zitadel-token',
+      accessToken: 'keycloak-token',
       expiresAt: '2026-08-12T10:15:00.000Z',
-      rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
     };
     const request = buildAuthenticatedRequest(auth);
 
@@ -367,11 +367,11 @@ describe('AdministradorController', () => {
       organizacionId: 'duoc-uc',
       vigenciaHasta: '2027-01-01T00:00:00.000Z',
     };
-    const auth: ZitadelAuthContext = {
+    const auth: KeycloakAuthContext = {
       operadorId: 'op-1',
-      accessToken: 'zitadel-token',
+      accessToken: 'keycloak-token',
       expiresAt: '2026-08-12T10:15:00.000Z',
-      rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
     };
     const request = buildAuthenticatedRequest(auth);
 
@@ -418,11 +418,11 @@ describe('AdministradorController', () => {
     estado: 'activo',
   };
 
-  const AUTH: ZitadelAuthContext = {
+  const AUTH: KeycloakAuthContext = {
     operadorId: 'op-1',
-    accessToken: 'zitadel-token',
+    accessToken: 'keycloak-token',
     expiresAt: '2026-08-12T10:15:00.000Z',
-    rolesPorOrganizacion: { 'zitadel-org-1': ['administrador-patrimonial'] },
+    rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
   };
 
   it('getAreas delega en el service con organizacionId, la paginacion y el correlationId', async () => {
@@ -658,7 +658,7 @@ describe('AdministradorController', () => {
     );
   });
 
-  // DOC-024 — dar de baja a un usuario en Zitadel.
+  // DOC-024 — dar de baja a un usuario en el proveedor de identidad.
   it('desactivarUsuarioOrganizacion delega en el service con el orgId, el userId, el auth del guard y el correlationId', async () => {
     service.desactivarUsuarioOrganizacion.mockResolvedValue(undefined);
     const request = buildAuthenticatedRequest(AUTH);

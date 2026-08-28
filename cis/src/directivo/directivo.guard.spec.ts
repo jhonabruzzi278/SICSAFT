@@ -4,7 +4,7 @@ import {
   requireDirectivoOrganizacionId,
   type DirectivoRequest,
 } from './directivo.guard';
-import type { AuthenticatedRequest } from '../common/auth/zitadel-auth.guard';
+import type { AuthenticatedRequest } from '../common/auth/keycloak-auth.guard';
 
 function buildContext(auth?: AuthenticatedRequest['auth']): {
   context: ExecutionContext;

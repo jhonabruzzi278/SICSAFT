@@ -59,11 +59,11 @@
   <div class="frame">
     <p class="eyebrow">Deployment · SICSAFT</p>
     <h1>Despliegue on-premise (Nivel 1 / Nivel 2)</h1>
-    <p class="subtitle">Un contenedor por cliente sobre Podman + WSL2, orquestado por <code>instalar-cliente.ps1</code>. CIS también usa la misma instancia de Redis que CORE (omitido para no duplicar la conexión al mismo store).</p>
+    <p class="subtitle">Un contenedor por cliente sobre Podman + WSL2, orquestado por <code>instalar-cliente.ps1</code>.</p>
 
     <svg viewBox="0 0 1000 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sicsaft-dep-title sicsaft-dep-desc">
       <title id="sicsaft-dep-title">Despliegue on-premise de SICSAFT sobre Podman</title>
-      <desc id="sicsaft-dep-desc">Traefik enruta hacia CIS y Zitadel dentro de una máquina Podman en WSL2; CIS llama a CORE, y CORE junto con Zitadel escriben en el mismo Postgres compartido, con Redis como caché de CORE.</desc>
+      <desc id="sicsaft-dep-desc">Traefik enruta hacia CIS y Zitadel dentro de una máquina Podman en WSL2; CIS llama a CORE, y CORE junto con Zitadel escriben en el mismo Postgres compartido.</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
         <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
@@ -96,10 +96,6 @@
       <rect x="248" y="350" width="60" height="12" rx="2" fill="#f5f5f5"/>
       <text x="278" y="359" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">HTTP:3001</text>
 
-      <!-- CORE -> Redis (straight, shared y) -->
-      <line x1="340" y1="434" x2="420" y2="434" stroke="#4f5d75" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-      <rect x="348" y="412" width="44" height="12" rx="2" fill="#f5f5f5"/>
-      <text x="370" y="421" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">6379</text>
 
       <!-- CORE -> Postgres -->
       <path d="M 240,488 V 516 Q 240,524 248,524 H 452 Q 460,524 460,532 V 560"
@@ -165,17 +161,6 @@
         <rect x="156" y="452" width="168" height="24" rx="4" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
         <text x="164" y="468" fill="#2d3142" font-size="12" font-family="'Geist', sans-serif">core-migrate</text>
         <text x="316" y="468" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">job</text>
-      </g>
-
-      <!-- REDIS -->
-      <g>
-        <rect x="420" y="396" width="200" height="76" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
-        <rect x="428" y="404" width="32" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
-        <text x="444" y="413" fill="rgba(45,49,66,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">CTR</text>
-        <text x="520" y="422" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Redis</text>
-        <rect x="436" y="436" width="168" height="24" rx="4" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
-        <text x="444" y="452" fill="#2d3142" font-size="12" font-family="'Geist', sans-serif">redis</text>
-        <text x="596" y="452" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">7-alpine</text>
       </g>
 
       <!-- POSTGRES (focal) -->

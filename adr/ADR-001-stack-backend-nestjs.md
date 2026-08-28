@@ -1,7 +1,9 @@
 # ADR-001: Stack tecnológico del ecosistema — NestJS + Vite/React + PostgreSQL + Redis
 
 ## Status
-Aceptado
+Aceptado — la cláusula "Cache y colas: Redis" fue enmendada por
+[ADR-005](ADR-005-postgres-pgboss-reemplaza-redis.md) (2026-08-27): Redis se reemplaza por
+`pg-boss`/Postgres. El resto de esta decisión (NestJS, Vite/React, PostgreSQL) sigue vigente.
 
 ## Context
 CIS (SYS-02) y SICSAFT CORE (SYS-03) necesitan un ADR de stack antes de tener código real — ya

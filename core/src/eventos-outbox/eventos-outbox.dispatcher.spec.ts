@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method -- jest.fn() mocks no usan `this`. */
-import type { Queue } from 'bullmq';
+import type { PgBoss } from 'pg-boss';
+import { CIP_EVENTOS_QUEUE_NAME } from './eventos-outbox.constants';
 import { EventosOutboxDispatcher } from './eventos-outbox.dispatcher';
 import { EventosOutboxRepository } from './eventos-outbox.repository';
 import type { EventoOutboxPendiente } from './eventos-outbox.types';
@@ -13,21 +14,24 @@ function buildRepository(
   } as unknown as jest.Mocked<EventosOutboxRepository>;
 }
 
-function buildQueue(): jest.Mocked<Queue> {
+function buildBoss(): jest.Mocked<Pick<PgBoss, 'send'>> {
   return {
-    add: jest.fn().mockResolvedValue(undefined),
-  } as unknown as jest.Mocked<Queue>;
+    send: jest.fn().mockResolvedValue('job-id'),
+  };
 }
 
 describe('EventosOutboxDispatcher', () => {
   it('no publica ni marca nada si no hay pendientes', async () => {
     const repository = buildRepository([]);
-    const queue = buildQueue();
-    const dispatcher = new EventosOutboxDispatcher(repository, queue);
+    const boss = buildBoss();
+    const dispatcher = new EventosOutboxDispatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await dispatcher.despachar();
 
-    expect(queue.add).not.toHaveBeenCalled();
+    expect(boss.send).not.toHaveBeenCalled();
     expect(repository.marcarPublicados).not.toHaveBeenCalled();
   });
 
@@ -55,13 +59,16 @@ describe('EventosOutboxDispatcher', () => {
         organizacionId: 'org-1',
       },
     ]);
-    const queue = buildQueue();
-    const dispatcher = new EventosOutboxDispatcher(repository, queue);
+    const boss = buildBoss();
+    const dispatcher = new EventosOutboxDispatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await dispatcher.despachar();
 
-    expect(queue.add).toHaveBeenCalledTimes(1);
-    expect(queue.add).toHaveBeenCalledWith('sesion-cerrada', {
+    expect(boss.send).toHaveBeenCalledTimes(1);
+    expect(boss.send).toHaveBeenCalledWith(CIP_EVENTOS_QUEUE_NAME, {
       kind: 'sesion-cerrada',
       sesionId: 'ses-1',
     });
@@ -89,19 +96,22 @@ describe('EventosOutboxDispatcher', () => {
         organizacionId: null,
       },
     ]);
-    const queue = buildQueue();
-    const dispatcher = new EventosOutboxDispatcher(repository, queue);
+    const boss = buildBoss();
+    const dispatcher = new EventosOutboxDispatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await dispatcher.despachar();
 
-    expect(queue.add).toHaveBeenCalledTimes(2);
-    expect(queue.add).toHaveBeenCalledWith('evento', {
+    expect(boss.send).toHaveBeenCalledTimes(2);
+    expect(boss.send).toHaveBeenCalledWith(CIP_EVENTOS_QUEUE_NAME, {
       kind: 'evento',
       eventoId: 'ev-1',
       tipo: 'alta',
       organizacionId: 'org-1',
     });
-    expect(queue.add).toHaveBeenCalledWith('evento', {
+    expect(boss.send).toHaveBeenCalledWith(CIP_EVENTOS_QUEUE_NAME, {
       kind: 'evento',
       eventoId: 'ev-2',
       tipo: 'baja',
@@ -127,12 +137,15 @@ describe('EventosOutboxDispatcher', () => {
         organizacionId: 'org-1',
       },
     ]);
-    const queue = buildQueue();
-    const dispatcher = new EventosOutboxDispatcher(repository, queue);
+    const boss = buildBoss();
+    const dispatcher = new EventosOutboxDispatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await dispatcher.despachar();
 
-    expect(queue.add).toHaveBeenCalledTimes(2);
+    expect(boss.send).toHaveBeenCalledTimes(2);
     expect(repository.marcarPublicados).toHaveBeenCalledWith(['ob-1', 'ob-2']);
   });
 
@@ -153,11 +166,14 @@ describe('EventosOutboxDispatcher', () => {
         organizacionId: 'org-1',
       },
     ]);
-    const queue = buildQueue();
-    queue.add
-      .mockResolvedValueOnce(undefined as never)
-      .mockRejectedValueOnce(new Error('Redis caído'));
-    const dispatcher = new EventosOutboxDispatcher(repository, queue);
+    const boss = buildBoss();
+    boss.send
+      .mockResolvedValueOnce('job-id')
+      .mockRejectedValueOnce(new Error('Postgres caído'));
+    const dispatcher = new EventosOutboxDispatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await dispatcher.despachar();
 
@@ -188,15 +204,18 @@ describe('EventosOutboxDispatcher', () => {
         organizacionId: 'org-1',
       },
     ]);
-    const queue = buildQueue();
-    queue.add
-      .mockResolvedValueOnce(undefined as never)
-      .mockRejectedValueOnce(new Error('Redis caído'));
-    const dispatcher = new EventosOutboxDispatcher(repository, queue);
+    const boss = buildBoss();
+    boss.send
+      .mockResolvedValueOnce('job-id')
+      .mockRejectedValueOnce(new Error('Postgres caído'));
+    const dispatcher = new EventosOutboxDispatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await dispatcher.despachar();
 
-    expect(queue.add).toHaveBeenCalledTimes(2);
+    expect(boss.send).toHaveBeenCalledTimes(2);
     expect(repository.marcarPublicados).toHaveBeenCalledWith(['ob-1']);
   });
 
@@ -210,9 +229,12 @@ describe('EventosOutboxDispatcher', () => {
         organizacionId: 'org-1',
       },
     ]);
-    const queue = buildQueue();
-    queue.add.mockRejectedValueOnce(new Error('Redis caído'));
-    const dispatcher = new EventosOutboxDispatcher(repository, queue);
+    const boss = buildBoss();
+    boss.send.mockRejectedValueOnce(new Error('Postgres caído'));
+    const dispatcher = new EventosOutboxDispatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await dispatcher.despachar();
 
@@ -229,9 +251,12 @@ describe('EventosOutboxDispatcher', () => {
         organizacionId: 'org-1',
       },
     ]);
-    const queue = buildQueue();
-    queue.add.mockRejectedValueOnce('fallo-string');
-    const dispatcher = new EventosOutboxDispatcher(repository, queue);
+    const boss = buildBoss();
+    boss.send.mockRejectedValueOnce('fallo-string');
+    const dispatcher = new EventosOutboxDispatcher(
+      repository,
+      boss as unknown as PgBoss,
+    );
 
     await dispatcher.despachar();
 

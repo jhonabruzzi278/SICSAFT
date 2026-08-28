@@ -219,6 +219,13 @@ tumbe el CORE ni corrompa la Base Patrimonial.
   de una instancia (para tolerar la caída de una) sin que el estado de una transacción dependa de
   qué instancia la atendió — el estado vive en la Base Patrimonial o en la cola, no en memoria de
   proceso.
+  **Excepción aceptada y documentada** (ADR-005, 2026-08-27): el rate limiter y el device-registry
+  de `cis/` (`src/rate-limit/`, `src/device-registry/`) pasaron de Redis a memoria del propio
+  proceso — `cis/` no tiene Postgres propio y corre como instancia única en los 3 perfiles de
+  `devops/` hoy, así que no hay ningún estado que sincronizar entre instancias todavía. Si `cis/`
+  alguna vez necesita escalar a múltiples réplicas, estos dos componentes son los primeros a
+  revisar (no se resolvió preventivamente — YAGNI). El resto de este pilar (colas, idempotencia,
+  circuit breaker, aislamiento de fallos) no cambia.
 
 ## 5. Pilar: Eficiencia de Rendimiento
 

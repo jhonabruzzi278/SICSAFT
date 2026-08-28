@@ -14,9 +14,10 @@ process.env.CORE_DB_NAME ??= 'core';
 process.env.CORE_DB_USER ??= 'core';
 process.env.CORE_DB_PASSWORD ??= 'core';
 
-// Fase 6 (EventosOutboxModule) — mismo criterio que CORE_DB_* arriba. `core-ci.yml` levanta un
-// Redis efímero sin password (limitación de `services:` de GitHub Actions, que no permite pasar
-// `--requirepass` sin una imagen custom); el `redis` de `devops/local/docker-compose.yml` sí
-// exige `REDIS_PASSWORD` — si tu `.env` local lo cambió del default, exportá REDIS_URL antes de
-// correr `npm run test:e2e` fuera de Docker.
-process.env.REDIS_URL ??= 'redis://localhost:6379';
+// Fase 6 (EventosOutboxModule) / ADR-005 — mismo criterio que CORE_DB_* arriba: apunta a la base
+// `eventos_outbox` del postgres local (devops/local/docker-compose.yml, puerto expuesto al host).
+// `core-ci.yml` sobreescribe este valor con el del servicio postgres del job (ver ese workflow
+// para por qué ahí reusa la misma base `core` en vez de crear una tercera — CI nunca corre
+// core-ci.yml y cip-ci.yml en el mismo job, no hay intercambio real de mensajes que verificar).
+process.env.EVENTOS_OUTBOX_DATABASE_URL ??=
+  'postgres://eventos_outbox:eventos_outbox@localhost:5432/eventos_outbox';

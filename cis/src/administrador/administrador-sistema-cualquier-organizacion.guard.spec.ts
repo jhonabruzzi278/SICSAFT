@@ -1,6 +1,6 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { AdministradorSistemaEnCualquierOrganizacionGuard } from './administrador-sistema-cualquier-organizacion.guard';
-import type { AuthenticatedRequest } from '../common/auth/zitadel-auth.guard';
+import type { AuthenticatedRequest } from '../common/auth/keycloak-auth.guard';
 
 function buildContext(auth?: AuthenticatedRequest['auth']): ExecutionContext {
   const request = { auth };

@@ -1,7 +1,7 @@
 # SICSAFT — instalación on-premise por cliente (Nivel 1 / Nivel 2)
 
 Stack de contenedores para instalar una copia **aislada** de SICSAFT en el PC/servidor de un
-cliente — un tenant completo por cliente, no una Organización más dentro de un Zitadel
+cliente — un tenant completo por cliente, no una Organization más dentro de un Keycloak
 compartido. Ver [`../../aidlc-docs/devops/`](../../aidlc-docs/devops) para el diseño completo
 (contexto de negocio, arquitectura, niveles de producto) y
 [`../README.md`](../README.md) para cómo encaja con `devops/local/`/`devops/prod/`.
@@ -17,11 +17,11 @@ expuesto. `cip` (BI) sí entra, desde Nivel 1 (ver `DOC-025` 1/3, cierra INST-Q-
 ```
 
 Un solo comando hace todo lo que el flujo manual de abajo describe paso a paso: verifica/instala
-WSL2 y Podman, genera un `.env` con contraseñas únicas, levanta la base de identidad, obtiene el
-PAT de Zitadel solo (auto-provisionado, sin Console — ver
-`aidlc-docs/devops/design-artifacts/ARCHITECTURE.md`), corre el bootstrap del cliente, completa el
-`.env` y construye/levanta el stack completo, con una verificación (`smoke check`) al final.
-Empaquetado como instalador `.exe` con una UI simple: ver [`installer/`](installer).
+WSL2 y Podman, genera un `.env` con contraseñas únicas, levanta la base de identidad, corre el
+bootstrap del cliente contra la Admin REST API de Keycloak (realm, roles, Organization, apps
+OIDC — ver `aidlc-docs/devops/design-artifacts/ARCHITECTURE.md`), completa el `.env` y
+construye/levanta el stack completo, con una verificación (`smoke check`) al final. Empaquetado
+como instalador `.exe` con una UI simple: ver [`installer/`](installer).
 
 Verificado corriendo de verdad contra Windows real (no solo en teoría) — varios bugs reales
 encontrados y corregidos en el camino (ver historial de PRs `fix(devops): ...` de
@@ -32,10 +32,13 @@ volúmenes de una corrida anterior fallida quedando con credenciales viejas. El 
 abajo sigue documentado como fallback/debug si algún paso automatizado falla igual y hay que
 diagnosticar a mano.
 
-**Secretos**: `.env` (contraseñas + `ZITADEL_ADMIN_TOKEN`) y `.bootstrap/` (el PAT
-auto-provisionado) quedan con permisos NTFS restringidos a Administradores + SYSTEM apenas
-terminan de usarse — una sesión sin privilegios de administrador en el PC del cliente no puede
-abrirlos. El instalador deja además un log detallado (`instalacion.log`, mismos permisos) para
+**Secretos**: `.env` (contraseñas + `KEYCLOAK_ADMIN_CLIENT_SECRET`) queda con permisos NTFS
+restringidos a Administradores + SYSTEM apenas termina de usarse — una sesión sin privilegios de
+administrador en el PC del cliente no puede abrirlo. A diferencia del flujo de Zitadel que esto
+reemplazó (ADR-004 Fase 3), no hay un `.bootstrap/` que proteger aparte: Keycloak no
+auto-provisiona ningún archivo de secretos, el bootstrap se autentica directo con las credenciales
+que ya están en `.env`. El instalador deja además un log detallado (`instalacion.log`, mismos
+permisos) para
 diagnosticar sin depender de la ventana en pantalla. La ventana de PowerShell sigue visible por
 ahora a propósito (es lo que permitió diagnosticar cada bug real de la lista de arriba) — se oculta
 recién cuando el flujo esté verificado como estable, ver
@@ -53,7 +56,7 @@ consumo de recursos en reposo, sin licenciamiento comercial de Docker Desktop.
 
 **Riesgo a verificar antes de usar en un cliente real** (no asumido): los `healthcheck`/
 `depends_on: condition: service_healthy` que este compose usa fuerte (`core-migrate` → `core`,
-`postgres`/`redis` healthy antes de levantar `cis`/`core`) deben comportarse igual bajo
+`postgres` healthy antes de levantar `cis`/`core`) deben comportarse igual bajo
 `podman-compose` — probar `podman-compose --profile nivel1 up -d` de punta a punta antes de una
 instalación real.
 
@@ -85,52 +88,57 @@ exclusivo de Nivel 2.)
 cp .env.example .env
 ```
 
-Completar `POSTGRES_ADMIN_PASSWORD`, `REDIS_PASSWORD`, `ZITADEL_MASTERKEY` (32 caracteres exactos:
-`openssl rand -base64 32 | cut -c1-32`), `ZITADEL_ADMIN_USERNAME`/`PASSWORD`, `CORE_DB_PASSWORD` y
-`CORE_SERVICE_TOKEN` (`openssl rand -hex 32`) con valores **únicos de este cliente** (INST-RNF-03
-— nunca reusar los de otra instalación). Dejar el resto de las variables (`CIS_ZITADEL_AUDIENCE`,
-`ZITADEL_ORG_ID_MAP`, los `*_CLIENT_ID`, etc.) con el placeholder hasta el paso 4.
+Completar `POSTGRES_ADMIN_PASSWORD`, `KEYCLOAK_DB_PASSWORD`,
+`KEYCLOAK_ADMIN_USERNAME`/`PASSWORD`, `CORE_DB_PASSWORD`, `CORE_SERVICE_TOKEN`
+(`openssl rand -hex 32`) y `EVENTOS_OUTBOX_DB_PASSWORD` con valores **únicos de este cliente**
+(INST-RNF-03 — nunca reusar los de otra instalación). Dejar el resto de las variables
+(`KEYCLOAK_ADMIN_CLIENT_ID`/`SECRET`, los `*_CLIENT_ID`, etc.) con el placeholder hasta el paso 4.
 
 ### 3. Levantar la base de identidad primero
 
-**No levantar todo el stack junto todavía** — el bootstrap de Zitadel necesita correr antes de
+**No levantar todo el stack junto todavía** — el bootstrap de Keycloak necesita correr antes de
 construir los frontends (ver "Orden obligatorio" abajo):
 
 ```bash
-podman-compose up -d postgres redis zitadel
-podman-compose logs -f zitadel   # esperar a que termine el bootstrap (start-from-init)
+podman-compose up -d postgres keycloak traefik
+```
+
+Esperar a que responda 200 (Keycloak inicializó su esquema de base de datos y ya sirve tráfico):
+
+```bash
+curl http://id.sicsaft.localhost/realms/master/.well-known/openid-configuration
 ```
 
 ### 4. Bootstrap del cliente
 
-Requiere un Personal Access Token (PAT) de un service user con rol IAM/Org Manager. Con este
-compose ya no hace falta crearlo a mano en la Console: Zitadel lo auto-provisiona en el primer
-arranque (`ZITADEL_FIRSTINSTANCE_ORG_MACHINE_*`/`PATPATH`, ver `docker-compose.yml`) y lo escribe
-en `.bootstrap/admin-pat.txt` — leerlo de ahí después de `podman-compose up -d zitadel`. Si por lo
-que sea ese mecanismo no funcionara en la práctica, queda como respaldo crear el service user a
-mano en la Console, mismo paso que documenta
-[`devops/local/README.md` "Rol administrador-sistema + integración Zitadel Admin API"](../local/README.md#rol-administrador-sistema--integración-zitadel-admin-api-web--doc-021)
-(sección 2). Todo lo que viene después de tener el PAT lo hace el script:
+A diferencia de Zitadel (que esto reemplazó, ADR-004 Fase 3) — no hace falta ningún PAT
+auto-provisionado ni crear nada a mano en la Console: el bootstrap se autentica directo contra el
+realm `master` con `KEYCLOAK_ADMIN_USERNAME`/`PASSWORD` (las mismas credenciales que ya arrancaron
+el contenedor `keycloak`, ver `docker-compose.yml`). El script hace todo lo demás (realm `sicsaft`,
+Organizations habilitado, roles, Organization del cliente, apps OIDC):
 
 ```powershell
-./bootstrap-zitadel.ps1 -Pat "pat_xxx" `
+./bootstrap-keycloak.ps1 -AdminUsername admin -AdminPassword "la-que-quedó-en-.env" `
     -ClienteNombre "Municipalidad de Melipilla" `
     -OrganizacionId "municipalidad-melipilla" `
     -Nivel 2
 ```
 
-Copiar los valores que imprime al final (`CIS_ZITADEL_AUDIENCE`, `ZITADEL_ORG_ID_MAP`,
-`ZITADEL_ADMIN_TOKEN`, `ZITADEL_PROJECT_ID`, y los `*_CLIENT_ID`) al `.env`.
+Copiar los valores que imprime al final (`KEYCLOAK_ADMIN_CLIENT_ID`, `KEYCLOAK_ADMIN_CLIENT_SECRET`,
+y los `*_VITE_KEYCLOAK_CLIENT_ID`) al `.env`.
 
-> ⚠️ El script no está verificado todavía contra una instancia real de Zitadel (ver el
-> encabezado del propio `bootstrap-zitadel.ps1`) — probarlo de punta a punta antes de usarlo en
-> la instalación de un cliente pagante. Si algún shape de la API difiere, corregir el script, no
-> volver a los pasos manuales del dashboard salvo que sea estrictamente necesario.
+> Cada llamada de este script (realm, Organizations, client scopes con Audience mapper, roles,
+> clients OIDC públicos con PKCE, client confidencial con service account) se verificó real contra
+> un Keycloak 26.0 de prueba (2026-08-26, ver Nota de honestidad en `lib/Bootstrap-Keycloak.psm1`)
+> — incluyendo el login completo de un usuario de prueba y la inspección del JWT resultante. Lo
+> que falta verificar es el flujo end-to-end contra ESTE `docker-compose.yml` (Traefik +
+> `KC_HOSTNAME` con un dominio de cliente real) — probarlo de punta a punta antes de usarlo en la
+> instalación de un cliente pagante.
 
 ### 5. Orden obligatorio: bootstrap antes de build
 
 Los frontends (`app-qr-sicsaft`, `web-admin`, `core-frontend` desde Nivel 1, y `ccp` desde Nivel 2)
-hornean `VITE_ZITADEL_CLIENT_ID` en **build time** (mismo mecanismo que `devops/local/`, ver
+hornean `VITE_KEYCLOAK_CLIENT_ID` en **build time** (mismo mecanismo que `devops/local/`, ver
 `args:` en `docker-compose.yml`). Construir las imágenes antes de tener los Client IDs reales de
 este cliente obliga a reconstruirlas después — por eso el bootstrap (paso 4) va antes de este paso:
 
@@ -150,10 +158,10 @@ podman-compose --profile nivel2 up -d --build      # Nivel 2 (incluye Nivel 1 + 
 
 ### 7. Después de verificar
 
-- Guardar `ZITADEL_ADMIN_TOKEN` y el `.env` completo de este cliente en el gestor de secretos del
-  admin — necesario para volver a soportar esta instalación después (alta de usuarios, reset de
-  contraseña) sin depender de que el cliente sepa operar Zitadel (INST-Q-02, pregunta abierta de
-  gestión de secretos multi-cliente).
+- Guardar `KEYCLOAK_ADMIN_CLIENT_SECRET`, `KEYCLOAK_ADMIN_PASSWORD` y el `.env` completo de este
+  cliente en el gestor de secretos del admin — necesario para volver a soportar esta instalación
+  después (alta de usuarios, reset de contraseña) sin depender de que el cliente sepa operar
+  Keycloak (INST-Q-02, pregunta abierta de gestión de secretos multi-cliente).
 - Entregar al cliente sus credenciales de operador reales y desactivar/borrar los usuarios de
   prueba usados para verificar.
 

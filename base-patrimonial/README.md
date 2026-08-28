@@ -21,8 +21,14 @@ mínimo del resto del dominio patrimonial también modelado e implementado (ver
 [DOC-005](DOC-005-modelo-patrimonial.md)): `Área`, `Ubicación`, `Responsable`, `Catálogo de
 Activos`, `Activo` (Base Patrimonial Central), `Inventarios`, `Eventos` y `Auditoría` — tablas
 reales en Postgres con datos de prueba (dos activos de DUOC UC/Melipilla). `Configuración` e
-`Integraciones` siguen sin modelar (sin consumidor todavía, ver DOC-005 1). Sin API todavía
-sobre ninguna de estas tablas nuevas — eso es el Motor Patrimonial (`ROADMAP.md` Fase 2).
+`Integraciones` siguen sin modelar (sin consumidor todavía, ver DOC-005 1). **API de lectura y de
+escritura oficial ya existe** sobre `Activo`/`Catálogo`/`Documentos`/`Contrato`: el Motor
+Patrimonial de lectura (`ROADMAP.md` Fase 2 ✅) y el camino de escritura oficial del Administrador
+Patrimonial (Fase 4 ✅, DOC-012 — `core/src/patrimonial/`: alta/baja/reincorporación/cambio de
+responsable, importación masiva contable idempotente, escritura de `Contrato`), todo sobre
+Postgres real, verificado con unit + e2e. `estado` bidireccional y CRUD completo de
+Organización/Sede/Contrato agregados por DOC-024. Lo que falta son los otros 8 motores de
+`core/README.md` (Reglas/Alertas/etc.) y el resto de los 11 dominios.
 
 ## Los 11 dominios oficiales (Tomo III 4.2–4.13)
 La Base Patrimonial Central es el dominio raíz; los otros 10 dominios conviven a su alrededor y
@@ -72,7 +78,9 @@ de analítica) y 4 (fiabilidad: backups con restauración probada dado que el hi
 borra).
 
 ## Próximo paso sugerido
-`Contrato` (DOC-004) y el alcance mínimo del resto del dominio (DOC-005) ya están modelados e
-implementados sobre Postgres real — motor de BD ya resuelto (PostgreSQL, ADR-001). El siguiente
-paso con valor real es el Motor Patrimonial de CORE (`ROADMAP.md` Fase 2), que recién le da un
-consumidor a estas tablas. Tarjeta Trello: `BASE-DOC-001`.
+`Contrato` (DOC-004), el alcance mínimo del resto del dominio (DOC-005), el Motor Patrimonial de
+lectura (Fase 2) y el camino de escritura oficial (Fase 4, DOC-012) ya están implementados sobre
+Postgres real. El siguiente paso con valor real es modelar el resto de los 11 dominios
+(`Configuración`/`Integraciones` cuando tengan consumidor) y los motores que faltan de
+`core/README.md` (Reglas/Alertas), que le dan más superficie a estas tablas. Tarjeta Trello:
+`BASE-DOC-001`.

@@ -43,7 +43,7 @@ export function GestionarProfesionalAftPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitOk, setSubmitOk] = useState(false);
   // Gap 3 (flujo real Admin->Directivo->Profesional AFT) — solo se llena cuando el email no
-  // existía todavía en Zitadel (creado: true). Se muestra una sola vez, nunca se persiste.
+  // existía todavía en Keycloak (creado: true). Se muestra una sola vez, nunca se persiste.
   const [passwordCreada, setPasswordCreada] = useState<string | null>(null);
   const {
     register,
@@ -160,7 +160,7 @@ export function GestionarProfesionalAftPage() {
             )}
             {submitOk && !passwordCreada && (
               <Alert variant="success">
-                Profesional de AFT designado (ya tenía cuenta en Zitadel).
+                Profesional de AFT designado (ya tenía cuenta en Keycloak).
               </Alert>
             )}
             <Button type="submit" disabled={isSubmitting} className="w-full">

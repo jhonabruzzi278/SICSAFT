@@ -1,4 +1,4 @@
-// PKCE (RFC 7636) para el flujo authorization code de Zitadel — la app es un
+// PKCE (RFC 7636) para el flujo authorization code de Keycloak — la app es un
 // User Agent/SPA sin secreto de cliente (ver devops/local/README.md "Cliente
 // OIDC real"), así que el code_verifier es lo único que prueba que quien
 // canjea el `code` es el mismo navegador que inició el login.

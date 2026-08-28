@@ -1,51 +1,45 @@
 import { Inject, Module, type OnModuleDestroy } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-import { Queue } from 'bullmq';
-import type Redis from 'ioredis';
+import type { PgBoss } from 'pg-boss';
 import { CoreClientModule } from '../core-client/core-client.module';
 import { AgregacionRepository } from './agregacion.repository';
 import { AgregacionService } from './agregacion.service';
-import { createRedisConnection } from './create-redis-connection';
+import { createPgBossClient } from './create-pgboss-client';
+import { CIP_EVENTOS_PGBOSS } from './eventos-outbox-queue.constants';
+import { loadEventosOutboxQueueConfig } from './eventos-outbox-queue.config';
 import { CIP_EVENTOS_QUEUE_NAME } from './eventos-outbox.constants';
-import {
-  CIP_EVENTOS_QUEUE,
-  CIP_EVENTOS_REDIS_CONNECTION,
-} from './eventos-outbox-queue.constants';
 import { EventosOutboxWorker } from './eventos-outbox.worker';
-import { loadRedisConfig } from './redis.config';
 import { SyncEstadoWatcher } from './sync-estado.watcher';
 
-// Segunda conexion a Redis del lado de CIP (la primera la abre EventosOutboxWorker para el
-// Worker en si) — esta es de solo lectura, la usa SyncEstadoWatcher para `getWaitingCount()`
-// (RF-10). Mismo patron de cleanup que core/src/eventos-outbox/eventos-outbox.module.ts: el
-// modulo cierra ambas (queue + conexion) en onModuleDestroy.
+// ADR-005 — único cliente pg-boss del lado de CIP, compartido por EventosOutboxWorker (consume
+// vía `work()`) y SyncEstadoWatcher (lee vía `getQueue()`) — antes eran dos conexiones ioredis
+// separadas (una para el Worker de BullMQ, otra de solo lectura para getWaitingCount()). El
+// módulo lo arranca y lo detiene en onModuleDestroy, mismo patrón que
+// core/src/eventos-outbox/eventos-outbox.module.ts.
 @Module({
   imports: [ScheduleModule.forRoot(), CoreClientModule],
   providers: [
     AgregacionRepository,
     AgregacionService,
+    {
+      provide: CIP_EVENTOS_PGBOSS,
+      useFactory: async (): Promise<PgBoss> => {
+        const boss = await createPgBossClient(
+          loadEventosOutboxQueueConfig().connectionString,
+        );
+        await boss.start();
+        await boss.createQueue(CIP_EVENTOS_QUEUE_NAME);
+        return boss;
+      },
+    },
     EventosOutboxWorker,
-    {
-      provide: CIP_EVENTOS_REDIS_CONNECTION,
-      useFactory: (): Redis => createRedisConnection(loadRedisConfig().url),
-    },
-    {
-      provide: CIP_EVENTOS_QUEUE,
-      useFactory: (connection: Redis): Queue =>
-        new Queue(CIP_EVENTOS_QUEUE_NAME, { connection }),
-      inject: [CIP_EVENTOS_REDIS_CONNECTION],
-    },
     SyncEstadoWatcher,
   ],
 })
 export class AgregacionModule implements OnModuleDestroy {
-  constructor(
-    @Inject(CIP_EVENTOS_QUEUE) private readonly queue: Queue,
-    @Inject(CIP_EVENTOS_REDIS_CONNECTION) private readonly connection: Redis,
-  ) {}
+  constructor(@Inject(CIP_EVENTOS_PGBOSS) private readonly boss: PgBoss) {}
 
   async onModuleDestroy(): Promise<void> {
-    await this.queue.close();
-    this.connection.disconnect();
+    await this.boss.stop();
   }
 }

@@ -1,4 +1,4 @@
-// PKCE (RFC 7636) para el flujo authorization code de Zitadel — la app es un User Agent/SPA sin
+// PKCE (RFC 7636) para el flujo authorization code de Keycloak — la app es un User Agent/SPA sin
 // secreto de cliente (mismo patron que app-qr-sicsaft/src/lib/oidc/pkce.ts).
 const VERIFIER_BYTE_LENGTH = 32;
 

@@ -3,9 +3,8 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { SignJWT, generateKeyPair, type JWTVerifyGetKey } from 'jose';
 import { crearAppE2e } from './support/e2e-app';
-import { crearRedisStub, type RedisStub } from './support/redis-stub';
 
-const ISSUER = 'http://id.sicsaft.localhost';
+const ISSUER = 'http://id.sicsaft.localhost/realms/sicsaft';
 const AUDIENCE = 'cis-api';
 
 const SYNC_INFO = { actualizadoEn: '2026-08-18T10:00:00.000Z', alDia: true };
@@ -13,8 +12,10 @@ const SYNC_INFO = { actualizadoEn: '2026-08-18T10:00:00.000Z', alDia: true };
 // DOC-019 3.1/4 — prueba DashboardConnectorController + guard de punta a punta vía HTTP real,
 // mismo patrón que qr-connector.e2e-spec.ts: CipClientService se reemplaza por un stub (ya tiene
 // su propia cobertura unitaria contra HttpService mockeado, ver cip-client.service.spec.ts) — acá
-// se prueba que el controller exige el mismo ZitadelAuthGuard que Activos/Inventarios (sin rol
-// adicional, DOC-019 2) y que delega correctamente en el cliente de CIP.
+// se prueba que el controller exige el mismo KeycloakAuthGuard que Activos/Inventarios (sin rol
+// adicional, DOC-019 2) y que delega correctamente en el cliente de CIP. Sin claim `organization`
+// en el token (mismo criterio que qr-connector.e2e-spec.ts): no hace falta stubear
+// KeycloakAdminService.
 describe('Dashboard (e2e) — DOC-019, proxy CIS→CIP', () => {
   let app: INestApplication<App>;
   let bearerToken: string;
@@ -28,12 +29,6 @@ describe('Dashboard (e2e) — DOC-019, proxy CIS→CIP', () => {
     getEstadoActivos: jest.Mock;
     getCategorias: jest.Mock;
   };
-  let redisClient: RedisStub;
-
-  beforeAll(() => {
-    process.env.ZITADEL_ISSUER = ISSUER;
-    process.env.ZITADEL_AUDIENCE = AUDIENCE;
-  });
 
   beforeEach(async () => {
     const { publicKey, privateKey } = await generateKeyPair('RS256');
@@ -97,13 +92,10 @@ describe('Dashboard (e2e) — DOC-019, proxy CIS→CIP', () => {
       }),
     };
 
-    redisClient = crearRedisStub();
-
     app = await crearAppE2e({
       jwks: localJwks,
       coreClientService: {},
       cipClientService,
-      redisClient,
     });
   });
 
@@ -249,8 +241,16 @@ describe('Dashboard (e2e) — DOC-019, proxy CIS→CIP', () => {
   });
 
   it('devuelve 429 cuando el operador supera el límite de requests (RateLimitGuard, WAF 4)', async () => {
-    redisClient.eval.mockResolvedValue(31);
-    redisClient.pttl.mockResolvedValue(4_000);
+    // ADR-005 — InMemoryRateLimiter no se puede pre-cargar como el stub de Redis: se dispara el
+    // límite real (30 requests/10s, ver rate-limit.module.ts) haciendo suficientes requests.
+    const LIMITE = 30;
+    for (let i = 0; i < LIMITE; i += 1) {
+      await request(app.getHttpServer())
+        .get('/dashboard/cobertura')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .query({ organizacionId: 'duoc-uc' })
+        .expect(200);
+    }
 
     await request(app.getHttpServer())
       .get('/dashboard/cobertura')

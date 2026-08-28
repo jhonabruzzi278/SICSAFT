@@ -1,8 +1,8 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CoreClientService } from '../core-client/core-client.service';
 import { AuditoriaIdentidadService } from '../auditoria-identidad/auditoria-identidad.service';
-import { ZitadelAdminService } from '../zitadel-admin/zitadel-admin.service';
-import type { GrantUsuario } from '../zitadel-admin/zitadel-admin.types';
+import { KeycloakAdminService } from '../keycloak-admin/keycloak-admin.service';
+import type { GrantUsuario } from '../keycloak-admin/keycloak-admin.types';
 import type {
   ActivoResult,
   AreaResult,
@@ -23,10 +23,7 @@ import type {
   UbicacionResult,
   UbicacionesPaginaResult,
 } from '../core-client/core-client.types';
-import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
-import { ORGANIZACION_MAPPING } from './administrador.constants';
-import type { OrganizacionMapping } from './organizacion-mapping.config';
-import { OrganizacionMappingDinamicoService } from './organizacion-mapping-dinamico.service';
+import type { KeycloakAuthContext } from '../common/auth/keycloak-auth.guard';
 import type {
   ActualizarCondicionesContratoBody,
   ActualizarDescripcionActivoBody,
@@ -55,119 +52,108 @@ import type {
 
 // DOC-012 5 (Fase 4/5) — puente WEB->CIS->CORE para la escritura oficial de Activo. WEB nunca
 // le habla a CORE directo (regla no negociable de CLAUDE.md) — este servicio traduce el contexto
-// ya autenticado por Zitadel (ZitadelAuthGuard) al contrato de escritura oficial que CORE espera
+// ya autenticado por Keycloak (KeycloakAuthGuard) al contrato de escritura oficial que CORE espera
 // (DOC-012 3.3).
+//
+// ADR-004 — ya no traduce rolesPorOrganizacion: con Zitadel, el organizacionId que firmaba el JWT
+// era un id numérico interno distinto del organizacionId de texto que usa CORE
+// (ORGANIZACION_MAPPING/OrganizacionMappingDinamicoService resolvían esa diferencia). Con
+// Keycloak, `rolesPorOrganizacion` ya viene keyed por el alias de la Organization — el mismo
+// organizacionId que usa CORE por construcción (ver KeycloakAdminService.crearOrganizacion) — así
+// que se pasa tal cual, sin traducción ni caché de mapeo.
 @Injectable()
 export class AdministradorService {
   constructor(
     private readonly coreClientService: CoreClientService,
-    private readonly zitadelAdminService: ZitadelAdminService,
-    private readonly organizacionMappingDinamico: OrganizacionMappingDinamicoService,
+    private readonly keycloakAdminService: KeycloakAdminService,
     private readonly auditoriaIdentidad: AuditoriaIdentidadService,
-    @Inject(ORGANIZACION_MAPPING)
-    private readonly organizacionMapping: OrganizacionMapping,
   ) {}
 
-  async altaActivo(
+  altaActivo(
     body: AltaActivoBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ActivoResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.postActivo(
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
   }
 
   // DOC-021 3 (gap "estados") — baja/reincorporacion/responsable/descripcion de Activo.
-  async bajaActivo(
+  bajaActivo(
     activoId: string,
     body: EscrituraOficialActivoBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ActivoResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.postActivoBaja(
       activoId,
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
   }
 
-  async reincorporarActivo(
+  reincorporarActivo(
     activoId: string,
     body: EscrituraOficialActivoBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ActivoResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.postActivoReincorporacion(
       activoId,
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
   }
 
-  async cambiarResponsableActivo(
+  cambiarResponsableActivo(
     activoId: string,
     body: CambioResponsableActivoBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ActivoResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.patchActivoResponsable(
       activoId,
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
   }
 
   // DOC-021 3 (gap "descripciones").
-  async actualizarDescripcionActivo(
+  actualizarDescripcionActivo(
     activoId: string,
     body: ActualizarDescripcionActivoBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ActivoResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.patchActivoDescripcion(
       activoId,
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
@@ -178,20 +164,17 @@ export class AdministradorService {
     return this.coreClientService.getCatalogoTipos(correlationId);
   }
 
-  async altaCatalogoTipo(
+  altaCatalogoTipo(
     body: AltaCatalogoTipoBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<CatalogoTipoResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.postCatalogoTipo(
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
@@ -210,37 +193,31 @@ export class AdministradorService {
     );
   }
 
-  async altaDocumentoActivo(
+  altaDocumentoActivo(
     activoId: string,
     body: AltaDocumentoActivoBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<DocumentoActivoResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.postDocumentoActivo(
       activoId,
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
   }
 
-  async eliminarDocumentoActivo(
+  eliminarDocumentoActivo(
     activoId: string,
     documentoId: string,
     body: EscrituraOficialActivoBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<void> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.deleteDocumentoActivo(
       activoId,
       documentoId,
@@ -248,27 +225,24 @@ export class AdministradorService {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
   }
 
   // DOC-012 6 (gap "importaciones controladas").
-  async importarContable(
+  importarContable(
     body: ImportacionContableBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ImportacionContableResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.postImportacionContable(
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
@@ -280,76 +254,49 @@ export class AdministradorService {
     return this.coreClientService.getOrganizaciones(correlationId);
   }
 
-  // Gap 1 (flujo real Admin->Directivo->Profesional AFT) — ya no recibe el id de Zitadel del
-  // cliente: lo crea acá mismo (ZitadelAdminService.crearOrganizacion) y usa el id real que
-  // Zitadel devuelve para escribir en CORE. Orden deliberado: Zitadel (org) -> Zitadel
-  // (ProjectGrant) -> CORE -> mapeo dinámico.
+  // Gap 1 (flujo real Admin->Directivo->Profesional AFT) — ADR-004: ya no hay paso de
+  // "ProjectGrant" (concepto propio de Zitadel, sin equivalente en Keycloak) ni registro de mapeo
+  // dinámico — KeycloakAdminService.crearOrganizacion decide el organizacionId (alias) y CORE usa
+  // ese mismo id directo, sin pasos intermedios.
   //
-  // El paso de ProjectGrant es un hallazgo real (no parte del diseño original): sin otorgarle el
-  // proyecto "CIS" a la organización nueva, Zitadel nunca deja asignarle NINGÚN rol a NADIE en esa
-  // organización ("Project not found") — descubierto verificando este flujo contra el Zitadel
-  // real de devops/local, no algo que se pueda inferir leyendo el código. Va antes que CORE
-  // porque una organización sin ProjectGrant es inútil (nadie podría ser Directivo ni Profesional
-  // de AFT ahí) — mejor fallar antes de registrarla que dejar una organización "creada" pero
-  // inoperable.
-  //
-  // Si CORE falla después de estos dos pasos de Zitadel, la organización queda huérfana (estado
+  // Si CORE falla después de crear la Organization en Keycloak, esta queda huérfana (estado
   // recuperable a mano, no distinto de cualquier otra falla de red a mitad de un alta) — no se
-  // implementa un rollback automático de Zitadel, ningún otro flujo de este servicio lo hace
-  // tampoco. Si el registro del mapeo dinámico falla al final, se propaga (ver el comentario de
-  // OrganizacionMappingDinamicoService.registrar): la organización ya existe en Zitadel y en
-  // CORE, solo falta el mapeo — recuperable reintentando el registro, no un alta duplicada.
+  // implementa un rollback automático, ningún otro flujo de este servicio lo hace tampoco.
   async altaOrganizacion(
     body: AltaOrganizacionBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<OrganizacionResult> {
-    const { id: zitadelOrgId } =
-      await this.zitadelAdminService.crearOrganizacion(
+    const { id: organizacionId } =
+      await this.keycloakAdminService.crearOrganizacion(
         body.nombre,
         correlationId,
       );
-    await this.zitadelAdminService.otorgarProyectoAOrganizacion(
-      zitadelOrgId,
-      correlationId,
-    );
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
-    const organizacion = await this.coreClientService.postOrganizacion(
+    return this.coreClientService.postOrganizacion(
       {
-        id: zitadelOrgId,
+        id: organizacionId,
         nombre: body.nombre,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
-    await this.organizacionMappingDinamico.registrar(
-      zitadelOrgId,
-      zitadelOrgId,
-    );
-    return organizacion;
   }
 
   // DOC-024 1 — PATCH /admin/organizaciones/:orgId (editar nombre). Misma secuencia que
-  // altaOrganizacion (Zitadel primero, CORE despues) — mismo riesgo ya aceptado ahi si Zitadel
-  // falla, CORE nunca se toca.
+  // altaOrganizacion (Keycloak primero, CORE despues). ADR-004: `organizacionId` ya es el alias de
+  // la Organization, sin resolución previa.
   async editarOrganizacion(
     organizacionId: string,
     body: EditarOrganizacionBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<OrganizacionResult> {
-    const zitadelOrgId = await this.organizacionIdAZitadel(organizacionId);
-    await this.zitadelAdminService.actualizarNombreOrganizacion(
-      zitadelOrgId,
+    await this.keycloakAdminService.actualizarNombreOrganizacion(
+      organizacionId,
       body.nombre,
       correlationId,
-    );
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
     );
     return this.coreClientService.patchOrganizacion(
       organizacionId,
@@ -357,30 +304,27 @@ export class AdministradorService {
         nombre: body.nombre,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
   }
 
-  // DOC-024 1 — PATCH /admin/organizaciones/:orgId/estado. Solo CORE, sin tocar Zitadel ni
+  // DOC-024 1 — PATCH /admin/organizaciones/:orgId/estado. Solo CORE, sin tocar Keycloak ni
   // cascada a Contrato (bookkeeping de plataforma, ver DOC-024 1).
-  async actualizarEstadoOrganizacion(
+  actualizarEstadoOrganizacion(
     organizacionId: string,
     body: ActualizarEstadoOrganizacionBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<OrganizacionResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.patchOrganizacionEstado(
       organizacionId,
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
@@ -391,27 +335,26 @@ export class AdministradorService {
     return this.coreClientService.getIndicadores(correlationId);
   }
 
-  // DOC-021 4 — asignar usuarios a organizaciones, integración real con Zitadel (no CORE: esto
+  // DOC-021 4 — asignar usuarios a organizaciones, integración real con Keycloak (no CORE: esto
   // nunca toca la BPI, es gestión de identidad). `organizacionId` acá es el id de CORE (ej.
-  // 'duoc-uc', mismo formato que el resto de este servicio) — se traduce al id real de Zitadel
-  // antes de llamar a ZitadelAdminService, que solo conoce ids de Zitadel.
-  async listarUsuariosOrganizacion(
+  // 'duoc-uc'), y ADR-004 lo hace también el alias de Keycloak directo — sin traducción.
+  listarUsuariosOrganizacion(
     organizacionId: string,
     correlationId: string,
   ): Promise<GrantUsuario[]> {
-    const zitadelOrgId = await this.organizacionIdAZitadel(organizacionId);
-    return this.zitadelAdminService.listarGrants(zitadelOrgId, correlationId);
+    return this.keycloakAdminService.listarGrants(
+      organizacionId,
+      correlationId,
+    );
   }
 
   // DOC-024 3 — envuelto en AuditoriaIdentidadService.ejecutar: esta operacion nunca toca CORE
-  // (es gestion de identidad en Zitadel), asi que sin esto quedaba fuera del Motor de Auditoria
-  // de Tomo IV por completo — ver DOC-024 3. `auth` ahora se recibe explicito (antes este metodo
-  // no capturaba la identidad de quien llamaba, a diferencia de cada otro metodo de este
-  // archivo) para tener un `operadorId` real que auditar.
+  // (es gestion de identidad en Keycloak), asi que sin esto quedaba fuera del Motor de Auditoria
+  // de Tomo IV por completo — ver DOC-024 3.
   async asignarUsuarioOrganizacion(
     organizacionId: string,
     body: AsignarUsuarioOrganizacionBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<void> {
     return this.auditoriaIdentidad.ejecutar(
@@ -419,18 +362,17 @@ export class AdministradorService {
       auth.operadorId,
       correlationId,
       async () => {
-        const zitadelOrgId = await this.organizacionIdAZitadel(organizacionId);
-        const usuario = await this.zitadelAdminService.buscarUsuarioPorEmail(
+        const usuario = await this.keycloakAdminService.buscarUsuarioPorEmail(
           body.email,
           correlationId,
         );
         if (!usuario) {
           throw new NotFoundException({
-            message: `No existe ningún usuario de Zitadel con el email '${body.email}'`,
+            message: `No existe ningún usuario de Keycloak con el email '${body.email}'`,
           });
         }
-        await this.zitadelAdminService.crearGrant(
-          zitadelOrgId,
+        await this.keycloakAdminService.crearGrant(
+          organizacionId,
           usuario.id,
           body.rol,
           correlationId,
@@ -446,7 +388,7 @@ export class AdministradorService {
     organizacionId: string,
     userId: string,
     body: QuitarRolUsuarioOrganizacionBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<void> {
     return this.auditoriaIdentidad.ejecutar(
@@ -454,9 +396,8 @@ export class AdministradorService {
       auth.operadorId,
       correlationId,
       async () => {
-        const zitadelOrgId = await this.organizacionIdAZitadel(organizacionId);
-        await this.zitadelAdminService.quitarRolDeGrant(
-          zitadelOrgId,
+        await this.keycloakAdminService.quitarRolDeGrant(
+          organizacionId,
           userId,
           body.rol,
           correlationId,
@@ -467,12 +408,12 @@ export class AdministradorService {
   }
 
   // DOC-024 — POST /admin/organizaciones/:orgId/usuarios/:userId/desactivar. Mismo wrapper de
-  // auditoria — ver ZitadelAdminService.desactivarUsuario para el hallazgo real sobre usuarios en
-  // USER_STATE_INITIAL.
+  // auditoria. ADR-004: deshabilitar una cuenta de Keycloak es global (no scoped a una
+  // organización, a diferencia del estado "initial" de Zitadel) — ya no recibe `organizacionId`.
   async desactivarUsuarioOrganizacion(
     organizacionId: string,
     userId: string,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<void> {
     return this.auditoriaIdentidad.ejecutar(
@@ -480,9 +421,7 @@ export class AdministradorService {
       auth.operadorId,
       correlationId,
       async () => {
-        const zitadelOrgId = await this.organizacionIdAZitadel(organizacionId);
-        await this.zitadelAdminService.desactivarUsuario(
-          zitadelOrgId,
+        await this.keycloakAdminService.desactivarUsuario(
           userId,
           correlationId,
         );
@@ -491,35 +430,8 @@ export class AdministradorService {
     );
   }
 
-  // Inverso de traducirAOrganizacionesCore — ORGANIZACION_MAPPING es {zitadelOrgId:
-  // organizacionId-core}, sin índice inverso propio en el mapa estático porque hasta DOC-021 nada
-  // lo necesitaba (todo lo demas traduce Zitadel->CORE, nunca al revés). Gap 0: si no hay entrada
-  // en el mapa estático, se prueba el mapeo dinámico (organizaciones creadas via
-  // altaOrganizacion, donde el id de CORE YA ES el id de Zitadel — ver
-  // OrganizacionMappingDinamicoService) antes de rendirse con 404.
-  private async organizacionIdAZitadel(
-    organizacionId: string,
-  ): Promise<string> {
-    const entradaEstatica = Object.entries(this.organizacionMapping).find(
-      ([, core]) => core === organizacionId,
-    );
-    if (entradaEstatica) {
-      return entradaEstatica[0];
-    }
-    const zitadelOrgId =
-      await this.organizacionMappingDinamico.resolverZitadelOrgId(
-        organizacionId,
-      );
-    if (!zitadelOrgId) {
-      throw new NotFoundException({
-        message: `Organización '${organizacionId}' sin mapeo a un id de Zitadel (ZITADEL_ORG_ID_MAP)`,
-      });
-    }
-    return zitadelOrgId;
-  }
-
-  // DOC-012 4 — lectura abierta, no necesita traducir rolesPorOrganizacion (CORE no exige rol
-  // para GET /contratos, mismo criterio que GET /catalogo). Paginado (RNF-01, cierra el gap).
+  // DOC-012 4 — lectura abierta, no necesita rolesPorOrganizacion (CORE no exige rol para GET
+  // /contratos, mismo criterio que GET /catalogo). Paginado (RNF-01, cierra el gap).
   getContratos(
     paginacion: Paginacion,
     correlationId: string,
@@ -527,41 +439,35 @@ export class AdministradorService {
     return this.coreClientService.getContratos(paginacion, correlationId);
   }
 
-  async altaContrato(
+  altaContrato(
     body: AltaContratoBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ContratoResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.postContrato(
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
   }
 
-  async actualizarEstadoContrato(
+  actualizarEstadoContrato(
     contratoId: string,
     body: ActualizarContratoBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ContratoResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.patchContrato(
       contratoId,
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
@@ -569,22 +475,19 @@ export class AdministradorService {
 
   // DOC-024 2 — PATCH /admin/contratos/:id/condiciones. Endpoint separado de
   // actualizarEstadoContrato (que solo cambia `estado`) — ver DOC-024 2.
-  async actualizarCondicionesContrato(
+  actualizarCondicionesContrato(
     contratoId: string,
     body: ActualizarCondicionesContratoBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ContratoResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.patchContratoCondiciones(
       contratoId,
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
@@ -593,20 +496,17 @@ export class AdministradorService {
   // Gap 2 (flujo real Admin->Directivo->Profesional AFT) — cierra el gap "no hay ABM de Sede":
   // sin esto, ninguna organización nueva podía tener nunca un Contrato (altaContrato exige
   // sedeIds ya existentes).
-  async altaSede(
+  altaSede(
     body: AltaSedeBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<SedeResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.postSede(
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
@@ -623,22 +523,19 @@ export class AdministradorService {
   }
 
   // DOC-024 1 — PATCH /admin/sedes/:id/estado. Bidireccional, sin cascada a Contrato (DOC-024 1).
-  async actualizarEstadoSede(
+  actualizarEstadoSede(
     sedeId: string,
     body: ActualizarEstadoSedeBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<SedeResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.patchSedeEstado(
       sedeId,
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
@@ -666,42 +563,36 @@ export class AdministradorService {
     );
   }
 
-  async altaArea(
+  altaArea(
     body: AltaAreaBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<AreaResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.postArea(
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
   }
 
   // RF-05 (cierra el gap "ABM completo") — PATCH /admin/areas/:id.
-  async actualizarArea(
+  actualizarArea(
     areaId: string,
     body: ActualizarAreaBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<AreaResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.patchArea(
       areaId,
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
@@ -720,42 +611,36 @@ export class AdministradorService {
     );
   }
 
-  async altaUbicacion(
+  altaUbicacion(
     body: AltaUbicacionBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<UbicacionResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.postUbicacion(
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
   }
 
   // RF-05 (cierra el gap "ABM completo") — PATCH /admin/ubicaciones/:id.
-  async actualizarUbicacion(
+  actualizarUbicacion(
     ubicacionId: string,
     body: ActualizarUbicacionBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<UbicacionResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.patchUbicacion(
       ubicacionId,
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
@@ -774,72 +659,37 @@ export class AdministradorService {
     );
   }
 
-  async altaResponsable(
+  altaResponsable(
     body: AltaResponsableBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ResponsableResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.postResponsable(
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
   }
 
-  async actualizarEstadoResponsable(
+  actualizarEstadoResponsable(
     responsableId: string,
     body: ActualizarEstadoResponsableBody,
-    auth: ZitadelAuthContext,
+    auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ResponsableResult> {
-    const rolesPorOrganizacion = await this.traducirAOrganizacionesCore(
-      auth.rolesPorOrganizacion,
-    );
     return this.coreClientService.patchResponsableEstado(
       responsableId,
       {
         ...body,
         correlationId,
         operadorId: auth.operadorId,
-        rolesPorOrganizacion,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
       },
       correlationId,
     );
-  }
-
-  // `auth.rolesPorOrganizacion` viene keyed por organizacionId de ZITADEL (lo que Zitadel firmo
-  // en el claim) — CORE necesita la clave en el organizacionId que EL conoce (ver
-  // organizacion-mapping.config.ts). Gap 0: el mapa estático (ZITADEL_ORG_ID_MAP) solo cubre
-  // organizaciones legacy con id de CORE distinto del id de Zitadel (ej. 'duoc-uc') — para
-  // cualquier otra, se prueba el mapeo dinámico que altaOrganizacion registra en el momento de
-  // creación (donde el id de CORE YA ES el id de Zitadel por construcción, ver
-  // OrganizacionMappingDinamicoService). Una organización sin entrada en NINGUNO de los dos
-  // mapeos simplemente no aparece en el resultado (nunca se inventa una clave) — CORE la rechaza
-  // con 403 igual que si el operador no tuviera el rol ahí, comportamiento correcto y seguro por
-  // defecto (sin cambios respecto del criterio original).
-  private async traducirAOrganizacionesCore(
-    rolesPorOrganizacionZitadel: Record<string, string[]>,
-  ): Promise<Record<string, string[]>> {
-    const resultado: Record<string, string[]> = {};
-    for (const [zitadelOrgId, roles] of Object.entries(
-      rolesPorOrganizacionZitadel,
-    )) {
-      const organizacionId =
-        this.organizacionMapping[zitadelOrgId] ??
-        (await this.organizacionMappingDinamico.resolverOrganizacionId(
-          zitadelOrgId,
-        ));
-      if (organizacionId) {
-        resultado[organizacionId] = roles;
-      }
-    }
-    return resultado;
   }
 }

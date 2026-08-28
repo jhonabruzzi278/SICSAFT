@@ -9,15 +9,13 @@ import {
 } from './token-store';
 
 // DOC-023 (hallazgo de cobertura) — OIDC/PKCE es el código más sensible de los 3 portales
-// (authorization code + PKCE contra Zitadel, protección CSRF vía state, refresh de sesión) y no
+// (authorization code + PKCE contra Keycloak, protección CSRF vía state, refresh de sesión) y no
 // tenía un solo test, ni unitario ni e2e.
 
 const ISSUER = 'http://id.sicsaft.localhost';
 const CLIENT_ID = 'client-1';
 const CIS_URL = 'http://api.sicsaft.localhost';
 const ORIGIN = 'http://admin.sicsaft.localhost';
-
-const ZITADEL_PROJECT_ROLES_CLAIM = 'urn:zitadel:iam:org:project:roles';
 
 const fetchMock = vi.fn();
 const locationAssignMock = vi.fn();
@@ -54,8 +52,8 @@ function tokensWithClaims(claims: Record<string, unknown>): StoredTokens {
 
 beforeEach(() => {
   sessionStorage.clear();
-  import.meta.env.VITE_ZITADEL_ISSUER = ISSUER;
-  import.meta.env.VITE_ZITADEL_CLIENT_ID = CLIENT_ID;
+  import.meta.env.VITE_KEYCLOAK_ISSUER = ISSUER;
+  import.meta.env.VITE_KEYCLOAK_CLIENT_ID = CLIENT_ID;
   import.meta.env.VITE_CIS_URL = CIS_URL;
   fetchMock.mockReset();
   locationAssignMock.mockReset();
@@ -68,14 +66,14 @@ afterEach(() => {
 });
 
 describe('startLogin', () => {
-  it('redirige al endpoint de autorización de Zitadel con los parámetros PKCE correctos', async () => {
+  it('redirige al endpoint de autorización de Keycloak con los parámetros PKCE correctos', async () => {
     await oidcClient.startLogin();
 
     expect(locationAssignMock).toHaveBeenCalledTimes(1);
     const url = new URL(locationAssignMock.mock.calls[0][0] as string);
 
     expect(url.origin).toBe(ISSUER);
-    expect(url.pathname).toBe('/oauth/v2/authorize');
+    expect(url.pathname).toBe('/protocol/openid-connect/auth');
     expect(url.searchParams.get('client_id')).toBe(CLIENT_ID);
     expect(url.searchParams.get('redirect_uri')).toBe(
       `${ORIGIN}/auth/callback`,
@@ -97,7 +95,7 @@ describe('startLogin', () => {
 });
 
 describe('handleCallback', () => {
-  it('lanza error cuando Zitadel devuelve un parámetro error', async () => {
+  it('lanza error cuando Keycloak devuelve un parámetro error', async () => {
     savePendingPkce({ codeVerifier: 'v', state: 's' });
 
     await expect(
@@ -160,7 +158,7 @@ describe('handleCallback', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
-    expect(url.toString()).toBe(`${ISSUER}/oauth/v2/token`);
+    expect(url.toString()).toBe(`${ISSUER}/protocol/openid-connect/token`);
     const body = init.body as URLSearchParams;
     expect(body.get('grant_type')).toBe('authorization_code');
     expect(body.get('code')).toBe('auth-code');
@@ -172,7 +170,7 @@ describe('handleCallback', () => {
     expect(stored?.refreshToken).toBe('new-refresh');
   });
 
-  it('lanza error cuando la respuesta de Zitadel no es ok', async () => {
+  it('lanza error cuando la respuesta de Keycloak no es ok', async () => {
     savePendingPkce({ codeVerifier: 'v', state: 's' });
     fetchMock.mockResolvedValueOnce(
       jsonResponse({}, { ok: false, status: 400 }),
@@ -183,7 +181,7 @@ describe('handleCallback', () => {
     ).rejects.toThrow('400');
   });
 
-  it('lanza error cuando Zitadel no devuelve refresh_token (falta el scope offline_access)', async () => {
+  it('lanza error cuando Keycloak no devuelve refresh_token (falta el scope offline_access)', async () => {
     savePendingPkce({ codeVerifier: 'v', state: 's' });
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ access_token: 'a', expires_in: 3600 }),
@@ -231,7 +229,7 @@ describe('getValidAccessToken', () => {
     expect(loadTokens()?.accessToken).toBe('refreshed');
   });
 
-  it('reusa el refresh token anterior cuando Zitadel no devuelve uno nuevo', async () => {
+  it('reusa el refresh token anterior cuando Keycloak no devuelve uno nuevo', async () => {
     saveTokens({
       accessToken: 'expired',
       refreshToken: 'refresh-original',
@@ -321,28 +319,31 @@ describe('esAdministradorSistema', () => {
     expect(oidcClient.esAdministradorSistema()).toBe(false);
   });
 
-  it('es false cuando el token no trae el claim de roles de Zitadel', () => {
+  it('es false cuando el token no trae el claim realm_access de Keycloak', () => {
     saveTokens(tokensWithClaims({ sub: 'op-1' }));
+    expect(oidcClient.esAdministradorSistema()).toBe(false);
+  });
+
+  it('es false cuando realm_access.roles no es un array', () => {
+    saveTokens(
+      tokensWithClaims({ realm_access: { roles: 'administrador-sistema' } }),
+    );
     expect(oidcClient.esAdministradorSistema()).toBe(false);
   });
 
   it('es false cuando el operador tiene otro rol pero no administrador-sistema', () => {
     saveTokens(
       tokensWithClaims({
-        [ZITADEL_PROJECT_ROLES_CLAIM]: {
-          'administrador-patrimonial': { 'org-1': 'DUOC UC' },
-        },
+        realm_access: { roles: ['administrador-patrimonial'] },
       }),
     );
     expect(oidcClient.esAdministradorSistema()).toBe(false);
   });
 
-  it('es true cuando el claim de roles incluye administrador-sistema', () => {
+  it('es true cuando realm_access.roles incluye administrador-sistema', () => {
     saveTokens(
       tokensWithClaims({
-        [ZITADEL_PROJECT_ROLES_CLAIM]: {
-          'administrador-sistema': { 'org-1': 'DUOC UC' },
-        },
+        realm_access: { roles: ['directivo', 'administrador-sistema'] },
       }),
     );
     expect(oidcClient.esAdministradorSistema()).toBe(true);

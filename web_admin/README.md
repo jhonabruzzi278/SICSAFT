@@ -4,8 +4,9 @@
 
 Portal WEB exclusivo del rol **Administrador del Sistema** (`administrador-sistema`) — administra
 la *plataforma* SICSAFT: organizaciones, sedes, contratos, usuarios (asignación de roles vía
-integración real con la API de administración de Zitadel) e indicadores, con CRUD completo
-(crear/editar/dar de baja) sin necesitar nunca la Consola de Zitadel. **Nunca** toca información
+integración real con la Admin REST API de Keycloak,
+[ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)) e indicadores, con CRUD completo
+(crear/editar/dar de baja) sin necesitar nunca la Console de Keycloak. **Nunca** toca información
 patrimonial (Activos/Catálogo/Documentos son exclusivos de [`ccp/`](../ccp), Profesional de AFT) —
 ver [DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md)
 §1 y [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
@@ -52,17 +53,20 @@ sin `mocks/` ni bootstrap en `main.tsx` — a diferencia de `ccp/`, que sí lo u
 
 ```bash
 cd web_admin
-cp .env.example .env   # completar VITE_ZITADEL_CLIENT_ID, ver devops/local/README.md
+cp .env.example .env   # completar VITE_KEYCLOAK_CLIENT_ID, ver devops/local/README.md
 npm install
 npm run dev             # puerto 5176
 ```
 
 Contra el stack completo: `docker compose up -d --build web-admin` en `devops/local/`, sirve en
-`http://admin.sicsaft.localhost` (Traefik).
+`http://admin.sicsaft.localhost` (Traefik). **Nota (2026-08-26)**: `devops/local/docker-compose.yml`
+todavía no migró a Keycloak ([ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)
+Fase 1 solo cubrió `cis/`) — hoy el stack de Docker Compose sigue levantando Zitadel, así que este
+flujo queda temporalmente inconsistente hasta que esa fase se complete.
 
 ## Depende de
 
-CIS (`cis/src/administrador/` + `cis/src/zitadel-admin/`, ya implementados en DOC-021) y CORE
+CIS (`cis/src/administrador/` + `cis/src/keycloak-admin/`, ya implementados en DOC-021) y CORE
 (`core/src/entitlements/organizacion.*`, `core/src/indicadores/`).
 
 ## Bloquea

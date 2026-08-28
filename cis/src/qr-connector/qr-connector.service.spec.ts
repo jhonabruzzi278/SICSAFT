@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { QrConnectorService } from './qr-connector.service';
 import { CatalogoQuery, InventarioRequest } from './qr-connector.schemas';
-import type { ZitadelAuthContext } from '../common/auth/zitadel-auth.guard';
+import type { KeycloakAuthContext } from '../common/auth/keycloak-auth.guard';
 import type { CoreClientService } from '../core-client/core-client.service';
 import type { DeviceRegistryService } from '../device-registry/device-registry.service';
 import type {
@@ -87,15 +87,15 @@ function buildCoreClientService(
 function buildDeviceRegistryService(): jest.Mocked<
   Pick<DeviceRegistryService, 'registerDevice'>
 > {
-  return { registerDevice: jest.fn().mockResolvedValue(undefined) };
+  return { registerDevice: jest.fn().mockReturnValue(undefined) };
 }
 
 function buildAuthContext(
-  overrides: Partial<ZitadelAuthContext> = {},
-): ZitadelAuthContext {
+  overrides: Partial<KeycloakAuthContext> = {},
+): KeycloakAuthContext {
   return {
     operadorId: 'op-1',
-    accessToken: 'zitadel-token',
+    accessToken: 'keycloak-token',
     expiresAt: '2026-08-12T10:15:00.000Z',
     rolesPorOrganizacion: {},
     ...overrides,
@@ -174,7 +174,7 @@ describe('QrConnectorService', () => {
       expect(ttlMs).toBeLessThanOrEqual(900_000);
     });
 
-    it('usa un TTL minimo si el token esta a punto de expirar (evita un PX <= 0 en Redis)', async () => {
+    it('usa un TTL minimo si el token esta a punto de expirar (evita programar un timeout <= 0)', async () => {
       const auth = buildAuthContext({
         expiresAt: new Date(Date.now() + 10).toISOString(),
       });

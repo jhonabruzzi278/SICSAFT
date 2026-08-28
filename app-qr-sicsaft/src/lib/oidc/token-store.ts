@@ -34,7 +34,7 @@ export interface PendingPkce {
   state: string;
 }
 
-// Vive solo entre el redirect a Zitadel y la vuelta a /auth/callback — se limpia apenas se usa.
+// Vive solo entre el redirect a Keycloak y la vuelta a /auth/callback — se limpia apenas se usa.
 export function savePendingPkce(pending: PendingPkce): void {
   sessionStorage.setItem(PKCE_KEY, JSON.stringify(pending));
 }
@@ -55,7 +55,7 @@ export function clearPendingPkce(): void {
 
 // Decodifica el payload del JWT SIN verificar firma — únicamente para leer claims de
 // presentación (nombre del operador a mostrar en la UI). El límite de confianza real es CIS, que
-// sí valida firma/issuer/audience/vencimiento (ZitadelAuthGuard) en cada request; nada acá se usa
+// sí valida firma/issuer/audience/vencimiento (KeycloakAuthGuard) en cada request; nada acá se usa
 // para autorizar nada del lado del cliente.
 export function decodeJwtClaims(token: string): Record<string, unknown> | null {
   const parts = token.split('.');
