@@ -3,11 +3,19 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import basicSsl from '@vitejs/plugin-basic-ssl';
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    // CORE-RF-05 -- la Web Crypto API (crypto.subtle para PKCE, crypto.randomUUID en ScanPage)
+    // solo existe en "contexto seguro" (HTTPS o localhost). El teléfono del Profesional de AFT
+    // accede por la IP de LAN de la PC (nunca "localhost" desde su punto de vista), así que
+    // necesita HTTPS real, aunque sea autofirmado -- certificado generado una vez y cacheado en
+    // node_modules/.vite-plugin-basic-ssl, no se commitea. Solo afecta al dev/preview server, no
+    // al build de producción (Vercel sigue sirviendo por su propio HTTPS real).
+    basicSsl(),
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
@@ -40,8 +48,12 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: true,
   },
   preview: {
     port: 8765,
+    // host: true == 0.0.0.0 -- necesario para que el teléfono en la misma Wi-Fi llegue acá; con
+    // el default (solo localhost) el preview server ni siquiera acepta la conexión desde afuera.
+    host: true,
   },
 });

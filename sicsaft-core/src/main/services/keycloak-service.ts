@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { ManagedProcess, esperarCondicion } from "./managed-process";
 import { POSTGRES_CONFIG } from "./postgres-service";
+import { obtenerIpLan } from "./lan-ip";
 
 // Vendorizado real (2026-08-27): Eclipse Temurin JRE 17.0.20.1+1 en `resources/keycloak/jre/` +
 // Keycloak 26.0.0 (misma versión que devops/onprem/) en `resources/keycloak/` -- ver
@@ -21,6 +22,16 @@ const PUERTO_KEYCLOAK = 58080;
 // http://127.0.0.1:<PUERTO_KEYCLOAK_MANAGEMENT>/health/ready. Puerto fijo no estándar, mismo
 // criterio que el resto de los puertos acá.
 const PUERTO_KEYCLOAK_MANAGEMENT = 58081;
+
+// CORE-RF-05 -- la APP QR (PWA/APK) corre en el teléfono del Profesional de AFT, no en esta PC,
+// así que Keycloak tiene que anunciarse (KC_HOSTNAME, el `iss` que firma en cada token) por la IP
+// de LAN, no por 127.0.0.1 -- desde el teléfono eso apuntaría a sí mismo. Se calcula una sola vez
+// al cargar el módulo (no cambia durante una corrida). Efecto secundario intencional: el propio
+// escritorio (keycloak-bootstrap.ts, backend-configs.ts) también pasa a hablarle a Keycloak por
+// esta IP en vez de 127.0.0.1 -- necesario para que el `Host` header sea el mismo que
+// KC_HOSTNAME espera (Keycloak con hostname-strict rechaza un Host distinto al configurado);
+// sigue siendo local (misma PC), solo cambia la interfaz de red usada.
+const IP_LAN = obtenerIpLan();
 
 export interface AdminBootstrapKeycloak {
   usuario: string;
@@ -57,9 +68,8 @@ export async function crearKeycloakService(): Promise<{
   };
 
   // Mismo patrón de env vars que devops/onprem/docker-compose.yml (ADR-004 Fase 3) -- KC_HOSTNAME
-  // acá es 127.0.0.1 fijo, no un dominio de cliente (sin Traefik ni dominios de por medio, ver
-  // ARCHITECTURE.md "Red: localhost para el escritorio, LAN para el teléfono" -- el teléfono con
-  // la APK sigue siendo un problema aparte, no resuelto en este servicio).
+  // acá es la IP de LAN (ver IP_LAN arriba), no un dominio de cliente (sin Traefik ni dominios de
+  // por medio, ver ARCHITECTURE.md "Red: localhost para el escritorio, LAN para el teléfono").
   const proceso = new ManagedProcess({
     command: join(recursos, "bin", "kc.bat"),
     args: ["start", "--optimized"],
@@ -78,7 +88,7 @@ export async function crearKeycloakService(): Promise<{
       KC_DB_USERNAME: POSTGRES_CONFIG.usuarioAdmin,
       KC_HTTP_PORT: String(PUERTO_KEYCLOAK),
       KC_HTTP_MANAGEMENT_PORT: String(PUERTO_KEYCLOAK_MANAGEMENT),
-      KC_HOSTNAME: `http://127.0.0.1:${PUERTO_KEYCLOAK}`,
+      KC_HOSTNAME: `http://${IP_LAN}:${PUERTO_KEYCLOAK}`,
       KC_HTTP_ENABLED: "true",
       // KC_HEALTH_ENABLED NO se pasa acá a propósito -- "health-enabled" es una opción de BUILD
       // TIME en Keycloak 26 (verificado real: `start --optimized` con un valor de runtime distinto
@@ -110,6 +120,6 @@ export async function crearKeycloakService(): Promise<{
 
 export const KEYCLOAK_CONFIG = {
   puerto: PUERTO_KEYCLOAK,
-  url: `http://127.0.0.1:${PUERTO_KEYCLOAK}`,
+  url: `http://${IP_LAN}:${PUERTO_KEYCLOAK}`,
   realm: "sicsaft",
 } as const;

@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { POSTGRES_CONFIG } from "./postgres-service";
 import { KEYCLOAK_CONFIG } from "./keycloak-service";
+import { obtenerOrigenAppQr } from "./lan-ip";
 import {
   rutaDistDeSistema,
   type NodeBackendConfig,
@@ -120,10 +121,12 @@ export function crearConfigCis(
       CIP_SERVICE_TOKEN: tokens.cipServiceToken,
       KEYCLOAK_ADMIN_CLIENT_ID: adminCis.clientId,
       KEYCLOAK_ADMIN_CLIENT_SECRET: adminCis.secret,
-      // CIS_CORS_ORIGIN queda sin setear a propósito: es opcional (ver cis/src/main.ts) y las
+      // CORE-RF-05 -- origen de la APP QR (PWA, `vite preview` en la IP de LAN), el mismo que
+      // keycloak-bootstrap.ts usa para el redirect URI de su client OIDC ("app-qr-sicsaft"). Las
       // vistas embebidas de web_admin/core-frontend (CORE-RF-04) todavía no están cableadas en
-      // este scaffold -- cuando lo estén, este valor debe incluir sus orígenes
-      // http://127.0.0.1:<puerto> reales.
+      // este scaffold -- cuando lo estén, agregar sus orígenes acá también (lista separada por
+      // comas, ver cis/src/main.ts).
+      CIS_CORS_ORIGIN: obtenerOrigenAppQr(),
     },
   };
 }

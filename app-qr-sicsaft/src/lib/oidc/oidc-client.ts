@@ -14,6 +14,16 @@ import {
   type StoredTokens,
 } from './token-store';
 
+// `new URL(path, base)` con un `path` que arranca en "/" resuelve contra el ORIGEN de `base`, no
+// contra su path -- descarta silenciosamente "/realms/sicsaft" de config.issuer (bug real,
+// encontrado probando desde un celular físico contra Keycloak vía LAN: el navegador terminaba en
+// ".../protocol/openid-connect/auth" sin el realm, Keycloak no tiene esa ruta). Path relativo sin
+// "/" inicial para que se agregue al path del issuer en vez de reemplazarlo, sin importar si
+// config.issuer trae barra final o no.
+function endpointUrl(issuer: string, path: string): URL {
+  return new URL(path, `${issuer.replace(/\/$/, '')}/`);
+}
+
 export class AuthenticationRequiredError extends Error {
   constructor() {
     super('Se requiere iniciar sesión');
@@ -55,7 +65,7 @@ function tokensFromResponse(
 
 async function postTokenEndpoint(body: URLSearchParams): Promise<TokenResponse> {
   const config = loadOidcConfig();
-  const res = await fetch(new URL('/protocol/openid-connect/token', config.issuer), {
+  const res = await fetch(endpointUrl(config.issuer, 'protocol/openid-connect/token'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -75,7 +85,7 @@ async function startLogin(): Promise<void> {
   const state = generateState();
   savePendingPkce({ codeVerifier, state });
 
-  const url = new URL('/protocol/openid-connect/auth', config.issuer);
+  const url = endpointUrl(config.issuer, 'protocol/openid-connect/auth');
   url.searchParams.set('client_id', config.clientId);
   url.searchParams.set('redirect_uri', config.redirectUri);
   url.searchParams.set('response_type', 'code');

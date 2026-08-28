@@ -12,6 +12,7 @@
 import { randomBytes } from "node:crypto";
 import type { AdminBootstrapKeycloak } from "./services/keycloak-service";
 import { KEYCLOAK_CONFIG } from "./services/keycloak-service";
+import { obtenerOrigenAppQr } from "./services/lan-ip";
 
 interface RespuestaConLocation {
   location: string | null;
@@ -235,14 +236,15 @@ async function crearClientAdminCis(token: string): Promise<ClienteAdminCreado> {
   return { clientId: "cis-admin", secret: secretResp.value };
 }
 
+// origen sin barra final, ej. "http://127.0.0.1:58090" o "http://10.31.89.92:8765" -- el
+// parámetro pasó de "puertoRenderer" (solo desktop, siempre 127.0.0.1) a un origen completo para
+// poder reusar esto también con la APP QR, que vive en la IP de LAN, no en loopback (ver
+// crearClientAppQr).
 async function crearClientPublico(
   token: string,
   clientId: string,
-  puertoRenderer: number,
+  origen: string,
 ): Promise<void> {
-  // A diferencia de devops/onprem/ (redirectUri con dominio/subdominio de Traefik), acá todo corre
-  // dentro de la propia ventana de Electron en 127.0.0.1 — no hace falta un puerto por portal, el
-  // renderer entero (wizard + vistas embebidas de web_admin/core-frontend) vive en un solo puerto.
   await adminApi(token, "POST", "/clients", {
     clientId,
     name: clientId,
@@ -252,13 +254,30 @@ async function crearClientPublico(
     implicitFlowEnabled: false,
     directAccessGrantsEnabled: false,
     serviceAccountsEnabled: false,
-    redirectUris: [`http://127.0.0.1:${puertoRenderer}/auth/callback`],
-    webOrigins: [`http://127.0.0.1:${puertoRenderer}`],
+    redirectUris: [`${origen}/auth/callback`],
+    webOrigins: [origen],
     attributes: {
       "pkce.code.challenge.method": "S256",
-      "post.logout.redirect.uris": `http://127.0.0.1:${puertoRenderer}/`,
+      "post.logout.redirect.uris": `${origen}/`,
     },
   });
+}
+
+// CORE-RF-05 -- client OIDC propio para la APP QR (PWA de app-qr-sicsaft/, ver
+// aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md "La APK de Android"), separado del
+// client "sicsaft-core" del wizard -- mismo criterio que devops/onprem/ (un client por portal,
+// ver lib/Bootstrap-Keycloak.psm1 APP_QR_VITE_KEYCLOAK_CLIENT_ID). El origen es la IP de LAN de
+// esta PC (ver keycloak-service.ts IP_LAN) porque el teléfono no puede alcanzar 127.0.0.1 de la
+// PC del Director. PUERTO_APP_QR es el de `vite preview` de app-qr-sicsaft/ -- sicsaft-core
+// todavía no arranca ese proceso (a diferencia de cis/core/cip, ver CORE-RF-04, pendiente),
+// hoy se corre aparte a mano para probar la conexión real desde un teléfono.
+export const CLIENT_ID_APP_QR = "app-qr-sicsaft";
+
+async function crearClientAppQr(
+  token: string,
+  origenAppQr: string,
+): Promise<void> {
+  await crearClientPublico(token, CLIENT_ID_APP_QR, origenAppQr);
 }
 
 export interface ResultadoBootstrap {
@@ -276,10 +295,16 @@ export async function bootstrapPrimeraInstalacion(
   await crearRealmScaffold(token);
   await crearOrganizacion(token, clienteNombre, organizacionId);
   const adminCis = await crearClientAdminCis(token);
-  // Solo "sicsaft-core" como client público de este incremento (Nivel 1, la ventana de Electron
-  // misma) — a diferencia de devops/onprem/ que crea uno por portal, acá todos los portales viven
-  // embebidos dentro de la misma ventana/origin, así que un solo client OIDC alcanza.
-  await crearClientPublico(token, "sicsaft-core", puertoRenderer);
+  // "sicsaft-core" (el wizard y, a futuro, las vistas embebidas de web_admin/core-frontend,
+  // CORE-RF-04) vive en 127.0.0.1 -- todos esos portales comparten la misma ventana de Electron,
+  // un solo client OIDC alcanza. "app-qr-sicsaft" es aparte porque corre en el teléfono, no en
+  // esta PC (CORE-RF-05) -- necesita su propio origen de LAN.
+  await crearClientPublico(
+    token,
+    "sicsaft-core",
+    `http://127.0.0.1:${puertoRenderer}`,
+  );
+  await crearClientAppQr(token, obtenerOrigenAppQr());
 
   return { organizacionId, adminCis };
 }
