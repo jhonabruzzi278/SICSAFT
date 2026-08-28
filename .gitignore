@@ -64,6 +64,14 @@ npm-debug.log*
 .vercel
 devops/local/docker-compose.override.yml
 
+# sicsaft-core: binarios vendorizados (Postgres 16/JRE Temurin/Keycloak, cientos de MB, ver
+# sicsaft-core/resources/README.md) y salida de electron-builder (instalador .exe + carpeta
+# win-unpacked) -- nunca se versionan. El commit a6c5f0e ya decía "gitignored" pero la regla
+# nunca se agregó de verdad, quedaron ~5000 archivos sin trackear en el working tree.
+sicsaft-core/resources/*
+!sicsaft-core/resources/README.md
+sicsaft-core/release/
+
 # Informes/entregables generados para el usuario — no son código ni documentación del repo
 /SICSAFT-informe-integral-proyecto*.docx
 ~$*.docx
