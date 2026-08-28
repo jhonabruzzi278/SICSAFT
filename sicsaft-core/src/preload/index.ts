@@ -14,6 +14,8 @@ const api: SicsaftCoreApi = {
     ipcRenderer.invoke("sicsaft-core:bootstrapCliente", input),
   altaDirector: (input) =>
     ipcRenderer.invoke("sicsaft-core:altaDirector", input),
+  altaProfesionalAft: (input) =>
+    ipcRenderer.invoke("sicsaft-core:altaProfesionalAft", input),
   mostrarPortalEmbebido: (bounds, forzarNuevoLogin) =>
     ipcRenderer.invoke(
       "sicsaft-core:mostrarPortalEmbebido",

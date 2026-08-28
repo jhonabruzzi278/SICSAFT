@@ -428,6 +428,7 @@ const LONGITUD_PASSWORD_INICIAL = 20;
 // los grupos de un usuario con este mismo separador para resolver sus roles por organización.
 const GRUPO_ORGANIZACION_ROL_SEPARADOR = "::";
 const ROL_DIRECTIVO = "directivo";
+const ROL_ADMINISTRADOR_PATRIMONIAL = "administrador-patrimonial";
 
 function generarPasswordInicial(): string {
   const alfabeto =
@@ -487,6 +488,10 @@ async function resolverOCrearGrupoRol(
   rol: string,
 ): Promise<string> {
   const nombre = `${organizacionId}${GRUPO_ORGANIZACION_ROL_SEPARADOR}${rol}`;
+  const rolDef = (await (
+    await adminApi(token, "GET", `/roles/${encodeURIComponent(rol)}`)
+  ).json()) as { id: string; name: string };
+
   const gruposExistentes = (await (
     await adminApi(
       token,
@@ -495,29 +500,42 @@ async function resolverOCrearGrupoRol(
     )
   ).json()) as Array<{ id: string; name: string }>;
   const existente = gruposExistentes.find((g) => g.name === nombre);
-  if (existente) return existente.id;
+  const grupoId = existente
+    ? existente.id
+    : idDeLocation(
+        (await adminApi(token, "POST", "/groups", { name: nombre })).location,
+      );
 
-  const location = await adminApi(token, "POST", "/groups", { name: nombre });
-  const grupoId = idDeLocation(location.location);
-  const rolDef = (await (
-    await adminApi(token, "GET", `/roles/${encodeURIComponent(rol)}`)
-  ).json()) as { id: string; name: string };
+  // Asignar el role mapping SIEMPRE, no solo al crear el grupo -- POST role-mappings/realm es
+  // idempotente en Keycloak (un rol ya presente no da error). Si el grupo ya existía de una
+  // corrida anterior pero sin el mapping (p.ej. el rol se agregó a ROLES_DE_NEGOCIO después, ver
+  // DOC-027 BUG-29), esto lo repara en vez de devolver un grupo que no otorga el rol -- misma
+  // clase de gap silencioso que crearGrant() de cis/, cerrado acá para el camino porteado.
   await adminApi(token, "POST", `/groups/${grupoId}/role-mappings/realm`, [
     { id: rolDef.id, name: rolDef.name },
   ]);
   return grupoId;
 }
 
-export interface UsuarioDirectorCreado {
+export interface UsuarioHumanoCreado {
   userId: string;
   passwordInicial: string;
 }
 
-export async function crearUsuarioDirector(
+// Port recortado de KeycloakAdminService.crearUsuarioHuman/crearGrant (cis/src/keycloak-admin/):
+// crea el usuario en Keycloak con un password inicial temporal (cambio obligatorio en el primer
+// login), lo hace miembro de la Organization del cliente y le asigna el grupo
+// `{organizacionId}::{rol}` -- que keycloak-auth.guard.ts de cis/ interpreta como "este usuario
+// tiene `rol` en `organizacionId`". Se porta acá, en vez de llamar al endpoint real de cis/ por
+// HTTP, porque el wizard corre estas altas con las credenciales de admin de Keycloak que ya
+// tiene el proceso principal -- en el primer arranque todavía no hay un JWT de Director / Admin
+// del Sistema con el que autenticarse contra el guard de ese endpoint.
+export async function crearUsuarioHumano(
   admin: AdminBootstrapKeycloak,
   organizacionId: string,
   email: string,
-): Promise<UsuarioDirectorCreado> {
+  rol: string,
+): Promise<UsuarioHumanoCreado> {
   const token = await obtenerTokenAdmin(admin);
   const passwordInicial = generarPasswordInicial();
 
@@ -539,12 +557,32 @@ export async function crearUsuarioDirector(
     organizacionId,
   );
   await agregarMiembroSiHaceFalta(token, organizacion.id, userId);
-  const grupoId = await resolverOCrearGrupoRol(
-    token,
-    organizacionId,
-    ROL_DIRECTIVO,
-  );
+  const grupoId = await resolverOCrearGrupoRol(token, organizacionId, rol);
   await adminApi(token, "PUT", `/users/${userId}/groups/${grupoId}`, {});
 
   return { userId, passwordInicial };
+}
+
+// Paso 2 del wizard -- rol "directivo".
+export function crearUsuarioDirector(
+  admin: AdminBootstrapKeycloak,
+  organizacionId: string,
+  email: string,
+): Promise<UsuarioHumanoCreado> {
+  return crearUsuarioHumano(admin, organizacionId, email, ROL_DIRECTIVO);
+}
+
+// Paso 3 del wizard -- rol "administrador-patrimonial" (el que cis/ asigna y ccp/ exige para el
+// Profesional de AFT, ver DOC-027 BUG-29; NO "profesional-aft", que no lo usa ningún código real).
+export function crearUsuarioProfesionalAft(
+  admin: AdminBootstrapKeycloak,
+  organizacionId: string,
+  email: string,
+): Promise<UsuarioHumanoCreado> {
+  return crearUsuarioHumano(
+    admin,
+    organizacionId,
+    email,
+    ROL_ADMINISTRADOR_PATRIMONIAL,
+  );
 }

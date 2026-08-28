@@ -656,7 +656,7 @@ esta línea en
 
 | Ítem | Detalle | Fuente |
 |---|---|---|
-| Paso "Profesional de AFT" del wizard | `PasoProfesionalAft.tsx` sigue siendo un placeholder — falta el handler IPC que llame al endpoint real de `cis/` (mismo patrón que `altaDirector`). Al hacerlo, cerrar también el gap silencioso de `crearGrant()` en `cis/src/keycloak-admin/` (reporta éxito aunque el role mapping falle). | DOC-027 "Gaps abiertos" |
+| ~~Paso "Profesional de AFT" del wizard~~ **Hecho (2026-08-28)** | `PasoProfesionalAft.tsx` es un formulario real (mismo patrón que `PasoDirector.tsx`) → handler IPC `altaProfesionalAft` → `crearUsuarioProfesionalAft` (rol `administrador-patrimonial`). La versión porteada del gap de `crearGrant()` quedó cerrada en `keycloak-bootstrap.ts` (role mapping (re)asignado siempre); el gap en `cis/src/keycloak-admin/` sigue abierto — otro deployable. | DOC-027 "Gaps abiertos" |
 | Empaquetado final de los portales embebidos | `ccp`/`core-frontend` a `extraResources` de `electron-builder` (hoy `static-portal-server.ts` resuelve el `dist/` hermano solo en dev) + automatizar `kc.bat build --db=postgres --health-enabled=true` como paso del empaquetado (hoy manual). | DOC-027, `sicsaft-core/resources/README.md` |
 | ADR-004 Fases 4-5 | `devops/local/` y `devops/prod/` siguen en Zitadel — migración pendiente (estado mixto con `cis/`, los portales y `devops/onprem/` ya en Keycloak). | commits ADR-004, `devops/README.md` |
 | APK Android — CORE-Q-01 (reabierta 2026-08-27) | No existe ninguna APK construida. Decidir si se construye dentro de este monorepo (tooling Capacitor nuevo) o afuera, y quién la mantiene. No bloquea Nivel 1 embebido. | `aidlc-docs/sicsaft-core/requirements/INTENT.md` |

@@ -508,8 +508,12 @@ por primera vez y probarlo de punta a punta.
 
 - **"Designar Profesional de AFT" reporta éxito aunque el role mapping falle** (visto en BUG-29):
   del lado de `cis`, `crearGrant()` no propaga el error si el rol no existe en el realm. Con
-  BUG-29 corregido el rol siempre existe, pero el gap de reporte silencioso sigue ahí — a
-  revisar en `cis/src/keycloak-admin/`.
+  BUG-29 corregido el rol siempre existe, pero el gap de reporte silencioso sigue ahí en
+  `cis/src/keycloak-admin/` — otro deployable, a revisar aparte. **La versión porteada del gap en
+  `sicsaft-core/keycloak-bootstrap.ts` sí quedó cerrada (2026-08-28)** al cablear el paso del
+  wizard: `resolverOCrearGrupoRol` ahora hace `GET /roles/{rol}` primero (falla fuerte si no
+  existe) y (re)asigna el role mapping siempre, no solo cuando crea el grupo — así un grupo
+  reusado de una corrida anterior sin el mapping se repara en vez de otorgar un rol que no está.
 - **Automatizar `kc.bat build`** como paso de `electron-builder` (BUG-24) — hoy manual.
 - **`extraResources` de `ccp`/`core/frontend`** para el empaquetado final — hoy los sirve
   `static-portal-server.ts` resolviendo el `dist/` hermano en dev; en producción hay que

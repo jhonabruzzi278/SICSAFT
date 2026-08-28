@@ -61,6 +61,20 @@ export interface AltaDirectorResultado {
   passwordInicial: string; // se muestra una sola vez en el wizard, nunca se persiste en disco
 }
 
+// Paso 3 — alta del Profesional de AFT. Mismo mecanismo que altaDirector
+// (KeycloakAdminService.crearUsuarioHuman portado a keycloak-bootstrap.ts crearUsuarioHumano),
+// pero con el rol "administrador-patrimonial" -- el que cis/ asigna y ccp/ exige para este perfil
+// (DOC-027 BUG-29). organizacionId viaja desde el resultado del paso 1, igual que el Director.
+export interface AltaProfesionalAftInput {
+  email: string;
+  organizacionId: string;
+}
+
+export interface AltaProfesionalAftResultado {
+  userId: string;
+  passwordInicial: string; // se muestra una sola vez, nunca se persiste en disco
+}
+
 // CORE-RF-04 (alcance corregido 2026-08-28) -- el renderer nunca ve la WebContentsView en sí
 // (vive fuera del DOM, superpuesta por el proceso principal, ver portal-login-service.ts). Lo
 // único que cruza IPC es el rectángulo en coordenadas de pantalla del placeholder donde debe
@@ -86,6 +100,9 @@ export interface SicsaftCoreApi {
     input: DatosClienteInput,
   ): Promise<BootstrapClienteResultado>;
   altaDirector(input: AltaDirectorInput): Promise<AltaDirectorResultado>;
+  altaProfesionalAft(
+    input: AltaProfesionalAftInput,
+  ): Promise<AltaProfesionalAftResultado>;
   // forzarNuevoLogin=true (botón "Cambiar de usuario") le pide a Keycloak que ignore la sesión
   // SSO vigente y muestre el formulario de login de nuevo -- ver portal-login-service.ts
   // mostrarLoginYPortal.

@@ -98,10 +98,14 @@ Nada de forma dura — `devops/onprem/` (Podman) sigue existiendo en paralelo de
 
 ## Próximo paso sugerido
 
-1. Cablear el paso "Profesional de AFT" del wizard al endpoint real de `cis/`
-   (`PasoProfesionalAft.tsx` + nuevo handler IPC, mismo patrón que `altaDirector`) — `cis/` ya
-   corre embebido, solo falta este último handler. Ojo: `crearGrant()` de `cis` reporta éxito
-   aunque el role mapping falle (DOC-027 "Gaps abiertos") — cerrar ese gap de paso.
+1. ~~Cablear el paso "Profesional de AFT" del wizard~~ **Hecho (2026-08-28)** — `PasoProfesionalAft.tsx`
+   es un formulario real (mismo patrón que `PasoDirector.tsx`), handler IPC `altaProfesionalAft`
+   → `crearUsuarioProfesionalAft` en `keycloak-bootstrap.ts`. `crearUsuarioDirector`/
+   `crearUsuarioProfesionalAft` ahora son wrappers de un `crearUsuarioHumano(admin, orgId, email,
+   rol)` genérico. El rol es `administrador-patrimonial` (DOC-027 BUG-29), y `resolverOCrearGrupoRol`
+   pasa a (re)asignar el role mapping siempre, no solo al crear el grupo — cierra la versión
+   porteada del gap silencioso de `crearGrant()` (DOC-027 "Gaps abiertos" actualizado). El gap del
+   `crearGrant()` de `cis/` en sí sigue abierto, es otro deployable.
 2. Agregar `ccp`/`core-frontend` a `extraResources` de `electron-builder` (hoy `static-portal-server.ts`
    resuelve el `dist/` hermano solo en dev) y automatizar `kc.bat build --db=postgres
    --health-enabled=true` como paso del empaquetado (hoy manual, ver `resources/README.md`).

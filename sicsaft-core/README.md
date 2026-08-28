@@ -40,12 +40,15 @@ verde:
   `core` → migra y arranca `cip`; `cis` arranca aparte (`iniciarCis()`) una vez que el wizard crea
   sus credenciales de Keycloak.
 - `keycloak-bootstrap.ts` — port a TypeScript de `devops/onprem/lib/Bootstrap-Keycloak.psm1`
-  (realm, scopes, roles, Organization, clients OIDC) + `crearUsuarioDirector` (port recortado de
-  `KeycloakAdminService.crearUsuarioHuman`/`crearGrant`), mismas llamadas a la Admin REST API ya
+  (realm, scopes, roles, Organization, clients OIDC) + `crearUsuarioHumano(admin, orgId, email,
+  rol)` (port recortado de `KeycloakAdminService.crearUsuarioHuman`/`crearGrant`), con
+  `crearUsuarioDirector` (rol `directivo`) y `crearUsuarioProfesionalAft`
+  (rol `administrador-patrimonial`) como wrappers. Mismas llamadas a la Admin REST API ya
   verificadas reales en ADR-004 Fase 3.
 - Wizard de primer arranque (datos del cliente → alta del Director → alta del Profesional de AFT)
-  — UI completa, con los 2 primeros pasos ya llamando IPC real de punta a punta, **verificado
-  visualmente** (no solo por health-check de backend, ver hallazgos abajo).
+  — **los 3 pasos** llaman IPC real de punta a punta (`bootstrapCliente`/`altaDirector`/
+  `altaProfesionalAft`). El paso del Profesional de AFT es opcional (el Directivo también lo
+  designa después desde su portal). Los 2 primeros pasos verificados visualmente por el usuario.
 - **Empaquetado `electron-builder` real** (`npm run dist:win`) — instalador NSIS con Postgres/
   Keycloak/`cis`/`core`/`cip` (`dist`+`node_modules`+`migrations`+`scripts`+`src` donde aplica)
   empaquetados adentro, ver `package.json` `"build"` y `scripts/electron-builder-after-pack.cjs`
@@ -83,10 +86,6 @@ tests en verde en `sicsaft-core`, `cis`, `ccp` y `core/frontend`.
 [`aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md`](../aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md)
 para el detalle real de cada uno, sin minimizar):
 
-- **Paso "Profesional de AFT" del wizard**: `cis/` ya corre embebido, pero este último paso
-  todavía no tiene el handler IPC que llame a su endpoint real (`PasoProfesionalAft.tsx` sigue
-  siendo un placeholder honesto). Además `crearGrant()` de `cis` reporta éxito aunque el role
-  mapping falle (DOC-027 "Gaps abiertos") — cerrar ese gap al cablear este paso.
 - **Empaquetado final de los portales embebidos**: `static-portal-server.ts` resuelve el `dist/`
   hermano de `ccp`/`core-frontend` solo en dev; falta agregarlos a `extraResources` de
   `electron-builder` junto a `cis`/`core`/`cip`, y automatizar `kc.bat build` como paso del
