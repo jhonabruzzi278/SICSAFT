@@ -5,7 +5,8 @@ Captura automática de activos vía tags RFID, asociada a zonificación y mapas 
 para activos extraordinarios. Dispositivos en entradas/salidas con visualización en tiempo real.
 
 ## Estado
-🔲 No iniciado. Fase tardía del plan maestro (después de estabilizar CORE + CIS + WEB).
+🔲 No iniciado. Fase tardía del plan maestro (después de estabilizar CORE + CIS + los portales
+WEB — hoy `ccp/`, `web_admin/` y `core/frontend/`, ver DOC-022).
 
 ## Arquitectura futura
 ```
