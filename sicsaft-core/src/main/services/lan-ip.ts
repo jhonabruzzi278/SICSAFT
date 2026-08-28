@@ -10,13 +10,34 @@ import { networkInterfaces } from "node:os";
 // sobre 172.x que es el rango por defecto de Docker/Podman/WSL2 Hyper-V). Fallback a 127.0.0.1
 // documentado, no oculto -- si no hay LAN real, la APK/PWA simplemente no va a poder conectarse,
 // pero el resto de la app (escritorio) sigue funcionando.
+// Valida forma canónica de IPv4 (4 octetos 0-255, sin ceros a la izquierda) sobre lo que devuelve
+// networkInterfaces(). No debería hacer falta -- para family "IPv4" el valor ya viene de la API
+// del SO --, pero validarlo explícitamente acá, en el borde, garantiza que ningún consumidor de
+// obtenerIpLan() (KC_HOSTNAME, los orígenes CORS, las URLs que arma keycloak-bootstrap.ts) reciba
+// una cadena con forma inesperada, y deja la única entrada de datos externos de este módulo
+// saneada en un solo lugar.
+function esIpv4Canonica(ip: string): boolean {
+  const octetos = ip.split(".");
+  if (octetos.length !== 4) return false;
+  return octetos.every((parte) => {
+    if (parte.length === 0 || parte.length > 3) return false;
+    if (!/^\d+$/.test(parte)) return false;
+    const n = Number(parte);
+    return n >= 0 && n <= 255 && String(n) === parte;
+  });
+}
+
 export function obtenerIpLan(): string {
   const interfaces = networkInterfaces();
   const candidatas: string[] = [];
 
   for (const nombre of Object.keys(interfaces)) {
     for (const dir of interfaces[nombre] ?? []) {
-      if (dir.family === "IPv4" && !dir.internal) {
+      if (
+        dir.family === "IPv4" &&
+        !dir.internal &&
+        esIpv4Canonica(dir.address)
+      ) {
         candidatas.push(dir.address);
       }
     }
