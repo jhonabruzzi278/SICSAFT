@@ -61,23 +61,45 @@ async function obtenerTokenAdmin(
   );
 }
 
+// `path` siempre lo pasan llamadores internos de este archivo con literales fijos (los segmentos
+// dinámicos son UUIDs que devuelve el propio Keycloak, nunca entrada del usuario ni del renderer,
+// que solo llega hasta acá por IPC). Aun así se valida el primer segmento contra esta lista
+// blanca: garantiza que adminApi() nunca construya una URL de Admin API fuera de este conjunto
+// conocido, y deja el parámetro saneado en un solo lugar.
+const SEGMENTOS_ADMIN_PERMITIDOS = new Set([
+  "clients",
+  "client-scopes",
+  "default-default-client-scopes",
+  "groups",
+  "organizations",
+  "roles",
+  "users",
+]);
+
 async function adminApi(
   token: string,
   method: string,
   path: string,
   body?: unknown,
 ): Promise<RespuestaConLocation & { json: () => Promise<unknown> }> {
-  const res = await fetch(
-    `${KEYCLOAK_CONFIG.url}/admin/realms/${KEYCLOAK_CONFIG.realm}${path}`,
-    {
-      method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(body ? { "Content-Type": "application/json" } : {}),
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    },
+  const primerSegmento = path.replace(/^\//, "").split(/[/?]/)[0];
+  if (!SEGMENTOS_ADMIN_PERMITIDOS.has(primerSegmento)) {
+    throw new Error(
+      `Ruta de Keycloak Admin API no permitida: "${path}" (segmento "${primerSegmento}").`,
+    );
+  }
+  const url = new URL(
+    `admin/realms/${KEYCLOAK_CONFIG.realm}${path}`,
+    `${KEYCLOAK_CONFIG.url}/`,
   );
+  const res = await fetch(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(body ? { "Content-Type": "application/json" } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
   if (!res.ok) {
     throw new Error(
       `Keycloak Admin API ${method} ${path} -> HTTP ${res.status}: ${await res.text()}`,

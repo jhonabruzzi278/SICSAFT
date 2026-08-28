@@ -10,21 +10,37 @@ import { networkInterfaces } from "node:os";
 // sobre 172.x que es el rango por defecto de Docker/Podman/WSL2 Hyper-V). Fallback a 127.0.0.1
 // documentado, no oculto -- si no hay LAN real, la APK/PWA simplemente no va a poder conectarse,
 // pero el resto de la app (escritorio) sigue funcionando.
-// Valida forma canónica de IPv4 (4 octetos 0-255, sin ceros a la izquierda) sobre lo que devuelve
-// networkInterfaces(). No debería hacer falta -- para family "IPv4" el valor ya viene de la API
-// del SO --, pero validarlo explícitamente acá, en el borde, garantiza que ningún consumidor de
-// obtenerIpLan() (KC_HOSTNAME, los orígenes CORS, las URLs que arma keycloak-bootstrap.ts) reciba
-// una cadena con forma inesperada, y deja la única entrada de datos externos de este módulo
-// saneada en un solo lugar.
-function esIpv4Canonica(ip: string): boolean {
-  const octetos = ip.split(".");
-  if (octetos.length !== 4) return false;
-  return octetos.every((parte) => {
-    if (parte.length === 0 || parte.length > 3) return false;
-    if (!/^\d+$/.test(parte)) return false;
+// networkInterfaces() es la única entrada de datos externos de este módulo. Se valida en el
+// borde: cada dirección tiene que ser un IPv4 canónico (4 octetos numéricos 0-255, sin ceros a
+// la izquierda) Y estar en un rango de uso local -- loopback (127/8) o privado RFC 1918
+// (10/8, 172.16/12, 192.168/16). Cualquier otra cosa (una IP pública, una cadena con forma
+// rara) se descarta y obtenerIpLan() cae a "127.0.0.1". Así ningún consumidor
+// (KC_HOSTNAME, los orígenes CORS, las URLs de la Admin API que arma keycloak-bootstrap.ts)
+// recibe jamás una dirección que apunte fuera de esta misma red local.
+function octetosDeIpv4(ip: string): number[] | null {
+  const partes = ip.split(".");
+  if (partes.length !== 4) return null;
+  const octetos: number[] = [];
+  for (const parte of partes) {
+    if (parte.length === 0 || parte.length > 3 || !/^\d+$/.test(parte)) {
+      return null;
+    }
     const n = Number(parte);
-    return n >= 0 && n <= 255 && String(n) === parte;
-  });
+    if (n < 0 || n > 255 || String(n) !== parte) return null;
+    octetos.push(n);
+  }
+  return octetos;
+}
+
+function esIpLocalValida(ip: string): boolean {
+  const o = octetosDeIpv4(ip);
+  if (!o) return false;
+  const [a, b] = o;
+  if (a === 127) return true; // loopback 127.0.0.0/8
+  if (a === 10) return true; // privada 10.0.0.0/8
+  if (a === 172 && b >= 16 && b <= 31) return true; // privada 172.16.0.0/12
+  if (a === 192 && b === 168) return true; // privada 192.168.0.0/16
+  return false;
 }
 
 export function obtenerIpLan(): string {
@@ -36,7 +52,7 @@ export function obtenerIpLan(): string {
       if (
         dir.family === "IPv4" &&
         !dir.internal &&
-        esIpv4Canonica(dir.address)
+        esIpLocalValida(dir.address)
       ) {
         candidatas.push(dir.address);
       }
