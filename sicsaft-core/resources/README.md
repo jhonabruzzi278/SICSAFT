@@ -3,7 +3,13 @@
 No versionado en git (ver `.gitignore`) — cada carpeta de acá abajo tiene que existir con estos
 binarios adentro antes de poder correr `npm run dev`/`npm run build` de verdad. Vendorizado real
 por primera vez el 2026-08-27, verificado arrancando cada binario de punta a punta (no solo
-descomprimido):
+descomprimido).
+
+> Los hallazgos de Keycloak de abajo están también en
+> [DOC-027](../../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md)
+> BUG-23/24/25 (versión rota de `/organizations/members`, opciones build-time, puerto de
+> management del health-check), junto con el resto de la bitácora de bugs de esta línea de
+> trabajo.
 
 - **`postgres/`** — PostgreSQL **16.15-1**, binarios oficiales portables de Windows x64 que
   publica EDB (EnterpriseDB): `postgresql-16.15-1-windows-x64-binaries.zip`

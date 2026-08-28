@@ -171,7 +171,14 @@ APP QR (hoy en Vercel).
 ## Documentos relacionados
 [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) — pilar de Excelencia Operacional (2) y de
 Seguridad (3). [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack).
-[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (identidad/SSO/dominios).
+[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (modelo Organización→Contrato→Sede,
+flujo de login — **reemplazada en el proveedor por [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)**:
+`devops/onprem/` ya está en Keycloak, `devops/local/` y `devops/prod/` siguen en Zitadel).
+[DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) — bitácora
+de bugs reales de la migración a Keycloak. Los que tocaron `devops/onprem/`: dominios `.test` que
+no son secure context y rompían PKCE (BUG-08, el hallazgo que disparó `sicsaft-core.exe`),
+`Invoke-WebRequest` sin `-UseBasicParsing` en modo no interactivo (BUG-06), y un `.psm1` que no
+hereda `$ErrorActionPreference` del script que lo importa (BUG-07).
 [`devops/prod/README.md`](prod/README.md) (gestión de secretos, SOPS + age).
 
 ## Próximo paso sugerido

@@ -10,8 +10,10 @@ cliente con servidor dedicado — confirmado con el usuario 2026-08-27, ver
 [`aidlc-docs/sicsaft-core/requirements/INTENT.md`](../aidlc-docs/sicsaft-core/requirements/INTENT.md)
 CORE-Q-02.
 
-La APK de Android que se instala junto a esta app es un wrap de `app-qr-sicsaft/` hecho con
-Capacitor, ya construido fuera de este repo (CORE-Q-01, mismo documento).
+Está previsto instalar una APK de Android junto a esta app (un wrap de `app-qr-sicsaft/` con
+Capacitor para la APP QR), pero **esa APK no existe todavía** — `CORE-Q-01` quedó reabierta el
+2026-08-27 (ver `INTENT.md`): construirla, o decidir cómo/cuándo, es un incremento aparte, no
+bloqueante para Nivel 1 embebido.
 
 ## Estado
 
@@ -63,13 +65,32 @@ porque nunca se había mirado la consola del renderer, solo los health-checks de
    (`.cjs` siempre es CommonJS para Node/Electron, sin importar `"type": "module"`) — `index.ts`
    apunta a esa extensión. Ver los comentarios en ambos archivos para el detalle completo.
 
+**Login único embebido (CORE-RF-04) — en verde (2026-08-28)**: la pantalla "listo" del wizard
+muestra el formulario real de Keycloak en una `WebContentsView` chica; el proceso principal
+intercepta el redirect, lee el rol del JWT y navega esa misma vista a `ccp` (Profesional de AFT,
+rol `administrador-patrimonial`) o `core/frontend` (Directivo, rol `directivo`), servidos por un
+servidor estático `node:http` de ~40 líneas dentro del propio Electron (`static-portal-server.ts`,
+sin dependencia nueva). Los relanzamientos saltan el wizard vía `instalacion.json`
+(`instalacion-marker.ts`). Botón "Cambiar de usuario" (`prompt=login`). `typecheck`/`lint:ci`/
+tests en verde en `sicsaft-core`, `cis`, `ccp` y `core/frontend`.
+
+**Bitácora de bugs reales**: todos los errores encontrados y corregidos en esta línea de trabajo
+(migración a Keycloak, vendorizado, wizard, APP QR por LAN, login embebido) están consolidados en
+[`aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md`](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md)
+— ~44 bugs con causa raíz, commit y los patrones que se repiten.
+
 **Lo que NO está resuelto todavía** (ver
 [`aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md`](../aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md)
 para el detalle real de cada uno, sin minimizar):
 
 - **Paso "Profesional de AFT" del wizard**: `cis/` ya corre embebido, pero este último paso
   todavía no tiene el handler IPC que llame a su endpoint real (`PasoProfesionalAft.tsx` sigue
-  siendo un placeholder honesto).
+  siendo un placeholder honesto). Además `crearGrant()` de `cis` reporta éxito aunque el role
+  mapping falle (DOC-027 "Gaps abiertos") — cerrar ese gap al cablear este paso.
+- **Empaquetado final de los portales embebidos**: `static-portal-server.ts` resuelve el `dist/`
+  hermano de `ccp`/`core-frontend` solo en dev; falta agregarlos a `extraResources` de
+  `electron-builder` junto a `cis`/`core`/`cip`, y automatizar `kc.bat build` como paso del
+  empaquetado (hoy manual, ver `resources/README.md`).
 - **La APK Android no existe todavía** — a diferencia de lo que se pensó en un momento, no hay una
   APK Capacitor ya construida fuera de este repo (`CORE-Q-01` reabierta, corregido
   2026-08-27). Construirla (o decidir si entra a este repo) es un incremento aparte; mientras
@@ -90,6 +111,8 @@ resuelta: no lo reemplaza).
 
 - [`aidlc-docs/sicsaft-core/`](../aidlc-docs/sicsaft-core) — INTENT/REQUIREMENTS/ARCHITECTURE
   completos.
+- [DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) —
+  bitácora consolidada de bugs reales de toda esta línea de trabajo.
 - [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) — identidad Keycloak, reusada
   tal cual acá.
 - [ADR-005](../adr/ADR-005-postgres-pgboss-reemplaza-redis.md) — Redis sacado del ecosistema

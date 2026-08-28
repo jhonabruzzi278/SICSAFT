@@ -65,6 +65,11 @@ habla a CIS).
 (diseño original del rol Directivo, cuando todavía era solo-lectura dentro de `ccp/`).
 [DOC-019](../../aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md) (diseño
 original del Dashboard, del que este portal reusa el código tal cual).
+[DOC-027](../../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) —
+bitácora de bugs reales. Los que tocaron `core/frontend/`: `AppShell` perdiendo la sidebar y
+"Cerrar sesión" tras el login client-side por leer `isAuthenticated()` no reactivo durante el
+render (BUG-44), el mismo bug de armado de URL de OIDC que `ccp` (BUG-09) y el correo duplicado en
+el display name (BUG-43). Salieron cuando `sicsaft-core` embebió este portal.
 
 ## Próximo paso sugerido
 

@@ -68,6 +68,22 @@ ninguna extensión; fix real: forzar el build del preload a CJS + `.cjs` en
 esta instalación") después del fix — primera verificación visual real de esta app en toda la
 sesión, no solo verificación por `curl`/tests.
 
+**CORE-RF-04 — login único embebido, en verde (2026-08-28)**: `PasoListoConLogin.tsx` +
+`portal-login-service.ts` + `static-portal-server.ts` + `instalacion-marker.ts`. Una
+`WebContentsView` chica muestra el formulario real de Keycloak, el proceso principal intercepta el
+redirect, decodifica `realm_access.roles` y navega esa misma vista a `ccp` (rol
+`administrador-patrimonial`) o `core/frontend` (rol `directivo`), servidos por un servidor
+estático `node:http` de ~40 líneas dentro del propio Electron. Botón "Cambiar de usuario"
+(`prompt=login`). Los relanzamientos saltan el wizard vía `instalacion.json`. `typecheck`/`lint`/
+tests en verde en `sicsaft-core`, `cis`, `ccp` y `core/frontend`. **~19 bugs reales** salieron
+cableando esto y el lote previo de identidad — consolidados en
+[`design-artifacts/DOC-027-bitacora-bugs-reales.md`](design-artifacts/DOC-027-bitacora-bugs-reales.md)
+(nombre de rol equivocado `profesional-aft`→`administrador-patrimonial`, SSO silencioso rechazando
+`loadURL`, React StrictMode disparando dos flujos OIDC, `WebContentsView` tapando el botón por
+compositing, `/health/ready` de Keycloak mintiendo tres veces, password de admin regenerado en
+cada arranque, `new URL(path, issuer)` descartando `/realms/sicsaft`, correo duplicado en el
+display name, `AppShell` perdiendo la sidebar tras el login client-side, ...).
+
 ## Depende de
 
 `cis/`, `core/`, `cip/`, `web_admin/`, `core/frontend/` (código de aplicación reusado tal cual,
@@ -84,9 +100,11 @@ Nada de forma dura — `devops/onprem/` (Podman) sigue existiendo en paralelo de
 
 1. Cablear el paso "Profesional de AFT" del wizard al endpoint real de `cis/`
    (`PasoProfesionalAft.tsx` + nuevo handler IPC, mismo patrón que `altaDirector`) — `cis/` ya
-   corre embebido, solo falta este último handler.
-2. Automatizar el paso manual de `kc.bat build --db=postgres --health-enabled=true` como parte del
-   empaquetado (hoy se corre a mano una vez después de vendorizar, ver `resources/README.md`).
+   corre embebido, solo falta este último handler. Ojo: `crearGrant()` de `cis` reporta éxito
+   aunque el role mapping falle (DOC-027 "Gaps abiertos") — cerrar ese gap de paso.
+2. Agregar `ccp`/`core-frontend` a `extraResources` de `electron-builder` (hoy `static-portal-server.ts`
+   resuelve el `dist/` hermano solo en dev) y automatizar `kc.bat build --db=postgres
+   --health-enabled=true` como paso del empaquetado (hoy manual, ver `resources/README.md`).
 3. Decidir cuándo/cómo se construye la APK Android (`CORE-Q-01`, reabierta — no existe todavía) —
    incremento aparte, no bloqueante para lo de arriba.
 4. CORE-Q-03 (Nivel 2/3 en `sicsaft-core.exe`) sigue sin resolverse, fuera de alcance por ahora.

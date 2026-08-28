@@ -7,6 +7,14 @@ Documento citable desde otros DOC-XXX del repo, mismo esquema que DOC-002/004/00
 > cliente de negocio. Reemplaza la versión anterior de este documento (Nivel 1 sin portal web,
 > los 3 portales juntos recién en Nivel 2) — ver historial de git para la versión previa si hace
 > falta reconstruir una instalación vieja.
+>
+> **Excepción 2026-08-28 (`sicsaft-core.exe` específicamente)**: el camino de instalación de
+> escritorio ([`aidlc-docs/sicsaft-core/`](../../sicsaft-core/requirements/REQUIREMENTS.md)
+> CORE-RF-04) embebe `ccp` completo para el Profesional de AFT sin condicionarlo al nivel
+> contratado — decisión explícita del usuario, tomada porque el "web-aft" liviano de Nivel 1 de
+> abajo sigue sin una sola línea de código y `ccp` ya existe, probado de punta a punta. Esta
+> excepción aplica **solo** a `sicsaft-core.exe` — el modelo de niveles de `devops/onprem/`
+> (Compose profiles) de este documento sigue sin cambios para ese camino de instalación.
 
 ## 1. Los 3 niveles (modelo de precios del usuario)
 

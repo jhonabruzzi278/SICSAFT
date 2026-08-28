@@ -251,6 +251,11 @@ rol (Rol × Módulo × Acción), extraída de los guards reales de CIS/CORE; con
 este portal solo linkea a módulos donde `administrador-patrimonial` tiene una acción real.
 [`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
 — contrato de escritura oficial que `POST /admin/activos` y `POST/PATCH /admin/contratos` exponen.
+[DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) — bitácora
+de bugs reales. Los que tocaron `ccp/`: `new URL('/protocol/...', issuer)` descartando
+`/realms/sicsaft` (BUG-09), y `getCurrentOperatorDisplayName` mostrando el correo duplicado por
+usar `claims.name` en vez de `preferred_username` (BUG-43). Ambos salieron cuando `sicsaft-core`
+embebió este portal por primera vez.
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 8 (WEB y APP QR son clientes intercambiables
 del mismo contrato de CIS/CORE).
 

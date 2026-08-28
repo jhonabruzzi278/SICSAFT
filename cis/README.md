@@ -399,6 +399,12 @@ supersede-en-vez-de-rechazo y el TTL atado al token.
   vigencia de contrato en cada request, no solo identidad.
 - [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) — Keycloak self-hosted
   reemplaza a Zitadel; Fase 1 (`cis/`) ya implementada, ver "Estado" arriba.
+- [DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) —
+  bitácora de bugs reales de la migración a Keycloak y de `sicsaft-core`. Los que tocaron `cis/`:
+  e2e rotos por la Fase 1 (BUG-03), specs de guard firmando dos roles para el mismo `sub`
+  (BUG-04), realm roles globales no anidados que forzaron el rediseño de `KeycloakAuthGuard`
+  (BUG-02), y `POST /organizations/{id}/members` devolviendo 415 sin `Content-Type` +
+  string-body con comillas (BUG-26).
 - [`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
   — diseño del rol Administrador Patrimonial; `src/administrador/` es el lado CIS del camino de
   escritura oficial que DOC-012 define.

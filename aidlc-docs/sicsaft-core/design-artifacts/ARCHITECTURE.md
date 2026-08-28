@@ -4,6 +4,11 @@ Ver `../requirements/INTENT.md` para el contexto completo. Este documento cubre 
 cada componente dentro de `sicsaft-core.exe`, qué tan factible es cada uno (investigado, no
 supuesto), y el flujo de primer arranque.
 
+> Los bugs reales encontrados construyendo todo esto (identidad Keycloak, wizard, login embebido,
+> APP QR por LAN) están consolidados en [DOC-027](DOC-027-bitacora-bugs-reales.md) — causa raíz,
+> commit y patrones que se repiten. Este documento los cita como `DOC-027 BUG-NN` en vez de
+> repetirlos.
+
 ## Decisión: Electron, no Tauri
 
 Ambos resuelven "app de escritorio nativa con procesos embebidos", pero:
@@ -45,19 +50,20 @@ JVM, Java 17 mínimo). Vendorizados Eclipse Temurin JRE 17.0.20.1+1 + Keycloak *
 automatizar) para poder arrancar con `--optimized` sin el error real que ya encontramos ("was used
 for first ever server start" si no se pre-compila).
 
-**3 hallazgos reales adicionales, no anticipados, encontrados arrancando de verdad**: (1)
-`--db`/`--health-enabled` son opciones de BUILD TIME en Keycloak 26, no de runtime — pasarlas solo
-a `start --optimized` sin haberlas compilado con `kc.bat build` tira "ERROR: build time options
-have values that differ from what is persisted" y el proceso muere sin arrancar. (2) El
-health-check (`/health/ready`) vive en una interfaz de **management separada** del puerto HTTP
-principal (default 9000, acá fijo en `KC_HTTP_MANAGEMENT_PORT`) — `keycloak-service.ts` apuntaba
-originalmente al puerto HTTP principal y nunca hubiera quedado "listo". (3) Keycloak **26.0.0**
-tiene un bug real en `POST /organizations/{id}/members` (usado por `crearGrant`/
-`crearUsuarioDirector` para asignar el rol "directivo") — responde `HTTP 400 "User does not
-exist"` con el body/headers correctos, arreglado en 26.0.6 (confirmado real: falla en 26.0.0, pasa
-en 26.0.8 con el mismo código sin cambios). `devops/onprem/docker-compose.yml` usa el tag flotante
-`26.0` de la imagen oficial, que probablemente ya resuelve a un patch parcheado — acá, al
-vendorizar un ZIP fijo, había que elegir el patch a mano.
+**3 hallazgos reales adicionales, no anticipados, encontrados arrancando de verdad** (detalle en
+DOC-027 BUG-23/24/25): (1) `--db`/`--health-enabled` son opciones de BUILD TIME en Keycloak 26, no
+de runtime — pasarlas solo a `start --optimized` sin `kc.bat build` tira "ERROR: build time
+options have values that differ from what is persisted" y el proceso muere. (2) El health-check
+(`/health/ready`) vive en una interfaz de **management separada** del puerto HTTP principal
+(default 9000, acá fijo en `KC_HTTP_MANAGEMENT_PORT`) — `keycloak-service.ts` apuntaba
+originalmente al puerto HTTP y nunca hubiera quedado "listo". (3) Keycloak **26.0.0** tiene un bug
+real en `POST /organizations/{id}/members` (usado por `crearGrant`/`crearUsuarioDirector`) —
+responde `HTTP 400 "User does not exist"` con el body/headers correctos, arreglado en 26.0.6
+(confirmado real: falla en 26.0.0, pasa en 26.0.8 con el mismo código). Además, ese mismo endpoint
+exige un string JSON con comillas y `Content-Type: application/json` explícito, o responde 415
+(DOC-027 BUG-26), y el `/health/ready` queda verde antes de que el realm sirva tráfico interactivo
+o el token del realm master responda sin 500 (DOC-027 BUG-27/28) — todo eso salió cableando el
+login embebido, después de este primer arranque.
 
 **Costo real, no minimizado**: JRE + Keycloak suman ~282MB al instalador (verificado, no
 estimado), y el arranque en frío de la JVM (aunque optimizado) tomó ~21s en la verificación real —
@@ -110,21 +116,69 @@ que `keycloak-bootstrap.ts` recién crea ahí — `postgres`/`keycloak`/`core`/`
 (`sicsaft_admin`) para las 4 bases (`postgres-bootstrap.ts`), en vez de un usuario por sistema —
 acá el único cliente de Postgres es esta misma app, no hay superficie multi-tenant que aislar.
 
-### Los 4 portales web (`app-qr-sicsaft`, `ccp`, `web_admin`, `core/frontend`)
+### Los portales embebidos (`core/frontend`, `ccp`) — CORE-RF-04 (alcance corregido 2026-08-28)
 
-Nivel 1 necesita `app-qr-sicsaft` (vía APK, ver más abajo) + `web_admin` (Administrador del
-Sistema) + `core/frontend` (Directivo) — `ccp` es Nivel 2, fuera de este incremento (DOC-025 §1).
-`web_admin`/`core/frontend` son builds Vite estáticos — se sirven desde un servidor HTTP local
-embebido (ej. `express` sirviendo el `dist/` de cada uno en su propio puerto de `127.0.0.1`) y se
-muestran dentro de la propia app de Electron como vistas embebidas (`BrowserWindow`/`<webview>`
-apuntando a `http://127.0.0.1:<puerto>`), reusando el código React existente tal cual — no se
-reescriben esos portales.
+`sicsaft-core.exe` embebe `core/frontend` (Directivo) y `ccp` (Profesional de AFT) — `web_admin`
+(Administrador del Sistema) queda fuera de este incremento, no es un rol que esta app necesite
+embebido. `ccp` está clasificado Nivel 2 en DOC-025 §1 (el "web-aft" liviano de Nivel 1 sigue sin
+código) — excepción documentada explícitamente en DOC-025 §1 y en `REQUIREMENTS.md` CORE-RF-04:
+se embebe igual, sin condicionarlo al nivel contratado, porque `ccp` ya existe y ya está probado
+de punta a punta.
 
-**Cuidado real, mismo tipo de bug que ya encontramos hoy**: cargar contenido desde `file://`
-directo en Electron NO es "secure context" por default (mismas reglas de la Web Platform que ya
-rompieron `crypto.subtle` en el navegador con dominios `.test`) — de ahí la elección de servir todo
-por `http://127.0.0.1:<puerto>` (loopback SÍ es secure context, verificado ya hoy en el hallazgo de
-`.localhost` vs `.test`) en vez de `file://`, para no repetir el mismo bug en un contexto nuevo.
+Ambos son builds Vite estáticos (`npm run build`). Se sirven por `http://127.0.0.1:<puerto>`
+(`ccp` → 8766, `core/frontend` → 8768 — los mismos puertos que cada portal ya reserva para su
+propio `vite preview` en `vite.config.ts`, para que el `redirectUri` que registra Keycloak sea el
+mismo sin importar cómo se sirva el portal) desde `static-portal-server.ts` — un servidor
+estático de ~40 líneas con `node:http` **dentro del propio proceso de Electron**, sin dependencia
+nueva (nada de `express`/`serve-static`/`vite`): sirve el `dist/` ya compilado con MIME types
+básicos + SPA fallback a `index.html` (para que un refresh en `/auth/callback` no tire 404).
+Mismo criterio que `node-backend-service.ts` (`cis`/`core`/`cip` corren `node dist/main.js`
+directo, sin su toolchain de desarrollo en runtime). Se muestran dentro de la propia ventana de
+Electron como una `WebContentsView` embebida (no `BrowserView` — Electron 44 lo tiene
+soft-deprecated a favor de `contentView.addChildView`) — nunca una ventana de navegador aparte
+con URL visible.
+
+**Login único, no un login por portal**: en vez de mostrar cada portal con su propia pantalla de
+login (obligaría a elegir "¿sos Director o Profesional de AFT?" antes de loguearse), la pantalla
+"listo" del wizard (`PasoListoConLogin.tsx`) muestra una `WebContentsView` chica apuntando directo
+a la página de login real de Keycloak (`/realms/sicsaft/protocol/openid-connect/auth`, client OIDC
+`sicsaft-core` — el mismo del wizard, solo para este login que detecta el rol) — visualmente es
+exactamente "un cuadrado con login más chico, correo y contraseña" (pedido explícito del usuario),
+porque es el formulario real de Keycloak, no uno propio reimplementado. El proceso principal
+(`portal-login-service.ts` `PortalEmbebidoManager`) intercepta el redirect a la `redirect_uri`
+local con `will-redirect`/`will-navigate` (nada escucha en ese puerto — la navegación se corta
+antes de intentarse), canjea el código por un token con PKCE, decodifica `realm_access.roles` del
+JWT (sin verificar firma acá — el token igual se valida server-side en cada request real, esto es
+solo para decidir qué portal mostrar) y navega la **misma** `WebContentsView` a
+`http://127.0.0.1:8768` si el rol es `directivo`, o a `http://127.0.0.1:8766` si es
+`administrador-patrimonial` (el rol real que `cis` asigna y `ccp` exige — no `profesional-aft`,
+ver DOC-027 BUG-29). Ese portal hace su propio login PKCE normal, pero como corre en la misma
+`session` de Electron, la cookie de sesión de Keycloak ya existe — el redirect es silencioso
+(SSO), el operador no vuelve a tipear nada. El botón "Cambiar de usuario" fuerza `prompt=login`
+para poder entrar con otra cuenta sin cerrar la app.
+
+El renderer nunca ve la `WebContentsView` (vive fuera del DOM, la superpone el proceso principal):
+lo único que cruza IPC es el rectángulo en coordenadas de pantalla del placeholder donde debe
+dibujarse — ni tokens ni roles ni URLs de portal.
+
+**Relanzamiento (wizard ya corrido)**: cada instalación de `sicsaft-core.exe` es de un solo
+cliente. `instalacion-marker.ts` persiste `instalacion.json` en `userData` al terminar el paso 1
+del wizard — en el próximo arranque, `WizardApp.tsx` lo consulta y salta directo al login
+embebido, sin reintentar `bootstrapCliente` (que rompería con 409, el realm ya existe). En esa
+rama `cis` no lo arranca el wizard, así que `getInstalacionExistente` lo arranca recuperando el
+`client_secret` de `cis-admin` de la Admin API (no se persiste en disco). Ver DOC-027 BUG-30/31.
+
+**Cuidado real, mismo tipo de bug que ya encontramos**: cargar contenido desde `file://` directo
+en Electron NO es "secure context" por default (mismas reglas de la Web Platform que ya rompieron
+`crypto.subtle` en el navegador con dominios `.test`, DOC-027 BUG-08) — de ahí servir todo por
+`http://127.0.0.1:<puerto>` (loopback SÍ es secure context) en vez de `file://`. La APP QR sí
+necesitó HTTPS autofirmado porque tiene que alcanzar el teléfono por LAN (DOC-027 BUG-10); acá
+todo es loopback, `http://` alcanza.
+
+> Todos los bugs reales encontrados cableando esto — SSO silencioso rechazando `loadURL`,
+> React StrictMode disparando dos flujos OIDC, la `WebContentsView` tapando el botón por
+> compositing, el `/health/ready` de Keycloak mintiendo — están en
+> [DOC-027](DOC-027-bitacora-bugs-reales.md) §F, con causa raíz y fix.
 
 ### La APK de Android — CORE-Q-01 reabierta (2026-08-27): no existe todavía
 
@@ -182,6 +236,13 @@ Este flujo **reusa lógica ya construida hoy** (`KeycloakAdminService`, `New-Key
 `Invoke-BootstrapCliente` de `Bootstrap-Keycloak.psm1`, `GestionarProfesionalAftPage.tsx`) — lo que
 cambia es la superficie: un wizard nativo dentro de `sicsaft-core.exe` en vez de un script de
 PowerShell + logins de navegador separados.
+
+El diagrama es el **primer** arranque. En los relanzamientos siguientes `instalacion.json` ya
+existe (`instalacion-marker.ts`) — el wizard se saltea entero y la app abre directo en el login
+embebido de `PasoListoConLogin.tsx`. Reintentar `bootstrapCliente` en ese caso rompería con 409
+contra el realm ya creado (DOC-027 BUG-30); persistir el marcador es lo que lo evita, y también
+lo que obliga a persistir el password de admin de Keycloak (DOC-027 BUG-33) y a re-arrancar `cis`
+por fuera del wizard (DOC-027 BUG-31).
 
 ## Qué se reusa tal cual de `devops/onprem/` (ADR-004 Fase 3, hecho hoy)
 
