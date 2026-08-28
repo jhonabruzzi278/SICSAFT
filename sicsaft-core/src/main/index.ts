@@ -64,7 +64,7 @@ function crearVentana(): BrowserWindow {
 
 app.whenReady().then(async () => {
   ventanaPrincipal = crearVentana();
-  registrarIpcHandlers(orquestador);
+  registrarIpcHandlers(orquestador, ventanaPrincipal);
 
   orquestador.on("estado-cambio", (estado) => {
     ventanaPrincipal?.webContents.send(

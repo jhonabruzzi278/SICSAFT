@@ -23,7 +23,7 @@ export interface NodeBackendConfig {
 export function crearNodeBackendService(
   config: NodeBackendConfig,
 ): ManagedProcess {
-  return new ManagedProcess({
+  const proceso = new ManagedProcess({
     command: process.execPath, // el propio binario de Node que trae Electron embebido
     args: [config.distMainPath],
     env: {
@@ -35,7 +35,7 @@ export function crearNodeBackendService(
       // `nodeProcess.execPath` (el .exe de Electron) como intérprete de un script cualquiera.
       ELECTRON_RUN_AS_NODE: "1",
     },
-    esperarListo: (proceso) =>
+    esperarListo: (proceso_) =>
       esperarCondicion(
         async () => {
           const res = await fetch(
@@ -49,10 +49,12 @@ export function crearNodeBackendService(
         // sin pistas de por qué (crash al arrancar, env var faltante, etc.) -- el stderr
         // acumulado normalmente tiene el stack trace real de NestJS.
         throw new Error(
-          `${err.message}\nstderr:\n${proceso.stderrAcumulado.slice(-2000)}`,
+          `${err.message}\nstderr:\n${proceso_.stderrAcumulado.slice(-2000)}`,
         );
       }),
   });
+
+  return proceso;
 }
 
 // Resuelve la ruta al dist/main.js de un sistema del monorepo -- en dev, sicsaft-core/ vive como

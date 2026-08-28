@@ -17,6 +17,15 @@ export const PUERTO_CIS = 56000;
 export const PUERTO_CORE = 56001;
 export const PUERTO_CIP = 56002;
 
+// CORE-RF-04 -- portales embebidos (ccp/core-frontend), servidos por static-portal-server.ts.
+// Mismos puertos que cada portal ya reserva para su propio `vite preview` (ccp/vite.config.ts,
+// core/frontend/vite.config.ts) -- no son arbitrarios, coinciden a propósito para que el
+// `redirectUri`/`webOrigins` que registra keycloak-bootstrap.ts sea el mismo sin importar si el
+// portal se sirve con el servidor estático embebido o a mano con `npm run preview` (como se probó
+// la APP QR en esta misma sesión).
+export const PUERTO_CCP = 8766;
+export const PUERTO_CORE_FRONTEND = 8768;
+
 // El auth servicio-a-servicio (CORE_SERVICE_TOKEN/CIP_SERVICE_TOKEN, ver
 // core/src/common/auth/service-token.config.ts) no necesita persistir entre reinicios de la app:
 // cis/core/cip siempre arrancan juntos como una unidad cada vez que abre sicsaft-core.exe, así que
@@ -121,12 +130,15 @@ export function crearConfigCis(
       CIP_SERVICE_TOKEN: tokens.cipServiceToken,
       KEYCLOAK_ADMIN_CLIENT_ID: adminCis.clientId,
       KEYCLOAK_ADMIN_CLIENT_SECRET: adminCis.secret,
-      // CORE-RF-05 -- origen de la APP QR (PWA, `vite preview` en la IP de LAN), el mismo que
-      // keycloak-bootstrap.ts usa para el redirect URI de su client OIDC ("app-qr-sicsaft"). Las
-      // vistas embebidas de web_admin/core-frontend (CORE-RF-04) todavía no están cableadas en
-      // este scaffold -- cuando lo estén, agregar sus orígenes acá también (lista separada por
-      // comas, ver cis/src/main.ts).
-      CIS_CORS_ORIGIN: obtenerOrigenAppQr(),
+      // CORE-RF-05 -- origen de la APP QR (PWA, `vite preview` en la IP de LAN). CORE-RF-04
+      // (alcance corregido 2026-08-28) -- suma ccp/core-frontend, servidos en 127.0.0.1 por
+      // static-portal-server.ts, mismos puertos que sus propios client OIDC registrados en
+      // keycloak-bootstrap.ts. Lista separada por comas, ver cis/src/main.ts.
+      CIS_CORS_ORIGIN: [
+        obtenerOrigenAppQr(),
+        `http://127.0.0.1:${PUERTO_CCP}`,
+        `http://127.0.0.1:${PUERTO_CORE_FRONTEND}`,
+      ].join(","),
     },
   };
 }

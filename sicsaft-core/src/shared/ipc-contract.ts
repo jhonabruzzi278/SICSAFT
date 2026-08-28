@@ -39,6 +39,14 @@ export interface BootstrapClienteResultado {
   organizacionId: string;
 }
 
+// Ver instalacion-marker.ts -- le permite al wizard saltar directo al login si esta instalación
+// ya tiene un cliente configurado (evita reintentar bootstrapCliente y romper con 409 contra un
+// realm que ya existe).
+export interface InstalacionCompleta {
+  organizacionId: string;
+  clienteNombre: string;
+}
+
 // Paso 2 — alta del Director (KeycloakAdminService.crearUsuarioHuman del lado de cis/, portado acá
 // para no depender de que cis/ ya esté arriba en este punto del wizard). organizacionId viaja
 // desde el resultado del paso 1 (BootstrapClienteResultado) -- el Director necesita quedar como
@@ -53,6 +61,18 @@ export interface AltaDirectorResultado {
   passwordInicial: string; // se muestra una sola vez en el wizard, nunca se persiste en disco
 }
 
+// CORE-RF-04 (alcance corregido 2026-08-28) -- el renderer nunca ve la WebContentsView en sí
+// (vive fuera del DOM, superpuesta por el proceso principal, ver portal-login-service.ts). Lo
+// único que cruza IPC es el rectángulo en coordenadas de pantalla del placeholder donde debe
+// dibujarse -- ni tokens ni roles ni URLs de portal, todo eso se resuelve del lado del proceso
+// principal.
+export interface RectanguloPantalla {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 // API expuesta al renderer vía contextBridge (ver src/preload/index.ts). Cada método es
 // ipcRenderer.invoke(...) por debajo — async siempre, nunca acceso directo a Node/Electron desde
 // el renderer (contextIsolation: true, nodeIntegration: false, ver src/main/index.ts).
@@ -61,8 +81,17 @@ export interface SicsaftCoreApi {
     callback: (estado: EstadoServicios) => void,
   ): () => void;
   getEstadoServicios(): Promise<EstadoServicios>;
+  getInstalacionExistente(): Promise<InstalacionCompleta | null>;
   bootstrapCliente(
     input: DatosClienteInput,
   ): Promise<BootstrapClienteResultado>;
   altaDirector(input: AltaDirectorInput): Promise<AltaDirectorResultado>;
+  // forzarNuevoLogin=true (botón "Cambiar de usuario") le pide a Keycloak que ignore la sesión
+  // SSO vigente y muestre el formulario de login de nuevo -- ver portal-login-service.ts
+  // mostrarLoginYPortal.
+  mostrarPortalEmbebido(
+    bounds: RectanguloPantalla,
+    forzarNuevoLogin?: boolean,
+  ): Promise<void>;
+  actualizarBoundsPortalEmbebido(bounds: RectanguloPantalla): void;
 }

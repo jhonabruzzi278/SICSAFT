@@ -1,5 +1,5 @@
 import { app } from "electron";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { ManagedProcess, esperarCondicion } from "./managed-process";
@@ -57,15 +57,49 @@ function generarPassword(): string {
   return randomBytes(24).toString("base64url");
 }
 
+function rutaCredencialesAdmin(): string {
+  return join(app.getPath("userData"), "keycloak-admin.json");
+}
+
+// Bug real encontrado 2026-08-28: generar un password nuevo en CADA arranque estaba bien la
+// primera vez (Postgres/Keycloak arrancan de cero, KEYCLOAK_ADMIN_PASSWORD crea el admin con ese
+// valor), pero rompe todo reinicio siguiente -- Keycloak solo usa esa env var para crear el
+// usuario admin la primera vez que arranca contra una base vacía; en corridas posteriores (mismo
+// postgres-data persistido, el caso normal de un desktop app real) el admin ya existe con el
+// password de la corrida anterior, y obtenerTokenAdmin() falla con 401 porque el password en
+// memoria de esta corrida es otro. Se persiste en userData (mismo directorio que postgres-data,
+// ver postgres-service.ts rutaDatosPostgres) y se reusa mientras exista -- autocura si
+// postgres-data se borra pero el archivo de credenciales sobrevive (Keycloak crea el admin de
+// nuevo con ESE password en la base fresca), y sigue funcionando si ambos se borran juntos (caso
+// de instalación limpia).
+function obtenerOGenerarAdmin(): AdminBootstrapKeycloak {
+  const ruta = rutaCredencialesAdmin();
+  if (existsSync(ruta)) {
+    const admin = JSON.parse(
+      readFileSync(ruta, "utf-8"),
+    ) as AdminBootstrapKeycloak;
+    if (!admin.usuario || !admin.password) {
+      throw new Error(
+        `${ruta} existe pero no tiene el formato esperado (usuario/password) -- borrarlo junto ` +
+          "con postgres-data si se quiere forzar una reinstalación limpia.",
+      );
+    }
+    return admin;
+  }
+  const admin: AdminBootstrapKeycloak = {
+    usuario: "admin",
+    password: generarPassword(),
+  };
+  writeFileSync(ruta, JSON.stringify(admin), { mode: 0o600 });
+  return admin;
+}
+
 export async function crearKeycloakService(): Promise<{
   proceso: ManagedProcess;
   admin: AdminBootstrapKeycloak;
 }> {
   const recursos = rutaRecursosKeycloak();
-  const admin: AdminBootstrapKeycloak = {
-    usuario: "admin",
-    password: generarPassword(),
-  };
+  const admin = obtenerOGenerarAdmin();
 
   // Mismo patrón de env vars que devops/onprem/docker-compose.yml (ADR-004 Fase 3) -- KC_HOSTNAME
   // acá es la IP de LAN (ver IP_LAN arriba), no un dominio de cliente (sin Traefik ni dominios de

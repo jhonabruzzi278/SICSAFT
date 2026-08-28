@@ -119,6 +119,15 @@ export class ServiceOrchestrator extends EventEmitter {
           "tokens de servicio que cis necesita.",
       );
     }
+    // Idempotente -- iniciarCis() ahora se llama tanto desde bootstrapCliente (primer wizard)
+    // como desde getInstalacionExistente (relanzamiento con el wizard salteado, ver
+    // instalacion-marker.ts), y React StrictMode en dev puede disparar ese segundo camino dos
+    // veces (mismo patrón que ya se resolvió en PasoListoConLogin.tsx yaMostrado). `this.estado`
+    // se marca "iniciando" de forma síncrona, antes de cualquier await en iniciar() de más abajo
+    // -- por eso es una guarda segura contra la carrera, a diferencia de chequear this.procesos
+    // (que recién se llena después de un await).
+    const estadoActual = this.estado.cis?.estado;
+    if (estadoActual === "iniciando" || estadoActual === "listo") return;
     const configCis = crearConfigCis(this.tokens, adminCis);
     await this.iniciar(
       "cis",

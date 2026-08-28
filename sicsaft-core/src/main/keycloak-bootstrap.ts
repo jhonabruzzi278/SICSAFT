@@ -13,10 +13,21 @@ import { randomBytes } from "node:crypto";
 import type { AdminBootstrapKeycloak } from "./services/keycloak-service";
 import { KEYCLOAK_CONFIG } from "./services/keycloak-service";
 import { obtenerOrigenAppQr } from "./services/lan-ip";
+import { PUERTO_CCP, PUERTO_CORE_FRONTEND } from "./services/backend-configs";
 
 interface RespuestaConLocation {
   location: string | null;
 }
+
+// Bug real encontrado 2026-08-28: el /health/ready de Keycloak (ver keycloak-service.ts
+// esperarListo) queda en verde un poco antes de que el endpoint de token del realm master esté
+// realmente listo para responder -- se vio HTTP 500 real acá dos veces distintas, siempre justo
+// después de que Keycloak recién termina de arrancar (crearBasesDeDatosSiHacenFalta/iniciarCis
+// llamándolo apenas queda "listo"), nunca en corridas ya calientes. Reintenta unas pocas veces
+// solo ante 5xx (fallo transitorio del lado de Keycloak) -- un 4xx (password real incorrecto) se
+// propaga de inmediato, reintentarlo no cambiaría nada y ocultaría un error real.
+const REINTENTOS_TOKEN_ADMIN = 5;
+const ESPERA_ENTRE_REINTENTOS_MS = 800;
 
 async function obtenerTokenAdmin(
   admin: AdminBootstrapKeycloak,
@@ -27,21 +38,27 @@ async function obtenerTokenAdmin(
     username: admin.usuario,
     password: admin.password,
   });
-  const res = await fetch(
-    `${KEYCLOAK_CONFIG.url}/realms/master/protocol/openid-connect/token`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-    },
-  );
-  if (!res.ok) {
-    throw new Error(
-      `No se pudo autenticar contra Keycloak (master): HTTP ${res.status}`,
+  let ultimoStatus = 0;
+  for (let intento = 1; intento <= REINTENTOS_TOKEN_ADMIN; intento += 1) {
+    const res = await fetch(
+      `${KEYCLOAK_CONFIG.url}/realms/master/protocol/openid-connect/token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
+      },
     );
+    if (res.ok) {
+      const data = (await res.json()) as { access_token: string };
+      return data.access_token;
+    }
+    ultimoStatus = res.status;
+    if (res.status < 500 || intento === REINTENTOS_TOKEN_ADMIN) break;
+    await new Promise((r) => setTimeout(r, ESPERA_ENTRE_REINTENTOS_MS));
   }
-  const data = (await res.json()) as { access_token: string };
-  return data.access_token;
+  throw new Error(
+    `No se pudo autenticar contra Keycloak (master): HTTP ${ultimoStatus}`,
+  );
 }
 
 async function adminApi(
@@ -77,8 +94,18 @@ function idDeLocation(location: string | null): string {
   return id;
 }
 
+// Bug real encontrado 2026-08-28: "profesional-aft" (el nombre que trae
+// devops/onprem/lib/Bootstrap-Keycloak.psm1, portado acá tal cual) no lo usa ningún código real
+// de cis/ ni de app-qr-sicsaft/ -- el rol que cis/ efectivamente asigna y valida para el
+// Profesional de AFT es "administrador-patrimonial" (ver cis/src/directivo/directivo.constants.ts
+// ADMINISTRADOR_PATRIMONIAL_ROLE, y los guards/páginas de ccp/ que lo exigen literal). Sin este
+// rol creado en el realm, crearGrant() de cis/ agrega al usuario al grupo pero nunca puede
+// asignarle el role mapping (el rol no existe) -- el JWT nunca trae el rol y
+// portal-login-service.ts no puede rutear al usuario a ningún portal. Verificado real: "Designar
+// Profesional de AFT" reportaba éxito igual (silencioso del lado de cis, gap aparte a revisar) sin
+// que el rol quedara asignado de verdad.
 const ROLES_DE_NEGOCIO = [
-  "profesional-aft",
+  "administrador-patrimonial",
   "directivo",
   "administrador-sistema",
 ] as const;
@@ -280,6 +307,56 @@ async function crearClientAppQr(
   await crearClientPublico(token, CLIENT_ID_APP_QR, origenAppQr);
 }
 
+// CORE-RF-04 (alcance corregido 2026-08-28) -- clients propios para los portales embebidos.
+// Cada uno vive en su propio origen 127.0.0.1:<puerto> (static-portal-server.ts) porque cada
+// portal es un build Vite separado con su propio VITE_KEYCLOAK_CLIENT_ID -- mismo criterio que
+// "app-qr-sicsaft" (un client por portal, nunca compartido) y no el client "sicsaft-core" del
+// wizard, que es solo para el login inicial que detecta el rol (ver portal-login-service.ts).
+export const CLIENT_ID_CCP = "ccp";
+export const CLIENT_ID_CORE_FRONTEND = "core-frontend";
+
+async function crearClientesPortales(token: string): Promise<void> {
+  await crearClientPublico(
+    token,
+    CLIENT_ID_CCP,
+    `http://127.0.0.1:${PUERTO_CCP}`,
+  );
+  await crearClientPublico(
+    token,
+    CLIENT_ID_CORE_FRONTEND,
+    `http://127.0.0.1:${PUERTO_CORE_FRONTEND}`,
+  );
+}
+
+// Bug real encontrado 2026-08-28: iniciarCis() (service-orchestrator.ts) solo se llamaba desde el
+// handler IPC `bootstrapCliente` -- en un relanzamiento de la app donde el wizard se saltea
+// (instalacion-marker.ts ya tiene una instalación completa, ver WizardApp.tsx), ese handler nunca
+// corre, así que cis nunca arrancaba. El client_secret de "cis-admin" que bootstrapPrimeraInstalacion
+// generó la primera vez nunca se persiste en disco (vive solo en memoria de esa corrida) -- pero
+// Keycloak SÍ lo tiene guardado en el client ya creado, así que se puede recuperar pidiéndoselo de
+// nuevo a la Admin API en vez de necesitar guardarlo nosotros. A diferencia de crearClientAdminCis
+// (que crea el client Y le asigna los roles de realm-management la primera vez), acá el client ya
+// existe con sus roles ya asignados -- solo hace falta el secret.
+export async function resolverCredencialesClienteAdminCis(
+  admin: AdminBootstrapKeycloak,
+): Promise<ClienteAdminCreado> {
+  const token = await obtenerTokenAdmin(admin);
+  const clientes = (await (
+    await adminApi(token, "GET", "/clients?clientId=cis-admin")
+  ).json()) as Array<{ id: string }>;
+  const clienteUuid = clientes[0]?.id;
+  if (!clienteUuid) {
+    throw new Error(
+      "No se encontró el client 'cis-admin' en Keycloak -- ¿esta instalación se completó de " +
+        "verdad? (instalacion-marker.ts dice que sí, pero el client no está).",
+    );
+  }
+  const secretResp = (await (
+    await adminApi(token, "GET", `/clients/${clienteUuid}/client-secret`)
+  ).json()) as { value: string };
+  return { clientId: "cis-admin", secret: secretResp.value };
+}
+
 export interface ResultadoBootstrap {
   organizacionId: string;
   adminCis: ClienteAdminCreado;
@@ -295,16 +372,20 @@ export async function bootstrapPrimeraInstalacion(
   await crearRealmScaffold(token);
   await crearOrganizacion(token, clienteNombre, organizacionId);
   const adminCis = await crearClientAdminCis(token);
-  // "sicsaft-core" (el wizard y, a futuro, las vistas embebidas de web_admin/core-frontend,
-  // CORE-RF-04) vive en 127.0.0.1 -- todos esos portales comparten la misma ventana de Electron,
-  // un solo client OIDC alcanza. "app-qr-sicsaft" es aparte porque corre en el teléfono, no en
-  // esta PC (CORE-RF-05) -- necesita su propio origen de LAN.
+  // "sicsaft-core" -- el wizard, y también el login único que detecta el rol antes de mostrar
+  // el portal embebido correspondiente (CORE-RF-04, ver portal-login-service.ts). El
+  // redirectUri acá nunca se sirve de verdad -- el login corre en un BrowserView que Electron
+  // intercepta antes de que el navegador intente cargar esa URL, no hace falta que
+  // puertoRenderer sea exacto (ver comentario de PUERTO_RENDERER en renderer-config.ts).
   await crearClientPublico(
     token,
     "sicsaft-core",
     `http://127.0.0.1:${puertoRenderer}`,
   );
   await crearClientAppQr(token, obtenerOrigenAppQr());
+  // "ccp"/"core-frontend" -- clients propios de los portales embebidos, ver
+  // crearClientesPortales() arriba.
+  await crearClientesPortales(token);
 
   return { organizacionId, adminCis };
 }

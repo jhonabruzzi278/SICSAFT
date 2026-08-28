@@ -8,10 +8,20 @@ import type { SicsaftCoreApi, EstadoServicios } from "@shared/ipc-contract";
 const api: SicsaftCoreApi = {
   getEstadoServicios: () =>
     ipcRenderer.invoke("sicsaft-core:getEstadoServicios"),
+  getInstalacionExistente: () =>
+    ipcRenderer.invoke("sicsaft-core:getInstalacionExistente"),
   bootstrapCliente: (input) =>
     ipcRenderer.invoke("sicsaft-core:bootstrapCliente", input),
   altaDirector: (input) =>
     ipcRenderer.invoke("sicsaft-core:altaDirector", input),
+  mostrarPortalEmbebido: (bounds, forzarNuevoLogin) =>
+    ipcRenderer.invoke(
+      "sicsaft-core:mostrarPortalEmbebido",
+      bounds,
+      forzarNuevoLogin,
+    ),
+  actualizarBoundsPortalEmbebido: (bounds) =>
+    ipcRenderer.send("sicsaft-core:actualizarBoundsPortalEmbebido", bounds),
   onEstadoServiciosChanged: (callback) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
