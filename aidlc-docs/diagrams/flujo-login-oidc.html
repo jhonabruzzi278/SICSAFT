@@ -23,11 +23,11 @@
   <div class="frame">
     <p class="eyebrow">Sequence · SICSAFT</p>
     <h1>Login OIDC/PKCE (ccp · web_admin · core/frontend)</h1>
-    <p class="subtitle">Los tres portales comparten el mismo cliente PKCE (<code>src/lib/oidc/</code>, DOC-023). El access token de Zitadel viaja tal cual hasta CIS — CIS nunca emite su propio token.</p>
+    <p class="subtitle">Los tres portales comparten el mismo cliente PKCE (<code>src/lib/oidc/</code>, DOC-023). El access token de Keycloak viaja tal cual hasta CIS — CIS nunca emite su propio token. ADR-004 (Keycloak self-hosted reemplaza a Zitadel): implementado en <code>cis/</code> y en el código de los 4 portales — solo <code>devops/onprem/</code> lo tiene desplegado hoy, <code>local/</code>/<code>prod/</code> siguen corriendo Zitadel, migración pendiente.</p>
 
     <svg viewBox="0 0 960 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sicsaft-login-title sicsaft-login-desc">
-      <title id="sicsaft-login-title">Flujo de login OIDC con PKCE contra Zitadel</title>
-      <desc id="sicsaft-login-desc">El portal redirige a Zitadel con un desafío PKCE, intercambia el código por un access token, y usa ese mismo token como Bearer en la primera llamada a CIS, que lo verifica contra el JWKS de Zitadel.</desc>
+      <title id="sicsaft-login-title">Flujo de login OIDC con PKCE contra Keycloak</title>
+      <desc id="sicsaft-login-desc">El portal redirige a Keycloak con un desafío PKCE, intercambia el código por un access token, y usa ese mismo token como Bearer en la primera llamada a CIS, que lo verifica contra el JWKS de Keycloak.</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
         <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
@@ -36,7 +36,7 @@
 
       <rect width="100%" height="100%" fill="#f5f5f5"/>
 
-      <!-- LIFELINES — Portal 160 · Zitadel 480 · CIS 800 -->
+      <!-- LIFELINES — Portal 160 · Keycloak 480 · CIS 800 -->
       <line x1="160" y1="128" x2="160" y2="480" stroke="rgba(45,49,66,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
       <line x1="480" y1="128" x2="480" y2="480" stroke="rgba(45,49,66,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
       <line x1="800" y1="128" x2="800" y2="480" stroke="rgba(45,49,66,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
@@ -45,22 +45,22 @@
       <rect x="476" y="172" width="8" height="132" fill="rgba(45,49,66,0.06)" stroke="#4f5d75" stroke-width="0.8"/>
       <rect x="796" y="340" width="8" height="92" fill="rgba(45,49,66,0.06)" stroke="#4f5d75" stroke-width="0.8"/>
 
-      <!-- M1: Portal -> Zitadel authorize -->
+      <!-- M1: Portal -> Keycloak authorize -->
       <line x1="160" y1="176" x2="476" y2="176" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
       <rect x="228" y="160" width="180" height="12" rx="2" fill="#f5f5f5"/>
-      <text x="318" y="170" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">GET /OAUTH/V2/AUTHORIZE + PKCE</text>
+      <text x="318" y="170" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.04em">GET .../AUTH + PKCE</text>
 
-      <!-- M2: Zitadel --> Portal (return, redirect + code) -->
+      <!-- M2: Keycloak --> Portal (return, redirect + code) -->
       <line x1="476" y1="216" x2="168" y2="216" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
       <rect x="256" y="200" width="88" height="12" rx="2" fill="#f5f5f5"/>
       <text x="300" y="210" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">302 · CODE</text>
 
-      <!-- M3: Portal -> Zitadel token exchange -->
+      <!-- M3: Portal -> Keycloak token exchange -->
       <line x1="160" y1="256" x2="476" y2="256" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
       <rect x="216" y="240" width="204" height="12" rx="2" fill="#f5f5f5"/>
-      <text x="318" y="250" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">POST /OAUTH/V2/TOKEN + CODE_VERIFIER</text>
+      <text x="318" y="250" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.04em">POST .../TOKEN + CODE_VERIFIER</text>
 
-      <!-- M4: Zitadel --> Portal (headline success, access_token) -->
+      <!-- M4: Keycloak --> Portal (headline success, access_token) -->
       <line x1="476" y1="296" x2="168" y2="296" stroke="#eb6c36" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrow-accent)"/>
       <rect x="244" y="280" width="112" height="12" rx="2" fill="#f5f5f5"/>
       <text x="300" y="290" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">200 · ACCESS_TOKEN</text>
@@ -91,14 +91,14 @@
       <rect x="408" y="72" width="144" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
       <rect x="416" y="80" width="36" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/>
       <text x="434" y="89" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">IDP</text>
-      <text x="480" y="104" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Zitadel</text>
+      <text x="480" y="104" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Keycloak</text>
       <text x="480" y="119" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">identidad self-hosted</text>
 
       <rect x="728" y="72" width="144" height="56" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
       <rect x="736" y="80" width="32" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
       <text x="752" y="89" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">API</text>
       <text x="800" y="104" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">CIS</text>
-      <text x="800" y="119" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">ZitadelAuthGuard</text>
+      <text x="800" y="119" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">KeycloakAuthGuard</text>
 
       <!-- LEGEND -->
       <line x1="56" y1="472" x2="904" y2="472" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>

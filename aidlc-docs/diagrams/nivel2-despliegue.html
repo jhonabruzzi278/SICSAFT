@@ -63,7 +63,7 @@
 
     <svg viewBox="0 0 1000 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="n2-dep-title n2-dep-desc">
       <title id="n2-dep-title">Despliegue on-premise de SICSAFT Nivel 2</title>
-      <desc id="n2-dep-desc">Sobre la base de Nivel 1 (app-qr-sicsaft, web-admin, core-frontend, todos vía CIS), Traefik suma el enrutamiento hacia ccp dentro de la misma máquina Podman en WSL2; CIS llama a CORE, y CORE junto con Zitadel escriben en el mismo Postgres compartido.</desc>
+      <desc id="n2-dep-desc">Sobre la base de Nivel 1 (app-qr-sicsaft, web-admin, core-frontend, todos vía CIS), Traefik suma el enrutamiento hacia ccp dentro de la misma máquina Podman en WSL2; CIS llama a CORE, y CORE junto con Keycloak escriben en el mismo Postgres compartido. ADR-004: Keycloak reemplaza a Zitadel, ya desplegado en este perfil (onprem).</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
         <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
@@ -84,7 +84,7 @@
       <rect x="216" y="212" width="60" height="12" rx="2" fill="#f5f5f5"/>
       <text x="246" y="221" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">HTTP:3000</text>
 
-      <!-- Traefik -> Zitadel -->
+      <!-- Traefik -> Keycloak -->
       <path d="M 540,196 V 224 Q 540,232 548,232 H 752 Q 760,232 760,240 V 268"
             fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
       <rect x="724" y="212" width="60" height="12" rx="2" fill="#f5f5f5"/>
@@ -102,7 +102,7 @@
       <rect x="330" y="512" width="44" height="12" rx="2" fill="#f5f5f5"/>
       <text x="352" y="521" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">5432</text>
 
-      <!-- Zitadel -> Postgres -->
+      <!-- Keycloak -> Postgres -->
       <path d="M 760,304 V 500 Q 760,508 752,508 H 548 Q 540,508 540,516 V 568"
             fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
       <rect x="736" y="488" width="44" height="12" rx="2" fill="#f5f5f5"/>
@@ -140,15 +140,15 @@
         <text x="316" y="324" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">latest</text>
       </g>
 
-      <!-- ZITADEL -->
+      <!-- KEYCLOAK -->
       <g>
         <rect x="660" y="268" width="200" height="76" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
         <rect x="668" y="276" width="32" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
         <text x="684" y="285" fill="rgba(45,49,66,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">CTR</text>
-        <text x="760" y="294" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Zitadel</text>
+        <text x="760" y="294" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Keycloak</text>
         <rect x="676" y="308" width="168" height="24" rx="4" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
-        <text x="684" y="324" fill="#2d3142" font-size="12" font-family="'Geist', sans-serif">zitadel</text>
-        <text x="836" y="324" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">v2.65.0</text>
+        <text x="684" y="324" fill="#2d3142" font-size="12" font-family="'Geist', sans-serif">keycloak</text>
+        <text x="836" y="324" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">26.0</text>
       </g>
 
       <!-- CORE (focal) -->
