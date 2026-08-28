@@ -535,7 +535,7 @@ navegador contra MSW; pendiente verificación real de punta a punta contra CIS/C
 **Done**: CIP no toca la base transaccional en ninguna consulta (verificable en código);
 dashboard degrada a "últimos datos conocidos" si la fuente está caída (WAF 8); DOC-014.
 
-## Fase 7 — CON-CONTABILIDAD (pieza nueva)
+## Fase 7 — CON-CONTABILIDAD [diseño cerrado, DOC-016 — código pendiente]
 
 **Por qué acá y no antes**: Tomo III 1.4 Entrada 5 lo define como la fuente de la que siempre
 proviene la Base Oficial — conceptualmente crítico, pero técnicamente depende de Motor de
@@ -543,15 +543,25 @@ Eventos + Auditoría + el camino de escritura del Administrador Patrimonial (Fas
 contra qué sistema contable concreto se integra (dato de negocio que hoy no está en el repo). La
 importación manual de la Fase 4 cubre el 80% del valor mientras tanto.
 
-**Ojo con la clasificación**: `integraciones/README.md` marca todo el sistema como "fase tardía",
-y Tomo III 1.2 pone las integraciones en Etapa 5. Pero CON-CONTABILIDAD **no es una integración
-de Etapa 5** — es una entrada oficial de Etapa 1 según 1.4. Vale la pena corregir esa
-clasificación en `integraciones/README.md` cuando se llegue a esta fase.
+**Riesgo aceptado (2026-08-28)**: la fila de riesgos de abajo marcaba "construir contra un
+sistema hipotético" como algo a evitar hasta tener uno real identificado. El usuario decidió
+avanzar el diseño igual, contra un formato CSV genérico (idéntico al de la importación manual de
+Fase 4) — ver
+[`aidlc-docs/integraciones/requirements/INTENT.md`](aidlc-docs/integraciones/requirements/INTENT.md)
+"Por qué ahora" y [DOC-016 §8](aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md#8-riesgo-aceptado-ver-intentmd).
+
+**Ojo con la clasificación**: ~~`integraciones/README.md` marca todo el sistema como "fase
+tardía", y Tomo III 1.2 pone las integraciones en Etapa 5. Pero CON-CONTABILIDAD no es una
+integración de Etapa 5 — es una entrada oficial de Etapa 1 según 1.4. Vale la pena corregir esa
+clasificación en `integraciones/README.md` cuando se llegue a esta fase.~~ **Corregido
+(2026-08-28)** — ver `integraciones/README.md` "Estado".
 
 **Qué se construye**: conector en CIS (no un servicio que escriba directo a la base — regla no
 negociable de `CLAUDE.md`), sincronización idempotente, aislamiento de fallos y circuit breaker
-(WAF 4), registro por integración (fecha/origen/destino/estado/resultado/errores/
-`correlationId`), dominio `Integraciones` de DOC-005 que quedó fuera de la Fase 1, DOC-016.
+(WAF 4, heredado de `CoreClientService` ya existente), registro por integración vía el canal
+`POST /auditoria` ya implementado (decisión YAGNI, sin tabla `integraciones_registro` nueva —
+DOC-016 §5/§9). Diseño completo:
+[DOC-016](aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md).
 
 **Confirmado por spec pptx**: "CORE debe tener siempre la base de datos ORIGINAL de los AFT según
 el sistema contable, solo autorizado a recibir bases actualizadas del especialista contable de la
@@ -655,7 +665,7 @@ aparezca en documentos:
 | Fase 1 (DOC-005) se convierte en modelar los 11 dominios completos y bloquea meses | Alcance recortado y escrito en el propio DOC-005: solo lo que consume el flujo QR |
 | La idempotencia en memoria de CIS ya es un bug latente con más de una instancia | Se mueve a CORE en Fase 2; hasta entonces, CIS corre en una sola instancia (documentarlo) |
 | `duplicate`/`rejected` reservados en APP QR nunca se activan | Criterio de aceptación explícito de TASK-007 en Fase 3 |
-| Construir CON-CONTABILIDAD contra un sistema contable hipotético | Importación manual primero (Fase 4); el conector solo con un sistema real identificado |
+| Construir CON-CONTABILIDAD contra un sistema contable hipotético | Importación manual primero (Fase 4, ✅); mitigación original "el conector solo con un sistema real identificado" reemplazada por decisión explícita del usuario (2026-08-28) de diseñar igual contra un formato CSV genérico — ver Fase 7 "Riesgo aceptado" |
 | Contradicción tomo vs. código al implementar Administrador Patrimonial | `CLAUDE.md` es claro: gana el tomo, se levanta la discrepancia — no editar la cita |
 | READMEs quedan desactualizados fase a fase | Regla de `CLAUDE.md`: README del sistema actualizado en el mismo commit o el inmediatamente siguiente |
 
