@@ -18,10 +18,10 @@ export function Button({
   const base =
     'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50';
   const variants: Record<ButtonVariant, string> = {
-    primary: 'bg-accent text-bg hover:bg-accent-strong',
+    primary: 'bg-accent text-bg shadow-elev-float hover:bg-accent-strong',
     secondary:
-      'border border-border bg-bg-raised text-text hover:border-border-strong',
-    ghost: 'text-text-dim hover:text-text',
+      'border border-border bg-bg-raised text-text hover:border-border-strong hover:bg-bg-card',
+    ghost: 'text-text-dim hover:bg-bg-card hover:text-text',
   };
   return (
     <button className={`${base} ${variants[variant]} ${className}`} {...rest} />
@@ -37,7 +37,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-xl border border-border bg-bg-card p-6 ${className}`}
+      className={`rounded-xl border border-border bg-bg-card p-6 shadow-elev-1 ${className}`}
     >
       {children}
     </div>
@@ -106,7 +106,7 @@ export function Input({
 }: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
-      className={`w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text placeholder:text-text-faint focus:border-accent ${className}`}
+      className={`w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text transition-colors outline-none placeholder:text-text-faint focus:border-accent focus:ring-2 focus:ring-accent/25 ${className}`}
       {...rest}
     />
   );
