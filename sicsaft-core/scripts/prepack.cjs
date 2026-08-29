@@ -22,6 +22,36 @@ const path = require("node:path");
 const RAIZ_SICSAFT_CORE = path.join(__dirname, "..");
 const RAIZ_MONOREPO = path.join(RAIZ_SICSAFT_CORE, "..");
 
+// PATH acotado a directorios fijos y no-escribibles (sonar javascript:S4036 — "el PATH solo debe
+// contener directorios fijos e inescribibles"): System32 (cmd.exe + utilidades base) + la
+// carpeta del Node que corre este script (donde vive `npm` en Windows y Linux). Se reemplaza el
+// PATH heredado, que podría tener un `npm`/`kc.bat` malicioso más adelante. `npm run build` en
+// cada hermano suma `node_modules/.bin` por su cuenta, no depende de este PATH para resolver
+// tsc/vite/nest.
+const SYSTEM32 = path.join(process.env.SystemRoot || "C:\\Windows", "System32");
+const NODE_DIR = path.dirname(process.execPath);
+const PATH_BUILD = [SYSTEM32, NODE_DIR].join(path.delimiter);
+
+// Ruta ABSOLUTA a npm (no vía búsqueda en PATH): `npm.cmd` en Windows, `npm` en Linux/CI.
+const NPM = path.join(
+  NODE_DIR,
+  process.platform === "win32" ? "npm.cmd" : "npm",
+);
+
+function log(msg) {
+  process.stdout.write(`[prepack] ${msg}\n`);
+}
+
+// `execSync` con el ejecutable entre comillas (ruta absoluta, puede tener espacios —
+// "C:\Program Files\nodejs\") y el PATH acotado. Args fijos, ninguno viene de fuera.
+function correr(exe, args, opts) {
+  execSync(`"${exe}" ${args.join(" ")}`, {
+    stdio: "inherit",
+    ...opts,
+    env: { ...process.env, ...(opts.env || {}) },
+  });
+}
+
 // Los `dist/` que package.json `build.extraResources` copia. ccp/core-frontend son los portales
 // (static-portal-server.ts), el resto son los backends (node-backend-service.ts).
 const SISTEMAS_A_BUILDEAR = [
@@ -32,10 +62,6 @@ const SISTEMAS_A_BUILDEAR = [
   { nombre: "cip", carpeta: "cip" },
 ];
 
-function log(msg) {
-  process.stdout.write(`[prepack] ${msg}\n`);
-}
-
 function buildarSistemas() {
   for (const { nombre, carpeta } of SISTEMAS_A_BUILDEAR) {
     const cwd = path.join(RAIZ_MONOREPO, carpeta);
@@ -45,7 +71,7 @@ function buildarSistemas() {
       );
     }
     log(`build ${nombre} …`);
-    execSync("npm run build", { cwd, stdio: "inherit", shell: true });
+    correr(NPM, ["run", "build"], { cwd, env: { PATH: PATH_BUILD } });
     if (!existsSync(path.join(cwd, "dist"))) {
       throw new Error(
         `[prepack] "npm run build" en ${carpeta}/ no generó dist/.`,
@@ -57,15 +83,16 @@ function buildarSistemas() {
 function kcBuild() {
   const keycloak = path.join(RAIZ_SICSAFT_CORE, "resources", "keycloak");
   const jre = path.join(keycloak, "jre");
+  const kcBat = path.join(keycloak, "bin", "kc.bat");
   const marcador = path.join(
     keycloak,
     "lib",
     "quarkus",
     "quarkus-application.dat",
   );
-  if (!existsSync(path.join(keycloak, "bin", "kc.bat"))) {
+  if (!existsSync(kcBat)) {
     throw new Error(
-      `[prepack] No se encontró ${keycloak}/bin/kc.bat — Keycloak no está vendorizado (ver resources/README.md).`,
+      `[prepack] No se encontró ${kcBat} — Keycloak no está vendorizado (ver resources/README.md).`,
     );
   }
   if (existsSync(marcador)) {
@@ -80,11 +107,15 @@ function kcBuild() {
     );
   }
   log("kc.bat build --db=postgres --health-enabled=true …");
-  execSync("kc.bat build --db=postgres --health-enabled=true", {
+  // Ruta ABSOLUTA a kc.bat + PATH acotado (System32 + el bin del JRE vendorizado). kc.bat
+  // resuelve `java` por JAVA_HOME/JRE_HOME, que se le pasan explícitos.
+  correr(kcBat, ["build", "--db=postgres", "--health-enabled=true"], {
     cwd: path.join(keycloak, "bin"),
-    stdio: "inherit",
-    shell: true,
-    env: { ...process.env, JAVA_HOME: jre, JRE_HOME: jre },
+    env: {
+      PATH: [SYSTEM32, path.join(jre, "bin")].join(path.delimiter),
+      JAVA_HOME: jre,
+      JRE_HOME: jre,
+    },
   });
   if (!existsSync(marcador)) {
     throw new Error(
