@@ -3,6 +3,8 @@ import type {
   BootstrapClienteResultado,
   AltaDirectorResultado,
 } from "@shared/ipc-contract";
+import { BrandBar } from "../components/BrandBar";
+import { Button } from "../components/Button";
 import { PasoDatosCliente } from "./PasoDatosCliente";
 import { PasoDirector } from "./PasoDirector";
 import { PasoProfesionalAft } from "./PasoProfesionalAft";
@@ -64,79 +66,118 @@ export function WizardApp() {
     };
   }, [intento]);
 
-  if (verificandoInstalacion) {
-    return (
-      <div className="flex h-full items-center justify-center bg-background">
-        <p className="text-sm text-[var(--muted-foreground)]">
-          Verificando instalación…
-        </p>
-      </div>
-    );
-  }
+  const pasoNumero: Record<PasoWizard, number | undefined> = {
+    "datos-cliente": 1,
+    director: 2,
+    "profesional-aft": 3,
+    listo: undefined,
+  };
 
-  if (errorVerificacion) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 bg-background text-center">
-        <p className="text-sm text-[var(--destructive)]">
-          No se pudo verificar la instalación: {errorVerificacion}
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            setVerificandoInstalacion(true);
-            setIntento((n) => n + 1);
+  function contenido() {
+    if (verificandoInstalacion) {
+      return (
+        <EstadoCentrado>
+          <span className="size-5 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Verificando instalación…
+          </p>
+        </EstadoCentrado>
+      );
+    }
+
+    if (errorVerificacion) {
+      return (
+        <EstadoCentrado>
+          <p className="max-w-sm text-sm text-[var(--destructive)]">
+            No se pudo verificar la instalación: {errorVerificacion}
+          </p>
+          <div className="w-40">
+            <Button
+              type="button"
+              variante="secundario"
+              onClick={() => {
+                setVerificandoInstalacion(true);
+                setIntento((n) => n + 1);
+              }}
+            >
+              Reintentar
+            </Button>
+          </div>
+        </EstadoCentrado>
+      );
+    }
+
+    if (paso === "datos-cliente") {
+      return (
+        <PasoDatosCliente
+          onListo={(resultado) => {
+            setBootstrap(resultado);
+            setPaso("director");
           }}
-          className="rounded-[var(--radius)] border border-[var(--border)] px-4 py-2 text-sm font-medium text-foreground"
-        >
-          Reintentar
-        </button>
-      </div>
-    );
+        />
+      );
+    }
+    if (paso === "director" && bootstrap) {
+      return (
+        <PasoDirector
+          organizacionId={bootstrap.organizacionId}
+          onListo={(resultado) => {
+            setDirector(resultado);
+            setPaso("profesional-aft");
+          }}
+        />
+      );
+    }
+    if (paso === "profesional-aft" && bootstrap && director) {
+      return (
+        <PasoProfesionalAft
+          organizacionId={bootstrap.organizacionId}
+          onListo={() => setPaso("listo")}
+        />
+      );
+    }
+    if (paso === "listo") {
+      return (
+        <PasoListoConLogin onPortalCargado={() => setPortalCargado(true)} />
+      );
+    }
+    return null;
   }
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div
+      className="flex h-full flex-col bg-background"
+      style={
+        portalCargado
+          ? undefined
+          : { background: "var(--background) var(--page-glow) no-repeat" }
+      }
+    >
       {!portalCargado && (
-        <header className="border-b border-[var(--border)] px-8 py-4">
-          <h1 className="text-lg font-semibold text-foreground">
-            SICSAFT CORE — Instalación
-          </h1>
-        </header>
+        <BrandBar subtitle={pasoLabel(paso, pasoNumero[paso])} />
       )}
       <main
         className={
           portalCargado
             ? "flex flex-1 overflow-hidden"
-            : "flex flex-1 items-center justify-center px-8"
+            : "flex flex-1 items-center justify-center px-8 py-8"
         }
       >
-        {paso === "datos-cliente" && (
-          <PasoDatosCliente
-            onListo={(resultado) => {
-              setBootstrap(resultado);
-              setPaso("director");
-            }}
-          />
-        )}
-        {paso === "director" && bootstrap && (
-          <PasoDirector
-            organizacionId={bootstrap.organizacionId}
-            onListo={(resultado) => {
-              setDirector(resultado);
-              setPaso("profesional-aft");
-            }}
-          />
-        )}
-        {paso === "profesional-aft" && bootstrap && director && (
-          <PasoProfesionalAft
-            organizacionId={bootstrap.organizacionId}
-            onListo={() => setPaso("listo")}
-          />
-        )}
-        {paso === "listo" && (
-          <PasoListoConLogin onPortalCargado={() => setPortalCargado(true)} />
-        )}
+        {contenido()}
       </main>
+    </div>
+  );
+}
+
+function pasoLabel(paso: PasoWizard, n: number | undefined): string {
+  if (paso === "listo") return "Instalación completa";
+  return n ? `Instalación · paso ${n} de 3` : "Instalación";
+}
+
+function EstadoCentrado({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-4 text-center">
+      {children}
     </div>
   );
 }

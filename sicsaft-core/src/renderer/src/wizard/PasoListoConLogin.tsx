@@ -126,14 +126,17 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
       className={
         portalCargado
           ? "flex h-full w-full flex-col"
-          : "flex w-full max-w-2xl flex-col items-center gap-4 text-center"
+          : "flex w-full max-w-xl flex-col items-center gap-5 text-center"
       }
     >
       <div className={portalCargado ? "hidden" : undefined}>
-        <h2 className="text-xl font-semibold text-foreground">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-[var(--success)]/15 text-2xl text-[var(--success)]">
+          ✓
+        </div>
+        <h2 className="mt-3 text-xl font-semibold text-foreground">
           Instalación completa
         </h2>
-        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+        <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted-foreground)]">
           Iniciá sesión con tu correo y contraseña — la app detecta si sos
           Director o Profesional de AFT y te muestra tu portal.
         </p>
@@ -156,7 +159,7 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
           className={
             portalCargado
               ? "text-xs text-[var(--muted-foreground)] hover:text-foreground"
-              : "text-sm text-[var(--muted-foreground)] underline underline-offset-2 hover:text-foreground"
+              : "text-sm font-medium text-[var(--muted-foreground)] underline underline-offset-4 hover:text-foreground"
           }
         >
           Cambiar de usuario
@@ -167,7 +170,7 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
         className={
           portalCargado
             ? "w-full flex-1"
-            : "h-[560px] w-full rounded-[var(--radius)] border border-[var(--border)] bg-card"
+            : "h-[560px] w-full overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-card shadow-elev-2"
         }
       />
     </div>

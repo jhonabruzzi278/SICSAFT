@@ -1,4 +1,5 @@
 import type { EstadoServicios, NombreServicio } from "@shared/ipc-contract";
+import { BrandBar } from "../components/BrandBar";
 
 const ETIQUETAS: Record<NombreServicio, string> = {
   postgres: "Base de datos",
@@ -19,38 +20,79 @@ export function PasoIniciandoServicios({
   estado: EstadoServicios;
 }) {
   const hayError = Object.values(estado).some((s) => s.estado === "error");
+  const listos = ORDEN.filter((n) => estado[n]?.estado === "listo").length;
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-6 bg-background px-8">
-      <h1 className="text-2xl font-semibold text-foreground">SICSAFT CORE</h1>
-      <p className="text-sm text-[var(--faint-foreground)]">
-        {hayError
-          ? "Hubo un problema iniciando algunos servicios."
-          : "Iniciando servicios…"}
-      </p>
-      <ul className="w-full max-w-sm space-y-2">
-        {ORDEN.map((nombre) => {
-          const info = estado[nombre];
-          return (
-            <li
-              key={nombre}
-              className="flex items-center justify-between rounded-[var(--radius)] border border-[var(--border)] bg-card px-4 py-2 text-sm"
-            >
-              <span className="text-card-foreground">{ETIQUETAS[nombre]}</span>
-              <EstadoBadge estado={info?.estado} detalle={info?.detalle} />
-            </li>
-          );
-        })}
-      </ul>
+    <div
+      className="flex h-full flex-col"
+      style={{ background: "var(--background) var(--page-glow) no-repeat" }}
+    >
+      <BrandBar subtitle="Primer arranque" />
+      <div className="flex flex-1 flex-col items-center justify-center px-8">
+        <div className="w-full max-w-md rounded-[var(--radius-2xl)] border border-[var(--border)] bg-card p-8 shadow-elev-2">
+          <h1 className="text-xl font-semibold text-foreground">
+            {hayError ? "Hubo un problema al iniciar" : "Iniciando servicios"}
+          </h1>
+          <p className="mt-1.5 text-sm text-[var(--muted-foreground)]">
+            {hayError
+              ? "Uno o más servicios no arrancaron. El detalle está en el log de la app."
+              : `${listos} de ${ORDEN.length} listos. Postgres y la identidad (JVM) son los más lentos.`}
+          </p>
+          <ul className="mt-6 space-y-2">
+            {ORDEN.map((nombre) => {
+              const info = estado[nombre];
+              return (
+                <li
+                  key={nombre}
+                  className="flex items-center gap-3 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--input)] px-4 py-2.5 text-sm"
+                >
+                  <EstadoIcono estado={info?.estado} />
+                  <span className="flex-1 text-card-foreground">
+                    {ETIQUETAS[nombre]}
+                  </span>
+                  <EstadoTexto estado={info?.estado} detalle={info?.detalle} />
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }
 
-function EstadoBadge({
+type Estado = EstadoServicios[string]["estado"] | undefined;
+
+function EstadoIcono({ estado }: { estado: Estado }) {
+  const base =
+    "flex size-5 shrink-0 items-center justify-center rounded-full text-[0.7rem] font-bold";
+  if (estado === "listo") {
+    return (
+      <span className={`${base} bg-[var(--success)] text-background`}>✓</span>
+    );
+  }
+  if (estado === "error") {
+    return (
+      <span className={`${base} bg-[var(--destructive)] text-background`}>
+        ✕
+      </span>
+    );
+  }
+  if (estado === "iniciando") {
+    return (
+      <span
+        className={`${base} border-2 border-[var(--primary)] border-t-transparent animate-spin`}
+      />
+    );
+  }
+  return <span className={`${base} border border-[var(--border-strong)]`} />;
+}
+
+function EstadoTexto({
   estado,
   detalle,
 }: {
-  estado: EstadoServicios[string]["estado"] | undefined;
+  estado: Estado;
   detalle?: string;
 }) {
   if (!estado || estado === "detenido") {
@@ -60,11 +102,11 @@ function EstadoBadge({
     return <span className="text-[var(--primary)]">iniciando…</span>;
   }
   if (estado === "listo") {
-    return <span className="text-[var(--success)]">✓ listo</span>;
+    return <span className="text-[var(--success)]">listo</span>;
   }
   return (
     <span className="text-[var(--destructive)]" title={detalle}>
-      ✕ error
+      error
     </span>
   );
 }
