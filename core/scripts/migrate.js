@@ -25,6 +25,11 @@ async function main() {
       password: requireEnv('CORE_DB_PASSWORD'),
     },
     dir: 'migrations',
+    // node-pg-migrate v9 escanea TODA entrada de migrations/ y exige un prefijo numerico en el
+    // nombre; sin este ignorePattern, el README.md de la carpeta (o un .gitkeep, un .DS_Store)
+    // rompe la carga con "Cannot determine numeric prefix". El patron ignora todo archivo cuyo
+    // nombre NO empiece con digito -- las migraciones reales siempre empiezan con el timestamp.
+    ignorePattern: '(?!\\d).*',
     direction,
     migrationsTable: 'pgmigrations',
     count: direction === 'down' ? 1 : Infinity,
