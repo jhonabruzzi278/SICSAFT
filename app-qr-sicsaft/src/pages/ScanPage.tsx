@@ -15,6 +15,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { QrScanner } from '@/components/QrScanner';
 import { ScannedList, type ScannedItem } from '@/components/ScannedList';
+import { Screen } from '@/components/mobile/Screen';
+import { SectionHeader } from '@/components/mobile/SectionHeader';
+import { StatTile } from '@/components/mobile/StatTile';
 import { OperatorGate } from '@/components/OperatorGate';
 import { OrganizationPicker } from '@/components/OrganizationPicker';
 import { AreaLocationPicker } from '@/components/AreaLocationPicker';
@@ -432,35 +435,42 @@ export function ScanPage() {
 
   if (view === 'home') {
     return (
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ScanLineIcon className="size-5 text-brand" />
-              Escanear inventario
-            </CardTitle>
-            <CardDescription data-testid="session-summary">
-              {operatorName} · {organization?.name} · {area?.name} · {location?.name}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2">
-            <Button size="lg" onClick={startScanning} disabled={startingScan} data-testid="start-scan-btn">
-              <ScanLineIcon />
-              Escanear código QR
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={changeOrganization} data-testid="change-org-btn">
-              <PencilIcon />
-              Cambiar
-            </Button>
-          </CardContent>
-        </Card>
+      <Screen
+        title="Nuevo control"
+        action={
+          <Button type="button" variant="ghost" size="sm" onClick={changeOrganization} data-testid="change-org-btn">
+            <PencilIcon />
+            Cambiar
+          </Button>
+        }
+      >
+        {/* Contexto de la sesión: operador · organización · área · ubicación. */}
+        <div
+          className="rounded-xl border border-border bg-card p-4 text-sm shadow-elev-1"
+          data-testid="session-summary"
+        >
+          <p className="font-semibold">{organization?.name}</p>
+          <p className="mt-0.5 text-muted-foreground">
+            {area?.name} · {location?.name}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{operatorName}</p>
+        </div>
 
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-sm">Modo</CardTitle>
-            <CardDescription>Qué sistemas están disponibles para este control</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2" data-testid="scan-mode-selector">
+        {/* CTA primaria de la app. */}
+        <button
+          type="button"
+          onClick={startScanning}
+          disabled={startingScan}
+          data-testid="start-scan-btn"
+          className="flex w-full flex-col items-center gap-3 rounded-2xl bg-primary p-8 text-primary-foreground shadow-elev-float transition-transform active:scale-[0.98] disabled:opacity-60"
+        >
+          <ScanLineIcon className="size-10" />
+          <span className="text-lg font-semibold">Escanear código QR</span>
+        </button>
+
+        <div className="space-y-2">
+          <SectionHeader>Modo de control</SectionHeader>
+          <div className="flex flex-wrap gap-2" data-testid="scan-mode-selector">
             {SCAN_MODE_OPTIONS.map((opt) => (
               <Button
                 key={opt.value}
@@ -475,30 +485,26 @@ export function ScanPage() {
                 {opt.label}
               </Button>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {(canInstall || showIosHint) && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Instalar APP QR SICSAFT</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {canInstall && (
-                <Button variant="outline" className="w-full" onClick={promptInstall} data-testid="install-btn">
-                  <ArrowDownToLineIcon />
-                  Instalar app
-                </Button>
-              )}
-              {showIosHint && (
-                <p className="text-sm text-muted-foreground">
-                  Para instalarla: tocá <strong>Compartir</strong> y luego <strong>"Agregar a inicio"</strong>.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <div className="space-y-2 rounded-xl border border-border bg-card p-4 shadow-elev-1">
+            <p className="text-sm font-semibold">Instalar APP QR SICSAFT</p>
+            {canInstall && (
+              <Button variant="outline" className="w-full" onClick={promptInstall} data-testid="install-btn">
+                <ArrowDownToLineIcon />
+                Instalar app
+              </Button>
+            )}
+            {showIosHint && (
+              <p className="text-sm text-muted-foreground">
+                Para instalarla: tocá <strong>Compartir</strong> y luego <strong>"Agregar a inicio"</strong>.
+              </p>
+            )}
+          </div>
         )}
-      </div>
+      </Screen>
     );
   }
 
@@ -609,92 +615,43 @@ export function ScanPage() {
     );
   }
 
-  return (
-    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
-      <Card className="md:col-span-3 lg:col-span-4">
-        <CardContent className="flex items-center justify-between pt-6">
-          <div>
-            <p className="text-sm text-muted-foreground">Resultado del control</p>
-            <p
-              className="text-2xl font-bold"
-              data-testid="report-verdict"
-              data-verdict={verdict}
-            >
-              {VERDICT_LABEL[verdict]}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-3xl font-bold" data-testid="report-total">
-            {items.length}
-          </p>
-          <p className="text-sm text-muted-foreground">Escaneados</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-3xl font-bold" data-testid="report-expected">
-            {expectedAssets.length}
-          </p>
-          <p className="text-sm text-muted-foreground">Esperados</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-3xl font-bold text-warning" data-testid="report-missing">
-            {missingAssets.length}
-          </p>
-          <p className="text-sm text-muted-foreground">Faltantes</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-3xl font-bold text-success" data-testid="report-correct">
-            {correctCount}
-          </p>
-          <p className="text-sm text-muted-foreground">Correctos</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-3xl font-bold text-warning" data-testid="report-out-of-place">
-            {outOfPlaceCount}
-          </p>
-          <p className="text-sm text-muted-foreground">Fuera de lugar</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-3xl font-bold text-destructive" data-testid="report-unregistered">
-            {unregisteredCount}
-          </p>
-          <p className="text-sm text-muted-foreground">No registrados</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-3xl font-bold" data-testid="report-external-finds">
-            {externalFindCount}
-          </p>
-          <p className="text-sm text-muted-foreground">Externos</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-3xl font-bold" data-testid="report-incidents">
-            {incidentCount}
-          </p>
-          <p className="text-sm text-muted-foreground">Incidencias</p>
-        </CardContent>
-      </Card>
+  // Clases literales completas (Tailwind JIT no resuelve `text-${x}` dinámico).
+  const VERDICT_STYLE = {
+    exitoso: { box: 'border-success/30 bg-success/10', text: 'text-success' },
+    aceptable: { box: 'border-warning/30 bg-warning/10', text: 'text-warning' },
+    defectuoso: { box: 'border-destructive/30 bg-destructive/10', text: 'text-destructive' },
+  } as const;
 
-      <Card className="md:col-span-3 lg:col-span-4">
-        <CardHeader>
-          <CardTitle className="text-sm">Detalle (todo lo que no fue correcto)</CardTitle>
-        </CardHeader>
-        <CardContent>
+  return (
+    <Screen title="Resultado del control">
+      {/* Veredicto de la sesión (Fase 3.1/DOC-017 2). */}
+      <div className={`rounded-2xl border p-5 shadow-elev-1 ${VERDICT_STYLE[verdict].box}`}>
+        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          Resultado del control
+        </p>
+        <p
+          className={`mt-1 text-2xl font-bold ${VERDICT_STYLE[verdict].text}`}
+          data-testid="report-verdict"
+          data-verdict={verdict}
+        >
+          {VERDICT_LABEL[verdict]}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <StatTile value={items.length} label="Escaneados" valueTestId="report-total" />
+        <StatTile value={expectedAssets.length} label="Esperados" valueTestId="report-expected" />
+        <StatTile value={missingAssets.length} label="Faltantes" tone="warning" valueTestId="report-missing" />
+        <StatTile value={correctCount} label="Correctos" tone="success" valueTestId="report-correct" />
+        <StatTile value={outOfPlaceCount} label="Fuera de lugar" tone="warning" valueTestId="report-out-of-place" />
+        <StatTile value={unregisteredCount} label="No registrados" tone="destructive" valueTestId="report-unregistered" />
+        <StatTile value={externalFindCount} label="Externos" valueTestId="report-external-finds" />
+        <StatTile value={incidentCount} label="Incidencias" valueTestId="report-incidents" />
+      </div>
+
+      <div className="space-y-2">
+        <SectionHeader>Detalle (todo lo que no fue correcto)</SectionHeader>
+        <div className="rounded-xl border border-border bg-card p-4 shadow-elev-1">
           {nonCorrectItems.length === 0 ? (
             <p className="text-sm text-muted-foreground">Ninguno</p>
           ) : (
@@ -707,14 +664,12 @@ export function ScanPage() {
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="md:col-span-3 lg:col-span-4">
-        <CardHeader>
-          <CardTitle className="text-sm">Activos faltantes (esperados y no escaneados)</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="space-y-2">
+        <SectionHeader>Activos faltantes (esperados y no escaneados)</SectionHeader>
+        <div className="rounded-xl border border-border bg-card p-4 shadow-elev-1">
           {missingAssets.length === 0 ? (
             <p className="text-sm text-muted-foreground">Ninguno</p>
           ) : (
@@ -726,14 +681,12 @@ export function ScanPage() {
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="md:col-span-3 lg:col-span-4">
-        <CardHeader>
-          <CardTitle className="text-sm">AFT que no corresponden a esta área</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="space-y-2">
+        <SectionHeader>AFT que no corresponden a esta área</SectionHeader>
+        <div className="rounded-xl border border-border bg-card p-4 shadow-elev-1">
           {outOfAreaByArea.size === 0 ? (
             <p className="text-sm text-muted-foreground">Ninguno</p>
           ) : (
@@ -752,12 +705,13 @@ export function ScanPage() {
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <div className="flex flex-wrap gap-2 md:col-span-3 lg:col-span-4">
+      <div className="flex flex-col gap-2">
         <Button
           type="button"
+          className="w-full"
           onClick={confirmAndSend}
           disabled={sending || sent}
           data-testid="confirm-send-btn"
@@ -765,15 +719,17 @@ export function ScanPage() {
           <CheckCircle2Icon />
           {sent ? 'Enviado ✔' : sending ? 'Enviando…' : 'Confirmar y enviar'}
         </Button>
-        <Button type="button" variant="outline" onClick={exportCsv} data-testid="export-csv-btn">
-          <DownloadIcon />
-          Exportar CSV
-        </Button>
-        <Button type="button" onClick={resetSession} data-testid="reset-btn">
-          <RotateCcwIcon />
-          Nueva sesión
-        </Button>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" className="flex-1" onClick={exportCsv} data-testid="export-csv-btn">
+            <DownloadIcon />
+            Exportar CSV
+          </Button>
+          <Button type="button" variant="secondary" className="flex-1" onClick={resetSession} data-testid="reset-btn">
+            <RotateCcwIcon />
+            Nueva sesión
+          </Button>
+        </div>
       </div>
-    </div>
+    </Screen>
   );
 }

@@ -12,11 +12,11 @@ test('entrada manual de código agrega un producto escaneado', async ({ page }) 
   await expect(page.locator('[data-testid="manual-code-input"]')).toHaveValue('');
 });
 
-test('en mobile, el trigger del sidebar despliega el menú y queda visible (no atascado en opacidad 0)', async ({ page }) => {
+test('en mobile, la bottom nav está siempre visible y navega (sin trigger)', async ({ page }) => {
+  // Rediseño 2026-08-29: el sidebar de escritorio se reemplazó por una bottom nav fija
+  // (src/components/mobile/BottomNav.tsx) — siempre visible, sin trigger que desplegar.
   await page.setViewportSize({ width: 375, height: 812 });
   await resetApp(page);
-
-  await page.click('[data-testid="sidebar-trigger"]');
 
   const nav = page.locator('[data-testid="nav-catalog"]');
   await expect(nav).toBeVisible();

@@ -140,6 +140,36 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* --- Shell móvil (rediseño 2026-08-29) -----------------------------------
+   La app pasó de un sidebar de escritorio (shadcn) a un shell de app móvil:
+   app bar arriba + bottom nav fija + contenido en una columna acotada
+   (max-w) que también se lee como "marco de app" en escritorio. Estos
+   tokens son de layout/elevación, NO de marca — la paleta sigue viniendo
+   de BRAND.md (variables --primary/--brand/--success/... de arriba). */
+:root {
+    --appbar-h: 3.5rem;
+    --bottomnav-h: 4rem;
+    --shell-max-w: 30rem; /* 480px */
+    --elev-1: 0 1px 2px oklch(15% 0.045 258 / 0.06), 0 1px 3px oklch(15% 0.045 258 / 0.05);
+    --elev-2: 0 2px 8px oklch(15% 0.045 258 / 0.08), 0 4px 16px oklch(15% 0.045 258 / 0.06);
+    --elev-float: 0 6px 20px oklch(55% 0.18 245 / 0.28);
+    /* Header azul degradado, mismo espíritu que el mockup de referencia. El
+       hue/chroma sale del acento de marca; solo cambia la luminosidad. */
+    --appbar-grad: linear-gradient(160deg, oklch(58% 0.18 245), oklch(50% 0.17 250));
+}
+.dark {
+    --elev-1: 0 1px 2px oklch(0% 0 0 / 0.4), 0 1px 3px oklch(0% 0 0 / 0.3);
+    --elev-2: 0 2px 10px oklch(0% 0 0 / 0.45), 0 8px 24px oklch(0% 0 0 / 0.35);
+    --elev-float: 0 6px 22px oklch(68% 0.19 254 / 0.4);
+    --appbar-grad: linear-gradient(160deg, oklch(26% 0.07 250), oklch(20% 0.06 255));
+}
+
+@theme inline {
+    --shadow-elev-1: var(--elev-1);
+    --shadow-elev-2: var(--elev-2);
+    --shadow-elev-float: var(--elev-float);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

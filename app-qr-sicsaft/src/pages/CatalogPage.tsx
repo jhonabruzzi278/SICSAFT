@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { LayoutGridIcon, ListIcon, PlusIcon, PrinterIcon } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Screen } from '@/components/mobile/Screen';
+import { StatTile } from '@/components/mobile/StatTile';
 import { ProductGrid, type CatalogViewMode } from '@/components/ProductGrid';
 import { ProductFormDialog } from '@/components/ProductFormDialog';
 import { LabelPreviewDialog } from '@/components/LabelPreviewDialog';
@@ -129,34 +130,31 @@ export function CatalogPage() {
   const formProduct = formTarget === 'create' ? null : formTarget;
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <p className="text-2xl font-bold text-success" data-testid="registered-count">
-              {registeredCount}
-            </p>
-            <p className="text-sm text-muted-foreground">Registrados</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <p className="text-2xl font-bold text-warning" data-testid="unregistered-count">
-              {unregisteredCount}
-            </p>
-            <p className="text-sm text-muted-foreground">No registrados</p>
-          </CardContent>
-        </Card>
-        <Card className="flex flex-col justify-center gap-2 p-6">
-          <Button data-testid="new-product-btn" onClick={() => setFormTarget('create')}>
-            <PlusIcon />
-            Nuevo Producto
-          </Button>
-          <Button variant="outline" data-testid="print-btn" onClick={handlePrintAll}>
-            <PrinterIcon />
-            Imprimir códigos QR
-          </Button>
-        </Card>
+    <Screen title="Catálogo" subtitle="Productos y generación de etiquetas QR">
+      <div className="grid grid-cols-2 gap-3">
+        <StatTile
+          value={registeredCount}
+          label="Registrados"
+          tone="success"
+          valueTestId="registered-count"
+        />
+        <StatTile
+          value={unregisteredCount}
+          label="No registrados"
+          tone="warning"
+          valueTestId="unregistered-count"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Button data-testid="new-product-btn" onClick={() => setFormTarget('create')}>
+          <PlusIcon />
+          Nuevo producto
+        </Button>
+        <Button variant="outline" data-testid="print-btn" onClick={handlePrintAll}>
+          <PrinterIcon />
+          Imprimir QR
+        </Button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -215,6 +213,6 @@ export function CatalogPage() {
         onOpenChange={(open) => !open && setStockProduct(null)}
         onAdjust={handleAdjustStock}
       />
-    </div>
+    </Screen>
   );
 }
