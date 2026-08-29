@@ -68,7 +68,12 @@ jobs:
         run: npm run test:cov
 
       - name: Aplicar migraciones (mismo runner que docker-compose local)
+        # SICSAFT_SEED_DEV=1 habilita los seeds `seed-dev-fixture*` (DOC-028 Fase B.1): los e2e de
+        # abajo dependen del fixture DUOC UC/Melipilla. El .exe embebido, devops/prod y
+        # devops/onprem NO lo setean -> base patrimonial limpia. Ver core/migrations/README.md.
         run: npm run migrate:up
+        env:
+          SICSAFT_SEED_DEV: "1"
 
       - name: Tests e2e
         run: npm run test:e2e

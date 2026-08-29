@@ -18,7 +18,15 @@ const CATALOGO_PROYECTOR_ID = 'catalogo-proyector';
 const ACTIVO_NOTEBOOK_ID = 'activo-notebook-001';
 const ACTIVO_PROYECTOR_ID = 'activo-proyector-001';
 
+// DOC-028 Fase B.1 — SOLO corre con SICSAFT_SEED_DEV=1 (ver 1755000000001_seed-dev-fixture.ts y
+// core/migrations/README.md). Sin la env var, la migracion se registra pero no inserta nada:
+// base patrimonial limpia en el .exe embebido, devops/prod y devops/onprem.
+function seedHabilitado(): boolean {
+  return process.env.SICSAFT_SEED_DEV === '1';
+}
+
 export async function up(pgm: MigrationBuilder): Promise<void> {
+  if (!seedHabilitado()) return;
   await pgm.db.query(
     `INSERT INTO areas (id, organizacion_id, codigo, nombre, dependencia, centro_costo)
      VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -154,6 +162,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
+  if (!seedHabilitado()) return;
   for (const activoId of [ACTIVO_NOTEBOOK_ID, ACTIVO_PROYECTOR_ID]) {
     await pgm.db.query('DELETE FROM inventarios WHERE activo_id = $1', [
       activoId,

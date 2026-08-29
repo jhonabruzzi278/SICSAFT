@@ -7,8 +7,18 @@ import { SEED_CONTRATOS } from '../src/entitlements/contrato.seed';
 // una unica fuente de verdad del caso DUOC UC/Melipilla — antes estaba retipeado a mano acá y en
 // cis/src/qr-connector/qr-connector.seed.ts (esa segunda copia sigue pendiente hasta que CIS deje
 // de ser mock en la Fase 3 del roadmap, ver ROADMAP.md).
+//
+// DOC-028 Fase B.1 — SOLO corre con SICSAFT_SEED_DEV=1. node-pg-migrate igual la registra como
+// aplicada (no rompe el orden), asi que la migracion existe en `pgmigrations` en todos los
+// entornos; los INSERT solo pasan donde se pide el fixture: dev local, CI e2e de core/ y
+// devops/local. El .exe embebido (sicsaft-core), devops/prod y devops/onprem NO setean la env
+// var -> base patrimonial limpia. Ver core/migrations/README.md.
+function seedHabilitado(): boolean {
+  return process.env.SICSAFT_SEED_DEV === '1';
+}
 
 export async function up(pgm: MigrationBuilder): Promise<void> {
+  if (!seedHabilitado()) return;
   for (const contrato of SEED_CONTRATOS) {
     await pgm.db.query(
       'INSERT INTO organizaciones (id, nombre) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING',
@@ -46,6 +56,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
+  if (!seedHabilitado()) return;
   for (const contrato of SEED_CONTRATOS) {
     await pgm.db.query('DELETE FROM contrato_sedes WHERE contrato_id = $1', [
       contrato.id,

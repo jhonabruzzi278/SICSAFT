@@ -26,6 +26,7 @@ import {
   leerInstalacionExistente,
   marcarInstalacionCompleta,
 } from "../services/instalacion-marker";
+import { provisionarOrganizacionCore } from "../services/core-provisioning";
 
 // Todos los handlers reciben el ServiceOrchestrator ya arrancado -- ningún handler expone
 // secretos al renderer (el admin de Keycloak, el client secret de cis-admin) más allá de lo que
@@ -115,6 +116,16 @@ export function registrarIpcHandlers(
       // avanzar al siguiente paso (alta del Director, que si necesita cis arriba en el futuro
       // pasaría a llamarlo directo -- hoy altaDirector todavía no depende de cis, ver más abajo).
       await orquestador.iniciarCis(resultado.adminCis);
+      // DOC-028 Fase B.2 -- además de la Organization de Keycloak, crea la organización + contrato
+      // vigente + sede principal en la Base Patrimonial de CORE. Sin esto el Profesional de AFT no
+      // ve el catálogo de su organización (la base arranca vacía desde Fase B.1). Antes de
+      // marcarInstalacionCompleta: si esto falla, el wizard muestra el error y se puede reintentar
+      // el paso 1 (los INSERT son idempotentes por ON CONFLICT).
+      await provisionarOrganizacionCore({
+        organizacionId: resultado.organizacionId,
+        clienteNombre: input.clienteNombre,
+        sedePrincipalNombre: input.sedePrincipalNombre,
+      });
       // Ver instalacion-marker.ts -- de acá en más, un relanzamiento de la app salta directo al
       // login en vez de reintentar este paso (que rompería con 409, el realm ya existe).
       marcarInstalacionCompleta({
