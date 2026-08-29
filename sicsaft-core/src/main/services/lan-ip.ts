@@ -44,6 +44,16 @@ function esIpLocalValida(ip: string): boolean {
 }
 
 export function obtenerIpLan(): string {
+  // Override explícito (SICSAFT_CORE_LAN_IP) -- para cuando la heurística de abajo no sirve:
+  // DHCP que reasigna la IP cada pocos minutos (la app hornea IP_LAN una sola vez al arrancar,
+  // ver keycloak-service.ts -- un cambio de IP deja KC_HOSTNAME/el client OIDC apuntando a una
+  // dirección muerta), una LAN con varias interfaces válidas, o una corrida automatizada/CI que
+  // quiere fijar 127.0.0.1. Se valida con el mismo criterio que networkInterfaces() (IPv4
+  // canónico y de rango local); si no pasa, se ignora y se cae a la heurística normal -- nunca
+  // deja pasar una dirección fuera de la red local.
+  const override = process.env.SICSAFT_CORE_LAN_IP?.trim();
+  if (override && esIpLocalValida(override)) return override;
+
   const interfaces = networkInterfaces();
   const candidatas: string[] = [];
 
