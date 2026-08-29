@@ -364,6 +364,41 @@ export async function resolverCredencialesClienteAdminCis(
   return { clientId: "cis-admin", secret: secretResp.value };
 }
 
+// DOC-028 Fase C.1 -- cuando la IP de LAN de la PC cambia (DHCP que reasigna), el client OIDC de
+// la APP QR queda con redirectUris/webOrigins apuntando a la IP vieja y Keycloak rechaza el login
+// del teléfono con "Invalid parameter: redirect_uri". Es el ÚNICO client que hace falta tocar en
+// un cambio de IP: `sicsaft-core`, `ccp` y `core-frontend` están registrados con orígenes
+// 127.0.0.1 (ver crearClientPublico/crearClientesPortales), que no cambian nunca. Se reescribe
+// sobre la representación completa que devuelve Keycloak (PUT /clients/{id} la exige entera) --
+// idempotente: correrlo con el origen que ya tenía no cambia nada.
+export async function reconfigurarClientAppQr(
+  admin: AdminBootstrapKeycloak,
+  nuevoOrigenAppQr: string,
+): Promise<void> {
+  const token = await obtenerTokenAdmin(admin);
+  const clientes = (await (
+    await adminApi(token, "GET", `/clients?clientId=${CLIENT_ID_APP_QR}`)
+  ).json()) as Array<Record<string, unknown> & { id: string }>;
+  const cliente = clientes[0];
+  if (!cliente) {
+    throw new Error(
+      `No se encontró el client '${CLIENT_ID_APP_QR}' en Keycloak -- ¿esta instalación se ` +
+        "completó de verdad? (instalacion.json dice que sí, pero el client no está).",
+    );
+  }
+  const attributesPrevios =
+    (cliente.attributes as Record<string, unknown> | undefined) ?? {};
+  await adminApi(token, "PUT", `/clients/${cliente.id}`, {
+    ...cliente,
+    redirectUris: [`${nuevoOrigenAppQr}/auth/callback`],
+    webOrigins: [nuevoOrigenAppQr],
+    attributes: {
+      ...attributesPrevios,
+      "post.logout.redirect.uris": `${nuevoOrigenAppQr}/`,
+    },
+  });
+}
+
 export interface ResultadoBootstrap {
   organizacionId: string;
   adminCis: ClienteAdminCreado;

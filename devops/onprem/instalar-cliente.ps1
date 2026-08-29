@@ -494,6 +494,10 @@ Write-Host "el gestor de secretos del admin antes de irse del sitio - se necesit
 Write-Host "esta instalacion despues (aidlc-docs/devops/requirements/REQUIREMENTS.md INST-Q-02)." -ForegroundColor Yellow
 Write-Host "Crear las credenciales reales del cliente y borrar cualquier usuario de prueba antes de" -ForegroundColor Yellow
 Write-Host "entregar el sistema." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "RED: pedir al administrador de red una reserva DHCP (IP fija por MAC) para esta maquina." -ForegroundColor Yellow
+Write-Host "El telefono con la APP QR llega por la IP de LAN del host; si el router se la reasigna," -ForegroundColor Yellow
+Write-Host "el login del telefono se corta hasta reconfigurar (DOC-028 Fase C)." -ForegroundColor Yellow
 
 } finally {
     # Corre siempre, haya terminado bien o el script haya fallado a mitad de camino (por eso

@@ -1,5 +1,5 @@
-import { createServer, type Server } from "node:http";
-import { createReadStream } from "node:fs";
+import { createServer, type Server, type ServerResponse } from "node:http";
+import { createReadStream, readFile } from "node:fs";
 import { extname, isAbsolute, join, relative, resolve } from "node:path";
 import { app } from "electron";
 
@@ -32,6 +32,28 @@ export interface ConfigPortalEstatico {
   nombre: string;
   distPath: string;
   puerto: number;
+  // DOC-028 Fase C.0 -- config OIDC (issuer/clientId/cisUrl) que el portal NO puede hornear en su
+  // build de Vite: la IP de LAN de Keycloak recién se conoce en cada arranque del .exe, y tiene
+  // que poder cambiar sin recompilar el portal (Fase C.1). Se inyecta como
+  // `window.__SICSAFT_PORTAL_CONFIG__` en el index.html; ccp/core-frontend lo leen antes de caer a
+  // import.meta.env (ver sus oidc-config.ts). Claves con el mismo nombre que las env vars VITE_*.
+  configRuntime?: Record<string, string>;
+}
+
+// DOC-028 Fase C.0 -- mete un <script> con la config runtime justo después de <head>, para que
+// corra antes que el bundle del portal (que lee window.__SICSAFT_PORTAL_CONFIG__ al inicializarse).
+// Cada "<" del JSON se reemplaza por su escape unicode: los valores son URLs que arma el proceso
+// principal (no entrada de usuario), pero así igual ningún valor puede cerrar el </script> ni
+// abrir un comentario HTML. Si no hay <head> (index.html no estándar), se antepone al documento.
+export function inyectarConfigRuntime(
+  html: string,
+  configRuntime: Record<string, string>,
+): string {
+  const json = JSON.stringify(configRuntime).replace(/</g, "\\u003c");
+  const script = `<script>window.__SICSAFT_PORTAL_CONFIG__=${json};</script>`;
+  return html.includes("<head>")
+    ? html.replace("<head>", `<head>${script}`)
+    : script + html;
 }
 
 // Resuelve la ruta del request a un archivo GARANTIZADO dentro de `raizDist`, o a null si se sale
@@ -70,10 +92,38 @@ export function iniciarServidorEstatico(
   const raizDist = resolve(config.distPath);
   const indexHtml = join(raizDist, "index.html");
 
+  // index.html se lee entero y se transforma (DOC-028 Fase C.0 -- inyecta la config OIDC runtime),
+  // no se streamea como el resto de los assets. Se usa tanto en el match directo de "/" como en el
+  // SPA fallback.
+  function servirIndex(res: ServerResponse): void {
+    readFile(indexHtml, "utf-8", (err, html) => {
+      if (res.headersSent) {
+        res.destroy();
+        return;
+      }
+      if (err) {
+        res.statusCode = 500;
+        res.end("index.html no encontrado en el build del portal");
+        return;
+      }
+      res.setHeader("Content-Type", TIPOS_MIME[".html"]);
+      res.end(
+        config.configRuntime
+          ? inyectarConfigRuntime(html, config.configRuntime)
+          : html,
+      );
+    });
+  }
+
   return new Promise((listo, fallo) => {
     const servidor = createServer((req, res) => {
       const archivo =
         resolverArchivoDentroDe(raizDist, req.url ?? "/") ?? indexHtml;
+
+      if (archivo === indexHtml) {
+        servirIndex(res);
+        return;
+      }
 
       res.setHeader(
         "Content-Type",
@@ -88,14 +138,8 @@ export function iniciarServidorEstatico(
           res.destroy();
           return;
         }
-        if (archivo === indexHtml) {
-          res.statusCode = 500;
-          res.end("index.html no encontrado en el build del portal");
-          return;
-        }
-        // Ruta contenida pero sin archivo real (o es un directorio) -> SPA fallback.
-        res.setHeader("Content-Type", TIPOS_MIME[".html"]);
-        createReadStream(indexHtml).pipe(res);
+        // Ruta contenida pero sin archivo real (o es un directorio) -> SPA fallback a index.html.
+        servirIndex(res);
       });
       stream.pipe(res);
     });

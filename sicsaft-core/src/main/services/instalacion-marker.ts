@@ -1,6 +1,7 @@
 import { app } from "electron";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { InstalacionCompleta } from "@shared/ipc-contract";
 
 // Bug real encontrado 2026-08-28: cada instalación de sicsaft-core.exe es de un solo cliente (ver
 // el comentario de bootstrapPrimeraInstalacion en keycloak-bootstrap.ts), pero nada impedía que el
@@ -14,10 +15,11 @@ import { join } from "node:path";
 // altaDirector todavía no), el marcador ya existe y el próximo arranque salta directo al login sin
 // Director creado -- recuperarse de ese estado a medias no está resuelto acá, requeriría lógica de
 // "reanudar wizard" que no hace falta para este incremento (CORE-RF-04).
-export interface InstalacionCompleta {
-  organizacionId: string;
-  clienteNombre: string;
-}
+//
+// El shape (organizacionId/clienteNombre/ipLan) vive en @shared/ipc-contract -- el renderer también
+// lo necesita tipado (getInstalacionExistente), y tener dos definiciones separadas ya se
+// desincronizó una vez.
+export type { InstalacionCompleta };
 
 function rutaMarcador(): string {
   return join(app.getPath("userData"), "instalacion.json");
@@ -31,4 +33,18 @@ export function leerInstalacionExistente(): InstalacionCompleta | null {
 
 export function marcarInstalacionCompleta(datos: InstalacionCompleta): void {
   writeFileSync(rutaMarcador(), JSON.stringify(datos));
+}
+
+// DOC-028 Fase C.1 -- reescribe solo la ipLan del marcador, dejando el resto intacto. Se llama
+// después de reconfigurar el client OIDC de la APP QR (ipc/handlers.ts reconfigurarIpLan) y como
+// backfill para instalaciones anteriores a Fase C (getEstadoIpLan). Tira si no hay instalación
+// previa -- el marcador base lo escribe marcarInstalacionCompleta() al terminar el paso 1.
+export function actualizarIpLanInstalacion(ipLan: string): void {
+  const existente = leerInstalacionExistente();
+  if (!existente) {
+    throw new Error(
+      "actualizarIpLanInstalacion() sin instalación previa -- llamar marcarInstalacionCompleta() primero.",
+    );
+  }
+  writeFileSync(rutaMarcador(), JSON.stringify({ ...existente, ipLan }));
 }

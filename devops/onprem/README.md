@@ -164,6 +164,10 @@ podman-compose --profile nivel2 up -d --build      # Nivel 2 (incluye Nivel 1 + 
   Keycloak (INST-Q-02, pregunta abierta de gestión de secretos multi-cliente).
 - Entregar al cliente sus credenciales de operador reales y desactivar/borrar los usuarios de
   prueba usados para verificar.
+- Pedir al administrador de red una **reserva DHCP** (IP fija por MAC) para la máquina que hospeda
+  este stack. El teléfono con la APP QR llega a Keycloak/CIS por la IP de LAN del host; si el
+  router se la reasigna, el login del teléfono se corta hasta reconfigurar. Mismo criterio que el
+  `.exe` embebido de `sicsaft-core` (DOC-028 Fase C).
 
 ## Apagar / limpiar
 

@@ -96,22 +96,40 @@ otra opción).
 
 ### Fase C — Estabilidad de IP en red real
 
-**Alcance**: `sicsaft-core/` + doc. Decisión de UX sobre el enfoque de recuperación.
+**Alcance**: `sicsaft-core/` + `ccp/` + `core/frontend/` + doc. **Multi-deployable** (PR con
+checklist) — no era la intención inicial ("`sicsaft-core/` + doc"), pero al implementar apareció la
+causa raíz: los portales embebidos leían su URL de Keycloak de un `ccp/.env.local` hecho a mano y
+**horneado en el build** (`VITE_KEYCLOAK_ISSUER=http://192.168.1.11:58080/...`). Un cambio de IP
+dejaba ese issuer muerto sin recuperación posible salvo reescribir el archivo y recompilar —
+arreglar la estabilidad de IP de verdad obliga a sacar esa config del build (C.0).
 
-- **C.1** — El primer arranque persiste la IP de LAN detectada en `instalacion.json`. Cada
-  relanzamiento compara la IP actual con la guardada; si cambió, muestra una pantalla clara
-  ("la IP de esta PC cambió de `X` a `Y` — [Reconfigurar]") que re-registra los `redirectUris`/
-  `webOrigins` de los clients OIDC del realm y reescribe `KC_HOSTNAME`, sin reinstalar.
-- **C.2** — El README de `devops/onprem/` y el instalador recomiendan una **reserva DHCP** para
-  la PC del Director.
+- **C.0 — Config de portal en runtime, no en el build.** `static-portal-server.ts` inyecta
+  `<script>window.__SICSAFT_PORTAL_CONFIG__={VITE_KEYCLOAK_ISSUER, VITE_KEYCLOAK_CLIENT_ID,
+  VITE_CIS_URL}</script>` en el `index.html` de cada portal al servirlo, con el issuer resuelto en
+  ese arranque (`KEYCLOAK_CONFIG.url` ya lleva la IP de LAN actual; `cisUrl` es `127.0.0.1`, no
+  cambia). `ccp`/`core/frontend` (`oidc-config.ts`) leen `window.__SICSAFT_PORTAL_CONFIG__` primero
+  y caen a `import.meta.env` para `npm run dev` suelto / deploys standalone (Traefik, Vercel). El
+  `.env.local` hecho a mano deja de hacer falta para el `.exe`.
+- **C.1 — Persistir + detectar + recuperar.** El primer arranque persiste la IP de LAN en
+  `instalacion.json` (campo `ipLan`). Cada relanzamiento la compara con la IP actual (`getEstadoIpLan`);
+  si cambió, el wizard muestra `PasoIpCambio` ("la IP de esta PC cambió de `X` a `Y` —
+  [Reconfigurar y continuar]") antes del login. Reconfigurar (`reconfigurarIpLan`) re-registra
+  `redirectUris`/`webOrigins` del client OIDC **`app-qr-sicsaft`** — el único con un origen de LAN;
+  `ccp`/`core-frontend`/`sicsaft-core` están en `127.0.0.1` y no se tocan — y reescribe `ipLan`.
+  `KC_HOSTNAME` **no** hace falta reescribirlo: se recalcula solo al cargar `keycloak-service.ts`
+  en el relanzamiento. Backfill: una instalación anterior a Fase C (sin `ipLan`) adopta la IP
+  actual como línea base la primera vez.
+- **C.2** — El README de `devops/onprem/` + `sicsaft-core/README.md` + un aviso al final de
+  `instalar-cliente.ps1` recomiendan una **reserva DHCP** para la PC del Director (la prevención de
+  fondo).
 - **C.3** (futuro, no esta fase) — Hostname `.local` vía mDNS + cert propio. Más robusto, más
   pesado; su propio incremento.
 
 **Entrega**: un cambio de IP no deja la instalación inservible; hay un camino guiado de
-recuperación de ~1 clic.
+recuperación de ~1 clic, y los portales embebidos ya no dependen de una IP horneada en el build.
 
-**Necesita tu OK antes de codear**: si C.1 (recuperación guiada) alcanza para la primera versión,
-o si querés ir directo a C.3 (mDNS).
+**Decisión tomada (2026-08-29)**: C.1 (recuperación guiada) para la primera versión; C.3 (mDNS)
+queda para después. Se sumó C.0 al alcance al encontrar la causa raíz.
 
 ### Fase D — La PWA de APP QR servida por el propio `.exe`
 

@@ -7,8 +7,14 @@ export interface OidcConfig {
   cisUrl: string;
 }
 
+// DOC-028 Fase C.0 — cuando este portal lo sirve el .exe embebido de sicsaft-core, la config OIDC
+// no puede hornearse en el build de Vite: la IP de LAN de Keycloak recién se conoce en cada
+// arranque y puede cambiar sin recompilar (Fase C.1). static-portal-server.ts la inyecta como
+// window.__SICSAFT_PORTAL_CONFIG__; para `npm run dev` suelto y deploys standalone (Traefik,
+// Vercel) eso no está y se cae a import.meta.env, como siempre.
 function requireEnv(name: string): string {
-  const value = import.meta.env[name];
+  const value =
+    window.__SICSAFT_PORTAL_CONFIG__?.[name] || import.meta.env[name];
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error(
       `Configuración OIDC inválida: falta ${name} (ver .env.example y devops/local/README.md "Cliente OIDC real").`,

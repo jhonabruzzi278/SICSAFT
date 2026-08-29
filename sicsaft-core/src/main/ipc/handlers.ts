@@ -6,13 +6,17 @@ import type {
   AltaProfesionalAftResultado,
   BootstrapClienteResultado,
   DatosClienteInput,
+  EstadoIpLan,
   RectanguloPantalla,
 } from "@shared/ipc-contract";
 import type { ServiceOrchestrator } from "../services/service-orchestrator";
 import {
   bootstrapPrimeraInstalacion,
+  CLIENT_ID_CCP,
+  CLIENT_ID_CORE_FRONTEND,
   crearUsuarioDirector,
   crearUsuarioProfesionalAft,
+  reconfigurarClientAppQr,
   resolverCredencialesClienteAdminCis,
 } from "../keycloak-bootstrap";
 import { PUERTO_RENDERER } from "../renderer-config";
@@ -21,11 +25,19 @@ import {
   iniciarServidorEstatico,
   rutaDistDePortal,
 } from "../services/static-portal-server";
-import { PUERTO_CCP, PUERTO_CORE_FRONTEND } from "../services/backend-configs";
 import {
+  PUERTO_CCP,
+  PUERTO_CIS,
+  PUERTO_CORE_FRONTEND,
+} from "../services/backend-configs";
+import { KEYCLOAK_CONFIG } from "../services/keycloak-service";
+import { obtenerIpLan, obtenerOrigenAppQr } from "../services/lan-ip";
+import {
+  actualizarIpLanInstalacion,
   leerInstalacionExistente,
   marcarInstalacionCompleta,
 } from "../services/instalacion-marker";
+import { evaluarCambioIpLan } from "../services/ip-lan-guard";
 
 // Todos los handlers reciben el ServiceOrchestrator ya arrancado -- ningún handler expone
 // secretos al renderer (el admin de Keycloak, el client secret de cis-admin) más allá de lo que
@@ -40,15 +52,31 @@ let servidoresPortalesIniciados = false;
 
 async function asegurarServidoresPortales(): Promise<void> {
   if (servidoresPortalesIniciados) return;
+  // DOC-028 Fase C.0 -- la config OIDC de ccp/core-frontend se resuelve acá, en cada arranque, y
+  // se inyecta en el index.html servido (static-portal-server.ts). El issuer lleva la IP de LAN
+  // de ESTE arranque (KEYCLOAK_CONFIG.url ya la recalculó); si la IP cambió desde la instalación,
+  // el portal igual apunta bien sin recompilar. cisUrl es 127.0.0.1 (loopback, nunca cambia).
+  const issuer = `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}`;
+  const cisUrl = `http://127.0.0.1:${PUERTO_CIS}`;
   await iniciarServidorEstatico({
     nombre: "ccp",
     distPath: rutaDistDePortal("ccp"),
     puerto: PUERTO_CCP,
+    configRuntime: {
+      VITE_KEYCLOAK_ISSUER: issuer,
+      VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_CCP,
+      VITE_CIS_URL: cisUrl,
+    },
   });
   await iniciarServidorEstatico({
     nombre: "core-frontend",
     distPath: rutaDistDePortal("core-frontend"),
     puerto: PUERTO_CORE_FRONTEND,
+    configRuntime: {
+      VITE_KEYCLOAK_ISSUER: issuer,
+      VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_CORE_FRONTEND,
+      VITE_CIS_URL: cisUrl,
+    },
   });
   servidoresPortalesIniciados = true;
 }
@@ -61,6 +89,32 @@ export function registrarIpcHandlers(
 
   ipcMain.handle("sicsaft-core:getEstadoServicios", () =>
     orquestador.getEstado(),
+  );
+
+  // DOC-028 Fase C.1 -- el wizard llama esto al relanzar, después de getInstalacionExistente(). Si
+  // la IP de LAN de la PC cambió desde la instalación, devuelve cambio: true y el wizard muestra
+  // PasoIpCambio antes del login. Backfill: una instalación anterior a Fase C no tiene ipLan
+  // persistida -- se adopta la IP actual como línea base (no sabemos la vieja, asumir que la de
+  // ahora está bien).
+  ipcMain.handle("sicsaft-core:getEstadoIpLan", (): EstadoIpLan => {
+    const estado = evaluarCambioIpLan();
+    if (estado.ipGuardada === null && leerInstalacionExistente()) {
+      actualizarIpLanInstalacion(estado.ipActual);
+    }
+    return estado;
+  });
+
+  // DOC-028 Fase C.1 -- reconfiguración de ~1 clic: re-registra el redirectUri/webOrigins del
+  // client OIDC de la APP QR en Keycloak con la IP nueva y reescribe la ipLan del marcador.
+  // Devuelve el estado ya reevaluado (cambio === false si salió bien).
+  ipcMain.handle(
+    "sicsaft-core:reconfigurarIpLan",
+    async (): Promise<EstadoIpLan> => {
+      const admin = orquestador.getKeycloakAdmin();
+      await reconfigurarClientAppQr(admin, obtenerOrigenAppQr());
+      actualizarIpLanInstalacion(obtenerIpLan());
+      return evaluarCambioIpLan();
+    },
   );
 
   ipcMain.handle("sicsaft-core:getInstalacionExistente", async () => {
@@ -116,10 +170,13 @@ export function registrarIpcHandlers(
       // pasaría a llamarlo directo -- hoy altaDirector todavía no depende de cis, ver más abajo).
       await orquestador.iniciarCis(resultado.adminCis);
       // Ver instalacion-marker.ts -- de acá en más, un relanzamiento de la app salta directo al
-      // login en vez de reintentar este paso (que rompería con 409, el realm ya existe).
+      // login en vez de reintentar este paso (que rompería con 409, el realm ya existe). `ipLan`
+      // (DOC-028 Fase C.1) queda como línea base: cada relanzamiento la compara con la IP actual
+      // para saber si hay que reconfigurar el client OIDC de la APP QR.
       marcarInstalacionCompleta({
         organizacionId: resultado.organizacionId,
         clienteNombre: input.clienteNombre,
+        ipLan: obtenerIpLan(),
       });
       return { organizacionId: resultado.organizacionId };
     },
