@@ -21,8 +21,19 @@ test('hub (multi-organización)', async ({ page }) => {
       contentType: 'application/json',
       body: JSON.stringify({
         organizaciones: [
-          { id: 'duoc-uc', nombre: 'DUOC UC', sedes: [{ id: 's1', nombre: 'Sede Melipilla' }] },
-          { id: 'muni-melipilla', nombre: 'Municipalidad de Melipilla', sedes: [{ id: 's2', nombre: 'Casa Central' }, { id: 's3', nombre: 'Anexo' }] },
+          {
+            id: 'duoc-uc',
+            nombre: 'DUOC UC',
+            sedes: [{ id: 's1', nombre: 'Sede Melipilla' }],
+          },
+          {
+            id: 'muni-melipilla',
+            nombre: 'Municipalidad de Melipilla',
+            sedes: [
+              { id: 's2', nombre: 'Casa Central' },
+              { id: 's3', nombre: 'Anexo' },
+            ],
+          },
         ],
       }),
     }),
