@@ -36,9 +36,15 @@ function cspPorModo(): Plugin {
 // node_modules como require() externos en main/preload (no las bundlea) — necesario porque los
 // binarios nativos que se van a sumar (drivers de Postgres, etc.) no se pueden empaquetar con
 // esbuild/rollup de todos modos.
+// `@shared` (src/shared/) lo importan los 3 procesos: ipc-contract.ts (tipos, en los 3),
+// slugificar.ts (runtime, en main desde core-provisioning.ts). El alias hay que declararlo en
+// cada bloque -- electron-vite compila main/preload/renderer con configs de Vite separadas.
+const aliasShared = { "@shared": resolve(__dirname, "src/shared") };
+
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
+    resolve: { alias: aliasShared },
     build: {
       rollupOptions: {
         input: { index: resolve(__dirname, "src/main/index.ts") },
@@ -47,6 +53,7 @@ export default defineConfig({
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
+    resolve: { alias: aliasShared },
     build: {
       rollupOptions: {
         input: { index: resolve(__dirname, "src/preload/index.ts") },
@@ -67,11 +74,7 @@ export default defineConfig({
   },
   renderer: {
     root: "src/renderer",
-    resolve: {
-      alias: {
-        "@shared": resolve(__dirname, "src/shared"),
-      },
-    },
+    resolve: { alias: aliasShared },
     plugins: [react(), tailwindcss(), cspPorModo()],
   },
 });

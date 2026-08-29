@@ -19,6 +19,10 @@ const schema = z.object({
     .string()
     .min(2, "Ingresá un identificador")
     .regex(/^[a-z0-9-]+$/, "Solo minúsculas, números y guiones"),
+  // DOC-028 Fase B.2 — el contrato de CORE necesita al menos una sede.
+  sedePrincipalNombre: z
+    .string()
+    .min(2, "Ingresá el nombre de la sede principal"),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -52,7 +56,7 @@ export function PasoDatosCliente({
     <WizardCard
       paso={1}
       titulo="Datos de esta instalación"
-      subtitulo="Se usan para crear el realm de identidad y la organización del cliente."
+      subtitulo="Crean el realm de identidad y la organización + contrato del cliente en la Base Patrimonial."
     >
       <form
         onSubmit={(e) => void handleSubmit(onSubmit)(e)}
@@ -75,6 +79,14 @@ export function PasoDatosCliente({
           hint="Se autocompleta desde el nombre. Solo minúsculas, números y guiones."
           error={errors.organizacionId?.message}
           {...register("organizacionId")}
+        />
+        <Field
+          id="sedePrincipalNombre"
+          label="Sede principal"
+          placeholder="Casa Central"
+          hint="El contrato cubre esta sede. Podés agregar más después desde el portal."
+          error={errors.sedePrincipalNombre?.message}
+          {...register("sedePrincipalNombre")}
         />
         {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
         <Button type="submit" disabled={isSubmitting}>

@@ -33,6 +33,11 @@ export interface DatosClienteInput {
   clienteNombre: string;
   organizacionId: string;
   nivel: 1 | 2;
+  // DOC-028 Fase B.2 — un contrato de CORE necesita al menos una sede (DOC-004 2/4). El wizard
+  // provisiona la organización + contrato vigente + esta sede principal en la base patrimonial de
+  // CORE (provisionarOrganizacionCore), no solo la Organization de Keycloak. Sedes adicionales se
+  // agregan después desde el portal (módulo Áreas/Ubicaciones de ccp).
+  sedePrincipalNombre: string;
 }
 
 export interface BootstrapClienteResultado {

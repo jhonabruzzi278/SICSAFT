@@ -196,6 +196,10 @@ services:
       CORE_DB_NAME: core
       CORE_DB_USER: ${CORE_DB_USER}
       CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+      # DOC-028 Fase B.1 — el stack local SÍ quiere el fixture DUOC UC/Melipilla para poder poke
+      # a mano. El .exe embebido (sicsaft-core), devops/prod y devops/onprem NO setean esto ->
+      # base patrimonial limpia. Ver core/migrations/README.md.
+      SICSAFT_SEED_DEV: "1"
     networks:
       - sicsaft
     depends_on:
