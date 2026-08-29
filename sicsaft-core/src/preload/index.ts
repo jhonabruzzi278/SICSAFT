@@ -10,6 +10,8 @@ const api: SicsaftCoreApi = {
     ipcRenderer.invoke("sicsaft-core:getEstadoServicios"),
   getInstalacionExistente: () =>
     ipcRenderer.invoke("sicsaft-core:getInstalacionExistente"),
+  getEstadoIpLan: () => ipcRenderer.invoke("sicsaft-core:getEstadoIpLan"),
+  reconfigurarIpLan: () => ipcRenderer.invoke("sicsaft-core:reconfigurarIpLan"),
   bootstrapCliente: (input) =>
     ipcRenderer.invoke("sicsaft-core:bootstrapCliente", input),
   altaDirector: (input) =>

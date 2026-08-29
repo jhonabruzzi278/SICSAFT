@@ -2,6 +2,7 @@ import { describe, expect, test, vi, beforeEach } from "vitest";
 import {
   crearUsuarioDirector,
   crearUsuarioProfesionalAft,
+  reconfigurarClientAppQr,
 } from "./keycloak-bootstrap";
 
 const admin = { usuario: "admin", password: "pw" };
@@ -256,5 +257,89 @@ describe("crearUsuarioProfesionalAft", () => {
       name: string;
     };
     expect(grupoBody.name).toBe("municipalidad-x::administrador-patrimonial");
+  });
+});
+
+describe("reconfigurarClientAppQr (DOC-028 Fase C.1)", () => {
+  function mockClientAppQr(redirectViejo: string) {
+    return vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      if (url.endsWith("/realms/master/protocol/openid-connect/token")) {
+        return jsonResponse({ access_token: "master-token" });
+      }
+      if (
+        url.includes("/clients?clientId=app-qr-sicsaft") &&
+        method === "GET"
+      ) {
+        return jsonResponse([
+          {
+            id: "appqr-uuid",
+            clientId: "app-qr-sicsaft",
+            publicClient: true,
+            redirectUris: [`${redirectViejo}/auth/callback`],
+            webOrigins: [redirectViejo],
+            attributes: {
+              "pkce.code.challenge.method": "S256",
+              "post.logout.redirect.uris": `${redirectViejo}/`,
+            },
+          },
+        ]);
+      }
+      if (
+        url.endsWith("/admin/realms/sicsaft/clients/appqr-uuid") &&
+        method === "PUT"
+      ) {
+        return new Response(null, { status: 204 });
+      }
+      throw new Error(`Llamada no esperada en el mock: ${method} ${url}`);
+    });
+  }
+
+  test("reescribe redirectUris/webOrigins/post.logout al origen nuevo, conservando el resto de attributes", async () => {
+    const fetchMock = mockClientAppQr("https://192.168.1.11:8765");
+    vi.stubGlobal("fetch", fetchMock);
+
+    await reconfigurarClientAppQr(admin, "https://192.168.1.8:8765");
+
+    const put = fetchMock.mock.calls.find(
+      ([u, i]) =>
+        String(u).endsWith("/admin/realms/sicsaft/clients/appqr-uuid") &&
+        (i as RequestInit | undefined)?.method === "PUT",
+    );
+    const body = JSON.parse(String(put?.[1]?.body)) as {
+      redirectUris: string[];
+      webOrigins: string[];
+      attributes: Record<string, string>;
+    };
+    expect(body.redirectUris).toEqual([
+      "https://192.168.1.8:8765/auth/callback",
+    ]);
+    expect(body.webOrigins).toEqual(["https://192.168.1.8:8765"]);
+    expect(body.attributes["post.logout.redirect.uris"]).toBe(
+      "https://192.168.1.8:8765/",
+    );
+    // no se pisó pkce
+    expect(body.attributes["pkce.code.challenge.method"]).toBe("S256");
+  });
+
+  test("tira si el client app-qr-sicsaft no existe en el realm", async () => {
+    const fetchMock = vi.fn(
+      async (input: string | URL | Request, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/realms/master/protocol/openid-connect/token")) {
+          return jsonResponse({ access_token: "master-token" });
+        }
+        if (url.includes("/clients?clientId=app-qr-sicsaft")) {
+          return jsonResponse([]);
+        }
+        throw new Error(`Llamada no esperada: ${init?.method} ${url}`);
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      reconfigurarClientAppQr(admin, "https://192.168.1.8:8765"),
+    ).rejects.toThrow(/app-qr-sicsaft/);
   });
 });

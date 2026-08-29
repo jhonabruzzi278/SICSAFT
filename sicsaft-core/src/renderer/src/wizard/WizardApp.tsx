@@ -2,15 +2,18 @@ import { useEffect, useState } from "react";
 import type {
   BootstrapClienteResultado,
   AltaDirectorResultado,
+  EstadoIpLan,
 } from "@shared/ipc-contract";
 import { BrandBar } from "../components/BrandBar";
 import { Button } from "../components/Button";
 import { PasoDatosCliente } from "./PasoDatosCliente";
 import { PasoDirector } from "./PasoDirector";
 import { PasoProfesionalAft } from "./PasoProfesionalAft";
+import { PasoIpCambio } from "./PasoIpCambio";
 import { PasoListoConLogin } from "./PasoListoConLogin";
 
-type PasoWizard = "datos-cliente" | "director" | "profesional-aft" | "listo";
+type PasoWizard =
+  "datos-cliente" | "director" | "profesional-aft" | "ip-cambio" | "listo";
 
 // Máquina de estados simple del wizard de primer arranque (ver
 // aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md "Primer arranque — wizard nativo") --
@@ -23,6 +26,9 @@ export function WizardApp() {
     null,
   );
   const [director, setDirector] = useState<AltaDirectorResultado | null>(null);
+  // DOC-028 Fase C.1 -- si esta instalación ya existe pero la IP de LAN de la PC cambió, el wizard
+  // muestra PasoIpCambio (reconfigura el client OIDC de la APP QR) antes de saltar al login.
+  const [estadoIp, setEstadoIp] = useState<EstadoIpLan | null>(null);
   // Ver PasoListoConLogin.tsx -- una vez que el portal real (dashboard completo) está cargado, el
   // header y el padding centrado de acá ya no aplican, el portal pasa a ocupar toda la ventana.
   const [portalCargado, setPortalCargado] = useState(false);
@@ -46,11 +52,16 @@ export function WizardApp() {
     setErrorVerificacion(null);
     window.sicsaftCore
       .getInstalacionExistente()
-      .then((existente) => {
+      .then(async (existente) => {
         if (cancelado) return;
         if (existente) {
           setBootstrap({ organizacionId: existente.organizacionId });
-          setPaso("listo");
+          // DOC-028 Fase C.1 -- antes de saltar al login, chequear si la IP de LAN cambió desde
+          // la instalación (el client OIDC de la APP QR quedaría apuntando a una IP muerta).
+          const ip = await window.sicsaftCore.getEstadoIpLan();
+          if (cancelado) return;
+          setEstadoIp(ip);
+          setPaso(ip.cambio ? "ip-cambio" : "listo");
         }
         setVerificandoInstalacion(false);
       })
@@ -70,6 +81,7 @@ export function WizardApp() {
     "datos-cliente": 1,
     director: 2,
     "profesional-aft": 3,
+    "ip-cambio": undefined,
     listo: undefined,
   };
 
@@ -136,6 +148,14 @@ export function WizardApp() {
         />
       );
     }
+    if (paso === "ip-cambio" && estadoIp) {
+      return (
+        <PasoIpCambio
+          estado={estadoIp}
+          onReconfigurado={() => setPaso("listo")}
+        />
+      );
+    }
     if (paso === "listo") {
       return (
         <PasoListoConLogin onPortalCargado={() => setPortalCargado(true)} />
@@ -171,6 +191,7 @@ export function WizardApp() {
 
 function pasoLabel(paso: PasoWizard, n: number | undefined): string {
   if (paso === "listo") return "Instalación completa";
+  if (paso === "ip-cambio") return "Reconfiguración de red";
   return n ? `Instalación · paso ${n} de 3` : "Instalación";
 }
 

@@ -50,6 +50,22 @@ export interface BootstrapClienteResultado {
 export interface InstalacionCompleta {
   organizacionId: string;
   clienteNombre: string;
+  // DOC-028 Fase C.1 -- IP de LAN detectada en el primer arranque. Cada relanzamiento la compara
+  // con la IP actual de la PC; si cambió, el client OIDC de la APP QR (el único registrado con un
+  // origen de LAN, no loopback) quedó apuntando a una dirección muerta y hay que reconfigurarlo.
+  // Opcional: una instalación anterior a Fase C no la tiene -- getEstadoIpLan() la rellena con la
+  // IP actual como línea base la primera vez.
+  ipLan?: string;
+}
+
+// DOC-028 Fase C.1 -- el wizard consulta esto al relanzar, después de getInstalacionExistente().
+// Si `cambio` es true, muestra la pantalla de reconfiguración (PasoIpCambio) antes del login.
+export interface EstadoIpLan {
+  cambio: boolean;
+  // null = instalación anterior a Fase C (sin ipLan persistida) o sin instalación -- en ese caso
+  // `cambio` es siempre false (no hay contra qué comparar).
+  ipGuardada: string | null;
+  ipActual: string;
 }
 
 // Paso 2 — alta del Director (KeycloakAdminService.crearUsuarioHuman del lado de cis/, portado acá
@@ -101,6 +117,12 @@ export interface SicsaftCoreApi {
   ): () => void;
   getEstadoServicios(): Promise<EstadoServicios>;
   getInstalacionExistente(): Promise<InstalacionCompleta | null>;
+  // DOC-028 Fase C.1 -- estado de la IP de LAN al relanzar (getEstadoIpLan) y acción de
+  // reconfiguración de ~1 clic (reconfigurarIpLan re-registra el redirectUri/webOrigins del client
+  // OIDC de la APP QR en Keycloak y reescribe la ipLan persistida). Ambas devuelven el estado ya
+  // evaluado -- reconfigurarIpLan lo devuelve post-reconfiguración (cambio === false).
+  getEstadoIpLan(): Promise<EstadoIpLan>;
+  reconfigurarIpLan(): Promise<EstadoIpLan>;
   bootstrapCliente(
     input: DatosClienteInput,
   ): Promise<BootstrapClienteResultado>;
