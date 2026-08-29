@@ -4,6 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { BootstrapClienteResultado } from "@shared/ipc-contract";
 import { slugificar } from "@shared/slugificar";
+import { WizardCard } from "../components/WizardCard";
+import { Field } from "../components/Field";
+import { Button } from "../components/Button";
 
 // Equivalente al -ClienteNombre/-OrganizacionId/-Nivel de
 // devops/onprem/instalar-cliente.ps1/bootstrap-keycloak.ps1 -- acá lo completa el vendedor desde
@@ -46,60 +49,38 @@ export function PasoDatosCliente({
   }
 
   return (
-    <form
-      onSubmit={(e) => void handleSubmit(onSubmit)(e)}
-      className="w-full max-w-sm space-y-4"
+    <WizardCard
+      paso={1}
+      titulo="Datos de esta instalación"
+      subtitulo="Se usan para crear el realm de identidad y la organización del cliente."
     >
-      <h2 className="text-lg font-medium text-foreground">
-        Datos de esta instalación
-      </h2>
-      <div>
-        <label
-          htmlFor="clienteNombre"
-          className="text-sm text-[var(--muted-foreground)]"
-        >
-          Nombre del cliente
-        </label>
-        <input
+      <form
+        onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+        className="space-y-4"
+      >
+        <Field
           id="clienteNombre"
-          className="mt-1 w-full rounded-[var(--radius)] border border-[var(--border)] bg-card px-3 py-2 text-card-foreground"
+          label="Nombre del cliente"
+          placeholder="Municipalidad de Melipilla"
+          error={errors.clienteNombre?.message}
           {...register("clienteNombre", {
             onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
               setValue("organizacionId", slugificar(e.target.value)),
           })}
         />
-        {errors.clienteNombre && (
-          <p className="mt-1 text-xs text-[var(--destructive)]">
-            {errors.clienteNombre.message}
-          </p>
-        )}
-      </div>
-      <div>
-        <label
-          htmlFor="organizacionId"
-          className="text-sm text-[var(--muted-foreground)]"
-        >
-          Identificador
-        </label>
-        <input
+        <Field
           id="organizacionId"
-          className="mt-1 w-full rounded-[var(--radius)] border border-[var(--border)] bg-card px-3 py-2 text-card-foreground"
+          label="Identificador"
+          placeholder="municipalidad-melipilla"
+          hint="Se autocompleta desde el nombre. Solo minúsculas, números y guiones."
+          error={errors.organizacionId?.message}
           {...register("organizacionId")}
         />
-        {errors.organizacionId && (
-          <p className="mt-1 text-xs text-[var(--destructive)]">
-            {errors.organizacionId.message}
-          </p>
-        )}
-      </div>
-      {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full rounded-[var(--radius)] bg-[var(--primary)] px-4 py-2 font-medium text-background disabled:opacity-50"
-      >
-        {isSubmitting ? "Configurando…" : "Continuar"}
-      </button>
-    </form>
+        {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Configurando…" : "Continuar"}
+        </Button>
+      </form>
+    </WizardCard>
   );
 }

@@ -3,6 +3,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { AltaProfesionalAftResultado } from "@shared/ipc-contract";
+import { WizardCard } from "../components/WizardCard";
+import { Field } from "../components/Field";
+import { Button } from "../components/Button";
+import { PasswordReveal } from "../components/PasswordReveal";
 
 // Paso 3 del wizard (aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md "Primer arranque") —
 // designa al Profesional de AFT. Mismo mecanismo que PasoDirector: el vendedor completa el email,
@@ -47,75 +51,52 @@ export function PasoProfesionalAft({
 
   if (resultado) {
     return (
-      <div className="w-full max-w-sm space-y-4 text-center">
-        <h2 className="text-lg font-medium text-foreground">
-          Profesional de AFT dado de alta
-        </h2>
-        <p className="text-sm text-[var(--muted-foreground)]">
-          Contraseña inicial — entregásela al Profesional de AFT, no se vuelve a
-          mostrar:
-        </p>
-        <p className="rounded-[var(--radius)] border border-[var(--border)] bg-card px-4 py-3 font-mono text-lg text-card-foreground">
-          {resultado.passwordInicial}
-        </p>
-        <button
-          type="button"
-          onClick={onListo}
-          className="w-full rounded-[var(--radius)] bg-[var(--primary)] px-4 py-2 font-medium text-background"
-        >
-          Continuar
-        </button>
-      </div>
+      <WizardCard
+        paso={3}
+        titulo="Profesional de AFT dado de alta"
+        subtitulo="Rol: Administrador Patrimonial."
+      >
+        <div className="space-y-4">
+          <PasswordReveal password={resultado.passwordInicial} />
+          <Button type="button" onClick={onListo}>
+            Continuar
+          </Button>
+        </div>
+      </WizardCard>
     );
   }
 
   return (
-    <form
-      onSubmit={(e) => void handleSubmit(onSubmit)(e)}
-      className="w-full max-w-sm space-y-4"
+    <WizardCard
+      paso={3}
+      titulo="Profesional de AFT"
+      subtitulo="Opcional — el Directivo también puede designarlo después desde su portal."
     >
-      <h2 className="text-lg font-medium text-foreground">
-        Profesional de AFT
-      </h2>
-      <p className="text-sm text-[var(--muted-foreground)]">
-        Opcional — el Directivo también puede designarlo después desde su
-        portal.
-      </p>
-      <div>
-        <label
-          htmlFor="email-aft"
-          className="text-sm text-[var(--muted-foreground)]"
-        >
-          Email
-        </label>
-        <input
+      <form
+        onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+        className="space-y-4"
+      >
+        <Field
           id="email-aft"
           type="email"
-          className="mt-1 w-full rounded-[var(--radius)] border border-[var(--border)] bg-card px-3 py-2 text-card-foreground"
+          label="Email"
+          placeholder="aft@municipalidad.cl"
+          error={errors.email?.message}
           {...register("email")}
         />
-        {errors.email && (
-          <p className="mt-1 text-xs text-[var(--destructive)]">
-            {errors.email.message}
-          </p>
-        )}
-      </div>
-      {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full rounded-[var(--radius)] bg-[var(--primary)] px-4 py-2 font-medium text-background disabled:opacity-50"
-      >
-        {isSubmitting ? "Creando…" : "Dar de alta"}
-      </button>
-      <button
-        type="button"
-        onClick={onListo}
-        disabled={isSubmitting}
-        className="w-full rounded-[var(--radius)] border border-[var(--border)] px-4 py-2 font-medium text-foreground disabled:opacity-50"
-      >
-        Saltar por ahora
-      </button>
-    </form>
+        {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Creando…" : "Dar de alta"}
+        </Button>
+        <Button
+          type="button"
+          variante="fantasma"
+          onClick={onListo}
+          disabled={isSubmitting}
+        >
+          Saltar por ahora
+        </Button>
+      </form>
+    </WizardCard>
   );
 }

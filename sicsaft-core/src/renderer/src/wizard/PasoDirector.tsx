@@ -3,6 +3,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { AltaDirectorResultado } from "@shared/ipc-contract";
+import { WizardCard } from "../components/WizardCard";
+import { Field } from "../components/Field";
+import { Button } from "../components/Button";
+import { PasswordReveal } from "../components/PasswordReveal";
 
 // Paso 2 del wizard (aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md "Primer arranque")
 // — el vendedor completa el email del Director acá mismo, en la PC del Director, y la app genera
@@ -47,62 +51,44 @@ export function PasoDirector({
 
   if (resultado) {
     return (
-      <div className="w-full max-w-sm space-y-4 text-center">
-        <h2 className="text-lg font-medium text-foreground">
-          Director dado de alta
-        </h2>
-        <p className="text-sm text-[var(--muted-foreground)]">
-          Contraseña inicial — entregásela al Director, no se vuelve a mostrar:
-        </p>
-        <p className="rounded-[var(--radius)] border border-[var(--border)] bg-card px-4 py-3 font-mono text-lg text-card-foreground">
-          {resultado.passwordInicial}
-        </p>
-        <button
-          type="button"
-          onClick={() => onListo(resultado)}
-          className="w-full rounded-[var(--radius)] bg-[var(--primary)] px-4 py-2 font-medium text-background"
-        >
-          Continuar
-        </button>
-      </div>
+      <WizardCard
+        paso={2}
+        titulo="Director dado de alta"
+        subtitulo="Rol: Directivo."
+      >
+        <div className="space-y-4">
+          <PasswordReveal password={resultado.passwordInicial} />
+          <Button type="button" onClick={() => onListo(resultado)}>
+            Continuar
+          </Button>
+        </div>
+      </WizardCard>
     );
   }
 
   return (
-    <form
-      onSubmit={(e) => void handleSubmit(onSubmit)(e)}
-      className="w-full max-w-sm space-y-4"
+    <WizardCard
+      paso={2}
+      titulo="Datos del Director"
+      subtitulo="Se crea con rol Directivo en la organización del paso anterior. La contraseña la genera la app."
     >
-      <h2 className="text-lg font-medium text-foreground">
-        Datos del Director
-      </h2>
-      <div>
-        <label
-          htmlFor="email"
-          className="text-sm text-[var(--muted-foreground)]"
-        >
-          Email
-        </label>
-        <input
+      <form
+        onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+        className="space-y-4"
+      >
+        <Field
           id="email"
           type="email"
-          className="mt-1 w-full rounded-[var(--radius)] border border-[var(--border)] bg-card px-3 py-2 text-card-foreground"
+          label="Email"
+          placeholder="director@municipalidad.cl"
+          error={errors.email?.message}
           {...register("email")}
         />
-        {errors.email && (
-          <p className="mt-1 text-xs text-[var(--destructive)]">
-            {errors.email.message}
-          </p>
-        )}
-      </div>
-      {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full rounded-[var(--radius)] bg-[var(--primary)] px-4 py-2 font-medium text-background disabled:opacity-50"
-      >
-        {isSubmitting ? "Creando…" : "Dar de alta"}
-      </button>
-    </form>
+        {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Creando…" : "Dar de alta"}
+        </Button>
+      </form>
+    </WizardCard>
   );
 }
