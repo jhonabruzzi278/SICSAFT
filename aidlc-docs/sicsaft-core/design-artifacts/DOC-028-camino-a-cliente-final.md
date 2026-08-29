@@ -173,16 +173,22 @@ un login por rol (DOC-022): este portal es el del **Administrador del Sistema**
     `migration-runner.ts`) y devuelve el log.
   - `POST /control/reiniciar` — reinicia `core`/`cip`/`cis` (no Postgres/Keycloak salvo pedido
     explícito).
-  - `POST /control/actualizar` — *ver decisión 2* — chequea/descarga/aplica una versión nueva del
-    `.exe` y corre las migraciones post-update.
+  - `GET  /control/version` — versión instalada + última versión conocida (dato estático embebido
+    en el build por ahora, sin feed remoto — ver decisión 2).
+  - `POST /control/actualizar` — **v1: solo aplica migraciones pendientes + reinicia** (orquesta
+    `/control/migraciones` + `/control/reiniciar` y devuelve el log unificado). El reemplazo del
+    binario del `.exe` queda para un incremento posterior (decisión 2).
 - **F.4 — `web_admin`: tres secciones nuevas** detrás del login Administrador del Sistema:
   - **Auditoría** — lee `GET /auditoria` de CIS (ya existe, DOC-023 3), con filtro por rango de
-    fechas / mes, y *ver decisión 3* exporta el informe mensual en `.docx` (estilo de informe ya
-    fijado con el usuario).
+    fechas / mes. En v1 incluye **la vista filtrable en pantalla y el export del informe mensual en
+    `.docx`** (estilo de informe ya fijado con el usuario — portada + TOC, navy/teal, tablas con
+    header oscuro).
   - **Mantenimiento** — consume `GET /control/estado`; botones de backup / restore / reiniciar
     servicios, con el resultado en vivo.
-  - **Actualizaciones** — versión instalada vs. disponible; "actualizar ahora" → `POST
-    /control/actualizar`, con el log de migraciones/arranque en vivo.
+  - **Actualizaciones** — versión instalada vs. última conocida (`GET /control/version`);
+    "actualizar ahora" → `POST /control/actualizar` (v1 = migraciones + reinicio), con el log en
+    vivo. Si hay un instalador nuevo, muestra "descargá y corré el instalador" — el swap del
+    binario todavía no es automático.
 - **F.5 — Cuenta de soporte.** El wizard (o el panel post-wizard) crea un usuario de rol
   `administrador-sistema` en el realm — sin él no hay login remoto. Contraseña mostrada una sola
   vez, igual que Director / Profesional de AFT.
@@ -196,21 +202,27 @@ un login por rol (DOC-022): este portal es el del **Administrador del Sistema**
 VPN— audita el sistema mes a mes, saca una copia, aplica migraciones y actualiza la versión sin
 tocar una consola.
 
-**Necesita tu OK antes de codear** (además de un pase del `security-reviewer` sobre F.3):
-1. **Exposición**: portal + API de control en `127.0.0.1` **y** la IP de LAN (VPN al LAN alcanza,
-   recomendado), o solo `127.0.0.1` (obliga AnyDesk / VPN con port-forward). Nunca `0.0.0.0`.
-2. **"Actualizar" en v1**: incluir el swap del binario (`electron-updater` + un feed de versiones
-   que hay que hostear en algún lado — decidir dónde), o v1 solo "aplicar migraciones + reiniciar"
-   y el reemplazo del `.exe` queda para un incremento posterior.
-3. **Export del informe de auditoría**: `.docx` mensual en v1, o v1 solo la vista filtrable y el
-   export después.
+**Decisiones tomadas (2026-08-29)** — la implementación de F sigue necesitando un pase del
+`security-reviewer` sobre la API de control (F.3) antes del merge:
+1. **Exposición**: portal + API de control atados a `127.0.0.1` **y** a la IP de LAN persistida
+   (Fase C), nunca `0.0.0.0`. La VPN al LAN del cliente alcanza para el acceso remoto; el `.exe`
+   no abre puertos en el router. La protección real es el login `administrador-sistema` + rate
+   limit + token que expira + auditoría de todo `/control/*`.
+2. **"Actualizar" en v1 = solo migraciones + reinicio.** El swap del binario del `.exe`
+   (`electron-updater` + un feed de versiones a hostear + firma de código + rollback si la versión
+   nueva no bootea) es su propio incremento posterior — es lo más riesgoso de apurar en la PC de
+   un cliente. `GET /control/version` da el dato "instalada vs. última conocida" ya en v1.
+3. **Informe de auditoría = vista filtrable + export `.docx` mensual, las dos en v1.** El "mes a
+   mes" es el punto: el `.docx` es el entregable que se le pasa al Directivo / se archiva. Costo
+   extra sobre "solo la vista" es chico (los datos ya salen por `GET /auditoria`, el estilo `.docx`
+   ya está fijado).
 
 ## 3. Orden de ejecución
 
 ```
 Fase A (empaquetado)         ── se implementa con este doc, sin decisiones abiertas
   ├─ Fase D (PWA en el .exe) ── depende de A (extraResources); sin decisiones abiertas
-  └─ Fase F (portal admin)   ── depende de A (extraResources) y C (IP persistida); OK sobre 1-3 + security review
+  └─ Fase F (portal admin)   ── depende de A (extraResources) y C (IP persistida); decisiones 1-3 tomadas, falta security review
 Fase B (base limpia + org)   ── la más importante; necesita OK sobre B.1 y B.2
 Fase C (estabilidad de IP)   ── necesita OK sobre el enfoque (C.1 vs C.3)
 Fase E (APK)                  ── track aparte, no bloquea nada de A-D
