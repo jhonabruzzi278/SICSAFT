@@ -14,8 +14,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "pack": "electron-vite build && electron-builder --dir",
-    "dist:win": "electron-vite build && electron-builder --win"
+    "prepack:artefactos": "node scripts/prepack.cjs",
+    "pack": "npm run prepack:artefactos && electron-vite build && electron-builder --dir",
+    "dist:win": "npm run prepack:artefactos && electron-vite build && electron-builder --win"
   },
   "dependencies": {
     "react": "^19.2.8",
@@ -37,12 +38,21 @@
       "node_modules/**/*"
     ],
     "extraResources": [
-      { "from": "resources/postgres", "to": "postgres" },
-      { "from": "resources/keycloak", "to": "keycloak" },
+      {
+        "from": "resources/postgres",
+        "to": "postgres"
+      },
+      {
+        "from": "resources/keycloak",
+        "to": "keycloak"
+      },
       {
         "from": "../cis",
         "to": "cis",
-        "filter": ["dist/**/*", "package.json"]
+        "filter": [
+          "dist/**/*",
+          "package.json"
+        ]
       },
       {
         "from": "../core",
@@ -58,7 +68,26 @@
       {
         "from": "../cip",
         "to": "cip",
-        "filter": ["dist/**/*", "package.json", "migrations/**/*", "scripts/**/*"]
+        "filter": [
+          "dist/**/*",
+          "package.json",
+          "migrations/**/*",
+          "scripts/**/*"
+        ]
+      },
+      {
+        "from": "../ccp",
+        "to": "ccp",
+        "filter": [
+          "dist/**/*"
+        ]
+      },
+      {
+        "from": "../core/frontend",
+        "to": "core-frontend",
+        "filter": [
+          "dist/**/*"
+        ]
       }
     ],
     "afterPack": "./scripts/electron-builder-after-pack.cjs",
