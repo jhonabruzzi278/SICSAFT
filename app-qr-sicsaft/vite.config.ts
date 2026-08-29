@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
@@ -15,7 +15,13 @@ export default defineConfig({
     // necesita HTTPS real, aunque sea autofirmado -- certificado generado una vez y cacheado en
     // node_modules/.vite-plugin-basic-ssl, no se commitea. Solo afecta al dev/preview server, no
     // al build de producción (Vercel sigue sirviendo por su propio HTTPS real).
-    basicSsl(),
+    //
+    // EXCEPTO en `--mode e2e`: la suite de Playwright (playwright.config.ts) sirve el preview y lo
+    // sondea en `http://localhost:8765`; con basicSsl el preview arranca en HTTPS y (a) el
+    // health-check http nunca responde -> `webServer` da timeout, y (b) Chromium rechaza el
+    // Service Worker de MSW por el certificado autofirmado -> la app queda en blanco. En e2e todo
+    // corre en localhost (contexto seguro por sí solo), así que no hace falta TLS.
+    ...(mode === 'e2e' ? [] : [basicSsl()]),
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
@@ -56,4 +62,4 @@ export default defineConfig({
     // el default (solo localhost) el preview server ni siquiera acepta la conexión desde afuera.
     host: true,
   },
-});
+}));
