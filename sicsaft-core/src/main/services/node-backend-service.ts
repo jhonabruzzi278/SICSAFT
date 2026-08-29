@@ -43,13 +43,21 @@ export function crearNodeBackendService(
           );
           return res.ok;
         },
-        { intervaloMs: 500, maxIntentos: 60, nombre: config.nombre },
+        // 90s (500ms * 180). El viejo tope de 30s alcanzaba para un relanzamiento en caliente
+        // pero NO para el primer arranque real: verificado 2026-08-28 en un `npm run dev` con
+        // initdb fresco, `core` quedó sano (`GET /health` -> ok) recién pasados los 30s -- nest
+        // bootstrap + pool de pg + init de pg-boss contra `eventos_outbox` recién migrada suman.
+        // El orquestador lo daba por muerto y cip/cis nunca arrancaban. Mismo ajuste que
+        // keycloak-service.ts para el mismo síntoma.
+        { intervaloMs: 500, maxIntentos: 180, nombre: config.nombre },
       ).catch((err) => {
         // Contexto extra en el error -- sin esto, un fallo acá solo dice "cis no quedó listo",
-        // sin pistas de por qué (crash al arrancar, env var faltante, etc.) -- el stderr
-        // acumulado normalmente tiene el stack trace real de NestJS.
+        // sin pistas de por qué (crash al arrancar, env var faltante, etc.). NestJS loguea el
+        // arranque (y muchos errores) a stdout via su Logger, no a stderr -- incluir las dos
+        // puntas o el diagnóstico queda vacío, como pasó el 2026-08-28 ("stderr:" sin nada).
         throw new Error(
-          `${err.message}\nstderr:\n${proceso_.stderrAcumulado.slice(-2000)}`,
+          `${err.message}\nstdout:\n${proceso_.stdoutAcumulado.slice(-2000)}\n` +
+            `stderr:\n${proceso_.stderrAcumulado.slice(-2000)}`,
         );
       }),
   });

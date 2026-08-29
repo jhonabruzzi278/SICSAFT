@@ -141,10 +141,20 @@ export async function crearKeycloakService(): Promise<{
           );
           return res.ok;
         },
-        { intervaloMs: 1000, maxIntentos: 60, nombre: "keycloak" }, // hasta 60s -- JVM en frío
+        // hasta 180s -- el primer arranque real contra una base `keycloak` recién creada NO es
+        // solo la JVM en frío: Quarkus/Keycloak importa todo el esquema (decenas de tablas +
+        // datos iniciales del realm master) antes de abrir el puerto de management. Verificado
+        // 2026-08-28 en un `npm run dev` con initdb fresco: Keycloak quedó `UP` a los ~65-70s,
+        // justo pasado el viejo tope de 60s -- el orquestador lo daba por muerto y core/cip/cis
+        // nunca arrancaban. Los relanzamientos (esquema ya importado) tardan ~15-25s, muy por
+        // debajo de este tope.
+        { intervaloMs: 1000, maxIntentos: 180, nombre: "keycloak" },
       ).catch((err) => {
+        // Keycloak/Quarkus loguea a stdout, no a stderr -- incluir las dos puntas o el
+        // diagnóstico queda vacío (como pasó en el fallo del 2026-08-28: "stderr:" sin nada).
         throw new Error(
-          `${err.message}\nstderr:\n${proceso_.stderrAcumulado.slice(-2000)}`,
+          `${err.message}\nstdout:\n${proceso_.stdoutAcumulado.slice(-2000)}\n` +
+            `stderr:\n${proceso_.stderrAcumulado.slice(-2000)}`,
         );
       }),
   });
