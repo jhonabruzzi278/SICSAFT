@@ -33,6 +33,7 @@ Lo que **falta** para un cliente real (todo lo de este documento):
 | 4 | El wizard crea la Organization en **Keycloak**, no la org/contrato/sede en **CORE** | Sin org+contrato en CORE, el Profesional de AFT no ve el catálogo de su organización ni puede enviar inventarios reales de ella |
 | 5 | La IP de LAN se congela al arrancar (`IP_LAN` a nivel de módulo) | Si el router del cliente reasigna la IP, login y tokens quedan apuntando a una dirección muerta, sin recuperación guiada |
 | 6 | No hay APK Android — `CORE-Q-01` reabierta | El Profesional de AFT necesita abrir la PWA en el navegador del teléfono contra `https://<ip>:8765` con cert autofirmado, y alguien tiene que correr `npm run preview` de `app-qr-sicsaft/` a mano |
+| 7 | No hay forma de mantener el `.exe` a distancia | Auditar el sistema mes a mes, sacar copias, aplicar migraciones o actualizar la versión exige subirse a la PC del cliente por AnyDesk y tocar comandos — no hay portal ni API de control |
 
 ## 2. Fases, en orden de dependencia y de bloqueo
 
@@ -136,18 +137,88 @@ Track aparte, su propio ciclo de diseño (Inception → Construction). Capacitor
 configurable en el primer arranque, no un TWA. **No bloquea Fases A-D** — la PWA por navegador
 (Fase D) cubre el uso mientras tanto.
 
+### Fase F — Portal de administración remota (mantenimiento · auditoría · actualizaciones)
+
+**Alcance**: `sicsaft-core/` (botón + servir `web_admin` + una API de control local) + `web_admin/`
+(tres secciones nuevas) + doc de acceso remoto en `devops/onprem/`. **Depende de Fase A** (patrón
+`extraResources` para servir un `dist/` más) y **de Fase C** (IP de LAN persistida). Es el gap "no
+puedo dar soporte a un `.exe` instalado en el campo sin subirme a la PC del cliente por AnyDesk y
+tocar comandos".
+
+Contexto: DOC-028 Fase B.2 descartó embeber `web_admin` **para el alta de la organización** (una
+operación de una sola vez, el wizard la cubre). Fase F lo reincorpora para otro propósito —
+mantenimiento recurrente y auditoría a distancia — que sí justifica el 4.º portal. Sigue habiendo
+un login por rol (DOC-022): este portal es el del **Administrador del Sistema**
+(`administrador-sistema`, el string real de los guards de CIS/CORE), no una sesión compartida.
+
+- **F.1 — El `.exe` sirve `web_admin/dist`** en `:8770` por HTTPS (cert autofirmado, mismo
+  `static-portal-server.ts` + TLS que Fase D). `web_admin/` entra a `extraResources` (patrón de
+  Fase A). Escucha en `127.0.0.1` **y** en la IP de LAN persistida (Fase C), nunca en `0.0.0.0`; el
+  `.exe` no abre puertos en el router.
+- **F.2 — Botón "Administración del sistema"** en la pantalla post-wizard de `sicsaft-core` (hoy
+  ese lugar solo tiene el login embebido de ccp/core-frontend). Dos caminos con el mismo portal:
+  - **Local / AnyDesk**: lo abre en una `WebContentsView` con la sesión ya iniciada — el proceso
+    principal tiene las credenciales del realm embebido, mismo mecanismo que el launcher de
+    ccp/core-frontend (`portal-login-service.ts`).
+  - **Remoto / VPN**: el botón muestra la URL `https://<ip-lan>:8770` + un QR; el técnico entra
+    desde su PC estando en una VPN al LAN del cliente y se loguea como Administrador del Sistema.
+- **F.3 — API de control local** en el proceso principal de Electron (`127.0.0.1` + IP de LAN,
+  **solo** con JWT de rol `administrador-sistema` del realm embebido — el mismo punto de validación
+  que ya usa el resto del ecosistema, ADR-002/ADR-004). Es la capa que un SPA no puede hacer sola
+  (reiniciar servicios, correr migraciones, tocar disco):
+  - `GET  /control/estado` — salud de los 5 servicios, versión instalada, última copia, disco libre.
+  - `POST /control/backup` · `GET /control/backups` · `POST /control/restore` — `pg_dump`/`pg_restore`
+    de las bases `core`/`cip` a una carpeta configurable.
+  - `POST /control/migraciones` — corre las migraciones pendientes de `core`/`cip` (reusa
+    `migration-runner.ts`) y devuelve el log.
+  - `POST /control/reiniciar` — reinicia `core`/`cip`/`cis` (no Postgres/Keycloak salvo pedido
+    explícito).
+  - `POST /control/actualizar` — *ver decisión 2* — chequea/descarga/aplica una versión nueva del
+    `.exe` y corre las migraciones post-update.
+- **F.4 — `web_admin`: tres secciones nuevas** detrás del login Administrador del Sistema:
+  - **Auditoría** — lee `GET /auditoria` de CIS (ya existe, DOC-023 3), con filtro por rango de
+    fechas / mes, y *ver decisión 3* exporta el informe mensual en `.docx` (estilo de informe ya
+    fijado con el usuario).
+  - **Mantenimiento** — consume `GET /control/estado`; botones de backup / restore / reiniciar
+    servicios, con el resultado en vivo.
+  - **Actualizaciones** — versión instalada vs. disponible; "actualizar ahora" → `POST
+    /control/actualizar`, con el log de migraciones/arranque en vivo.
+- **F.5 — Cuenta de soporte.** El wizard (o el panel post-wizard) crea un usuario de rol
+  `administrador-sistema` en el realm — sin él no hay login remoto. Contraseña mostrada una sola
+  vez, igual que Director / Profesional de AFT.
+- **F.6 — Doc de acceso remoto** (`devops/onprem/README.md` + `sicsaft-core/README.md`): el portal
+  y la API de control escuchan en la IP de LAN pero **nunca** se publican a internet; el canal es
+  una VPN al LAN del cliente o AnyDesk a la PC del Directivo. Checklist de endurecimiento para F.3
+  (rate limit, el token expira, `restore`/`actualizar` piden confirmación explícita, todo lo de
+  `/control/*` queda en el log de auditoría).
+
+**Entrega**: desde el `.exe` instalado en un cliente, un técnico —local por AnyDesk o remoto por
+VPN— audita el sistema mes a mes, saca una copia, aplica migraciones y actualiza la versión sin
+tocar una consola.
+
+**Necesita tu OK antes de codear** (además de un pase del `security-reviewer` sobre F.3):
+1. **Exposición**: portal + API de control en `127.0.0.1` **y** la IP de LAN (VPN al LAN alcanza,
+   recomendado), o solo `127.0.0.1` (obliga AnyDesk / VPN con port-forward). Nunca `0.0.0.0`.
+2. **"Actualizar" en v1**: incluir el swap del binario (`electron-updater` + un feed de versiones
+   que hay que hostear en algún lado — decidir dónde), o v1 solo "aplicar migraciones + reiniciar"
+   y el reemplazo del `.exe` queda para un incremento posterior.
+3. **Export del informe de auditoría**: `.docx` mensual en v1, o v1 solo la vista filtrable y el
+   export después.
+
 ## 3. Orden de ejecución
 
 ```
 Fase A (empaquetado)         ── se implementa con este doc, sin decisiones abiertas
-  └─ Fase D (PWA en el .exe) ── depende de A (extraResources); sin decisiones abiertas
+  ├─ Fase D (PWA en el .exe) ── depende de A (extraResources); sin decisiones abiertas
+  └─ Fase F (portal admin)   ── depende de A (extraResources) y C (IP persistida); OK sobre 1-3 + security review
 Fase B (base limpia + org)   ── la más importante; necesita OK sobre B.1 y B.2
 Fase C (estabilidad de IP)   ── necesita OK sobre el enfoque (C.1 vs C.3)
 Fase E (APK)                  ── track aparte, no bloquea nada de A-D
 ```
 
 `main` puede recibir A y D como PRs de una sola capa (`sicsaft-core/`). B es multi-deployable →
-PR con checklist. C es `sicsaft-core/` + doc. E arranca con su propio `aidlc-docs/`.
+PR con checklist. C es `sicsaft-core/` + doc. F toca `sicsaft-core/` + `web_admin/` + doc →
+PR con checklist y `security-reviewer`. E arranca con su propio `aidlc-docs/`.
 
 ## 4. Definición de "listo para cliente final"
 
@@ -159,5 +230,7 @@ PR con checklist. C es `sicsaft-core/` + doc. E arranca con su propio `aidlc-doc
 - [ ] Un cambio de IP de la PC tiene recuperación guiada, no requiere reinstalar (Fase C).
 - [ ] El Profesional de AFT entra a la APP QR escaneando un QR de la pantalla del `.exe`, sin
       comandos (Fase D).
+- [ ] Un técnico audita, saca copia, migra y actualiza el `.exe` a distancia (VPN al LAN o
+      AnyDesk), sin consola — desde el portal del Administrador del Sistema (Fase F).
 - [ ] APK Android: decidida (construida, o explícitamente diferida con la PWA como camino
       oficial) (Fase E).
