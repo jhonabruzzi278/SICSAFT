@@ -27,61 +27,80 @@ const NAV_ITEMS = [
   { path: 'importaciones', nombre: 'Importaciones', icon: IconUpload },
 ] as const;
 
+function SideNavLink({
+  to,
+  active,
+  icon,
+  children,
+}: {
+  to: string;
+  active: boolean;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <Link
+      to={to}
+      aria-current={active ? 'page' : undefined}
+      className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+        active
+          ? 'bg-accent/12 text-accent-strong before:absolute before:top-1.5 before:bottom-1.5 before:-left-3 before:w-1 before:rounded-r-full before:bg-accent'
+          : 'text-text-dim hover:bg-bg-card hover:text-text'
+      }`}
+    >
+      {icon}
+      {children}
+    </Link>
+  );
+}
+
 function Sidebar({ organizacionId }: { organizacionId: string }) {
   const location = useLocation();
+  const q = `?organizacionId=${encodeURIComponent(organizacionId)}`;
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-bg-raised lg:flex">
-      <div className="flex h-16 items-center gap-2 border-b border-border px-6">
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-bg-raised shadow-elev-2 lg:flex">
+      <div
+        className="flex h-16 items-center gap-2.5 border-b border-border px-6"
+        style={{ background: 'var(--brand-grad)' }}
+      >
         <span className="flex h-8 w-8 items-center justify-center rounded-md bg-accent text-sm font-bold text-bg">
           S
         </span>
-        <span className="text-base font-semibold tracking-tight text-text">
+        <span className="text-sm font-bold tracking-[0.2em] text-text uppercase">
           SICSAFT
         </span>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        <Link
-          to={`/dashboard?organizacionId=${encodeURIComponent(organizacionId)}`}
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            location.pathname === '/dashboard'
-              ? 'bg-accent/12 text-accent-strong'
-              : 'text-text-dim hover:bg-bg-card hover:text-text'
-          }`}
+        <p className="px-3 pb-1.5 text-[0.7rem] font-semibold tracking-wide text-text-faint uppercase">
+          Patrimonio
+        </p>
+        <SideNavLink
+          to={`/dashboard${q}`}
+          active={location.pathname === '/dashboard'}
+          icon={<IconHome />}
         >
-          <IconHome />
           Resumen
-        </Link>
-        {NAV_ITEMS.map(({ path, nombre, icon: Icon }) => {
-          const active = location.pathname === `/${path}`;
-          return (
-            <Link
-              key={path}
-              to={`/${path}?organizacionId=${encodeURIComponent(organizacionId)}`}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                active
-                  ? 'bg-accent/12 text-accent-strong'
-                  : 'text-text-dim hover:bg-bg-card hover:text-text'
-              }`}
-            >
-              <Icon />
-              {nombre}
-            </Link>
-          );
-        })}
+        </SideNavLink>
+        {NAV_ITEMS.map(({ path, nombre, icon: Icon }) => (
+          <SideNavLink
+            key={path}
+            to={`/${path}${q}`}
+            active={location.pathname === `/${path}`}
+            icon={<Icon />}
+          >
+            {nombre}
+          </SideNavLink>
+        ))}
         <div className="my-3 border-t border-border" />
-        <Link
+        <SideNavLink
           to="/auditoria"
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            location.pathname === '/auditoria'
-              ? 'bg-accent/12 text-accent-strong'
-              : 'text-text-dim hover:bg-bg-card hover:text-text'
-          }`}
+          active={location.pathname === '/auditoria'}
+          icon={<IconShield />}
         >
-          <IconShield />
           Auditoría
-        </Link>
+        </SideNavLink>
       </nav>
     </aside>
   );
@@ -105,10 +124,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-border bg-bg-raised px-6">
+        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-border bg-bg-raised/95 px-6 shadow-elev-1 backdrop-blur">
           <Link
             to="/"
-            className="text-base font-semibold text-accent-strong lg:hidden"
+            className="text-sm font-bold tracking-[0.2em] text-accent-strong uppercase lg:hidden"
           >
             SICSAFT
           </Link>
@@ -116,17 +135,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             Centro de Control Patrimonial
           </span>
           {authenticated && (
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-3 text-sm">
               {nombre && (
-                <span className="flex items-center gap-2 text-text-dim">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-dim text-xs font-semibold text-accent-strong">
+                <span className="flex items-center gap-2.5 text-text-dim">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-dim text-xs font-semibold text-accent-strong ring-1 ring-border-strong">
                     {nombre.slice(0, 1).toUpperCase()}
                   </span>
-                  {nombre}
+                  <span className="hidden sm:inline">{nombre}</span>
                 </span>
               )}
               <Button
-                variant="ghost"
+                variant="secondary"
                 onClick={cerrarSesion}
                 className="gap-1.5"
               >

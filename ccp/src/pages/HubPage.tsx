@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
+import type { ComponentType, SVGProps } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { cisClient, type Organizacion } from '@/lib/cis-client';
-import { Alert, Card } from '@/components/ui';
+import { Alert } from '@/components/ui';
+import {
+  IconBox,
+  IconChart,
+  IconChevronDown,
+  IconFileText,
+  IconLayers,
+  IconMapPin,
+  IconUpload,
+} from '@/components/icons';
 
 // RF-02 — hub post-login. DOC-013 5 deja abierto si el resto de los módulos WEB necesita su
 // propio valor en `modulosContratados` — acá simplemente se listan las organizaciones donde el
@@ -13,15 +23,52 @@ import { Alert, Card } from '@/components/ui';
 // superada por este incremento y se elimina de acá. `dashboard` se queda en este listado porque
 // sigue siendo un módulo legítimo para el Profesional de AFT (RF-09/DOC-019, anterior a que
 // existiera el rol Directivo).
-const MODULOS: { path: string; nombre: string }[] = [
-  { path: 'activos', nombre: 'Activos' },
-  { path: 'contratos', nombre: 'Contratos' },
-  { path: 'inventarios', nombre: 'Inventarios' },
-  { path: 'estructura', nombre: 'Áreas, ubicaciones y responsables' },
+type Modulo = {
+  path: string;
+  nombre: string;
+  descripcion: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+};
+
+const MODULOS: Modulo[] = [
+  {
+    path: 'activos',
+    nombre: 'Activos',
+    descripcion: 'Consulta y alta de activos fijos',
+    icon: IconBox,
+  },
+  {
+    path: 'contratos',
+    nombre: 'Contratos',
+    descripcion: 'Vigencia y transiciones de estado',
+    icon: IconFileText,
+  },
+  {
+    path: 'inventarios',
+    nombre: 'Inventarios',
+    descripcion: 'Sesiones de control y sus escaneos',
+    icon: IconLayers,
+  },
+  {
+    path: 'estructura',
+    nombre: 'Áreas, ubicaciones y responsables',
+    descripcion: 'ABM de la estructura patrimonial',
+    icon: IconMapPin,
+  },
   // RF-14 (DOC-021, gap "importaciones controladas") — por organización, como el resto (a
   // diferencia de "Administración", que es transversal — ver AppShell).
-  { path: 'importaciones', nombre: 'Importaciones' },
-  { path: 'dashboard', nombre: 'Dashboard' },
+  {
+    path: 'importaciones',
+    nombre: 'Importaciones',
+    descripcion: 'Carga masiva desde archivo',
+    icon: IconUpload,
+  },
+  {
+    path: 'dashboard',
+    nombre: 'Dashboard',
+    descripcion: 'Indicadores de cobertura y estado',
+    icon: IconChart,
+  },
 ];
 
 export function HubPage() {
@@ -63,9 +110,12 @@ export function HubPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-accent-strong">
+      <h1 className="text-2xl font-semibold tracking-tight text-accent-strong">
         Organizaciones
       </h1>
+      <p className="mt-1 mb-6 text-sm text-text-dim">
+        Elegí la organización y el módulo con el que vas a trabajar.
+      </p>
       {error && <Alert>{error}</Alert>}
       {!error && !organizaciones && <p className="text-text-dim">Cargando…</p>}
       {organizaciones?.length === 0 && (
@@ -73,24 +123,32 @@ export function HubPage() {
           No hay organizaciones con contrato vigente.
         </p>
       )}
-      <div className="space-y-6">
+      <div className="space-y-8">
         {organizaciones?.map((org) => (
           <div key={org.id}>
-            <h2 className="mb-2 font-medium text-text">
+            <h2 className="mb-3 font-medium text-text">
               {org.nombre}{' '}
               <span className="text-sm font-normal text-text-dim">
                 — {org.sedes.length} {org.sedes.length === 1 ? 'sede' : 'sedes'}
               </span>
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {MODULOS.map((modulo) => (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {MODULOS.map(({ path, nombre, descripcion, icon: Icon }) => (
                 <Link
-                  key={modulo.path}
-                  to={`/${modulo.path}?organizacionId=${encodeURIComponent(org.id)}`}
+                  key={path}
+                  to={`/${path}?organizacionId=${encodeURIComponent(org.id)}`}
+                  className="group flex items-start gap-4 rounded-xl border border-border bg-bg-card p-5 shadow-elev-1 transition-colors hover:border-border-strong hover:bg-bg-raised"
                 >
-                  <Card className="transition-colors hover:border-border-strong">
-                    <h3 className="font-medium text-text">{modulo.nombre}</h3>
-                  </Card>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/12 text-accent-strong">
+                    <Icon />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-medium text-text">{nombre}</h3>
+                    <p className="mt-0.5 text-xs text-text-dim">
+                      {descripcion}
+                    </p>
+                  </div>
+                  <IconChevronDown className="mt-1 -rotate-90 text-text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-text-dim" />
                 </Link>
               ))}
             </div>
