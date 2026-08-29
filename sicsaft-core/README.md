@@ -50,10 +50,13 @@ verde:
   `altaProfesionalAft`). El paso del Profesional de AFT es opcional (el Directivo también lo
   designa después desde su portal). Los 2 primeros pasos verificados visualmente por el usuario.
 - **Empaquetado `electron-builder` real** (`npm run dist:win`) — instalador NSIS con Postgres/
-  Keycloak/`cis`/`core`/`cip` (`dist`+`node_modules`+`migrations`+`scripts`+`src` donde aplica)
-  empaquetados adentro, ver `package.json` `"build"` y `scripts/electron-builder-after-pack.cjs`
-  (workaround real: el `filter` de `extraResources` de electron-builder no copia carpetas
-  literalmente llamadas `node_modules`, hay que copiarlas a mano en un hook `afterPack`).
+  Keycloak/`cis`/`core`/`cip` **y los portales `ccp`/`core-frontend`** (`dist`+`node_modules`+
+  `migrations`+`scripts`+`src` donde aplica) empaquetados adentro, ver `package.json` `"build"` y
+  `scripts/electron-builder-after-pack.cjs` (workaround real: el `filter` de `extraResources` de
+  electron-builder no copia carpetas literalmente llamadas `node_modules`, hay que copiarlas a
+  mano en un hook `afterPack`). `pack`/`dist:win` corren primero `scripts/prepack.cjs` (DOC-028
+  Fase A): buildea el `dist/` de los 5 sistemas hermanos y corre `kc.bat build --db=postgres
+  --health-enabled=true` si falta — ya no hay pasos manuales antes de empaquetar.
 
 **3 bugs reales del renderer, encontrados recién con DevTools abierto (2026-08-27)** — todos con
 la app arrancando "bien" por fuera (los 5 servicios en verde), pero la ventana quedaba en blanco
@@ -82,18 +85,26 @@ tests en verde en `sicsaft-core`, `cis`, `ccp` y `core/frontend`.
 [`aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md`](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md)
 — ~44 bugs con causa raíz, commit y los patrones que se repiten.
 
+**Camino a "cliente final"**: el plan de fases para pasar de "piloto supervisado en la máquina del
+desarrollador" a "se le entrega el `.exe` a un cliente" está en
+[`aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md`](../aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md).
+Estado: **Fase A (empaquetado) hecha** — `pack`/`dist:win` no necesitan pasos manuales. Pendientes:
+Fase B (base patrimonial limpia + alta de la organización del cliente por el wizard, es la que
+falta para operar de verdad), Fase C (recuperación guiada ante cambio de IP), Fase D (la PWA de
+APP QR servida por el propio `.exe` + QR en la pantalla "listo"), Fase E (APK Android, `CORE-Q-01`).
+
 **Lo que NO está resuelto todavía** (ver
 [`aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md`](../aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md)
-para el detalle real de cada uno, sin minimizar):
+y DOC-028 para el detalle real de cada uno, sin minimizar):
 
-- **Empaquetado final de los portales embebidos**: `static-portal-server.ts` resuelve el `dist/`
-  hermano de `ccp`/`core-frontend` solo en dev; falta agregarlos a `extraResources` de
-  `electron-builder` junto a `cis`/`core`/`cip`, y automatizar `kc.bat build` como paso del
-  empaquetado (hoy manual, ver `resources/README.md`).
-- **La APK Android no existe todavía** — a diferencia de lo que se pensó en un momento, no hay una
-  APK Capacitor ya construida fuera de este repo (`CORE-Q-01` reabierta, corregido
-  2026-08-27). Construirla (o decidir si entra a este repo) es un incremento aparte; mientras
-  tanto `CORE-RF-05` (alcance LAN) queda sin diseñar.
+- **Base patrimonial de CORE**: el `.exe` corre `migrate up` incluyendo los `seed-dev-fixture` →
+  arranca con "DUOC UC" de prueba, y el wizard crea la organización solo en Keycloak, no en CORE
+  (DOC-028 Fase B).
+- **Cambio de IP de la PC**: `IP_LAN` se congela al arrancar; un cambio deja la instalación sin
+  login hasta reconfigurar a mano (DOC-028 Fase C; mitigación parcial: override
+  `SICSAFT_CORE_LAN_IP`, PR #63).
+- **La APK Android no existe todavía** — no hay una APK Capacitor construida (`CORE-Q-01`
+  reabierta). Mientras tanto el camino es la PWA por navegador del teléfono (DOC-028 Fase D/E).
 
 ## Depende de
 
@@ -126,14 +137,18 @@ npm run typecheck
 npm run lint:ci
 npm test
 npm run build         # compila main/preload/renderer a out/
-npm run pack           # electron-builder --dir -- empaquetado sin instalador, rápido de iterar
-npm run dist:win       # instalador NSIS real -- lento (comprime ~1.3GB con LZMA), usar solo
-                        # cuando hace falta el .exe final, no para cada cambio chico
+npm run prepack:artefactos  # DOC-028 Fase A: buildea el dist/ de ccp/core-frontend/cis/core/cip
+                            #  + kc.bat build (solo si falta). Lo corren pack y dist:win solos.
+npm run pack           # prepack + electron-builder --dir -- empaquetado sin instalador, rápido de iterar
+npm run dist:win       # prepack + instalador NSIS real -- lento (comprime ~1.3GB con LZMA), usar
+                        # solo cuando hace falta el .exe final, no para cada cambio chico
 ```
 
 `npm run dev` necesita los binarios vendorizados en `resources/` (ver `resources/README.md`) —
 sin ellos, `service-orchestrator.ts` falla apenas intenta arrancar Postgres/Keycloak con un error
-claro. `npm run dev`/`npm run pack`/`npm run dist:win` abren DevTools automáticamente en modo no
+claro. `npm run pack`/`dist:win` además necesitan `node_modules` en `ccp/`, `core/frontend/`,
+`cis/`, `core/` y `cip/` (`npm ci` en cada uno) — `scripts/prepack.cjs` falla con un error claro
+si falta alguno. `npm run dev`/`npm run pack`/`npm run dist:win` abren DevTools automáticamente en modo no
 empaquetado (`!app.isPackaged`) — mirar la consola ahí es el primer paso real para diagnosticar
 cualquier pantalla en blanco, no asumir que el problema está en el backend solo porque los
 health-checks respondan bien.
