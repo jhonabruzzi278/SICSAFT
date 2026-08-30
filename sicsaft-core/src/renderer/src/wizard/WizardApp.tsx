@@ -180,7 +180,7 @@ export function WizardApp() {
         className={
           portalCargado
             ? "flex flex-1 overflow-hidden"
-            : "flex flex-1 items-center justify-center px-8 py-8"
+            : "flex flex-1 items-center justify-center overflow-y-auto px-8 py-8"
         }
       >
         {contenido()}

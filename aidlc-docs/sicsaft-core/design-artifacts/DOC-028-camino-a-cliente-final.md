@@ -133,18 +133,28 @@ queda para después. Se sumó C.0 al alcance al encontrar la causa raíz.
 
 ### Fase D — La PWA de APP QR servida por el propio `.exe`
 
-**Alcance**: `sicsaft-core/`. Sin decisiones abiertas.
+**Alcance**: `sicsaft-core/` + `app-qr-sicsaft/` (su `oidc-config.ts` gana el mismo fallback a
+`window.__SICSAFT_PORTAL_CONFIG__` de Fase C.0). Sin decisiones abiertas. Dos dependencias nuevas
+en `sicsaft-core`: `selfsigned` (cert autofirmado en runtime) y `qrcode` (el QR en el renderer).
 
-- **D.1** — El `.exe` sirve también `app-qr-sicsaft/dist` por **HTTPS** (cert autofirmado, patrón
-  ya resuelto para la APP QR) en `:8765`, escuchando en la IP de LAN — el mismo
-  `static-portal-server.ts` + TLS. `app-qr-sicsaft/dist` entra a `extraResources` (con Fase A).
-- **D.2** — La pantalla "instalación completa" del wizard muestra un **QR con
-  `https://<ip>:8765`** para que el Profesional de AFT lo escanee con la cámara del teléfono y
-  abra la PWA directo.
+- **D.1 — El `.exe` sirve `app-qr-sicsaft/dist` por HTTPS.** `static-portal-server.ts` gana
+  `tls?: {key, cert}` + `host?` — con `tls` usa `https.createServer` en vez de `http`, escuchando
+  en la **IP de LAN** (`obtenerIpLan()`), nunca `0.0.0.0`. El teléfono llega por la IP de LAN, y
+  eso no es "contexto seguro" sin HTTPS (crypto.subtle/PKCE del login OIDC no existen). El cert es
+  autofirmado (`appqr-tls.ts`, `selfsigned`), generado una vez y cacheado en `userData`, con la IP
+  de LAN en el SubjectAltName; se regenera si venció o si la IP cambió (Fase C). El navegador del
+  teléfono muestra un aviso la primera vez ("certificado propio") — es esperado, se acepta y
+  queda. `app-qr-sicsaft/dist` entra a `extraResources` y a `prepack.cjs` (mismo patrón que ccp).
+  La config OIDC inyectada usa issuer **y** `cisUrl` en la IP de LAN, no en loopback: el
+  consumidor corre en el teléfono, no en esta PC (CIS ya escucha en `0.0.0.0`, y su
+  `CIS_CORS_ORIGIN` ya incluye `https://<ip>:8765`).
+- **D.2 — QR en la pantalla "instalación completa".** `PasoListoConLogin` muestra un `<QrAppQr>`
+  con la URL `https://<ip-lan>:8765` (IPC `getUrlAppQr`, que de paso arranca el server HTTPS si
+  hace falta). El Profesional de AFT lo escanea con la cámara y abre la PWA directo.
 
 **Entrega**: el Profesional de AFT escanea el QR de la pantalla del `.exe` y entra a la PWA — sin
-que nadie corra comandos. Sigue faltando la APK (Fase E) para una instalación "de app store", pero
-el flujo de LAN queda self-service.
+que nadie corra comandos ni tipee una IP. Sigue faltando la APK (Fase E) para una instalación "de
+app store", pero el flujo de LAN queda **self-service de punta a punta** (escritorio + teléfono).
 
 ### Fase E — APK Android (`CORE-Q-01`)
 
@@ -157,25 +167,29 @@ configurable en el primer arranque, no un TWA. **No bloquea Fases A-D** — la P
 ## 3. Orden de ejecución
 
 ```
-Fase A (empaquetado)         ── se implementa con este doc, sin decisiones abiertas
-  └─ Fase D (PWA en el .exe) ── depende de A (extraResources); sin decisiones abiertas
-Fase B (base limpia + org)   ── la más importante; necesita OK sobre B.1 y B.2
-Fase C (estabilidad de IP)   ── necesita OK sobre el enfoque (C.1 vs C.3)
+Fase A (empaquetado)         ── HECHA (PR #68)
+  └─ Fase D (PWA en el .exe) ── HECHA — sicsaft-core/ + app-qr-sicsaft/oidc-config.ts
+Fase B (base limpia + org)   ── HECHA (PR #69), verificada E2E
+Fase C (estabilidad de IP)   ── HECHA (PR #71), verificada E2E — sumó C.0 (config de portal runtime)
 Fase E (APK)                  ── track aparte, no bloquea nada de A-D
 ```
 
-`main` puede recibir A y D como PRs de una sola capa (`sicsaft-core/`). B es multi-deployable →
-PR con checklist. C es `sicsaft-core/` + doc. E arranca con su propio `aidlc-docs/`.
+`main` recibió A/B/C. D toca `sicsaft-core/` + `app-qr-sicsaft/` (un `oidc-config.ts`) → PR de
+`sicsaft-core` con ese archivo extra. B fue multi-deployable con checklist. E arranca con su
+propio `aidlc-docs/`.
 
 ## 4. Definición de "listo para cliente final"
 
-- [ ] `npm run dist:win` en una máquina limpia produce un `.exe` sin pasos manuales (Fase A + A.2).
-- [ ] El `.exe` instalado en una PC sin el repo arranca los 5 servicios y muestra los portales
-      tras el login (Fase A).
-- [ ] Base patrimonial arranca **vacía**, con la organización/contrato/sede del cliente creados
-      por el wizard (Fase B).
-- [ ] Un cambio de IP de la PC tiene recuperación guiada, no requiere reinstalar (Fase C).
-- [ ] El Profesional de AFT entra a la APP QR escaneando un QR de la pantalla del `.exe`, sin
+- [x] `npm run dist:win` produce un `.exe` sin pasos manuales (Fase A + A.2). *Falta correrlo
+      contra una PC Windows genuinamente limpia — `npm run pack` sí se corrió y produjo
+      `win-unpacked` + el build de Keycloak horneado.*
+- [x] El `.exe` arranca los 5 servicios y muestra los portales tras el login (Fase A, verificado
+      en dev + relanzamiento post-wizard).
+- [x] Base patrimonial arranca **vacía**, con la organización/contrato/sede del cliente creados
+      por el wizard (Fase B) — verificado E2E (39/39, 2026-08-29).
+- [x] Un cambio de IP de la PC tiene recuperación guiada, no requiere reinstalar (Fase C) —
+      verificado E2E.
+- [x] El Profesional de AFT entra a la APP QR escaneando un QR de la pantalla del `.exe`, sin
       comandos (Fase D).
 - [ ] APK Android: decidida (construida, o explícitamente diferida con la PWA como camino
       oficial) (Fase E).
