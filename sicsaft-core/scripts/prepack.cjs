@@ -4,9 +4,10 @@
 // package.json `pack`/`dist:win`). Deja listo todo lo que `extraResources` va a copiar y que
 // hasta ahora era un paso manual:
 //
-//   1. `npm run build` en cada sistema hermano cuyo `dist/` se empaqueta: ccp, core/frontend
-//      (portales servidos por static-portal-server.ts) y cis, core, cip (backends que corre
-//      node-backend-service.ts). Sin esto, `extraResources` copia un `dist/` viejo o inexistente.
+//   1. `npm run build` en cada sistema hermano cuyo `dist/` se empaqueta: ccp, core/frontend,
+//      app-qr-sicsaft (portales/PWA servidos por static-portal-server.ts) y cis, core, cip
+//      (backends que corre node-backend-service.ts). Sin esto, `extraResources` copia un `dist/`
+//      viejo o inexistente.
 //   2. `kc.bat build --db=postgres --health-enabled=true` una vez dentro de
 //      resources/keycloak/bin/ — `--db`/`--health-enabled` son opciones de BUILD TIME en
 //      Keycloak 26 (hallazgo real, ver resources/README.md): sin este paso `kc.bat start
@@ -57,6 +58,7 @@ function correr(exe, args, opts) {
 const SISTEMAS_A_BUILDEAR = [
   { nombre: "ccp", carpeta: "ccp" },
   { nombre: "core/frontend", carpeta: path.join("core", "frontend") },
+  { nombre: "app-qr-sicsaft", carpeta: "app-qr-sicsaft" },
   { nombre: "cis", carpeta: "cis" },
   { nombre: "core", carpeta: "core" },
   { nombre: "cip", carpeta: "cip" },

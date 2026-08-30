@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { QrAppQr } from "../components/QrAppQr";
 
 // CORE-RF-04 (alcance corregido 2026-08-28) -- el "cuadrado" acá es un placeholder vacío en el
 // DOM: la WebContentsView real vive fuera del DOM, el proceso principal la dibuja encima de este
@@ -137,9 +138,10 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
           Instalación completa
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted-foreground)]">
-          Iniciá sesión con tu correo y contraseña — la app detecta si sos
-          Director o Profesional de AFT y te muestra tu portal.
+          Iniciá sesión abajo (Director / Profesional de AFT), o escaneá el QR
+          desde el teléfono del Profesional de AFT.
         </p>
+        <QrAppQr />
       </div>
       {error && !portalCargado && (
         <p className="text-sm text-[var(--destructive)]">
@@ -170,7 +172,7 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
         className={
           portalCargado
             ? "w-full flex-1"
-            : "h-[560px] w-full overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-card shadow-elev-2"
+            : "h-[420px] w-full overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-card shadow-elev-2"
         }
       />
     </div>

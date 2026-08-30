@@ -1,4 +1,5 @@
 import { createServer, type Server, type ServerResponse } from "node:http";
+import { createServer as createHttpsServer } from "node:https";
 import { createReadStream, readFile } from "node:fs";
 import { extname, isAbsolute, join, relative, resolve } from "node:path";
 import { app } from "electron";
@@ -13,8 +14,10 @@ import { app } from "electron";
 //
 // Contexto seguro: 127.0.0.1 SÍ es "secure context" para la Web Platform (a diferencia de
 // `file://`, ver ARCHITECTURE.md "Los portales embebidos") -- crypto.subtle/PKCE funcionan igual
-// que en cualquier navegador real, sin el workaround de certificado autofirmado que sí hizo
-// falta para la APP QR (esa necesitaba alcanzar el teléfono por LAN, acá todo es loopback).
+// que en cualquier navegador real, sin el workaround de certificado autofirmado. La APP QR
+// (DOC-028 Fase D) es la excepción: el teléfono la alcanza por la IP de LAN, nunca "localhost",
+// así que necesita HTTPS de verdad (cert autofirmado, `tls`) -- el mismo servidor con
+// `https.createServer` en vez de `http.createServer`, escuchando en la IP de LAN (`host`).
 const TIPOS_MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -32,11 +35,18 @@ export interface ConfigPortalEstatico {
   nombre: string;
   distPath: string;
   puerto: number;
+  // Interfaz donde escucha. Default 127.0.0.1 (portales de escritorio, loopback). La APP QR
+  // (DOC-028 Fase D) escucha en la IP de LAN para que el teléfono la alcance -- nunca 0.0.0.0.
+  host?: string;
+  // Presente -> se sirve por HTTPS con este cert autofirmado (APP QR, ver el comentario del
+  // encabezado). Ausente -> HTTP plano (loopback = secure context de todos modos).
+  tls?: { key: string; cert: string };
   // DOC-028 Fase C.0 -- config OIDC (issuer/clientId/cisUrl) que el portal NO puede hornear en su
   // build de Vite: la IP de LAN de Keycloak recién se conoce en cada arranque del .exe, y tiene
   // que poder cambiar sin recompilar el portal (Fase C.1). Se inyecta como
-  // `window.__SICSAFT_PORTAL_CONFIG__` en el index.html; ccp/core-frontend lo leen antes de caer a
-  // import.meta.env (ver sus oidc-config.ts). Claves con el mismo nombre que las env vars VITE_*.
+  // `window.__SICSAFT_PORTAL_CONFIG__` en el index.html; ccp/core-frontend/app-qr lo leen antes de
+  // caer a import.meta.env (ver sus oidc-config.ts). Claves con el mismo nombre que las env
+  // vars VITE_*.
   configRuntime?: Record<string, string>;
 }
 
@@ -115,37 +125,44 @@ export function iniciarServidorEstatico(
     });
   }
 
-  return new Promise((listo, fallo) => {
-    const servidor = createServer((req, res) => {
-      const archivo =
-        resolverArchivoDentroDe(raizDist, req.url ?? "/") ?? indexHtml;
+  function manejar(req: { url?: string }, res: ServerResponse): void {
+    const archivo =
+      resolverArchivoDentroDe(raizDist, req.url ?? "/") ?? indexHtml;
 
-      if (archivo === indexHtml) {
-        servirIndex(res);
+    if (archivo === indexHtml) {
+      servirIndex(res);
+      return;
+    }
+
+    res.setHeader(
+      "Content-Type",
+      TIPOS_MIME[extname(archivo)] ?? "application/octet-stream",
+    );
+
+    const stream = createReadStream(archivo);
+    stream.on("error", () => {
+      // El error casi siempre llega antes del primer chunk (ENOENT/EISDIR) -- si ya se empezó
+      // a enviar el body no hay nada que hacer, solo cortar.
+      if (res.headersSent) {
+        res.destroy();
         return;
       }
-
-      res.setHeader(
-        "Content-Type",
-        TIPOS_MIME[extname(archivo)] ?? "application/octet-stream",
-      );
-
-      const stream = createReadStream(archivo);
-      stream.on("error", () => {
-        // El error casi siempre llega antes del primer chunk (ENOENT/EISDIR) -- si ya se empezó
-        // a enviar el body no hay nada que hacer, solo cortar.
-        if (res.headersSent) {
-          res.destroy();
-          return;
-        }
-        // Ruta contenida pero sin archivo real (o es un directorio) -> SPA fallback a index.html.
-        servirIndex(res);
-      });
-      stream.pipe(res);
+      // Ruta contenida pero sin archivo real (o es un directorio) -> SPA fallback a index.html.
+      servirIndex(res);
     });
+    stream.pipe(res);
+  }
+
+  return new Promise((listo, fallo) => {
+    const servidor = config.tls
+      ? createHttpsServer(
+          { key: config.tls.key, cert: config.tls.cert },
+          manejar,
+        )
+      : createServer(manejar);
 
     servidor.once("error", fallo);
-    servidor.listen(config.puerto, "127.0.0.1", () => {
+    servidor.listen(config.puerto, config.host ?? "127.0.0.1", () => {
       servidor.removeListener("error", fallo);
       listo(servidor);
     });
@@ -153,10 +170,13 @@ export function iniciarServidorEstatico(
 }
 
 // Mismo criterio que rutaDistDeSistema() de node-backend-service.ts -- dev: hermano en la raíz
-// del monorepo; producción: copiado a resources/<portal>/dist por electron-builder
-// (extraResources, pendiente agregar junto a cis/core/cip -- ver package.json "build").
-export function rutaDistDePortal(portal: "ccp" | "core-frontend"): string {
-  const carpeta = portal === "core-frontend" ? "core/frontend" : "ccp";
+// del monorepo; producción: copiado a resources/<portal>/dist por electron-builder (extraResources,
+// ver package.json "build"). "app-qr-sicsaft" se sumó en DOC-028 Fase D (el .exe también sirve la
+// PWA de la APP QR).
+export function rutaDistDePortal(
+  portal: "ccp" | "core-frontend" | "app-qr-sicsaft",
+): string {
+  const carpeta = portal === "core-frontend" ? "core/frontend" : portal;
   if (app.isPackaged) {
     return join(process.resourcesPath, portal, "dist");
   }

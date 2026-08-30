@@ -12,6 +12,7 @@ import type {
 import type { ServiceOrchestrator } from "../services/service-orchestrator";
 import {
   bootstrapPrimeraInstalacion,
+  CLIENT_ID_APP_QR,
   CLIENT_ID_CCP,
   CLIENT_ID_CORE_FRONTEND,
   crearUsuarioDirector,
@@ -31,7 +32,12 @@ import {
   PUERTO_CORE_FRONTEND,
 } from "../services/backend-configs";
 import { KEYCLOAK_CONFIG } from "../services/keycloak-service";
-import { obtenerIpLan, obtenerOrigenAppQr } from "../services/lan-ip";
+import {
+  obtenerIpLan,
+  obtenerOrigenAppQr,
+  PUERTO_APP_QR,
+} from "../services/lan-ip";
+import { obtenerCertificadoAppQr } from "../services/appqr-tls";
 import {
   actualizarIpLanInstalacion,
   leerInstalacionExistente,
@@ -44,42 +50,83 @@ import { provisionarOrganizacionCore } from "../services/core-provisioning";
 // secretos al renderer (el admin de Keycloak, el client secret de cis-admin) más allá de lo que
 // cada respuesta necesita explícitamente (ver comentario en shared/ipc-contract.ts sobre por qué
 // el renderer nunca ve esos valores directo).
-// Arranca una sola vez -- los servidores estáticos de los portales embebidos (ccp/core-frontend)
-// no dependen de ningún estado del wizard, a diferencia de cis (necesita las credenciales del
-// bootstrap). Se posterga hasta el primer mostrarPortalEmbebido en vez de arrancar junto con
-// Postgres/Keycloak/cis/core/cip -- nadie los necesita antes de llegar al paso "listo" del
-// wizard.
-let servidoresPortalesIniciados = false;
+// Arranca una sola vez -- los servidores estáticos de los portales embebidos (ccp/core-frontend/
+// app-qr) no dependen de ningún estado del wizard, a diferencia de cis (necesita las credenciales
+// del bootstrap). Se postergan hasta el primer mostrarPortalEmbebido / getUrlAppQr en vez de
+// arrancar junto con Postgres/Keycloak/cis/core/cip -- nadie los necesita antes del paso "listo".
+//
+// Se memoiza la PROMESA, no un booleano: mostrarPortalEmbebido y getUrlAppQr pueden entrar
+// concurrentemente (y con React StrictMode, dos veces cada uno) antes de que el primer
+// iniciarServidorEstatico() resuelva -- un `if (booleano) return` puesto después del await deja
+// pasar a los dos y el segundo revienta con EADDRINUSE (bug real, 2026-08-29). Con la promesa
+// memoizada todos esperan el mismo arranque.
+let promesaServidoresPortales: Promise<void> | null = null;
+let promesaServidorAppQr: Promise<void> | null = null;
 
-async function asegurarServidoresPortales(): Promise<void> {
-  if (servidoresPortalesIniciados) return;
-  // DOC-028 Fase C.0 -- la config OIDC de ccp/core-frontend se resuelve acá, en cada arranque, y
-  // se inyecta en el index.html servido (static-portal-server.ts). El issuer lleva la IP de LAN
-  // de ESTE arranque (KEYCLOAK_CONFIG.url ya la recalculó); si la IP cambió desde la instalación,
-  // el portal igual apunta bien sin recompilar. cisUrl es 127.0.0.1 (loopback, nunca cambia).
-  const issuer = `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}`;
-  const cisUrl = `http://127.0.0.1:${PUERTO_CIS}`;
-  await iniciarServidorEstatico({
-    nombre: "ccp",
-    distPath: rutaDistDePortal("ccp"),
-    puerto: PUERTO_CCP,
-    configRuntime: {
-      VITE_KEYCLOAK_ISSUER: issuer,
-      VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_CCP,
-      VITE_CIS_URL: cisUrl,
-    },
+function asegurarServidoresPortales(): Promise<void> {
+  promesaServidoresPortales ??= (async () => {
+    // DOC-028 Fase C.0 -- la config OIDC de ccp/core-frontend se resuelve acá, en cada arranque, y
+    // se inyecta en el index.html servido (static-portal-server.ts). El issuer lleva la IP de LAN
+    // de ESTE arranque (KEYCLOAK_CONFIG.url ya la recalculó); si la IP cambió desde la
+    // instalación, el portal igual apunta bien sin recompilar. cisUrl es 127.0.0.1 (loopback).
+    const issuer = `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}`;
+    const cisUrl = `http://127.0.0.1:${PUERTO_CIS}`;
+    await iniciarServidorEstatico({
+      nombre: "ccp",
+      distPath: rutaDistDePortal("ccp"),
+      puerto: PUERTO_CCP,
+      configRuntime: {
+        VITE_KEYCLOAK_ISSUER: issuer,
+        VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_CCP,
+        VITE_CIS_URL: cisUrl,
+      },
+    });
+    await iniciarServidorEstatico({
+      nombre: "core-frontend",
+      distPath: rutaDistDePortal("core-frontend"),
+      puerto: PUERTO_CORE_FRONTEND,
+      configRuntime: {
+        VITE_KEYCLOAK_ISSUER: issuer,
+        VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_CORE_FRONTEND,
+        VITE_CIS_URL: cisUrl,
+      },
+    });
+    await asegurarServidorAppQr();
+  })().catch((err: unknown) => {
+    // Si el arranque falló de verdad, no dejar la promesa rechazada cacheada -- permitir que un
+    // reintento (otro mostrarPortalEmbebido) lo vuelva a intentar.
+    promesaServidoresPortales = null;
+    throw err;
   });
-  await iniciarServidorEstatico({
-    nombre: "core-frontend",
-    distPath: rutaDistDePortal("core-frontend"),
-    puerto: PUERTO_CORE_FRONTEND,
-    configRuntime: {
-      VITE_KEYCLOAK_ISSUER: issuer,
-      VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_CORE_FRONTEND,
-      VITE_CIS_URL: cisUrl,
-    },
+  return promesaServidoresPortales;
+}
+
+// DOC-028 Fase D -- el .exe sirve también la PWA de app-qr-sicsaft, por HTTPS (cert autofirmado,
+// appqr-tls.ts) y escuchando en la IP de LAN (el teléfono no llega a 127.0.0.1). El Profesional
+// de AFT la abre escaneando el QR de la pantalla "listo" (PasoListoConLogin). Su config OIDC va
+// inyectada como los otros portales (Fase C.0), pero con issuer y cisUrl en la IP de LAN, no en
+// loopback: el consumidor corre en el teléfono, no en esta PC.
+function asegurarServidorAppQr(): Promise<void> {
+  promesaServidorAppQr ??= (async () => {
+    const ipLan = obtenerIpLan();
+    const tls = await obtenerCertificadoAppQr();
+    await iniciarServidorEstatico({
+      nombre: "app-qr-sicsaft",
+      distPath: rutaDistDePortal("app-qr-sicsaft"),
+      puerto: PUERTO_APP_QR,
+      host: ipLan,
+      tls,
+      configRuntime: {
+        VITE_KEYCLOAK_ISSUER: `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}`,
+        VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_APP_QR,
+        VITE_CIS_URL: `http://${ipLan}:${PUERTO_CIS}`,
+      },
+    });
+  })().catch((err: unknown) => {
+    promesaServidorAppQr = null;
+    throw err;
   });
-  servidoresPortalesIniciados = true;
+  return promesaServidorAppQr;
 }
 
 export function registrarIpcHandlers(
@@ -117,6 +164,14 @@ export function registrarIpcHandlers(
       return evaluarCambioIpLan();
     },
   );
+
+  // DOC-028 Fase D -- la pantalla "listo" (PasoListoConLogin) muestra un QR con esta URL para que
+  // el Profesional de AFT abra la PWA de la APP QR desde el teléfono. De paso arranca el servidor
+  // HTTPS de la APP QR si todavía no lo hizo, para que un escaneo inmediato encuentre algo.
+  ipcMain.handle("sicsaft-core:getUrlAppQr", async (): Promise<string> => {
+    await asegurarServidorAppQr();
+    return obtenerOrigenAppQr();
+  });
 
   ipcMain.handle("sicsaft-core:getInstalacionExistente", async () => {
     const existente = leerInstalacionExistente();

@@ -88,20 +88,19 @@ tests en verde en `sicsaft-core`, `cis`, `ccp` y `core/frontend`.
 **Camino a "cliente final"**: el plan de fases para pasar de "piloto supervisado en la máquina del
 desarrollador" a "se le entrega el `.exe` a un cliente" está en
 [`aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md`](../aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md).
-Estado: **Fase A (empaquetado) hecha** — `pack`/`dist:win` no necesitan pasos manuales. **Fase C
-(estabilidad de IP) hecha** — config de portal en runtime (ya no horneada en el build) + pantalla
-de reconfiguración de ~1 clic ante un cambio de IP. Pendientes: Fase B (base patrimonial limpia +
-alta de la organización del cliente por el wizard, es la que falta para operar de verdad), Fase D
-(la PWA de APP QR servida por el propio `.exe` + QR en la pantalla "listo"), Fase E (APK Android,
-`CORE-Q-01`).
+Estado: **Fases A, B, C y D hechas** — `pack`/`dist:win` sin pasos manuales (A), base patrimonial
+limpia + alta de la organización del cliente por el wizard (B), config de portal en runtime +
+reconfiguración de ~1 clic ante un cambio de IP (C), y el propio `.exe` sirve la PWA de la APP QR
+por HTTPS + muestra un QR en la pantalla "listo" (D). Verificado E2E el 2026-08-29 (39/39). Queda
+**Fase E** (APK Android, `CORE-Q-01`) como track aparte — la PWA por QR es el camino oficial
+mientras tanto.
 
 **Lo que NO está resuelto todavía** (ver
 [`aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md`](../aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md)
 y DOC-028 para el detalle real de cada uno, sin minimizar):
 
-- **Base patrimonial de CORE**: el `.exe` corre `migrate up` incluyendo los `seed-dev-fixture` →
-  arranca con "DUOC UC" de prueba, y el wizard crea la organización solo en Keycloak, no en CORE
-  (DOC-028 Fase B).
+- **`npm run dist:win` contra una PC Windows genuinamente limpia** todavía no se corrió de punta a
+  punta (sí `npm run pack` → `win-unpacked` + build de Keycloak horneado).
 - **Cambio de IP de la PC** (mitigado, DOC-028 Fase C): un relanzamiento detecta que la IP de LAN
   cambió y ofrece una pantalla de reconfiguración de ~1 clic (re-registra el client OIDC de la APP
   QR en Keycloak); los portales embebidos ya no dependen de una IP horneada en el build. Sigue
@@ -109,8 +108,11 @@ y DOC-028 para el detalle real de cada uno, sin minimizar):
   **Recomendación operativa**: pedir al administrador de red una **reserva DHCP** para la PC del
   Directivo, así la IP no cambia de entrada. El override `SICSAFT_CORE_LAN_IP` sigue disponible
   para forzar una IP puntual (PR #63).
+- **Certificado autofirmado de la APP QR**: el navegador del teléfono muestra un aviso de
+  seguridad la primera vez (se acepta y queda). Un cert que valide sin aviso requiere el hostname
+  `.local` + mDNS de C.3, o una CA propia — fuera de alcance de Fase D.
 - **La APK Android no existe todavía** — no hay una APK Capacitor construida (`CORE-Q-01`
-  reabierta). Mientras tanto el camino es la PWA por navegador del teléfono (DOC-028 Fase D/E).
+  reabierta). El camino oficial es la PWA que sirve el `.exe` (DOC-028 Fase D); la APK es Fase E.
 
 ## Depende de
 

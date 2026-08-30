@@ -123,6 +123,10 @@ export interface SicsaftCoreApi {
   // evaluado -- reconfigurarIpLan lo devuelve post-reconfiguración (cambio === false).
   getEstadoIpLan(): Promise<EstadoIpLan>;
   reconfigurarIpLan(): Promise<EstadoIpLan>;
+  // DOC-028 Fase D -- URL (https://<ip-lan>:8765) de la PWA de la APP QR que sirve el propio .exe.
+  // La pantalla "listo" del wizard la muestra como un QR para que el Profesional de AFT abra la
+  // app desde su teléfono sin tipear nada ni correr comandos. Arranca el servidor si hace falta.
+  getUrlAppQr(): Promise<string>;
   bootstrapCliente(
     input: DatosClienteInput,
   ): Promise<BootstrapClienteResultado>;
