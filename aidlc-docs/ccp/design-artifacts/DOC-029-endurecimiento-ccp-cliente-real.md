@@ -31,7 +31,7 @@ frente en la tabla §0 y estado por rama en §Plan de fases.**
 | **RF-C** | 3 pestañas nuevas en el resumen (Dashboard) | CCP | 🔒 **Bloqueado — spec lo entrega Guido** |
 | **RF-D** | Veredicto de sesión accionable → Auditoría / baja / Inventario / Contrato | CCP + 1 automatización en CORE | Diseñado — pendiente |
 | **RF-E** | Auditoría por **área operativa real** del actor + columna "Revisar" | CORE + CIS + CCP | Diseñado — pendiente |
-| **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | Diseñado — pendiente |
+| **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | ✅ **Hecho** (`feat/ccp-etiquetas-qr`, `20a82e5`) — verificado en modo mock |
 | **RF-G** | Fix: crash del login por timeout + layout del wizard roto a pantalla completa | `sicsaft-core` | ✅ **Hecho** (`fix/sicsaft-core-login-timeout-crash`, `db268a1`) |
 | **RF-H** | APK Android — WebView propia mínima, generada en build-time, servida por el `.exe` | `apk-aft/` (nuevo) + `sicsaft-core` | Diseñado — pendiente |
 | **RF-I** | **Pantalla 8** — informe de control de área: agregación (%, desglose por estado declarado, tipo ordinario/extraordinario, nombres) + presentación con fondos verde/amarillo/rojo, en la APP QR y en el Resumen del CCP | CORE/CIP (lectura) + APP QR + CCP | Diseñado — pendiente (contrato: [`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md)) |
@@ -318,7 +318,7 @@ Cambio pedido: *"donde dice usuario poner área, operación, revisar"*.
 
 ---
 
-## RF-F — Módulo "QR / Etiquetas" en CCP
+## RF-F — Módulo "QR / Etiquetas" en CCP — ✅ HECHO
 
 ### F.1 Qué resuelve
 
@@ -326,18 +326,24 @@ Es el **paso 3** de la estrategia de validación del usuario: una vez cargados l
 generar los códigos QR de cada uno, **separados por dirección**, para imprimir en etiquetas y
 meterlos en sobres por dirección.
 
-### F.2 Diseño
+### F.2 Cómo quedó (`feat/ccp-etiquetas-qr`, `20a82e5`)
 
-- Ruta `/etiquetas` (o sección dentro del hub), visible en Nivel 1 y 2, sin guard especial
-  (lectura).
-- Datos: `GET /activos?organizacionId=…` ya existente, agrupados **por dirección** (campo nuevo de
-  RF-B) y dentro de cada dirección por área.
-- Cada activo se renderiza como una **etiqueta**: `codigoQr` como **QR** (lib `qrcode`, ya
-  dependencia de `sicsaft-core`; en CCP se agrega `qrcode` o `qrcode.react`) **y** como **código
-  de barras Code128** (lib `jsbarcode` o `bwip-js`), más `codigoPatrimonial`, `nombre_aft`, área.
-- Layout de impresión: grilla tipo hoja de etiquetas (Avery), `@media print` con salto de página
-  por dirección. Filtro/selección por dirección → "Imprimir dirección X".
-- Sin backend nuevo — es una vista de impresión sobre datos que CORE ya expone.
+- Ruta `/etiquetas` (`RequireModulo 'etiquetas'`, ya en `MODULOS_NIVEL_1` de RF-A) + nav en
+  `AppShell`/`HubPage` + `IconQrCode`.
+- Datos: `GET /catalogo` + `GET /admin/areas` (ya existentes). Agrupa por **dirección** =
+  `area.dependencia` (RF-B la refleja de la columna DIRECCION del Excel al resolver-o-crear el
+  área) y dentro por **área**. Helper puro `src/lib/etiquetas.ts` (`agruparParaEtiquetas`, orden
+  numeric-aware, grupos "Sin dirección"/"Sin área").
+- Cada activo = una **etiqueta** (`src/components/EtiquetaActivo.tsx`): `codigoQr` como **QR**
+  (PNG data URL vía `qrcode` — única dependencia nueva, la misma que usa `sicsaft-core`; se
+  generan todos una vez con `Promise.all`) **y** como **código de barras Code 128** (encoder
+  propio `src/lib/code128.ts`, tabla canónica + checksum ponderado, **sin dependencia**), más
+  nombre y área.
+- Impresión: `@media print` en `index.css` — fuera del chrome de la app (`.no-print`), una
+  dirección por página (`.direccion { break-before: page }`), etiquetas sin cortar. Filtro por
+  dirección + "solo activos vigentes" + botón Imprimir (`window.print()`).
+- Sin backend nuevo. Cobertura: `code128.test.ts` (5) + `etiquetas.test.ts` (3). Verificado en
+  el navegador en modo mock (agrupación, QR y Code 128 renderizados).
 
 ---
 
@@ -493,7 +499,7 @@ campo `direccion` de B; I depende de que existan sesiones con `estadoDeclarado`,
 | 11 | `feat/core-cip-resumen-control` | RF-I capa CORE/CIP (`GET /dashboard/control/:sesionId`) | main (prod) | ⬜ |
 | 12 | `feat/appqr-pantalla8` | RF-I APP QR (Pantalla 8 + fondos de color + UI de estado por AFT) | 11 | ⬜ |
 | 13 | `feat/ccp-pantalla8` | RF-I CCP (detalle de sesión en el Resumen) | 12 | ⬜ |
-| 14 | `feat/ccp-etiquetas-qr` | RF-F (módulo QR + Code128 por dirección) | 10 | ⬜ |
+| 14 | `feat/ccp-etiquetas-qr` | RF-F (módulo QR + Code128 por dirección) | 10a | ✅ `20a82e5` |
 | 15 | `feat/core-auditoria-area` | RF-E capa CORE (`auditoria.area_operativa`) | 3 | ⬜ |
 | 16 | `feat/cis-auditoria-area` | RF-E capa CIS (passthrough `?area=`) | 15 | ⬜ |
 | 17 | `feat/ccp-auditoria-area` | RF-E capa CCP (Área / Operación / Revisar) | 16 | ⬜ |
