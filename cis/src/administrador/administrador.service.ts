@@ -14,6 +14,10 @@ import type {
   ContratosPaginaResult,
   DocumentoActivoResult,
   ImportacionContableResult,
+  CrearLoteImportacionContableResult,
+  LoteImportacionContableResult,
+  LoteConFilasImportacionContableResult,
+  RechazoLoteImportacionContableResult,
   IndicadoresResult,
   OrganizacionResult,
   Paginacion,
@@ -47,6 +51,9 @@ import type {
   EditarOrganizacionBody,
   EscrituraOficialActivoBody,
   ImportacionContableBody,
+  CrearLoteImportacionContableBody,
+  AprobarLoteImportacionContableBody,
+  RechazarLoteImportacionContableBody,
   QuitarRolUsuarioOrganizacionBody,
 } from './administrador.schemas';
 
@@ -238,6 +245,82 @@ export class AdministradorService {
     correlationId: string,
   ): Promise<ImportacionContableResult> {
     return this.coreClientService.postImportacionContable(
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
+      },
+      correlationId,
+    );
+  }
+
+  // DOC-029 RF-B — bandeja de staging de la ingesta de Excel supervisada. crear/aprobar/rechazar
+  // inyectan la identidad del JWT (CORE verifica el rol y audita); listar/obtener son passthrough.
+  crearLoteImportacionContable(
+    body: CrearLoteImportacionContableBody,
+    auth: KeycloakAuthContext,
+    correlationId: string,
+  ): Promise<CrearLoteImportacionContableResult> {
+    return this.coreClientService.postLoteImportacionContable(
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
+      },
+      correlationId,
+    );
+  }
+
+  listarLotesImportacionContable(
+    organizacionId: string,
+    estado: string | undefined,
+    correlationId: string,
+  ): Promise<LoteImportacionContableResult[]> {
+    return this.coreClientService.getLotesImportacionContable(
+      organizacionId,
+      estado,
+      correlationId,
+    );
+  }
+
+  obtenerLoteImportacionContable(
+    loteId: string,
+    correlationId: string,
+  ): Promise<LoteConFilasImportacionContableResult> {
+    return this.coreClientService.getLoteImportacionContable(
+      loteId,
+      correlationId,
+    );
+  }
+
+  aprobarLoteImportacionContable(
+    loteId: string,
+    body: AprobarLoteImportacionContableBody,
+    auth: KeycloakAuthContext,
+    correlationId: string,
+  ): Promise<ImportacionContableResult> {
+    return this.coreClientService.postAprobarLoteImportacionContable(
+      loteId,
+      {
+        ...body,
+        correlationId,
+        operadorId: auth.operadorId,
+        rolesPorOrganizacion: auth.rolesPorOrganizacion,
+      },
+      correlationId,
+    );
+  }
+
+  rechazarLoteImportacionContable(
+    loteId: string,
+    body: RechazarLoteImportacionContableBody,
+    auth: KeycloakAuthContext,
+    correlationId: string,
+  ): Promise<RechazoLoteImportacionContableResult> {
+    return this.coreClientService.postRechazarLoteImportacionContable(
+      loteId,
       {
         ...body,
         correlationId,

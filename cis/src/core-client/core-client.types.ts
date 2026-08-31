@@ -539,3 +539,89 @@ export const importacionContableResponseSchema = z.object({
 export type ImportacionContableResult = z.infer<
   typeof importacionContableResponseSchema
 >;
+
+// DOC-029 RF-B — bandeja de staging de la ingesta de Excel supervisada. El ETL manda las filas ya
+// canónicas (nombres del Excel resueltos a ids) más el texto crudo por fila; CORE las guarda en un
+// lote `pendiente_revision` y solo al aprobar toca la Base Patrimonial.
+export interface FilaLoteImportacionContable extends FilaImportacionContable {
+  linea: number;
+  crudo: Record<string, string>;
+}
+
+export interface PostLoteImportacionContableRequest extends EscrituraOficialRequest {
+  origen: 'carpeta' | 'manual';
+  archivoNombre?: string;
+  filas: FilaLoteImportacionContable[];
+}
+
+// aprobar solo necesita el contexto de escritura oficial; rechazar suma un motivo opcional.
+export type AprobarLoteImportacionContableRequest = EscrituraOficialRequest;
+export interface RechazarLoteImportacionContableRequest extends EscrituraOficialRequest {
+  motivo?: string;
+}
+
+const resumenLoteSchema = z.object({
+  totalFilas: z.number(),
+  crear: z.number(),
+  yaImportado: z.number(),
+  conflicto: z.number(),
+});
+
+export const crearLoteImportacionContableResponseSchema = z.object({
+  loteId: z.string(),
+  resumen: resumenLoteSchema,
+});
+export type CrearLoteImportacionContableResult = z.infer<
+  typeof crearLoteImportacionContableResponseSchema
+>;
+
+const loteImportacionContableSchema = z.object({
+  id: z.string(),
+  organizacionId: z.string(),
+  origen: z.enum(['carpeta', 'manual']),
+  archivoNombre: z.string().nullable(),
+  recibidoEn: z.string(),
+  estado: z.enum(['pendiente_revision', 'aprobado', 'rechazado']),
+  revisadoPor: z.string().nullable(),
+  revisadoEn: z.string().nullable(),
+  motivoRechazo: z.string().nullable(),
+  resumen: resumenLoteSchema,
+});
+
+export const lotesImportacionContableResponseSchema = z.array(
+  loteImportacionContableSchema,
+);
+export type LoteImportacionContableResult = z.infer<
+  typeof loteImportacionContableSchema
+>;
+
+const filaLoteImportacionContableRowSchema = z.object({
+  id: z.string(),
+  linea: z.number(),
+  codigoPatrimonial: z.string(),
+  codigoQr: z.string(),
+  catalogoId: z.string(),
+  serie: z.string().nullable(),
+  responsableId: z.string().nullable(),
+  areaId: z.string().nullable(),
+  ubicacionId: z.string().nullable(),
+  valorPatrimonial: z.number().nullable(),
+  crudo: z.record(z.string(), z.string()),
+  dryRunResultado: z.enum(['crear', 'ya_importado', 'conflicto']).nullable(),
+  dryRunMotivo: z.string().nullable(),
+});
+
+export const loteConFilasImportacionContableResponseSchema = z.object({
+  lote: loteImportacionContableSchema,
+  filas: z.array(filaLoteImportacionContableRowSchema),
+});
+export type LoteConFilasImportacionContableResult = z.infer<
+  typeof loteConFilasImportacionContableResponseSchema
+>;
+
+export const rechazoLoteImportacionContableResponseSchema = z.object({
+  estado: z.literal('rechazado'),
+});
+export type RechazoLoteImportacionContableResult = z.infer<
+  typeof rechazoLoteImportacionContableResponseSchema
+>;

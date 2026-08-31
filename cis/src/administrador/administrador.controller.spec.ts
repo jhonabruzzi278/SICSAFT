@@ -116,6 +116,11 @@ describe('AdministradorController', () => {
             altaDocumentoActivo: jest.fn(),
             eliminarDocumentoActivo: jest.fn(),
             importarContable: jest.fn(),
+            crearLoteImportacionContable: jest.fn(),
+            listarLotesImportacionContable: jest.fn(),
+            obtenerLoteImportacionContable: jest.fn(),
+            aprobarLoteImportacionContable: jest.fn(),
+            rechazarLoteImportacionContable: jest.fn(),
             getOrganizaciones: jest.fn(),
             altaOrganizacion: jest.fn(),
             editarOrganizacion: jest.fn(),
@@ -880,6 +885,119 @@ describe('AdministradorController', () => {
       AUTH,
       CORRELATION_ID,
     );
+  });
+
+  // DOC-029 RF-B — bandeja de staging de la ingesta de Excel supervisada.
+  describe('bandeja de staging de importación contable', () => {
+    it('crearLoteImportacionContable delega body + auth + correlationId', async () => {
+      const resultado = {
+        loteId: 'lote-1',
+        resumen: { totalFilas: 1, crear: 1, yaImportado: 0, conflicto: 0 },
+      };
+      service.crearLoteImportacionContable.mockResolvedValue(resultado);
+      const body = {
+        organizacionId: 'duoc-uc',
+        origen: 'carpeta',
+        archivoNombre: 'activos.xls',
+        filas: [
+          {
+            linea: 1,
+            codigoPatrimonial: 'DG-001',
+            codigoQr: 'DG-001',
+            catalogoId: 'cat-1',
+            crudo: {},
+          },
+        ],
+      } as Parameters<typeof controller.crearLoteImportacionContable>[0];
+      const request = buildAuthenticatedRequest(AUTH);
+
+      await expect(
+        controller.crearLoteImportacionContable(body, request),
+      ).resolves.toBe(resultado);
+      expect(service.crearLoteImportacionContable).toHaveBeenCalledWith(
+        body,
+        AUTH,
+        CORRELATION_ID,
+      );
+    });
+
+    it('listarLotesImportacionContable delega organizacionId + estado + correlationId', async () => {
+      service.listarLotesImportacionContable.mockResolvedValue([]);
+      const request = {
+        correlationId: CORRELATION_ID,
+      } as RequestWithCorrelationId;
+
+      await controller.listarLotesImportacionContable(
+        { organizacionId: 'duoc-uc', estado: 'pendiente_revision' },
+        request,
+      );
+
+      expect(service.listarLotesImportacionContable).toHaveBeenCalledWith(
+        'duoc-uc',
+        'pendiente_revision',
+        CORRELATION_ID,
+      );
+    });
+
+    it('obtenerLoteImportacionContable delega id + correlationId', async () => {
+      service.obtenerLoteImportacionContable.mockResolvedValue({
+        lote: {} as never,
+        filas: [],
+      });
+      const request = {
+        correlationId: CORRELATION_ID,
+      } as RequestWithCorrelationId;
+
+      await controller.obtenerLoteImportacionContable('lote-1', request);
+
+      expect(service.obtenerLoteImportacionContable).toHaveBeenCalledWith(
+        'lote-1',
+        CORRELATION_ID,
+      );
+    });
+
+    it('aprobarLoteImportacionContable delega id + body + auth + correlationId', async () => {
+      service.aprobarLoteImportacionContable.mockResolvedValue({
+        filas: [],
+        creados: 1,
+        yaImportados: 0,
+        conflictos: 0,
+      });
+      const request = buildAuthenticatedRequest(AUTH);
+
+      await controller.aprobarLoteImportacionContable(
+        'lote-1',
+        { organizacionId: 'duoc-uc' },
+        request,
+      );
+
+      expect(service.aprobarLoteImportacionContable).toHaveBeenCalledWith(
+        'lote-1',
+        { organizacionId: 'duoc-uc' },
+        AUTH,
+        CORRELATION_ID,
+      );
+    });
+
+    it('rechazarLoteImportacionContable delega id + body + auth + correlationId', async () => {
+      service.rechazarLoteImportacionContable.mockResolvedValue({
+        estado: 'rechazado',
+      });
+      const request = buildAuthenticatedRequest(AUTH);
+
+      await controller.rechazarLoteImportacionContable(
+        'lote-1',
+        { organizacionId: 'duoc-uc', motivo: 'no cuadra' },
+        request,
+      );
+
+      expect(service.rechazarLoteImportacionContable).toHaveBeenCalledWith(
+        'lote-1',
+        { organizacionId: 'duoc-uc', motivo: 'no cuadra' },
+        AUTH,
+        CORRELATION_ID,
+      );
+    });
   });
 
   const ORGANIZACION: OrganizacionResult = {

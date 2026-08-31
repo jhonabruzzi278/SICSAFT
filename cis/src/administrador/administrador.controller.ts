@@ -52,6 +52,10 @@ import {
   editarOrganizacionSchema,
   escrituraOficialActivoSchema,
   importacionContableSchema,
+  crearLoteImportacionContableSchema,
+  listarLotesImportacionContableQuerySchema,
+  aprobarLoteImportacionContableSchema,
+  rechazarLoteImportacionContableSchema,
   quitarRolUsuarioOrganizacionSchema,
   responsablesQuerySchema,
   sedesQuerySchema,
@@ -84,6 +88,10 @@ import type {
   EditarOrganizacionBody,
   EscrituraOficialActivoBody,
   ImportacionContableBody,
+  CrearLoteImportacionContableBody,
+  ListarLotesImportacionContableQuery,
+  AprobarLoteImportacionContableBody,
+  RechazarLoteImportacionContableBody,
   QuitarRolUsuarioOrganizacionBody,
   ResponsablesQuery,
   SedesQuery,
@@ -99,6 +107,10 @@ import type {
   ContratosPaginaResult,
   DocumentoActivoResult,
   ImportacionContableResult,
+  CrearLoteImportacionContableResult,
+  LoteImportacionContableResult,
+  LoteConFilasImportacionContableResult,
+  RechazoLoteImportacionContableResult,
   IndicadoresResult,
   OrganizacionResult,
   ResponsableResult,
@@ -270,6 +282,78 @@ export class AdministradorController {
     @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
   ): Promise<ImportacionContableResult> {
     return this.administradorService.importarContable(
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  // DOC-029 RF-B — bandeja de staging de la ingesta de Excel supervisada. crear/aprobar/rechazar
+  // inyectan la identidad del JWT (CORE verifica el rol y audita); listar/obtener requieren sesión
+  // válida (KeycloakAuthGuard del controller) y acotan por `organizacionId`.
+  @Post('importaciones/contable/lote')
+  @UsePipes(new ZodValidationPipe(crearLoteImportacionContableSchema))
+  crearLoteImportacionContable(
+    @Body() body: CrearLoteImportacionContableBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<CrearLoteImportacionContableResult> {
+    return this.administradorService.crearLoteImportacionContable(
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  @Get('importaciones/contable/lote')
+  listarLotesImportacionContable(
+    @Query(new ZodValidationPipe(listarLotesImportacionContableQuerySchema))
+    query: ListarLotesImportacionContableQuery,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<LoteImportacionContableResult[]> {
+    return this.administradorService.listarLotesImportacionContable(
+      query.organizacionId,
+      query.estado,
+      request.correlationId,
+    );
+  }
+
+  @Get('importaciones/contable/lote/:id')
+  obtenerLoteImportacionContable(
+    @Param('id') id: string,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<LoteConFilasImportacionContableResult> {
+    return this.administradorService.obtenerLoteImportacionContable(
+      id,
+      request.correlationId,
+    );
+  }
+
+  @Post('importaciones/contable/lote/:id/aprobar')
+  @HttpCode(HttpStatus.OK)
+  aprobarLoteImportacionContable(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(aprobarLoteImportacionContableSchema))
+    body: AprobarLoteImportacionContableBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<ImportacionContableResult> {
+    return this.administradorService.aprobarLoteImportacionContable(
+      id,
+      body,
+      requireAuthContext(request),
+      request.correlationId,
+    );
+  }
+
+  @Post('importaciones/contable/lote/:id/rechazar')
+  @HttpCode(HttpStatus.OK)
+  rechazarLoteImportacionContable(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(rechazarLoteImportacionContableSchema))
+    body: RechazarLoteImportacionContableBody,
+    @Req() request: AuthenticatedRequest & RequestWithCorrelationId,
+  ): Promise<RechazoLoteImportacionContableResult> {
+    return this.administradorService.rechazarLoteImportacionContable(
+      id,
       body,
       requireAuthContext(request),
       request.correlationId,

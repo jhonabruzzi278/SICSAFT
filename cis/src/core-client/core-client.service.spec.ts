@@ -1700,6 +1700,181 @@ describe('CoreClientService', () => {
     });
   });
 
+  // DOC-029 RF-B — bandeja de staging de la ingesta de Excel supervisada.
+  describe('bandeja de staging de importación contable', () => {
+    const identidad = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+    };
+    const loteRow = {
+      id: 'lote-1',
+      organizacionId: 'duoc-uc',
+      origen: 'carpeta',
+      archivoNombre: 'activos.xls',
+      recibidoEn: '2026-08-31T12:00:00.000Z',
+      estado: 'pendiente_revision',
+      revisadoPor: null,
+      revisadoEn: null,
+      motivoRechazo: null,
+      resumen: { totalFilas: 1, crear: 1, yaImportado: 0, conflicto: 0 },
+    };
+
+    it('postLoteImportacionContable llama a POST /importaciones/contable/lote y parsea la respuesta', async () => {
+      axiosPost.mockResolvedValue(
+        buildAxiosResponse({ loteId: 'lote-1', resumen: loteRow.resumen }),
+      );
+      const request = {
+        ...identidad,
+        origen: 'carpeta' as const,
+        archivoNombre: 'activos.xls',
+        filas: [
+          {
+            linea: 1,
+            codigoPatrimonial: 'DG-001',
+            codigoQr: 'DG-001',
+            catalogoId: 'cat-1',
+            crudo: {},
+          },
+        ],
+      };
+
+      await expect(
+        service.postLoteImportacionContable(request, 'corr-1'),
+      ).resolves.toEqual({ loteId: 'lote-1', resumen: loteRow.resumen });
+      expect(axiosPost).toHaveBeenCalledWith(
+        'http://core:3001/importaciones/contable/lote',
+        request,
+        expect.anything(),
+      );
+    });
+
+    it('postLoteImportacionContable propaga un 403 como ForbiddenException', async () => {
+      axiosPost.mockRejectedValue(buildAxiosError(403, { message: 'sin rol' }));
+      await expect(
+        service.postLoteImportacionContable(
+          {
+            ...identidad,
+            origen: 'carpeta',
+            filas: [
+              {
+                linea: 1,
+                codigoPatrimonial: 'x',
+                codigoQr: 'x',
+                catalogoId: 'c',
+                crudo: {},
+              },
+            ],
+          },
+          'corr-1',
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('getLotesImportacionContable llama a GET con organizacionId + estado', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse([loteRow]));
+
+      await expect(
+        service.getLotesImportacionContable('duoc-uc', 'aprobado', 'corr-1'),
+      ).resolves.toEqual([loteRow]);
+      expect(axiosGet).toHaveBeenCalledWith(
+        'http://core:3001/importaciones/contable/lote',
+        expect.objectContaining({
+          params: { organizacionId: 'duoc-uc', estado: 'aprobado' },
+        }),
+      );
+    });
+
+    it('getLoteImportacionContable llama a GET /lote/:id y parsea lote + filas', async () => {
+      axiosGet.mockResolvedValue(
+        buildAxiosResponse({
+          lote: loteRow,
+          filas: [
+            {
+              id: 'f1',
+              linea: 1,
+              codigoPatrimonial: 'DG-001',
+              codigoQr: 'DG-001',
+              catalogoId: 'cat-1',
+              serie: null,
+              responsableId: null,
+              areaId: null,
+              ubicacionId: null,
+              valorPatrimonial: null,
+              crudo: { CODIGO: 'DG-001' },
+              dryRunResultado: 'crear',
+              dryRunMotivo: null,
+            },
+          ],
+        }),
+      );
+
+      const res = await service.getLoteImportacionContable('lote-1', 'corr-1');
+
+      expect(res.lote.id).toBe('lote-1');
+      expect(res.filas[0].dryRunResultado).toBe('crear');
+      expect(axiosGet).toHaveBeenCalledWith(
+        'http://core:3001/importaciones/contable/lote/lote-1',
+        expect.anything(),
+      );
+    });
+
+    it('postAprobarLoteImportacionContable llama a POST /lote/:id/aprobar', async () => {
+      axiosPost.mockResolvedValue(
+        buildAxiosResponse({
+          filas: [],
+          creados: 3,
+          yaImportados: 0,
+          conflictos: 0,
+        }),
+      );
+
+      const res = await service.postAprobarLoteImportacionContable(
+        'lote-1',
+        identidad,
+        'corr-1',
+      );
+
+      expect(res.creados).toBe(3);
+      expect(axiosPost).toHaveBeenCalledWith(
+        'http://core:3001/importaciones/contable/lote/lote-1/aprobar',
+        identidad,
+        expect.anything(),
+      );
+    });
+
+    it('postAprobarLoteImportacionContable propaga un 409 como ConflictException', async () => {
+      axiosPost.mockRejectedValue(
+        buildAxiosError(409, { message: 'ya cerrado' }),
+      );
+      await expect(
+        service.postAprobarLoteImportacionContable(
+          'lote-1',
+          identidad,
+          'corr-1',
+        ),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('postRechazarLoteImportacionContable llama a POST /lote/:id/rechazar', async () => {
+      axiosPost.mockResolvedValue(buildAxiosResponse({ estado: 'rechazado' }));
+
+      await expect(
+        service.postRechazarLoteImportacionContable(
+          'lote-1',
+          { ...identidad, motivo: 'no cuadra' },
+          'corr-1',
+        ),
+      ).resolves.toEqual({ estado: 'rechazado' });
+      expect(axiosPost).toHaveBeenCalledWith(
+        'http://core:3001/importaciones/contable/lote/lote-1/rechazar',
+        { ...identidad, motivo: 'no cuadra' },
+        expect.anything(),
+      );
+    });
+  });
+
   describe('circuit breaker', () => {
     it('cuando el circuito esta abierto, lanza 502 sin llamar a axios', async () => {
       const breakerAbierto = {

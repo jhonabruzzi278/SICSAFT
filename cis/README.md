@@ -157,6 +157,11 @@ devuelven el envelope `{ <entidad>, total }` tal cual, sin reinterpretarlo.
 que el resto del módulo — `POST/baja/reincorporacion/PATCH responsable/descripcion` de Activo,
 `GET/POST /admin/catalogo-tipos`, `GET/POST/DELETE /admin/activos/:id/documentos`,
 `POST /admin/importaciones/contable`, `GET/POST /admin/organizaciones`, `GET /admin/indicadores`.
+Puente de la **bandeja de staging** de la ingesta de Excel supervisada (DOC-029 RF-B):
+`POST /admin/importaciones/contable/lote`, `GET /admin/importaciones/contable/lote[?estado]` +
+`/lote/:id`, `POST /lote/:id/aprobar` y `/lote/:id/rechazar` — crear/aprobar/rechazar inyectan la
+identidad del JWT (CORE verifica el rol y audita), listar/obtener requieren sesión válida y acotan
+por `organizacionId`.
 Módulo nuevo `src/zitadel-admin/` (mismo esqueleto que `core-client`/`cip-client`: config, circuit
 breaker, reintentos) — integración real con la API de administración de Zitadel
 (`ZitadelAdminService.buscarUsuarioPorEmail`/`listarGrants`/`crearGrant`, autenticada con un
