@@ -152,6 +152,49 @@ export const sesionDetalleResponseSchema = sesionResumenSchema.extend({
 });
 export type SesionDetalleResult = z.infer<typeof sesionDetalleResponseSchema>;
 
+// DOC-029 RF-I — GET /inventarios/:id/control de CORE (informe de control de área, "Pantalla 8").
+const tipoControlSchema = z.enum(['ordinario', 'extraordinario']).nullable();
+
+export const resumenControlResponseSchema = z.object({
+  sesionId: z.string(),
+  organizacionId: z.string(),
+  areaId: z.string(),
+  ubicacionId: z.string(),
+  operadorId: z.string(),
+  fechaInicio: z.string(),
+  fechaCierre: z.string(),
+  estado: z.enum(['pendiente', 'recibido', 'rechazado']),
+  escaneados: z.number(),
+  delArea: z.number(),
+  activosDelArea: z.number(),
+  delAreaPct: z.number(),
+  porEstadoDeclarado: z.object({
+    enServicio: z.number(),
+    enMantenimiento: z.number(),
+    inactivo: z.number(),
+    baja: z.number(),
+  }),
+  escaneadosLista: z.array(
+    z.object({
+      codigoQr: z.string(),
+      nombre: z.string().nullable(),
+      tipo: tipoControlSchema,
+      resultado: z.string(),
+    }),
+  ),
+  fueraDeArea: z.array(
+    z.object({
+      codigoQr: z.string(),
+      nombre: z.string().nullable(),
+      tipo: tipoControlSchema,
+      areaRealNombre: z.string().nullable(),
+    }),
+  ),
+  faltantes: z.array(z.object({ codigoQr: z.string(), nombre: z.string() })),
+  veredicto: z.enum(['exitoso', 'aceptable', 'defectuoso']),
+});
+export type ResumenControlResult = z.infer<typeof resumenControlResponseSchema>;
+
 // RF-06 (Fase 5, WEB) — contrato de GET /auditoria de CORE. Sin organizacionId (ver
 // core/src/auditoria/auditoria.types.ts): la tabla audita cualquier operacion del ecosistema.
 const auditoriaEntradaSchema = z.object({

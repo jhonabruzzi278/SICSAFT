@@ -705,6 +705,87 @@ describe('CoreClientService', () => {
     });
   });
 
+  describe('getInventarioResumenControl (DOC-029 RF-I)', () => {
+    const control = {
+      sesionId: 'sesion-1',
+      organizacionId: 'duoc-uc',
+      areaId: 'laboratorio-informatica',
+      ubicacionId: 'melipilla',
+      operadorId: 'op-1',
+      fechaInicio: '2026-01-15T10:00:00.000Z',
+      fechaCierre: '2026-01-15T10:30:00.000Z',
+      estado: 'recibido',
+      escaneados: 3,
+      delArea: 2,
+      activosDelArea: 4,
+      delAreaPct: 0.5,
+      porEstadoDeclarado: {
+        enServicio: 2,
+        enMantenimiento: 1,
+        inactivo: 0,
+        baja: 1,
+      },
+      escaneadosLista: [
+        {
+          codigoQr: 'QR-0001',
+          nombre: 'Dell Latitude',
+          tipo: 'ordinario',
+          resultado: 'correcto',
+        },
+      ],
+      fueraDeArea: [
+        {
+          codigoQr: 'QR-0009',
+          nombre: 'Lector RFID',
+          tipo: 'extraordinario',
+          areaRealNombre: 'Depósito',
+        },
+      ],
+      faltantes: [{ codigoQr: 'QR-0002', nombre: 'Proyector Epson' }],
+      veredicto: 'defectuoso',
+    };
+
+    it('llama a GET {baseUrl}/inventarios/:id/control y devuelve el resumen', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse(control));
+
+      await expect(
+        service.getInventarioResumenControl('sesion-1', 'corr-1'),
+      ).resolves.toEqual(control);
+
+      expect(axiosGet).toHaveBeenCalledWith(
+        'http://core:3001/inventarios/sesion-1/control',
+        {
+          params: undefined,
+          headers: {
+            'x-internal-service-token': 'secreto-compartido',
+            'x-correlation-id': 'corr-1',
+          },
+        },
+      );
+    });
+
+    it('escapa el inventarioId al armar la URL', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse(control));
+
+      await service.getInventarioResumenControl('id con espacio', 'corr-1');
+
+      expect(axiosGet).toHaveBeenCalledWith(
+        'http://core:3001/inventarios/id%20con%20espacio/control',
+        expect.anything(),
+      );
+    });
+
+    it('propaga un 404 de CORE como NotFoundException', async () => {
+      axiosGet.mockRejectedValue(
+        buildAxiosError(404, { message: "No existe el inventario 'x'" }),
+      );
+
+      await expect(
+        service.getInventarioResumenControl('x', 'corr-1'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('getAuditoria', () => {
     const entrada = {
       id: 'audit-1',

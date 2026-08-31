@@ -42,6 +42,7 @@ import {
   postInventarioResponseSchema,
   responsableResponseSchema,
   responsablesPaginaResponseSchema,
+  resumenControlResponseSchema,
   sedeResponseSchema,
   sedesResponseSchema,
   sesionDetalleResponseSchema,
@@ -96,6 +97,7 @@ import {
   type PostUbicacionRequest,
   type ResponsableResult,
   type ResponsablesPaginaResult,
+  type ResumenControlResult,
   type SedeResult,
   type SesionDetalleResult,
   type SesionResumenResult,
@@ -594,6 +596,24 @@ export class CoreClientService {
       correlationId,
     );
     return this.parse(sesionDetalleResponseSchema, data, 'inventarios/detalle');
+  }
+
+  // DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"). Lectura abierta,
+  // mismo criterio que getInventarioDetalle.
+  async getInventarioResumenControl(
+    inventarioId: string,
+    correlationId: string,
+  ): Promise<ResumenControlResult> {
+    const data = await this.get(
+      `/inventarios/${encodeURIComponent(inventarioId)}/control`,
+      undefined,
+      correlationId,
+    );
+    return this.parse(
+      resumenControlResponseSchema,
+      data,
+      'inventarios/control',
+    );
   }
 
   // RF-06 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos. Paginado

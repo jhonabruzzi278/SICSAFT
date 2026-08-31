@@ -45,6 +45,7 @@ describe('QrConnectorController', () => {
             getInventarioEstado: jest.fn(),
             getInventarios: jest.fn(),
             getInventarioDetalle: jest.fn(),
+            getInventarioResumenControl: jest.fn(),
           },
         },
       ],
@@ -207,6 +208,45 @@ describe('QrConnectorController', () => {
       controller.getInventarioDetalle('sesion-1', request),
     ).resolves.toBe(expected);
     expect(service.getInventarioDetalle).toHaveBeenCalledWith(
+      'sesion-1',
+      CORRELATION_ID,
+    );
+  });
+
+  it('getInventarioResumenControl delega en el service con el id y el correlationId (RF-I)', async () => {
+    const expected = {
+      sesionId: 'sesion-1',
+      organizacionId: 'duoc-uc',
+      areaId: 'laboratorio-informatica',
+      ubicacionId: 'melipilla',
+      operadorId: 'op-1',
+      fechaInicio: '2026-08-12T10:00:00.000Z',
+      fechaCierre: '2026-08-12T11:00:00.000Z',
+      estado: 'recibido' as const,
+      escaneados: 0,
+      delArea: 0,
+      activosDelArea: 0,
+      delAreaPct: 0,
+      porEstadoDeclarado: {
+        enServicio: 0,
+        enMantenimiento: 0,
+        inactivo: 0,
+        baja: 0,
+      },
+      escaneadosLista: [],
+      fueraDeArea: [],
+      faltantes: [],
+      veredicto: 'exitoso' as const,
+    };
+    service.getInventarioResumenControl.mockResolvedValue(expected);
+
+    const request = {
+      correlationId: CORRELATION_ID,
+    } as RequestWithCorrelationId;
+    await expect(
+      controller.getInventarioResumenControl('sesion-1', request),
+    ).resolves.toBe(expected);
+    expect(service.getInventarioResumenControl).toHaveBeenCalledWith(
       'sesion-1',
       CORRELATION_ID,
     );

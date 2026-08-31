@@ -71,3 +71,52 @@ export interface EscaneoDetalle {
 export interface SesionDetalle extends SesionResumen {
   escaneos: EscaneoDetalle[];
 }
+
+// DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"). Passthrough del
+// contrato de CORE (GET /inventarios/:id/control); CIS no transforma nada.
+export type TipoControl = 'ordinario' | 'extraordinario';
+export type Veredicto = 'exitoso' | 'aceptable' | 'defectuoso';
+
+export interface EscaneoControl {
+  codigoQr: string;
+  nombre: string | null;
+  tipo: TipoControl | null;
+  resultado: string;
+}
+
+export interface FueraDeAreaControl {
+  codigoQr: string;
+  nombre: string | null;
+  tipo: TipoControl | null;
+  areaRealNombre: string | null;
+}
+
+export interface FaltanteControl {
+  codigoQr: string;
+  nombre: string;
+}
+
+export interface ResumenControl {
+  sesionId: string;
+  organizacionId: string;
+  areaId: string;
+  ubicacionId: string;
+  operadorId: string;
+  fechaInicio: string;
+  fechaCierre: string;
+  estado: InventarioEstado;
+  escaneados: number;
+  delArea: number;
+  activosDelArea: number;
+  delAreaPct: number;
+  porEstadoDeclarado: {
+    enServicio: number;
+    enMantenimiento: number;
+    inactivo: number;
+    baja: number;
+  };
+  escaneadosLista: EscaneoControl[];
+  fueraDeArea: FueraDeAreaControl[];
+  faltantes: FaltanteControl[];
+  veredicto: Veredicto;
+}

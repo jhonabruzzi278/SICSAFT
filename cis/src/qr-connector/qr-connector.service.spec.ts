@@ -26,6 +26,7 @@ type CoreClientMock = jest.Mocked<
     | 'getInventarioEstado'
     | 'getInventarios'
     | 'getInventarioDetalle'
+    | 'getInventarioResumenControl'
   >
 >;
 
@@ -81,6 +82,30 @@ function buildCoreClientService(
         escaneos: [],
       },
     ),
+    getInventarioResumenControl: jest.fn().mockResolvedValue({
+      sesionId: 'sesion-1',
+      organizacionId: 'duoc-uc',
+      areaId: 'laboratorio-informatica',
+      ubicacionId: 'melipilla',
+      operadorId: 'op-1',
+      fechaInicio: '2026-08-12T10:00:00.000Z',
+      fechaCierre: '2026-08-12T11:00:00.000Z',
+      estado: 'recibido',
+      escaneados: 0,
+      delArea: 0,
+      activosDelArea: 0,
+      delAreaPct: 0,
+      porEstadoDeclarado: {
+        enServicio: 0,
+        enMantenimiento: 0,
+        inactivo: 0,
+        baja: 0,
+      },
+      escaneadosLista: [],
+      fueraDeArea: [],
+      faltantes: [],
+      veredicto: 'exitoso',
+    }),
   };
 }
 
@@ -339,6 +364,31 @@ describe('QrConnectorService', () => {
 
       await expect(
         service.getInventarioDetalle('no-existe', 'corr-1'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getInventarioResumenControl (DOC-029 RF-I)', () => {
+    it('delega en CoreClientService con el id y el correlationId', async () => {
+      const result = await service.getInventarioResumenControl(
+        'sesion-1',
+        'corr-1',
+      );
+
+      expect(result.sesionId).toBe('sesion-1');
+      expect(result.veredicto).toBe('exitoso');
+      expect(
+        coreClientService.getInventarioResumenControl,
+      ).toHaveBeenCalledWith('sesion-1', 'corr-1');
+    });
+
+    it('propaga el 404 de CORE para un id que no existe', async () => {
+      coreClientService.getInventarioResumenControl.mockRejectedValue(
+        new NotFoundException({ message: "No existe el inventario 'x'" }),
+      );
+
+      await expect(
+        service.getInventarioResumenControl('x', 'corr-1'),
       ).rejects.toThrow(NotFoundException);
     });
   });

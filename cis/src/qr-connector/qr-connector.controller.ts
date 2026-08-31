@@ -35,6 +35,7 @@ import type {
   CatalogoResponse,
   InventarioEstadoResponse,
   PostInventarioResponse,
+  ResumenControl,
   SesionDetalle,
   SesionResumen,
 } from './qr-connector.types';
@@ -105,6 +106,19 @@ export class QrConnectorController {
   ): Promise<SesionResumen[]> {
     return this.qrConnectorService.getInventarios(
       query.organizacionId,
+      request.correlationId,
+    );
+  }
+
+  // DOC-029 RF-I — informe de control de área ("Pantalla 8"). Declarado antes de `inventarios/:id`
+  // para que `:id` no capture el segmento `/control` (mismo criterio que `/estado`).
+  @Get('inventarios/:id/control')
+  getInventarioResumenControl(
+    @Param('id') id: string,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<ResumenControl> {
+    return this.qrConnectorService.getInventarioResumenControl(
+      id,
       request.correlationId,
     );
   }
