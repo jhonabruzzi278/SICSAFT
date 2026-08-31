@@ -34,7 +34,7 @@ frente en la tabla §0 y estado por rama en §Plan de fases.**
 | **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | ✅ **Hecho** (`feat/ccp-etiquetas-qr`, `20a82e5`) — verificado en modo mock |
 | **RF-G** | Fix: crash del login por timeout + layout del wizard roto a pantalla completa | `sicsaft-core` | ✅ **Hecho** (`fix/sicsaft-core-login-timeout-crash`, `db268a1`) |
 | **RF-H** | APK Android — WebView propia mínima, generada en build-time, servida por el `.exe` | `apk-aft/` (nuevo) + `sicsaft-core` | Diseñado — pendiente |
-| **RF-I** | **Pantalla 8** — informe de control de área: agregación (%, desglose por estado declarado, tipo ordinario/extraordinario, nombres) + presentación con fondos verde/amarillo/rojo, en la APP QR y en el Resumen del CCP | CORE/CIP (lectura) + APP QR + CCP | Diseñado — pendiente (contrato: [`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md)) |
+| **RF-I** | **Pantalla 8** — informe de control de área: agregación (%, desglose por estado declarado, tipo ordinario/extraordinario, nombres) + presentación con fondos verde/amarillo/rojo, en la APP QR y en el Resumen del CCP | CORE (lectura) + CIS + APP QR + CCP | 🟡 **Parcial**: capa CORE (`GET /inventarios/:id/control` + migración + veredicto) hecha (`f64bda1`). Falta el puente CIS + la presentación en APP QR y CCP. Contrato: [`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md) |
 
 Reemplaza / extiende:
 
@@ -416,26 +416,38 @@ cerrar el control de un área (CU-INV-004) y la envía a CORE; el CCP la muestra
 Resumen. Contrato exacto (6 bloques + encabezado + veredicto con color):
 [`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md).
 
-**Casi todo el plumbing ya existe** (Fase 3.1 / DOC-017): `InventarioRequest` ya lleva encabezado,
-`escaneos[].estadoDeclarado` (`activo`/`mantenimiento`/`inactivo`) y `escaneos[].bajaSugerida`
-(informativo, **no** cambia `Activo.estado`); `calcularVeredicto(faltantes, fueraDeArea)` es
-idéntico en `app-qr-sicsaft/src/lib/verdict.ts` y `cip/src/agregacion/veredicto.ts`. RF-I es
-**agregación + presentación**, sin migración nueva y sin tocar el invariante.
+**Casi todo el plumbing ya existía** (Fase 3.1 / DOC-017): `InventarioRequest` lleva encabezado,
+`escaneos[].estadoDeclarado` y `escaneos[].bajaSugerida`; `calcularVeredicto` idéntico en
+`app-qr-sicsaft/` y `cip/`. RF-I es **agregación + presentación** — con **una** migración menor
+(el estado declarado no quedaba asociado al escaneo).
 
-### I.2 CORE / CIP — resumen de control por sesión
+### I.2 CORE — resumen de control por sesión — ✅ HECHO (`feat/core-cip-resumen-control`, `f64bda1`)
 
-Endpoint nuevo de lectura (extender `GET /inventarios/:id` o `GET /dashboard/control/:sesionId`,
-guard `administrador-patrimonial` en la organización) que devuelve, por sesión:
+- **Migración `1756100000000`**: `inventarios` gana `estado_declarado` + `baja_sugerida_motivo`
+  (nullable, con check). Se persisten por escaneo en `crear()` — además de seguir aplicándose como
+  transición/evento. `inventarios` es la bitácora de escaneos, no un registro oficial (Tomo III
+  4.10 no aplica).
+- **`veredicto.ts`** en `core/src/inventarios/` — puerto de `calcularVeredicto`.
+- **`SesionInventarioRepository.findResumenControl(id)`** (4 queries) + **`GET /inventarios/:id/control`**
+  (`ServiceTokenGuard`, declarado antes de `:id`). Devuelve:
 
 | Campo | Cálculo |
 |---|---|
-| `escaneados` | `count(escaneos)` |
-| `delArea` / `delAreaPct` | numerador = escaneos `resultado = correcto`; denominador = activos registrados del área (`GET /catalogo?areaId=`) |
-| `porEstadoDeclarado` | desglose `{ enServicio, enMantenimiento, inactivo, baja }` desde `estadoDeclarado` + `bajaSugerida` |
-| `escaneadosLista[]` | `{ nombre, codigo, tipo }` — `tipo` = `ordinario` si `catalogo.tecnologiaIdentificacion = 'qr'`, `extraordinario` si `rfid`/`qr_rfid` |
-| `fueraDeArea[]` | `{ nombre, codigo, tipo, areaRealNombre }` — de escaneos `otra_area`/`otra_ubicacion` |
-| `faltantes[]` | activos del área no escaneados |
-| `veredicto` | `calcularVeredicto(faltantes.length, fueraDeArea.length)` |
+| `escaneados` | `count(inventarios WHERE sesion_id)` |
+| `delArea` / `delAreaPct` | numerador = escaneos `resultado = correcto`; denominador = `count(activos WHERE area_id = <sesión> AND estado <> 'dado_de_baja')` |
+| `porEstadoDeclarado` | `{ enServicio, enMantenimiento, inactivo, baja }` desde `estado_declarado` + `baja_sugerida_motivo` |
+| `escaneadosLista[]` | `{ codigoQr, nombre, tipo, resultado }` — `nombre` compuesto (`construirNombreActivo`), `tipo` = `ordinario` si `tecnologia_identificacion = 'qr'`, `extraordinario` si `rfid`/`qr_rfid`, `null` si el escaneo no resolvió a un activo |
+| `fueraDeArea[]` | `{ codigoQr, nombre, tipo, areaRealNombre }` — escaneos `otra_area`/`otra_ubicacion` |
+| `faltantes[]` | `{ codigoQr, nombre }` — activos del área no escaneados en la sesión |
+| `delAreaPct` + `veredicto` | los suma el service (`obtenerResumenControl`), regla pura |
+
+Cobertura: repo/service/controller/veredicto 100% líneas-funciones + e2e contra Postgres real.
+
+### I.2b CIS — passthrough (pendiente)
+
+CCP y APP QR hablan con CIS, no con CORE. Falta un `GET /admin/inventarios/:id/control` en el
+puente de CIS (para el CCP, con el guard de rol real) y el equivalente para la APP QR — mismo
+patrón que `GET /inventarios/:id` ya proxeado.
 
 ### I.3 APP QR — Pantalla 8 al cerrar
 
@@ -496,9 +508,10 @@ campo `direccion` de B; I depende de que existan sesiones con `estadoDeclarado`,
 | 9 | `feat/cis-ingesta-lote` | RF-B capa CIS (endpoint de lote) + resolve-or-create en CORE | 8 | ✅ `cedd836` |
 | 10a | `feat/ccp-ingesta-revision` | **RF-B.6.3** CCP (revisión Aprobar/Rechazar) — `cecb0b7`; **RF-B.6.1** IPC selector de carpeta — `707d732` | 7, 9 | ✅ |
 | **10b** | `feat/ccp-ingesta-revision` (o rama nueva) | **RF-B.6.2** — watcher del `.exe` (chokidar → ETL → CIS) + service account Keycloak `sicsaft-ingesta` + `prepack.cjs` del sidecar Python | 10a | ⬜ **siguiente** (necesita el stack arriba) |
-| 11 | `feat/core-cip-resumen-control` | RF-I capa CORE/CIP (`GET /dashboard/control/:sesionId`) | main (prod) | ⬜ |
-| 12 | `feat/appqr-pantalla8` | RF-I APP QR (Pantalla 8 + fondos de color + UI de estado por AFT) | 11 | ⬜ |
-| 13 | `feat/ccp-pantalla8` | RF-I CCP (detalle de sesión en el Resumen) | 12 | ⬜ |
+| 11 | `feat/core-cip-resumen-control` | RF-I capa CORE (`GET /inventarios/:id/control` + migración `estado_declarado`/`baja_sugerida_motivo` + `veredicto.ts`) | main (prod) | ✅ `f64bda1` |
+| 11b | `feat/cis-inventario-control` (o dentro de 12/13) | RF-I puente CIS — passthrough de `GET /inventarios/:id/control` para CCP (`/admin/...`) y APP QR | 11 | ⬜ |
+| 12 | `feat/appqr-pantalla8` | RF-I APP QR (Pantalla 8 + fondos de color + UI de estado por AFT) | 11b | ⬜ |
+| 13 | `feat/ccp-pantalla8` | RF-I CCP (detalle de sesión en el Resumen) | 11b | ⬜ |
 | 14 | `feat/ccp-etiquetas-qr` | RF-F (módulo QR + Code128 por dirección) | 10a | ✅ `20a82e5` |
 | 15 | `feat/core-auditoria-area` | RF-E capa CORE (`auditoria.area_operativa`) | 3 | ⬜ |
 | 16 | `feat/cis-auditoria-area` | RF-E capa CIS (passthrough `?area=`) | 15 | ⬜ |
