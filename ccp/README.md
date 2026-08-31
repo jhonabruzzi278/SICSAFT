@@ -41,9 +41,11 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
   / [DOC-029](../aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md) RF-A).
   No es un dato de dominio: lo inyecta el `.exe` embebido (`VITE_SICSAFT_NIVEL`, mismo canal que
   la config OIDC — DOC-028 Fase C.0) o una env var en `devops/onprem`; sin eso se asume `2`
-  (portal completo, caso de `npm run dev` suelto). En **Nivel 1** el hub/sidebar ocultan Contratos
-  y Estructura, y Activos es solo consulta (sin alta manual); el gate real igual está en CIS/CORE
-  (DOC-023).
+  (portal completo, caso de `npm run dev` suelto). **Contratos e Inventarios** están retirados del
+  CCP en cualquier nivel (usuario 2026-08-31: el contrato no se gestiona desde el portal del AFT;
+  el escaneo se hace en la APP QR y los resultados se ven en el Resumen). En **Nivel 1** además
+  se oculta Estructura y Activos es solo consulta (sin alta manual). Las páginas y los métodos de
+  cliente siguen en el repo, solo sin exponer; el gate real igual está en CIS/CORE (DOC-023).
 - `pages/HubPage.tsx` — lista las organizaciones con contrato vigente del operador (RF-02) y, por
   cada una, los módulos ya implementados (incluido `dashboard`, RF-09/DOC-019 — sigue siendo un
   módulo del Profesional de AFT), filtrados por `nivelActual()`. Sin segmentación por rol (DOC-020

@@ -33,12 +33,11 @@ describe('nivelActual', () => {
 });
 
 describe('moduloHabilitado', () => {
-  it('en Nivel 1 habilita consulta/inventario/dashboard/importaciones/auditoria', () => {
+  it('en Nivel 1 habilita consulta / dashboard / importaciones / auditoria / etiquetas', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '1' };
     for (const path of [
       'dashboard',
       'activos',
-      'inventarios',
       'importaciones',
       'auditoria',
       'etiquetas',
@@ -47,15 +46,21 @@ describe('moduloHabilitado', () => {
     }
   });
 
-  it('en Nivel 1 oculta contratos y estructura (gestion avanzada)', () => {
+  it('en Nivel 1 oculta la gestion avanzada (estructura)', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '1' };
-    expect(moduloHabilitado('contratos')).toBe(false);
     expect(moduloHabilitado('estructura')).toBe(false);
   });
 
-  it('en Nivel 2 habilita todo', () => {
+  it('en Nivel 2 habilita la gestion avanzada (estructura)', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '2' };
-    expect(moduloHabilitado('contratos')).toBe(true);
     expect(moduloHabilitado('estructura')).toBe(true);
+  });
+
+  it('contratos e inventarios estan retirados del CCP en cualquier nivel', () => {
+    for (const nivel of ['1', '2']) {
+      window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: nivel };
+      expect(moduloHabilitado('contratos')).toBe(false);
+      expect(moduloHabilitado('inventarios')).toBe(false);
+    }
   });
 });

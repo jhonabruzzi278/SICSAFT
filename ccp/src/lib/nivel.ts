@@ -12,19 +12,29 @@ export function nivelActual(): NivelProducto {
   return String(crudo) === '1' ? 1 : 2;
 }
 
-// Modulos habilitados en Nivel 1 (DOC-029 RF-A §A.3): identificacion, consulta, inventarios,
-// incidencias, historial, trazabilidad basica (DOC-025 §1). El resto — "gestion avanzada":
-// Contratos, ABM de estructura, Administracion — es Nivel 2. `etiquetas` (RF-F) queda listado de
-// antemano para cuando exista. El alta manual de activos tambien es Nivel 2 (ver ActivosPage).
+// Modulos retirados del CCP por completo, en cualquier nivel — "no es necesario" (usuario,
+// 2026-08-31): Contratos (la vigencia/estado del contrato no se gestiona desde el portal del AFT)
+// e Inventarios (el escaneo se hace en la APP QR del telefono; los resultados de cada sesion se
+// ven en el Resumen, tarjeta "Sesiones de inventario"). Las paginas y los metodos de cliente
+// quedan en el repo por si vuelven — el hub, el sidebar y las rutas no los exponen.
+const MODULOS_RETIRADOS: ReadonlySet<string> = new Set([
+  'contratos',
+  'inventarios',
+]);
+
+// Modulos habilitados en Nivel 1 (DOC-029 RF-A §A.3): identificacion, consulta, incidencias,
+// historial, trazabilidad basica (DOC-025 §1). El resto — "gestion avanzada": ABM de estructura,
+// Administracion — es Nivel 2. `etiquetas` (RF-F) queda listado de antemano para cuando exista. El
+// alta manual de activos tambien es Nivel 2 (ver ActivosPage).
 const MODULOS_NIVEL_1: ReadonlySet<string> = new Set([
   'dashboard',
   'activos',
-  'inventarios',
   'importaciones',
   'auditoria',
   'etiquetas',
 ]);
 
 export function moduloHabilitado(path: string): boolean {
+  if (MODULOS_RETIRADOS.has(path)) return false;
   return nivelActual() === 2 || MODULOS_NIVEL_1.has(path);
 }
