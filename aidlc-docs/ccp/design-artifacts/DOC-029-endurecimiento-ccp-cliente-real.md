@@ -9,24 +9,32 @@ varias capas se documenta bajo el sistema donde nace la decisión").
 > (DOC-028). Seis frentes; alcance de cada uno confirmado por el usuario en la misma sesión.
 > **v2 (2026-08-31)** — decisiones cerradas: RF-B = sidecar Python; RF-H = APK WebView propia
 > mínima (opción B), se construye ya; "Dirección" = CORE refleja el Excel tal cual en esta v1.
+> **v3 (2026-08-31)** — reconciliación con el avance real + `casos-de-uso/`: RF-A y las capas
+> CORE/CIS/ETL de RF-B ya commiteadas; se formaliza **RF-I** (contrato de la Pantalla 8, antes
+> suelto en `casos-de-uso/CONTRATO-PANTALLA-8.md`) como octavo frente; se agrega el desglose de
+> tareas de **RF-B.4** (capa CCP + watcher + empaquetado) y la sección **§Vacíos de casos de uso
+> fuera de alcance** (los CU del catálogo que ningún RF cubre, con recomendación in/out Nivel 1).
 
-**Estado: diseñado. RF-G ya implementado (fix de crash + layout). El resto espera confirmación
-del plan de fases antes de tocar `src/`.**
+**Estado (v3): RF-G, RF-A y RF-B (capas ETL Python + CORE staging + CIS puente) implementados y
+commiteados en el stack de ramas. Falta: RF-B.4 (capa CCP + watcher del `.exe` + empaquetado del
+sidecar), RF-I, RF-F, RF-D, RF-E, RF-H. RF-C sigue bloqueado por el spec de Guido. Detalle por
+frente en la tabla §0 y estado por rama en §Plan de fases.**
 
 ---
 
-## 0. Resumen de los seis frentes
+## 0. Resumen de los frentes
 
-| ID | Frente | Capas | Estado |
+| ID | Frente | Capas | Estado (v3, 2026-08-31) |
 |----|--------|-------|--------|
-| **RF-A** | Flag de nivel (1/2) en CCP — gate de módulos/features | CCP + `sicsaft-core` config | Diseñado |
-| **RF-B** | Ingesta de Excel supervisada — carpeta → **ETL Python** → CIS → CORE (staging) → **revisión del AFT** → BPI | Python sidecar + CORE + CIS + CCP | Diseñado |
-| **RF-C** | 3 pestañas nuevas en el resumen (Dashboard) | CCP | **Bloqueado — spec lo entrega Guido** |
-| **RF-D** | Veredicto de sesión accionable → Auditoría / baja / Inventario / Contrato | CCP + 1 automatización en CORE | Diseñado |
-| **RF-E** | Auditoría por **área operativa real** del actor + columna "Revisar" | CORE + CIS + CCP | Diseñado |
-| **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | Diseñado |
-| **RF-G** | Fix: crash del login por timeout + layout del wizard roto a pantalla completa | `sicsaft-core` | ✅ **Hecho** (rama `fix/sicsaft-core-login-timeout-crash`) |
-| **RF-H** | APK Android — WebView propia mínima, generada en build-time, servida por el `.exe` | `apk-aft/` (nuevo) + `sicsaft-core` | Diseñado |
+| **RF-A** | Flag de nivel (1/2) en CCP — gate de módulos/features (+ retiro de Contratos e Inventarios del portal) | CCP + `sicsaft-core` config | ✅ **Hecho** (`feat/ccp-nivel-flag`, `92f6a0e`→`e3169bf`) |
+| **RF-B** | Ingesta de Excel supervisada — carpeta → **ETL Python** → CIS → CORE (staging) → **revisión del AFT** → BPI | Python sidecar + CORE + CIS + CCP | 🟡 **Parcial**: ETL Python (`feat/etl-contable-python`, `772df6f`), CORE staging + resolve-or-create (`feat/core-ingesta-staging`, `c41a054`), CIS puente (`feat/cis-ingesta-lote`, `cedd836`) hechos. **Falta RF-B.4** (§B.6): capa CCP + watcher del `.exe` + empaquetado del sidecar. |
+| **RF-C** | 3 pestañas nuevas en el resumen (Dashboard) | CCP | 🔒 **Bloqueado — spec lo entrega Guido** |
+| **RF-D** | Veredicto de sesión accionable → Auditoría / baja / Inventario / Contrato | CCP + 1 automatización en CORE | Diseñado — pendiente |
+| **RF-E** | Auditoría por **área operativa real** del actor + columna "Revisar" | CORE + CIS + CCP | Diseñado — pendiente |
+| **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | Diseñado — pendiente |
+| **RF-G** | Fix: crash del login por timeout + layout del wizard roto a pantalla completa | `sicsaft-core` | ✅ **Hecho** (`fix/sicsaft-core-login-timeout-crash`, `db268a1`) |
+| **RF-H** | APK Android — WebView propia mínima, generada en build-time, servida por el `.exe` | `apk-aft/` (nuevo) + `sicsaft-core` | Diseñado — pendiente |
+| **RF-I** | **Pantalla 8** — informe de control de área: agregación (%, desglose por estado declarado, tipo ordinario/extraordinario, nombres) + presentación con fondos verde/amarillo/rojo, en la APP QR y en el Resumen del CCP | CORE/CIP (lectura) + APP QR + CCP | Diseñado — pendiente (contrato: [`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md)) |
 
 Reemplaza / extiende:
 
@@ -178,25 +186,47 @@ identidad sintética de DOC-016 §5 (`operadorId: 'ingesta-contable'`, rol
 `administrador-patrimonial` afirmado por config; CORE re-verifica igual). **La aprobación** la hace
 un humano con su JWT real desde CCP, no la identidad sintética.
 
-### B.6 CCP — selector de carpeta + revisión, dentro de "Importación"
+### B.6 CCP + watcher + empaquetado — lo único que falta de RF-B
 
-- **Selector de carpeta**: IPC nuevo `sicsaftCore.elegirCarpetaIngesta()` →
-  `dialog.showOpenDialog({ properties: ['openDirectory'] })`, persistido en `instalacion.json`
-  (`carpetaIngesta`) y pasado a `cis` por `backend-configs.ts`. En navegador puro (Nivel 2 sobre
-  `devops/onprem`) **fuera de v1**: la fija el operador por env var.
-- **`ImportacionesPage.tsx`** gana dos secciones: (1) la carga manual de CSV actual, sin cambios;
-  (2) "Carpeta vigilada" — muestra la carpeta elegida (botón para cambiarla) y la lista de lotes
-  (`pendiente_revision` arriba); al abrir un lote, tabla de filas con `dry_run_resultado` como
-  `<Badge>`, filtrable, y botones **Aprobar** / **Rechazar** (Rechazar pide motivo).
+Tres sub-frentes en una rama (`feat/ccp-ingesta-revision`), en este orden:
+
+#### B.6.1 `sicsaft-core` — selector de carpeta (IPC)
+
+| Archivo | Cambio |
+|---|---|
+| `src/shared/ipc-contract.ts` | Canal nuevo `sicsaft-core:elegirCarpetaIngesta` → `Promise<string \| null>`; `sicsaft-core:leerCarpetaIngesta` → `Promise<string \| null>`. `InstalacionCompleta` gana `carpetaIngesta?: string`. |
+| `src/main/ipc/handlers.ts` | Handler `elegirCarpetaIngesta`: `dialog.showOpenDialog(win, { properties: ['openDirectory'], title: 'Carpeta donde el especialista deja los Excel' })` → persiste con `marcarInstalacionCompleta({ ...prev, carpetaIngesta })`. Handler `leerCarpetaIngesta`: `leerInstalacionExistente()?.carpetaIngesta ?? null`. |
+| `src/preload/index.ts` | Expone ambos en `window.sicsaftCore`. |
+| `src/main/ipc/handlers.ts` `asegurarServidoresPortales` | Agrega `VITE_SICSAFT_CARPETA_INGESTA: carpetaIngesta ?? ''` al `configRuntime` de `ccp` (solo para mostrarla en la UI; el watcher vive en el main). |
+
+#### B.6.2 `sicsaft-core` — watcher + empaquetado del sidecar Python
+
+| Archivo | Cambio |
+|---|---|
+| `package.json` (sicsaft-core) | `dependencies`: `chokidar`. |
+| `src/main/services/ingesta-watcher.ts` **(nuevo)** | `iniciarWatcher(carpeta, { onLote })`: `chokidar.watch(carpeta, { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 2000 } })` sobre `*.xls`/`*.xlsx`. Por cada `add`: `execFile(rutaPythonEmbebido, [rutaScript, '--entrada', archivo, '--organizacion', orgId, '--mapeo', rutaMapeoOrg, '--cis-url', urlCisLocal, '--token', tokenServicio])`. Debounce por archivo, mueve el `.xls` procesado a `<carpeta>/.procesados/` (o `.error/` si el ETL sale ≠ 0). Log a `ingesta.log` en `%APPDATA%`. |
+| `src/main/index.ts` (o donde se orquesta el arranque) | Tras `asegurarServidoresPortales`, si hay `carpetaIngesta` → `iniciarWatcher`. Reiniciar el watcher cuando el usuario cambia la carpeta. |
+| **token de servicio** | El watcher es un flujo sin humano → usa la identidad sintética de DOC-016 §5 (`operadorId: 'ingesta-contable'`). El `.exe` ya obtiene tokens de servicio para el bootstrap (`keycloak-admin.json` / client credentials); reusar ese mecanismo, **no** el JWT del login embebido. |
+| `resources/etl-contable/` | `prepack.cjs`: descargar/incluir `python-build-standalone` (win-x64, ~15 MB comprimido), crear venv con `pandas`+`xlrd` (o `--target` install), copiar `herramientas/etl-contable/etl_contable.py` + `mapeo/`. `execFile` con `rutaPythonEmbebido` absoluta y `PATH` acotado (mismo criterio que el `prepack.cjs` actual, sonar S4036). En **dev** (`npm run dev`) usa el `python` del sistema y `herramientas/etl-contable/` in situ. |
+| `electron-builder` config | `extraResources` incluye `resources/etl-contable/**`. |
+
+#### B.6.3 CCP — `ImportacionesPage.tsx` + cliente CIS
+
+| Archivo | Cambio |
+|---|---|
+| `src/lib/cis-client.ts` | `listarLotesImportacionContable(organizacionId, estado?)` → `GET /admin/importaciones/contable/lote`; `obtenerLoteImportacionContable(id)` → `GET .../lote/:id`; `aprobarLoteImportacionContable(id, organizacionId)` → `POST .../lote/:id/aprobar`; `rechazarLoteImportacionContable(id, organizacionId, motivo?)` → `POST .../lote/:id/rechazar`. (Los endpoints CIS ya existen — `feat/cis-ingesta-lote`.) |
+| `src/pages/ImportacionesPage.tsx` | Segunda sección **"Carpeta vigilada"** debajo de la carga manual de CSV (que no cambia): (a) muestra `VITE_SICSAFT_CARPETA_INGESTA` + botón "Cambiar carpeta" → `window.sicsaftCore.elegirCarpetaIngesta()` (si no está en el `.exe`, el botón se oculta y se muestra la nota de env var); (b) lista de lotes, `pendiente_revision` arriba, con `archivoNombre`, `recibidoEn`, contadores del `resumen`; (c) al abrir un lote: tabla de filas con `dryRunResultado` (`crear`/`actualizar`/`conflicto`) como `<Badge>`, filtro por resultado, y **Aprobar** / **Rechazar** (Rechazar abre un prompt de motivo). Tras aprobar: toast + refresco del catálogo. |
+| `src/lib/nivel.ts` | `importaciones` ya está en `MODULOS_NIVEL_1` (RF-A) — sin cambios. |
+| Tests | `cis-client` métodos nuevos (msw); `ImportacionesPage` render de lote + acción aprobar/rechazar (vitest + RTL). El ciclo staging→aprobar contra Postgres real ya está cubierto por el e2e de `feat/core-ingesta-staging`. |
+
 - No se unifica la carga manual bajo staging (decisión del usuario): el AFT que sube un CSV a mano
   ya es el humano que revisa, en ese acto.
 
-### B.7 `codigoQr` acuñado — decisión pendiente menor
+### B.7 `codigoQr` acuñado — resuelto en el ETL
 
-El QR de cada AFT lo genera el ETL (el Excel no lo trae). Formato propuesto: **el propio `CODIGO`
-del Excel** (`DG-001`), que ya es único por organización y legible. Alternativa: prefijar la
-organización. Se confirma al implementar RF-F (las etiquetas tienen que poder representarlo como
-QR y como Code128 — un `CODIGO` corto ASCII cumple ambos).
+El ETL ya acuña `codigoQr = CODIGO.strip().upper()` (el propio código del Excel, `DG-001`), único
+por organización, ASCII corto → representable como QR **y** como Code128 (lo confirma RF-F). Sin
+prefijo de organización en v1. Ver `herramientas/etl-contable/etl_contable.py` `acunar_qr`.
 
 ---
 
@@ -364,31 +394,114 @@ propia**.
 
 ---
 
+## RF-I — Pantalla 8 (informe de control de área)
+
+### I.1 Alcance confirmado — spec del usuario (2026-08-31, "PANTALLA 8")
+
+Título en pantalla: *RESULTADOS DE ACCIÓN DE SUPERVISIÓN Y CONTROL DE AFT*. La arma la APP QR al
+cerrar el control de un área (CU-INV-004) y la envía a CORE; el CCP la muestra por sesión en el
+Resumen. Contrato exacto (6 bloques + encabezado + veredicto con color):
+[`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md).
+
+**Casi todo el plumbing ya existe** (Fase 3.1 / DOC-017): `InventarioRequest` ya lleva encabezado,
+`escaneos[].estadoDeclarado` (`activo`/`mantenimiento`/`inactivo`) y `escaneos[].bajaSugerida`
+(informativo, **no** cambia `Activo.estado`); `calcularVeredicto(faltantes, fueraDeArea)` es
+idéntico en `app-qr-sicsaft/src/lib/verdict.ts` y `cip/src/agregacion/veredicto.ts`. RF-I es
+**agregación + presentación**, sin migración nueva y sin tocar el invariante.
+
+### I.2 CORE / CIP — resumen de control por sesión
+
+Endpoint nuevo de lectura (extender `GET /inventarios/:id` o `GET /dashboard/control/:sesionId`,
+guard `administrador-patrimonial` en la organización) que devuelve, por sesión:
+
+| Campo | Cálculo |
+|---|---|
+| `escaneados` | `count(escaneos)` |
+| `delArea` / `delAreaPct` | numerador = escaneos `resultado = correcto`; denominador = activos registrados del área (`GET /catalogo?areaId=`) |
+| `porEstadoDeclarado` | desglose `{ enServicio, enMantenimiento, inactivo, baja }` desde `estadoDeclarado` + `bajaSugerida` |
+| `escaneadosLista[]` | `{ nombre, codigo, tipo }` — `tipo` = `ordinario` si `catalogo.tecnologiaIdentificacion = 'qr'`, `extraordinario` si `rfid`/`qr_rfid` |
+| `fueraDeArea[]` | `{ nombre, codigo, tipo, areaRealNombre }` — de escaneos `otra_area`/`otra_ubicacion` |
+| `faltantes[]` | activos del área no escaneados |
+| `veredicto` | `calcularVeredicto(faltantes.length, fueraDeArea.length)` |
+
+### I.3 APP QR — Pantalla 8 al cerrar
+
+Nueva pantalla tras `POST /inventarios`, renderiza el resumen de I.2 con los **fondos de color**
+del veredicto (🟩 `exitoso` / 🟨 `aceptable` / 🟥 `defectuoso`). Confirmar/ajustar la UI de marcado
+de estado por AFT durante el escaneo en `ScanPage.tsx` (el payload ya lo acepta).
+
+### I.4 CCP — Resumen → detalle de sesión
+
+`DashboardPage.tsx` / la tarjeta "Sesiones de inventario": al abrir una sesión, la **misma
+Pantalla 8** (mismo contrato, mismos colores) que la APP.
+
+### I.5 Relación con RF-D
+
+El veredicto `defectuoso` de la Pantalla 8 es el mismo que dispara la auto-auditoría de RF-D §D.3
+y el énfasis de los links profundos de RF-D §D.2. RF-I entrega la vista; RF-D las acciones.
+
+---
+
+## §Vacíos de casos de uso fuera del alcance de DOC-029
+
+Del catálogo `casos-de-uso/` (Cap. 12), los CU que **ningún RF de esta fase cubre**. Recomendación
+in/out para la entrega del cliente **Nivel 1 QR**, con el criterio de que Nivel 1 = flujo de
+auditoría por QR + carga inicial; la "gestión avanzada" es Nivel 2 (RF-A ya la oculta).
+
+| CU | Vacío | Recomendación Nivel 1 | Si el cliente lo pide |
+|---|---|---|---|
+| **CU-INV-001** Crear/programar inventario | Hoy el operador abre la sesión ad-hoc desde la APP; no hay estado `Programado` ni paso previo del Adm/Supervisor | **Fuera de v1** — el flujo ad-hoc alcanza para una municipalidad chica | RF nuevo `feat/core-inventario-programado` (tabla `inventario` con estado + alcance; el CCP lista y la APP filtra por inventario asignado) |
+| **CU-INV-003** Conciliar — 6 categorías completas | El veredicto + 3 tarjetas del Resumen cubren *no localizado / fuera de área / incidencia*. Faltan "sobrante" (parcialmente visible como fuera-de-área) y "discrepancia de responsable", y un resultado de conciliación persistido como tal | **Parcial aceptable en v1** — RF-I formaliza la vista por sesión; la conciliación multi-sesión del Supervisor queda para después | RF nuevo `feat/cip-conciliacion` (vista dedicada + persistir el resultado de conciliación) |
+| **CU-INC-001** Expediente de incidencia completo | Hoy `{codigoQr, descripcion}` dentro de la sesión. Sin categoría/responsable/estado propios, sin alta manual fuera de un relevamiento | **Fuera de v1** — para el relevamiento alcanza | RF nuevo `feat/core-incidencias-expediente` (tabla `incidencia` con máquina de estados) |
+| **CU-INC-002** Resolver incidencia | Sin endpoint de cierre; el Resumen sólo muestra en lectura | **Fuera de v1** (depende de CU-INC-001) | Junto con CU-INC-001 |
+| **CU-PAT-004** Traslado dedicado | `areaId`/`ubicacionId` se editan, pero no hay flujo "Trasladar" con evento y registro de ubicación anterior | **Fuera de v1** — oculto en Nivel 1 por RF-A de todos modos; la discrepancia de ubicación se ve en el relevamiento | RF nuevo cuando se habilite Nivel 2 |
+| **CU-CIP-002** Reporte parametrizado PDF/Excel | Hay dashboards interactivos, no un generador con export y bloque "fecha + parámetros + contexto" | **Fuera de v1** — los dashboards alcanzan para la validación | RF nuevo `feat/cip-reporte-parametrizado` (usa el estilo de informe `.docx` ya definido en memoria del proyecto) |
+| **CU-ADM-001/002** CRUD completo de usuarios | Sólo alta del Director (wizard) + "designar AFT" (Directivo). `web_admin/` en construcción (DOC-022) | **Suficiente para v1** — con 2-3 usuarios por organización el wizard + designar AFT cubren el alta | Terminar `web_admin/` (DOC-022, ya diseñado) |
+| **RBAC** — Supervisor Patrimonial / Auditor sin rol propio | Hoy los cubre `administrador-patrimonial` (`casos-de-uso/MATRIZ-ACTOR-FUNCION.md`) | **Decisión requerida ANTES de entregar** si el cliente exige separación de funciones (que quien concilia ≠ quien carga; auditor sólo-lectura) | Rama `feat/rbac-supervisor-auditor` (roles Keycloak nuevos + guards + DOC-023) — **no** es opcional si el pliego lo pide |
+| **CU-RFID-\*** | Nivel 3, sin código | **Fuera** — no es Nivel 1 | Nivel 3 (`rfid/` nuevo, ROADMAP) |
+
+Ninguno bloquea la QA del flujo de auditoría (QA-3..QA-6 de `casos-de-uso/PLAN-QA.md`). El único
+que puede bloquear la **entrega** es el RBAC de Supervisor/Auditor, y sólo si el cliente lo exige.
+
+---
+
 ## §Plan de fases (`gh stack`)
 
 Orden por dependencia (E y B: CORE→CIS→CCP; D depende del filtro por área de E; F depende del
-campo `direccion` de B):
+campo `direccion` de B; I depende de que existan sesiones con `estadoDeclarado`, ya en prod).
 
-| # | Rama | Frente | Depende de |
-|---|------|--------|------------|
-| 1 | `docs/doc-029-endurecimiento-ccp-cliente-real` | Este diseño (PR solo-docs) | — |
-| 2 | `fix/sicsaft-core-login-timeout-crash` | **RF-G — ya commiteado** | — |
-| 3 | `feat/ccp-nivel-flag` | RF-A (CCP + inyección de config + `instalacion.json.nivel`) | 1 |
-| 4 | `feat/core-auditoria-area` | RF-E capa CORE | 1 |
-| 5 | `feat/cis-auditoria-area` | RF-E capa CIS | 4 |
-| 6 | `feat/ccp-auditoria-area` | RF-E capa CCP (Área / Operación / Revisar) | 5 |
-| 7 | `feat/etl-contable-python` | RF-B sidecar Python + empaquetado en el `.exe` | 1 |
-| 8 | `feat/core-ingesta-staging` | RF-B capa CORE (tablas espejo del Excel + aprobar/rechazar/dry-run + resolve-or-create) | 1 |
-| 9 | `feat/cis-ingesta-lote` | RF-B capa CIS (endpoint de lote) | 8 |
-| 10 | `feat/ccp-ingesta-revision` | RF-B capa CCP (selector de carpeta IPC + revisión en Importación) | 7, 9 |
-| 11 | `feat/ccp-etiquetas-qr` | RF-F (módulo QR + Code128 por dirección) | 10 |
-| 12 | `feat/ccp-veredicto-accionable` | RF-D (links profundos + automatización D.3) | 6 |
-| 13 | `apk-aft-webview` | RF-H (proyecto `apk-aft/` + CI + servido por el `.exe` + 2º QR) | 1 |
-| — | RF-C | 3 pestañas — rama aparte cuando Guido entregue el spec | spec de Guido |
+**Estado real del stack (2026-08-31)** — ramas locales, sin push ni PR todavía:
+
+| # | Rama | Frente | Depende de | Estado |
+|---|------|--------|------------|--------|
+| 1 | `docs/doc-029-endurecimiento-ccp-cliente-real` | Este diseño (PR solo-docs) | — | ✅ v3 commiteado |
+| 1b | `docs/casos-de-uso-qa` | `casos-de-uso/` (Cap. 12) + `PLAN-QA.md` + `CONTRATO-PANTALLA-8.md` | 3 | ✅ commiteado (`0437b54`) |
+| 2 | `fix/sicsaft-core-login-timeout-crash` | **RF-G** | — | ✅ `db268a1` |
+| 3 | `feat/ccp-nivel-flag` | RF-A (+ retiro Contratos/Inventarios) | 2 | ✅ `92f6a0e`→`e3169bf` |
+| 7 | `feat/etl-contable-python` | RF-B sidecar Python (`herramientas/etl-contable/`) | 3 | ✅ `772df6f` — **falta** el empaquetado en el `.exe` (movido a #10) |
+| 8 | `feat/core-ingesta-staging` | RF-B capa CORE (tablas espejo + dry-run) | 3 | ✅ `c41a054` |
+| 9 | `feat/cis-ingesta-lote` | RF-B capa CIS (endpoint de lote) + resolve-or-create en CORE | 8 | ✅ `cedd836` |
+| **10** | **`feat/ccp-ingesta-revision`** | **RF-B.6** — CCP (revisión Aprobar/Rechazar) + IPC selector de carpeta + watcher del `.exe` + `prepack.cjs` del sidecar Python | 7, 9 | ⬜ **siguiente** |
+| 11 | `feat/core-cip-resumen-control` | RF-I capa CORE/CIP (`GET /dashboard/control/:sesionId`) | main (prod) | ⬜ |
+| 12 | `feat/appqr-pantalla8` | RF-I APP QR (Pantalla 8 + fondos de color + UI de estado por AFT) | 11 | ⬜ |
+| 13 | `feat/ccp-pantalla8` | RF-I CCP (detalle de sesión en el Resumen) | 12 | ⬜ |
+| 14 | `feat/ccp-etiquetas-qr` | RF-F (módulo QR + Code128 por dirección) | 10 | ⬜ |
+| 15 | `feat/core-auditoria-area` | RF-E capa CORE (`auditoria.area_operativa`) | 3 | ⬜ |
+| 16 | `feat/cis-auditoria-area` | RF-E capa CIS (passthrough `?area=`) | 15 | ⬜ |
+| 17 | `feat/ccp-auditoria-area` | RF-E capa CCP (Área / Operación / Revisar) | 16 | ⬜ |
+| 18 | `feat/ccp-veredicto-accionable` | RF-D (links profundos + automatización D.3) | 13, 17 | ⬜ |
+| 19 | `apk-aft-webview` | RF-H (`apk-aft/` + CI + servido por el `.exe` + 2º QR) | 3 | ⬜ |
+| — | RF-C | 3 pestañas — rama aparte cuando Guido entregue el spec | spec de Guido | 🔒 |
+
+**Camino crítico para desbloquear la QA completa** (`casos-de-uso/PLAN-QA.md §5`): #10 (desbloquea
+QA-1) → #14 (desbloquea QA-2) → #11-13 (completan QA-3.10 / QA-4.2) → #18 (completa QA-5.5) →
+#15-17 (refuerzan QA-4.6) → #19 (reemplaza la PWA). #11-13 (RF-I) son independientes de #10 y se
+pueden hacer en paralelo.
 
 ## §Testing — runbook de validación (los 6 pasos del usuario)
 
-Va en `aidlc-docs/ccp/testing/` como runbook ejecutable. Sin bajar el umbral de cobertura vigente.
+El runbook completo ya vive en [`casos-de-uso/PLAN-QA.md`](../../../casos-de-uso/PLAN-QA.md)
+(suites QA-0…QA-6, criterios §12.36, tabla de resultados). Resumen de los 6 pasos:
 
 1. **Cargar el Excel**: dejar `EJEMPLOS DE EMPRESAS Y AFT.xls` en la carpeta elegida en CCP →
    verificar que el ETL lo normaliza y aparece un lote `pendiente_revision`.
@@ -405,9 +518,22 @@ Va en `aidlc-docs/ccp/testing/` como runbook ejecutable. Sin bajar el umbral de 
    de cada auditoría (por área y general del Dashboard). Cada combinación = una hipótesis de la
    vida real.
 
-Cobertura automatizada nueva: `nivelActual()` (RF-A); ciclo de lote staging → aprobar/rechazar
-contra Postgres real (RF-B CORE); ETL Python con `.xls` fixture (pytest, RF-B); links profundos +
-automatización D.3 (RF-D); filtro `?area=` + passthrough (RF-E); render QR/Code128 (RF-F).
+Cobertura automatizada nueva por frente:
+
+- **RF-A** ✅ `nivelActual()` + `moduloHabilitado()` (`ccp/src/lib/nivel.test.ts`).
+- **RF-B** ✅ ciclo lote staging → aprobar/rechazar + resolve-or-create contra Postgres real
+  (`core` e2e); ETL Python con `.xls` fixture (`herramientas/etl-contable/tests/`, pytest + ruff).
+- **RF-B.6** ⬜ `cis-client` métodos de lote (msw); `ImportacionesPage` render + aprobar/rechazar
+  (vitest/RTL); watcher: test de `ingesta-watcher.ts` con carpeta temporal + ETL mockeado.
+- **RF-I** ⬜ agregación del resumen de control (`core`/`cip` unit + e2e); render de Pantalla 8
+  con los 3 veredictos (vitest, APP QR y CCP comparten el componente).
+- **RF-D** ⬜ links profundos (query params) + automatización D.3 (`core` e2e: cerrar sesión
+  `defectuoso` → 1 fila en `auditoria`).
+- **RF-E** ⬜ filtro `?area=` + passthrough en ambos sentidos (`core`/`cis`).
+- **RF-F** ⬜ render QR/Code128 + agrupación por dirección (vitest).
+
+Sin bajar el umbral de cobertura vigente (core/cis/cip 100% líneas-funciones; frontends
+`vitest run --coverage`).
 
 ## §Documentos relacionados
 
@@ -420,4 +546,8 @@ RF-H la des-difiere), [DOC-012](../../../seguridad/DOC-012-administrador-patrimo
 §2 (veredicto de sesión), [DOC-023](DOC-023-matriz-permisos-rbac.md) (RBAC),
 [DOC-024](DOC-024-crud-completo-auditoria-identidad.md) §3 (canal `POST /auditoria` no-humano),
 [DOC-005](../../../base-patrimonial/DOC-005-modelo-patrimonial.md) §7 (modelo de auditoría), Tomo
-III 4.10 (baja por `estado`, nunca `DELETE`).
+III 4.10 (baja por `estado`, nunca `DELETE`),
+[`casos-de-uso/`](../../../casos-de-uso/README.md) (catálogo Cap. 12: RF-B ↔ CU-INT-001, RF-F ↔
+CU-QR-001, RF-I ↔ CU-INV-003/004 + [`CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md),
+RF-D ↔ CU-INV-004, RF-E ↔ §12.35.4; §Vacíos ↔ MATRIZ-TRAZABILIDAD),
+[`casos-de-uso/PLAN-QA.md`](../../../casos-de-uso/PLAN-QA.md) (suites de QA que cada RF desbloquea).
