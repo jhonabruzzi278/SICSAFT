@@ -1,0 +1,16 @@
+{
+  "_comentario": "Copiar a mapeo-<organizacionId>.json y ajustar los nombres de columna al Excel real del cliente. Los valores son los campos canónicos de la fila de importación de SICSAFT (DOC-029 RF-B). Lo que no esté acá se ignora.",
+  "hoja": "REGISTRO DE ACTIVOS NUEVOS",
+  "marcador_encabezado": "CODIGO",
+  "columnas": {
+    "CODIGO": "codigoPatrimonial",
+    "DIRECCION": "direccionNombre",
+    "AREA": "areaNombre",
+    "RESPONSABLE": "responsableNombre",
+    "CATEGORIA": "categoriaNombre",
+    "NOMBRE AFT": "nombreAft",
+    "SERIE": "serie",
+    "VALOR.CLP.": "valorPatrimonial"
+  },
+  "rellenar_hacia_abajo": ["direccionNombre", "areaNombre", "responsableNombre"]
+}

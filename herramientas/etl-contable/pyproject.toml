@@ -1,0 +1,16 @@
+[project]
+name = "sicsaft-etl-contable"
+version = "0.1.0"
+description = "ETL de la base contable en Excel hacia la bandeja de staging de SICSAFT (DOC-029 RF-B)"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "A"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+# Mapeos por cliente: solo se versiona el de ejemplo.
+mapeo/mapeo-*.json
+!mapeo/mapeo-ejemplo.json

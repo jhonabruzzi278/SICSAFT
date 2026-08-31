@@ -1,0 +1,8 @@
+# DOC-029 RF-B — ETL de la base contable en Excel hacia la bandeja de staging de SICSAFT.
+pandas>=2.2,<4
+xlrd>=2.0,<3          # lectura de .xls legacy (xlrd 2.x ya no lee .xlsx)
+openpyxl>=3.1,<4      # lectura de .xlsx
+requests>=2.31,<3    # POST a CIS
+
+# solo para desarrollo/tests:
+# pytest, ruff  (ver requirements-dev.txt)
