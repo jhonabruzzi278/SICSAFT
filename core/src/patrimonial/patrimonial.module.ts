@@ -4,6 +4,8 @@ import { CatalogoController } from './catalogo.controller';
 import { ActivoRepository } from './activo.repository';
 import { EscrituraActivoService } from './escritura-activo.service';
 import { ImportacionContableService } from './importacion-contable.service';
+import { ImportacionContableLoteService } from './importacion-contable-lote.service';
+import { ImportacionContableLoteRepository } from './importacion-contable-lote.repository';
 import { CatalogoTipoActivoController } from './catalogo-tipo-activo.controller';
 import { CatalogoTipoActivoRepository } from './catalogo-tipo-activo.repository';
 import { DocumentoActivoRepository } from './documento-activo.repository';
@@ -22,6 +24,8 @@ import { EscrituraDocumentoActivoService } from './escritura-documento-activo.se
     ActivoRepository,
     EscrituraActivoService,
     ImportacionContableService,
+    ImportacionContableLoteService,
+    ImportacionContableLoteRepository,
     CatalogoTipoActivoRepository,
     DocumentoActivoRepository,
     EscrituraDocumentoActivoService,
@@ -30,6 +34,8 @@ import { EscrituraDocumentoActivoService } from './escritura-documento-activo.se
     ActivoRepository,
     EscrituraActivoService,
     ImportacionContableService,
+    ImportacionContableLoteService,
+    ImportacionContableLoteRepository,
     CatalogoTipoActivoRepository,
     DocumentoActivoRepository,
     EscrituraDocumentoActivoService,

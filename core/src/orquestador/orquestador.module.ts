@@ -7,6 +7,7 @@ import { AuditoriaModule } from '../auditoria/auditoria.module';
 import { InventariosController } from '../inventarios/inventarios.controller';
 import { ActivoEscrituraController } from '../patrimonial/activo-escritura.controller';
 import { ImportacionContableController } from '../patrimonial/importacion-contable.controller';
+import { ImportacionContableLoteController } from '../patrimonial/importacion-contable-lote.controller';
 import { ContratoEscrituraController } from '../entitlements/contrato-escritura.controller';
 import { EstructuraEscrituraController } from '../estructura/estructura-escritura.controller';
 import { CatalogoTipoActivoEscrituraController } from '../patrimonial/catalogo-tipo-activo-escritura.controller';
@@ -30,6 +31,7 @@ import { OrquestadorService } from './orquestador.service';
     InventariosController,
     ActivoEscrituraController,
     ImportacionContableController,
+    ImportacionContableLoteController,
     ContratoEscrituraController,
     EstructuraEscrituraController,
     CatalogoTipoActivoEscrituraController,

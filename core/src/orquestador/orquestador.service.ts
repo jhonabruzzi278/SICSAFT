@@ -3,6 +3,7 @@ import { AuditoriaRepository } from '../auditoria/auditoria.repository';
 import { InventariosService } from '../inventarios/inventarios.service';
 import { EscrituraActivoService } from '../patrimonial/escritura-activo.service';
 import { ImportacionContableService } from '../patrimonial/importacion-contable.service';
+import { ImportacionContableLoteService } from '../patrimonial/importacion-contable-lote.service';
 import { EscrituraContratoService } from '../entitlements/escritura-contrato.service';
 import { EscrituraOrganizacionService } from '../entitlements/escritura-organizacion.service';
 import { EscrituraSedeService } from '../entitlements/escritura-sede.service';
@@ -29,6 +30,17 @@ import type {
 import type { Activo } from '../patrimonial/activo.types';
 import type { ImportacionContableBody } from '../patrimonial/importacion-contable.schemas';
 import type { ImportacionContableResultado } from '../patrimonial/importacion-contable.types';
+import type {
+  AprobarLoteBody,
+  CrearLoteBody,
+  RechazarLoteBody,
+} from '../patrimonial/importacion-contable-lote.schemas';
+import type {
+  EstadoLote,
+  LoteConFilas,
+  LoteImportacionContable,
+  ResumenLote,
+} from '../patrimonial/importacion-contable-lote.types';
 import type { AltaCatalogoTipoBody } from '../patrimonial/catalogo-tipo-activo.schemas';
 import type { CatalogoTipoActivo } from '../patrimonial/catalogo-tipo-activo.types';
 import type {
@@ -76,6 +88,7 @@ export class OrquestadorService {
     private readonly inventariosService: InventariosService,
     private readonly escrituraActivoService: EscrituraActivoService,
     private readonly importacionContableService: ImportacionContableService,
+    private readonly importacionContableLoteService: ImportacionContableLoteService,
     private readonly escrituraContratoService: EscrituraContratoService,
     private readonly escrituraEstructuraService: EscrituraEstructuraService,
     private readonly escrituraOrganizacionService: EscrituraOrganizacionService,
@@ -398,6 +411,82 @@ export class OrquestadorService {
       (resultado) =>
         `${resultado.creados} creados, ${resultado.yaImportados} ya_importados, ${resultado.conflictos} conflictos`,
     );
+  }
+
+  // DOC-029 RF-B — bandeja de staging de la ingesta de Excel supervisada. crear/aprobar/rechazar
+  // son escrituras oficiales (verifican rol + auditan). listar/obtener son lecturas: CIS ya validó
+  // la sesión humana y acota `organizacionId`, mismo criterio que GET /auditoria.
+  crearLoteImportacionContable(
+    payload: CrearLoteBody,
+  ): Promise<{ loteId: string; resumen: ResumenLote }> {
+    return this.ejecutarOperacionOficial(
+      'POST /importaciones/contable/lote',
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.importacionContableLoteService.crearLote({
+          organizacionId: payload.organizacionId,
+          origen: payload.origen,
+          archivoNombre: payload.archivoNombre,
+          filas: payload.filas,
+        }),
+      (r) =>
+        `lote ${r.loteId}: ${r.resumen.crear} crear, ${r.resumen.yaImportado} ya_importado, ${r.resumen.conflicto} conflicto`,
+    );
+  }
+
+  listarLotesImportacionContable(
+    organizacionId: string,
+    estado?: EstadoLote,
+  ): Promise<LoteImportacionContable[]> {
+    return this.importacionContableLoteService.listarLotes(
+      organizacionId,
+      estado,
+    );
+  }
+
+  obtenerLoteImportacionContable(loteId: string): Promise<LoteConFilas> {
+    return this.importacionContableLoteService.obtenerLote(loteId);
+  }
+
+  aprobarLoteImportacionContable(
+    loteId: string,
+    payload: AprobarLoteBody,
+  ): Promise<ImportacionContableResultado> {
+    return this.ejecutarOperacionOficial(
+      `POST /importaciones/contable/lote/${loteId}/aprobar`,
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.importacionContableLoteService.aprobarLote(
+          loteId,
+          payload.operadorId,
+        ),
+      (resultado) =>
+        `${resultado.creados} creados, ${resultado.yaImportados} ya_importados, ${resultado.conflictos} conflictos`,
+    );
+  }
+
+  async rechazarLoteImportacionContable(
+    loteId: string,
+    payload: RechazarLoteBody,
+  ): Promise<{ estado: 'rechazado' }> {
+    await this.ejecutarOperacionOficial(
+      `POST /importaciones/contable/lote/${loteId}/rechazar`,
+      payload.operadorId,
+      payload.organizacionId,
+      payload.rolesPorOrganizacion,
+      () =>
+        this.importacionContableLoteService.rechazarLote(
+          loteId,
+          payload.operadorId,
+          payload.motivo,
+        ),
+      () => (payload.motivo ? `rechazado: ${payload.motivo}` : 'rechazado'),
+    );
+    return { estado: 'rechazado' };
   }
 
   // Contrato acepta administrador-patrimonial (Tomo III 1.4 se lo exigia desde DOC-012 7, no se
