@@ -27,7 +27,7 @@ frente en la tabla §0 y estado por rama en §Plan de fases.**
 | ID | Frente | Capas | Estado (v3, 2026-08-31) |
 |----|--------|-------|--------|
 | **RF-A** | Flag de nivel (1/2) en CCP — gate de módulos/features (+ retiro de Contratos e Inventarios del portal) | CCP + `sicsaft-core` config | ✅ **Hecho** (`feat/ccp-nivel-flag`, `92f6a0e`→`e3169bf`) |
-| **RF-B** | Ingesta de Excel supervisada — carpeta → **ETL Python** → CIS → CORE (staging) → **revisión del AFT** → BPI | Python sidecar + CORE + CIS + CCP | 🟡 **Parcial**: ETL Python (`feat/etl-contable-python`, `772df6f`), CORE staging + resolve-or-create (`feat/core-ingesta-staging`, `c41a054`), CIS puente (`feat/cis-ingesta-lote`, `cedd836`) hechos. **Falta RF-B.4** (§B.6): capa CCP + watcher del `.exe` + empaquetado del sidecar. |
+| **RF-B** | Ingesta de Excel supervisada — carpeta → **ETL Python** → CIS → CORE (staging) → **revisión del AFT** → BPI | Python sidecar + CORE + CIS + CCP | 🟡 **Parcial**: ETL Python (`772df6f`), CORE staging + resolve-or-create (`c41a054`), CIS puente (`cedd836`), **CCP revisión de lotes** (`cecb0b7`) y **selector de carpeta IPC** (`707d732`) hechos. **Falta B.6.2**: watcher del `.exe` (chokidar → ETL → CIS) + su token de servicio + empaquetado del sidecar Python en `prepack.cjs`. |
 | **RF-C** | 3 pestañas nuevas en el resumen (Dashboard) | CCP | 🔒 **Bloqueado — spec lo entrega Guido** |
 | **RF-D** | Veredicto de sesión accionable → Auditoría / baja / Inventario / Contrato | CCP + 1 automatización en CORE | Diseñado — pendiente |
 | **RF-E** | Auditoría por **área operativa real** del actor + columna "Revisar" | CORE + CIS + CCP | Diseñado — pendiente |
@@ -188,36 +188,43 @@ un humano con su JWT real desde CCP, no la identidad sintética.
 
 ### B.6 CCP + watcher + empaquetado — lo único que falta de RF-B
 
-Tres sub-frentes en una rama (`feat/ccp-ingesta-revision`), en este orden:
+Rama `feat/ccp-ingesta-revision` (off `feat/etl-contable-python`). Estado (2026-08-31): B.6.3 y
+B.6.1 **hechos y commiteados**; B.6.2 (watcher + empaquetado) pendiente — necesita el stack
+arriba para validar el round-trip real.
 
-#### B.6.1 `sicsaft-core` — selector de carpeta (IPC)
-
-| Archivo | Cambio |
-|---|---|
-| `src/shared/ipc-contract.ts` | Canal nuevo `sicsaft-core:elegirCarpetaIngesta` → `Promise<string \| null>`; `sicsaft-core:leerCarpetaIngesta` → `Promise<string \| null>`. `InstalacionCompleta` gana `carpetaIngesta?: string`. |
-| `src/main/ipc/handlers.ts` | Handler `elegirCarpetaIngesta`: `dialog.showOpenDialog(win, { properties: ['openDirectory'], title: 'Carpeta donde el especialista deja los Excel' })` → persiste con `marcarInstalacionCompleta({ ...prev, carpetaIngesta })`. Handler `leerCarpetaIngesta`: `leerInstalacionExistente()?.carpetaIngesta ?? null`. |
-| `src/preload/index.ts` | Expone ambos en `window.sicsaftCore`. |
-| `src/main/ipc/handlers.ts` `asegurarServidoresPortales` | Agrega `VITE_SICSAFT_CARPETA_INGESTA: carpetaIngesta ?? ''` al `configRuntime` de `ccp` (solo para mostrarla en la UI; el watcher vive en el main). |
-
-#### B.6.2 `sicsaft-core` — watcher + empaquetado del sidecar Python
+#### B.6.3 CCP — módulo Importaciones (✅ hecho, `cecb0b7`)
 
 | Archivo | Cambio |
 |---|---|
-| `package.json` (sicsaft-core) | `dependencies`: `chokidar`. |
-| `src/main/services/ingesta-watcher.ts` **(nuevo)** | `iniciarWatcher(carpeta, { onLote })`: `chokidar.watch(carpeta, { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 2000 } })` sobre `*.xls`/`*.xlsx`. Por cada `add`: `execFile(rutaPythonEmbebido, [rutaScript, '--entrada', archivo, '--organizacion', orgId, '--mapeo', rutaMapeoOrg, '--cis-url', urlCisLocal, '--token', tokenServicio])`. Debounce por archivo, mueve el `.xls` procesado a `<carpeta>/.procesados/` (o `.error/` si el ETL sale ≠ 0). Log a `ingesta.log` en `%APPDATA%`. |
-| `src/main/index.ts` (o donde se orquesta el arranque) | Tras `asegurarServidoresPortales`, si hay `carpetaIngesta` → `iniciarWatcher`. Reiniciar el watcher cuando el usuario cambia la carpeta. |
-| **token de servicio** | El watcher es un flujo sin humano → usa la identidad sintética de DOC-016 §5 (`operadorId: 'ingesta-contable'`). El `.exe` ya obtiene tokens de servicio para el bootstrap (`keycloak-admin.json` / client credentials); reusar ese mecanismo, **no** el JWT del login embebido. |
-| `resources/etl-contable/` | `prepack.cjs`: descargar/incluir `python-build-standalone` (win-x64, ~15 MB comprimido), crear venv con `pandas`+`xlrd` (o `--target` install), copiar `herramientas/etl-contable/etl_contable.py` + `mapeo/`. `execFile` con `rutaPythonEmbebido` absoluta y `PATH` acotado (mismo criterio que el `prepack.cjs` actual, sonar S4036). En **dev** (`npm run dev`) usa el `python` del sistema y `herramientas/etl-contable/` in situ. |
-| `electron-builder` config | `extraResources` incluye `resources/etl-contable/**`. |
+| `src/lib/cis-client.ts` | `listar/obtener/aprobar/rechazarLoteImportacionContable` contra `/admin/importaciones/contable/lote*` (endpoints ya existentes de `feat/cis-ingesta-lote`). Tipos `LoteImportacionContable` / `FilaLoteImportacionContable` espejo de `cis/src/core-client/core-client.types.ts`. |
+| `src/pages/ImportacionesPage.tsx` → `pages/importaciones/` | Se parte en `LotesRevision` (bandeja) + `CargaManualCsv` (lo que había, sin cambios). `LotesRevision`: lista de lotes (`pendiente_revision` arriba, `ordenarLotes`), detalle por lote con tabla de dry-run por fila (`crear`/`ya_importado`/`conflicto` como `<Badge>`) filtrable, **Aprobar** / **Rechazar** (rechazo con motivo opcional inline, no `prompt`). Aprobar → toast con contadores + refresco. Muestra `VITE_SICSAFT_CARPETA_INGESTA` (solo lectura). |
+| `src/lib/lotes-importacion.ts` + `.test.ts` | Helpers puros: `contarDryRun`, `loteAccionable`, `ordenarLotes`. |
+| `src/lib/importacion-csv.ts` + `.test.ts` | `parsearCsv` extraído de la página para testearlo (antes era una función suelta sin cobertura). |
+| `src/components/ui.tsx` | `Badge`: 6 keywords nuevos (estados de lote + resultado de dry-run). |
 
-#### B.6.3 CCP — `ImportacionesPage.tsx` + cliente CIS
+#### B.6.1 `sicsaft-core` — selector de carpeta (✅ hecho, `707d732`)
+
+El CCP embebido se sirve como PWA estática **sin preload** (`portal-login-service.ts` crea la
+`WebContentsView` con `sandbox: true`, sin bridge) → no puede abrir un diálogo nativo. La
+elección de carpeta va en el **wizard del `.exe`** (que sí tiene IPC) y el CCP la recibe por
+config runtime, solo lectura.
 
 | Archivo | Cambio |
 |---|---|
-| `src/lib/cis-client.ts` | `listarLotesImportacionContable(organizacionId, estado?)` → `GET /admin/importaciones/contable/lote`; `obtenerLoteImportacionContable(id)` → `GET .../lote/:id`; `aprobarLoteImportacionContable(id, organizacionId)` → `POST .../lote/:id/aprobar`; `rechazarLoteImportacionContable(id, organizacionId, motivo?)` → `POST .../lote/:id/rechazar`. (Los endpoints CIS ya existen — `feat/cis-ingesta-lote`.) |
-| `src/pages/ImportacionesPage.tsx` | Segunda sección **"Carpeta vigilada"** debajo de la carga manual de CSV (que no cambia): (a) muestra `VITE_SICSAFT_CARPETA_INGESTA` + botón "Cambiar carpeta" → `window.sicsaftCore.elegirCarpetaIngesta()` (si no está en el `.exe`, el botón se oculta y se muestra la nota de env var); (b) lista de lotes, `pendiente_revision` arriba, con `archivoNombre`, `recibidoEn`, contadores del `resumen`; (c) al abrir un lote: tabla de filas con `dryRunResultado` (`crear`/`actualizar`/`conflicto`) como `<Badge>`, filtro por resultado, y **Aprobar** / **Rechazar** (Rechazar abre un prompt de motivo). Tras aprobar: toast + refresco del catálogo. |
-| `src/lib/nivel.ts` | `importaciones` ya está en `MODULOS_NIVEL_1` (RF-A) — sin cambios. |
-| Tests | `cis-client` métodos nuevos (msw); `ImportacionesPage` render de lote + acción aprobar/rechazar (vitest + RTL). El ciclo staging→aprobar contra Postgres real ya está cubierto por el e2e de `feat/core-ingesta-staging`. |
+| `src/shared/ipc-contract.ts` | `InstalacionCompleta.carpetaIngesta?: string`; `SicsaftCoreApi.elegir/leerCarpetaIngesta(): Promise<string \| null>`. |
+| `src/main/services/instalacion-marker.ts` | `actualizarCarpetaIngestaInstalacion()` (mismo patrón que `actualizarIpLanInstalacion`). |
+| `src/main/ipc/handlers.ts` | Handler `elegirCarpetaIngesta`: `dialog.showOpenDialog(ventana, { properties: ['openDirectory', 'createDirectory'] })` → persiste. `asegurarServidoresPortales` agrega `VITE_SICSAFT_CARPETA_INGESTA` al `configRuntime` de `ccp`. |
+| `src/preload/index.ts` | Expone ambos. |
+| `src/renderer/.../components/CarpetaIngesta.tsx` | Componente del wizard, dos modos: tarjeta en "Instalación completa" + versión compacta en la franja del portal cargado. |
+
+#### B.6.2 `sicsaft-core` — watcher + token de servicio + empaquetado (⬜ pendiente)
+
+| Archivo | Cambio |
+|---|---|
+| `src/main/services/ingesta-watcher.ts` **(nuevo)** | `chokidar.watch(carpeta, { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 2000 } })` sobre `*.xls`/`*.xlsx`. Por cada `add`: `execFile(rutaPythonEmbebido, [rutaScript, '--entrada', archivo, '--organizacion', orgId, '--mapeo', rutaMapeoOrg, '--cis-url', 'http://127.0.0.1:56000', '--token', tokenServicio])`. Mueve el `.xls` a `<carpeta>/.procesados/` o `.error/`. Log a `ingesta.log`. Unit-testable con carpeta temporal + `execFile` mockeado. |
+| Wiring del arranque | Tras `asegurarServidoresPortales`, si hay `carpetaIngesta` → `iniciarWatcher`. Reiniciar cuando el usuario cambia la carpeta (el handler `elegirCarpetaIngesta` ya persiste; falta que dispare el reinicio). |
+| **token de servicio** — decisión pendiente | Todo `cis/src/administrador/AdministradorController` es `@UseGuards(KeycloakAuthGuard, RateLimitGuard)` — **no hay ruta con `ServiceTokenGuard`** para el lote. El watcher necesita un JWT que `KeycloakAuthGuard` acepte con el rol `administrador-patrimonial`. Opción v1: un **service account** dedicado en Keycloak (client `sicsaft-ingesta`, grant `client_credentials`, rol `administrador-patrimonial` en la organización del cliente), provisionado en el bootstrap junto al resto de clients. El `.exe` pide el token con `client_credentials` (mismo mecanismo que ya usa para la Admin API) y lo pasa al ETL. La "identidad sintética `ingesta-contable`" de DOC-016 §5 sigue siendo lo que CIS **reenvía a CORE** como `operadorId`; la aprobación la hace el humano con su JWT real. |
+| `resources/etl-contable/` + `prepack.cjs` | Vendorizar `python-build-standalone` (win-x64, ~15 MB) + venv con `pandas`/`xlrd`, copiar `herramientas/etl-contable/`. `execFile` con ruta absoluta y `PATH` acotado (sonar S4036, mismo criterio que el `prepack.cjs` actual). En **dev** usa el `python` del sistema + la carpeta del repo. `extraResources` incluye `resources/etl-contable/**`. Necesita red (descarga) y un Windows real para validar. |
 
 - No se unifica la carga manual bajo staging (decisión del usuario): el AFT que sube un CSV a mano
   ya es el humano que revisa, en ese acto.
@@ -481,7 +488,8 @@ campo `direccion` de B; I depende de que existan sesiones con `estadoDeclarado`,
 | 7 | `feat/etl-contable-python` | RF-B sidecar Python (`herramientas/etl-contable/`) | 3 | ✅ `772df6f` — **falta** el empaquetado en el `.exe` (movido a #10) |
 | 8 | `feat/core-ingesta-staging` | RF-B capa CORE (tablas espejo + dry-run) | 3 | ✅ `c41a054` |
 | 9 | `feat/cis-ingesta-lote` | RF-B capa CIS (endpoint de lote) + resolve-or-create en CORE | 8 | ✅ `cedd836` |
-| **10** | **`feat/ccp-ingesta-revision`** | **RF-B.6** — CCP (revisión Aprobar/Rechazar) + IPC selector de carpeta + watcher del `.exe` + `prepack.cjs` del sidecar Python | 7, 9 | ⬜ **siguiente** |
+| 10a | `feat/ccp-ingesta-revision` | **RF-B.6.3** CCP (revisión Aprobar/Rechazar) — `cecb0b7`; **RF-B.6.1** IPC selector de carpeta — `707d732` | 7, 9 | ✅ |
+| **10b** | `feat/ccp-ingesta-revision` (o rama nueva) | **RF-B.6.2** — watcher del `.exe` (chokidar → ETL → CIS) + service account Keycloak `sicsaft-ingesta` + `prepack.cjs` del sidecar Python | 10a | ⬜ **siguiente** (necesita el stack arriba) |
 | 11 | `feat/core-cip-resumen-control` | RF-I capa CORE/CIP (`GET /dashboard/control/:sesionId`) | main (prod) | ⬜ |
 | 12 | `feat/appqr-pantalla8` | RF-I APP QR (Pantalla 8 + fondos de color + UI de estado por AFT) | 11 | ⬜ |
 | 13 | `feat/ccp-pantalla8` | RF-I CCP (detalle de sesión en el Resumen) | 12 | ⬜ |
