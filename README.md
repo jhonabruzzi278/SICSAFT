@@ -68,6 +68,11 @@ fase, generada antes de escribir código): [`aidlc-docs/`](aidlc-docs), una subc
 (`aidlc-docs/app-qr-sicsaft/`, `aidlc-docs/ccp/`, `aidlc-docs/cip/`, `aidlc-docs/core/`) —
 convención completa en [CLAUDE.md](CLAUDE.md) "Metodología AI-DLC para features nuevas".
 
+Casos de Uso oficiales (Cap. 12 del tomo — actor, objetivo, precondiciones, flujo, reglas,
+excepciones, evidencia; con el estado real de cada uno en el repo) y el **plan de QA para el
+cliente Nivel 1**: [`casos-de-uso/`](casos-de-uso). Es una de las bases del Plan Maestro de
+Desarrollo y del Plan Maestro de Pruebas.
+
 ## Dónde está el trabajo activo hoy
 
 **APP QR SICSAFT** (`app-qr-sicsaft/`) sigue siendo el sistema con más código y el único con
