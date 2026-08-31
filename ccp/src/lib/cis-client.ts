@@ -130,6 +130,62 @@ export interface ResultadoImportacionContable {
   conflictos: number;
 }
 
+// DOC-029 RF-B — bandeja de staging de la ingesta de Excel supervisada. El ETL (sidecar Python
+// que corre el .exe al detectar un .xls en la carpeta vigilada) postea el lote a CIS; CORE lo
+// guarda en `pendiente_revision` sin tocar la Base Patrimonial, y el Profesional de AFT lo
+// aprueba o rechaza desde esta pantalla. Los tipos reflejan
+// cis/src/core-client/core-client.types.ts (loteImportacionContableSchema y filas).
+export type EstadoLoteImportacion =
+  'pendiente_revision' | 'aprobado' | 'rechazado';
+
+export interface ResumenLoteImportacion {
+  totalFilas: number;
+  crear: number;
+  yaImportado: number;
+  conflicto: number;
+}
+
+export interface LoteImportacionContable {
+  id: string;
+  organizacionId: string;
+  origen: 'carpeta' | 'manual';
+  archivoNombre: string | null;
+  recibidoEn: string;
+  estado: EstadoLoteImportacion;
+  revisadoPor: string | null;
+  revisadoEn: string | null;
+  motivoRechazo: string | null;
+  resumen: ResumenLoteImportacion;
+}
+
+export type DryRunResultado = 'crear' | 'ya_importado' | 'conflicto';
+
+export interface FilaLoteImportacionContable {
+  id: string;
+  linea: number;
+  codigoPatrimonial: string;
+  codigoQr: string;
+  catalogoId: string | null;
+  serie: string | null;
+  responsableId: string | null;
+  areaId: string | null;
+  ubicacionId: string | null;
+  valorPatrimonial: number | null;
+  direccionNombre: string | null;
+  areaNombre: string | null;
+  responsableNombre: string | null;
+  categoriaNombre: string | null;
+  nombreAft: string | null;
+  crudo: Record<string, string>;
+  dryRunResultado: DryRunResultado | null;
+  dryRunMotivo: string | null;
+}
+
+export interface LoteConFilasImportacionContable {
+  lote: LoteImportacionContable;
+  filas: FilaLoteImportacionContable[];
+}
+
 // DOC-004 3 — maquina de estados de Contrato: solo estas transiciones son validas, CORE rechaza
 // cualquier otra con 400 (ver core/src/entitlements/contrato.repository.ts,
 // TRANSICIONES_VALIDAS). Se repite acá solo para que la UI ofrezca botones con sentido, la
@@ -480,6 +536,57 @@ export const cisClient = {
       body: JSON.stringify({ organizacionId, filas }),
     });
     return (await res.json()) as ResultadoImportacionContable;
+  },
+
+  // DOC-029 RF-B — bandeja de staging. El ETL crea los lotes (POST .../lote); la UI solo lista,
+  // revisa y aprueba/rechaza. La aprobación va con el JWT real del Profesional de AFT — CORE
+  // re-verifica el rol y audita bajo su identidad, no la sintética de la ingesta.
+  async listarLotesImportacionContable(
+    organizacionId: string,
+    estado?: EstadoLoteImportacion,
+  ): Promise<LoteImportacionContable[]> {
+    const params = new URLSearchParams({ organizacionId });
+    if (estado) params.set('estado', estado);
+    const res = await authorizedFetch(
+      `/admin/importaciones/contable/lote?${params.toString()}`,
+    );
+    return (await res.json()) as LoteImportacionContable[];
+  },
+
+  async obtenerLoteImportacionContable(
+    id: string,
+  ): Promise<LoteConFilasImportacionContable> {
+    const res = await authorizedFetch(
+      `/admin/importaciones/contable/lote/${encodeURIComponent(id)}`,
+    );
+    return (await res.json()) as LoteConFilasImportacionContable;
+  },
+
+  async aprobarLoteImportacionContable(
+    id: string,
+    organizacionId: string,
+  ): Promise<ResultadoImportacionContable> {
+    const res = await authorizedFetch(
+      `/admin/importaciones/contable/lote/${encodeURIComponent(id)}/aprobar`,
+      { method: 'POST', body: JSON.stringify({ organizacionId }) },
+    );
+    return (await res.json()) as ResultadoImportacionContable;
+  },
+
+  async rechazarLoteImportacionContable(
+    id: string,
+    organizacionId: string,
+    motivo?: string,
+  ): Promise<void> {
+    await authorizedFetch(
+      `/admin/importaciones/contable/lote/${encodeURIComponent(id)}/rechazar`,
+      {
+        method: 'POST',
+        body: JSON.stringify(
+          motivo ? { organizacionId, motivo } : { organizacionId },
+        ),
+      },
+    );
   },
 
   // RNF-01 — CIS/CORE paginan (`{ contratos, total }`, default 20/tope 100). WEB no tiene UI de
