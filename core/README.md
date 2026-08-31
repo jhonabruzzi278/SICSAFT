@@ -47,6 +47,13 @@ logging estructurado que lo use (WAF 2, pendiente).
   `../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md` y
   `seguridad/DOC-012-administrador-patrimonial.md` 5.1.
 - `GET /inventarios/:id/estado`.
+- `GET /inventarios/:id/control` (DOC-029 RF-I, "Pantalla 8") — informe de control de área de una
+  sesión: escaneados, del-área (n + %), desglose por estado declarado, lista de escaneados con
+  tipo `ordinario`/`extraordinario` (según `catalogo_activos.tecnologia_identificacion`),
+  fuera-de-área con su área real, faltantes, y el veredicto (`exitoso`/`aceptable`/`defectuoso`,
+  regla pura `src/inventarios/veredicto.ts` = `cip/src/agregacion/veredicto.ts`). `estado_declarado`
+  y `baja_sugerida_motivo` se persisten ahora por escaneo (migración `1756100000000`) además de
+  aplicarse como transición/evento. Sin backend nuevo del lado de CIS/APP QR — RF-I capa CORE.
 
 Verificado igual que el resto del sistema: unit (100% stmts/lines/funcs, 90%+ branches), e2e
 nuevo (`test/inventarios.e2e-spec.ts`) contra Postgres real, `docker build`/`docker run` real con

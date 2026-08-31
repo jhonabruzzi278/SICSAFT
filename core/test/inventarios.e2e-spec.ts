@@ -209,6 +209,80 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
     });
   });
 
+  describe('GET /inventarios/:id/control — Pantalla 8 (DOC-029 RF-I)', () => {
+    it('agrega el informe de control de una sesión contra Postgres real', async () => {
+      const payload = buildInventarioPayload({
+        escaneos: [
+          {
+            codigoQr: 'QR-000001',
+            resultado: 'correcto',
+            estadoDeclarado: 'mantenimiento',
+            bajaSugerida: { motivo: 'carcasa quebrada' },
+          },
+          { codigoQr: 'QR-NOPE', resultado: 'no_registrado' },
+        ],
+      });
+      const creada = await request(app.getHttpServer())
+        .post('/inventarios')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(payload)
+        .expect(201);
+      const inventarioId = (creada.body as PostInventarioResponse).inventarioId;
+
+      const res = await request(app.getHttpServer())
+        .get(`/inventarios/${inventarioId}/control`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .expect(200);
+
+      const control = res.body as {
+        sesionId: string;
+        escaneados: number;
+        delArea: number;
+        activosDelArea: number;
+        delAreaPct: number;
+        porEstadoDeclarado: Record<string, number>;
+        escaneadosLista: Array<{ codigoQr: string; tipo: string | null }>;
+        fueraDeArea: unknown[];
+        faltantes: Array<{ codigoQr: string }>;
+        veredicto: string;
+      };
+
+      expect(control.sesionId).toBe(inventarioId);
+      expect(control.escaneados).toBe(2);
+      expect(control.delArea).toBe(1);
+      expect(control.activosDelArea).toBeGreaterThanOrEqual(2);
+      expect(control.delAreaPct).toBeGreaterThan(0);
+      expect(control.delAreaPct).toBeLessThanOrEqual(1);
+      expect(control.porEstadoDeclarado.enMantenimiento).toBe(1);
+      expect(control.porEstadoDeclarado.baja).toBe(1);
+      expect(control.escaneadosLista).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            codigoQr: 'QR-000001',
+            tipo: 'ordinario',
+          }),
+        ]),
+      );
+      // QR-000002 (proyector del área) no se escaneó → faltante.
+      expect(control.faltantes.map((f) => f.codigoQr)).toContain('QR-000002');
+      // Falta 1, nada fuera de área → aceptable.
+      expect(control.veredicto).toBe('aceptable');
+    });
+
+    it('GET /inventarios/:id/control de un id inexistente devuelve 404', async () => {
+      await request(app.getHttpServer())
+        .get('/inventarios/no-existe/control')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .expect(404);
+    });
+
+    it('devuelve 401 sin service token', async () => {
+      await request(app.getHttpServer())
+        .get('/inventarios/cualquiera/control')
+        .expect(401);
+    });
+  });
+
   describe('GET /auditoria', () => {
     it('incluye la entrada registrada por el Orquestador al procesar un inventario', async () => {
       const payload = buildInventarioPayload();

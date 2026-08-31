@@ -29,6 +29,7 @@ import type {
 import type {
   InventarioEstadoResponse,
   PostInventarioResponse,
+  ResumenControlResponse,
   SesionDetalle,
   SesionResumen,
 } from './inventarios.types';
@@ -74,6 +75,18 @@ export class InventariosController {
     query: InventariosQuery,
   ): Promise<SesionResumen[]> {
     return this.inventariosService.listarSesiones(query.organizacionId);
+  }
+
+  // DOC-029 RF-I (Pantalla 8) — informe de control de área de una sesión: escaneados, del-área
+  // (n y %), desglose por estado declarado, listas con tipo ordinario/extraordinario,
+  // fuera-de-área con su área real, faltantes y veredicto. Declarado antes de `inventarios/:id`
+  // para que el segmento `/control` no lo capture `:id` (mismo criterio que `/estado`).
+  @Get('inventarios/:id/control')
+  getInventarioResumenControl(
+    @Param(new ZodValidationPipe(inventarioDetalleParamsSchema))
+    params: InventarioDetalleParams,
+  ): Promise<ResumenControlResponse> {
+    return this.inventariosService.obtenerResumenControl(params.id);
   }
 
   @Get('inventarios/:id')

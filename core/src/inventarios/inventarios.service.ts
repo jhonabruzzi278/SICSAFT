@@ -11,10 +11,12 @@ import { EventoRepository } from '../eventos/evento.repository';
 import { clasificarEscaneo } from '../reglas/clasificar-escaneo';
 import { SesionInventarioRepository } from './sesion-inventario.repository';
 import type { FilaInventarioInput } from './sesion-inventario.repository';
+import { calcularVeredicto } from './veredicto';
 import type {
   InventarioEstadoResponse,
   InventarioRequest,
   PostInventarioResponse,
+  ResumenControlResponse,
   SesionDetalle,
   SesionResumen,
 } from './inventarios.types';
@@ -126,6 +128,31 @@ export class InventariosService {
     return detalle;
   }
 
+  // DOC-029 RF-I (Pantalla 8) — agregación + presentación del informe de control de área. La
+  // agregación (escaneados, del-área, estados, listas, faltantes) la resuelve el repositorio;
+  // acá se suma el % del área y el veredicto (regla pura DOC-017 2). Lectura, sin orquestación.
+  async obtenerResumenControl(
+    inventarioId: string,
+  ): Promise<ResumenControlResponse> {
+    const resumen =
+      await this.sesionRepository.findResumenControl(inventarioId);
+    if (!resumen) {
+      throw new NotFoundException({
+        message: `No existe el inventario '${inventarioId}'`,
+      });
+    }
+    const delAreaPct =
+      resumen.activosDelArea > 0 ? resumen.delArea / resumen.activosDelArea : 0;
+    return {
+      ...resumen,
+      delAreaPct,
+      veredicto: calcularVeredicto(
+        resumen.faltantes.length,
+        resumen.fueraDeArea.length,
+      ),
+    };
+  }
+
   private resolverReintento(
     existente: {
       id: string;
@@ -183,6 +210,11 @@ export class InventariosService {
         activoId: activo?.id ?? null,
         resultado,
         observaciones: incidencia?.descripcion,
+        // DOC-029 RF-I — se persiste lo que el controlador declaró (además de aplicarse como
+        // transición/evento en registrarEventosDeEscaneo). Un mismo código repetido en el payload
+        // solo trae el dato en su primera aparición; las siguientes clasifican 'ya_escaneado'.
+        estadoDeclarado: escaneo.estadoDeclarado ?? null,
+        bajaSugeridaMotivo: escaneo.bajaSugerida?.motivo ?? null,
       });
     }
 

@@ -57,6 +57,7 @@ function buildService() {
     findEstado: jest.fn(),
     findByOrganizacion: jest.fn(),
     findDetalle: jest.fn(),
+    findResumenControl: jest.fn(),
     crear: jest.fn(),
   } as unknown as jest.Mocked<SesionInventarioRepository>;
   const activoRepository = {
@@ -510,6 +511,84 @@ describe('InventariosService', () => {
       sesionRepository.findDetalle.mockResolvedValue(null);
 
       await expect(service.obtenerDetalle('sesion-x')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('obtenerResumenControl (DOC-029 RF-I)', () => {
+    const RESUMEN = {
+      sesionId: 'sesion-1',
+      organizacionId: 'duoc-uc',
+      areaId: 'area-biblioteca',
+      ubicacionId: 'ubicacion-biblioteca-101',
+      operadorId: 'op-1',
+      fechaInicio: '2026-01-15T10:00:00.000Z',
+      fechaCierre: '2026-01-15T10:30:00.000Z',
+      estado: 'recibido' as const,
+      escaneados: 4,
+      delArea: 3,
+      activosDelArea: 6,
+      porEstadoDeclarado: {
+        enServicio: 3,
+        enMantenimiento: 0,
+        inactivo: 0,
+        baja: 1,
+      },
+      escaneadosLista: [],
+      fueraDeArea: [],
+      faltantes: [],
+    };
+
+    it('suma el % del área y el veredicto exitoso cuando no falta nada ni hay fuera de área', async () => {
+      const { service, sesionRepository } = buildService();
+      sesionRepository.findResumenControl.mockResolvedValue(RESUMEN);
+
+      const resumen = await service.obtenerResumenControl('sesion-1');
+
+      expect(resumen.delAreaPct).toBe(0.5);
+      expect(resumen.veredicto).toBe('exitoso');
+      expect(resumen.sesionId).toBe('sesion-1');
+    });
+
+    it('veredicto defectuoso cuando hay faltantes y fuera de área a la vez', async () => {
+      const { service, sesionRepository } = buildService();
+      sesionRepository.findResumenControl.mockResolvedValue({
+        ...RESUMEN,
+        faltantes: [{ codigoQr: 'QR-9', nombre: 'Silla' }],
+        fueraDeArea: [
+          {
+            codigoQr: 'QR-8',
+            nombre: 'Lector',
+            tipo: 'extraordinario' as const,
+            areaRealNombre: 'Depósito',
+          },
+        ],
+      });
+
+      const resumen = await service.obtenerResumenControl('sesion-1');
+
+      expect(resumen.veredicto).toBe('defectuoso');
+    });
+
+    it('delAreaPct es 0 cuando el área no tiene activos registrados', async () => {
+      const { service, sesionRepository } = buildService();
+      sesionRepository.findResumenControl.mockResolvedValue({
+        ...RESUMEN,
+        delArea: 0,
+        activosDelArea: 0,
+      });
+
+      const resumen = await service.obtenerResumenControl('sesion-1');
+
+      expect(resumen.delAreaPct).toBe(0);
+    });
+
+    it('lanza 404 cuando la sesión no existe', async () => {
+      const { service, sesionRepository } = buildService();
+      sesionRepository.findResumenControl.mockResolvedValue(null);
+
+      await expect(service.obtenerResumenControl('sesion-x')).rejects.toThrow(
         NotFoundException,
       );
     });
