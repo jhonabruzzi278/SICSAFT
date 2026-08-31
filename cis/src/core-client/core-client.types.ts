@@ -543,8 +543,17 @@ export type ImportacionContableResult = z.infer<
 // DOC-029 RF-B — bandeja de staging de la ingesta de Excel supervisada. El ETL manda las filas ya
 // canónicas (nombres del Excel resueltos a ids) más el texto crudo por fila; CORE las guarda en un
 // lote `pendiente_revision` y solo al aprobar toca la Base Patrimonial.
-export interface FilaLoteImportacionContable extends FilaImportacionContable {
+export interface FilaLoteImportacionContable extends Omit<
+  FilaImportacionContable,
+  'catalogoId'
+> {
   linea: number;
+  catalogoId?: string;
+  direccionNombre?: string;
+  areaNombre?: string;
+  responsableNombre?: string;
+  categoriaNombre?: string;
+  nombreAft?: string;
   crudo: Record<string, string>;
 }
 
@@ -600,12 +609,17 @@ const filaLoteImportacionContableRowSchema = z.object({
   linea: z.number(),
   codigoPatrimonial: z.string(),
   codigoQr: z.string(),
-  catalogoId: z.string(),
+  catalogoId: z.string().nullable(),
   serie: z.string().nullable(),
   responsableId: z.string().nullable(),
   areaId: z.string().nullable(),
   ubicacionId: z.string().nullable(),
   valorPatrimonial: z.number().nullable(),
+  direccionNombre: z.string().nullable(),
+  areaNombre: z.string().nullable(),
+  responsableNombre: z.string().nullable(),
+  categoriaNombre: z.string().nullable(),
+  nombreAft: z.string().nullable(),
   crudo: z.record(z.string(), z.string()),
   dryRunResultado: z.enum(['crear', 'ya_importado', 'conflicto']).nullable(),
   dryRunMotivo: z.string().nullable(),

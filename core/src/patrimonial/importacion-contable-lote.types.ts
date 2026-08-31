@@ -34,12 +34,19 @@ export interface FilaLoteImportacionContable {
   linea: number;
   codigoPatrimonial: string;
   codigoQr: string;
-  catalogoId: string;
+  // Nulo si la fila trae `categoriaNombre` — `aprobar` lo resuelve-o-crea (DOC-029 §B.4).
+  catalogoId: string | null;
   serie: string | null;
   responsableId: string | null;
   areaId: string | null;
   ubicacionId: string | null;
   valorPatrimonial: number | null;
+  // Nombres tal cual del Excel del cliente — `aprobar` los resuelve-o-crea.
+  direccionNombre: string | null;
+  areaNombre: string | null;
+  responsableNombre: string | null;
+  categoriaNombre: string | null;
+  nombreAft: string | null;
   crudo: Record<string, string>;
   dryRunResultado: DryRunFila | null;
   dryRunMotivo: string | null;

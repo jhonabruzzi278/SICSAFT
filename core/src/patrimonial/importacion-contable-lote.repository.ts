@@ -20,12 +20,17 @@ export interface FilaLoteParaCrear {
   linea: number;
   codigoPatrimonial: string;
   codigoQr: string;
-  catalogoId: string;
+  catalogoId?: string;
   serie?: string;
   responsableId?: string;
   areaId?: string;
   ubicacionId?: string;
   valorPatrimonial?: number;
+  direccionNombre?: string;
+  areaNombre?: string;
+  responsableNombre?: string;
+  categoriaNombre?: string;
+  nombreAft?: string;
   crudo: Record<string, string>;
   dryRunResultado: DryRunFila;
   dryRunMotivo: string | null;
@@ -36,12 +41,17 @@ interface FilaLoteRow {
   linea: number;
   codigoPatrimonial: string;
   codigoQr: string;
-  catalogoId: string;
+  catalogoId: string | null;
   serie: string | null;
   responsableId: string | null;
   areaId: string | null;
   ubicacionId: string | null;
   valorPatrimonial: string | null;
+  direccionNombre: string | null;
+  areaNombre: string | null;
+  responsableNombre: string | null;
+  categoriaNombre: string | null;
+  nombreAft: string | null;
   crudo: Record<string, string>;
   dryRunResultado: DryRunFila | null;
   dryRunMotivo: string | null;
@@ -59,6 +69,9 @@ const SELECT_FILA_SQL = `
          codigo_qr AS "codigoQr", catalogo_id AS "catalogoId", serie,
          responsable_id AS "responsableId", area_id AS "areaId",
          ubicacion_id AS "ubicacionId", valor_patrimonial AS "valorPatrimonial",
+         direccion_nombre AS "direccionNombre", area_nombre AS "areaNombre",
+         responsable_nombre AS "responsableNombre", categoria_nombre AS "categoriaNombre",
+         nombre_aft AS "nombreAft",
          crudo, dry_run_resultado AS "dryRunResultado", dry_run_motivo AS "dryRunMotivo"
   FROM importacion_contable_lote_fila`;
 
@@ -85,6 +98,11 @@ function mapearFila(row: FilaLoteRow): FilaLoteImportacionContable {
     ubicacionId: row.ubicacionId,
     valorPatrimonial:
       row.valorPatrimonial === null ? null : Number(row.valorPatrimonial),
+    direccionNombre: row.direccionNombre,
+    areaNombre: row.areaNombre,
+    responsableNombre: row.responsableNombre,
+    categoriaNombre: row.categoriaNombre,
+    nombreAft: row.nombreAft,
     crudo: row.crudo,
     dryRunResultado: row.dryRunResultado,
     dryRunMotivo: row.dryRunMotivo,
@@ -123,20 +141,27 @@ export class ImportacionContableLoteRepository {
           `INSERT INTO importacion_contable_lote_fila
              (id, lote_id, linea, codigo_patrimonial, codigo_qr, catalogo_id,
               serie, responsable_id, area_id, ubicacion_id, valor_patrimonial,
-              crudo, dry_run_resultado, dry_run_motivo)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+              direccion_nombre, area_nombre, responsable_nombre, categoria_nombre,
+              nombre_aft, crudo, dry_run_resultado, dry_run_motivo)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+                   $15, $16, $17, $18, $19)`,
           [
             randomUUID(),
             loteId,
             fila.linea,
             fila.codigoPatrimonial,
             fila.codigoQr,
-            fila.catalogoId,
+            fila.catalogoId ?? null,
             fila.serie ?? null,
             fila.responsableId ?? null,
             fila.areaId ?? null,
             fila.ubicacionId ?? null,
             fila.valorPatrimonial ?? null,
+            fila.direccionNombre ?? null,
+            fila.areaNombre ?? null,
+            fila.responsableNombre ?? null,
+            fila.categoriaNombre ?? null,
+            fila.nombreAft ?? null,
             JSON.stringify(fila.crudo),
             fila.dryRunResultado,
             fila.dryRunMotivo,

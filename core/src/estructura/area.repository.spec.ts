@@ -37,6 +37,32 @@ describe('AreaRepository', () => {
     });
   });
 
+  describe('buscarPorNombre (DOC-029 RF-B)', () => {
+    it('devuelve el área que matchea por nombre en la organización', async () => {
+      const pool = {
+        query: jest.fn().mockResolvedValue({ rows: [AREA_ROW] }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new AreaRepository(pool);
+
+      const area = await repository.buscarPorNombre('duoc-uc', ' Oficina 1 ');
+
+      expect(area).toEqual(AREA_ROW);
+      expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
+        'duoc-uc',
+        ' Oficina 1 ',
+      ]);
+    });
+
+    it('devuelve null si no hay match', async () => {
+      const pool = {
+        query: jest.fn().mockResolvedValue({ rows: [] }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new AreaRepository(pool);
+
+      expect(await repository.buscarPorNombre('duoc-uc', 'nada')).toBeNull();
+    });
+  });
+
   describe('crear', () => {
     it('inserta y devuelve el area recien creada', async () => {
       const pool = {

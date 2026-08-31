@@ -47,17 +47,24 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       onDelete: 'CASCADE',
     },
     linea: { type: 'integer', notNull: true },
-    // Fila canonica — misma forma que FilaImportacionContable. El ETL ya resolvio los nombres del
-    // Excel (dirección/área/responsable/categoría) a ids reales llamando a los endpoints ya
-    // existentes de CORE; aca llegan resueltos.
     codigo_patrimonial: { type: 'text', notNull: true },
     codigo_qr: { type: 'text', notNull: true },
-    catalogo_id: { type: 'text', notNull: true },
+    // Ids canónicos: los llena el ETL cuando ya pudo resolver (o la carga manual de CSV). Si
+    // llegan nulos, `aprobar` resuelve-o-crea a partir de los *_nombre de abajo, bajo la identidad
+    // del Profesional de AFT que aprueba (DOC-029 §B.4). `catalogo_id` puede ser nulo solo si hay
+    // `categoria_nombre` — lo garantiza el schema (importacion-contable-lote.schemas.ts).
+    catalogo_id: { type: 'text' },
     serie: { type: 'text' },
     responsable_id: { type: 'text' },
     area_id: { type: 'text' },
     ubicacion_id: { type: 'text' },
     valor_patrimonial: { type: 'numeric' },
+    // Nombres tal cual vienen del Excel del cliente — `aprobar` los resuelve-o-crea.
+    direccion_nombre: { type: 'text' },
+    area_nombre: { type: 'text' },
+    responsable_nombre: { type: 'text' },
+    categoria_nombre: { type: 'text' },
+    nombre_aft: { type: 'text' },
     // Texto crudo del Excel del cliente (columna -> valor) para que el revisor vea qué llegó, sin
     // depender de que los ids resueltos sean legibles (DOC-029 RF-B, "reflejar el Excel tal cual").
     crudo: { type: 'jsonb', notNull: true, default: '{}' },

@@ -52,6 +52,25 @@ export class ResponsableRepository {
     };
   }
 
+  // DOC-029 RF-B — resolver un responsable por nombre dentro de la organización (via su área),
+  // para que `aprobar` un lote de importación lo encuentre o lo cree. `responsables` no tiene
+  // organizacion_id: se cruza por `areas`. Case-insensitive y sin espacios sobrantes.
+  async buscarPorNombre(
+    organizacionId: string,
+    nombre: string,
+  ): Promise<Responsable | null> {
+    const result = await this.pool.query<Responsable>(
+      `SELECT r.id, r.identificacion, r.nombre, r.cargo, r.area_id AS "areaId",
+              r.correo, r.telefono, r.estado
+       FROM responsables r
+       JOIN areas a ON a.id = r.area_id
+       WHERE a.organizacion_id = $1 AND lower(btrim(r.nombre)) = lower(btrim($2))
+       LIMIT 1`,
+      [organizacionId, nombre],
+    );
+    return result.rows[0] ?? null;
+  }
+
   // RF-05 — `identificacion` es unica (migracion 1755100000000): reintentar la misma alta dos
   // veces es un 409, no un duplicado silencioso.
   async crear(input: NuevoResponsableInput): Promise<Responsable> {

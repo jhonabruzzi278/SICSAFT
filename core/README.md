@@ -69,9 +69,11 @@ nunca sobrescribe ni elimina, DOC-012 6), la **bandeja de staging** de la ingest
 supervisada (DOC-029 RF-B — `src/patrimonial/importacion-contable-lote.*`: `POST
 /importaciones/contable/lote` crea un lote en `pendiente_revision` con el dry-run por fila **sin
 tocar la Base Patrimonial**; `GET /importaciones/contable/lote[?estado]` + `/lote/:id` para revisar;
-`POST /lote/:id/aprobar` ejecuta la importación real reusando `ImportacionContableService.procesar`;
-`POST /lote/:id/rechazar` la cierra sin efecto — tablas `importacion_contable_lote(_fila)`,
-migración `1756000000000`) y `POST /contratos` + `PATCH /contratos/:id`
+`POST /lote/:id/aprobar` **resuelve-o-crea** área/responsable/catálogo por nombre
+(`ResolvedorImportacionService`, bajo la identidad del AFT que aprueba) y ejecuta la importación
+real reusando `ImportacionContableService.procesar`; `POST /lote/:id/rechazar` la cierra sin efecto
+— tablas `importacion_contable_lote(_fila)`, migración `1756000000000`) y `POST /contratos` +
+`PATCH /contratos/:id`
 (`src/entitlements/contrato-escritura.controller.ts` + `escritura-contrato.service.ts` — valida el
 invariante DOC-004 4 y la máquina de estados DOC-004 3, DOC-012 7; la escritura de `Contrato`
 corre en una transacción real vía `pool.connect()` porque un e2e contra Postgres real encontró que

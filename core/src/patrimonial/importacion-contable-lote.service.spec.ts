@@ -3,6 +3,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { ImportacionContableLoteService } from './importacion-contable-lote.service';
 import { ImportacionContableLoteRepository } from './importacion-contable-lote.repository';
 import { ImportacionContableService } from './importacion-contable.service';
+import { ResolvedorImportacionService } from './resolvedor-importacion.service';
 import type { LoteConFilas } from './importacion-contable-lote.types';
 
 function build() {
@@ -16,11 +17,41 @@ function build() {
     evaluarFila: jest.fn(),
     procesar: jest.fn(),
   } as unknown as jest.Mocked<ImportacionContableService>;
+  const resolvedor = {
+    resolverCatalogo: jest.fn(),
+    resolverArea: jest.fn(),
+    resolverResponsable: jest.fn(),
+  } as unknown as jest.Mocked<ResolvedorImportacionService>;
   const service = new ImportacionContableLoteService(
     loteRepository,
     importacionContableService,
+    resolvedor,
   );
-  return { service, loteRepository, importacionContableService };
+  return { service, loteRepository, importacionContableService, resolvedor };
+}
+
+function filaStaging(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'f1',
+    linea: 1,
+    codigoPatrimonial: 'DG-001',
+    codigoQr: 'DG-001',
+    catalogoId: 'cat-1' as string | null,
+    serie: null,
+    responsableId: 'resp-1' as string | null,
+    areaId: 'area-1' as string | null,
+    ubicacionId: null,
+    valorPatrimonial: 850000,
+    direccionNombre: null as string | null,
+    areaNombre: null as string | null,
+    responsableNombre: null as string | null,
+    categoriaNombre: null as string | null,
+    nombreAft: null,
+    crudo: { CODIGO: 'DG-001' },
+    dryRunResultado: 'crear' as const,
+    dryRunMotivo: null,
+    ...overrides,
+  };
 }
 
 const LOTE_PENDIENTE: LoteConFilas = {
@@ -36,23 +67,7 @@ const LOTE_PENDIENTE: LoteConFilas = {
     motivoRechazo: null,
     resumen: { totalFilas: 1, crear: 1, yaImportado: 0, conflicto: 0 },
   },
-  filas: [
-    {
-      id: 'f1',
-      linea: 1,
-      codigoPatrimonial: 'DG-001',
-      codigoQr: 'DG-001',
-      catalogoId: 'cat-1',
-      serie: null,
-      responsableId: 'resp-1',
-      areaId: 'area-1',
-      ubicacionId: null,
-      valorPatrimonial: 850000,
-      crudo: { CODIGO: 'DG-001' },
-      dryRunResultado: 'crear',
-      dryRunMotivo: null,
-    },
-  ],
+  filas: [filaStaging()],
 };
 
 describe('ImportacionContableLoteService', () => {
@@ -93,10 +108,14 @@ describe('ImportacionContableLoteService', () => {
             crudo: { X: 'y' },
           },
           {
+            // Sin catalogoId: llega por categoriaNombre y se resolverá al aprobar.
             linea: 3,
             codigoPatrimonial: 'A-3',
             codigoQr: 'A-3',
-            catalogoId: 'cat',
+            categoriaNombre: 'MOBILIARIO',
+            areaNombre: 'PAÑOL',
+            responsableNombre: 'JEFE PAÑOL',
+            direccionNombre: 'LOGISTICA',
             crudo: {},
           },
         ],
@@ -112,6 +131,9 @@ describe('ImportacionContableLoteService', () => {
       expect(filasPersistidas[0].dryRunMotivo).toBeNull();
       expect(filasPersistidas[1].dryRunMotivo).toContain('mismo contenido');
       expect(filasPersistidas[2].dryRunMotivo).toContain('no lo sobrescribe');
+      // La fila 3 se persiste con los nombres, sin catalogoId.
+      expect(filasPersistidas[2].catalogoId).toBeUndefined();
+      expect(filasPersistidas[2].categoriaNombre).toBe('MOBILIARIO');
     });
   });
 
@@ -122,6 +144,31 @@ describe('ImportacionContableLoteService', () => {
       await service.listarLotes('muni', 'aprobado');
       expect(loteRepository.listar).toHaveBeenCalledWith('muni', 'aprobado');
     });
+  });
+
+  it('crearLote sin archivoNombre lo persiste como null', async () => {
+    const { service, loteRepository, importacionContableService } = build();
+    importacionContableService.evaluarFila.mockResolvedValue('crear');
+    loteRepository.crear.mockResolvedValue({
+      loteId: 'l',
+      resumen: { totalFilas: 1, crear: 1, yaImportado: 0, conflicto: 0 },
+    });
+
+    await service.crearLote({
+      organizacionId: 'muni',
+      origen: 'manual',
+      filas: [
+        {
+          linea: 1,
+          codigoPatrimonial: 'A',
+          codigoQr: 'A',
+          catalogoId: 'c',
+          crudo: {},
+        },
+      ],
+    });
+
+    expect(loteRepository.crear.mock.calls[0][0].archivoNombre).toBeNull();
   });
 
   describe('obtenerLote', () => {
@@ -187,6 +234,106 @@ describe('ImportacionContableLoteService', () => {
       await expect(
         service.aprobarLote('lote-1', 'op-1'),
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('resuelve-o-crea catálogo/área/responsable desde los nombres cuando la fila no trae ids', async () => {
+      const {
+        service,
+        loteRepository,
+        importacionContableService,
+        resolvedor,
+      } = build();
+      loteRepository.obtener.mockResolvedValue({
+        ...LOTE_PENDIENTE,
+        filas: [
+          filaStaging({
+            catalogoId: null,
+            categoriaNombre: 'MOBILIARIO',
+            areaId: null,
+            areaNombre: 'OFICINA DIRECTOR GENERAL',
+            direccionNombre: 'DIRECCION GENERAL',
+            responsableId: null,
+            responsableNombre: 'DIRECTOR GENERAL',
+          }),
+        ],
+      });
+      resolvedor.resolverCatalogo.mockResolvedValue('cat-mob');
+      resolvedor.resolverArea.mockResolvedValue('area-dg');
+      resolvedor.resolverResponsable.mockResolvedValue('resp-dg');
+      importacionContableService.procesar.mockResolvedValue({
+        filas: [],
+        creados: 1,
+        yaImportados: 0,
+        conflictos: 0,
+      });
+
+      await service.aprobarLote('lote-1', 'op-1');
+
+      expect(resolvedor.resolverCatalogo).toHaveBeenCalledWith('MOBILIARIO');
+      expect(resolvedor.resolverArea).toHaveBeenCalledWith(
+        'muni',
+        'OFICINA DIRECTOR GENERAL',
+        'DIRECCION GENERAL',
+      );
+      expect(resolvedor.resolverResponsable).toHaveBeenCalledWith(
+        'muni',
+        'DIRECTOR GENERAL',
+        'area-dg',
+      );
+      expect(importacionContableService.procesar).toHaveBeenCalledWith(
+        'muni',
+        [
+          expect.objectContaining({
+            catalogoId: 'cat-mob',
+            areaId: 'area-dg',
+            responsableId: 'resp-dg',
+          }),
+        ],
+        'op-1',
+      );
+    });
+
+    it('no resuelve responsable si no hay área (ni id ni nombre)', async () => {
+      const {
+        service,
+        loteRepository,
+        importacionContableService,
+        resolvedor,
+      } = build();
+      loteRepository.obtener.mockResolvedValue({
+        ...LOTE_PENDIENTE,
+        filas: [
+          filaStaging({
+            areaId: null,
+            areaNombre: null,
+            responsableId: null,
+            responsableNombre: 'ALGUIEN',
+            serie: null,
+            valorPatrimonial: null,
+            ubicacionId: null,
+          }),
+        ],
+      });
+      importacionContableService.procesar.mockResolvedValue({
+        filas: [],
+        creados: 1,
+        yaImportados: 0,
+        conflictos: 0,
+      });
+
+      await service.aprobarLote('lote-1', 'op-1');
+
+      expect(resolvedor.resolverResponsable).not.toHaveBeenCalled();
+      expect(importacionContableService.procesar).toHaveBeenCalledWith(
+        'muni',
+        [
+          expect.objectContaining({
+            areaId: undefined,
+            responsableId: undefined,
+          }),
+        ],
+        'op-1',
+      );
     });
   });
 

@@ -32,6 +32,21 @@ function filaCanonica(codigo: string) {
   };
 }
 
+// Fila tal cual la manda el ETL desde el Excel: solo nombres, sin ids resueltos.
+function filaConNombres(codigo: string, sufijo: string) {
+  return {
+    linea: 1,
+    codigoPatrimonial: codigo,
+    codigoQr: codigo,
+    categoriaNombre: `Mobiliario ${sufijo}`,
+    areaNombre: `Oficina ${sufijo}`,
+    responsableNombre: `Encargado ${sufijo}`,
+    direccionNombre: 'DIRECCION GENERAL',
+    nombreAft: '1 MESA BURO / 4 GAVETAS',
+    crudo: { CODIGO: codigo },
+  };
+}
+
 // DOC-029 RF-B — bandeja de staging: un lote no toca la Base Patrimonial hasta que se aprueba.
 describe('DOC-029 RF-B — ingesta de Excel supervisada, bandeja de staging (e2e)', () => {
   let app: INestApplication<App>;
@@ -176,5 +191,49 @@ describe('DOC-029 RF-B — ingesta de Excel supervisada, bandeja de staging (e2e
       ...IDENTIDAD,
       rolesPorOrganizacion: {},
     }).expect(403);
+  });
+
+  it('una fila sin catalogoId ni categoriaNombre responde 400', async () => {
+    await postLote([
+      {
+        linea: 1,
+        codigoPatrimonial: `AFT-LOTE-${randomUUID()}`,
+        codigoQr: 'X',
+        crudo: {},
+      },
+    ]).expect(400);
+  });
+
+  it('aprobar resuelve-o-crea área/responsable/catálogo desde los nombres del Excel', async () => {
+    const sufijo = randomUUID().slice(0, 8);
+    const codigo = `AFT-LOTE-${randomUUID()}`;
+    const res = await postLote([filaConNombres(codigo, sufijo)]).expect(200);
+    const loteId = (res.body as { loteId: string }).loteId;
+
+    const aprobado = await request(app.getHttpServer())
+      .post(`/importaciones/contable/lote/${loteId}/aprobar`)
+      .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+      .send(IDENTIDAD)
+      .expect(200);
+    expect((aprobado.body as ImportacionContableResultado).creados).toBe(1);
+
+    // El activo quedó creado: un segundo lote con la misma fila ya diría ya_importado.
+    const res2 = await postLote([filaConNombres(codigo, sufijo)]).expect(200);
+    const detalle = await getLote(
+      (res2.body as { loteId: string }).loteId,
+    ).expect(200);
+    expect((detalle.body as LoteConFilas).filas[0].dryRunResultado).toBe(
+      'ya_importado',
+    );
+
+    // El área nueva quedó registrada en la organización.
+    const areas = await request(app.getHttpServer())
+      .get('/areas?organizacionId=duoc-uc&limit=100&offset=0')
+      .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+      .expect(200);
+    const nombres = (areas.body as { areas: { nombre: string }[] }).areas.map(
+      (a) => a.nombre,
+    );
+    expect(nombres).toContain(`Oficina ${sufijo}`);
   });
 });
