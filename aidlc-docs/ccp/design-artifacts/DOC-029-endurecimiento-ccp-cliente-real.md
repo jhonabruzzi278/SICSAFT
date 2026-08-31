@@ -34,7 +34,7 @@ frente en la tabla §0 y estado por rama en §Plan de fases.**
 | **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | ✅ **Hecho** (`feat/ccp-etiquetas-qr`, `20a82e5`) — verificado en modo mock |
 | **RF-G** | Fix: crash del login por timeout + layout del wizard roto a pantalla completa | `sicsaft-core` | ✅ **Hecho** (`fix/sicsaft-core-login-timeout-crash`, `db268a1`) |
 | **RF-H** | APK Android — WebView propia mínima, generada en build-time, servida por el `.exe` | `apk-aft/` (nuevo) + `sicsaft-core` | Diseñado — pendiente |
-| **RF-I** | **Pantalla 8** — informe de control de área: agregación (%, desglose por estado declarado, tipo ordinario/extraordinario, nombres) + presentación con fondos verde/amarillo/rojo, en la APP QR y en el Resumen del CCP | CORE (lectura) + CIS + APP QR + CCP | 🟡 **Parcial**: capa CORE (`GET /inventarios/:id/control` + migración + veredicto) hecha (`f64bda1`). Falta el puente CIS + la presentación en APP QR y CCP. Contrato: [`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md) |
+| **RF-I** | **Pantalla 8** — informe de control de área: agregación (%, desglose por estado declarado, tipo ordinario/extraordinario, nombres) + presentación con fondos verde/amarillo/rojo, en la APP QR y en el Resumen del CCP | CORE (lectura) + CIS + APP QR + CCP | 🟡 **Parcial**: capa CORE (`f64bda1`) + puente CIS (`3d9256d`) hechos. Falta la **presentación** en APP QR y CCP. Contrato: [`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md) |
 
 Reemplaza / extiende:
 
@@ -443,11 +443,13 @@ Resumen. Contrato exacto (6 bloques + encabezado + veredicto con color):
 
 Cobertura: repo/service/controller/veredicto 100% líneas-funciones + e2e contra Postgres real.
 
-### I.2b CIS — passthrough (pendiente)
+### I.2b CIS — passthrough — ✅ HECHO (`feat/cis-inventario-control`, `3d9256d`)
 
-CCP y APP QR hablan con CIS, no con CORE. Falta un `GET /admin/inventarios/:id/control` en el
-puente de CIS (para el CCP, con el guard de rol real) y el equivalente para la APP QR — mismo
-patrón que `GET /inventarios/:id` ya proxeado.
+CCP y APP QR hablan con CIS, no con CORE. `GET /inventarios/:id/control` agregado al
+`QrConnectorController` (mismo controller que sirve `GET /inventarios/:id` para **ambos** — no
+hace falta un `/admin/...` aparte, la lectura del detalle de sesión ya es abierta a cualquier
+operador autenticado). `core-client` gana el schema Zod espejo + `getInventarioResumenControl`;
+`qr-connector` el proxy delgado. 3 archivos a 100% líneas-funciones, e2e nuevo.
 
 ### I.3 APP QR — Pantalla 8 al cerrar
 
@@ -509,7 +511,7 @@ campo `direccion` de B; I depende de que existan sesiones con `estadoDeclarado`,
 | 10a | `feat/ccp-ingesta-revision` | **RF-B.6.3** CCP (revisión Aprobar/Rechazar) — `cecb0b7`; **RF-B.6.1** IPC selector de carpeta — `707d732` | 7, 9 | ✅ |
 | **10b** | `feat/ccp-ingesta-revision` (o rama nueva) | **RF-B.6.2** — watcher del `.exe` (chokidar → ETL → CIS) + service account Keycloak `sicsaft-ingesta` + `prepack.cjs` del sidecar Python | 10a | ⬜ **siguiente** (necesita el stack arriba) |
 | 11 | `feat/core-cip-resumen-control` | RF-I capa CORE (`GET /inventarios/:id/control` + migración `estado_declarado`/`baja_sugerida_motivo` + `veredicto.ts`) | main (prod) | ✅ `f64bda1` |
-| 11b | `feat/cis-inventario-control` (o dentro de 12/13) | RF-I puente CIS — passthrough de `GET /inventarios/:id/control` para CCP (`/admin/...`) y APP QR | 11 | ⬜ |
+| 11b | `feat/cis-inventario-control` | RF-I puente CIS — passthrough de `GET /inventarios/:id/control` (sirve CCP y APP QR desde el mismo `QrConnectorController`) | 11 | ✅ `3d9256d` |
 | 12 | `feat/appqr-pantalla8` | RF-I APP QR (Pantalla 8 + fondos de color + UI de estado por AFT) | 11b | ⬜ |
 | 13 | `feat/ccp-pantalla8` | RF-I CCP (detalle de sesión en el Resumen) | 11b | ⬜ |
 | 14 | `feat/ccp-etiquetas-qr` | RF-F (módulo QR + Code128 por dirección) | 10a | ✅ `20a82e5` |
