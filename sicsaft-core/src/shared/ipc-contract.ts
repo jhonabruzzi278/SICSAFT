@@ -61,6 +61,12 @@ export interface InstalacionCompleta {
   // el portal oculte los módulos de "gestión avanzada" en Nivel 1. Opcional: una instalación
   // anterior a RF-A no lo tiene -- ahí se asume Nivel 1.
   nivel?: 1 | 2;
+  // DOC-029 RF-B.6 -- carpeta del PC del cliente donde el especialista contable deja los .xls/.xlsx.
+  // El watcher del proceso principal (ingesta-watcher.ts) la vigila y corre el ETL Python por cada
+  // archivo nuevo. Se elige desde el wizard (elegirCarpetaIngesta) y se inyecta a `ccp` como
+  // VITE_SICSAFT_CARPETA_INGESTA para mostrarla en el módulo Importaciones. Opcional: sin
+  // configurar, no hay carpeta vigilada (el AFT usa la carga manual de CSV).
+  carpetaIngesta?: string;
 }
 
 // DOC-028 Fase C.1 -- el wizard consulta esto al relanzar, después de getInstalacionExistente().
@@ -132,6 +138,11 @@ export interface SicsaftCoreApi {
   // La pantalla "listo" del wizard la muestra como un QR para que el Profesional de AFT abra la
   // app desde su teléfono sin tipear nada ni correr comandos. Arranca el servidor si hace falta.
   getUrlAppQr(): Promise<string>;
+  // DOC-029 RF-B.6 -- carpeta vigilada de ingesta de Excel. `elegir...` abre el diálogo nativo de
+  // carpeta, persiste la elección en instalacion.json y (re)arranca el watcher; devuelve la ruta
+  // elegida o null si el usuario canceló. `leer...` devuelve la ruta persistida (o null).
+  elegirCarpetaIngesta(): Promise<string | null>;
+  leerCarpetaIngesta(): Promise<string | null>;
   bootstrapCliente(
     input: DatosClienteInput,
   ): Promise<BootstrapClienteResultado>;

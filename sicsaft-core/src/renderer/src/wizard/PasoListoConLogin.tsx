@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { QrAppQr } from "../components/QrAppQr";
+import { CarpetaIngesta } from "../components/CarpetaIngesta";
 
 // CORE-RF-04 (alcance corregido 2026-08-28) -- el "cuadrado" acá es un placeholder vacío en el
 // DOM: la WebContentsView real vive fuera del DOM, el proceso principal la dibuja encima de este
@@ -154,6 +155,7 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
           desde el teléfono del Profesional de AFT.
         </p>
         <QrAppQr />
+        <CarpetaIngesta />
       </div>
       {error && !portalCargado && (
         <p className="text-sm text-[var(--destructive)]">
@@ -163,16 +165,17 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
       <div
         className={
           portalCargado
-            ? "flex w-full items-center justify-end border-b border-[var(--border)] bg-card px-4 py-1.5"
-            : "flex w-full justify-end"
+            ? "flex w-full items-center justify-between gap-4 border-b border-[var(--border)] bg-card px-4 py-1.5"
+            : "flex w-full items-center justify-end gap-4"
         }
       >
+        {portalCargado && <CarpetaIngesta compact />}
         <button
           type="button"
           onClick={cambiarUsuario}
           className={
             portalCargado
-              ? "text-xs text-[var(--muted-foreground)] hover:text-foreground"
+              ? "shrink-0 text-xs text-[var(--muted-foreground)] hover:text-foreground"
               : "text-sm font-medium text-[var(--muted-foreground)] underline underline-offset-4 hover:text-foreground"
           }
         >

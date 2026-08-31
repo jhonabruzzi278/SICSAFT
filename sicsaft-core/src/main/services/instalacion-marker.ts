@@ -48,3 +48,21 @@ export function actualizarIpLanInstalacion(ipLan: string): void {
   }
   writeFileSync(rutaMarcador(), JSON.stringify({ ...existente, ipLan }));
 }
+
+// DOC-029 RF-B.6 -- reescribe solo la carpetaIngesta del marcador. Se llama desde
+// ipc/handlers.ts elegirCarpetaIngesta cuando el usuario elige una carpeta en el diálogo nativo.
+// Mismo criterio que actualizarIpLanInstalacion: exige que el marcador base ya exista.
+export function actualizarCarpetaIngestaInstalacion(
+  carpetaIngesta: string,
+): void {
+  const existente = leerInstalacionExistente();
+  if (!existente) {
+    throw new Error(
+      "actualizarCarpetaIngestaInstalacion() sin instalación previa -- llamar marcarInstalacionCompleta() primero.",
+    );
+  }
+  writeFileSync(
+    rutaMarcador(),
+    JSON.stringify({ ...existente, carpetaIngesta }),
+  );
+}

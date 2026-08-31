@@ -12,6 +12,7 @@ vi.mock("electron", () => ({
 }));
 
 import {
+  actualizarCarpetaIngestaInstalacion,
   actualizarIpLanInstalacion,
   leerInstalacionExistente,
   marcarInstalacionCompleta,
@@ -86,5 +87,30 @@ describe("instalacion-marker", () => {
     expect(() => actualizarIpLanInstalacion("10.0.0.5")).toThrow(
       /sin instalación previa/,
     );
+  });
+
+  test("actualizarCarpetaIngestaInstalacion reescribe solo la carpetaIngesta, deja el resto intacto", () => {
+    marcarInstalacionCompleta({
+      organizacionId: "muni-x",
+      clienteNombre: "Municipalidad X",
+      ipLan: "192.168.1.11",
+      nivel: 1,
+    });
+
+    actualizarCarpetaIngestaInstalacion("D:\\SICSAFT\\ingesta");
+
+    expect(leerInstalacionExistente()).toEqual({
+      organizacionId: "muni-x",
+      clienteNombre: "Municipalidad X",
+      ipLan: "192.168.1.11",
+      nivel: 1,
+      carpetaIngesta: "D:\\SICSAFT\\ingesta",
+    });
+  });
+
+  test("actualizarCarpetaIngestaInstalacion tira si no hay instalación previa", () => {
+    expect(() =>
+      actualizarCarpetaIngestaInstalacion("D:\\SICSAFT\\ingesta"),
+    ).toThrow(/sin instalación previa/);
   });
 });
