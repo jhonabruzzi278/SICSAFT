@@ -1,41 +1,49 @@
 # DOC-029 — Endurecimiento del CCP para cliente real
 
 Contrato formal de la fase, mismo esquema que DOC-019/020/021/022. Nace en el portal del
-Profesional de AFT (`ccp/`) pero toca `cis/` y `core/` — se documenta acá porque la decisión de
-diseño de cada punto es una necesidad del portal AFT, no de CIS/CORE (CLAUDE.md "una fase que toca
+Profesional de AFT (`ccp/`) pero toca `cis/`, `core/` y `sicsaft-core/` — se documenta acá porque
+la decisión de diseño de cada punto es una necesidad del portal AFT (CLAUDE.md "una fase que toca
 varias capas se documenta bajo el sistema donde nace la decisión").
 
 > **Origen (2026-08-31)**: pedido del usuario, con un cliente real ya sobre `sicsaft-core.exe`
-> (DOC-028). Cinco frentes independientes; respuestas de alcance confirmadas por el usuario en la
-> misma sesión (ver §2 de cada workstream).
+> (DOC-028). Seis frentes; alcance de cada uno confirmado por el usuario en la misma sesión.
+> **v2 (2026-08-31)** — decisiones cerradas: RF-B = sidecar Python; RF-H = APK WebView propia
+> mínima (opción B), se construye ya; "Dirección" = CORE refleja el Excel tal cual en esta v1.
 
-**Estado: diseñado, sin código todavía. Esperando confirmación del usuario antes de tocar `src/`.**
+**Estado: diseñado. RF-G ya implementado (fix de crash + layout). El resto espera confirmación
+del plan de fases antes de tocar `src/`.**
 
 ---
 
-## 0. Resumen de los cinco frentes
+## 0. Resumen de los seis frentes
 
 | ID | Frente | Capas | Estado |
 |----|--------|-------|--------|
-| **RF-A** | Flag de nivel (1/2) en CCP — gate de módulos/features | CCP + `.exe` config | Diseñado |
-| **RF-B** | Ingesta de Excel supervisada — carpeta → CIS → CORE → **revisión del AFT** → BPI | CORE + CIS + CCP | Diseñado |
+| **RF-A** | Flag de nivel (1/2) en CCP — gate de módulos/features | CCP + `sicsaft-core` config | Diseñado |
+| **RF-B** | Ingesta de Excel supervisada — carpeta → **ETL Python** → CIS → CORE (staging) → **revisión del AFT** → BPI | Python sidecar + CORE + CIS + CCP | Diseñado |
 | **RF-C** | 3 pestañas nuevas en el resumen (Dashboard) | CCP | **Bloqueado — spec lo entrega Guido** |
-| **RF-D** | Veredicto de sesión accionable (`exitoso`/`aceptable`/`defectuoso`) → Auditoría / baja / Inventario / Contrato | CCP + 1 automatización en CORE | Diseñado |
+| **RF-D** | Veredicto de sesión accionable → Auditoría / baja / Inventario / Contrato | CCP + 1 automatización en CORE | Diseñado |
 | **RF-E** | Auditoría por **área operativa real** del actor + columna "Revisar" | CORE + CIS + CCP | Diseñado |
+| **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | Diseñado |
+| **RF-G** | Fix: crash del login por timeout + layout del wizard roto a pantalla completa | `sicsaft-core` | ✅ **Hecho** (rama `fix/sicsaft-core-login-timeout-crash`) |
+| **RF-H** | APK Android — WebView propia mínima, generada en build-time, servida por el `.exe` | `apk-aft/` (nuevo) + `sicsaft-core` | Diseñado |
 
 Reemplaza / extiende:
 
 - **DOC-025 §1** ("Portal de Profesional de AFT: dos piezas distintas, no una"): RF-A revierte la
-  decisión de *"no es una versión desbloqueada vía feature flag — es una aplicación distinta"*.
-  Ver RF-A §1 para el motivo.
-- **DOC-016** (Conector CON-CONTABILIDAD): RF-B reusa el transporte (carpeta vigilada → CIS →
-  `POST /importaciones/contable`) y le agrega la compuerta humana que DOC-016 explícitamente no
-  tenía (*"sin intervención humana"*, DOC-016 §1).
+  decisión de *"no es una versión desbloqueada vía feature flag — es una aplicación distinta"*
+  (RF-A §1).
+- **DOC-016** (Conector CON-CONTABILIDAD): RF-B reusa los **conceptos de transporte** (carpeta
+  local vigilada, identidad sintética para el paso de ingesta, idempotencia por fila, canal de
+  auditoría) pero **reemplaza su implementación**: parser Python (no `split(',')` en Node),
+  formato `.xls`/`.xlsx` real, y una **compuerta humana** que DOC-016 explícitamente no tenía
+  (*"sin intervención humana"*, DOC-016 §1).
+- **DOC-028 Fase E** (APK Android, diferida): RF-H la des-difiere con un alcance acotado
+  (WebView propia, no TWA/PWABuilder — ver RF-H §1).
 
 No reabre: [ADR-004](../../../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) (Keycloak),
-[DOC-023](DOC-023-matriz-permisos-rbac.md) (RBAC — RF-B/RF-D/RF-E reusan guards existentes, no
-inventan patrones nuevos), el invariante de Tomo III 4.10 (baja por `estado`, nunca `DELETE` —
-RF-D lo respeta explícitamente).
+[DOC-023](DOC-023-matriz-permisos-rbac.md) (RBAC — RF-B/RF-D/RF-E/RF-F reusan guards existentes),
+el invariante de Tomo III 4.10 (baja por `estado`, nunca `DELETE` — RF-D lo respeta).
 
 ---
 
@@ -44,160 +52,151 @@ RF-D lo respeta explícitamente).
 ### A.1 Qué resuelve y por qué revierte DOC-025
 
 DOC-025 reservó para el Profesional de AFT **dos aplicaciones distintas**: un "web-aft" liviano de
-Nivel 1 (identificación, consulta, inventarios, incidencias, historial, trazabilidad básica) y
-`ccp/` completo recién en Nivel 2 (gestión avanzada, administración, reportes, configuración).
+Nivel 1 y `ccp/` completo recién en Nivel 2. Estado real: el "web-aft" liviano **nunca tuvo
+código** (DOC-025 §1, 🔲); `ccp/` existe, probado, y `sicsaft-core.exe` **ya lo embebe completo
+sin condicionarlo al nivel** (DOC-025 excepción 2026-08-28).
 
-Estado real a hoy: el "web-aft" liviano **nunca tuvo una línea de código ni carpeta propia**
-(DOC-025 §1, marcado 🔲). `ccp/` existe, probado de punta a punta, y `sicsaft-core.exe` **ya lo
-embebe completo sin condicionarlo al nivel** (DOC-025 excepción 2026-08-28).
-
-**Decisión del usuario (2026-08-31)**: en vez de construir una segunda app, `ccp/` gana un
-`nivel` de ejecución (`1` | `2`) que oculta los módulos/acciones de "gestión avanzada" cuando
-corre en Nivel 1. Es exactamente la "decisión de diseño nueva, fuera de este documento" que
-DOC-025 §2 anticipó (*"si en el futuro se necesita que el propio sistema sepa en qué nivel
-corre... para ocultar features de un nivel superior en la UI"*).
+**Decisión del usuario (2026-08-31)**: en vez de una segunda app, `ccp/` gana un `nivel` de
+ejecución (`1` | `2`) que oculta los módulos/acciones de "gestión avanzada" cuando corre en Nivel
+1. Es la "decisión de diseño nueva" que DOC-025 §2 anticipó.
 
 ### A.2 De dónde sale el flag — no es un dato de dominio
 
-DOC-025 §2 sigue en pie: **no se agrega ningún campo `nivel` a `Contrato`/`Organización`/`Sede`**.
-El nivel es una decisión de despliegue, no un atributo del patrimonio.
+DOC-025 §2 sigue en pie: **no se agrega un campo `nivel` a `Contrato`/`Organización`/`Sede`**.
 
-Fuente del valor, en orden de precedencia:
+1. **`.exe`**: `instalacion.json` gana `nivel` (default `1`), fijado en el bootstrap. `sicsaft-core`
+   lo inyecta al servir `ccp` por el canal de config runtime de DOC-028 Fase C.0 —
+   `window.__SICSAFT_PORTAL_CONFIG__.VITE_SICSAFT_NIVEL` (ver `static-portal-server.ts`
+   `inyectarConfigRuntime`, `handlers.ts` `asegurarServidoresPortales`).
+2. **`devops/onprem`**: env var `VITE_SICSAFT_NIVEL` en el servicio `ccp` del Compose.
+3. **Fallback dev/local**: `import.meta.env.VITE_SICSAFT_NIVEL`, default **`2`**.
 
-1. **`.exe`**: `instalacion.json` gana `nivel` (default `1`), fijado en el bootstrap del wizard.
-   `sicsaft-core` lo inyecta al servir `ccp` por el mecanismo de config runtime de DOC-028 Fase
-   C.0 — `window.__SICSAFT_PORTAL_CONFIG__.VITE_SICSAFT_NIVEL` (mismo canal que hoy inyecta
-   `VITE_KEYCLOAK_ISSUER`, ver `sicsaft-core/src/main/services/static-portal-server.ts`
-   `inyectarConfigRuntime` y `handlers.ts` `asegurarServidoresPortales`).
-2. **`devops/onprem`**: env var `VITE_SICSAFT_NIVEL` en el servicio `ccp` del Compose (solo
-   presente en el perfil `nivel2`; una instalación "Nivel 1 con `ccp` por la excepción" pone `1`).
-3. **Fallback dev/local**: `import.meta.env.VITE_SICSAFT_NIVEL`, default **`2`** — el portal
-   completo sigue siendo lo que ve un desarrollador sin configurar nada.
+Lectura en CCP: helper `nivelActual(): 1 | 2` en `src/lib/nivel.ts` (mismo patrón que
+`oidc-config.ts` `requireEnv` de DOC-028 C.0).
 
-Lectura en CCP: helper `nivelActual(): 1 | 2` en `src/lib/nivel.ts`, leyendo
-`window.__SICSAFT_PORTAL_CONFIG__?.VITE_SICSAFT_NIVEL ?? import.meta.env.VITE_SICSAFT_NIVEL ?? '2'`
-(mismo patrón que `oidc-config.ts` `requireEnv` de DOC-028 C.0).
+### A.3 Qué muestra cada nivel
 
-### A.3 Qué muestra cada nivel (PROPUESTA — confirmar)
+`nivel` es el **techo**; `modulosContratados` (ya existente) sigue siendo el permiso fino por
+organización. Un módulo se muestra si el nivel lo permite **y** está en `modulosContratados`.
 
-Mapa contra las capacidades de DOC-025 §1. `modulosContratados` (ya existente, `Contrato`) sigue
-siendo el permiso fino por organización; `nivel` es el **techo**: un módulo se muestra solo si el
-nivel lo permite **y** está en `modulosContratados`.
+| Módulo del hub | Nivel 1 | Nivel 2 |
+|---|---|---|
+| Activos | ✅ **solo consulta** (sin alta manual) | ✅ completo |
+| Inventarios | ✅ | ✅ |
+| Dashboard | ✅ | ✅ |
+| **Ingesta / Importación (RF-B)** | ✅ (único camino de carga en Nivel 1) | ✅ |
+| **QR / Etiquetas (RF-F)** | ✅ | ✅ |
+| Contratos | ❌ | ✅ |
+| Estructura (ABM áreas/ubicaciones/responsables) | ❌ | ✅ |
+| Administración (transversal) | ❌ | ✅ |
 
-| Módulo del hub (`HubPage.tsx`) | Nivel 1 | Nivel 2 | Nota |
-|---|---|---|---|
-| Activos (consulta + alta) | ✅ consulta | ✅ completo | Nivel 1: sin alta manual (queda para RF-B / APP QR) — **confirmar** |
-| Inventarios (sesiones de control) | ✅ | ✅ | Capacidad núcleo de Nivel 1 |
-| Dashboard (cobertura, incidencias, historial) | ✅ | ✅ | "trazabilidad básica" de DOC-025 §1 |
-| Contratos (vigencia, transiciones) | ❌ | ✅ | "gestión avanzada" |
-| Estructura (ABM áreas/ubicaciones/responsables) | ❌ | ✅ | "gestión avanzada" |
-| Importaciones / Ingesta (RF-B) | ❌ | ✅ | "operación centralizada" |
-| Administración (transversal, `AppShell`) | ❌ | ✅ | "administración web" de DOC-025 §1 |
-
-Enforcement: **solo oculta en la UI**. El guard real sigue en CIS/CORE (DOC-023) — un `POST` a un
-endpoint de Nivel 2 desde un CCP en Nivel 1 lo sigue rechazando CORE por rol/`modulosContratados`,
-no por el flag.
+Enforcement: **solo oculta en la UI**. El guard real sigue en CIS/CORE (DOC-023).
 
 ---
 
 ## RF-B — Ingesta de Excel supervisada
 
-### B.1 Alcance confirmado por el usuario (2026-08-31)
+### B.1 Alcance confirmado (2026-08-31)
 
-> "Quiero que dentro del CCP el cliente seleccione una carpeta donde se depositen los Excel, para
-> así pasar por el CIS, luego por el CORE y luego llegue a la base de datos — pero que no llegue
-> directo: cuando llegue al CORE, el Profesional de AFT debe aceptar, revisar y visualizar la
-> información que llegó; eso se hace desde su portal de AFT."
+> "En el CCP, donde dice Importación, uno selecciona una carpeta del PC donde se cargan los Excel
+> y mediante programación se hace ETL de la información y se transforma al modelo de SICSAFT. Esa
+> información pasa por CIS, luego CORE, y en CORE espera validación del Profesional de AFT por el
+> portal."
+
+ETL = **sidecar Python** (`pandas` + `xlrd`), decisión del usuario: el Excel real
+(`EJEMPLOS DE EMPRESAS Y AFT.xls`, inspeccionado en esta sesión) tiene encabezado en la fila 5,
+celdas combinadas (`DIRECCION`/`AREA`/`RESPONSABLE` con fill-down), y una columna `CATEGORIA` de
+texto libre — `pandas` reshapea eso sin esfuerzo; un parser Node a mano no.
 
 ### B.2 Flujo
 
 ```mermaid
 flowchart TD
-    Esp["Especialista contable\ndeja .xlsx en la carpeta"] --> Watcher["Watcher\n(sicsaft-core / cis)"]
-    Watcher -->|"parsea xlsx + mapeo por org\n-> filas canonicas"| Lote["POST /importaciones/contable/lote\n(CIS -> CORE)"]
-    Lote --> Staging["CORE: lote en estado\n'pendiente_revision'\n(NO toca la Base Patrimonial)"]
-    Staging --> Rev["Profesional de AFT en CCP\nmodulo 'Ingesta' -> revisa filas,\nve dry-run (crear / actualizar / conflicto)"]
-    Rev -->|Aprobar| Aplica["CORE aplica el lote\n(logica DOC-012 6, idempotente por fila)\n+ POST /auditoria"]
+    Esp["Especialista contable\ndeja .xls/.xlsx en la carpeta elegida"] --> Watcher["sicsaft-core: watcher de carpeta\n(chokidar / fs.watch)"]
+    Watcher -->|"invoca child_process"| ETL["ETL Python (sidecar)\npandas: detectar encabezado, fill-down,\nmapeo de columnas por org, normalizar\n-> filas modelo SICSAFT + codigoQr acunado"]
+    ETL -->|"JSON de filas"| CIS["CIS: POST /importaciones/contable/lote"]
+    CIS --> Staging["CORE: lote 'pendiente_revision'\n(NO toca la Base Patrimonial)"]
+    Staging --> Rev["Profesional de AFT en CCP\nmodulo 'Importacion' -> revisa filas,\nve dry-run (crear / actualizar / conflicto)"]
+    Rev -->|Aprobar| Aplica["CORE aplica: resuelve-o-crea area/responsable/catalogo\npor nombre, inserta activos (idempotente por codigoPatrimonial)\n+ POST /auditoria"]
     Rev -->|Rechazar| Rechazado["lote 'rechazado'\nnada toca la base"]
     Aplica --> BPI["Base Patrimonial Central"]
 ```
 
-**No es un camino de escritura nuevo a la BPI**: aprobar un lote ejecuta la misma lógica de
-`POST /importaciones/contable` que ya usa el puente manual de `ImportacionesPage.tsx` (DOC-012 §6).
-Lo nuevo es la bandeja de staging + el gate humano. Refuerza el invariante de CLAUDE.md ("ninguna
-fuente de captura modifica la Base Patrimonial directamente; todo pasa por CIS → CORE") — ahora
-con una aprobación explícita además.
+Respeta el invariante de CLAUDE.md: nada escribe directo a la BPI, todo pasa por CIS→CORE, y ahora
+además hay aprobación humana explícita.
 
-### B.3 CORE — bandeja de staging
+### B.3 Sidecar Python — `herramientas/etl-contable/`
 
-Migración `node-pg-migrate` en `core/migrations/` — dos tablas nuevas:
+- Carpeta nueva en la raíz (no un desplegable — es una herramienta, criterio de CLAUDE.md como
+  `aidlc-docs/`). Contenido: `etl_contable.py` (CLI: `--entrada archivo.xls --mapeo mapeo.json
+  --salida -` → JSON a stdout), `mapeo/` con un `mapeo-<organizacionId>.json` de ejemplo,
+  `requirements.txt` (`pandas`, `xlrd`), `tests/` (pytest, con un `.xls` fixture chico).
+- Qué hace: detección de fila de encabezado (busca la fila con `CODIGO`/`DIRECCION`), fill-down de
+  combinadas, remapeo de columnas por `mapeo-<org>.json`, normalización de tipos
+  (`VALOR.CLP.` → número, `FECHA COMPRA` → ISO), **acuñado de `codigoQr`** a partir de `CODIGO`
+  (namespaced: `<organizacionId>:<CODIGO>` o solo `<CODIGO>` — ver B.6), y `--dry-run` local que
+  reporta filas sin `CODIGO`, duplicados en el archivo, y `CATEGORIA` desconocidas.
+- Empaquetado en el `.exe`: Python embebido (`python-build-standalone`, ~15 MB comprimido) +
+  `pandas`/`xlrd` en un venv, copiado por `prepack.cjs` a `resources/etl-contable/`. `sicsaft-core`
+  lo invoca con `execFile(rutaPythonEmbebido, [rutaScript, ...args])`.
 
-- `importacion_contable_lote`: `id`, `organizacion_id`, `origen` (`'carpeta'` | `'manual'`),
-  `archivo_nombre`, `recibido_en`, `estado` (`pendiente_revision` | `aprobado` | `rechazado`),
-  `revisado_por`, `revisado_en`, `resumen` (jsonb: totales crear/actualizar/conflicto del
-  dry-run).
-- `importacion_contable_lote_fila`: `id`, `lote_id`, `linea`, los campos canónicos
-  (`codigo_patrimonial`, `codigo_qr`, `catalogo_id`, `serie`, `responsable_id`, `area_id`,
-  `ubicacion_id`, `valor_patrimonial`), `dry_run_resultado` (`crear` | `actualizar` | `conflicto`),
+### B.4 CORE — bandeja de staging
+
+Migración `node-pg-migrate` en `core/migrations/` — dos tablas nuevas. **v1: reflejan el Excel tal
+cual** (decisión del usuario), no el modelo canónico reducido:
+
+- `importacion_contable_lote`: `id`, `organizacion_id`, `origen`, `archivo_nombre`, `recibido_en`,
+  `estado` (`pendiente_revision` | `aprobado` | `rechazado`), `revisado_por`, `revisado_en`,
+  `resumen` (jsonb).
+- `importacion_contable_lote_fila`: `id`, `lote_id`, `linea`, y las columnas del Excel del cliente
+  mapeadas a nombres estables: `direccion`, `area`, `responsable`, `codigo_patrimonial`,
+  `nombre_aft`, `categoria`, `estado_aft`, `marca`, `modelo`, `serie`, `fecha_compra`,
+  `valor_clp`, `codigo_qr` (acuñado). `dry_run_resultado` (`crear` | `actualizar` | `conflicto`),
   `dry_run_motivo`.
 
-**No es un registro oficial de Base Patrimonial** (Tomo III 4.10 no aplica: es una bandeja de
-entrada, no una entidad del patrimonio). Aun así usa `estado` en vez de borrar filas — trazabilidad
-y consistencia con el resto del esquema. Un job de limpieza de lotes `aprobado`/`rechazado` más
-viejos que N días es aceptable (a diferencia de `activos`/`responsables`).
+**No es un registro oficial de Base Patrimonial** (Tomo III 4.10 no aplica: bandeja de entrada).
+Usa `estado` en vez de borrar; un job de limpieza de lotes cerrados > N días es aceptable.
 
-Endpoints nuevos (mismo guard que `POST /importaciones/contable` hoy: `administrador-patrimonial`
-en la organización, DOC-012 §3):
+Endpoints nuevos (guard `administrador-patrimonial` en la organización, DOC-012 §3):
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| `POST` | `/importaciones/contable/lote` | Crea el lote + filas en `pendiente_revision`, calcula el dry-run, devuelve el `id` y el resumen |
-| `GET` | `/importaciones/contable/lotes?estado=&organizacionId=` | Lista de lotes |
-| `GET` | `/importaciones/contable/lotes/:id` | Lote + filas con su `dry_run_resultado` |
-| `POST` | `/importaciones/contable/lotes/:id/aprobar` | Aplica fila por fila (DOC-012 §6, idempotente) → BPI, marca `aprobado`, `POST /auditoria` |
-| `POST` | `/importaciones/contable/lotes/:id/rechazar` | Marca `rechazado` (+ `motivo` opcional), `POST /auditoria`, nada toca la BPI |
+| `POST` | `/importaciones/contable/lote` | Crea lote + filas `pendiente_revision`, calcula dry-run, devuelve `id` + resumen |
+| `GET` | `/importaciones/contable/lotes?estado=&organizacionId=` | Lista |
+| `GET` | `/importaciones/contable/lotes/:id` | Lote + filas con `dry_run_resultado` |
+| `POST` | `/importaciones/contable/lotes/:id/aprobar` | **Resuelve-o-crea** área/responsable/catálogo por nombre, inserta activos (idempotente por `codigo_patrimonial`), marca `aprobado`, `POST /auditoria` |
+| `POST` | `/importaciones/contable/lotes/:id/rechazar` | Marca `rechazado` (+ motivo), `POST /auditoria`, nada toca la BPI |
 
-### B.4 CIS — watcher + parser + mapeo por organización
+El "aprobar" es más grande que resolver IDs ya presentes: reflejar el Excel implica crear áreas,
+responsables y catálogo tipos que todavía no existen. Todo eso pasa por los servicios de dominio
+de CORE existentes, nunca `INSERT` directo.
 
-Módulo nuevo `cis/src/importacion-contable-ingesta/` (reusa el diseño de transporte de DOC-016
-§3/§6: `@nestjs/schedule` `@Cron`, carpeta configurable, corrida manual para pruebas):
+### B.5 CIS
 
-- **Carpeta**: la elige el AFT desde CCP (B.5), no una env var fija. El `.exe` la persiste en
-  `instalacion.json` (`carpetaIngesta`) y se la pasa a `cis` al arrancar por `backend-configs.ts`
-  (`crearConfigCis`), igual que hoy con `KEYCLOAK_URL`/`CORE_URL`. En `devops/onprem` sigue siendo
-  una env var (`INGESTA_CONTABLE_CARPETA`).
-- **Parser `.xlsx`**: **dependencia nueva** — `exceljs` (o SheetJS/`xlsx`). DOC-016 asumía CSV con
-  `split(',')`; Excel binario no se parsea a mano. Decisión de dependencia a registrar en el
-  `package.json` de `cis/` y en `cis/README.md`. Se elige `exceljs` salvo objeción (streaming,
-  sin CVEs abiertos conocidos a la fecha, MIT).
-- **Mapeo por organización**: archivo `mapeo-<organizacionId>.json` en la carpeta de ingesta
-  (o en `userData`): `{ "Código Bien": "codigoPatrimonial", "QR": "codigoQr", "Tipo": "catalogoId", ... }`.
-  v1: si no hay archivo de mapeo y los encabezados del Excel ya son los canónicos, pasa directo.
-  Resolución de `catalogoId`/`responsableId`/`areaId` desde nombres de texto: **fuera de v1** — el
-  Excel trae los IDs, o el mapeo los deja como conflicto para que el AFT los corrija. (Igual que
-  el importador manual hoy.)
-- Identidad hacia CORE para crear el lote: misma identidad sintética de DOC-016 §5
-  (`operadorId: 'ingesta-contable'`, `organizacionId` de la instalación, rol
-  `administrador-patrimonial` afirmado por config) — CORE re-verifica igual, sin bypass. **La
-  aprobación**, en cambio, la hace un humano con su JWT real desde CCP.
+Endpoint nuevo `POST /importaciones/contable/lote` en el bridge — passthrough a CORE con la
+identidad sintética de DOC-016 §5 (`operadorId: 'ingesta-contable'`, rol
+`administrador-patrimonial` afirmado por config; CORE re-verifica igual). **La aprobación** la hace
+un humano con su JWT real desde CCP, no la identidad sintética.
 
-### B.5 CCP — selector de carpeta + módulo de revisión
+### B.6 CCP — selector de carpeta + revisión, dentro de "Importación"
 
-- **Selector de carpeta**: en el `.exe`, IPC nuevo `sicsaftCore.elegirCarpetaIngesta()` →
-  `dialog.showOpenDialog({ properties: ['openDirectory'] })` en el main process, persiste en
-  `instalacion.json`. En navegador puro (Nivel 2 sobre `devops/onprem`) queda **fuera de v1**
-  (File System Access API es solo Chromium y re-pide permiso por sesión) — ahí la carpeta la fija
-  el operador del despliegue por env var. Se documenta como limitación.
-- **Módulo "Ingesta"** (`src/pages/IngestaPage.tsx`, ruta `/ingesta`, en el hub solo si
-  `nivel === 2` y en `modulosContratados`; guard `administrador-patrimonial` como
-  `ImportacionesPage`):
-  - Lista de lotes (`pendiente_revision` arriba), con `archivo_nombre`, `recibido_en`, totales
-    del resumen (N crear / N actualizar / N conflicto).
-  - Detalle de lote: tabla de filas con su `dry_run_resultado` como `<Badge>` (reusa el patrón de
-    `ImportacionesPage.tsx` "Resultado"), filtrable por resultado.
-  - Botones **Aprobar** / **Rechazar** (con confirmación; Rechazar pide motivo opcional).
-  - `ImportacionesPage.tsx` (carga manual) se mantiene tal cual — es el camino rápido sin
-    staging para un CSV puntual. **Confirmar** si se prefiere unificar todo bajo staging.
+- **Selector de carpeta**: IPC nuevo `sicsaftCore.elegirCarpetaIngesta()` →
+  `dialog.showOpenDialog({ properties: ['openDirectory'] })`, persistido en `instalacion.json`
+  (`carpetaIngesta`) y pasado a `cis` por `backend-configs.ts`. En navegador puro (Nivel 2 sobre
+  `devops/onprem`) **fuera de v1**: la fija el operador por env var.
+- **`ImportacionesPage.tsx`** gana dos secciones: (1) la carga manual de CSV actual, sin cambios;
+  (2) "Carpeta vigilada" — muestra la carpeta elegida (botón para cambiarla) y la lista de lotes
+  (`pendiente_revision` arriba); al abrir un lote, tabla de filas con `dry_run_resultado` como
+  `<Badge>`, filtrable, y botones **Aprobar** / **Rechazar** (Rechazar pide motivo).
+- No se unifica la carga manual bajo staging (decisión del usuario): el AFT que sube un CSV a mano
+  ya es el humano que revisa, en ese acto.
+
+### B.7 `codigoQr` acuñado — decisión pendiente menor
+
+El QR de cada AFT lo genera el ETL (el Excel no lo trae). Formato propuesto: **el propio `CODIGO`
+del Excel** (`DG-001`), que ya es único por organización y legible. Alternativa: prefijar la
+organización. Se confirma al implementar RF-F (las etiquetas tienen que poder representarlo como
+QR y como Code128 — un `CODIGO` corto ASCII cumple ambos).
 
 ---
 
@@ -206,19 +205,11 @@ Módulo nuevo `cis/src/importacion-contable-ingesta/` (reusa el diseño de trans
 `DashboardPage.tsx` pasa de scroll único a layout con pestañas. Tres pestañas nuevas cuyo
 contenido **lo define Guido**. No se diseña ni se codea hasta tener ese spec.
 
-Lo único que DOC-029 fija ahora, porque RF-D lo necesita:
+Fijado ahora, porque RF-D lo necesita: patrón de tabs compound (`web/patterns.md`), estado en la
+URL (`?tab=`) para deep-linking. Las secciones actuales del Dashboard se reparten en "General" +
+las 3 de Guido, sin perder ninguna.
 
-- Patrón de tabs: compound component (`web/patterns.md` "Compound Components"), estado en la URL
-  (`?tab=`) para que cada pestaña sea deep-linkable.
-- Las secciones actuales del Dashboard (Áreas, Sesiones, Estado AFT, Fuera de área, No
-  localizados, Incidencias, Categorías) se reparten en la pestaña "General" + las 3 de Guido, sin
-  perder ninguna.
-
-Placeholder — completar al recibir el spec de Guido:
-
-> **Pestaña 1**: _(pendiente)_
-> **Pestaña 2**: _(pendiente)_
-> **Pestaña 3**: _(pendiente)_
+> **Pestaña 1**: _(pendiente)_ · **Pestaña 2**: _(pendiente)_ · **Pestaña 3**: _(pendiente)_
 
 ---
 
@@ -226,49 +217,36 @@ Placeholder — completar al recibir el spec de Guido:
 
 ### D.1 Alcance confirmado — "Mixto"
 
-Links profundos para navegar + **una** acción automática (D.3) que el usuario aprueba o rechaza en
-este documento.
+Links profundos para navegar + **una** acción automática (D.3).
 
-El veredicto de sesión es `exitoso` | `aceptable` | `defectuoso` (DOC-017; `verdict.ts`,
-`cip/src/agregacion/veredicto.ts`). "Excelente" del usuario = **`exitoso`**. Aparece hoy en el
-Dashboard, tarjeta "Sesiones de inventario" (`VeredictoSesion`: `sesionId`, `areaId`, `veredicto`,
-`fechaCierre`) y en el módulo Inventarios.
+Veredicto de sesión: `exitoso` | `aceptable` | `defectuoso` (DOC-017; `verdict.ts`). "Excelente"
+del usuario = **`exitoso`**. Aparece en el Dashboard (tarjeta "Sesiones de inventario":
+`sesionId`, `areaId`, `veredicto`, `fechaCierre`) y en Inventarios.
 
 ### D.2 Links profundos (sin escritura)
 
-Cada sesión, en el Dashboard y en Inventarios, gana un grupo de acciones que llevan
-`organizacionId` + `areaId` + (cuando aplique) los `codigoQr` observados:
+Cada sesión gana un grupo de acciones que llevan `organizacionId` + `areaId` + (cuando aplique)
+los `codigoQr` observados:
 
-| Destino | Link | Para qué |
-|---|---|---|
-| **Auditoría** | `/auditoria?organizacionId=…&area=…` | Ver qué se hizo en esa área (usa el filtro por área de RF-E) |
-| **Inventario** | `/inventarios?organizacionId=…&sesionId=…` | Abrir los escaneos de esa sesión |
-| **Contrato** | `/contratos?organizacionId=…` | Revisar vigencia/módulos de la organización |
-| **Baja de activo** ("eliminar") | `/activos?organizacionId=…&baja=<codigoQr,…>` | Abrir Activos en modo baja para los faltantes/observados |
+| Destino | Link |
+|---|---|
+| **Auditoría** | `/auditoria?organizacionId=…&area=…` (usa el filtro por área de RF-E) |
+| **Inventario** | `/inventarios?organizacionId=…&sesionId=…` |
+| **Contrato** | `/contratos?organizacionId=…` |
+| **Baja de activo** ("eliminar") | `/activos?organizacionId=…&baja=<codigoQr,…>` → `cisClient.bajaActivo` (soft, `estado`, **nunca `DELETE`**, Tomo III 4.10) |
 
-"Baja" = `POST /admin/activos/:id/baja` (`cisClient.bajaActivo`, ya existente) — soft-delete por
-`estado`, **nunca `DELETE`** (Tomo III 4.10, invariante de CLAUDE.md). El link solo pre-selecciona;
-la baja la confirma el AFT fila por fila en Activos.
+Los 4 links siempre visibles; el veredicto solo cambia el énfasis.
 
-Presentación: los 4 links siempre visibles; el veredicto solo cambia el énfasis
-(`defectuoso` → "Baja de activo" y "Auditoría" destacados; `aceptable` → "Inventario";
-`exitoso` → todos en tono neutro).
+### D.3 Acción automática — **aprobada por el usuario (2026-08-31)**
 
-### D.3 Acción automática propuesta (aprobar / rechazar)
+Cuando una sesión cierra con veredicto **`defectuoso`** (faltan ítems **y** hay ítems fuera de
+área), CORE registra automáticamente **una entrada de auditoría**:
 
-**Propuesta**: cuando una sesión cierra con veredicto **`defectuoso`** (faltan ítems **y** hay
-ítems fuera de área — el peor caso, `verdict.ts`), CORE registra automáticamente **una entrada de
-auditoría**:
-
-- `operacion: 'sesiones/{id}/veredicto-defectuoso'`, `resultado: 'registrado'`,
-  `observaciones`: cantidad de faltantes + fuera de área + `areaId`.
-- Canal: el `POST /auditoria` que ya usan otros flujos no-humanos (DOC-024 §3). Mismo nivel de
-  confianza, sin endpoint nuevo.
-
-**Qué NO hace**: no da de baja nada, no toca la Base Patrimonial, no cambia el estado de ningún
-activo. Es solo un rastro. Inocuo y reversible (una fila de auditoría de más).
-
-`[ ]` Usuario aprueba esta automatización · `[ ]` Usuario la rechaza (solo links profundos).
+- `operacion: 'sesiones/{id}/veredicto-defectuoso'`, `resultado: 'registrado'`, `observaciones`:
+  cantidad de faltantes + fuera de área + `areaId`.
+- Canal: `POST /auditoria` (mismo que otros flujos no-humanos, DOC-024 §3).
+- **No** da de baja nada, **no** toca la Base Patrimonial, **no** cambia estado de activos. Solo
+  rastro. Únicamente para `defectuoso`, nunca `aceptable` (ruido).
 
 ---
 
@@ -276,82 +254,170 @@ activo. Es solo un rastro. Inocuo y reversible (una fila de auditoría de más).
 
 ### E.1 Alcance confirmado — "Campo real en CORE"
 
-Hoy `auditoria` no tiene el área del actor (`AuditoriaEntrada`: `usuario`, `fecha`, `equipo`,
-`ip`, `operacion`, `resultado`, `observaciones`, `categoria`, `organizacionId` — ver
-`core/src/auditoria/auditoria.types.ts`). Cambio multi-capa para que la columna "Área" sea real.
+Hoy `auditoria` no tiene el área del actor (`core/src/auditoria/auditoria.types.ts`). Cambio
+multi-capa.
 
 ### E.2 CORE
 
-- Migración `node-pg-migrate`: `auditoria` gana `area_operativa text NULL` (histórico y eventos
-  sin área → `null`).
-- `RegistrarAuditoriaInput` y `AuditoriaEntrada` ganan `areaOperativa?: string | null`.
-- `AuditoriaFiltro` gana `area?: string` — filtro parcial `ILIKE`, igual que `usuario`/`operacion`.
-- `GET /auditoria` acepta `?area=`.
+- Migración: `auditoria` gana `area_operativa text NULL` (histórico y eventos sin área → `null`).
+- `RegistrarAuditoriaInput` / `AuditoriaEntrada` ganan `areaOperativa?: string | null`.
+- `AuditoriaFiltro` gana `area?: string` (parcial `ILIKE`). `GET /auditoria` acepta `?area=`.
 
 ### E.3 CIS
 
-Passthrough del campo en ambos sentidos del bridge `/admin/auditoria`:
-
-- **Lectura**: propaga `areaOperativa` y el filtro `area` de CCP a CORE.
-- **Escritura**: el actor humano trae su área operativa del claim de Keycloak (o de la sesión);
-  los flujos sin humano (ingesta contable de RF-B, veredicto automático de RF-D) mandan `null` o
-  una constante (`'sistema'`).
+Passthrough en ambos sentidos del bridge `/admin/auditoria`. El actor humano trae su área del
+claim de Keycloak (o de la sesión); los flujos sin humano (ingesta, veredicto automático) mandan
+`null` o `'sistema'`.
 
 ### E.4 CCP — `AuditoriaPage.tsx`
 
 Cambio pedido: *"donde dice usuario poner área, operación, revisar"*.
 
-- Columnas de la tabla: `Usuario` **→ `Área`**. `Operación` se mantiene (ya existía).
-  `Resultado` y `Observaciones` se mantienen. Se agrega **`Revisar`** como columna de acción.
-- **`Revisar`** = botón que expande la fila con el detalle completo: `usuario`, `equipo`, `ip`,
-  `categoria`, `organizacionId`, `observaciones` completas. **El usuario no se pierde** — pasa del
-  encabezado al detalle.
-- Filtro superior: `Usuario` **→ `Área`**. Se mantiene `Usuario` como filtro secundario (no se
-  pierde la capacidad de filtrar por operador).
+- Columnas: `Usuario` **→ `Área`**. `Operación` se mantiene. `Resultado` / `Observaciones` se
+  mantienen. Se agrega **`Revisar`** = botón que expande la fila con el detalle completo
+  (`usuario`, `equipo`, `ip`, `categoria`, `organizacionId`, `observaciones`). **El usuario no se
+  pierde** — pasa al detalle.
+- Filtro superior: `Usuario` **→ `Área`**; se mantiene `Usuario` como filtro secundario.
+
+---
+
+## RF-F — Módulo "QR / Etiquetas" en CCP
+
+### F.1 Qué resuelve
+
+Es el **paso 3** de la estrategia de validación del usuario: una vez cargados los AFT (RF-B),
+generar los códigos QR de cada uno, **separados por dirección**, para imprimir en etiquetas y
+meterlos en sobres por dirección.
+
+### F.2 Diseño
+
+- Ruta `/etiquetas` (o sección dentro del hub), visible en Nivel 1 y 2, sin guard especial
+  (lectura).
+- Datos: `GET /activos?organizacionId=…` ya existente, agrupados **por dirección** (campo nuevo de
+  RF-B) y dentro de cada dirección por área.
+- Cada activo se renderiza como una **etiqueta**: `codigoQr` como **QR** (lib `qrcode`, ya
+  dependencia de `sicsaft-core`; en CCP se agrega `qrcode` o `qrcode.react`) **y** como **código
+  de barras Code128** (lib `jsbarcode` o `bwip-js`), más `codigoPatrimonial`, `nombre_aft`, área.
+- Layout de impresión: grilla tipo hoja de etiquetas (Avery), `@media print` con salto de página
+  por dirección. Filtro/selección por dirección → "Imprimir dirección X".
+- Sin backend nuevo — es una vista de impresión sobre datos que CORE ya expone.
+
+---
+
+## RF-G — Fix: crash del login + layout del wizard ✅ HECHO
+
+Encontrados probando con el cliente real (2026-08-31). Rama
+`fix/sicsaft-core-login-timeout-crash`:
+
+1. **Crash del proceso main** (`portal-login-service.ts`): el timeout de 60s del login hacía
+   `view.webContents.off()` sobre una `WebContentsView` ya destruida (el usuario > 60s en una
+   pantalla previa sin loguearse) → `TypeError: Cannot read properties of undefined (reading
+   'off')` no capturado → diálogo rojo "A JavaScript error occurred in the main process". Fix:
+   guard `isDestroyed()` antes del `.off()`.
+2. **Layout del wizard a pantalla completa** (`WizardApp.tsx`): `<main>` con `items-center`
+   recortaba la parte de arriba del paso "Instalación completa" en ventanas bajas / pantalla
+   completa (QR cortado). `[&>*]:m-auto` centra cuando entra y no recorta cuando desborda.
+3. **Desalineación de la vista embebida** (`PasoListoConLogin.tsx`): la `WebContentsView` nativa
+   se dibuja sobre el `placeholderRef`, pero el `ResizeObserver` no ve un traslado sin cambio de
+   tamaño (scroll del `<main>`, reflow). Se re-envían bounds en `resize`/`scroll` y en reflows
+   tardíos.
+
+La pantalla "cambio de IP" (`PasoIpCambio`, DOC-028 C.1) **no es un bug** — funciona como debe
+cuando la PC pasa de `127.0.0.1` a una IP de LAN real.
+
+---
+
+## RF-H — APK Android (WebView propia mínima)
+
+### H.1 Por qué WebView propia y no TWA/PWABuilder — decisión del usuario (2026-08-31)
+
+Un TWA (lo que genera PWABuilder/Bubblewrap) es Chrome cargando la PWA. Con **certificado propio
+en IP de LAN**, Chrome no ofrece "Continuar" dentro de un TWA → **no carga**. Además la URL de
+arranque queda compilada en el APK → un APK por instalación/IP. Y firmar un APK en la PC del
+cliente al instalar necesita JDK+SDK+Gradle+keystore por cliente. Todo eso lo evita una **WebView
+propia**.
+
+### H.2 Diseño — `apk-aft/` (proyecto nuevo, no un desplegable)
+
+- App Android nativa mínima (Kotlin, un `Activity`, un `WebView` a pantalla completa):
+  - `webViewClient.onReceivedSslError` → `handler.proceed()` **solo** para el host/puerto
+    configurado (servidor propio, solo LAN — riesgo aceptado y documentado).
+  - Permiso de cámara + `WebChromeClient` para que la PWA use `getUserMedia` (escaneo de QR).
+  - **Primer arranque**: no hay URL → pantalla que pide escanear el **QR de conexión** que muestra
+    el `.exe`; se guarda la URL en `SharedPreferences`. Menú "Reconectar" para re-escanear cuando
+    cambia la IP.
+- **Build-time, una vez**: Android SDK + Gradle en CI (workflow nuevo `apk-aft-ci.yml`) o en
+  `prepack.cjs`. Firmado con un keystore de proyecto (secreto de CI, **no** en el repo). Sale un
+  `sicsaft-aft.apk` versionado.
+- **Distribución**: `prepack.cjs` copia el `.apk` a `resources/apk/`. `sicsaft-core` lo sirve en
+  `https://<ip>:8765/sicsaft-aft.apk` (mismo servidor estático de la PWA, DOC-028 Fase D). La
+  pantalla "listo" del wizard muestra **dos QR**: el de la PWA (ya existe) y uno nuevo para
+  **descargar el APK**. Instalar pide "orígenes desconocidos" — se documenta en el runbook.
+- **QR de conexión**: el `.exe` expone una pantalla con un QR que codifica
+  `https://<ip>:8765` (la misma URL de la PWA) — la app lo lee en el primer arranque.
+
+### H.3 Qué NO hace v1
+
+- No se publica en Play Store (sideload por QR, org controlada).
+- No auto-actualiza (una versión del APK por versión del `.exe`; reinstalar para actualizar).
+- No hay verificación de Digital Asset Links (no es un TWA).
 
 ---
 
 ## §Plan de fases (`gh stack`)
 
-CLAUDE.md exige `gh stack` para incrementos multi-fase. Orden por dependencia (E: CORE→CIS→CCP;
-B: CORE→CIS→CCP; D depende del filtro por área de E):
+Orden por dependencia (E y B: CORE→CIS→CCP; D depende del filtro por área de E; F depende del
+campo `direccion` de B):
 
-| # | Rama | Workstream | Depende de |
-|---|------|-----------|------------|
+| # | Rama | Frente | Depende de |
+|---|------|--------|------------|
 | 1 | `docs/doc-029-endurecimiento-ccp-cliente-real` | Este diseño (PR solo-docs) | — |
-| 2 | `feat/ccp-nivel-flag` | RF-A (CCP + inyección de config en `.exe` + `instalacion.json.nivel`) | 1 |
-| 3 | `feat/core-auditoria-area` | RF-E capa CORE (migración + tipos + filtro) | 1 |
-| 4 | `feat/cis-auditoria-area` | RF-E capa CIS (passthrough) | 3 |
-| 5 | `feat/ccp-auditoria-area` | RF-E capa CCP (Área / Operación / Revisar) | 4 |
-| 6 | `feat/core-ingesta-staging` | RF-B capa CORE (tablas + endpoints aprobar/rechazar/dry-run) | 1 |
-| 7 | `feat/cis-ingesta-excel` | RF-B capa CIS (watcher + parser xlsx + mapeo) | 6 |
-| 8 | `feat/ccp-ingesta-revision` | RF-B capa CCP (selector de carpeta IPC + módulo de revisión) | 7 |
-| 9 | `feat/ccp-veredicto-accionable` | RF-D (links profundos + automatización de D.3 si se aprueba) | 5 |
-| — | RF-C | 3 pestañas — rama aparte cuando Guido entregue el spec, no bloquea nada | spec de Guido |
+| 2 | `fix/sicsaft-core-login-timeout-crash` | **RF-G — ya commiteado** | — |
+| 3 | `feat/ccp-nivel-flag` | RF-A (CCP + inyección de config + `instalacion.json.nivel`) | 1 |
+| 4 | `feat/core-auditoria-area` | RF-E capa CORE | 1 |
+| 5 | `feat/cis-auditoria-area` | RF-E capa CIS | 4 |
+| 6 | `feat/ccp-auditoria-area` | RF-E capa CCP (Área / Operación / Revisar) | 5 |
+| 7 | `feat/etl-contable-python` | RF-B sidecar Python + empaquetado en el `.exe` | 1 |
+| 8 | `feat/core-ingesta-staging` | RF-B capa CORE (tablas espejo del Excel + aprobar/rechazar/dry-run + resolve-or-create) | 1 |
+| 9 | `feat/cis-ingesta-lote` | RF-B capa CIS (endpoint de lote) | 8 |
+| 10 | `feat/ccp-ingesta-revision` | RF-B capa CCP (selector de carpeta IPC + revisión en Importación) | 7, 9 |
+| 11 | `feat/ccp-etiquetas-qr` | RF-F (módulo QR + Code128 por dirección) | 10 |
+| 12 | `feat/ccp-veredicto-accionable` | RF-D (links profundos + automatización D.3) | 6 |
+| 13 | `apk-aft-webview` | RF-H (proyecto `apk-aft/` + CI + servido por el `.exe` + 2º QR) | 1 |
+| — | RF-C | 3 pestañas — rama aparte cuando Guido entregue el spec | spec de Guido |
 
-## §Testing
+## §Testing — runbook de validación (los 6 pasos del usuario)
 
-Sin bajar el umbral vigente (100% líneas/funciones en `cis`/`core`; cobertura de `vitest` en CCP,
-hoy solo `src/lib/`). Puntos nuevos:
+Va en `aidlc-docs/ccp/testing/` como runbook ejecutable. Sin bajar el umbral de cobertura vigente.
 
-- **RF-A**: unit de `nivelActual()` (precedencia config runtime → env → default); test de
-  `HubPage`/`AppShell` con `nivel=1` y `nivel=2` (mock de `window.__SICSAFT_PORTAL_CONFIG__`).
-- **RF-B**: CORE — e2e del ciclo lote `pendiente_revision` → `aprobar` (aplica, idempotente) /
-  `rechazar` (no toca BPI) contra Postgres real; CIS — unit del parser xlsx + mapeo por org (con
-  un `.xlsx` fixture); CCP — test del módulo de revisión (mock de lotes).
-- **RF-D**: unit de la construcción de cada link profundo por veredicto; e2e de la automatización
-  D.3 (cierre `defectuoso` → 1 fila en `auditoria`, 0 cambios en `activos`).
-- **RF-E**: CORE — e2e del filtro `?area=` y del passthrough del campo; CCP — test de la fila
-  expandible "Revisar".
+1. **Cargar el Excel**: dejar `EJEMPLOS DE EMPRESAS Y AFT.xls` en la carpeta elegida en CCP →
+   verificar que el ETL lo normaliza y aparece un lote `pendiente_revision`.
+2. **Revisar y aprobar**: el AFT abre el lote en CCP, revisa el dry-run, aprueba → verificar
+   activos/áreas/responsables/catálogos creados en la Base Patrimonial.
+3. **Generar QR por dirección** (RF-F): imprimir las etiquetas de una dirección, "meter en el
+   sobre".
+4. **Auditoría por dirección**: abrir la app del teléfono (PWA o APK de RF-H), seleccionar el
+   sobre de una dirección, escanear todos los QR, enviar informe → comparar informe resumen +
+   Dashboard contra lo esperado. Repetir por cada dirección.
+5. **Informe final**: al terminar todas las direcciones, comparar el resumen del Dashboard
+   (cobertura, incidencias, veredictos) contra el diseño. Si coincide → V1.0 OK.
+6. **Escenarios de prueba y error**: mover QR entre sobres, sacar QR, etc. → validar la respuesta
+   de cada auditoría (por área y general del Dashboard). Cada combinación = una hipótesis de la
+   vida real.
+
+Cobertura automatizada nueva: `nivelActual()` (RF-A); ciclo de lote staging → aprobar/rechazar
+contra Postgres real (RF-B CORE); ETL Python con `.xls` fixture (pytest, RF-B); links profundos +
+automatización D.3 (RF-D); filtro `?area=` + passthrough (RF-E); render QR/Code128 (RF-F).
 
 ## §Documentos relacionados
 
-[DOC-025](../../devops/design-artifacts/DOC-025-niveles-producto-onprem.md) §1/§2 (niveles — RF-A
-lo revierte parcialmente), [DOC-016](../../integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md)
-(transporte de carpeta que RF-B reusa), [DOC-028](../../sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md)
-Fase C.0 (inyección de config runtime que RF-A/RF-B reusan), [DOC-012](../../../seguridad/DOC-012-administrador-patrimonial.md)
-§3/§6 (endpoint y guard de importación contable), [DOC-017](../../app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md)
+[DOC-025](../../devops/design-artifacts/DOC-025-niveles-producto-onprem.md) §1/§2 (RF-A lo revierte
+parcialmente), [DOC-016](../../integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md)
+(transporte que RF-B reusa, implementación que reemplaza), [DOC-028](../../sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md)
+Fase C.0 (config runtime — RF-A/RF-B), Fase D (servidor estático — RF-H), Fase E (APK diferida —
+RF-H la des-difiere), [DOC-012](../../../seguridad/DOC-012-administrador-patrimonial.md) §3/§6
+(endpoint y guard de importación contable), [DOC-017](../../app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md)
 §2 (veredicto de sesión), [DOC-023](DOC-023-matriz-permisos-rbac.md) (RBAC),
-[DOC-024](DOC-024-crud-completo-auditoria-identidad.md) §3 (canal `POST /auditoria` no-humano que
-RF-D/RF-B reusan), [DOC-005](../../../base-patrimonial/DOC-005-modelo-patrimonial.md) §7 (modelo de
-auditoría), Tomo III 4.10 (baja por `estado`, nunca `DELETE`).
+[DOC-024](DOC-024-crud-completo-auditoria-identidad.md) §3 (canal `POST /auditoria` no-humano),
+[DOC-005](../../../base-patrimonial/DOC-005-modelo-patrimonial.md) §7 (modelo de auditoría), Tomo
+III 4.10 (baja por `estado`, nunca `DELETE`).
