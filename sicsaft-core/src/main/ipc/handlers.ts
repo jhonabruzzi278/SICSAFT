@@ -71,6 +71,10 @@ function asegurarServidoresPortales(): Promise<void> {
     // instalación, el portal igual apunta bien sin recompilar. cisUrl es 127.0.0.1 (loopback).
     const issuer = `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}`;
     const cisUrl = `http://127.0.0.1:${PUERTO_CIS}`;
+    // DOC-029 RF-A -- nivel de producto contratado (DOC-025). Se persiste en instalacion.json al
+    // hacer el bootstrap; una instalacion anterior a RF-A no lo tiene -> Nivel 1. Solo `ccp` lo
+    // necesita: el portal del Directivo (core-frontend) es el mismo en todos los niveles.
+    const nivel = String(leerInstalacionExistente()?.nivel ?? 1);
     await iniciarServidorEstatico({
       nombre: "ccp",
       distPath: rutaDistDePortal("ccp"),
@@ -79,6 +83,7 @@ function asegurarServidoresPortales(): Promise<void> {
         VITE_KEYCLOAK_ISSUER: issuer,
         VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_CCP,
         VITE_CIS_URL: cisUrl,
+        VITE_SICSAFT_NIVEL: nivel,
       },
     });
     await iniciarServidorEstatico({
@@ -243,6 +248,9 @@ export function registrarIpcHandlers(
         organizacionId: resultado.organizacionId,
         clienteNombre: input.clienteNombre,
         ipLan: obtenerIpLan(),
+        // DOC-029 RF-A -- el .exe instala Nivel 1 (APP QR + CCP acotado). Nivel 2 hoy se activa
+        // editando instalacion.json a mano; un paso del wizard para elegirlo es trabajo futuro.
+        nivel: 1,
       });
       return { organizacionId: resultado.organizacionId };
     },

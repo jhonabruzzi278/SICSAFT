@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ComponentType, SVGProps } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { cisClient, type Organizacion } from '@/lib/cis-client';
+import { moduloHabilitado } from '@/lib/nivel';
 import { Alert } from '@/components/ui';
 import {
   IconBox,
@@ -30,6 +31,9 @@ type Modulo = {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 };
 
+// DOC-029 RF-A -- en Nivel 1 se listan solo los modulos de consulta/inventario/trazabilidad; los
+// de "gestion avanzada" (Contratos, Estructura) quedan fuera. `moduloHabilitado` decide por
+// `path` (ver lib/nivel.ts).
 const MODULOS: Modulo[] = [
   {
     path: 'activos',
@@ -133,24 +137,26 @@ export function HubPage() {
               </span>
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {MODULOS.map(({ path, nombre, descripcion, icon: Icon }) => (
-                <Link
-                  key={path}
-                  to={`/${path}?organizacionId=${encodeURIComponent(org.id)}`}
-                  className="group flex items-start gap-4 rounded-xl border border-border bg-bg-card p-5 shadow-elev-1 transition-colors hover:border-border-strong hover:bg-bg-raised"
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/12 text-accent-strong">
-                    <Icon />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-medium text-text">{nombre}</h3>
-                    <p className="mt-0.5 text-xs text-text-dim">
-                      {descripcion}
-                    </p>
-                  </div>
-                  <IconChevronDown className="mt-1 -rotate-90 text-text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-text-dim" />
-                </Link>
-              ))}
+              {MODULOS.filter(({ path }) => moduloHabilitado(path)).map(
+                ({ path, nombre, descripcion, icon: Icon }) => (
+                  <Link
+                    key={path}
+                    to={`/${path}?organizacionId=${encodeURIComponent(org.id)}`}
+                    className="group flex items-start gap-4 rounded-xl border border-border bg-bg-card p-5 shadow-elev-1 transition-colors hover:border-border-strong hover:bg-bg-raised"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/12 text-accent-strong">
+                      <Icon />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-medium text-text">{nombre}</h3>
+                      <p className="mt-0.5 text-xs text-text-dim">
+                        {descripcion}
+                      </p>
+                    </div>
+                    <IconChevronDown className="mt-1 -rotate-90 text-text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-text-dim" />
+                  </Link>
+                ),
+              )}
             </div>
           </div>
         ))}

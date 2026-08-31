@@ -56,6 +56,11 @@ export interface InstalacionCompleta {
   // Opcional: una instalación anterior a Fase C no la tiene -- getEstadoIpLan() la rellena con la
   // IP actual como línea base la primera vez.
   ipLan?: string;
+  // DOC-029 RF-A -- nivel de producto contratado (DOC-025). Se fija en el bootstrap y se inyecta
+  // al servir `ccp` (VITE_SICSAFT_NIVEL, ver ipc/handlers.ts asegurarServidoresPortales) para que
+  // el portal oculte los módulos de "gestión avanzada" en Nivel 1. Opcional: una instalación
+  // anterior a RF-A no lo tiene -- ahí se asume Nivel 1.
+  nivel?: 1 | 2;
 }
 
 // DOC-028 Fase C.1 -- el wizard consulta esto al relanzar, después de getInstalacionExistente().

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { oidcClient } from '@/lib/oidc/oidc-client';
+import { moduloHabilitado } from '@/lib/nivel';
 import { Button } from './ui';
 import {
   IconBox,
@@ -83,24 +84,32 @@ function Sidebar({ organizacionId }: { organizacionId: string }) {
         >
           Resumen
         </SideNavLink>
-        {NAV_ITEMS.map(({ path, nombre, icon: Icon }) => (
-          <SideNavLink
-            key={path}
-            to={`/${path}${q}`}
-            active={location.pathname === `/${path}`}
-            icon={<Icon />}
-          >
-            {nombre}
-          </SideNavLink>
-        ))}
-        <div className="my-3 border-t border-border" />
-        <SideNavLink
-          to="/auditoria"
-          active={location.pathname === '/auditoria'}
-          icon={<IconShield />}
-        >
-          Auditoría
-        </SideNavLink>
+        {/* DOC-029 RF-A -- en Nivel 1 solo se muestran los modulos de consulta/inventario/
+            trazabilidad; Contratos y Estructura quedan fuera (ver lib/nivel.ts). */}
+        {NAV_ITEMS.filter(({ path }) => moduloHabilitado(path)).map(
+          ({ path, nombre, icon: Icon }) => (
+            <SideNavLink
+              key={path}
+              to={`/${path}${q}`}
+              active={location.pathname === `/${path}`}
+              icon={<Icon />}
+            >
+              {nombre}
+            </SideNavLink>
+          ),
+        )}
+        {moduloHabilitado('auditoria') && (
+          <>
+            <div className="my-3 border-t border-border" />
+            <SideNavLink
+              to="/auditoria"
+              active={location.pathname === '/auditoria'}
+              icon={<IconShield />}
+            >
+              Auditoría
+            </SideNavLink>
+          </>
+        )}
       </nav>
     </aside>
   );
