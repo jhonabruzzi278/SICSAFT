@@ -117,15 +117,16 @@ Repetir por **cada dirección** del Excel (DIRECCION GENERAL, etc.).
 | 3.5 | Escanear un QR inexistente / mal formado | `no_registrado` / `invalido`; la sesión no se corta | CU-INV-002 (excepción) |
 | 3.6 | Marcar una incidencia sobre un activo (ej. "dañado") | Se registra `{codigoQr, descripcion}` en la sesión | CU-INC-001 |
 | 3.7 | No escanear 1–2 activos que sí están en la dirección | Quedan como esperados-no-detectados | CU-INV-003 |
-| 3.8 | Cerrar la sesión y **enviar informe resumen a SICSAFT CORE** | La sesión cierra; se calcula el veredicto (`exitoso`/`aceptable`/`defectuoso`); `POST /inventarios` persiste sesión + incidencias; auditoría | CU-INV-004 |
-| 3.9 | Ver el informe resumen que devuelve la APP | Coincide con lo escaneado: N correctos, N faltantes, N fuera de área, N incidencias, veredicto | CU-INV-004 |
+| 3.8 | Marcar el **estado de cada AFT** durante el escaneo (EN SERVICIO / EN MANTENIMIENTO / INACTIVO / BAJA) | Se envía como `estadoDeclarado` / `bajaSugerida` por escaneo | CU-INV-002, [Pantalla 8](CONTRATO-PANTALLA-8.md) §3 |
+| 3.9 | Cerrar la sesión y **enviar informe resumen a SICSAFT CORE** | La sesión cierra; se calcula el veredicto (`exitoso`/`aceptable`/`defectuoso`); `POST /inventarios` persiste sesión + incidencias; auditoría | CU-INV-004 |
+| 3.10 | Ver la **Pantalla 8** que arma la APP | Cumple el [contrato de Pantalla 8](CONTRATO-PANTALLA-8.md): encabezado, escaneados, del-área (n y %), estado por AFT, lista con tipo ordinario/extraordinario, fuera-de-área con su área real, veredicto con fondo verde/amarillo/rojo | CU-INV-003/004, Pantalla 8 |
 
 ### QA-4 — Resultados en el Dashboard (paso 5 del usuario)
 
 | # | Paso | Resultado esperado | CU |
 |---|---|---|---|
 | 4.1 | En el CCP (Profesional de AFT) → Resumen | "% Cobertura", "Activos escaneados" reflejan lo relevado | CU-CIP-001 |
-| 4.2 | "Sesiones de inventario" | Una fila por dirección relevada, con su veredicto | CU-INV-004, CU-CIP-001 |
+| 4.2 | "Sesiones de inventario" → detalle de una sesión | Muestra la **Pantalla 8** de esa sesión (mismo contrato que en la APP), con los fondos de color | CU-INV-004, [Pantalla 8](CONTRATO-PANTALLA-8.md) |
 | 4.3 | "Activos fuera de área" | Lista los QR escaneados en la dirección equivocada (paso 3.4) | CU-INV-003 |
 | 4.4 | "Activos no localizados" | Lista los que no se escanearon (paso 3.7) | CU-INV-003 |
 | 4.5 | "Incidencias" | Muestra las del paso 3.6; el filtro por código QR funciona | CU-INC-001 |
@@ -183,13 +184,15 @@ Del `§Plan de fases` de [DOC-029](../aidlc-docs/ccp/design-artifacts/DOC-029-en
 
 1. **RF-G** ✅ hecho (crash + layout).
 2. **RF-A** ✅ hecho (Nivel 1, sin Contratos/Inventarios).
-3. **RF-B** — ETL Python + staging en CORE + revisión en el CCP → **desbloquea QA-1** y da datos
-   reales para QA-3..QA-5.
+3. **RF-B** — ETL Python + staging en CORE (✅ capa CORE) + revisión en el CCP → **desbloquea QA-1**
+   y da datos reales para QA-3..QA-5.
 4. **RF-F** — módulo QR/Etiquetas → **desbloquea QA-2**.
-5. **RF-D** — veredicto accionable + automatización D.3 → completa QA-5.5.
-6. **RF-E** — auditoría por área + "Revisar" → refuerza QA-4.6.
-7. **RF-H** — APK Android → reemplaza la PWA en QA-0.9 / QA-3.
-8. **RF-C** — 3 pestañas del Resumen (cuando llegue el spec de Guido).
+5. **RF-I** — Pantalla 8 completa (agregación + presentación, ver [`CONTRATO-PANTALLA-8.md`](CONTRATO-PANTALLA-8.md))
+   → completa QA-3.10 y QA-4.2.
+6. **RF-D** — veredicto accionable + automatización D.3 → completa QA-5.5.
+7. **RF-E** — auditoría por área + "Revisar" → refuerza QA-4.6.
+8. **RF-H** — APK Android → reemplaza la PWA en QA-0.9 / QA-3.
+9. **RF-C** — 3 pestañas del Resumen (cuando llegue el spec de Guido).
 
 Mientras RF-B/RF-F no estén, **QA-3 a QA-6 se pueden correr hoy** con una carga manual acotada
 (fallback de QA-1) — sirve para validar la V1.0 del flujo de auditoría antes de invertir en RF-B.

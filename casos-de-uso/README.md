@@ -17,6 +17,7 @@ Desarrollo y el Plan Maestro de Pruebas (§12.1).
 | [`dominios/`](dominios) | El catálogo de CU, un archivo por dominio (§12.6), plantilla oficial §12.5 |
 | [`MATRIZ-ACTOR-FUNCION.md`](MATRIZ-ACTOR-FUNCION.md) | §12.31 — quién puede hacer qué, contra los guards reales de CIS/CORE ([DOC-023](../aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md)) |
 | [`MATRIZ-TRAZABILIDAD.md`](MATRIZ-TRAZABILIDAD.md) | MMTS (§12.38 "Evaluación") — Requisito → Proceso → CU → Regla → Módulo → API → BPI → Prueba → Versión |
+| [`CONTRATO-PANTALLA-8.md`](CONTRATO-PANTALLA-8.md) | Contenido exacto del informe de control de área ("Pantalla 8") que arma la APP QR y envía a CORE — la cara detallada de CU-INV-003/004 |
 | [`PLAN-QA.md`](PLAN-QA.md) | Plan de QA para el cliente **Nivel 1 QR**: qué CU se prueban hoy, en qué orden, criterios de aceptación (§12.36), qué queda fuera y por qué |
 
 ## Principio fundamental (§12.3)
