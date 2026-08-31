@@ -83,14 +83,26 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
         });
     }
 
-    // ResizeObserver alcanza solo -- cubre tanto un resize de la ventana (el placeholder es
-    // "w-full", su ancho cambia con la ventana) como cualquier reflow del layout de arriba
-    // (mensaje de error apareciendo/desapareciendo, o el cambio de tamaño de acá mismo cuando
-    // portalCargado pasa a true).
+    // ResizeObserver cubre los cambios de TAMAÑO del placeholder. No cubre que el placeholder se
+    // TRASLADE sin cambiar de tamaño -- pasa a pantalla completa / en ventanas bajas, cuando el
+    // <main> del wizard es overflow-y-auto y el usuario scrollea, o cuando un reflow de arriba lo
+    // empuja. Sin re-enviar bounds en esos casos, la WebContentsView nativa (que el proceso
+    // principal dibuja según el último bounds) queda desalineada del cuadro que el usuario ve.
+    // Bug encontrado probando con cliente real 2026-08-31.
     const observer = new ResizeObserver(enviarBoundsResize);
     observer.observe(elemento);
+    window.addEventListener("resize", enviarBoundsResize);
+    window.addEventListener("scroll", enviarBoundsResize, true);
+    const reflowTardio1 = window.setTimeout(enviarBoundsResize, 120);
+    const reflowTardio2 = window.setTimeout(enviarBoundsResize, 500);
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", enviarBoundsResize);
+      window.removeEventListener("scroll", enviarBoundsResize, true);
+      window.clearTimeout(reflowTardio1);
+      window.clearTimeout(reflowTardio2);
+    };
   }, [intentoLogin]);
 
   // Achica de vuelta al cuadro chico (dispara el efecto de arriba, que va a mandar el bounds
