@@ -9,7 +9,12 @@ import type {
   ActivoCatalogo,
   CatalogoTipoActivo,
 } from '@/lib/cis-client';
-import { MOCK_CATALOGO, MOCK_ORGANIZACIONES, MOCK_SYNC } from './fixtures';
+import {
+  MOCK_AREAS,
+  MOCK_CATALOGO,
+  MOCK_ORGANIZACIONES,
+  MOCK_SYNC,
+} from './fixtures';
 
 // DOC-021 4 (gap "familias/categorías") — mismo id de catálogo que ya usaba el fixture de Activo
 // antes de este incremento ('catalogo-notebook'), ahora servido por un endpoint real en vez de
@@ -55,6 +60,15 @@ export const defaultHandlers = [
   http.get(`${CIS_URL}/admin/catalogo-tipos`, () =>
     HttpResponse.json(MOCK_CATALOGO_TIPOS),
   ),
+
+  // DOC-029 RF-F — el módulo QR / Etiquetas agrupa el catálogo por `area.dependencia`.
+  http.get(`${CIS_URL}/admin/areas`, ({ request }) => {
+    const organizacionId = new URL(request.url).searchParams.get(
+      'organizacionId',
+    );
+    const areas = MOCK_AREAS.filter((a) => a.organizacionId === organizacionId);
+    return HttpResponse.json({ areas, total: areas.length });
+  }),
 
   http.post(`${CIS_URL}/admin/activos`, async ({ request }) => {
     const body = (await request.json()) as {

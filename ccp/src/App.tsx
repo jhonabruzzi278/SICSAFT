@@ -13,6 +13,7 @@ import { AuditoriaPage } from '@/pages/AuditoriaPage';
 import { EstructuraPage } from '@/pages/EstructuraPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ImportacionesPage } from '@/pages/ImportacionesPage';
+import { EtiquetasPage } from '@/pages/EtiquetasPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   if (!oidcClient.isAuthenticated()) {
@@ -110,6 +111,16 @@ export default function App() {
           element={
             <RequireAuth>
               <ImportacionesPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/etiquetas"
+          element={
+            <RequireAuth>
+              <RequireModulo path="etiquetas">
+                <EtiquetasPage />
+              </RequireModulo>
             </RequireAuth>
           }
         />

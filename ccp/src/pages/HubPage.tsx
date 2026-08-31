@@ -11,6 +11,7 @@ import {
   IconFileText,
   IconLayers,
   IconMapPin,
+  IconQrCode,
   IconUpload,
 } from '@/components/icons';
 
@@ -66,6 +67,13 @@ const MODULOS: Modulo[] = [
     nombre: 'Importaciones',
     descripcion: 'Carga masiva desde archivo',
     icon: IconUpload,
+  },
+  // DOC-029 RF-F — todos los QR acuñados, por dirección, listos para imprimir en etiquetas.
+  {
+    path: 'etiquetas',
+    nombre: 'QR / Etiquetas',
+    descripcion: 'Códigos QR por dirección, listos para imprimir',
+    icon: IconQrCode,
   },
   {
     path: 'dashboard',

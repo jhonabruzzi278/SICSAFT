@@ -10,6 +10,7 @@ import {
   IconLayers,
   IconLogOut,
   IconMapPin,
+  IconQrCode,
   IconShield,
   IconUpload,
 } from './icons';
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { path: 'inventarios', nombre: 'Inventarios', icon: IconLayers },
   { path: 'estructura', nombre: 'Áreas y ubicaciones', icon: IconMapPin },
   { path: 'importaciones', nombre: 'Importaciones', icon: IconUpload },
+  { path: 'etiquetas', nombre: 'QR / Etiquetas', icon: IconQrCode },
 ] as const;
 
 function SideNavLink({
