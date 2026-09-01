@@ -15,9 +15,10 @@ varias capas se documenta bajo el sistema donde nace la decisión").
 > tareas de **RF-B.4** (capa CCP + watcher + empaquetado) y la sección **§Vacíos de casos de uso
 > fuera de alcance** (los CU del catálogo que ningún RF cubre, con recomendación in/out Nivel 1).
 
-**Estado (v3): RF-G, RF-A y RF-B (capas ETL Python + CORE staging + CIS puente) implementados y
-commiteados en el stack de ramas. Falta: RF-B.4 (capa CCP + watcher del `.exe` + empaquetado del
-sidecar), RF-I, RF-F, RF-D, RF-E, RF-H. RF-C sigue bloqueado por el spec de Guido. Detalle por
+**Estado (v3, act. 2026-08-31): RF-G, RF-A, RF-F y RF-I completos; RF-B con las capas ETL/CORE/CIS
++ revisión CCP + selector de carpeta hechas (falta sólo B.6.2: watcher del `.exe` + service
+account + empaquetado del sidecar Python). Falta empezar: RF-D, RF-E, RF-H. RF-C sigue bloqueado
+por el spec de Guido. Todo commiteado en un stack de ramas locales, sin push ni PR. Detalle por
 frente en la tabla §0 y estado por rama en §Plan de fases.**
 
 ---
@@ -34,7 +35,7 @@ frente en la tabla §0 y estado por rama en §Plan de fases.**
 | **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | ✅ **Hecho** (`feat/ccp-etiquetas-qr`, `20a82e5`) — verificado en modo mock |
 | **RF-G** | Fix: crash del login por timeout + layout del wizard roto a pantalla completa | `sicsaft-core` | ✅ **Hecho** (`fix/sicsaft-core-login-timeout-crash`, `db268a1`) |
 | **RF-H** | APK Android — WebView propia mínima, generada en build-time, servida por el `.exe` | `apk-aft/` (nuevo) + `sicsaft-core` | Diseñado — pendiente |
-| **RF-I** | **Pantalla 8** — informe de control de área: agregación (%, desglose por estado declarado, tipo ordinario/extraordinario, nombres) + presentación con fondos verde/amarillo/rojo, en la APP QR y en el Resumen del CCP | CORE (lectura) + CIS + APP QR + CCP | 🟡 **Parcial**: CORE (`f64bda1`) + puente CIS (`3d9256d`) + **CCP** (`c932766`) hechos. Falta la Pantalla 8 en la **APP QR** al cerrar el control. Contrato: [`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md) |
+| **RF-I** | **Pantalla 8** — informe de control de área: agregación (%, desglose por estado declarado, tipo ordinario/extraordinario, nombres) + presentación con fondos verde/amarillo/rojo, en la APP QR y en el Resumen del CCP | CORE (lectura) + CIS + APP QR + CCP | ✅ **Hecho**: CORE (`f64bda1`) + puente CIS (`3d9256d`) + CCP (`c932766`) + APP QR (`6d743ea`). Contrato: [`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md) |
 
 Reemplaza / extiende:
 
@@ -451,11 +452,16 @@ hace falta un `/admin/...` aparte, la lectura del detalle de sesión ya es abier
 operador autenticado). `core-client` gana el schema Zod espejo + `getInventarioResumenControl`;
 `qr-connector` el proxy delgado. 3 archivos a 100% líneas-funciones, e2e nuevo.
 
-### I.3 APP QR — Pantalla 8 al cerrar
+### I.3 APP QR — Pantalla 8 al cerrar — ✅ HECHO (`feat/appqr-pantalla8`, `6d743ea`)
 
-Nueva pantalla tras `POST /inventarios`, renderiza el resumen de I.2 con los **fondos de color**
-del veredicto (🟩 `exitoso` / 🟨 `aceptable` / 🟥 `defectuoso`). Confirmar/ajustar la UI de marcado
-de estado por AFT durante el escaneo en `ScanPage.tsx` (el payload ya lo acepta).
+El "Resultado del control" que `ScanPage.tsx` ya armaba al finalizar (veredicto con color +
+tarjetas + fuera-de-área agrupado por área real) se completó a los **6 bloques** del contrato:
+título alineado, **% del área** (correctos / esperados), **desglose por estado declarado**
+(EN SERVICIO / EN MANTENIMIENTO / INACTIVO / BAJA, de `items[].estadoDeclarado` +
+`items[].bajaSugerida`), y **lista de AFT escaneados** con tipo `ORDINARIO` (la APP QR sólo lee
+etiqueta QR; `EXTRAORDINARIO` QR+RFID es Nivel 3 y lo deriva CORE para el CCP). Todo local — no
+depende del `GET /control` (la sesión puede estar en cola offline). e2e de `fase-3.1.spec.js`
+ampliado.
 
 ### I.4 CCP — Resumen → detalle de sesión — ✅ HECHO (`feat/ccp-pantalla8`, `c932766`)
 
@@ -517,7 +523,7 @@ campo `direccion` de B; I depende de que existan sesiones con `estadoDeclarado`,
 | 11 | `feat/core-cip-resumen-control` | RF-I capa CORE (`GET /inventarios/:id/control` + migración `estado_declarado`/`baja_sugerida_motivo` + `veredicto.ts`) | main (prod) | ✅ `f64bda1` |
 | 11b | `feat/cis-inventario-control` | RF-I puente CIS — passthrough de `GET /inventarios/:id/control` (sirve CCP y APP QR desde el mismo `QrConnectorController`) | 11 | ✅ `3d9256d` |
 | 13 | `feat/ccp-pantalla8` | RF-I CCP (detalle de sesión en el Resumen) | 11b, 14 | ✅ `c932766` |
-| 12 | `feat/appqr-pantalla8` | RF-I APP QR (Pantalla 8 + fondos de color + UI de estado por AFT) | 11b | ⬜ **siguiente** |
+| 12 | `feat/appqr-pantalla8` | RF-I APP QR (Pantalla 8 + fondos de color + UI de estado por AFT) | 11b | ✅ `6d743ea` |
 | 14 | `feat/ccp-etiquetas-qr` | RF-F (módulo QR + Code128 por dirección) | 10a | ✅ `20a82e5` |
 | 15 | `feat/core-auditoria-area` | RF-E capa CORE (`auditoria.area_operativa`) | 3 | ⬜ |
 | 16 | `feat/cis-auditoria-area` | RF-E capa CIS (passthrough `?area=`) | 15 | ⬜ |
