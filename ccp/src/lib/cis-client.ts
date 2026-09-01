@@ -299,6 +299,8 @@ export interface AuditoriaEntrada {
   operacion: string;
   resultado: string;
   observaciones: string | null;
+  // DOC-029 RF-E — área operativa del actor (null si la operación no es sobre un área concreta).
+  areaOperativa: string | null;
 }
 
 // RF-06 — filtros de GET /admin/auditoria (cierra el gap: el requisito pedia "filtrable por
@@ -310,6 +312,8 @@ export interface AuditoriaFiltro {
   operacion?: string;
   fechaDesde?: string;
   fechaHasta?: string;
+  // DOC-029 RF-E — filtro parcial por área operativa (lo usa el deep-link de RF-D §D.2).
+  area?: string;
 }
 
 // RF-05 — Area/Ubicacion/Responsable (DOC-005 2/3).
@@ -698,6 +702,7 @@ export const cisClient = {
     if (filtro.operacion) params.set('operacion', filtro.operacion);
     if (filtro.fechaDesde) params.set('fechaDesde', filtro.fechaDesde);
     if (filtro.fechaHasta) params.set('fechaHasta', filtro.fechaHasta);
+    if (filtro.area) params.set('area', filtro.area);
     const res = await authorizedFetch(`/admin/auditoria?${params.toString()}`);
     const data = (await res.json()) as {
       entradas: AuditoriaEntrada[];

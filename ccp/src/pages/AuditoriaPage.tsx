@@ -1,4 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { Fragment, useEffect, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   cisClient,
   type AuditoriaEntrada,
@@ -6,12 +7,12 @@ import {
 } from '@/lib/cis-client';
 import { Alert, Badge, Button, Input, Label } from '@/components/ui';
 
-// RF-06 — módulo Auditoría: solo lectura, sin filtro por organización (GET /auditoria de CORE no
-// lo soporta todavía — la tabla audita cualquier operación del ecosistema, ver
-// core/src/auditoria/auditoria.types.ts). Últimas 200 entradas que matchean el filtro, más
-// recientes primero. Filtros por usuario/operación (búsqueda parcial — `operacion` incluye el id
-// del recurso en varias operaciones, ej. `POST /activos/{id}/baja`, así que exacto casi nunca
-// matchearía) y por rango de fecha.
+// RF-06 + DOC-029 RF-E — módulo Auditoría: solo lectura, sin filtro por organización (GET
+// /auditoria de CORE no lo soporta — la tabla audita cualquier operación del ecosistema). RF-E:
+// la columna que decía "Usuario" pasa a ser **Área** (área operativa del actor), se agrega
+// **Revisar** (expande el detalle completo, ahí queda el usuario — no se pierde), y hay filtro
+// por área (lo usa el deep-link de RF-D desde una sesión de control). Filtros parciales
+// (`operacion`/`area`/`usuario` son ILIKE en CORE).
 
 function formatFechaHora(iso: string): string {
   return new Date(iso).toLocaleString('es-CL');
@@ -26,6 +27,7 @@ function aIsoOUndefined(datetimeLocal: string): string | undefined {
 }
 
 const FILTRO_VACIO = {
+  area: '',
   usuario: '',
   operacion: '',
   fechaDesde: '',
@@ -33,10 +35,18 @@ const FILTRO_VACIO = {
 };
 
 export function AuditoriaPage() {
-  const [campos, setCampos] = useState(FILTRO_VACIO);
-  const [filtroAplicado, setFiltroAplicado] = useState<AuditoriaFiltro>({});
+  const [searchParams] = useSearchParams();
+  // RF-D §D.2 — deep-link desde una sesión: /auditoria?area=<areaId> (+ organizacionId, que este
+  // módulo no usa). Prefiltra por esa área al entrar.
+  const areaInicial = searchParams.get('area') ?? '';
+
+  const [campos, setCampos] = useState({ ...FILTRO_VACIO, area: areaInicial });
+  const [filtroAplicado, setFiltroAplicado] = useState<AuditoriaFiltro>(
+    areaInicial ? { area: areaInicial } : {},
+  );
   const [entradas, setEntradas] = useState<AuditoriaEntrada[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [filaAbierta, setFilaAbierta] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +68,9 @@ export function AuditoriaPage() {
 
   function aplicarFiltros(e: FormEvent) {
     e.preventDefault();
+    setFilaAbierta(null);
     setFiltroAplicado({
+      area: campos.area || undefined,
       usuario: campos.usuario || undefined,
       operacion: campos.operacion || undefined,
       fechaDesde: aIsoOUndefined(campos.fechaDesde),
@@ -69,6 +81,7 @@ export function AuditoriaPage() {
   function limpiarFiltros() {
     setCampos(FILTRO_VACIO);
     setFiltroAplicado({});
+    setFilaAbierta(null);
   }
 
   const hayFiltroAplicado = Object.values(filtroAplicado).some(Boolean);
@@ -81,8 +94,17 @@ export function AuditoriaPage() {
 
       <form
         onSubmit={aplicarFiltros}
-        className="mb-6 grid gap-4 rounded-xl border border-border bg-bg-card p-4 sm:grid-cols-2 lg:grid-cols-4"
+        className="mb-6 grid gap-4 rounded-xl border border-border bg-bg-card p-4 sm:grid-cols-2 lg:grid-cols-5"
       >
+        <div>
+          <Label htmlFor="filtro-area">Área</Label>
+          <Input
+            id="filtro-area"
+            value={campos.area}
+            onChange={(e) => setCampos({ ...campos, area: e.target.value })}
+            placeholder="area-biblioteca"
+          />
+        </div>
         <div>
           <Label htmlFor="filtro-usuario">Usuario</Label>
           <Input
@@ -125,7 +147,7 @@ export function AuditoriaPage() {
             }
           />
         </div>
-        <div className="flex items-end gap-2 lg:col-span-4">
+        <div className="flex items-end gap-2 lg:col-span-5">
           <Button type="submit">Filtrar</Button>
           {hayFiltroAplicado && (
             <Button type="button" variant="secondary" onClick={limpiarFiltros}>
@@ -150,32 +172,84 @@ export function AuditoriaPage() {
             <thead className="bg-bg-raised text-text-dim">
               <tr>
                 <th className="px-4 py-2 font-medium">Fecha</th>
-                <th className="px-4 py-2 font-medium">Usuario</th>
+                <th className="px-4 py-2 font-medium">Área</th>
                 <th className="px-4 py-2 font-medium">Operación</th>
                 <th className="px-4 py-2 font-medium">Resultado</th>
-                <th className="px-4 py-2 font-medium">Observaciones</th>
+                <th className="px-4 py-2 font-medium">Revisar</th>
               </tr>
             </thead>
             <tbody>
-              {entradas.map((entrada) => (
-                <tr key={entrada.id} className="border-t border-border">
-                  <td className="px-4 py-2">
-                    {formatFechaHora(entrada.fecha)}
-                  </td>
-                  <td className="px-4 py-2 font-mono text-xs">
-                    {entrada.usuario}
-                  </td>
-                  <td className="px-4 py-2 font-mono text-xs">
-                    {entrada.operacion}
-                  </td>
-                  <td className="px-4 py-2">
-                    <Badge>{entrada.resultado}</Badge>
-                  </td>
-                  <td className="px-4 py-2 text-text-dim">
-                    {entrada.observaciones ?? '—'}
-                  </td>
-                </tr>
-              ))}
+              {entradas.map((entrada) => {
+                const abierta = filaAbierta === entrada.id;
+                return (
+                  <Fragment key={entrada.id}>
+                    <tr className="border-t border-border">
+                      <td className="px-4 py-2">
+                        {formatFechaHora(entrada.fecha)}
+                      </td>
+                      <td className="px-4 py-2 font-mono text-xs">
+                        {entrada.areaOperativa ?? '—'}
+                      </td>
+                      <td className="px-4 py-2 font-mono text-xs">
+                        {entrada.operacion}
+                      </td>
+                      <td className="px-4 py-2">
+                        <Badge>{entrada.resultado}</Badge>
+                      </td>
+                      <td className="px-4 py-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFilaAbierta(abierta ? null : entrada.id)
+                          }
+                          aria-expanded={abierta}
+                          className="text-xs font-medium text-accent-strong underline underline-offset-2 hover:text-accent"
+                        >
+                          {abierta ? 'Ocultar' : 'Revisar'}
+                        </button>
+                      </td>
+                    </tr>
+                    {abierta && (
+                      <tr className="border-t border-border bg-bg-raised">
+                        <td colSpan={5} className="px-4 py-3">
+                          <dl className="grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2">
+                            <div>
+                              <dt className="inline text-text-faint">
+                                Usuario:{' '}
+                              </dt>
+                              <dd className="inline font-mono text-text">
+                                {entrada.usuario}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="inline text-text-faint">
+                                Equipo:{' '}
+                              </dt>
+                              <dd className="inline text-text">
+                                {entrada.equipo ?? '—'}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="inline text-text-faint">IP: </dt>
+                              <dd className="inline text-text">
+                                {entrada.ip ?? '—'}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="inline text-text-faint">
+                                Observaciones:{' '}
+                              </dt>
+                              <dd className="inline text-text">
+                                {entrada.observaciones ?? '—'}
+                              </dd>
+                            </div>
+                          </dl>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>

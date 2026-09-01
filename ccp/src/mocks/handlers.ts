@@ -245,6 +245,41 @@ export const defaultHandlers = [
       veredicto: 'exitoso' as const,
     });
   }),
+  // DOC-029 RF-E — auditoría con área operativa + filtro parcial por `area`.
+  http.get(`${CIS_URL}/admin/auditoria`, ({ request }) => {
+    const area = new URL(request.url).searchParams.get('area');
+    const todas = [
+      {
+        id: 'audit-1',
+        usuario: 'aft@melipilla.cl',
+        fecha: '2026-08-19T14:35:00.000Z',
+        equipo: 'PC-AFT-01',
+        ip: '192.168.1.42',
+        operacion: 'POST /inventarios',
+        resultado: 'recibido',
+        observaciones: null,
+        areaOperativa: 'area-biblioteca',
+      },
+      {
+        id: 'audit-2',
+        usuario: 'aft@melipilla.cl',
+        fecha: '2026-08-18T09:10:00.000Z',
+        equipo: null,
+        ip: null,
+        operacion: 'POST /activos/DG-001/baja',
+        resultado: 'ok',
+        observaciones: 'faltante tras el control',
+        areaOperativa: null,
+      },
+    ];
+    const entradas = area
+      ? todas.filter((e) =>
+          (e.areaOperativa ?? '').toLowerCase().includes(area.toLowerCase()),
+        )
+      : todas;
+    return HttpResponse.json({ entradas, total: entradas.length });
+  }),
+
   http.get(`${CIS_URL}/dashboard/fuera-de-area`, () =>
     HttpResponse.json({ items: [], total: 0, ...MOCK_SYNC }),
   ),
