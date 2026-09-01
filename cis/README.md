@@ -139,6 +139,9 @@ extraordinario, veredicto) la hace CORE — CIS no reinterpreta nada. Ver `../co
 los filtros `usuario`/`operacion`/`fechaDesde`/`fechaHasta` como query params (pasan tal cual a
 CORE, que hace la búsqueda parcial/rango real — CIS no reinterpreta ninguno). Sin filtro por
 organización — la tabla `auditoria` de CORE no tiene ese dato todavía (ver `../core/README.md`).
+DOC-029 RF-E (stack local sin merge) suma el query param `?area=` (passthrough más, `ILIKE`
+parcial en CORE) y el campo `areaOperativa` en cada entrada de la respuesta — `auditoriaEntradaSchema`
+y `auditoriaQuerySchema` lo reflejan.
 
 **Área/Ubicación/Responsable (2026-08-14, RF-05 — cerrado el mismo día)**:
 `AdministradorController`/`AdministradorService` suman `GET/POST/PATCH /admin/areas`,
