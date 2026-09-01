@@ -312,7 +312,7 @@ export interface AuditoriaFiltro {
   operacion?: string;
   fechaDesde?: string;
   fechaHasta?: string;
-  // DOC-029 RF-E — filtro parcial por área operativa (lo usa el deep-link de RF-D §D.2).
+  // DOC-029 RF-E — filtro parcial por área operativa (lo usa el deep-link de RF-D D.2).
   area?: string;
 }
 

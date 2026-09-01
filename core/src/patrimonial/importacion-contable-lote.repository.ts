@@ -211,7 +211,7 @@ export class ImportacionContableLoteRepository {
   }
 
   // Marca el cierre de la revisión. `estado` distinto de `pendiente_revision`. No borra filas: el
-  // lote queda como evidencia de qué se aprobó/rechazó y quién (§12.35.4).
+  // lote queda como evidencia de qué se aprobó/rechazó y quién (12.35.4).
   async marcarRevisado(
     loteId: string,
     estado: Extract<EstadoLote, 'aprobado' | 'rechazado'>,

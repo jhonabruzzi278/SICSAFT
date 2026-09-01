@@ -22,8 +22,8 @@ const MODULOS_RETIRADOS: ReadonlySet<string> = new Set([
   'inventarios',
 ]);
 
-// Modulos habilitados en Nivel 1 (DOC-029 RF-A §A.3): identificacion, consulta, incidencias,
-// historial, trazabilidad basica (DOC-025 §1). El resto — "gestion avanzada": ABM de estructura,
+// Modulos habilitados en Nivel 1 (DOC-029 RF-A A.3): identificacion, consulta, incidencias,
+// historial, trazabilidad basica (DOC-025 1). El resto — "gestion avanzada": ABM de estructura,
 // Administracion — es Nivel 2. `etiquetas` (RF-F) queda listado de antemano para cuando exista. El
 // alta manual de activos tambien es Nivel 2 (ver ActivosPage).
 const MODULOS_NIVEL_1: ReadonlySet<string> = new Set([

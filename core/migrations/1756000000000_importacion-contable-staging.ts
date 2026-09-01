@@ -51,7 +51,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     codigo_qr: { type: 'text', notNull: true },
     // Ids canónicos: los llena el ETL cuando ya pudo resolver (o la carga manual de CSV). Si
     // llegan nulos, `aprobar` resuelve-o-crea a partir de los *_nombre de abajo, bajo la identidad
-    // del Profesional de AFT que aprueba (DOC-029 §B.4). `catalogo_id` puede ser nulo solo si hay
+    // del Profesional de AFT que aprueba (DOC-029 B.4). `catalogo_id` puede ser nulo solo si hay
     // `categoria_nombre` — lo garantiza el schema (importacion-contable-lote.schemas.ts).
     catalogo_id: { type: 'text' },
     serie: { type: 'text' },

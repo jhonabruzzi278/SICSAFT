@@ -41,7 +41,7 @@ export function formatPorcentaje(fraccion: number): string {
   return `${pct.toLocaleString('es-CL', { maximumFractionDigits: 1 })} %`;
 }
 
-// Etiqueta del tipo de AFT en el control (contrato §4): ORDINARIO (solo QR) / EXTRAORDINARIO
+// Etiqueta del tipo de AFT en el control (contrato 4): ORDINARIO (solo QR) / EXTRAORDINARIO
 // (QR + RFID). `null` = el escaneo no resolvió a un activo real.
 export function etiquetaTipo(
   tipo: 'ordinario' | 'extraordinario' | null,

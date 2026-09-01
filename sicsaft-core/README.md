@@ -138,7 +138,7 @@ lo que toca a `sicsaft-core`:
   Necesita el stack levantado para validar el round-trip.
 - **RF-H (pendiente)** redefine el enfoque de la APK: **WebView Kotlin propia** en `apk-aft/`
   servida por el mismo servidor estático del `.exe` + 2º QR — **no** el wrap Capacitor que
-  mencionan el Objetivo y "Fase E" arriba (ver DOC-029 §H.1 para el porqué: un TWA con cert propio
+  mencionan el Objetivo y "Fase E" arriba (ver DOC-029 H.1 para el porqué: un TWA con cert propio
   en IP de LAN no carga). `CORE-Q-01` sigue reabierta hasta construirla.
 
 ## Depende de

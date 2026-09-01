@@ -9,7 +9,7 @@ import { parsearCsv } from '@/lib/importacion-csv';
 import { Alert, Badge, Button, Card } from '@/components/ui';
 
 // DOC-012 6 (gap "importaciones controladas") — carga manual puntual de un CSV con IDs ya
-// resueltos. No pasa por la bandeja de staging (decisión del usuario, DOC-029 RF-B §B.6): el AFT
+// resueltos. No pasa por la bandeja de staging (decisión del usuario, DOC-029 RF-B B.6): el AFT
 // que sube el CSV a mano ya es el humano que revisa, en ese acto. El parser vive en
 // @/lib/importacion-csv (testeable).
 

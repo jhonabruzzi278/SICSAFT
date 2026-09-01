@@ -163,7 +163,7 @@ export class ImportacionContableLoteService {
     );
   }
 
-  // DOC-029 §B.4 — de la fila de staging a una fila canónica lista para procesar: se usa el id ya
+  // DOC-029 B.4 — de la fila de staging a una fila canónica lista para procesar: se usa el id ya
   // resuelto si vino, si no se resuelve-o-crea desde el nombre. El schema garantiza que cada fila
   // trae catalogoId o categoriaNombre.
   private async resolverFila(

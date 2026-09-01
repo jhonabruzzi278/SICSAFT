@@ -34,7 +34,7 @@ export interface FilaLoteImportacionContable {
   linea: number;
   codigoPatrimonial: string;
   codigoQr: string;
-  // Nulo si la fila trae `categoriaNombre` — `aprobar` lo resuelve-o-crea (DOC-029 §B.4).
+  // Nulo si la fila trae `categoriaNombre` — `aprobar` lo resuelve-o-crea (DOC-029 B.4).
   catalogoId: string | null;
   serie: string | null;
   responsableId: string | null;

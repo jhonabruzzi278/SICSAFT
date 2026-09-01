@@ -36,7 +36,7 @@ const FILTRO_VACIO = {
 
 export function AuditoriaPage() {
   const [searchParams] = useSearchParams();
-  // RF-D §D.2 — deep-link desde una sesión: /auditoria?area=<areaId> (+ organizacionId, que este
+  // RF-D D.2 — deep-link desde una sesión: /auditoria?area=<areaId> (+ organizacionId, que este
   // módulo no usa). Prefiltra por esa área al entrar.
   const areaInicial = searchParams.get('area') ?? '';
 
