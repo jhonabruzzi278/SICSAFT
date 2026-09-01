@@ -15,9 +15,9 @@ varias capas se documenta bajo el sistema donde nace la decisión").
 > tareas de **RF-B.4** (capa CCP + watcher + empaquetado) y la sección **§Vacíos de casos de uso
 > fuera de alcance** (los CU del catálogo que ningún RF cubre, con recomendación in/out Nivel 1).
 
-**Estado (v3, act. 2026-08-31): RF-G, RF-A, RF-F y RF-I completos; RF-B con las capas ETL/CORE/CIS
-+ revisión CCP + selector de carpeta hechas (falta sólo B.6.2: watcher del `.exe` + service
-account + empaquetado del sidecar Python). Falta empezar: RF-D, RF-E, RF-H. RF-C sigue bloqueado
+**Estado (v3, act. 2026-08-31): RF-G, RF-A, RF-F, RF-I y RF-E completos; RF-B con las capas
+ETL/CORE/CIS + revisión CCP + selector de carpeta hechas (falta sólo B.6.2: watcher del `.exe` +
+service account + empaquetado del sidecar Python). Falta empezar: RF-D, RF-H. RF-C sigue bloqueado
 por el spec de Guido. Todo commiteado en un stack de ramas locales, sin push ni PR. Detalle por
 frente en la tabla §0 y estado por rama en §Plan de fases.**
 
@@ -31,7 +31,7 @@ frente en la tabla §0 y estado por rama en §Plan de fases.**
 | **RF-B** | Ingesta de Excel supervisada — carpeta → **ETL Python** → CIS → CORE (staging) → **revisión del AFT** → BPI | Python sidecar + CORE + CIS + CCP | 🟡 **Parcial**: ETL Python (`772df6f`), CORE staging + resolve-or-create (`c41a054`), CIS puente (`cedd836`), **CCP revisión de lotes** (`cecb0b7`) y **selector de carpeta IPC** (`707d732`) hechos. **Falta B.6.2**: watcher del `.exe` (chokidar → ETL → CIS) + su token de servicio + empaquetado del sidecar Python en `prepack.cjs`. |
 | **RF-C** | 3 pestañas nuevas en el resumen (Dashboard) | CCP | 🔒 **Bloqueado — spec lo entrega Guido** |
 | **RF-D** | Veredicto de sesión accionable → Auditoría / baja / Inventario / Contrato | CCP + 1 automatización en CORE | Diseñado — pendiente |
-| **RF-E** | Auditoría por **área operativa real** del actor + columna "Revisar" | CORE + CIS + CCP | Diseñado — pendiente |
+| **RF-E** | Auditoría por **área operativa real** del actor + columna "Revisar" | CORE + CIS + CCP | ✅ **Hecho**: CORE (`17d6291`) + CIS (`80a5ccf`) + CCP (`3d91204`). El área se puebla hoy desde `POST /inventarios`; las escrituras patrimoniales genéricas quedan en `null` hasta que CIS propague el claim (§E.3) |
 | **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | ✅ **Hecho** (`feat/ccp-etiquetas-qr`, `20a82e5`) — verificado en modo mock |
 | **RF-G** | Fix: crash del login por timeout + layout del wizard roto a pantalla completa | `sicsaft-core` | ✅ **Hecho** (`fix/sicsaft-core-login-timeout-crash`, `db268a1`) |
 | **RF-H** | APK Android — WebView propia mínima, generada en build-time, servida por el `.exe` | `apk-aft/` (nuevo) + `sicsaft-core` | Diseñado — pendiente |
@@ -288,34 +288,42 @@ Cuando una sesión cierra con veredicto **`defectuoso`** (faltan ítems **y** ha
 
 ---
 
-## RF-E — Auditoría por área operativa real
+## RF-E — Auditoría por área operativa real — ✅ HECHO
 
 ### E.1 Alcance confirmado — "Campo real en CORE"
 
-Hoy `auditoria` no tiene el área del actor (`core/src/auditoria/auditoria.types.ts`). Cambio
-multi-capa.
+`auditoria` no tenía el área del actor. Cambio multi-capa.
 
-### E.2 CORE
+### E.2 CORE — ✅ (`feat/core-auditoria-area`, `17d6291`)
 
-- Migración: `auditoria` gana `area_operativa text NULL` (histórico y eventos sin área → `null`).
-- `RegistrarAuditoriaInput` / `AuditoriaEntrada` ganan `areaOperativa?: string | null`.
-- `AuditoriaFiltro` gana `area?: string` (parcial `ILIKE`). `GET /auditoria` acepta `?area=`.
+- Migración `1756200000000`: `auditoria.area_operativa text NULL` (histórico y flujos sin área →
+  `null`).
+- `RegistrarAuditoriaInput` / `AuditoriaEntrada` ganan `areaOperativa`; `AuditoriaFiltro` gana
+  `area?` (`ILIKE` parcial). `GET /auditoria?area=` filtra.
+- **Fuente del dato hoy**: `OrquestadorService.procesarInventario` audita ambos caminos con
+  `areaOperativa: payload.areaId` — una acción de control ES sobre un área. Las escrituras
+  patrimoniales genéricas lo tomarán del claim de Keycloak cuando CIS lo propague (§E.3) — hasta
+  entonces `null`, documentado en `core/README.md`.
 
-### E.3 CIS
+### E.3 CIS — ✅ (`feat/cis-auditoria-area`, `80a5ccf`)
 
-Passthrough en ambos sentidos del bridge `/admin/auditoria`. El actor humano trae su área del
-claim de Keycloak (o de la sesión); los flujos sin humano (ingesta, veredicto automático) mandan
-`null` o `'sistema'`.
+Passthrough: `auditoriaEntradaSchema` gana `areaOperativa`; `AuditoriaFiltro` (core-client) +
+`auditoriaQuerySchema` (bridge) ganan `area`; `getAuditoria` reenvía `?area=` a CORE. El paso
+"actor humano → su área del claim de Keycloak" (para poblar las escrituras patrimoniales) queda
+pendiente como continuación de RF-E.
 
-### E.4 CCP — `AuditoriaPage.tsx`
+### E.4 CCP — `AuditoriaPage.tsx` — ✅ (`feat/ccp-auditoria-area`, `3d91204`)
 
 Cambio pedido: *"donde dice usuario poner área, operación, revisar"*.
 
-- Columnas: `Usuario` **→ `Área`**. `Operación` se mantiene. `Resultado` / `Observaciones` se
-  mantienen. Se agrega **`Revisar`** = botón que expande la fila con el detalle completo
-  (`usuario`, `equipo`, `ip`, `categoria`, `organizacionId`, `observaciones`). **El usuario no se
-  pierde** — pasa al detalle.
-- Filtro superior: `Usuario` **→ `Área`**; se mantiene `Usuario` como filtro secundario.
+- Columnas: `Usuario` **→ `Área`** (`areaOperativa`, `—` si `null`). `Operación` / `Resultado` se
+  mantienen. Nueva columna **`Revisar`** = botón que despliega una fila de detalle con `usuario`,
+  `equipo`, `ip`, `observaciones` (`categoria`/`organizacionId` no llegan — CIS no los proyecta).
+  **El usuario no se pierde** — pasa al detalle.
+- Filtro: `Área` primero, `Usuario` como secundario. El deep-link de RF-D
+  (`/auditoria?area=<areaId>`) prefiltra por esa área al entrar (`useSearchParams`).
+- Verificado en el navegador (modo mock): columna Área, "Revisar" despliega el usuario,
+  `?area=biblioteca` prefiltra a 1 fila.
 
 ---
 
@@ -525,10 +533,10 @@ campo `direccion` de B; I depende de que existan sesiones con `estadoDeclarado`,
 | 13 | `feat/ccp-pantalla8` | RF-I CCP (detalle de sesión en el Resumen) | 11b, 14 | ✅ `c932766` |
 | 12 | `feat/appqr-pantalla8` | RF-I APP QR (Pantalla 8 + fondos de color + UI de estado por AFT) | 11b | ✅ `6d743ea` |
 | 14 | `feat/ccp-etiquetas-qr` | RF-F (módulo QR + Code128 por dirección) | 10a | ✅ `20a82e5` |
-| 15 | `feat/core-auditoria-area` | RF-E capa CORE (`auditoria.area_operativa`) | 3 | ⬜ |
-| 16 | `feat/cis-auditoria-area` | RF-E capa CIS (passthrough `?area=`) | 15 | ⬜ |
-| 17 | `feat/ccp-auditoria-area` | RF-E capa CCP (Área / Operación / Revisar) | 16 | ⬜ |
-| 18 | `feat/ccp-veredicto-accionable` | RF-D (links profundos + automatización D.3) | 13, 17 | ⬜ |
+| 15 | `feat/core-auditoria-area` | RF-E capa CORE (`auditoria.area_operativa` + `?area=` + `procesarInventario`) | main | ✅ `17d6291` |
+| 16 | `feat/cis-auditoria-area` | RF-E capa CIS (passthrough `?area=` + `areaOperativa` en la respuesta) | 15 | ✅ `80a5ccf` |
+| 17 | `feat/ccp-auditoria-area` | RF-E capa CCP (Área / Operación / Revisar + filtro por área) | 16 (+ 13 para el árbol CCP) | ✅ `3d91204` |
+| 18 | `feat/ccp-veredicto-accionable` | RF-D (links profundos + automatización D.3) | 13, 17 | ⬜ **siguiente** |
 | 19 | `apk-aft-webview` | RF-H (`apk-aft/` + CI + servido por el `.exe` + 2º QR) | 3 | ⬜ |
 | — | RF-C | 3 pestañas — rama aparte cuando Guido entregue el spec | spec de Guido | 🔒 |
 
