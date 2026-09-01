@@ -12,10 +12,10 @@ varias capas se documenta bajo el sistema donde nace la decisión").
 > **v3 (2026-08-31)** — reconciliación con el avance real + `casos-de-uso/`: RF-A y las capas
 > CORE/CIS/ETL de RF-B ya commiteadas; se formaliza **RF-I** (contrato de la Pantalla 8, antes
 > suelto en `casos-de-uso/CONTRATO-PANTALLA-8.md`) como octavo frente; se agrega el desglose de
-> tareas de **RF-B.4** (capa CCP + watcher + empaquetado) y la sección **§Vacíos de casos de uso
+> tareas de **RF-B.4** (capa CCP + watcher + empaquetado) y la sección **Vacíos de casos de uso
 > fuera de alcance** (los CU del catálogo que ningún RF cubre, con recomendación in/out Nivel 1).
 > **v4 (2026-08-31)** — cierre de sesión: RF-F, RF-I (4 capas) y RF-E (3 capas) commiteados; se
-> agrega **§Bitácora de la sesión** (todos los commits, bugs y pendiente en un solo lugar) y se
+> agrega **Bitácora de la sesión** (todos los commits, bugs y pendiente en un solo lugar) y se
 > sincroniza la documentación antigua afectada (`README.md` raíz, `CLAUDE.md`, `ccp/README.md`,
 > `sicsaft-core/README.md`, `aidlc-docs/diagrams/db-schema-core.html`).
 
@@ -23,7 +23,7 @@ varias capas se documenta bajo el sistema donde nace la decisión").
 ETL/CORE/CIS + revisión CCP + selector de carpeta hechas (falta sólo B.6.2: watcher del `.exe` +
 service account + empaquetado del sidecar Python). Falta empezar: RF-D, RF-H. RF-C sigue bloqueado
 por el spec de Guido. Todo commiteado en un stack de ramas locales, sin push ni PR. Detalle por
-frente en la tabla §0 y estado por rama en §Plan de fases.**
+frente en la tabla 0 y estado por rama en Plan de fases.**
 
 ---
 
@@ -35,7 +35,7 @@ frente en la tabla §0 y estado por rama en §Plan de fases.**
 | **RF-B** | Ingesta de Excel supervisada — carpeta → **ETL Python** → CIS → CORE (staging) → **revisión del AFT** → BPI | Python sidecar + CORE + CIS + CCP | 🟡 **Parcial**: ETL Python (`772df6f`), CORE staging + resolve-or-create (`c41a054`), CIS puente (`cedd836`), **CCP revisión de lotes** (`cecb0b7`) y **selector de carpeta IPC** (`707d732`) hechos. **Falta B.6.2**: watcher del `.exe` (chokidar → ETL → CIS) + su token de servicio + empaquetado del sidecar Python en `prepack.cjs`. |
 | **RF-C** | 3 pestañas nuevas en el resumen (Dashboard) | CCP | 🔒 **Bloqueado — spec lo entrega Guido** |
 | **RF-D** | Veredicto de sesión accionable → Auditoría / baja / Inventario / Contrato | CCP + 1 automatización en CORE | Diseñado — pendiente |
-| **RF-E** | Auditoría por **área operativa real** del actor + columna "Revisar" | CORE + CIS + CCP | ✅ **Hecho**: CORE (`17d6291`) + CIS (`80a5ccf`) + CCP (`3d91204`). El área se puebla hoy desde `POST /inventarios`; las escrituras patrimoniales genéricas quedan en `null` hasta que CIS propague el claim (§E.3) |
+| **RF-E** | Auditoría por **área operativa real** del actor + columna "Revisar" | CORE + CIS + CCP | ✅ **Hecho**: CORE (`17d6291`) + CIS (`80a5ccf`) + CCP (`3d91204`). El área se puebla hoy desde `POST /inventarios`; las escrituras patrimoniales genéricas quedan en `null` hasta que CIS propague el claim (E.3) |
 | **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | ✅ **Hecho** (`feat/ccp-etiquetas-qr`, `20a82e5`) — verificado en modo mock |
 | **RF-G** | Fix: crash del login por timeout + layout del wizard roto a pantalla completa | `sicsaft-core` | ✅ **Hecho** (`fix/sicsaft-core-login-timeout-crash`, `db268a1`) |
 | **RF-H** | APK Android — WebView propia mínima, generada en build-time, servida por el `.exe` | `apk-aft/` (nuevo) + `sicsaft-core` | Diseñado — pendiente |
@@ -43,16 +43,16 @@ frente en la tabla §0 y estado por rama en §Plan de fases.**
 
 Reemplaza / extiende:
 
-- **DOC-025 §1** ("Portal de Profesional de AFT: dos piezas distintas, no una"): RF-A revierte la
+- **DOC-025 1** ("Portal de Profesional de AFT: dos piezas distintas, no una"): RF-A revierte la
   decisión de *"no es una versión desbloqueada vía feature flag — es una aplicación distinta"*
-  (RF-A §1).
+  (RF-A 1).
 - **DOC-016** (Conector CON-CONTABILIDAD): RF-B reusa los **conceptos de transporte** (carpeta
   local vigilada, identidad sintética para el paso de ingesta, idempotencia por fila, canal de
   auditoría) pero **reemplaza su implementación**: parser Python (no `split(',')` en Node),
   formato `.xls`/`.xlsx` real, y una **compuerta humana** que DOC-016 explícitamente no tenía
-  (*"sin intervención humana"*, DOC-016 §1).
+  (*"sin intervención humana"*, DOC-016 1).
 - **DOC-028 Fase E** (APK Android, diferida): RF-H la des-difiere con un alcance acotado
-  (WebView propia, no TWA/PWABuilder — ver RF-H §1).
+  (WebView propia, no TWA/PWABuilder — ver RF-H 1).
 
 No reabre: [ADR-004](../../../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) (Keycloak),
 [DOC-023](DOC-023-matriz-permisos-rbac.md) (RBAC — RF-B/RF-D/RF-E/RF-F reusan guards existentes),
@@ -66,16 +66,16 @@ el invariante de Tomo III 4.10 (baja por `estado`, nunca `DELETE` — RF-D lo re
 
 DOC-025 reservó para el Profesional de AFT **dos aplicaciones distintas**: un "web-aft" liviano de
 Nivel 1 y `ccp/` completo recién en Nivel 2. Estado real: el "web-aft" liviano **nunca tuvo
-código** (DOC-025 §1, 🔲); `ccp/` existe, probado, y `sicsaft-core.exe` **ya lo embebe completo
+código** (DOC-025 1, 🔲); `ccp/` existe, probado, y `sicsaft-core.exe` **ya lo embebe completo
 sin condicionarlo al nivel** (DOC-025 excepción 2026-08-28).
 
 **Decisión del usuario (2026-08-31)**: en vez de una segunda app, `ccp/` gana un `nivel` de
 ejecución (`1` | `2`) que oculta los módulos/acciones de "gestión avanzada" cuando corre en Nivel
-1. Es la "decisión de diseño nueva" que DOC-025 §2 anticipó.
+1. Es la "decisión de diseño nueva" que DOC-025 2 anticipó.
 
 ### A.2 De dónde sale el flag — no es un dato de dominio
 
-DOC-025 §2 sigue en pie: **no se agrega un campo `nivel` a `Contrato`/`Organización`/`Sede`**.
+DOC-025 2 sigue en pie: **no se agrega un campo `nivel` a `Contrato`/`Organización`/`Sede`**.
 
 1. **`.exe`**: `instalacion.json` gana `nivel` (default `1`), fijado en el bootstrap. `sicsaft-core`
    lo inyecta al servir `ccp` por el canal de config runtime de DOC-028 Fase C.0 —
@@ -170,7 +170,7 @@ cual** (decisión del usuario), no el modelo canónico reducido:
 **No es un registro oficial de Base Patrimonial** (Tomo III 4.10 no aplica: bandeja de entrada).
 Usa `estado` en vez de borrar; un job de limpieza de lotes cerrados > N días es aceptable.
 
-Endpoints nuevos (guard `administrador-patrimonial` en la organización, DOC-012 §3):
+Endpoints nuevos (guard `administrador-patrimonial` en la organización, DOC-012 3):
 
 | Método | Ruta | Qué hace |
 |---|---|---|
@@ -187,7 +187,7 @@ de CORE existentes, nunca `INSERT` directo.
 ### B.5 CIS
 
 Endpoint nuevo `POST /importaciones/contable/lote` en el bridge — passthrough a CORE con la
-identidad sintética de DOC-016 §5 (`operadorId: 'ingesta-contable'`, rol
+identidad sintética de DOC-016 5 (`operadorId: 'ingesta-contable'`, rol
 `administrador-patrimonial` afirmado por config; CORE re-verifica igual). **La aprobación** la hace
 un humano con su JWT real desde CCP, no la identidad sintética.
 
@@ -228,7 +228,7 @@ config runtime, solo lectura.
 |---|---|
 | `src/main/services/ingesta-watcher.ts` **(nuevo)** | `chokidar.watch(carpeta, { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 2000 } })` sobre `*.xls`/`*.xlsx`. Por cada `add`: `execFile(rutaPythonEmbebido, [rutaScript, '--entrada', archivo, '--organizacion', orgId, '--mapeo', rutaMapeoOrg, '--cis-url', 'http://127.0.0.1:56000', '--token', tokenServicio])`. Mueve el `.xls` a `<carpeta>/.procesados/` o `.error/`. Log a `ingesta.log`. Unit-testable con carpeta temporal + `execFile` mockeado. |
 | Wiring del arranque | Tras `asegurarServidoresPortales`, si hay `carpetaIngesta` → `iniciarWatcher`. Reiniciar cuando el usuario cambia la carpeta (el handler `elegirCarpetaIngesta` ya persiste; falta que dispare el reinicio). |
-| **token de servicio** — decisión pendiente | Todo `cis/src/administrador/AdministradorController` es `@UseGuards(KeycloakAuthGuard, RateLimitGuard)` — **no hay ruta con `ServiceTokenGuard`** para el lote. El watcher necesita un JWT que `KeycloakAuthGuard` acepte con el rol `administrador-patrimonial`. Opción v1: un **service account** dedicado en Keycloak (client `sicsaft-ingesta`, grant `client_credentials`, rol `administrador-patrimonial` en la organización del cliente), provisionado en el bootstrap junto al resto de clients. El `.exe` pide el token con `client_credentials` (mismo mecanismo que ya usa para la Admin API) y lo pasa al ETL. La "identidad sintética `ingesta-contable`" de DOC-016 §5 sigue siendo lo que CIS **reenvía a CORE** como `operadorId`; la aprobación la hace el humano con su JWT real. |
+| **token de servicio** — decisión pendiente | Todo `cis/src/administrador/AdministradorController` es `@UseGuards(KeycloakAuthGuard, RateLimitGuard)` — **no hay ruta con `ServiceTokenGuard`** para el lote. El watcher necesita un JWT que `KeycloakAuthGuard` acepte con el rol `administrador-patrimonial`. Opción v1: un **service account** dedicado en Keycloak (client `sicsaft-ingesta`, grant `client_credentials`, rol `administrador-patrimonial` en la organización del cliente), provisionado en el bootstrap junto al resto de clients. El `.exe` pide el token con `client_credentials` (mismo mecanismo que ya usa para la Admin API) y lo pasa al ETL. La "identidad sintética `ingesta-contable`" de DOC-016 5 sigue siendo lo que CIS **reenvía a CORE** como `operadorId`; la aprobación la hace el humano con su JWT real. |
 | `resources/etl-contable/` + `prepack.cjs` | Vendorizar `python-build-standalone` (win-x64, ~15 MB) + venv con `pandas`/`xlrd`, copiar `herramientas/etl-contable/`. `execFile` con ruta absoluta y `PATH` acotado (sonar S4036, mismo criterio que el `prepack.cjs` actual). En **dev** usa el `python` del sistema + la carpeta del repo. `extraResources` incluye `resources/etl-contable/**`. Necesita red (descarga) y un Windows real para validar. |
 
 - No se unifica la carga manual bajo staging (decisión del usuario): el AFT que sube un CSV a mano
@@ -286,7 +286,7 @@ Cuando una sesión cierra con veredicto **`defectuoso`** (faltan ítems **y** ha
 
 - `operacion: 'sesiones/{id}/veredicto-defectuoso'`, `resultado: 'registrado'`, `observaciones`:
   cantidad de faltantes + fuera de área + `areaId`.
-- Canal: `POST /auditoria` (mismo que otros flujos no-humanos, DOC-024 §3).
+- Canal: `POST /auditoria` (mismo que otros flujos no-humanos, DOC-024 3).
 - **No** da de baja nada, **no** toca la Base Patrimonial, **no** cambia estado de activos. Solo
   rastro. Únicamente para `defectuoso`, nunca `aceptable` (ruido).
 
@@ -306,7 +306,7 @@ Cuando una sesión cierra con veredicto **`defectuoso`** (faltan ítems **y** ha
   `area?` (`ILIKE` parcial). `GET /auditoria?area=` filtra.
 - **Fuente del dato hoy**: `OrquestadorService.procesarInventario` audita ambos caminos con
   `areaOperativa: payload.areaId` — una acción de control ES sobre un área. Las escrituras
-  patrimoniales genéricas lo tomarán del claim de Keycloak cuando CIS lo propague (§E.3) — hasta
+  patrimoniales genéricas lo tomarán del claim de Keycloak cuando CIS lo propague (E.3) — hasta
   entonces `null`, documentado en `core/README.md`.
 
 ### E.3 CIS — ✅ (`feat/cis-auditoria-area`, `80a5ccf`)
@@ -486,12 +486,12 @@ los 6 bloques + franja de veredicto con fondo de color). `cis-client` gana
 
 ### I.5 Relación con RF-D
 
-El veredicto `defectuoso` de la Pantalla 8 es el mismo que dispara la auto-auditoría de RF-D §D.3
-y el énfasis de los links profundos de RF-D §D.2. RF-I entrega la vista; RF-D las acciones.
+El veredicto `defectuoso` de la Pantalla 8 es el mismo que dispara la auto-auditoría de RF-D D.3
+y el énfasis de los links profundos de RF-D D.2. RF-I entrega la vista; RF-D las acciones.
 
 ---
 
-## §Vacíos de casos de uso fuera del alcance de DOC-029
+## Vacíos de casos de uso fuera del alcance de DOC-029
 
 Del catálogo `casos-de-uso/` (Cap. 12), los CU que **ningún RF de esta fase cubre**. Recomendación
 in/out para la entrega del cliente **Nivel 1 QR**, con el criterio de que Nivel 1 = flujo de
@@ -514,7 +514,7 @@ que puede bloquear la **entrega** es el RBAC de Supervisor/Auditor, y sólo si e
 
 ---
 
-## §Plan de fases (`gh stack`)
+## Plan de fases (`gh stack`)
 
 Orden por dependencia (E y B: CORE→CIS→CCP; D depende del filtro por área de E; F depende del
 campo `direccion` de B; I depende de que existan sesiones con `estadoDeclarado`, ya en prod).
@@ -544,15 +544,15 @@ campo `direccion` de B; I depende de que existan sesiones con `estadoDeclarado`,
 | 19 | `apk-aft-webview` | RF-H (`apk-aft/` + CI + servido por el `.exe` + 2º QR) | 3 | ⬜ |
 | — | RF-C | 3 pestañas — rama aparte cuando Guido entregue el spec | spec de Guido | 🔒 |
 
-**Camino crítico para desbloquear la QA completa** (`casos-de-uso/PLAN-QA.md §5`): #10 (desbloquea
+**Camino crítico para desbloquear la QA completa** (`casos-de-uso/PLAN-QA.md 5`): #10 (desbloquea
 QA-1) → #14 (desbloquea QA-2) → #11-13 (completan QA-3.10 / QA-4.2) → #18 (completa QA-5.5) →
 #15-17 (refuerzan QA-4.6) → #19 (reemplaza la PWA). #11-13 (RF-I) son independientes de #10 y se
 pueden hacer en paralelo.
 
-## §Testing — runbook de validación (los 6 pasos del usuario)
+## Testing — runbook de validación (los 6 pasos del usuario)
 
 El runbook completo ya vive en [`casos-de-uso/PLAN-QA.md`](../../../casos-de-uso/PLAN-QA.md)
-(suites QA-0…QA-6, criterios §12.36, tabla de resultados). Resumen de los 6 pasos:
+(suites QA-0…QA-6, criterios 12.36, tabla de resultados). Resumen de los 6 pasos:
 
 1. **Cargar el Excel**: dejar `EJEMPLOS DE EMPRESAS Y AFT.xls` en la carpeta elegida en CCP →
    verificar que el ETL lo normaliza y aparece un lote `pendiente_revision`.
@@ -586,7 +586,7 @@ Cobertura automatizada nueva por frente:
 Sin bajar el umbral de cobertura vigente (core/cis/cip 100% líneas-funciones; frontends
 `vitest run --coverage`).
 
-## §Bitácora de la sesión (2026-08-31)
+## Bitácora de la sesión (2026-08-31)
 
 Todo lo que se movió esta sesión, en un solo lugar. **Nada tiene push ni PR** — son ramas locales.
 
@@ -635,7 +635,7 @@ Al armar el `gh stack` hay que intercalar las bases 2 y 3 **antes** de `feat/ccp
 
 ### Bugs corregidos
 
-Los **tres reales** (encontrados probando con el cliente real) están en **§RF-G** — crash del
+Los **tres reales** (encontrados probando con el cliente real) están en **RF-G** — crash del
 proceso `main` por `.off()` sobre `WebContentsView` destruida, recorte del wizard a pantalla
 completa, y desalineación de la vista embebida al hacer scroll. No se encontró ningún otro bug de
 cara al usuario en la sesión.
@@ -666,13 +666,13 @@ próxima sesión):
 | **RF-H** — `apk-aft/` (WebView Kotlin) + `apk-aft-ci.yml` + servido por el `.exe` + 2º QR | `apk-aft-webview` (nueva) | Necesita Android SDK/Gradle en CI |
 | **RF-C** — 3 pestañas del Dashboard | — | 🔒 Spec lo entrega Guido |
 | **RF-E follow-up** — poblar `area_operativa` en las escrituras patrimoniales desde el claim de Keycloak (hoy solo lo puebla `POST /inventarios`) | continuación de RF-E | Documentado en `core/README.md` |
-| **Decisión pre-entrega** — rol Keycloak Supervisor Patrimonial / Auditor propio (hoy los cubre `administrador-patrimonial`) | `feat/rbac-supervisor-auditor` | **No opcional** si el pliego del cliente exige separación de funciones — ver §Vacíos |
+| **Decisión pre-entrega** — rol Keycloak Supervisor Patrimonial / Auditor propio (hoy los cubre `administrador-patrimonial`) | `feat/rbac-supervisor-auditor` | **No opcional** si el pliego del cliente exige separación de funciones — ver Vacíos |
 | Armar el `gh stack`, abrir PRs, CI en verde, mergear en orden | — | Ver "Topología de ramas" arriba |
 | Regenerar el `.exe` (`npm run dist:win`), transferir al cliente, reserva DHCP | — | Después de mergear |
 
 ### Documentación sincronizada esta sesión
 
-- `aidlc-docs/ccp/design-artifacts/DOC-029-…` — este archivo (v4 + §Bitácora).
+- `aidlc-docs/ccp/design-artifacts/DOC-029-…` — este archivo (v4 + Bitácora).
 - `README.md` (raíz) — `herramientas/etl-contable/` en el mapa de sistemas; estado de SYS-02/03/05/11 con los frentes de DOC-029.
 - `CLAUDE.md` — `herramientas/` como carpeta de tooling (no desplegable) + comandos de `herramientas/etl-contable/` + `apk-aft/` planificado.
 - `ccp/README.md`, `sicsaft-core/README.md` — actualizados en `feat/ccp-auditoria-area` (la rama que tiene el código), commit `docs:` inmediatamente siguiente.
@@ -681,19 +681,19 @@ próxima sesión):
 
 ---
 
-## §Documentos relacionados
+## Documentos relacionados
 
-[DOC-025](../../devops/design-artifacts/DOC-025-niveles-producto-onprem.md) §1/§2 (RF-A lo revierte
+[DOC-025](../../devops/design-artifacts/DOC-025-niveles-producto-onprem.md) 1/2 (RF-A lo revierte
 parcialmente), [DOC-016](../../integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md)
 (transporte que RF-B reusa, implementación que reemplaza), [DOC-028](../../sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md)
 Fase C.0 (config runtime — RF-A/RF-B), Fase D (servidor estático — RF-H), Fase E (APK diferida —
-RF-H la des-difiere), [DOC-012](../../../seguridad/DOC-012-administrador-patrimonial.md) §3/§6
+RF-H la des-difiere), [DOC-012](../../../seguridad/DOC-012-administrador-patrimonial.md) 3/6
 (endpoint y guard de importación contable), [DOC-017](../../app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md)
-§2 (veredicto de sesión), [DOC-023](DOC-023-matriz-permisos-rbac.md) (RBAC),
-[DOC-024](DOC-024-crud-completo-auditoria-identidad.md) §3 (canal `POST /auditoria` no-humano),
-[DOC-005](../../../base-patrimonial/DOC-005-modelo-patrimonial.md) §7 (modelo de auditoría), Tomo
+2 (veredicto de sesión), [DOC-023](DOC-023-matriz-permisos-rbac.md) (RBAC),
+[DOC-024](DOC-024-crud-completo-auditoria-identidad.md) 3 (canal `POST /auditoria` no-humano),
+[DOC-005](../../../base-patrimonial/DOC-005-modelo-patrimonial.md) 7 (modelo de auditoría), Tomo
 III 4.10 (baja por `estado`, nunca `DELETE`),
 [`casos-de-uso/`](../../../casos-de-uso/README.md) (catálogo Cap. 12: RF-B ↔ CU-INT-001, RF-F ↔
 CU-QR-001, RF-I ↔ CU-INV-003/004 + [`CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md),
-RF-D ↔ CU-INV-004, RF-E ↔ §12.35.4; §Vacíos ↔ MATRIZ-TRAZABILIDAD),
+RF-D ↔ CU-INV-004, RF-E ↔ 12.35.4; Vacíos ↔ MATRIZ-TRAZABILIDAD),
 [`casos-de-uso/PLAN-QA.md`](../../../casos-de-uso/PLAN-QA.md) (suites de QA que cada RF desbloquea).
