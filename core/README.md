@@ -129,7 +129,7 @@ sin filtro alguno; este cierra ese gap.
 nullable con el **área operativa del actor**. Se puebla hoy desde `POST /inventarios` (una acción
 de control ES sobre un área — `payload.areaId`, ver `OrquestadorService.procesarInventario`); las
 escrituras patrimoniales genéricas y el histórico quedan en `null` hasta que CIS propague el claim
-de Keycloak (RF-E §E.3). `GET /auditoria?area=` filtra parcial (`ILIKE`), igual que
+de Keycloak (RF-E E.3). `GET /auditoria?area=` filtra parcial (`ILIKE`), igual que
 `usuario`/`operacion` — lo usa el deep-link del CCP desde una sesión de control.
 
 **Módulo `src/estructura/` — Área/Ubicación/Responsable (2026-08-14, para Fase 5/WEB, RF-05)**:

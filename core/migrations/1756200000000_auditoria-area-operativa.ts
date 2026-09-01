@@ -7,7 +7,7 @@ import type { MigrationBuilder } from 'node-pg-migrate';
 //
 // Fuente del dato hoy: `POST /inventarios` (una acción de control ES sobre un área — `payload.areaId`,
 // ver OrquestadorService.procesarInventario). Las escrituras patrimoniales lo tomarán del claim de
-// Keycloak cuando CIS lo propague (DOC-029 RF-E §E.3) — hasta entonces, NULL.
+// Keycloak cuando CIS lo propague (DOC-029 RF-E E.3) — hasta entonces, NULL.
 
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.addColumn('auditoria', {

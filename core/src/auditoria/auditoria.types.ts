@@ -52,7 +52,7 @@ export interface AuditoriaFiltro {
   categoria?: CategoriaAuditoria;
   organizacionId?: string;
   // DOC-029 RF-E — filtro parcial (ILIKE) por área operativa, igual que usuario/operacion. Lo usa
-  // el deep-link del CCP desde una sesión de control (RF-D §D.2).
+  // el deep-link del CCP desde una sesión de control (RF-D D.2).
   area?: string;
   limit: number;
   offset: number;
