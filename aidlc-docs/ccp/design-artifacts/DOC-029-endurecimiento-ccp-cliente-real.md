@@ -14,6 +14,10 @@ varias capas se documenta bajo el sistema donde nace la decisión").
 > suelto en `casos-de-uso/CONTRATO-PANTALLA-8.md`) como octavo frente; se agrega el desglose de
 > tareas de **RF-B.4** (capa CCP + watcher + empaquetado) y la sección **§Vacíos de casos de uso
 > fuera de alcance** (los CU del catálogo que ningún RF cubre, con recomendación in/out Nivel 1).
+> **v4 (2026-08-31)** — cierre de sesión: RF-F, RF-I (4 capas) y RF-E (3 capas) commiteados; se
+> agrega **§Bitácora de la sesión** (todos los commits, bugs y pendiente en un solo lugar) y se
+> sincroniza la documentación antigua afectada (`README.md` raíz, `CLAUDE.md`, `ccp/README.md`,
+> `sicsaft-core/README.md`, `aidlc-docs/diagrams/db-schema-core.html`).
 
 **Estado (v3, act. 2026-08-31): RF-G, RF-A, RF-F, RF-I y RF-E completos; RF-B con las capas
 ETL/CORE/CIS + revisión CCP + selector de carpeta hechas (falta sólo B.6.2: watcher del `.exe` +
@@ -581,6 +585,101 @@ Cobertura automatizada nueva por frente:
 
 Sin bajar el umbral de cobertura vigente (core/cis/cip 100% líneas-funciones; frontends
 `vitest run --coverage`).
+
+## §Bitácora de la sesión (2026-08-31)
+
+Todo lo que se movió esta sesión, en un solo lugar. **Nada tiene push ni PR** — son ramas locales.
+
+### Topología de ramas (importante para armar el `gh stack`)
+
+No es un stack lineal único. Hay **tres bases**:
+
+1. **Stack CCP** (12 commits, base = `main`) — la cadena larga:
+   `main` → `fix/sicsaft-core-login-timeout-crash` → `feat/ccp-nivel-flag` →
+   `feat/core-ingesta-staging` → `feat/cis-ingesta-lote` → `feat/etl-contable-python` →
+   `feat/ccp-ingesta-revision` → `feat/ccp-etiquetas-qr` → `feat/ccp-pantalla8` →
+   `feat/ccp-auditoria-area` **(punta — tiene RF-G + RF-A + RF-B + RF-F + RF-I CCP + RF-E CCP)**.
+2. **RF-I CORE/CIS** (base = `main`, aparte del stack): `feat/core-cip-resumen-control` (`f64bda1`)
+   → `feat/cis-inventario-control` (`3d9256d`). `feat/appqr-pantalla8` (`6d743ea`) cuelga de
+   `feat/cis-inventario-control`.
+3. **RF-E CORE/CIS** (base = `main`, aparte): `feat/core-auditoria-area` (`17d6291`) →
+   `feat/cis-auditoria-area` (`80a5ccf`).
+4. **Docs**: `docs/doc-029-…` (base = `main`, este archivo + sync de docs) y `docs/casos-de-uso-qa`
+   (base = `e3169bf`, o sea sobre RF-A: catálogo de CU + `PLAN-QA.md` + `CONTRATO-PANTALLA-8.md`).
+
+Al armar el `gh stack` hay que intercalar las bases 2 y 3 **antes** de `feat/ccp-pantalla8` /
+`feat/ccp-auditoria-area` respectivamente (el CCP consume esos endpoints de CIS en runtime), y
+`docs/casos-de-uso-qa` debe ir después de `feat/ccp-nivel-flag` (su base real).
+
+### Commits de la sesión
+
+| Rama | Commit(s) | Frente | Capa | Qué |
+|---|---|---|---|---|
+| `fix/sicsaft-core-login-timeout-crash` | `db268a1` | RF-G | `sicsaft-core` | Guard `isDestroyed()` en el timeout del login; `[&>*]:m-auto` en `<main>` del wizard; re-envío de bounds de la `WebContentsView` en `resize`/`scroll` |
+| `feat/ccp-nivel-flag` | `92f6a0e`, `e3169bf` | RF-A | CCP + `sicsaft-core` config | `nivelActual()`/`moduloHabilitado()` (`src/lib/nivel.ts`), `VITE_SICSAFT_NIVEL` por config runtime; se retiran Contratos e Inventarios del hub/nav/rutas en Nivel 1 |
+| `feat/core-ingesta-staging` | `c41a054` | RF-B | CORE | Migración: `importacion_contable_lote` + `importacion_contable_lote_fila` (bandeja espejo del Excel); dry-run `crear`/`actualizar`/`conflicto` |
+| `feat/cis-ingesta-lote` | `4db7e47`, `cedd836` | RF-B | CIS + CORE | Puente `POST /admin/importaciones/contable/lote*`; "aprobar" **resuelve-o-crea** área/responsable/catálogo por nombre e inserta activos (idempotente por `codigo_patrimonial`), vía servicios de dominio |
+| `feat/etl-contable-python` | `772df6f` | RF-B | `herramientas/etl-contable/` (nuevo) | ETL Python (`pandas`+`xlrd`): detección de encabezado, fill-down de combinadas, remapeo por `mapeo-<org>.json`, acuñado de `codigoQr`, `--dry-run`. pytest + ruff |
+| `feat/ccp-ingesta-revision` | `cecb0b7` | RF-B.6.3 | CCP | `ImportacionesPage` → `pages/importaciones/` (`LotesRevision` + `CargaManualCsv`); tabla de dry-run por fila, Aprobar/Rechazar; helpers puros `lotes-importacion.ts` + `importacion-csv.ts` con tests |
+| `feat/ccp-ingesta-revision` | `707d732` | RF-B.6.1 | `sicsaft-core` | Selector de carpeta de ingesta por IPC (`elegir/leerCarpetaIngesta`, `dialog.showOpenDialog`), persistido en `instalacion.json`, expuesto al CCP como `VITE_SICSAFT_CARPETA_INGESTA` (solo lectura) |
+| `feat/ccp-etiquetas-qr` | `20a82e5` | RF-F | CCP | Módulo `/etiquetas`: agrupación por dirección→área (`lib/etiquetas.ts`), QR (`qrcode`) + Code 128 (encoder propio `lib/code128.ts`, sin dependencia), `@media print`. Tests: `code128.test.ts` + `etiquetas.test.ts` |
+| `feat/core-cip-resumen-control` | `f64bda1` | RF-I | CORE | Migración `1756100000000`: `inventarios.estado_declarado` + `inventarios.baja_sugerida_motivo`. `veredicto.ts` (puerto). `findResumenControl()` + `GET /inventarios/:id/control` |
+| `feat/cis-inventario-control` | `3d9256d` | RF-I | CIS | Passthrough de `GET /inventarios/:id/control` en `QrConnectorController` (sirve CCP y APP QR); schema Zod espejo + `getInventarioResumenControl` |
+| `feat/appqr-pantalla8` | `6d743ea` | RF-I | APP QR | `ScanPage.tsx`: el "Resultado del control" se completa a los 6 bloques del contrato (% del área, desglose por estado declarado, lista con tipo `ORDINARIO`). Todo local. e2e `fase-3.1.spec.js` ampliado |
+| `feat/ccp-pantalla8` | `c932766` | RF-I | CCP | `DashboardPage` "Sesiones de inventario": cada fila despliega la Pantalla 8 inline (`PantallaControlArea.tsx` + `lib/pantalla-8.ts`). Mock `GET /inventarios/:id/control` |
+| `feat/core-auditoria-area` | `17d6291` | RF-E | CORE | Migración `1756200000000`: `auditoria.area_operativa`. `AuditoriaFiltro.area` (`ILIKE`). `OrquestadorService.procesarInventario` audita ambos caminos con `areaOperativa: payload.areaId` |
+| `feat/cis-auditoria-area` | `80a5ccf` | RF-E | CIS | Passthrough: `areaOperativa` en `auditoriaEntradaSchema`, `?area=` en `auditoriaQuerySchema` + `getAuditoria` |
+| `feat/ccp-auditoria-area` | `3d91204` | RF-E | CCP | `AuditoriaPage.tsx` reescrita: columna `Usuario`→`Área`, nueva columna `Revisar` (despliega usuario/equipo/ip/observaciones), filtro `Área` + `useSearchParams` para el deep-link `?area=` de RF-D |
+| `docs/casos-de-uso-qa` | `734b037`, `0437b54` | — | docs | Catálogo de Casos de Uso (Cap. 12) + `PLAN-QA.md` (suites QA-0…QA-6) + `CONTRATO-PANTALLA-8.md` |
+| `docs/doc-029-…` | `d8a8a55`…`c6b48ea` + este commit | — | docs | Este contrato (v1→v4) + sync de la documentación antigua |
+
+### Bugs corregidos
+
+Los **tres reales** (encontrados probando con el cliente real) están en **§RF-G** — crash del
+proceso `main` por `.off()` sobre `WebContentsView` destruida, recorte del wizard a pantalla
+completa, y desalineación de la vista embebida al hacer scroll. No se encontró ningún otro bug de
+cara al usuario en la sesión.
+
+Incidencias de desarrollo resueltas en el camino (no son bugs de producto — anotadas para la
+próxima sesión):
+
+- Typo cirílico `areaПorId` en `ccp/src/lib/etiquetas.ts` → `areaPorId`.
+- `ActivoCatalogo.areaId` es `string` (no nullable): el patrón "sin área" del repo es `''`, no
+  `null` (confirmado contra el mock de `POST /admin/activos`).
+- `react-refresh/only-export-components`: no exportar helper + componente del mismo archivo →
+  `parsearCsv` se extrajo a `ccp/src/lib/importacion-csv.ts` (y ganó cobertura).
+- `<>` no acepta `key`: `AuditoriaPage.tsx` usa `<Fragment key={…}>` para la fila + su detalle.
+- `cis/test/gaps-ccp-admin-sistema.e2e-spec.ts:157` tiene un error de `tsc` **preexistente** en la
+  base de la rama — CI de CIS no corre `tsc` suelto (gates: `lint:ci`, `test:cov`, `test:e2e`,
+  `build`; ts-jest con `isolatedModules`). No es regresión de la sesión.
+- Los tests de `core/cis/cip` necesitan `npm test` / `npm run test:cov` (pasan
+  `--experimental-vm-modules`), no `npx jest` a secas.
+- Enredo de base de rama al crear `feat/ccp-auditoria-area`: se corrigió con `git branch -f`
+  (repunte del puntero, sin borrar ramas — respeta la regla de CLAUDE.md).
+
+### Pendiente (consolidado)
+
+| Qué | Rama | Bloqueo / nota |
+|---|---|---|
+| **RF-B.6.2** — watcher del `.exe` (chokidar → ETL → CIS) + service account Keycloak `sicsaft-ingesta` + empaquetado del sidecar Python en `prepack.cjs` | `feat/ccp-ingesta-revision` o rama nueva | Necesita el stack arriba levantado (container stack) para validar el round-trip real |
+| **RF-D** — links profundos del veredicto + auto-auditoría D.3 al cerrar `defectuoso` | `feat/ccp-veredicto-accionable` (nueva) | Depende de `feat/ccp-pantalla8` (#13) y `feat/ccp-auditoria-area` (#17) |
+| **RF-H** — `apk-aft/` (WebView Kotlin) + `apk-aft-ci.yml` + servido por el `.exe` + 2º QR | `apk-aft-webview` (nueva) | Necesita Android SDK/Gradle en CI |
+| **RF-C** — 3 pestañas del Dashboard | — | 🔒 Spec lo entrega Guido |
+| **RF-E follow-up** — poblar `area_operativa` en las escrituras patrimoniales desde el claim de Keycloak (hoy solo lo puebla `POST /inventarios`) | continuación de RF-E | Documentado en `core/README.md` |
+| **Decisión pre-entrega** — rol Keycloak Supervisor Patrimonial / Auditor propio (hoy los cubre `administrador-patrimonial`) | `feat/rbac-supervisor-auditor` | **No opcional** si el pliego del cliente exige separación de funciones — ver §Vacíos |
+| Armar el `gh stack`, abrir PRs, CI en verde, mergear en orden | — | Ver "Topología de ramas" arriba |
+| Regenerar el `.exe` (`npm run dist:win`), transferir al cliente, reserva DHCP | — | Después de mergear |
+
+### Documentación sincronizada esta sesión
+
+- `aidlc-docs/ccp/design-artifacts/DOC-029-…` — este archivo (v4 + §Bitácora).
+- `README.md` (raíz) — `herramientas/etl-contable/` en el mapa de sistemas; estado de SYS-02/03/05/11 con los frentes de DOC-029.
+- `CLAUDE.md` — `herramientas/` como carpeta de tooling (no desplegable) + comandos de `herramientas/etl-contable/` + `apk-aft/` planificado.
+- `ccp/README.md`, `sicsaft-core/README.md` — actualizados en `feat/ccp-auditoria-area` (la rama que tiene el código), commit `docs:` inmediatamente siguiente.
+- `core/README.md`, `cis/README.md`, `app-qr-sicsaft/README.md` — ya actualizados en sus ramas de feature (RF-I / RF-E).
+- `aidlc-docs/diagrams/db-schema-core.html` — 17 tablas (antes 15): + `importacion_contable_lote`/`_fila`; + `inventarios.estado_declarado`/`baja_sugerida_motivo`; + `auditoria.area_operativa`. `arquitectura-ecosistema.html` y `grafo-dependencias-sistema.html` revisados — **no** cambian (la ingesta de Excel es una herramienta invocada por `sicsaft-core`, no un servicio nuevo, y sigue entrando por CIS→CORE).
+
+---
 
 ## §Documentos relacionados
 

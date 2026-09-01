@@ -23,11 +23,11 @@
   <div class="frame">
     <p class="eyebrow">Database schema · SICSAFT · Reference poster</p>
     <h1>Base Patrimonial (CORE) — schema completo</h1>
-    <p class="subtitle">Las 15 tablas reales de <code>core/migrations/</code> a la fecha, agrupadas por subdominio. Diagrama de referencia denso a propósito — se dibujan solo las relaciones estructurales principales; el resto de las FK queda listado dentro de cada tabla con el prefijo <code>→</code> sin línea propia, para mantenerlo legible a esta escala.</p>
+    <p class="subtitle">Las 17 tablas reales de <code>core/migrations/</code> a la fecha, agrupadas por subdominio. Diagrama de referencia denso a propósito — se dibujan solo las relaciones estructurales principales; el resto de las FK queda listado dentro de cada tabla con el prefijo <code>→</code> sin línea propia, para mantenerlo legible a esta escala. <strong>Fila "ingesta contable" y las 3 columnas marcadas <code>· DOC-029</code>: stack local de DOC-029, todavía sin merge a <code>main</code>.</strong></p>
 
-    <svg viewBox="0 0 1080 680" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sicsaft-dbcore-title sicsaft-dbcore-desc">
+    <svg viewBox="0 0 1080 820" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sicsaft-dbcore-title sicsaft-dbcore-desc">
       <title id="sicsaft-dbcore-title">Schema completo de la base de datos CORE de SICSAFT</title>
-      <desc id="sicsaft-dbcore-desc">Quince tablas agrupadas en tres subdominios — identidad y contratación, patrimonio, y trazabilidad — con organizaciones y activos como anclas estructurales del esquema.</desc>
+      <desc id="sicsaft-dbcore-desc">Diecisiete tablas agrupadas en cuatro subdominios — identidad y contratación, patrimonio, trazabilidad, e ingesta contable (staging) — con organizaciones y activos como anclas estructurales del esquema.</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
         <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
@@ -39,6 +39,7 @@
       <text x="20" y="84" fill="rgba(45,49,66,0.45)" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">IDENTIDAD Y CONTRATACIÓN</text>
       <text x="20" y="264" fill="rgba(45,49,66,0.45)" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">PATRIMONIO</text>
       <text x="20" y="444" fill="rgba(45,49,66,0.45)" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">TRAZABILIDAD</text>
+      <text x="20" y="624" fill="rgba(235,108,54,0.75)" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">INGESTA CONTABLE (STAGING) · DOC-029</text>
 
       <!-- ===== EDGES (before boxes) ===== -->
       <!-- sedes -> organizaciones (straight) -->
@@ -161,6 +162,7 @@
       <text x="244" y="500" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
       <text x="244" y="514" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ activo_id · → sesion_id</text>
       <text x="244" y="528" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">resultado</text>
+      <text x="244" y="542" fill="#eb6c36" font-size="7.5" font-family="'Geist Mono', monospace">estado_declarado · baja_sugerida_motivo</text>
 
       <!-- eventos -->
       <rect x="452" y="460" width="176" height="104" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
@@ -185,22 +187,55 @@
       <text x="892" y="500" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
       <text x="892" y="514" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ organizacion_id</text>
       <text x="892" y="528" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">categoria · sin FK a activos</text>
+      <text x="892" y="542" fill="#eb6c36" font-size="7.5" font-family="'Geist Mono', monospace">area_operativa</text>
+
+      <!-- ===== ROW 4 — INGESTA CONTABLE (STAGING) — DOC-029 (y=640..744) ===== -->
+
+      <!-- fila -> lote -->
+      <line x1="236" y1="672" x2="196" y2="672" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+
+      <!-- importacion_contable_lote -->
+      <rect x="20" y="640" width="176" height="104" rx="6" fill="rgba(235,108,54,0.05)" stroke="#eb6c36" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="20" y1="664" x2="196" y2="664" stroke="#eb6c36" stroke-width="0.8"/>
+      <text x="108" y="657" fill="#2d3142" font-size="10.5" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">importacion_contable_lote</text>
+      <text x="28" y="680" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="28" y="694" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ organizacion_id</text>
+      <text x="28" y="708" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">estado · archivo_nombre</text>
+      <text x="28" y="722" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">revisado_por · resumen jsonb</text>
+      <text x="28" y="736" fill="#4f5d75" font-size="7.5" font-family="'Geist Mono', monospace">bandeja de entrada · no toca la BPI</text>
+
+      <!-- importacion_contable_lote_fila -->
+      <rect x="236" y="640" width="176" height="104" rx="6" fill="#ffffff" stroke="#eb6c36" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="236" y1="664" x2="412" y2="664" stroke="#eb6c36" stroke-width="0.8"/>
+      <text x="324" y="657" fill="#2d3142" font-size="10" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">importacion_contable_lote_fila</text>
+      <text x="244" y="680" fill="#2d3142" font-size="8" font-weight="600" font-family="'Geist Mono', monospace"># id</text>
+      <text x="244" y="694" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">→ lote_id · linea</text>
+      <text x="244" y="708" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">columnas del Excel (espejo)</text>
+      <text x="244" y="722" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">codigo_qr (acuñado)</text>
+      <text x="244" y="736" fill="#2d3142" font-size="8" font-family="'Geist Mono', monospace">dry_run_resultado · dry_run_motivo</text>
+
+      <text x="452" y="682" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Bandeja de la ingesta de Excel supervisada (RF-B): el ETL Python escribe filas</text>
+      <text x="452" y="696" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif"><tspan font-family="'Geist Mono', monospace">pendiente_revision</tspan>; el AFT aprueba en el CCP y recién ahí CORE resuelve-o-crea</text>
+      <text x="452" y="710" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">área/responsable/catálogo e inserta activos. Se cierra por <tspan font-family="'Geist Mono', monospace">estado</tspan>, nunca DELETE.</text>
 
       <!-- ===== LEGEND ===== -->
-      <line x1="20" y1="600" x2="1060" y2="600" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
-      <text x="20" y="616" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+      <line x1="20" y1="780" x2="1060" y2="780" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="20" y="796" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
 
-      <rect x="140" y="608" width="12" height="12" rx="3" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
-      <text x="158" y="618" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Ancla estructural (organizaciones / activos)</text>
+      <rect x="140" y="788" width="12" height="12" rx="3" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="158" y="798" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Ancla estructural (organizaciones / activos)</text>
 
-      <rect x="460" y="608" width="12" height="12" rx="3" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
-      <text x="478" y="618" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Tabla join / interna</text>
+      <rect x="460" y="788" width="12" height="12" rx="3" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <text x="478" y="798" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Tabla join / interna</text>
 
-      <text x="620" y="618" fill="#2d3142" font-size="9" font-weight="600" font-family="'Geist Mono', monospace">#</text>
-      <text x="632" y="618" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">PK</text>
+      <text x="620" y="798" fill="#2d3142" font-size="9" font-weight="600" font-family="'Geist Mono', monospace">#</text>
+      <text x="632" y="798" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">PK</text>
 
-      <text x="670" y="618" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">→</text>
-      <text x="684" y="618" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">FK (no todas tienen línea propia)</text>
+      <text x="670" y="798" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">→</text>
+      <text x="684" y="798" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">FK (no todas tienen línea propia)</text>
+
+      <rect x="884" y="788" width="12" height="12" rx="3" fill="#ffffff" stroke="#eb6c36" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="902" y="798" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Borde punteado / texto naranja — DOC-029, stack local sin merge</text>
     </svg>
   </div>
 </body>
