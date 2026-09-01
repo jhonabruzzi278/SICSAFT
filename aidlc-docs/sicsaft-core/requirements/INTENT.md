@@ -6,7 +6,7 @@ El usuario redirige `devops/onprem/` (2026-08-27) de un stack Podman + navegador
 `aidlc-docs/devops/` documenta y lo que ADR-004 Fase 3 acababa de migrar a Keycloak ese mismo día)
 hacia una **app de escritorio nativa de Windows**, empaquetada como un único instalador `.exe`
 llamado **`sicsaft-core`**, con todos los beneficios de Nivel 1 (ver
-`aidlc-docs/devops/design-artifacts/DOC-025-niveles-producto-onprem.md` §1) embebidos como
+`aidlc-docs/devops/design-artifacts/DOC-025-niveles-producto-onprem.md` 1) embebidos como
 procesos nativos dentro de la propia app — **sin Podman, sin Docker, sin WSL2, sin navegador
 visible para el cliente**.
 

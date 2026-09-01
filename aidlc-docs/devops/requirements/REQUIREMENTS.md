@@ -7,7 +7,7 @@ colisionar con los RF/RNF ya numerados de otros sistemas (ver `REQUISITOS.md` ra
 
 - **INST-RF-01**: El stack debe poder levantarse en modo Nivel 1 (Postgres, Keycloak — ADR-004
   Fase 3, reemplaza a Zitadel —, CIS, CORE, CIP, APP QR SICSAFT, portal Directivo y portal
-  Administrador del Sistema; sin Redis desde ADR-005; DOC-025 §1 rev. 2026-08-25) sin `ccp`
+  Administrador del Sistema; sin Redis desde ADR-005; DOC-025 1 rev. 2026-08-25) sin `ccp`
   (Profesional de AFT completo,
   exclusivo de Nivel 2).
 - **INST-RF-02**: El stack debe poder levantarse en modo Nivel 2 (Nivel 1 + `ccp` + `web-admin` +
@@ -17,7 +17,7 @@ colisionar con los RF/RNF ya numerados de otros sistemas (ver `REQUISITOS.md` ra
   `bootstrap-zitadel.ps1`) debe crear, contra un Keycloak recién levantado y vacío, el realm
   `sicsaft` (Organizations habilitado), la Organization del cliente, los 3 realm roles de negocio
   (`profesional-aft`, `directivo`, `administrador-sistema` — los 3 sin gating por nivel desde
-  DOC-025 §1 rev. 2026-08-25, a diferencia del diseño original de esta línea), un client
+  DOC-025 1 rev. 2026-08-25, a diferencia del diseño original de esta línea), un client
   confidencial con service account para la integración de `cis/` con la Admin REST API, y las apps
   OIDC públicas con PKCE (`app-qr-sicsaft`/`web-admin`/`core-frontend` siempre; `ccp` solo si Nivel
   2) — sin pasos manuales en la Console de Keycloak.

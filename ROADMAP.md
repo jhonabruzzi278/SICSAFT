@@ -548,7 +548,7 @@ sistema hipotético" como algo a evitar hasta tener uno real identificado. El us
 avanzar el diseño igual, contra un formato CSV genérico (idéntico al de la importación manual de
 Fase 4) — ver
 [`aidlc-docs/integraciones/requirements/INTENT.md`](aidlc-docs/integraciones/requirements/INTENT.md)
-"Por qué ahora" y [DOC-016 §8](aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md#8-riesgo-aceptado-ver-intentmd).
+"Por qué ahora" y [DOC-016 8](aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md#8-riesgo-aceptado-ver-intentmd).
 
 **Ojo con la clasificación**: ~~`integraciones/README.md` marca todo el sistema como "fase
 tardía", y Tomo III 1.2 pone las integraciones en Etapa 5. Pero CON-CONTABILIDAD no es una
@@ -560,7 +560,7 @@ clasificación en `integraciones/README.md` cuando se llegue a esta fase.~~ **Co
 negociable de `CLAUDE.md`), sincronización idempotente, aislamiento de fallos y circuit breaker
 (WAF 4, heredado de `CoreClientService` ya existente), registro por integración vía el canal
 `POST /auditoria` ya implementado (decisión YAGNI, sin tabla `integraciones_registro` nueva —
-DOC-016 §5/§9). Diseño completo:
+DOC-016 5/9). Diseño completo:
 [DOC-016](aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md).
 
 **Confirmado por spec pptx**: "CORE debe tener siempre la base de datos ORIGINAL de los AFT según
@@ -574,7 +574,7 @@ ninguna sincronización elimina historial (invariante testeado).
 
 **Idea futura sin diseñar (anotada 2026-08-18, vision del usuario, no tomo)**: para cerrar los
 gaps de "documentación y fotografías" e "importaciones controladas desde archivos" (ver
-`seguridad/DOC-012-administrador-patrimonial.md` § "Cobertura real desde el CCP hoy"), el CCP
+`seguridad/DOC-012-administrador-patrimonial.md` "Cobertura real desde el CCP hoy"), el CCP
 podría alimentarse subiendo Excel/documentos a algo tipo bucket (S3 o equivalente), con un
 servicio de OCR sobre esos archivos, y CORE siempre como quien valida/confirma antes de tocar la
 BPI — coherente con la regla no negociable de `CLAUDE.md` (ningún bucket ni servicio de captura le
@@ -612,9 +612,9 @@ responder preguntas"): RF-11 a RF-17 de
 - Listado de activos sin verificar en el período (RF-11), ranking de áreas por incidencias
   concentradas (RF-12), activos con mayor frecuencia de cambio de responsable (RF-13) — activa el
   evento `cambio_responsable` que ya fluye por el outbox de CIP sin consumidor desde Fase 6
-  (`ARCHITECTURE.md` §3), ranking de ubicaciones por mayor cantidad de diferencias (RF-14).
+  (`ARCHITECTURE.md` 3), ranking de ubicaciones por mayor cantidad de diferencias (RF-14).
 - Score de riesgo por activo (RF-15) — fórmula simple, explicable y versionada (nunca un modelo
-  predictivo/ML, excluido explícitamente por WAF 9/Tomo III, ver DOC-026 §5).
+  predictivo/ML, excluido explícitamente por WAF 9/Tomo III, ver DOC-026 5).
 - Evolución del patrimonio en el tiempo (RF-16) — primer patrón de serie temporal de CIP (snapshot
   diario), distinto de los agregados "último valor" que existen desde Fase 6.
 - Vista "revisión sugerida" para el responsable patrimonial (RF-17) — consulta compuesta que

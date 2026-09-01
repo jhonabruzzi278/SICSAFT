@@ -5,11 +5,11 @@
 # `podman-compose` (INST-RNF-01), no Docker Desktop — ver README.md de esta carpeta para el flujo
 # de instalación completo.
 #
-# Niveles (DOC-025 §1, revisado 2026-08-25): Nivel 1 = app-qr-sicsaft + web-admin + core-frontend +
+# Niveles (DOC-025 1, revisado 2026-08-25): Nivel 1 = app-qr-sicsaft + web-admin + core-frontend +
 # cip (Directivo, Administrador del Sistema y CIP/BI vienen desde el arranque, cierra INST-Q-01);
 # Nivel 2 agrega ccp (portal COMPLETO de Profesional de AFT, perfil "nivel2"). El portal liviano de
 # AFT propio de Nivel 1 ("web-aft") todavía no tiene código — no hay servicio para él en este
-# archivo (🔲, DOC-025 §1).
+# archivo (🔲, DOC-025 1).
 
 name: sicsaft-onprem
 
@@ -277,10 +277,10 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # web-admin y core-frontend van SIN perfil (Nivel 1, DOC-025 §1 rev. 2026-08-25): el portal
+  # web-admin y core-frontend van SIN perfil (Nivel 1, DOC-025 1 rev. 2026-08-25): el portal
   # Directivo y el de Administrador del Sistema se instalan siempre, junto con app-qr-sicsaft. Solo
   # falta el portal liviano de Profesional de AFT propio de Nivel 1 ("web-aft") — no tiene código
-  # todavía (🔲, ver DOC-025 §1) y por eso no hay un servicio acá para él.
+  # todavía (🔲, ver DOC-025 1) y por eso no hay un servicio acá para él.
 
   web-admin:
     build:

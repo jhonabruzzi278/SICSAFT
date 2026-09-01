@@ -6,8 +6,8 @@
 > directa hacía falta confirmar, contra el backend, que cada portal solo ofrece lo que su rol
 > puede efectivamente hacer. Complementa
 > [`seguridad/README.md`](../../../seguridad/README.md) "Permisos previstos" con el detalle
-> endpoint por endpoint que ese documento no baja a ese nivel. El hallazgo de §3
-> (`GET /admin/indicadores` sin guard de rol) se encontró y se corrigió el mismo día — ver §3.
+> endpoint por endpoint que ese documento no baja a ese nivel. El hallazgo de 3
+> (`GET /admin/indicadores` sin guard de rol) se encontró y se corrigió el mismo día — ver 3.
 
 ## 1. Los tres roles (recap)
 
@@ -18,12 +18,12 @@
 | `directivo` | Directivo | `core/frontend/` | Máximo privilegio dentro de **su propia organización** (dashboard + designar al Profesional de AFT) — nunca otra organización |
 
 Un usuario puede tener más de un rol (caso de prueba `mixto-test`) y simplemente entra a cada
-portal por separado — ningún portal sirve a más de un rol (DOC-022 §1, regla no negociable de
+portal por separado — ningún portal sirve a más de un rol (DOC-022 1, regla no negociable de
 `CLAUDE.md`).
 
 ## 2. Matriz Rol × Módulo × Acción
 
-✅ = autorizado y verificado server-side · ➖ = no aplica al módulo · ⚠️ = ver hallazgo en §3/§4.
+✅ = autorizado y verificado server-side · ➖ = no aplica al módulo · ⚠️ = ver hallazgo en 3/4.
 "CIS→CORE" es la ruta real de la request (WEB nunca le habla a CORE directo).
 
 | Módulo | Acción | `administrador-patrimonial` | `administrador-sistema` | `directivo` | Guard / mecanismo |
@@ -44,7 +44,7 @@ portal por separado — ningún portal sirve a más de un rol (DOC-022 §1, regl
 | | Crear | ➖ | ✅ | ➖ | `verificarRolEnCualquierOrganizacion([admin-sistema])` — sin `organizacionId`, alcanza con tener el rol en cualquiera |
 | **Usuarios de una organización** (Zitadel) | Consultar / Asignar rol | ➖ | ✅ | ➖ | `AdministradorSistemaGuard` — rol verificado contra el `:orgId` de la ruta |
 | **Profesional de AFT** (Zitadel, org propia) | Consultar / Designar | ➖ | ➖ | ✅ | `DirectivoGuard` — organización **derivada siempre del JWT**, nunca de la ruta/body |
-| **Indicadores de plataforma** | Consultar | ➖ | ✅ | ➖ | `AdministradorSistemaEnCualquierOrganizacionGuard` — corregido, ver §3 |
+| **Indicadores de plataforma** | Consultar | ➖ | ✅ | ➖ | `AdministradorSistemaEnCualquierOrganizacionGuard` — corregido, ver 3 |
 | **Auditoría** | Consultar | ⚠️ | ⚠️ | ➖ | Sin chequeo de rol |
 | **Dashboard** (CIP, vía CIS) | Consultar | ⚠️ | ➖ | ⚠️ | Sin chequeo de rol — accesible a cualquier operador autenticado |
 | **Inventarios** (sesiones QR/RFID) | Crear / Consultar | ⚠️ | ➖ | ➖ | Sin chequeo de rol — módulo de fuente de captura, no exclusivo de este portal |
@@ -117,7 +117,7 @@ permite afirmar eso con una fuente concreta en vez de "porque así se diseñó".
 
 ## Próximo paso sugerido
 
-El hallazgo de §3 ya está corregido. Lo que sigue abierto es lo de §4 (lecturas sin distinción de
+El hallazgo de 3 ya está corregido. Lo que sigue abierto es lo de 4 (lecturas sin distinción de
 rol) — no es una regresión ni bloquea nada hoy, pero si en algún momento se decide granularizar
 permisos de lectura (ej. que `directivo` no pueda leer `GET /admin/activos` directo, solo lo que
 `core/frontend/` expone), ese es el punto de partida.

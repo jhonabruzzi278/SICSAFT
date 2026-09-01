@@ -60,7 +60,7 @@ flowchart TB
 Implementado con **Compose profiles** (`nivel2`) en un solo `docker-compose.yml` — mismo mecanismo
 que ya usa `devops/local/docker-compose.yml` para aislar el servicio `k6` (`profiles: ["k6"]`).
 Los servicios base (postgres/keycloak/cis/core/cip/app-qr-sicsaft/web-admin/core-frontend) no
-llevan profile (siempre se levantan, desde Nivel 1 — DOC-025 §1 revisado 2026-08-25); `ccp` es el
+llevan profile (siempre se levantan, desde Nivel 1 — DOC-025 1 revisado 2026-08-25); `ccp` es el
 único con `profiles: ["nivel2"]`.
 
 ## Runtime: Podman, no Docker Desktop

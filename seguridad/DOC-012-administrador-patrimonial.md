@@ -59,7 +59,7 @@ mismo día ([DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y
 
 | Ítem | ¿Alcanzable desde el CCP hoy? | Detalle |
 |---|---|---|
-| Activos (alta) | ✅ | `ccp/src/pages/ActivosPage.tsx` → `POST /admin/activos` → `POST /activos` (§5) |
+| Activos (alta) | ✅ | `ccp/src/pages/ActivosPage.tsx` → `POST /admin/activos` → `POST /activos` (5) |
 | Activos (baja/reincorporación/cambio de responsable) | ✅ | Botones por fila en `ActivosPage.tsx` según `estado`, puente completo en CIS (`postActivoBaja`/`postActivoReincorporacion`/`patchActivoResponsable`) |
 | Códigos patrimoniales | ✅ (solo al alta) | se asignan al crear el Activo (`codigoPatrimonial` en `NuevoActivoInput`), sin edición posterior expuesta (no lo pedía el alcance) |
 | Descripciones | ✅ | Columna nueva `activos.descripcion` + `PATCH /activos/:id/descripcion`, editable desde el panel de edición de `ActivosPage.tsx` |
@@ -68,7 +68,7 @@ mismo día ([DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y
 | Ubicaciones | ✅ | `EstructuraPage.tsx`, CRUD completo |
 | Responsables | ✅ | `EstructuraPage.tsx`, alta/consulta/baja (cambio de `estado`) |
 | Estados | ✅ | Contrato (`PATCH /admin/contratos/:id`) y Activo (fila de arriba), ambos cubiertos |
-| Documentación y fotografías | ✅ (versión mínima) | Tabla nueva `documentos_activo` — `url` es un enlace externo que el operador ya subió a algún lado, sin bucket/OCR propio todavía (ver `ROADMAP.md` Fase 7 § "Idea futura sin diseñar") |
+| Documentación y fotografías | ✅ (versión mínima) | Tabla nueva `documentos_activo` — `url` es un enlace externo que el operador ya subió a algún lado, sin bucket/OCR propio todavía (ver `ROADMAP.md` Fase 7 "Idea futura sin diseñar") |
 | Información para preparar inventarios | ⚠️ indirecto | sigue sin feature dedicada; cubierto indirectamente por Activos+Áreas+Ubicaciones+Responsables, insumos de las sesiones de inventario de APP QR — no se consideró un gap real (ver DOC-021 5, "fuera de alcance") |
 | Importaciones controladas desde archivos | ✅ | `ImportacionesPage.tsx` nueva (CSV cliente-side) → `POST /admin/importaciones/contable` → `POST /importaciones/contable` (ya funcionaba en CORE, solo faltaba el puente) |
 

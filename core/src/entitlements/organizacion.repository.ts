@@ -41,7 +41,7 @@ export class OrganizacionRepository {
     return result.rows[0] ?? null;
   }
 
-  // `id` lo decide el cliente (= org_id real de Zitadel, DOC-021 § organizacion.schemas.ts) — a
+  // `id` lo decide el cliente (= org_id real de Zitadel, DOC-021 organizacion.schemas.ts) — a
   // diferencia de Activo/Contrato/CatalogoTipo, donde CORE siempre genera el id. `estado` lo
   // decide CORE ('activo'), nunca el cliente — mismo criterio que NuevoActivoInput.
   async crear(input: NuevaOrganizacionInput): Promise<Organizacion> {

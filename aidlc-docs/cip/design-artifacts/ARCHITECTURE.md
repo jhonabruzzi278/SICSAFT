@@ -70,10 +70,10 @@ Patrimonial dentro de WEB, no una métrica de dashboard todavía.
 
 **Dos agregados de DOC-026 no entran en esta tabla porque no reaccionan a un solo tipo de evento**:
 `INCIDENCIA_AREA_RESUMEN` se recalcula en el mismo mensaje debounced `sesion-cerrada` que ya
-recalcula `INCIDENCIA` hoy (ver §4) — solo le agrega el `areaId` resuelto en ese mismo paso.
+recalcula `INCIDENCIA` hoy (ver 4) — solo le agrega el `areaId` resuelto en ese mismo paso.
 `RIESGO_ACTIVO` es un recálculo periódico (mismo job que `EVOLUCION_PATRIMONIO_SNAPSHOT`) que lee
 los demás agregados ya calculados (incidencias, cambios de responsable, criticidad, tiempo fuera de
-área) en vez de reaccionar a un evento puntual — ver DOC-026 §5.
+área) en vez de reaccionar a un evento puntual — ver DOC-026 5.
 
 ## 4. `escaneo_qr` es de alto volumen — cómo se evita recalcular por cada lectura
 

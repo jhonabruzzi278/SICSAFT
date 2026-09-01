@@ -8,7 +8,7 @@ quién es el Profesional de AFT de su organización (`administrador-patrimonial`
 identidad acotada a la propia organización). **Nunca** toca información patrimonial en sí
 (Activos/Catálogo/Documentos son exclusivos de [`../../ccp`](../../ccp), Profesional de AFT) — ver
 [DOC-022](../../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
-§3/§4.
+3/4.
 
 Vive físicamente dentro de `core/` (por eso "CORE está conformado de backend y frontend"), pero
 **le habla a CIS, nunca al backend de CORE directo** — mismo patrón exacto que `ccp/`/`web_admin/`,

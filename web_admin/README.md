@@ -9,7 +9,7 @@ integración real con la Admin REST API de Keycloak,
 (crear/editar/dar de baja) sin necesitar nunca la Console de Keycloak. **Nunca** toca información
 patrimonial (Activos/Catálogo/Documentos son exclusivos de [`ccp/`](../ccp), Profesional de AFT) —
 ver [DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md)
-§1 y [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
+1 y [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
 
 ## Estado
 
@@ -20,7 +20,7 @@ UI) separado del cambio de estado que ya existía; el formulario de Contrato ya 
 pegar un id de Sede a mano — selecciona de un picker poblado en vivo; Usuarios gana "quitar rol"
 (revocar un grant puntual sin afectar los demás roles del usuario). Nueva pantalla **Matriz de
 roles**, de solo lectura, transcribiendo [DOC-023](../aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md)
-§2 (`src/lib/matriz-permisos.ts`) — no es un motor de roles configurable, los 3 roles siguen fijos.
+2 (`src/lib/matriz-permisos.ts`) — no es un motor de roles configurable, los 3 roles siguen fijos.
 Verificado real de punta a punta contra Docker/Zitadel: editar nombre de organización, dar de
 baja/reactivar organización y sede, picker de sedes, editar vigencia de contrato, y quitar un rol
 sin afectar los demás — esto último destapó un bug real de CORS en CIS (`DELETE` no estaba en la

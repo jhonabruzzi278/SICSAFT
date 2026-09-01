@@ -960,7 +960,7 @@ const ACCESO_LABEL: Record<Acceso, string> = {
 };
 
 // DOC-024 4 — pantalla de solo lectura: muestra los 3 roles fijos que ya existen y qué puede
-// hacer cada uno (DOC-023 §2 transcripto en matriz-permisos.ts). No crea roles nuevos ni permisos
+// hacer cada uno (DOC-023 2 transcripto en matriz-permisos.ts). No crea roles nuevos ni permisos
 // configurables — decidido explícitamente con el usuario.
 function MatrizRolesSection() {
   return (

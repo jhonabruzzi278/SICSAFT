@@ -156,7 +156,7 @@ function Set-HostsLocales {
     # y el tecnico no puede entrar a los portales desde el navegador tampoco.
     Write-Paso "0. Configurando dominios locales (hosts)"
     $hostsPath = "$env:SystemRoot\System32\drivers\etc\hosts"
-    # web-admin y core-frontend van siempre desde Nivel 1 (DOC-025 §1, revisado 2026-08-25); ccp
+    # web-admin y core-frontend van siempre desde Nivel 1 (DOC-025 1, revisado 2026-08-25); ccp
     # (portal COMPLETO de AFT) sigue siendo exclusivo de Nivel 2.
     $dominios = @("id.$DominioBase", "api.$DominioBase", "qr.$DominioBase", "admin.$DominioBase", "directivo.$DominioBase")
     if ($Nivel -eq 2) {

@@ -33,10 +33,10 @@ prefijo; este prefijo es solo para requisitos de ESTE incremento (la app de escr
   para `sicsaft-core.exe` específicamente**: `ccp` está clasificado ahí como Nivel 2 (portal
   completo de Profesional de AFT), pero el "web-aft" liviano previsto para Nivel 1 no tiene una
   sola línea de código. Decisión explícita del usuario: `sicsaft-core.exe` embebe `ccp` completo
-  igual, sin condicionarlo al nivel contratado — ver la nota correspondiente en DOC-025 §1.
+  igual, sin condicionarlo al nivel contratado — ver la nota correspondiente en DOC-025 1.
   El rol de Keycloak que rutea al Profesional de AFT a `ccp` es `administrador-patrimonial` (el
   que `cis` asigna y `ccp` exige), **no** `profesional-aft` — ver [DOC-027](../design-artifacts/DOC-027-bitacora-bugs-reales.md)
-  BUG-29 y §F para el detalle de implementación (`WebContentsView` embebida, servidor estático
+  BUG-29 y F para el detalle de implementación (`WebContentsView` embebida, servidor estático
   `node:http`, marcador de instalación, SSO silencioso).
 - **CORE-RF-05** (CORE-Q-01 reabierta — la APK todavía no existe, ver `INTENT.md`): cuando exista,
   debe poder alcanzar `cis`/Keycloak corriendo en la PC del Director por la red local (no solo

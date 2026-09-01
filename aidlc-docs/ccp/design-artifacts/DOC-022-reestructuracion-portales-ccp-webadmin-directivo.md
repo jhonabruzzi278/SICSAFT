@@ -9,7 +9,7 @@
 
 | Rol Zitadel | Nombre funcional | Portal | Qué hace | Toca la BPI |
 |---|---|---|---|---|
-| `administrador-patrimonial` | Profesional de AFT | **CCP** (`ccp/`, ex-`ccp/`) | Carga/actualiza información patrimonial (activos, catálogo, documentos, importaciones) — DOC-012, DOC-021 §3-5 | Sí, es el único (junto con `administrador-sistema` para Contrato) |
+| `administrador-patrimonial` | Profesional de AFT | **CCP** (`ccp/`, ex-`ccp/`) | Carga/actualiza información patrimonial (activos, catálogo, documentos, importaciones) — DOC-012, DOC-021 3-5 | Sí, es el único (junto con `administrador-sistema` para Contrato) |
 | `administrador-sistema` | Administrador del Sistema | **`web_admin/`** (nuevo) | Administra la plataforma: organizaciones, contratos, usuarios, indicadores — DOC-021 | Nunca |
 | `directivo` | Directivo | **`core/frontend/`** (nuevo) | Máximo privilegio a nivel de **su organización**: dashboard de solo lectura (ya existía, DOC-020) + designar quién es el Profesional de AFT de su organización + gestionar roles dentro de ella (nuevo) | Nunca |
 
@@ -24,8 +24,8 @@ Ambos administran "algo" y ninguno toca información patrimonial, pero el alcanc
 eje que importa: Administrador del Sistema opera sobre **todas** las organizaciones (crea
 organizaciones nuevas), Directivo opera **solo sobre la suya** (no puede ver ni tocar otra
 organización). Mezclarlos en un portal obligaría a resolver en el cliente una distinción que hoy
-ya se resuelve mejor en el servidor (ver §4) — mismo criterio de mínimo privilegio que ya usó
-DOC-021 §1 para separar Administrador del Sistema de Profesional de AFT.
+ya se resuelve mejor en el servidor (ver 4) — mismo criterio de mínimo privilegio que ya usó
+DOC-021 1 para separar Administrador del Sistema de Profesional de AFT.
 
 ## 3. Hallazgo que motiva separar `web_admin/` de CCP
 
@@ -52,7 +52,7 @@ export function verificarRolEnCualquierOrganizacion(
 
 Usada en `procesarAltaOrganizacion` y en la asignación de usuarios (ambas ya no reciben ni
 necesitan un `organizacionId` "de qué organización tengo el rol"). `verificarRolesPermitidos`
-(DOC-021 §2, chequeo contra una `organizacionId` puntual) sigue existiendo sin cambios — lo siguen
+(DOC-021 2, chequeo contra una `organizacionId` puntual) sigue existiendo sin cambios — lo siguen
 usando Activo/Catálogo/Documento/Contrato, que sí pertenecen a una organización real.
 
 ## 4. Directivo: gestión de roles acotada a la propia organización
@@ -101,7 +101,7 @@ superada por este incremento) + pantalla nueva "Gestionar Profesional de AFT" co
   gestionar roles, sin especificar qué valida ni contra qué proceso. No hay tomo ni fuente citada.
   Se deja pendiente explícitamente — no se inventa alcance sin una definición concreta.
 - Que el Directivo pueda designar/revocar otro Directivo o un Administrador del Sistema — el v1
-  solo permite asignar `administrador-patrimonial` (ver §4).
+  solo permite asignar `administrador-patrimonial` (ver 4).
 - Renombrar o rediseñar visualmente los tres portales (identidad de marca) — cambio funcional
   únicamente, `BRAND.md` se sigue usando tal cual en los tres.
 

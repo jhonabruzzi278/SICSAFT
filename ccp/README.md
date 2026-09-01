@@ -172,7 +172,7 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
 - **5 gaps de cobertura del CCP frente al alcance del Profesional de AFT (auditados 2026-08-18)
   — cerrados el mismo día ([DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
   detalle completo con archivo/línea en
-  [DOC-012 § "Cobertura real desde el CCP hoy"](../seguridad/DOC-012-administrador-patrimonial.md))**:
+  [DOC-012 "Cobertura real desde el CCP hoy"](../seguridad/DOC-012-administrador-patrimonial.md))**:
   - **Estados/ciclo de vida de Activo** — `ActivosPage.tsx` ofrece baja/reincorporación/cambio de
     responsable por fila según `estado`, puente completo en CIS.
   - **Familias/categorías** — `GET/POST /catalogo-tipos` sobre `catalogo_activos` (ya existía la
@@ -181,7 +181,7 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
     editable desde el panel de edición.
   - **Documentación y fotografías** (versión mínima) — tabla nueva `documentos_activo`, `url` es
     un enlace externo que el operador ya subió a algún lado, sin bucket/OCR propio todavía (ver
-    `ROADMAP.md` Fase 7 § "Idea futura sin diseñar").
+    `ROADMAP.md` Fase 7 "Idea futura sin diseñar").
   - **Importaciones controladas desde archivos** — `ImportacionesPage.tsx` nueva (CSV
     cliente-side, sin dependencia nueva) → `POST /admin/importaciones/contable` (ya funcionaba en
     CORE, solo faltaba el puente).

@@ -156,7 +156,7 @@ function New-KeycloakRealmScaffold {
     Invoke-KeycloakAdminApi -KeycloakUrl $KeycloakUrl -Realm "sicsaft" -Token $Token `
         -Method Put -Path "/default-default-client-scopes/$audScopeId" | Out-Null
 
-    # Niveles (DOC-025 §1, revisado 2026-08-25): mismos 3 roles que ya usaba el proyecto "CIS" de
+    # Niveles (DOC-025 1, revisado 2026-08-25): mismos 3 roles que ya usaba el proyecto "CIS" de
     # Zitadel -- "profesional-aft" cubre tanto la APP QR como, a futuro, el portal liviano
     # "web-aft" (sin código todavía).
     Write-Host "  Creando realm roles..."
