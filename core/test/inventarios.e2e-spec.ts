@@ -312,10 +312,39 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
             usuario: 'op-e2e-1',
             operacion: 'POST /inventarios',
             resultado: 'recibido',
+            // DOC-029 RF-E — una acción de control queda auditada con su área operativa.
+            areaOperativa: 'area-biblioteca',
           }),
         ]),
       );
       expect(pagina.total).toBeGreaterThan(0);
+    });
+
+    it('filtra por área operativa (ILIKE parcial) contra Postgres real (RF-E)', async () => {
+      await request(app.getHttpServer())
+        .post('/inventarios')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(
+          buildInventarioPayload({
+            operadorId: 'op-e2e-area',
+            idempotencyKey: `idem-e2e-${randomUUID()}`,
+          }),
+        )
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .get('/auditoria')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .query({ area: 'biblioteca', limit: 100 })
+        .expect(200);
+
+      const pagina = res.body as {
+        entradas: Array<{ areaOperativa: string | null }>;
+      };
+      expect(pagina.entradas.length).toBeGreaterThan(0);
+      for (const entrada of pagina.entradas) {
+        expect(entrada.areaOperativa).toMatch(/biblioteca/i);
+      }
     });
 
     it('filtra por usuario (ILIKE parcial) contra Postgres real', async () => {

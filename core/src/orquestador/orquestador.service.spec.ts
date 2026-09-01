@@ -255,6 +255,7 @@ describe('OrquestadorService', () => {
       usuario: 'op-1',
       operacion: 'POST /inventarios',
       resultado: 'recibido',
+      areaOperativa: 'area-biblioteca',
     });
   });
 
@@ -272,6 +273,7 @@ describe('OrquestadorService', () => {
       usuario: 'op-1',
       operacion: 'POST /inventarios',
       resultado: 'rechazado:409',
+      areaOperativa: 'area-biblioteca',
     });
   });
 
@@ -288,6 +290,7 @@ describe('OrquestadorService', () => {
       usuario: 'op-1',
       operacion: 'POST /inventarios',
       resultado: 'rechazado:error-interno',
+      areaOperativa: 'area-biblioteca',
     });
   });
 

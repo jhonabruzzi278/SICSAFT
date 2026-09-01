@@ -15,6 +15,9 @@ export interface RegistrarAuditoriaInput {
   observaciones?: string;
   categoria?: CategoriaAuditoria;
   organizacionId?: string | null;
+  // DOC-029 RF-E — área operativa del actor. Presente cuando la operación es sobre un área
+  // concreta (hoy: `POST /inventarios`); null en el resto hasta que CIS propague el claim.
+  areaOperativa?: string | null;
 }
 
 // RF-06 (Fase 5, WEB) — fila de auditoria para GET /auditoria. Mismas columnas que la tabla
@@ -30,6 +33,8 @@ export interface AuditoriaEntrada {
   observaciones: string | null;
   categoria: CategoriaAuditoria;
   organizacionId: string | null;
+  // DOC-029 RF-E.
+  areaOperativa: string | null;
 }
 
 // RF-06 — filtros de GET /auditoria (cierra el gap: el requisito original pedia "filtrable por
@@ -46,6 +51,9 @@ export interface AuditoriaFiltro {
   fechaHasta?: string;
   categoria?: CategoriaAuditoria;
   organizacionId?: string;
+  // DOC-029 RF-E — filtro parcial (ILIKE) por área operativa, igual que usuario/operacion. Lo usa
+  // el deep-link del CCP desde una sesión de control (RF-D §D.2).
+  area?: string;
   limit: number;
   offset: number;
 }

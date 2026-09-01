@@ -110,6 +110,8 @@ export class OrquestadorService {
         usuario: contexto.operadorId,
         operacion: 'POST /inventarios',
         resultado: resultado.estado,
+        // DOC-029 RF-E — una acción de control ES sobre un área concreta; queda auditada como tal.
+        areaOperativa: payload.areaId,
       });
       return resultado;
     } catch (error: unknown) {
@@ -119,6 +121,7 @@ export class OrquestadorService {
         usuario: contexto.operadorId,
         operacion: 'POST /inventarios',
         resultado: this.resultadoDeError(error),
+        areaOperativa: payload.areaId,
       });
       throw error;
     }

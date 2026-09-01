@@ -125,6 +125,13 @@ exacto casi nunca matchearía) y `fechaDesde`/`fechaHasta` (rango inclusive sobr
 auditoría "filtrable por usuario/fecha/operación" — el primer incremento solo devolvía el listado
 sin filtro alguno; este cierra ese gap.
 
+**`auditoria.area_operativa` + filtro `?area=` (DOC-029 RF-E, migración `1756200000000`)**: columna
+nullable con el **área operativa del actor**. Se puebla hoy desde `POST /inventarios` (una acción
+de control ES sobre un área — `payload.areaId`, ver `OrquestadorService.procesarInventario`); las
+escrituras patrimoniales genéricas y el histórico quedan en `null` hasta que CIS propague el claim
+de Keycloak (RF-E §E.3). `GET /auditoria?area=` filtra parcial (`ILIKE`), igual que
+`usuario`/`operacion` — lo usa el deep-link del CCP desde una sesión de control.
+
 **Módulo `src/estructura/` — Área/Ubicación/Responsable (2026-08-14, para Fase 5/WEB, RF-05)**:
 último módulo del MVP de WEB, el único sin ningún endpoint previo. `AreaRepository`/
 `UbicacionRepository`/`ResponsableRepository` (lectura: `GET /areas?organizacionId=`,
