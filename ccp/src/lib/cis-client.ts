@@ -238,6 +238,56 @@ export interface SesionInventarioDetalle extends SesionInventario {
   escaneos: EscaneoInventario[];
 }
 
+// DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"). Passthrough del
+// contrato de CORE vía CIS (GET /inventarios/:id/control); refleja
+// cis/src/qr-connector/qr-connector.types.ts ResumenControl.
+export type TipoControlAft = 'ordinario' | 'extraordinario';
+export type VeredictoControl = 'exitoso' | 'aceptable' | 'defectuoso';
+
+export interface EscaneoControlAft {
+  codigoQr: string;
+  nombre: string | null;
+  tipo: TipoControlAft | null;
+  resultado: string;
+}
+
+export interface FueraDeAreaControlAft {
+  codigoQr: string;
+  nombre: string | null;
+  tipo: TipoControlAft | null;
+  areaRealNombre: string | null;
+}
+
+export interface FaltanteControlAft {
+  codigoQr: string;
+  nombre: string;
+}
+
+export interface ResumenControlArea {
+  sesionId: string;
+  organizacionId: string;
+  areaId: string;
+  ubicacionId: string;
+  operadorId: string;
+  fechaInicio: string;
+  fechaCierre: string;
+  estado: string;
+  escaneados: number;
+  delArea: number;
+  activosDelArea: number;
+  delAreaPct: number;
+  porEstadoDeclarado: {
+    enServicio: number;
+    enMantenimiento: number;
+    inactivo: number;
+    baja: number;
+  };
+  escaneadosLista: EscaneoControlAft[];
+  fueraDeArea: FueraDeAreaControlAft[];
+  faltantes: FaltanteControlAft[];
+  veredicto: VeredictoControl;
+}
+
 // RF-06 — sin organizacionId (ver core/src/auditoria/auditoria.types.ts): la tabla audita
 // cualquier operacion del ecosistema, no solo las de una organizacion.
 export interface AuditoriaEntrada {
@@ -631,6 +681,14 @@ export const cisClient = {
   async getInventarioDetalle(id: string): Promise<SesionInventarioDetalle> {
     const res = await authorizedFetch(`/inventarios/${encodeURIComponent(id)}`);
     return (await res.json()) as SesionInventarioDetalle;
+  },
+
+  // DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"), vía el puente de CIS.
+  async getInventarioResumenControl(id: string): Promise<ResumenControlArea> {
+    const res = await authorizedFetch(
+      `/inventarios/${encodeURIComponent(id)}/control`,
+    );
+    return (await res.json()) as ResumenControlArea;
   },
 
   // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.

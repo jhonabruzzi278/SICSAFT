@@ -14,6 +14,7 @@ import {
 } from '@/lib/dashboard-client';
 import { Alert, Badge, Card, Input, Label, StatCard } from '@/components/ui';
 import { IconBox, IconChart, IconMapPin } from '@/components/icons';
+import { PantallaControlArea } from '@/components/PantallaControlArea';
 
 // RF-09 (DOC-019) — séptimo módulo del hub: primer dashboard de CIP, solo lectura. Drill-down
 // Organización→Área→Categoría (DOC-018 6): elegir un área en "Áreas controladas" filtra
@@ -158,6 +159,8 @@ export function DashboardPage() {
   const [incidencias, setIncidencias] = useState<Incidencia[] | null>(null);
   const [codigoQrFiltro, setCodigoQrFiltro] = useState('');
   const [estados, setEstados] = useState<EstadoResumen[] | null>(null);
+  // DOC-029 RF-I — sesión abierta en la Pantalla 8 (informe de control de área).
+  const [sesionAbierta, setSesionAbierta] = useState<string | null>(null);
   const [categorias, setCategorias] = useState<CategoriaResumen[] | null>(null);
 
   useEffect(() => {
@@ -323,18 +326,34 @@ export function DashboardPage() {
           )}
           {sesiones && sesiones.length > 0 && (
             <ul className="space-y-2">
-              {sesiones.map((sesion) => (
-                <li
-                  key={sesion.sesionId}
-                  className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
-                >
-                  <span className="text-text-dim">
-                    {formatFechaHora(sesion.fechaCierre)}
-                  </span>
-                  <span className="text-text-dim">{sesion.areaId}</span>
-                  <Badge>{sesion.veredicto}</Badge>
-                </li>
-              ))}
+              {sesiones.map((sesion) => {
+                const abierta = sesionAbierta === sesion.sesionId;
+                return (
+                  <li key={sesion.sesionId}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSesionAbierta(abierta ? null : sesion.sesionId)
+                      }
+                      aria-expanded={abierta}
+                      className={`flex w-full items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:border-border-strong hover:bg-bg-raised ${
+                        abierta ? 'bg-bg-raised' : ''
+                      }`}
+                    >
+                      <span className="text-text-dim">
+                        {formatFechaHora(sesion.fechaCierre)}
+                      </span>
+                      <span className="text-text-dim">{sesion.areaId}</span>
+                      <Badge>{sesion.veredicto}</Badge>
+                    </button>
+                    {abierta && (
+                      <div className="mt-2">
+                        <PantallaControlArea sesionId={sesion.sesionId} />
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Card>
