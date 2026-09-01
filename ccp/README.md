@@ -68,7 +68,8 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
   de mandarlo — CORE compara directo contra la columna `timestamptz`). Sin selector de
   organización — a diferencia de Activos/Contratos/Inventarios, no vive dentro del flujo
   por-organización del hub, sino como link directo en el header (`AppShell`), porque la tabla
-  `auditoria` de CORE no tiene `organizacionId` (ver "Gaps" abajo).
+  `auditoria` de CORE no tiene `organizacionId` (ver "Gaps" abajo). **DOC-029 RF-E la reescribe**
+  (columnas Área / Operación / Revisar + filtro por área) — ver el bloque DOC-029 abajo.
 - `pages/EstructuraPage.tsx` — RF-05: ABM de Área/Ubicación/Responsable, tres secciones en una
   pantalla (tabla + alta + edición cada una donde aplica: `GET/POST/PATCH /admin/areas`,
   `GET/POST/PATCH /admin/ubicaciones`, `GET/POST /admin/responsables` +
@@ -191,6 +192,37 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
   organizaciones (`cis/src/zitadel-admin/`) — shapes de la API sin verificar todavía contra un
   Zitadel real, ver nota en ese módulo.
 
+**DOC-029 — endurecimiento para cliente real (stack local, sin merge a `main`)**
+([DOC-029](../aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md)) — la
+fase nace en este portal (cliente real ya sobre `sicsaft-core.exe`). Lo hecho en `ccp/`:
+
+- **RF-A — flag de nivel 1/2** (`feat/ccp-nivel-flag`): `lib/nivel.ts` (`nivelActual()` /
+  `moduloHabilitado()`), gate de módulos en `HubPage`/`AppShell`. **Contratos e Inventarios
+  retirados del portal del AFT en cualquier nivel**; en Nivel 1 además Estructura se oculta y
+  Activos es solo consulta. Solo oculta en la UI — el guard real sigue en CIS/CORE (DOC-023).
+- **RF-B — revisión de lotes de ingesta de Excel** (`feat/ccp-ingesta-revision`, `cecb0b7`):
+  `ImportacionesPage.tsx` se parte en `pages/importaciones/` (`LotesRevision` + `CargaManualCsv`).
+  `LotesRevision`: lista de lotes (`pendiente_revision` arriba), detalle con dry-run por fila
+  (`crear`/`ya_importado`/`conflicto`), **Aprobar** / **Rechazar** (motivo inline). Muestra la
+  carpeta de ingesta (`VITE_SICSAFT_CARPETA_INGESTA`, solo lectura, la fija el `.exe`). Helpers
+  puros `lib/lotes-importacion.ts` + `lib/importacion-csv.ts` con tests.
+- **RF-F — módulo QR / Etiquetas** (`feat/ccp-etiquetas-qr`, `20a82e5`): ruta `/etiquetas`,
+  agrupa el catálogo por **dirección → área** (`lib/etiquetas.ts`), cada activo = una etiqueta con
+  `codigoQr` como QR (`qrcode`, única dependencia nueva) **y** como Code 128 (encoder propio
+  `lib/code128.ts`, sin dependencia) + `@media print` (una dirección por página). Sin backend nuevo.
+- **RF-I — Pantalla 8 en el Resumen** (`feat/ccp-pantalla8`, `c932766`): en "Sesiones de
+  inventario" del `DashboardPage`, cada fila despliega inline el informe de control de área de esa
+  sesión (`components/PantallaControlArea.tsx` — 6 bloques + franja de veredicto con fondo de
+  color). `cis-client` gana `getInventarioResumenControl`; `lib/pantalla-8.ts` los helpers puros.
+  Consume `GET /inventarios/:id/control` de CIS (rama `feat/cis-inventario-control`).
+- **RF-E — Auditoría por área operativa** (`feat/ccp-auditoria-area`, `3d91204`):
+  `AuditoriaPage.tsx` reescrita — columna `Usuario` → **`Área`** (`areaOperativa`), nueva columna
+  **`Revisar`** que despliega una fila de detalle con usuario/equipo/ip/observaciones (el usuario
+  no se pierde), filtro `Área` primero + `useSearchParams` para el deep-link `?area=` (lo usará
+  RF-D). Consume `?area=` de CIS (rama `feat/cis-auditoria-area`).
+- **Pendiente en `ccp/`**: RF-D (`feat/ccp-veredicto-accionable` — links profundos del veredicto +
+  auto-auditoría al cerrar `defectuoso`); RF-C (3 pestañas del Dashboard — bloqueado, spec de Guido).
+
 ## Módulos previstos
 6 en el MVP de Fase 5 (ver [DOC-013](../aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md)), los 6
 con código funcionando y sus requisitos cerrados: Activos (🟢), Contratos (🟢), Inventarios (🟢),
@@ -202,8 +234,9 @@ dashboard de CIP (SYS-06, Fase 6) vía un proxy nuevo en CIS (`src/dashboard-con
 nunca le habla a CIP directo. Dos módulos más (2026-08-18, DOC-021): **Importaciones** (🟢, CSV
 cliente-side → `POST /admin/importaciones/contable`) y **Administración** (🟢, exclusivo de
 `administrador-sistema` — Organizaciones/Contratos/Usuarios/Indicadores, transversal como
-Auditoría, no vive dentro del flujo por-organización del hub). El resto — Incidencias,
-Movimientos, QR, RFID, Reportes, Roles, Configuración, Integraciones — sigue sin diseñar (sin
+Auditoría, no vive dentro del flujo por-organización del hub). Un décimo módulo, **QR / Etiquetas**
+(🟡 DOC-029 RF-F, stack local sin merge — ver el bloque DOC-029 arriba). El resto — Incidencias,
+Movimientos, RFID, Reportes, Roles, Configuración, Integraciones — sigue sin diseñar (sin
 consumidor real).
 
 ## Roles previstos
