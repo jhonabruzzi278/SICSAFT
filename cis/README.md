@@ -126,6 +126,13 @@ existía desde Fase 3, pero exigía conocer el `id` de antemano; sin listado no 
 WEB mostrara qué sesiones existen). Aplicado el pipe-por-parámetro desde el vamos (el hallazgo de
 `@UsePipes()` de método de más arriba), sin repetir el bug.
 
+**`GET /inventarios/:id/control` — informe de control de área ("Pantalla 8", DOC-029 RF-I, stack
+local sin merge)**: passthrough delgado en el mismo `QrConnectorController` (sirve al CCP y a la
+APP QR — la lectura del detalle de sesión ya es abierta a cualquier operador autenticado, no hace
+falta una ruta `/admin/...` aparte). `core-client` gana el schema Zod espejo + `getInventarioResumenControl`;
+`qr-connector` el proxy. La agregación (%, desglose por estado declarado, tipo ordinario/
+extraordinario, veredicto) la hace CORE — CIS no reinterpreta nada. Ver `../core/README.md`.
+
 **`GET /admin/auditoria` (2026-08-14, RF-06 — filtros agregados el mismo día)**:
 `AdministradorController`/`AdministradorService` suman un puente hacia `GET /auditoria` de CORE
 (mismo criterio que `getContratos`: lectura abierta, no traduce `rolesPorOrganizacion`), incluidos
