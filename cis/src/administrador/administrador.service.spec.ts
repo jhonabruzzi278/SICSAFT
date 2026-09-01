@@ -975,6 +975,7 @@ describe('AdministradorService', () => {
           operacion: 'POST /inventarios',
           resultado: 'recibido',
           observaciones: null,
+          areaOperativa: 'area-biblioteca',
         },
       ];
       const pagina = { entradas, total: entradas.length };

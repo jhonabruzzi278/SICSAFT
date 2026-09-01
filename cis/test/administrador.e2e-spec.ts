@@ -48,6 +48,7 @@ const AUDITORIA_STUB: AuditoriaEntradaResult = {
   operacion: 'POST /inventarios',
   resultado: 'recibido',
   observaciones: null,
+  areaOperativa: 'area-biblioteca',
 };
 
 const AREA_STUB: AreaResult = {
@@ -243,11 +244,17 @@ describe('Administrador Patrimonial — DOC-012 5/7 (e2e)', () => {
       await request(app.getHttpServer())
         .get('/admin/auditoria')
         .set('Authorization', `Bearer ${bearerToken}`)
-        .query({ usuario: 'op-1', operacion: 'baja' })
+        .query({ usuario: 'op-1', operacion: 'baja', area: 'biblioteca' })
         .expect(200);
 
       expect(coreClientService.getAuditoria).toHaveBeenCalledWith(
-        { usuario: 'op-1', operacion: 'baja', limit: 20, offset: 0 },
+        {
+          usuario: 'op-1',
+          operacion: 'baja',
+          area: 'biblioteca',
+          limit: 20,
+          offset: 0,
+        },
         expect.any(String),
       );
     });

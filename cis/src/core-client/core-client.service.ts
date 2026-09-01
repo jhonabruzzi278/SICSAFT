@@ -629,6 +629,7 @@ export class CoreClientService {
         operacion: filtro.operacion,
         fechaDesde: filtro.fechaDesde,
         fechaHasta: filtro.fechaHasta,
+        area: filtro.area,
         limit: filtro.limit,
         offset: filtro.offset,
       },

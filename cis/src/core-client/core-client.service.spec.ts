@@ -796,6 +796,7 @@ describe('CoreClientService', () => {
       operacion: 'POST /inventarios',
       resultado: 'recibido',
       observaciones: null,
+      areaOperativa: 'area-biblioteca',
     };
 
     it('llama a GET {baseUrl}/auditoria sin filtros', async () => {
@@ -832,6 +833,7 @@ describe('CoreClientService', () => {
           operacion: 'baja',
           fechaDesde: '2026-08-01T00:00:00.000Z',
           fechaHasta: '2026-08-14T23:59:59.000Z',
+          area: 'biblioteca',
           limit: 20,
           offset: 0,
         },
@@ -844,6 +846,7 @@ describe('CoreClientService', () => {
           operacion: 'baja',
           fechaDesde: '2026-08-01T00:00:00.000Z',
           fechaHasta: '2026-08-14T23:59:59.000Z',
+          area: 'biblioteca',
           limit: 20,
           offset: 0,
         },

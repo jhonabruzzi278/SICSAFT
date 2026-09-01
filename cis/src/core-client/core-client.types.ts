@@ -206,6 +206,8 @@ const auditoriaEntradaSchema = z.object({
   operacion: z.string(),
   resultado: z.string(),
   observaciones: z.string().nullable(),
+  // DOC-029 RF-E — área operativa del actor (null si la operación no es sobre un área concreta).
+  areaOperativa: z.string().nullable(),
 });
 export type AuditoriaEntradaResult = z.infer<typeof auditoriaEntradaSchema>;
 
@@ -226,6 +228,8 @@ export interface AuditoriaFiltro extends Paginacion {
   operacion?: string;
   fechaDesde?: string;
   fechaHasta?: string;
+  // DOC-029 RF-E — filtro parcial por área operativa.
+  area?: string;
 }
 
 // RF-05 (Fase 5, WEB) — contrato de Area/Ubicacion/Responsable de CORE (DOC-005 2/3).
