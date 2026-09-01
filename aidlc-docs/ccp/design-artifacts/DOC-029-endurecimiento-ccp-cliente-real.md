@@ -34,7 +34,7 @@ frente en la tabla §0 y estado por rama en §Plan de fases.**
 | **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | ✅ **Hecho** (`feat/ccp-etiquetas-qr`, `20a82e5`) — verificado en modo mock |
 | **RF-G** | Fix: crash del login por timeout + layout del wizard roto a pantalla completa | `sicsaft-core` | ✅ **Hecho** (`fix/sicsaft-core-login-timeout-crash`, `db268a1`) |
 | **RF-H** | APK Android — WebView propia mínima, generada en build-time, servida por el `.exe` | `apk-aft/` (nuevo) + `sicsaft-core` | Diseñado — pendiente |
-| **RF-I** | **Pantalla 8** — informe de control de área: agregación (%, desglose por estado declarado, tipo ordinario/extraordinario, nombres) + presentación con fondos verde/amarillo/rojo, en la APP QR y en el Resumen del CCP | CORE (lectura) + CIS + APP QR + CCP | 🟡 **Parcial**: capa CORE (`f64bda1`) + puente CIS (`3d9256d`) hechos. Falta la **presentación** en APP QR y CCP. Contrato: [`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md) |
+| **RF-I** | **Pantalla 8** — informe de control de área: agregación (%, desglose por estado declarado, tipo ordinario/extraordinario, nombres) + presentación con fondos verde/amarillo/rojo, en la APP QR y en el Resumen del CCP | CORE (lectura) + CIS + APP QR + CCP | 🟡 **Parcial**: CORE (`f64bda1`) + puente CIS (`3d9256d`) + **CCP** (`c932766`) hechos. Falta la Pantalla 8 en la **APP QR** al cerrar el control. Contrato: [`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md) |
 
 Reemplaza / extiende:
 
@@ -457,10 +457,14 @@ Nueva pantalla tras `POST /inventarios`, renderiza el resumen de I.2 con los **f
 del veredicto (🟩 `exitoso` / 🟨 `aceptable` / 🟥 `defectuoso`). Confirmar/ajustar la UI de marcado
 de estado por AFT durante el escaneo en `ScanPage.tsx` (el payload ya lo acepta).
 
-### I.4 CCP — Resumen → detalle de sesión
+### I.4 CCP — Resumen → detalle de sesión — ✅ HECHO (`feat/ccp-pantalla8`, `c932766`)
 
-`DashboardPage.tsx` / la tarjeta "Sesiones de inventario": al abrir una sesión, la **misma
-Pantalla 8** (mismo contrato, mismos colores) que la APP.
+`DashboardPage.tsx` "Sesiones de inventario": cada fila pasa a ser un botón que despliega la
+**Pantalla 8** de esa sesión inline (`components/PantallaControlArea.tsx` — contenedor + vista de
+los 6 bloques + franja de veredicto con fondo de color). `cis-client` gana
+`getInventarioResumenControl`; `lib/pantalla-8.ts` los helpers puros
+(`estiloVeredicto`/`formatPorcentaje`/`etiquetaTipo`, +4 tests). Verificado en el navegador
+(modo mock, veredicto `defectuoso` con `bg-destructive`).
 
 ### I.5 Relación con RF-D
 
@@ -512,8 +516,8 @@ campo `direccion` de B; I depende de que existan sesiones con `estadoDeclarado`,
 | **10b** | `feat/ccp-ingesta-revision` (o rama nueva) | **RF-B.6.2** — watcher del `.exe` (chokidar → ETL → CIS) + service account Keycloak `sicsaft-ingesta` + `prepack.cjs` del sidecar Python | 10a | ⬜ **siguiente** (necesita el stack arriba) |
 | 11 | `feat/core-cip-resumen-control` | RF-I capa CORE (`GET /inventarios/:id/control` + migración `estado_declarado`/`baja_sugerida_motivo` + `veredicto.ts`) | main (prod) | ✅ `f64bda1` |
 | 11b | `feat/cis-inventario-control` | RF-I puente CIS — passthrough de `GET /inventarios/:id/control` (sirve CCP y APP QR desde el mismo `QrConnectorController`) | 11 | ✅ `3d9256d` |
-| 12 | `feat/appqr-pantalla8` | RF-I APP QR (Pantalla 8 + fondos de color + UI de estado por AFT) | 11b | ⬜ |
-| 13 | `feat/ccp-pantalla8` | RF-I CCP (detalle de sesión en el Resumen) | 11b | ⬜ |
+| 13 | `feat/ccp-pantalla8` | RF-I CCP (detalle de sesión en el Resumen) | 11b, 14 | ✅ `c932766` |
+| 12 | `feat/appqr-pantalla8` | RF-I APP QR (Pantalla 8 + fondos de color + UI de estado por AFT) | 11b | ⬜ **siguiente** |
 | 14 | `feat/ccp-etiquetas-qr` | RF-F (módulo QR + Code128 por dirección) | 10a | ✅ `20a82e5` |
 | 15 | `feat/core-auditoria-area` | RF-E capa CORE (`auditoria.area_operativa`) | 3 | ⬜ |
 | 16 | `feat/cis-auditoria-area` | RF-E capa CIS (passthrough `?area=`) | 15 | ⬜ |
