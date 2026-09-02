@@ -178,7 +178,7 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
           El especialista contable deja los Excel en esta carpeta; SICSAFT los
           traduce al modelo patrimonial y los deja acá como lotes{' '}
           <em>pendientes de revisión</em>. Nada llega a la Base Patrimonial
-          hasta que apruebes el lote.
+          Inteligente hasta que apruebes el lote.
         </p>
         <p className="mt-2 text-sm">
           {carpeta ? (
