@@ -1,4 +1,4 @@
-import { ipcMain, type BrowserWindow } from "electron";
+import { dialog, ipcMain, type BrowserWindow } from "electron";
 import type {
   AltaDirectorInput,
   AltaDirectorResultado,
@@ -39,6 +39,7 @@ import {
 } from "../services/lan-ip";
 import { obtenerCertificadoAppQr } from "../services/appqr-tls";
 import {
+  actualizarCarpetaIngestaInstalacion,
   actualizarIpLanInstalacion,
   leerInstalacionExistente,
   marcarInstalacionCompleta,
@@ -71,6 +72,15 @@ function asegurarServidoresPortales(): Promise<void> {
     // instalación, el portal igual apunta bien sin recompilar. cisUrl es 127.0.0.1 (loopback).
     const issuer = `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}`;
     const cisUrl = `http://127.0.0.1:${PUERTO_CIS}`;
+    // DOC-029 RF-A -- nivel de producto contratado (DOC-025). Se persiste en instalacion.json al
+    // hacer el bootstrap; una instalacion anterior a RF-A no lo tiene -> Nivel 1. Solo `ccp` lo
+    // necesita: el portal del Directivo (core-frontend) es el mismo en todos los niveles.
+    const instalacion = leerInstalacionExistente();
+    const nivel = String(instalacion?.nivel ?? 1);
+    // DOC-029 RF-B.6 -- carpeta vigilada de ingesta; string vacío si no se configuró todavía. El
+    // módulo Importaciones del CCP la muestra (solo lectura); el watcher que la vigila vive en el
+    // proceso principal, no en el portal.
+    const carpetaIngesta = instalacion?.carpetaIngesta ?? "";
     await iniciarServidorEstatico({
       nombre: "ccp",
       distPath: rutaDistDePortal("ccp"),
@@ -79,6 +89,8 @@ function asegurarServidoresPortales(): Promise<void> {
         VITE_KEYCLOAK_ISSUER: issuer,
         VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_CCP,
         VITE_CIS_URL: cisUrl,
+        VITE_SICSAFT_NIVEL: nivel,
+        VITE_SICSAFT_CARPETA_INGESTA: carpetaIngesta,
       },
     });
     await iniciarServidorEstatico({
@@ -173,6 +185,30 @@ export function registrarIpcHandlers(
     return obtenerOrigenAppQr();
   });
 
+  // DOC-029 RF-B.6 -- carpeta vigilada de ingesta de Excel. El diálogo nativo es modal a la
+  // ventana del wizard; si el usuario elige una carpeta, se persiste en instalacion.json y el
+  // próximo arranque de servidores la inyecta a `ccp` (VITE_SICSAFT_CARPETA_INGESTA). El watcher
+  // que corre el ETL Python por cada .xls nuevo vive en el proceso principal (ingesta-watcher.ts,
+  // pendiente) -- este handler solo fija la ruta.
+  ipcMain.handle(
+    "sicsaft-core:elegirCarpetaIngesta",
+    async (): Promise<string | null> => {
+      const resultado = await dialog.showOpenDialog(ventana, {
+        title: "Carpeta donde el especialista contable deja los Excel",
+        properties: ["openDirectory", "createDirectory"],
+      });
+      if (resultado.canceled || resultado.filePaths.length === 0) return null;
+      const carpeta = resultado.filePaths[0];
+      actualizarCarpetaIngestaInstalacion(carpeta);
+      return carpeta;
+    },
+  );
+
+  ipcMain.handle(
+    "sicsaft-core:leerCarpetaIngesta",
+    (): string | null => leerInstalacionExistente()?.carpetaIngesta ?? null,
+  );
+
   ipcMain.handle("sicsaft-core:getInstalacionExistente", async () => {
     const existente = leerInstalacionExistente();
     if (existente) {
@@ -243,6 +279,11 @@ export function registrarIpcHandlers(
         organizacionId: resultado.organizacionId,
         clienteNombre: input.clienteNombre,
         ipLan: obtenerIpLan(),
+        // DOC-030 -- nivel de producto contratado (DOC-025), elegido por el vendedor en el paso 1
+        // del wizard (PasoDatosCliente). Se inyecta al servir `ccp` como VITE_SICSAFT_NIVEL
+        // (asegurarServidoresPortales): en Nivel 2 el CCP muestra la gestion avanzada. `web_admin`
+        // NO se embebe en ningun nivel (decision del usuario 2026-09-02, ver DOC-030).
+        nivel: input.nivel,
       });
       return { organizacionId: resultado.organizacionId };
     },

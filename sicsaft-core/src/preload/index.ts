@@ -13,6 +13,10 @@ const api: SicsaftCoreApi = {
   getEstadoIpLan: () => ipcRenderer.invoke("sicsaft-core:getEstadoIpLan"),
   reconfigurarIpLan: () => ipcRenderer.invoke("sicsaft-core:reconfigurarIpLan"),
   getUrlAppQr: () => ipcRenderer.invoke("sicsaft-core:getUrlAppQr"),
+  elegirCarpetaIngesta: () =>
+    ipcRenderer.invoke("sicsaft-core:elegirCarpetaIngesta"),
+  leerCarpetaIngesta: () =>
+    ipcRenderer.invoke("sicsaft-core:leerCarpetaIngesta"),
   bootstrapCliente: (input) =>
     ipcRenderer.invoke("sicsaft-core:bootstrapCliente", input),
   altaDirector: (input) =>

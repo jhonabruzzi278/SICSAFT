@@ -22,6 +22,7 @@ describe('AuditoriaRepository', () => {
       observaciones: 'ok',
       categoria: 'identidad',
       organizacionId: 'org-1',
+      areaOperativa: 'area-biblioteca',
     });
 
     expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
@@ -34,6 +35,7 @@ describe('AuditoriaRepository', () => {
       'ok',
       'identidad',
       'org-1',
+      'area-biblioteca',
     ]);
   });
 
@@ -56,6 +58,7 @@ describe('AuditoriaRepository', () => {
       'rechazado:409',
       null,
       'patrimonial',
+      null,
       null,
     ]);
   });
@@ -132,6 +135,7 @@ describe('AuditoriaRepository', () => {
             observaciones: null,
             categoria: 'patrimonial',
             organizacionId: null,
+            areaOperativa: 'area-biblioteca',
           },
         ],
         1,
@@ -153,6 +157,7 @@ describe('AuditoriaRepository', () => {
           observaciones: null,
           categoria: 'patrimonial',
           organizacionId: null,
+          areaOperativa: 'area-biblioteca',
         },
       ]);
       expect(pool.query).toHaveBeenNthCalledWith(
@@ -213,6 +218,19 @@ describe('AuditoriaRepository', () => {
         2,
         expect.stringContaining('fecha >= $1 AND fecha <= $2'),
         ['2026-08-01T00:00:00.000Z', '2026-08-14T23:59:59.000Z', 20, 0],
+      );
+    });
+
+    it('filtra por área operativa con ILIKE parcial (DOC-029 RF-E)', async () => {
+      const pool = buildPoolPara([], 0);
+      const repository = new AuditoriaRepository(pool);
+
+      await repository.listar({ area: 'biblioteca', limit: 20, offset: 0 });
+
+      expect(pool.query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining('area_operativa ILIKE $1'),
+        ['%biblioteca%', 20, 0],
       );
     });
 

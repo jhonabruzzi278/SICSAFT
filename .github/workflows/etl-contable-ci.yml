@@ -1,0 +1,36 @@
+name: ETL Contable CI
+
+on:
+  pull_request:
+    paths:
+      - "herramientas/etl-contable/**"
+      - ".github/workflows/etl-contable-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "herramientas/etl-contable/**"
+      - ".github/workflows/etl-contable-ci.yml"
+
+defaults:
+  run:
+    working-directory: herramientas/etl-contable
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Tests (pytest)
+        run: pytest

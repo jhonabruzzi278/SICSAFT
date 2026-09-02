@@ -89,6 +89,11 @@ function buildService() {
     postDocumentoActivo: jest.fn(),
     deleteDocumentoActivo: jest.fn(),
     postImportacionContable: jest.fn(),
+    postLoteImportacionContable: jest.fn(),
+    getLotesImportacionContable: jest.fn(),
+    getLoteImportacionContable: jest.fn(),
+    postAprobarLoteImportacionContable: jest.fn(),
+    postRechazarLoteImportacionContable: jest.fn(),
     getOrganizaciones: jest.fn(),
     postOrganizacion: jest.fn(),
     getIndicadores: jest.fn(),
@@ -487,6 +492,120 @@ describe('AdministradorService', () => {
     });
   });
 
+  // DOC-029 RF-B — bandeja de staging de la ingesta de Excel supervisada.
+  describe('bandeja de staging de importación contable', () => {
+    const identidad = {
+      correlationId: 'corr-1',
+      operadorId: 'op-1',
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
+    };
+
+    it('crearLoteImportacionContable inyecta la identidad del JWT', async () => {
+      const { service, coreClientService } = buildService();
+      coreClientService.postLoteImportacionContable.mockResolvedValue({
+        loteId: 'lote-1',
+        resumen: { totalFilas: 1, crear: 1, yaImportado: 0, conflicto: 0 },
+      });
+      const body = {
+        organizacionId: 'duoc-uc',
+        origen: 'carpeta' as const,
+        archivoNombre: 'activos.xls',
+        filas: [
+          {
+            linea: 1,
+            codigoPatrimonial: 'DG-001',
+            codigoQr: 'DG-001',
+            catalogoId: 'cat-1',
+            crudo: {},
+          },
+        ],
+      };
+
+      await service.crearLoteImportacionContable(body, AUTH, 'corr-1');
+
+      expect(
+        coreClientService.postLoteImportacionContable,
+      ).toHaveBeenCalledWith({ ...body, ...identidad }, 'corr-1');
+    });
+
+    it('listarLotesImportacionContable es passthrough', async () => {
+      const { service, coreClientService } = buildService();
+      coreClientService.getLotesImportacionContable.mockResolvedValue([]);
+
+      await service.listarLotesImportacionContable(
+        'duoc-uc',
+        'aprobado',
+        'corr-1',
+      );
+
+      expect(
+        coreClientService.getLotesImportacionContable,
+      ).toHaveBeenCalledWith('duoc-uc', 'aprobado', 'corr-1');
+    });
+
+    it('obtenerLoteImportacionContable es passthrough', async () => {
+      const { service, coreClientService } = buildService();
+      coreClientService.getLoteImportacionContable.mockResolvedValue({
+        lote: {} as never,
+        filas: [],
+      });
+
+      await service.obtenerLoteImportacionContable('lote-1', 'corr-1');
+
+      expect(coreClientService.getLoteImportacionContable).toHaveBeenCalledWith(
+        'lote-1',
+        'corr-1',
+      );
+    });
+
+    it('aprobarLoteImportacionContable inyecta la identidad del JWT', async () => {
+      const { service, coreClientService } = buildService();
+      coreClientService.postAprobarLoteImportacionContable.mockResolvedValue({
+        filas: [],
+        creados: 1,
+        yaImportados: 0,
+        conflictos: 0,
+      });
+
+      await service.aprobarLoteImportacionContable(
+        'lote-1',
+        { organizacionId: 'duoc-uc' },
+        AUTH,
+        'corr-1',
+      );
+
+      expect(
+        coreClientService.postAprobarLoteImportacionContable,
+      ).toHaveBeenCalledWith(
+        'lote-1',
+        { organizacionId: 'duoc-uc', ...identidad },
+        'corr-1',
+      );
+    });
+
+    it('rechazarLoteImportacionContable inyecta la identidad del JWT', async () => {
+      const { service, coreClientService } = buildService();
+      coreClientService.postRechazarLoteImportacionContable.mockResolvedValue({
+        estado: 'rechazado',
+      });
+
+      await service.rechazarLoteImportacionContable(
+        'lote-1',
+        { organizacionId: 'duoc-uc', motivo: 'no cuadra' },
+        AUTH,
+        'corr-1',
+      );
+
+      expect(
+        coreClientService.postRechazarLoteImportacionContable,
+      ).toHaveBeenCalledWith(
+        'lote-1',
+        { organizacionId: 'duoc-uc', motivo: 'no cuadra', ...identidad },
+        'corr-1',
+      );
+    });
+  });
+
   const ORGANIZACION: OrganizacionResult = {
     id: 'duoc-uc',
     nombre: 'DUOC UC',
@@ -856,6 +975,7 @@ describe('AdministradorService', () => {
           operacion: 'POST /inventarios',
           resultado: 'recibido',
           observaciones: null,
+          areaOperativa: 'area-biblioteca',
         },
       ];
       const pagina = { entradas, total: entradas.length };

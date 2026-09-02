@@ -12,6 +12,8 @@ export const auditoriaQuerySchema = z.object({
   fechaHasta: z.string().min(1).optional(),
   categoria: z.enum(['patrimonial', 'identidad']).optional(),
   organizacionId: z.string().min(1).optional(),
+  // DOC-029 RF-E — filtro parcial por área operativa (ILIKE, ver AuditoriaRepository.listar).
+  area: z.string().min(1).optional(),
   ...paginacionSchema,
 });
 export type AuditoriaQuery = z.infer<typeof auditoriaQuerySchema>;

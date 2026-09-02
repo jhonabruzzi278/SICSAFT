@@ -100,6 +100,58 @@ export const importacionContableSchema = z.object({
 });
 export type ImportacionContableBody = z.infer<typeof importacionContableSchema>;
 
+// DOC-029 RF-B — bandeja de staging. El cuerpo NO trae operadorId/rolesPorOrganizacion/
+// correlationId: se inyectan del JWT en AdministradorService (mismo patrón que el resto). Cada
+// fila trae los ids que el ETL ya pudo resolver y/o los nombres tal cual del Excel — CORE
+// resuelve-o-crea lo que falte al aprobar (por eso `catalogoId` es opcional acá).
+const filaLoteImportacionContableSchema = filaImportacionContableSchema
+  .extend({
+    linea: z.number().int().positive(),
+    catalogoId: z.string().min(1).optional(),
+    direccionNombre: z.string().min(1).optional(),
+    areaNombre: z.string().min(1).optional(),
+    responsableNombre: z.string().min(1).optional(),
+    categoriaNombre: z.string().min(1).optional(),
+    nombreAft: z.string().min(1).optional(),
+    crudo: z.record(z.string(), z.string()).default({}),
+  })
+  .refine((f) => Boolean(f.catalogoId ?? f.categoriaNombre), {
+    message: 'cada fila necesita catalogoId o categoriaNombre',
+    path: ['catalogoId'],
+  });
+export const crearLoteImportacionContableSchema = z.object({
+  organizacionId: z.string().min(1),
+  origen: z.enum(['carpeta', 'manual']),
+  archivoNombre: z.string().min(1).optional(),
+  filas: z.array(filaLoteImportacionContableSchema).min(1),
+});
+export type CrearLoteImportacionContableBody = z.infer<
+  typeof crearLoteImportacionContableSchema
+>;
+
+export const listarLotesImportacionContableQuerySchema = z.object({
+  organizacionId: z.string().min(1),
+  estado: z.enum(['pendiente_revision', 'aprobado', 'rechazado']).optional(),
+});
+export type ListarLotesImportacionContableQuery = z.infer<
+  typeof listarLotesImportacionContableQuerySchema
+>;
+
+export const aprobarLoteImportacionContableSchema = z.object({
+  organizacionId: z.string().min(1),
+});
+export type AprobarLoteImportacionContableBody = z.infer<
+  typeof aprobarLoteImportacionContableSchema
+>;
+
+export const rechazarLoteImportacionContableSchema = z.object({
+  organizacionId: z.string().min(1),
+  motivo: z.string().min(1).optional(),
+});
+export type RechazarLoteImportacionContableBody = z.infer<
+  typeof rechazarLoteImportacionContableSchema
+>;
+
 // Gap 1 (flujo real Admin->Directivo->Profesional AFT) — ya no se le pide el id de Zitadel al
 // cliente: AdministradorService.altaOrganizacion crea la Organización en Zitadel primero
 // (ZitadelAdminService.crearOrganizacion) y usa el id que Zitadel devuelve. Sin
@@ -329,6 +381,8 @@ export const auditoriaQuerySchema = z.object({
   operacion: z.string().min(1).optional(),
   fechaDesde: z.string().min(1).optional(),
   fechaHasta: z.string().min(1).optional(),
+  // DOC-029 RF-E — filtro parcial por área operativa del actor.
+  area: z.string().min(1).optional(),
   ...paginacionSchema,
 });
 export type AuditoriaQuery = z.infer<typeof auditoriaQuerySchema>;

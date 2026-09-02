@@ -220,6 +220,176 @@ describe('SesionInventarioRepository', () => {
     });
   });
 
+  describe('findResumenControl', () => {
+    // DOC-029 RF-I — 4 queries en orden: sesión, escaneos (join catálogo/área), count de activos
+    // del área, faltantes.
+    const SESION_CTRL = {
+      id: 'sesion-1',
+      organizacionId: 'duoc-uc',
+      areaId: 'area-biblioteca',
+      ubicacionId: 'ubicacion-biblioteca-101',
+      operadorId: 'op-1',
+      fechaInicio: new Date('2026-01-15T10:00:00.000Z'),
+      fechaCierre: new Date('2026-01-15T10:30:00.000Z'),
+      estado: 'recibido',
+    };
+
+    it('agrega escaneados, del-área, estados declarados, listas y faltantes', async () => {
+      const client = buildClient();
+      const pool = buildPool(client);
+      const query = jest
+        .fn()
+        .mockResolvedValueOnce({ rows: [SESION_CTRL] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              codigoQr: 'QR-001',
+              resultado: 'correcto',
+              estadoDeclarado: 'activo',
+              bajaSugeridaMotivo: null,
+              tecnologia: 'qr',
+              tipo: 'Notebook',
+              familia: 'Informática',
+              subfamilia: null,
+              marca: 'Dell',
+              modelo: 'Latitude',
+              areaRealNombre: 'Biblioteca',
+            },
+            {
+              codigoQr: 'QR-002',
+              resultado: 'otra_area',
+              estadoDeclarado: 'mantenimiento',
+              bajaSugeridaMotivo: 'carcasa rota',
+              tecnologia: 'rfid',
+              tipo: 'Lector',
+              familia: 'RFID',
+              subfamilia: null,
+              marca: null,
+              modelo: null,
+              areaRealNombre: 'Depósito Central',
+            },
+            {
+              codigoQr: 'QR-NOPE',
+              resultado: 'no_registrado',
+              estadoDeclarado: 'inactivo',
+              bajaSugeridaMotivo: null,
+              tecnologia: null,
+              tipo: null,
+              familia: null,
+              subfamilia: null,
+              marca: null,
+              modelo: null,
+              areaRealNombre: null,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [{ n: 5 }] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              codigoQr: 'QR-900',
+              tipo: 'Silla',
+              familia: 'Mobiliario',
+              subfamilia: null,
+              marca: null,
+              modelo: null,
+            },
+          ],
+        });
+      pool.query = query as never;
+      const repository = new SesionInventarioRepository(pool);
+
+      const resumen = await repository.findResumenControl('sesion-1');
+
+      expect(resumen).toEqual({
+        sesionId: 'sesion-1',
+        organizacionId: 'duoc-uc',
+        areaId: 'area-biblioteca',
+        ubicacionId: 'ubicacion-biblioteca-101',
+        operadorId: 'op-1',
+        fechaInicio: '2026-01-15T10:00:00.000Z',
+        fechaCierre: '2026-01-15T10:30:00.000Z',
+        estado: 'recibido',
+        escaneados: 3,
+        delArea: 1,
+        activosDelArea: 5,
+        porEstadoDeclarado: {
+          enServicio: 1,
+          enMantenimiento: 1,
+          inactivo: 1,
+          baja: 1,
+        },
+        escaneadosLista: [
+          {
+            codigoQr: 'QR-001',
+            nombre: 'Dell Latitude',
+            tipo: 'ordinario',
+            resultado: 'correcto',
+          },
+          {
+            codigoQr: 'QR-002',
+            nombre: 'Lector — RFID',
+            tipo: 'extraordinario',
+            resultado: 'otra_area',
+          },
+          {
+            codigoQr: 'QR-NOPE',
+            nombre: null,
+            tipo: null,
+            resultado: 'no_registrado',
+          },
+        ],
+        fueraDeArea: [
+          {
+            codigoQr: 'QR-002',
+            nombre: 'Lector — RFID',
+            tipo: 'extraordinario',
+            areaRealNombre: 'Depósito Central',
+          },
+        ],
+        faltantes: [{ codigoQr: 'QR-900', nombre: 'Silla — Mobiliario' }],
+      });
+    });
+
+    it('devuelve null si la sesión no existe (sin más queries)', async () => {
+      const client = buildClient();
+      const pool = buildPool(client);
+      const query = jest.fn().mockResolvedValueOnce({ rows: [] });
+      pool.query = query as never;
+      const repository = new SesionInventarioRepository(pool);
+
+      await expect(
+        repository.findResumenControl('no-existe'),
+      ).resolves.toBeNull();
+      expect(query).toHaveBeenCalledTimes(1);
+    });
+
+    it('cae a 0 activos del área si el count no devuelve fila', async () => {
+      const client = buildClient();
+      const pool = buildPool(client);
+      const query = jest
+        .fn()
+        .mockResolvedValueOnce({ rows: [SESION_CTRL] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
+      pool.query = query as never;
+      const repository = new SesionInventarioRepository(pool);
+
+      const resumen = await repository.findResumenControl('sesion-1');
+
+      expect(resumen?.activosDelArea).toBe(0);
+      expect(resumen?.escaneados).toBe(0);
+      expect(resumen?.porEstadoDeclarado).toEqual({
+        enServicio: 0,
+        enMantenimiento: 0,
+        inactivo: 0,
+        baja: 0,
+      });
+      expect(resumen?.faltantes).toEqual([]);
+    });
+  });
+
   describe('crear', () => {
     it('inserta la sesion y cada fila dentro de una transaccion', async () => {
       const client = buildClient();
@@ -235,6 +405,32 @@ describe('SesionInventarioRepository', () => {
       expect(llamadas[3]).toContain('INSERT INTO inventarios');
       expect(llamadas[4]).toBe('COMMIT');
       expect(client.release).toHaveBeenCalledTimes(1);
+    });
+
+    it('persiste estadoDeclarado y bajaSugeridaMotivo cuando vienen en la fila', async () => {
+      const client = buildClient();
+      const pool = buildPool(client);
+      const repository = new SesionInventarioRepository(pool);
+
+      await repository.crear(SESION, [
+        {
+          id: 'inv-9',
+          codigoQr: 'QR-9',
+          activoId: 'activo-9',
+          resultado: 'correcto',
+          estadoDeclarado: 'mantenimiento',
+          bajaSugeridaMotivo: 'pantalla partida',
+        },
+      ]);
+
+      const insertFila = client.query.mock.calls.find(
+        (call) =>
+          typeof call[0] === 'string' &&
+          call[0].includes('INSERT INTO inventarios'),
+      );
+      expect(insertFila?.[1]).toEqual(
+        expect.arrayContaining(['mantenimiento', 'pantalla partida']),
+      );
     });
 
     it('hace ROLLBACK y relanza si una insercion falla', async () => {

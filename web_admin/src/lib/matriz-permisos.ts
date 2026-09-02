@@ -1,4 +1,4 @@
-// DOC-024 4 — transcripción de DOC-023 §2 (aidlc-docs/ccp/design-artifacts/DOC-023-matriz-
+// DOC-024 4 — transcripción de DOC-023 2 (aidlc-docs/ccp/design-artifacts/DOC-023-matriz-
 // permisos-rbac.md), la matriz Rol × Módulo × Acción extraída del código real (guards de cis/src/
 // y core/src/orquestador/orquestador.service.ts). Pantalla de solo lectura — decidido
 // explícitamente con el usuario (no un motor de roles dinámico): esto solo hace visibles los 3

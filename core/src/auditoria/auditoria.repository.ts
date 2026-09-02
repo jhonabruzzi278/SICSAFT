@@ -44,8 +44,9 @@ export class AuditoriaRepository {
   ): Promise<void> {
     await this.pool.query(
       `INSERT INTO auditoria
-         (id, usuario, equipo, ip, operacion, resultado, observaciones, categoria, organizacion_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+         (id, usuario, equipo, ip, operacion, resultado, observaciones, categoria, organizacion_id,
+          area_operativa)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
       [
         randomUUID(),
         input.usuario,
@@ -56,6 +57,7 @@ export class AuditoriaRepository {
         input.observaciones ?? null,
         input.categoria ?? 'patrimonial',
         organizacionId,
+        input.areaOperativa ?? null,
       ],
     );
   }
@@ -94,6 +96,10 @@ export class AuditoriaRepository {
       valores.push(filtro.organizacionId);
       condiciones.push(`organizacion_id = $${valores.length}`);
     }
+    if (filtro.area) {
+      valores.push(`%${filtro.area}%`);
+      condiciones.push(`area_operativa ILIKE $${valores.length}`);
+    }
 
     const whereSql =
       condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';
@@ -115,9 +121,10 @@ export class AuditoriaRepository {
       observaciones: string | null;
       categoria: 'patrimonial' | 'identidad';
       organizacionId: string | null;
+      areaOperativa: string | null;
     }>(
       `SELECT id, usuario, fecha, equipo, ip, operacion, resultado, observaciones, categoria,
-              organizacion_id AS "organizacionId"
+              organizacion_id AS "organizacionId", area_operativa AS "areaOperativa"
        FROM auditoria
        ${whereSql}
        ORDER BY fecha DESC

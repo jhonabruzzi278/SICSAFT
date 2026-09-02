@@ -128,6 +128,13 @@ const BADGE_STYLES: Record<string, string> = {
   vencido: 'bg-text-dim/15 text-text-dim',
   cancelado: 'bg-destructive/15 text-destructive',
   dado_de_baja: 'bg-destructive/15 text-destructive',
+  // DOC-029 RF-B — estados de lote de ingesta + resultado de dry-run por fila.
+  pendiente_revision: 'bg-warning/15 text-warning',
+  aprobado: 'bg-success/15 text-success',
+  rechazado: 'bg-destructive/15 text-destructive',
+  crear: 'bg-success/15 text-success',
+  ya_importado: 'bg-text-dim/15 text-text-dim',
+  conflicto: 'bg-destructive/15 text-destructive',
 };
 
 export function Badge({ children }: { children: string }) {

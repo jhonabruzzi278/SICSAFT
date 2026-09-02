@@ -45,7 +45,7 @@ hoy (sin réplicas) — no hay necesidad real de un backend compartido entre pro
 piezas.
 
 **Segundo hallazgo que condiciona el diseño**: `core/` y `cip/` tienen bases Postgres **separadas**
-a propósito (RNF-01/RNF-05, DOC-018 §"Base real... separada de core") — CIP no puede leer la base de
+a propósito (RNF-01/RNF-05, DOC-018 "Base real... separada de core") — CIP no puede leer la base de
 CORE directamente. Una cola construida sobre Postgres (pg-boss) necesita que productor y consumidor
 apunten a la **misma** base+esquema para intercambiar mensajes — no hay bróker externo de por medio
 como con Redis. Apuntar pg-boss a la base propia de `core/` y darle a `cip/` credenciales hacia ella

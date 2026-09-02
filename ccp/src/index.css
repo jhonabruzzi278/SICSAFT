@@ -68,3 +68,37 @@
     outline-offset: 2px;
   }
 }
+
+/* DOC-029 RF-F — impresión del módulo QR / Etiquetas. Fuera del chrome de la app (header,
+   sidebar, barra de acciones marcada .no-print); una dirección por página. */
+@media print {
+  header,
+  aside,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .lista-etiquetas {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4mm;
+  }
+  .direccion {
+    break-before: page;
+  }
+  .direccion:first-of-type {
+    break-before: auto;
+  }
+  .etiqueta {
+    break-inside: avoid;
+    border-color: #999 !important;
+  }
+}

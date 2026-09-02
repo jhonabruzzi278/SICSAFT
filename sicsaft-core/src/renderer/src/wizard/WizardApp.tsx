@@ -180,7 +180,10 @@ export function WizardApp() {
         className={
           portalCargado
             ? "flex flex-1 overflow-hidden"
-            : "flex flex-1 items-center justify-center overflow-y-auto px-8 py-8"
+            : // `[&>*]:m-auto` centra el contenido cuando entra y lo alinea al inicio (sin
+              // recortarlo) cuando desborda -- `items-center` recortaba la parte de arriba en
+              // pantallas bajas / a pantalla completa (bug encontrado probando con cliente real).
+              "flex flex-1 overflow-y-auto p-8 [&>*]:m-auto"
         }
       >
         {contenido()}

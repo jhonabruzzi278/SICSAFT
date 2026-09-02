@@ -9,6 +9,7 @@ import {
   CatalogoResponse,
   InventarioEstadoResponse,
   PostInventarioResponse,
+  ResumenControl,
   SesionDetalle,
   SesionResumen,
 } from './qr-connector.types';
@@ -108,6 +109,18 @@ export class QrConnectorService {
     correlationId: string,
   ): Promise<SesionDetalle> {
     return this.coreClientService.getInventarioDetalle(
+      inventarioId,
+      correlationId,
+    );
+  }
+
+  // DOC-029 RF-I — informe de control de área ("Pantalla 8"). Proxy delgado, mismo criterio que
+  // getInventarioDetalle: CIS no transforma el contrato de CORE.
+  async getInventarioResumenControl(
+    inventarioId: string,
+    correlationId: string,
+  ): Promise<ResumenControl> {
+    return this.coreClientService.getInventarioResumenControl(
       inventarioId,
       correlationId,
     );

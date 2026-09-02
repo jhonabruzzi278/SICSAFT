@@ -1,9 +1,9 @@
 import type { MigrationBuilder } from 'node-pg-migrate';
 
-// DOC-021 3 — cierra 2 de los 5 gaps que DOC-012 § "Cobertura real desde el CCP hoy" documento:
+// DOC-021 3 — cierra 2 de los 5 gaps que DOC-012 "Cobertura real desde el CCP hoy" documento:
 // "descripciones" (columna nueva en `activos`) y "documentacion y fotografias" (tabla nueva,
 // version minima: `url` es un enlace externo que el operador ya subio a algun lado, sin bucket
-// propio todavia — ver ROADMAP.md Fase 7 § "Idea futura sin disenar"). Los otros 3 gaps
+// propio todavia — ver ROADMAP.md Fase 7 "Idea futura sin disenar"). Los otros 3 gaps
 // (estados/ciclo de vida de Activo, familias/categorias, importaciones) no necesitan migracion —
 // ya tienen tabla (`catalogo_activos`) o endpoint (`activo-escritura.controller.ts`,
 // `importacion-contable.*`) en CORE, solo faltaba el puente en CIS y la UI en WEB.

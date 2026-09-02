@@ -82,6 +82,22 @@ const IMPORTACION_STUB: ImportacionContableResult = {
   conflictos: 0,
 };
 
+// DOC-029 RF-B — bandeja de staging.
+const LOTE_STUB = {
+  id: 'lote-1',
+  organizacionId: 'duoc-uc',
+  origen: 'carpeta' as const,
+  archivoNombre: 'activos.xls',
+  recibidoEn: '2026-08-31T12:00:00.000Z',
+  estado: 'pendiente_revision' as const,
+  revisadoPor: null,
+  revisadoEn: null,
+  motivoRechazo: null,
+  resumen: { totalFilas: 1, crear: 1, yaImportado: 0, conflicto: 0 },
+};
+const CREAR_LOTE_STUB = { loteId: 'lote-1', resumen: LOTE_STUB.resumen };
+const LOTE_CON_FILAS_STUB = { lote: LOTE_STUB, filas: [] };
+
 describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2e)', () => {
   let app: INestApplication<App>;
   let tokenPatrimonial: string;
@@ -100,6 +116,12 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
     postOrganizacion: jest.Mock;
     getIndicadores: jest.Mock;
     postImportacionContable: jest.Mock;
+    postLoteImportacionContable: jest.Mock;
+    getLotesImportacionContable: jest.Mock;
+    getLoteImportacionContable: jest.Mock;
+    postAprobarLoteImportacionContable: jest.Mock;
+    postRechazarLoteImportacionContable: jest.Mock;
+    postAuditoria: jest.Mock;
   };
   let keycloakAdminService: {
     buscarUsuarioPorEmail: jest.Mock;
@@ -152,6 +174,17 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
       postOrganizacion: jest.fn().mockResolvedValue(ORGANIZACION_STUB),
       getIndicadores: jest.fn().mockResolvedValue(INDICADORES_STUB),
       postImportacionContable: jest.fn().mockResolvedValue(IMPORTACION_STUB),
+      postLoteImportacionContable: jest.fn().mockResolvedValue(CREAR_LOTE_STUB),
+      getLotesImportacionContable: jest.fn().mockResolvedValue([LOTE_STUB]),
+      getLoteImportacionContable: jest
+        .fn()
+        .mockResolvedValue(LOTE_CON_FILAS_STUB),
+      postAprobarLoteImportacionContable: jest
+        .fn()
+        .mockResolvedValue(IMPORTACION_STUB),
+      postRechazarLoteImportacionContable: jest
+        .fn()
+        .mockResolvedValue({ estado: 'rechazado' }),
       // DOC-024 3 — AdministradorService ahora envuelve asignarUsuarioOrganizacion en
       // AuditoriaIdentidadService, que reporta el resultado via CoreClientService.postAuditoria.
       postAuditoria: jest.fn().mockResolvedValue(undefined),
@@ -312,6 +345,91 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
         })
         .expect(201);
       expect(res.body).toEqual(IMPORTACION_STUB);
+    });
+  });
+
+  describe('DOC-029 RF-B — bandeja de staging /admin/importaciones/contable/lote', () => {
+    const FILA = {
+      linea: 1,
+      codigoPatrimonial: 'DG-001',
+      codigoQr: 'DG-001',
+      catalogoId: 'catalogo-notebook',
+      crudo: {},
+    };
+
+    it('POST crea un lote y devuelve loteId + resumen', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/admin/importaciones/contable/lote')
+        .set('Authorization', `Bearer ${tokenPatrimonial}`)
+        .send({ organizacionId: 'duoc-uc', origen: 'carpeta', filas: [FILA] })
+        .expect(201);
+      expect(res.body).toEqual(CREAR_LOTE_STUB);
+      expect(
+        coreClientService.postLoteImportacionContable,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizacionId: 'duoc-uc',
+          operadorId: 'op-patrimonial',
+          origen: 'carpeta',
+        }),
+        expect.any(String),
+      );
+    });
+
+    it('GET lista los lotes filtrando por estado', async () => {
+      const res = await request(app.getHttpServer())
+        .get(
+          '/admin/importaciones/contable/lote?organizacionId=duoc-uc&estado=pendiente_revision',
+        )
+        .set('Authorization', `Bearer ${tokenPatrimonial}`)
+        .expect(200);
+      expect(res.body).toEqual([LOTE_STUB]);
+      expect(
+        coreClientService.getLotesImportacionContable,
+      ).toHaveBeenCalledWith(
+        'duoc-uc',
+        'pendiente_revision',
+        expect.any(String),
+      );
+    });
+
+    it('GET /:id devuelve el lote con sus filas', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/admin/importaciones/contable/lote/lote-1')
+        .set('Authorization', `Bearer ${tokenPatrimonial}`)
+        .expect(200);
+      expect(res.body).toEqual(LOTE_CON_FILAS_STUB);
+    });
+
+    it('POST /:id/aprobar ejecuta la importación', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/admin/importaciones/contable/lote/lote-1/aprobar')
+        .set('Authorization', `Bearer ${tokenPatrimonial}`)
+        .send({ organizacionId: 'duoc-uc' })
+        .expect(200);
+      expect(res.body).toEqual(IMPORTACION_STUB);
+      expect(
+        coreClientService.postAprobarLoteImportacionContable,
+      ).toHaveBeenCalledWith(
+        'lote-1',
+        expect.objectContaining({ operadorId: 'op-patrimonial' }),
+        expect.any(String),
+      );
+    });
+
+    it('POST /:id/rechazar cierra el lote', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/admin/importaciones/contable/lote/lote-1/rechazar')
+        .set('Authorization', `Bearer ${tokenPatrimonial}`)
+        .send({ organizacionId: 'duoc-uc', motivo: 'no cuadra' })
+        .expect(200);
+      expect(res.body).toEqual({ estado: 'rechazado' });
+    });
+
+    it('rechaza sin token (401)', async () => {
+      await request(app.getHttpServer())
+        .get('/admin/importaciones/contable/lote?organizacionId=duoc-uc')
+        .expect(401);
     });
   });
 

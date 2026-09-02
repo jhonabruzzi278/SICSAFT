@@ -1,4 +1,9 @@
-import { WebContentsView, type BrowserWindow, type Rectangle } from "electron";
+import {
+  WebContentsView,
+  type BrowserWindow,
+  type Rectangle,
+  type WebContents,
+} from "electron";
 import { randomBytes, createHash } from "node:crypto";
 import { KEYCLOAK_CONFIG } from "./keycloak-service";
 import { PUERTO_CCP, PUERTO_CORE_FRONTEND } from "./backend-configs";
@@ -143,9 +148,21 @@ function esperarCodigo(
     // termine de cargar, ver el comentario en mostrarLoginYPortal), así que sin este timeout un
     // fallo real (Keycloak inalcanzable, DNS) dejaría esta promesa colgada para siempre en vez de
     // fallar con un mensaje claro.
+    // El WebContents puede haber sido destruido antes de que dispare el timeout: el usuario se
+    // quedó en la pantalla previa (o el wizard cambió de paso y cerró la vista) sin completar el
+    // login. Sin este guardia `view.webContents` es undefined y `.off()` tira una excepción no
+    // capturada que mata el proceso main -- crash real 2026-08-31 ("Cannot read properties of
+    // undefined (reading 'off')").
+    const quitarListeners = (): void => {
+      const wc: WebContents | undefined = view.webContents;
+      if (wc && !wc.isDestroyed()) {
+        wc.off("will-redirect", manejar);
+        wc.off("will-navigate", manejar);
+      }
+    };
+
     const timeout = setTimeout(() => {
-      view.webContents.off("will-redirect", manejar);
-      view.webContents.off("will-navigate", manejar);
+      quitarListeners();
       reject(
         new Error(
           "No se pudo completar el login en 60s -- ¿Keycloak sigue corriendo?",
@@ -157,8 +174,7 @@ function esperarCodigo(
       if (!url.startsWith(REDIRECT_URI_LOGIN)) return;
       event.preventDefault();
       clearTimeout(timeout);
-      view.webContents.off("will-redirect", manejar);
-      view.webContents.off("will-navigate", manejar);
+      quitarListeners();
 
       const parsed = new URL(url);
       const error = parsed.searchParams.get("error");

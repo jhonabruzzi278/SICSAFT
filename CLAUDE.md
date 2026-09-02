@@ -5,6 +5,12 @@ raíz (`cis/`, `core/`, `ccp/`, `web_admin/`, ...) es su propio desplegable con 
 `package.json`, `Dockerfile` y pipeline de CI. Ver [README.md](README.md) para el mapa completo de
 sistemas y [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md) para el marco de arquitectura.
 
+Excepciones que **no** son desplegables (sin `Dockerfile` ni workflow de CI): `landing/` (Vercel),
+`app-qr-sicsaft/` (Vercel — ver "CI / calidad") y `herramientas/` — carpeta de tooling que corre
+del lado del operador o empaquetada dentro de otro sistema, no en su propio contenedor. Hoy
+`herramientas/etl-contable/` (ETL Python del Excel contable, invocado por `sicsaft-core`, DOC-029).
+`apk-aft/` (WebView Android de DOC-029 RF-H) seguirá el mismo criterio cuando exista.
+
 **Tres portales, tres roles, tres logins — nunca uno compartido** (DOC-022): `ccp/` (ex-`web/`) es
 exclusivo del Profesional de AFT, `web_admin/` del Administrador del Sistema, y `core/frontend/`
 del Directivo. `core/` es el único sistema con dos deployables (`core/` = backend NestJS,
@@ -117,6 +123,15 @@ levanta el stack con smoke check al final. Empaquetado como instalador `.exe` (I
 
 **Producción** (`devops/prod/docker-compose.yml`) no se corre a mano — la redespliega **Coolify**
 vía webhook sobre el VPS propio. Ver [`devops/prod/README.md`](devops/prod/README.md).
+
+**Herramienta ETL contable** (`herramientas/etl-contable/`, Python — DOC-029 RF-B):
+```bash
+cd herramientas/etl-contable
+python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # pandas, xlrd
+python etl_contable.py --entrada archivo.xls --mapeo mapeo/mapeo-<org>.json --salida -
+python -m pytest                # tests con un .xls fixture
+ruff check .                     # lint (mismo criterio que lint:ci de los sistemas Node)
+```
 
 No hay comando de build/test a nivel raíz del repo — cada sistema se construye y testea de forma
 aislada dentro de su propia carpeta.
@@ -269,6 +284,10 @@ aidlc-docs/
 - `app-qr-sicsaft/` es la excepción al pipeline de arriba: se despliega directo a **Vercel**
   (`.vercel/repo.json`, proyecto `sicsaft`), por eso no tiene workflow en `.github/workflows/`
   ni `docker build`.
+- `herramientas/etl-contable/` tampoco tiene workflow propio (no es desplegable): su verificación
+  es `pytest` + `ruff` (correr desde la carpeta) y se ejercita end-to-end dentro del e2e de `core/`
+  (ciclo lote → aprobar/rechazar contra Postgres real). `apk-aft/` (DOC-029 RF-H) sí tendrá uno
+  (`apk-aft-ci.yml`: Android SDK + Gradle + firma con keystore de CI) cuando exista.
 
 ## Al agregar un sistema nuevo
 

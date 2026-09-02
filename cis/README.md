@@ -126,12 +126,22 @@ existía desde Fase 3, pero exigía conocer el `id` de antemano; sin listado no 
 WEB mostrara qué sesiones existen). Aplicado el pipe-por-parámetro desde el vamos (el hallazgo de
 `@UsePipes()` de método de más arriba), sin repetir el bug.
 
+**`GET /inventarios/:id/control` — informe de control de área ("Pantalla 8", DOC-029 RF-I, stack
+local sin merge)**: passthrough delgado en el mismo `QrConnectorController` (sirve al CCP y a la
+APP QR — la lectura del detalle de sesión ya es abierta a cualquier operador autenticado, no hace
+falta una ruta `/admin/...` aparte). `core-client` gana el schema Zod espejo + `getInventarioResumenControl`;
+`qr-connector` el proxy. La agregación (%, desglose por estado declarado, tipo ordinario/
+extraordinario, veredicto) la hace CORE — CIS no reinterpreta nada. Ver `../core/README.md`.
+
 **`GET /admin/auditoria` (2026-08-14, RF-06 — filtros agregados el mismo día)**:
 `AdministradorController`/`AdministradorService` suman un puente hacia `GET /auditoria` de CORE
 (mismo criterio que `getContratos`: lectura abierta, no traduce `rolesPorOrganizacion`), incluidos
 los filtros `usuario`/`operacion`/`fechaDesde`/`fechaHasta` como query params (pasan tal cual a
 CORE, que hace la búsqueda parcial/rango real — CIS no reinterpreta ninguno). Sin filtro por
 organización — la tabla `auditoria` de CORE no tiene ese dato todavía (ver `../core/README.md`).
+DOC-029 RF-E (stack local sin merge) suma el query param `?area=` (passthrough más, `ILIKE`
+parcial en CORE) y el campo `areaOperativa` en cada entrada de la respuesta — `auditoriaEntradaSchema`
+y `auditoriaQuerySchema` lo reflejan.
 
 **Área/Ubicación/Responsable (2026-08-14, RF-05 — cerrado el mismo día)**:
 `AdministradorController`/`AdministradorService` suman `GET/POST/PATCH /admin/areas`,
@@ -157,6 +167,11 @@ devuelven el envelope `{ <entidad>, total }` tal cual, sin reinterpretarlo.
 que el resto del módulo — `POST/baja/reincorporacion/PATCH responsable/descripcion` de Activo,
 `GET/POST /admin/catalogo-tipos`, `GET/POST/DELETE /admin/activos/:id/documentos`,
 `POST /admin/importaciones/contable`, `GET/POST /admin/organizaciones`, `GET /admin/indicadores`.
+Puente de la **bandeja de staging** de la ingesta de Excel supervisada (DOC-029 RF-B):
+`POST /admin/importaciones/contable/lote`, `GET /admin/importaciones/contable/lote[?estado]` +
+`/lote/:id`, `POST /lote/:id/aprobar` y `/lote/:id/rechazar` — crear/aprobar/rechazar inyectan la
+identidad del JWT (CORE verifica el rol y audita), listar/obtener requieren sesión válida y acotan
+por `organizacionId`.
 Módulo nuevo `src/zitadel-admin/` (mismo esqueleto que `core-client`/`cip-client`: config, circuit
 breaker, reintentos) — integración real con la API de administración de Zitadel
 (`ZitadelAdminService.buscarUsuarioPorEmail`/`listarGrants`/`crearGrant`, autenticada con un

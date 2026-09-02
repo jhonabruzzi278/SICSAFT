@@ -4,6 +4,7 @@ import { OrquestadorService } from './orquestador.service';
 import { InventariosService } from '../inventarios/inventarios.service';
 import { EscrituraActivoService } from '../patrimonial/escritura-activo.service';
 import { ImportacionContableService } from '../patrimonial/importacion-contable.service';
+import { ImportacionContableLoteService } from '../patrimonial/importacion-contable-lote.service';
 import { EscrituraContratoService } from '../entitlements/escritura-contrato.service';
 import { EscrituraOrganizacionService } from '../entitlements/escritura-organizacion.service';
 import { EscrituraSedeService } from '../entitlements/escritura-sede.service';
@@ -139,6 +140,13 @@ function buildService() {
   const importacionContableService = {
     procesar: jest.fn(),
   } as unknown as jest.Mocked<ImportacionContableService>;
+  const importacionContableLoteService = {
+    crearLote: jest.fn(),
+    listarLotes: jest.fn(),
+    obtenerLote: jest.fn(),
+    aprobarLote: jest.fn(),
+    rechazarLote: jest.fn(),
+  } as unknown as jest.Mocked<ImportacionContableLoteService>;
   const escrituraContratoService = {
     alta: jest.fn(),
     actualizarEstado: jest.fn(),
@@ -177,6 +185,7 @@ function buildService() {
     inventariosService,
     escrituraActivoService,
     importacionContableService,
+    importacionContableLoteService,
     escrituraContratoService,
     escrituraEstructuraService,
     escrituraOrganizacionService,
@@ -191,6 +200,7 @@ function buildService() {
     inventariosService,
     escrituraActivoService,
     importacionContableService,
+    importacionContableLoteService,
     escrituraContratoService,
     escrituraEstructuraService,
     escrituraOrganizacionService,
@@ -245,6 +255,7 @@ describe('OrquestadorService', () => {
       usuario: 'op-1',
       operacion: 'POST /inventarios',
       resultado: 'recibido',
+      areaOperativa: 'area-biblioteca',
     });
   });
 
@@ -262,6 +273,7 @@ describe('OrquestadorService', () => {
       usuario: 'op-1',
       operacion: 'POST /inventarios',
       resultado: 'rechazado:409',
+      areaOperativa: 'area-biblioteca',
     });
   });
 
@@ -278,6 +290,7 @@ describe('OrquestadorService', () => {
       usuario: 'op-1',
       operacion: 'POST /inventarios',
       resultado: 'rechazado:error-interno',
+      areaOperativa: 'area-biblioteca',
     });
   });
 
@@ -1061,6 +1074,167 @@ describe('OrquestadorService', () => {
         usuario: 'op-admin',
         operacion: 'POST /importaciones/contable',
         resultado: 'rechazado:403',
+      });
+    });
+  });
+
+  describe('bandeja de staging de importación contable (DOC-029 RF-B)', () => {
+    const IDENTIDAD = {
+      correlationId: 'corr-1',
+      operadorId: 'op-admin',
+      organizacionId: 'duoc-uc',
+      rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
+    };
+    const FILA = {
+      linea: 1,
+      codigoPatrimonial: 'DG-001',
+      codigoQr: 'DG-001',
+      catalogoId: 'cat-1',
+      crudo: {},
+    };
+
+    it('crearLoteImportacionContable crea el lote y audita el resumen', async () => {
+      const { service, importacionContableLoteService, auditoriaRepository } =
+        buildService();
+      importacionContableLoteService.crearLote.mockResolvedValue({
+        loteId: 'lote-1',
+        resumen: { totalFilas: 2, crear: 1, yaImportado: 0, conflicto: 1 },
+      });
+
+      const res = await service.crearLoteImportacionContable({
+        ...IDENTIDAD,
+        origen: 'carpeta',
+        archivoNombre: 'activos.xls',
+        filas: [FILA],
+      });
+
+      expect(res.loteId).toBe('lote-1');
+      expect(importacionContableLoteService.crearLote).toHaveBeenCalledWith({
+        organizacionId: 'duoc-uc',
+        origen: 'carpeta',
+        archivoNombre: 'activos.xls',
+        filas: [FILA],
+      });
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /importaciones/contable/lote',
+        resultado: 'lote lote-1: 1 crear, 0 ya_importado, 1 conflicto',
+      });
+    });
+
+    it('crearLoteImportacionContable rechaza con 403 sin llamar al servicio', async () => {
+      const { service, importacionContableLoteService } = buildService();
+      await expect(
+        service.crearLoteImportacionContable({
+          ...IDENTIDAD,
+          rolesPorOrganizacion: {},
+          origen: 'manual',
+          filas: [FILA],
+        }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(importacionContableLoteService.crearLote).not.toHaveBeenCalled();
+    });
+
+    it('listarLotesImportacionContable delega sin auditar', async () => {
+      const { service, importacionContableLoteService, auditoriaRepository } =
+        buildService();
+      importacionContableLoteService.listarLotes.mockResolvedValue([]);
+
+      await service.listarLotesImportacionContable('duoc-uc', 'aprobado');
+
+      expect(importacionContableLoteService.listarLotes).toHaveBeenCalledWith(
+        'duoc-uc',
+        'aprobado',
+      );
+      expect(auditoriaRepository.registrar).not.toHaveBeenCalled();
+    });
+
+    it('obtenerLoteImportacionContable delega el id', async () => {
+      const { service, importacionContableLoteService } = buildService();
+      importacionContableLoteService.obtenerLote.mockResolvedValue({
+        lote: {} as never,
+        filas: [],
+      });
+
+      await service.obtenerLoteImportacionContable('lote-1');
+
+      expect(importacionContableLoteService.obtenerLote).toHaveBeenCalledWith(
+        'lote-1',
+      );
+    });
+
+    it('aprobarLoteImportacionContable aprueba y audita el resultado', async () => {
+      const { service, importacionContableLoteService, auditoriaRepository } =
+        buildService();
+      importacionContableLoteService.aprobarLote.mockResolvedValue({
+        filas: [],
+        creados: 3,
+        yaImportados: 1,
+        conflictos: 0,
+      });
+
+      const res = await service.aprobarLoteImportacionContable(
+        'lote-1',
+        IDENTIDAD,
+      );
+
+      expect(res.creados).toBe(3);
+      expect(importacionContableLoteService.aprobarLote).toHaveBeenCalledWith(
+        'lote-1',
+        'op-admin',
+      );
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /importaciones/contable/lote/lote-1/aprobar',
+        resultado: '3 creados, 1 ya_importados, 0 conflictos',
+      });
+    });
+
+    it('aprobarLoteImportacionContable rechaza con 403 sin aprobar', async () => {
+      const { service, importacionContableLoteService } = buildService();
+      await expect(
+        service.aprobarLoteImportacionContable('lote-1', {
+          ...IDENTIDAD,
+          rolesPorOrganizacion: {},
+        }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(importacionContableLoteService.aprobarLote).not.toHaveBeenCalled();
+    });
+
+    it('rechazarLoteImportacionContable con motivo audita el motivo y devuelve estado rechazado', async () => {
+      const { service, importacionContableLoteService, auditoriaRepository } =
+        buildService();
+      importacionContableLoteService.rechazarLote.mockResolvedValue(undefined);
+
+      const res = await service.rechazarLoteImportacionContable('lote-1', {
+        ...IDENTIDAD,
+        motivo: 'faltan columnas',
+      });
+
+      expect(res).toEqual({ estado: 'rechazado' });
+      expect(importacionContableLoteService.rechazarLote).toHaveBeenCalledWith(
+        'lote-1',
+        'op-admin',
+        'faltan columnas',
+      );
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /importaciones/contable/lote/lote-1/rechazar',
+        resultado: 'rechazado: faltan columnas',
+      });
+    });
+
+    it('rechazarLoteImportacionContable sin motivo audita "rechazado" a secas', async () => {
+      const { service, importacionContableLoteService, auditoriaRepository } =
+        buildService();
+      importacionContableLoteService.rechazarLote.mockResolvedValue(undefined);
+
+      await service.rechazarLoteImportacionContable('lote-1', IDENTIDAD);
+
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /importaciones/contable/lote/lote-1/rechazar',
+        resultado: 'rechazado',
       });
     });
   });

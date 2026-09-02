@@ -1,7 +1,7 @@
 # DOC-021: Cierre de gaps del CCP + Administrador del Sistema
 
 > **Estado**: diseño (2026-08-18), en construcción el mismo día. Cierra los 5 gaps que
-> [DOC-012 § "Cobertura real desde el CCP hoy"](../../../seguridad/DOC-012-administrador-patrimonial.md)
+> [DOC-012 "Cobertura real desde el CCP hoy"](../../../seguridad/DOC-012-administrador-patrimonial.md)
 > documentó, y agrega un rol nuevo — **Administrador del Sistema** — para las capacidades que el
 > Profesional de AFT no debe tener: crear organizaciones, crear contratos (además del Profesional
 > de AFT, que ya podía), asignar usuarios a organizaciones (integración real con la API de
@@ -15,7 +15,7 @@ El Profesional de AFT (`administrador-patrimonial`) administra **información pa
 (activos, catálogo, documentos). El Administrador del Sistema administra **la plataforma**
 (organizaciones, contratos, usuarios, indicadores). Son responsabilidades distintas — mezclarlas
 en un solo rol le daría a cualquiera de los dos más permiso del que necesita (viola mínimo
-privilegio, `seguridad/README.md` § "Permisos previstos"). Se crea `administrador-sistema` como
+privilegio, `seguridad/README.md` "Permisos previstos"). Se crea `administrador-sistema` como
 segundo rol de Proyecto en Zitadel, mismo mecanismo ya usado para `directivo` (DOC-020) —
 **sin cambios en `ZitadelAuthGuard`**, es genérico por nombre de rol.
 
@@ -24,7 +24,7 @@ segundo rol de Proyecto en Zitadel, mismo mecanismo ya usado para `directivo` (D
 `OrquestadorService.ejecutarOperacionOficial` (`core/src/orquestador/orquestador.service.ts`)
 tenía `verificarRolAdministradorPatrimonial` hardcodeado — y `Contrato` (alta/cambio de estado) ya
 pasaba por ahí, es decir **crear un contrato ya requería el rol `administrador-patrimonial`**
-(Tomo III §1.4 se lo exige al Profesional de AFT, DOC-012 §7 — no se le quita esa capacidad). Para
+(Tomo III 1.4 se lo exige al Profesional de AFT, DOC-012 7 — no se le quita esa capacidad). Para
 que Administrador del Sistema también pueda crear contratos, se generaliza el chequeo:
 
 ```ts
@@ -59,9 +59,9 @@ círculo en ambos sentidos.
   ('documento','fotografia'), url text NOT NULL, descripcion text, creado_en timestamptz DEFAULT
   now(), creado_por text)` — gap "documentación y fotografías", versión mínima: `url` es un enlace
   externo que el operador ya subió a algún lado (sin bucket propio todavía, ver
-  `ROADMAP.md` Fase 7 § "Idea futura sin diseñar"). Esta tabla **no** es parte de la BPI oficial
+  `ROADMAP.md` Fase 7 "Idea futura sin diseñar"). Esta tabla **no** es parte de la BPI oficial
   (metadata operativa, no historial patrimonial) — a diferencia de `activos`, sí admite `DELETE`
-  real; no aplica el invariante "nunca elimina" de Tomo III §4.10.
+  real; no aplica el invariante "nunca elimina" de Tomo III 4.10.
 - `catalogo_activos` y `organizaciones` **ya existen** (Fase 1/Fase 0) — sin migración nueva, solo
   repository/endpoints nuevos sobre las tablas existentes (gaps "familias/categorías" y las
   capacidades de Administrador del Sistema sobre Organización).
@@ -72,7 +72,7 @@ círculo en ambos sentidos.
 
 | Endpoint | Verificador | Repository |
 |---|---|---|
-| `POST /activos/:id/baja`, `:id/reincorporacion`, `PATCH :id/responsable` | default | ya existen (DOC-012 §5) |
+| `POST /activos/:id/baja`, `:id/reincorporacion`, `PATCH :id/responsable` | default | ya existen (DOC-012 5) |
 | `PATCH /activos/:id/descripcion` | default | `ActivoRepository.actualizarDescripcion` (nuevo) |
 | `GET /catalogo-tipos` (lectura abierta) / `POST /catalogo-tipos` | default | `CatalogoTipoActivoRepository` (nuevo) |
 | `POST/GET/DELETE /activos/:id/documentos[/:documentoId]` | default | `DocumentoActivoRepository` (nuevo) |
@@ -107,11 +107,11 @@ Organizaciones/Contratos/Usuarios/Indicadores en una sola pantalla, mismo patró
 ## 5. Fuera de alcance de este incremento
 
 - Bucket/OCR real para documentos — `documentos_activo.url` es un enlace externo pegado a mano,
-  no un upload. Ver `ROADMAP.md` Fase 7 § "Idea futura sin diseñar".
+  no un upload. Ver `ROADMAP.md` Fase 7 "Idea futura sin diseñar".
 - Edición/eliminación de usuarios ya asignados, roles compuestos, búsqueda de usuarios por texto
   parcial — el v1 de "asignar usuarios" es alta por email exacto.
 - Indicadores de infraestructura (latencia, errores, uptime) — eso es Prometheus/Grafana
-  (`devops/README.md` § "Cyberseguridad del VPS"), no una feature de aplicación.
+  (`devops/README.md` "Cyberseguridad del VPS"), no una feature de aplicación.
 
 ## 6. Documentos relacionados
 

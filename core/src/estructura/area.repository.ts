@@ -52,6 +52,20 @@ export class AreaRepository {
     };
   }
 
+  // DOC-029 RF-B — resolver un área por su nombre exacto dentro de la organización, para que
+  // `aprobar` un lote de importación pueda encontrarla o crearla. Case-insensitive y sin espacios
+  // sobrantes: el mismo nombre del Excel escrito de dos formas es la misma área.
+  async buscarPorNombre(
+    organizacionId: string,
+    nombre: string,
+  ): Promise<Area | null> {
+    const result = await this.pool.query<Area>(
+      `${SELECT_AREA_SQL} WHERE organizacion_id = $1 AND lower(btrim(nombre)) = lower(btrim($2)) LIMIT 1`,
+      [organizacionId, nombre],
+    );
+    return result.rows[0] ?? null;
+  }
+
   async crear(input: NuevaAreaInput): Promise<Area> {
     const id = randomUUID();
     try {

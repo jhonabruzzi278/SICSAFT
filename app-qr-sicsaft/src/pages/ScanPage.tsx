@@ -404,6 +404,19 @@ export function ScanPage() {
   const externalFindCount = items.filter((i) => i.category === 'unregistered' && i.externalFind).length;
   // Fase 3.1/DOC-017 2 y 4.
   const verdict = calcularVeredicto(missingAssets.length, outOfPlaceCount);
+  // DOC-029 RF-I / CONTRATO-PANTALLA-8 — bloques 2 y 3 del informe de control de área.
+  // Bloque 2: cantidad y % de AFT del área (correctos sobre los esperados de esta área+ubicación).
+  const delAreaPct =
+    expectedAssets.length > 0 ? correctCount / expectedAssets.length : 0;
+  // Bloque 3: estado de cada AFT declarado por el controlador durante el escaneo. `bajaSugerida`
+  // cuenta como BAJA (evento informativo, no cambia Activo.estado — DOC-012 5.1).
+  const porEstadoDeclarado = {
+    enServicio: items.filter((i) => i.estadoDeclarado === 'activo').length,
+    enMantenimiento: items.filter((i) => i.estadoDeclarado === 'mantenimiento')
+      .length,
+    inactivo: items.filter((i) => i.estadoDeclarado === 'inactivo').length,
+    baja: items.filter((i) => i.bajaSugerida).length,
+  };
   const outOfAreaByArea = new Map<string, ScannedItem[]>();
   items
     .filter((i) => i.category === 'wrong-area')
@@ -622,20 +635,28 @@ export function ScanPage() {
     defectuoso: { box: 'border-destructive/30 bg-destructive/10', text: 'text-destructive' },
   } as const;
 
+  const pctLabel = `${(delAreaPct * 100).toLocaleString('es-CL', { maximumFractionDigits: 1 })} %`;
+
   return (
     <Screen title="Resultado del control">
-      {/* Veredicto de la sesión (Fase 3.1/DOC-017 2). */}
+      {/* DOC-029 RF-I / CONTRATO-PANTALLA-8 — informe de control de área ("Pantalla 8"). */}
       <div className={`rounded-2xl border p-5 shadow-elev-1 ${VERDICT_STYLE[verdict].box}`}>
-        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          Resultado del control
+        <p className="text-[0.7rem] font-semibold tracking-wide text-muted-foreground uppercase">
+          Resultados de acción de supervisión y control de AFT
         </p>
+        <p className="mt-1 text-xs text-muted-foreground">Declaración del proceso</p>
         <p
-          className={`mt-1 text-2xl font-bold ${VERDICT_STYLE[verdict].text}`}
+          className={`text-2xl font-bold ${VERDICT_STYLE[verdict].text}`}
           data-testid="report-verdict"
           data-verdict={verdict}
         >
           {VERDICT_LABEL[verdict]}
         </p>
+        {area && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Área {area.name} · {new Date().toLocaleDateString('es-CL')}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-3">
@@ -643,10 +664,65 @@ export function ScanPage() {
         <StatTile value={expectedAssets.length} label="Esperados" valueTestId="report-expected" />
         <StatTile value={missingAssets.length} label="Faltantes" tone="warning" valueTestId="report-missing" />
         <StatTile value={correctCount} label="Correctos" tone="success" valueTestId="report-correct" />
+        <StatTile
+          value={pctLabel}
+          label="% del área"
+          tone="success"
+          valueTestId="report-area-pct"
+        />
         <StatTile value={outOfPlaceCount} label="Fuera de lugar" tone="warning" valueTestId="report-out-of-place" />
         <StatTile value={unregisteredCount} label="No registrados" tone="destructive" valueTestId="report-unregistered" />
         <StatTile value={externalFindCount} label="Externos" valueTestId="report-external-finds" />
         <StatTile value={incidentCount} label="Incidencias" valueTestId="report-incidents" />
+      </div>
+
+      <div className="space-y-2">
+        <SectionHeader>Estado de los AFT declarado por el controlador</SectionHeader>
+        <div
+          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+          data-testid="report-estado-declarado"
+        >
+          {[
+            ['EN SERVICIO', porEstadoDeclarado.enServicio],
+            ['EN MANTENIMIENTO', porEstadoDeclarado.enMantenimiento],
+            ['INACTIVO', porEstadoDeclarado.inactivo],
+            ['BAJA', porEstadoDeclarado.baja],
+          ].map(([label, n]) => (
+            <div
+              key={label}
+              className="rounded-xl border border-border bg-card px-3 py-2 text-center shadow-elev-1"
+            >
+              <p className="text-lg font-bold text-foreground">{n}</p>
+              <p className="text-[0.6rem] font-medium tracking-wide text-muted-foreground">
+                {label}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <SectionHeader>AFT escaneados</SectionHeader>
+        <div className="rounded-xl border border-border bg-card p-4 shadow-elev-1">
+          {items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Ninguno</p>
+          ) : (
+            <ul className="space-y-1 text-sm" data-testid="report-scanned-list">
+              {items.map((item) => (
+                <li key={item.code} className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-brand">{item.code}</span>
+                  <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                  {/* La APP QR sólo lee etiquetas QR → ORDINARIO. EXTRAORDINARIO (QR + RFID) es
+                      Nivel 3 y lo marca CORE en el informe del CCP a partir de
+                      catalogo_activos.tecnologia_identificacion. */}
+                  <span className="text-[0.6rem] font-semibold tracking-wide text-muted-foreground">
+                    ORDINARIO
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2">

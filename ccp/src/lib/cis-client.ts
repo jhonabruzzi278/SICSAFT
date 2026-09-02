@@ -130,6 +130,62 @@ export interface ResultadoImportacionContable {
   conflictos: number;
 }
 
+// DOC-029 RF-B — bandeja de staging de la ingesta de Excel supervisada. El ETL (sidecar Python
+// que corre el .exe al detectar un .xls en la carpeta vigilada) postea el lote a CIS; CORE lo
+// guarda en `pendiente_revision` sin tocar la Base Patrimonial, y el Profesional de AFT lo
+// aprueba o rechaza desde esta pantalla. Los tipos reflejan
+// cis/src/core-client/core-client.types.ts (loteImportacionContableSchema y filas).
+export type EstadoLoteImportacion =
+  'pendiente_revision' | 'aprobado' | 'rechazado';
+
+export interface ResumenLoteImportacion {
+  totalFilas: number;
+  crear: number;
+  yaImportado: number;
+  conflicto: number;
+}
+
+export interface LoteImportacionContable {
+  id: string;
+  organizacionId: string;
+  origen: 'carpeta' | 'manual';
+  archivoNombre: string | null;
+  recibidoEn: string;
+  estado: EstadoLoteImportacion;
+  revisadoPor: string | null;
+  revisadoEn: string | null;
+  motivoRechazo: string | null;
+  resumen: ResumenLoteImportacion;
+}
+
+export type DryRunResultado = 'crear' | 'ya_importado' | 'conflicto';
+
+export interface FilaLoteImportacionContable {
+  id: string;
+  linea: number;
+  codigoPatrimonial: string;
+  codigoQr: string;
+  catalogoId: string | null;
+  serie: string | null;
+  responsableId: string | null;
+  areaId: string | null;
+  ubicacionId: string | null;
+  valorPatrimonial: number | null;
+  direccionNombre: string | null;
+  areaNombre: string | null;
+  responsableNombre: string | null;
+  categoriaNombre: string | null;
+  nombreAft: string | null;
+  crudo: Record<string, string>;
+  dryRunResultado: DryRunResultado | null;
+  dryRunMotivo: string | null;
+}
+
+export interface LoteConFilasImportacionContable {
+  lote: LoteImportacionContable;
+  filas: FilaLoteImportacionContable[];
+}
+
 // DOC-004 3 — maquina de estados de Contrato: solo estas transiciones son validas, CORE rechaza
 // cualquier otra con 400 (ver core/src/entitlements/contrato.repository.ts,
 // TRANSICIONES_VALIDAS). Se repite acá solo para que la UI ofrezca botones con sentido, la
@@ -182,6 +238,56 @@ export interface SesionInventarioDetalle extends SesionInventario {
   escaneos: EscaneoInventario[];
 }
 
+// DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"). Passthrough del
+// contrato de CORE vía CIS (GET /inventarios/:id/control); refleja
+// cis/src/qr-connector/qr-connector.types.ts ResumenControl.
+export type TipoControlAft = 'ordinario' | 'extraordinario';
+export type VeredictoControl = 'exitoso' | 'aceptable' | 'defectuoso';
+
+export interface EscaneoControlAft {
+  codigoQr: string;
+  nombre: string | null;
+  tipo: TipoControlAft | null;
+  resultado: string;
+}
+
+export interface FueraDeAreaControlAft {
+  codigoQr: string;
+  nombre: string | null;
+  tipo: TipoControlAft | null;
+  areaRealNombre: string | null;
+}
+
+export interface FaltanteControlAft {
+  codigoQr: string;
+  nombre: string;
+}
+
+export interface ResumenControlArea {
+  sesionId: string;
+  organizacionId: string;
+  areaId: string;
+  ubicacionId: string;
+  operadorId: string;
+  fechaInicio: string;
+  fechaCierre: string;
+  estado: string;
+  escaneados: number;
+  delArea: number;
+  activosDelArea: number;
+  delAreaPct: number;
+  porEstadoDeclarado: {
+    enServicio: number;
+    enMantenimiento: number;
+    inactivo: number;
+    baja: number;
+  };
+  escaneadosLista: EscaneoControlAft[];
+  fueraDeArea: FueraDeAreaControlAft[];
+  faltantes: FaltanteControlAft[];
+  veredicto: VeredictoControl;
+}
+
 // RF-06 — sin organizacionId (ver core/src/auditoria/auditoria.types.ts): la tabla audita
 // cualquier operacion del ecosistema, no solo las de una organizacion.
 export interface AuditoriaEntrada {
@@ -193,6 +299,8 @@ export interface AuditoriaEntrada {
   operacion: string;
   resultado: string;
   observaciones: string | null;
+  // DOC-029 RF-E — área operativa del actor (null si la operación no es sobre un área concreta).
+  areaOperativa: string | null;
 }
 
 // RF-06 — filtros de GET /admin/auditoria (cierra el gap: el requisito pedia "filtrable por
@@ -204,6 +312,8 @@ export interface AuditoriaFiltro {
   operacion?: string;
   fechaDesde?: string;
   fechaHasta?: string;
+  // DOC-029 RF-E — filtro parcial por área operativa (lo usa el deep-link de RF-D D.2).
+  area?: string;
 }
 
 // RF-05 — Area/Ubicacion/Responsable (DOC-005 2/3).
@@ -482,6 +592,57 @@ export const cisClient = {
     return (await res.json()) as ResultadoImportacionContable;
   },
 
+  // DOC-029 RF-B — bandeja de staging. El ETL crea los lotes (POST .../lote); la UI solo lista,
+  // revisa y aprueba/rechaza. La aprobación va con el JWT real del Profesional de AFT — CORE
+  // re-verifica el rol y audita bajo su identidad, no la sintética de la ingesta.
+  async listarLotesImportacionContable(
+    organizacionId: string,
+    estado?: EstadoLoteImportacion,
+  ): Promise<LoteImportacionContable[]> {
+    const params = new URLSearchParams({ organizacionId });
+    if (estado) params.set('estado', estado);
+    const res = await authorizedFetch(
+      `/admin/importaciones/contable/lote?${params.toString()}`,
+    );
+    return (await res.json()) as LoteImportacionContable[];
+  },
+
+  async obtenerLoteImportacionContable(
+    id: string,
+  ): Promise<LoteConFilasImportacionContable> {
+    const res = await authorizedFetch(
+      `/admin/importaciones/contable/lote/${encodeURIComponent(id)}`,
+    );
+    return (await res.json()) as LoteConFilasImportacionContable;
+  },
+
+  async aprobarLoteImportacionContable(
+    id: string,
+    organizacionId: string,
+  ): Promise<ResultadoImportacionContable> {
+    const res = await authorizedFetch(
+      `/admin/importaciones/contable/lote/${encodeURIComponent(id)}/aprobar`,
+      { method: 'POST', body: JSON.stringify({ organizacionId }) },
+    );
+    return (await res.json()) as ResultadoImportacionContable;
+  },
+
+  async rechazarLoteImportacionContable(
+    id: string,
+    organizacionId: string,
+    motivo?: string,
+  ): Promise<void> {
+    await authorizedFetch(
+      `/admin/importaciones/contable/lote/${encodeURIComponent(id)}/rechazar`,
+      {
+        method: 'POST',
+        body: JSON.stringify(
+          motivo ? { organizacionId, motivo } : { organizacionId },
+        ),
+      },
+    );
+  },
+
   // RNF-01 — CIS/CORE paginan (`{ contratos, total }`, default 20/tope 100). WEB no tiene UI de
   // paginacion (fuera de alcance, ningun RF la pide) — pide el tope de pagina (100) para no perder
   // filas silenciosamente mientras el volumen de datos se mantenga bajo esa cota.
@@ -526,6 +687,14 @@ export const cisClient = {
     return (await res.json()) as SesionInventarioDetalle;
   },
 
+  // DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"), vía el puente de CIS.
+  async getInventarioResumenControl(id: string): Promise<ResumenControlArea> {
+    const res = await authorizedFetch(
+      `/inventarios/${encodeURIComponent(id)}/control`,
+    );
+    return (await res.json()) as ResumenControlArea;
+  },
+
   // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.
   async getAuditoria(filtro: AuditoriaFiltro): Promise<AuditoriaEntrada[]> {
     const params = new URLSearchParams({ limit: '100' });
@@ -533,6 +702,7 @@ export const cisClient = {
     if (filtro.operacion) params.set('operacion', filtro.operacion);
     if (filtro.fechaDesde) params.set('fechaDesde', filtro.fechaDesde);
     if (filtro.fechaHasta) params.set('fechaHasta', filtro.fechaHasta);
+    if (filtro.area) params.set('area', filtro.area);
     const res = await authorizedFetch(`/admin/auditoria?${params.toString()}`);
     const data = (await res.json()) as {
       entradas: AuditoriaEntrada[];

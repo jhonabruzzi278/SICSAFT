@@ -12,6 +12,7 @@ vi.mock("electron", () => ({
 }));
 
 import {
+  actualizarCarpetaIngestaInstalacion,
   actualizarIpLanInstalacion,
   leerInstalacionExistente,
   marcarInstalacionCompleta,
@@ -46,6 +47,23 @@ describe("instalacion-marker", () => {
       ipLan: "192.168.1.11",
     });
   });
+
+  // DOC-030 -- el `nivel` deja de estar horneado en `1`; el wizard lo elige (PasoDatosCliente) y
+  // el bootstrap lo pasa tal cual. asegurarServidoresPortales() lo lee de acá para servir el CCP
+  // en Nivel 1 (acotado) o Nivel 2 (completo).
+  test.each([1, 2] as const)(
+    "marcarInstalacionCompleta persiste nivel %i tal cual",
+    (nivel) => {
+      marcarInstalacionCompleta({
+        organizacionId: "muni-x",
+        clienteNombre: "Municipalidad X",
+        ipLan: "192.168.1.11",
+        nivel,
+      });
+
+      expect(leerInstalacionExistente()?.nivel).toBe(nivel);
+    },
+  );
 
   test("actualizarIpLanInstalacion reescribe solo la ipLan, deja el resto intacto", () => {
     marcarInstalacionCompleta({
@@ -86,5 +104,30 @@ describe("instalacion-marker", () => {
     expect(() => actualizarIpLanInstalacion("10.0.0.5")).toThrow(
       /sin instalación previa/,
     );
+  });
+
+  test("actualizarCarpetaIngestaInstalacion reescribe solo la carpetaIngesta, deja el resto intacto", () => {
+    marcarInstalacionCompleta({
+      organizacionId: "muni-x",
+      clienteNombre: "Municipalidad X",
+      ipLan: "192.168.1.11",
+      nivel: 1,
+    });
+
+    actualizarCarpetaIngestaInstalacion("D:\\SICSAFT\\ingesta");
+
+    expect(leerInstalacionExistente()).toEqual({
+      organizacionId: "muni-x",
+      clienteNombre: "Municipalidad X",
+      ipLan: "192.168.1.11",
+      nivel: 1,
+      carpetaIngesta: "D:\\SICSAFT\\ingesta",
+    });
+  });
+
+  test("actualizarCarpetaIngestaInstalacion tira si no hay instalación previa", () => {
+    expect(() =>
+      actualizarCarpetaIngestaInstalacion("D:\\SICSAFT\\ingesta"),
+    ).toThrow(/sin instalación previa/);
   });
 });

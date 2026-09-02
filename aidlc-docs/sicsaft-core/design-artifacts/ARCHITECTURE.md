@@ -120,8 +120,8 @@ acá el único cliente de Postgres es esta misma app, no hay superficie multi-te
 
 `sicsaft-core.exe` embebe `core/frontend` (Directivo) y `ccp` (Profesional de AFT) — `web_admin`
 (Administrador del Sistema) queda fuera de este incremento, no es un rol que esta app necesite
-embebido. `ccp` está clasificado Nivel 2 en DOC-025 §1 (el "web-aft" liviano de Nivel 1 sigue sin
-código) — excepción documentada explícitamente en DOC-025 §1 y en `REQUIREMENTS.md` CORE-RF-04:
+embebido. `ccp` está clasificado Nivel 2 en DOC-025 1 (el "web-aft" liviano de Nivel 1 sigue sin
+código) — excepción documentada explícitamente en DOC-025 1 y en `REQUIREMENTS.md` CORE-RF-04:
 se embebe igual, sin condicionarlo al nivel contratado, porque `ccp` ya existe y ya está probado
 de punta a punta.
 
@@ -178,7 +178,7 @@ todo es loopback, `http://` alcanza.
 > Todos los bugs reales encontrados cableando esto — SSO silencioso rechazando `loadURL`,
 > React StrictMode disparando dos flujos OIDC, la `WebContentsView` tapando el botón por
 > compositing, el `/health/ready` de Keycloak mintiendo — están en
-> [DOC-027](DOC-027-bitacora-bugs-reales.md) §F, con causa raíz y fix.
+> [DOC-027](DOC-027-bitacora-bugs-reales.md) F, con causa raíz y fix.
 
 ### La APK de Android — CORE-Q-01 reabierta (2026-08-27): no existe todavía
 

@@ -548,7 +548,7 @@ sistema hipotético" como algo a evitar hasta tener uno real identificado. El us
 avanzar el diseño igual, contra un formato CSV genérico (idéntico al de la importación manual de
 Fase 4) — ver
 [`aidlc-docs/integraciones/requirements/INTENT.md`](aidlc-docs/integraciones/requirements/INTENT.md)
-"Por qué ahora" y [DOC-016 §8](aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md#8-riesgo-aceptado-ver-intentmd).
+"Por qué ahora" y [DOC-016 8](aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md#8-riesgo-aceptado-ver-intentmd).
 
 **Ojo con la clasificación**: ~~`integraciones/README.md` marca todo el sistema como "fase
 tardía", y Tomo III 1.2 pone las integraciones en Etapa 5. Pero CON-CONTABILIDAD no es una
@@ -560,7 +560,7 @@ clasificación en `integraciones/README.md` cuando se llegue a esta fase.~~ **Co
 negociable de `CLAUDE.md`), sincronización idempotente, aislamiento de fallos y circuit breaker
 (WAF 4, heredado de `CoreClientService` ya existente), registro por integración vía el canal
 `POST /auditoria` ya implementado (decisión YAGNI, sin tabla `integraciones_registro` nueva —
-DOC-016 §5/§9). Diseño completo:
+DOC-016 5/9). Diseño completo:
 [DOC-016](aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md).
 
 **Confirmado por spec pptx**: "CORE debe tener siempre la base de datos ORIGINAL de los AFT según
@@ -574,7 +574,7 @@ ninguna sincronización elimina historial (invariante testeado).
 
 **Idea futura sin diseñar (anotada 2026-08-18, vision del usuario, no tomo)**: para cerrar los
 gaps de "documentación y fotografías" e "importaciones controladas desde archivos" (ver
-`seguridad/DOC-012-administrador-patrimonial.md` § "Cobertura real desde el CCP hoy"), el CCP
+`seguridad/DOC-012-administrador-patrimonial.md` "Cobertura real desde el CCP hoy"), el CCP
 podría alimentarse subiendo Excel/documentos a algo tipo bucket (S3 o equivalente), con un
 servicio de OCR sobre esos archivos, y CORE siempre como quien valida/confirma antes de tocar la
 BPI — coherente con la regla no negociable de `CLAUDE.md` (ningún bucket ni servicio de captura le
@@ -612,9 +612,9 @@ responder preguntas"): RF-11 a RF-17 de
 - Listado de activos sin verificar en el período (RF-11), ranking de áreas por incidencias
   concentradas (RF-12), activos con mayor frecuencia de cambio de responsable (RF-13) — activa el
   evento `cambio_responsable` que ya fluye por el outbox de CIP sin consumidor desde Fase 6
-  (`ARCHITECTURE.md` §3), ranking de ubicaciones por mayor cantidad de diferencias (RF-14).
+  (`ARCHITECTURE.md` 3), ranking de ubicaciones por mayor cantidad de diferencias (RF-14).
 - Score de riesgo por activo (RF-15) — fórmula simple, explicable y versionada (nunca un modelo
-  predictivo/ML, excluido explícitamente por WAF 9/Tomo III, ver DOC-026 §5).
+  predictivo/ML, excluido explícitamente por WAF 9/Tomo III, ver DOC-026 5).
 - Evolución del patrimonio en el tiempo (RF-16) — primer patrón de serie temporal de CIP (snapshot
   diario), distinto de los agregados "último valor" que existen desde Fase 6.
 - Vista "revisión sugerida" para el responsable patrimonial (RF-17) — consulta compuesta que
@@ -658,10 +658,11 @@ esta línea en
 |---|---|---|
 | ~~Paso "Profesional de AFT" del wizard~~ **Hecho (2026-08-28)** | `PasoProfesionalAft.tsx` es un formulario real (mismo patrón que `PasoDirector.tsx`) → handler IPC `altaProfesionalAft` → `crearUsuarioProfesionalAft` (rol `administrador-patrimonial`). La versión porteada del gap de `crearGrant()` quedó cerrada en `keycloak-bootstrap.ts` (role mapping (re)asignado siempre); el gap en `cis/src/keycloak-admin/` sigue abierto — otro deployable. | DOC-027 "Gaps abiertos" |
 | ~~Empaquetado final de los portales embebidos~~ **Hecho (2026-08-29, DOC-028 Fase A)** | `ccp`/`core-frontend` en `extraResources` de `electron-builder` (`static-portal-server.ts` ya distinguía `app.isPackaged`), y `scripts/prepack.cjs` (lo corren `pack`/`dist:win`) buildea el `dist/` de los 5 hermanos + corre `kc.bat build --db=postgres --health-enabled=true` si falta. `npm run dist:win` sin pasos manuales. | DOC-028 Fase A |
-| **Camino a "cliente final"** — plan de fases | [DOC-028](aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md): Fase A ✅ · Fase B (base patrimonial limpia + alta de la org del cliente por el wizard — la que falta para operar de verdad) · Fase C (recuperación guiada ante cambio de IP) · Fase D (la PWA de APP QR servida por el `.exe` + QR en la pantalla "listo") · Fase E (APK Android). | DOC-028 |
+| **Camino a "cliente final"** — plan de fases | [DOC-028](aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md): Fases **A/B/C/D ✅** (empaquetado, base patrimonial limpia + alta de la org por el wizard, recuperación guiada ante cambio de IP, PWA de APP QR servida por el `.exe`) · **Nivel 2 ✅** ([DOC-030](aidlc-docs/sicsaft-core/design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md), selector en el wizard) · **Fase F descartada** (admin remota — decisión del usuario, sin conexión al cliente) · Fase E (APK Android) pendiente. | DOC-028 / DOC-030 |
 | ADR-004 Fases 4-5 | `devops/local/` y `devops/prod/` siguen en Zitadel — migración pendiente (estado mixto con `cis/`, los portales y `devops/onprem/` ya en Keycloak). | commits ADR-004, `devops/README.md` |
 | APK Android — CORE-Q-01 (reabierta 2026-08-27) | No existe ninguna APK construida. Decidir si se construye dentro de este monorepo (tooling Capacitor nuevo) o afuera, y quién la mantiene. No bloquea Nivel 1 embebido. | `aidlc-docs/sicsaft-core/requirements/INTENT.md` |
-| Nivel 2/3 en `sicsaft-core.exe` — CORE-Q-03 | ¿Entran `ccp` completo (Nivel 2) y RFID (Nivel 3) al `.exe` con el mismo patrón de procesos embebidos, o Nivel 2/3 siguen necesitando el modelo Podman/servidor por su mayor carga? Sin resolver. | `INTENT.md` CORE-Q-03 |
+| ~~Nivel 2 en `sicsaft-core.exe`~~ **Resuelto (2026-09-02, DOC-030)** | Selector de Nivel 1/2 en el wizard (`PasoDatosCliente`), el `.exe` sirve el CCP completo en Nivel 2 con el mismo binario (`VITE_SICSAFT_NIVEL`). `web_admin/` **no** se embebe en ningún nivel → **DOC-028 Fase F (admin remota) descartada** (instalación autocontenida, sin conexión al cliente). | [DOC-030](aidlc-docs/sicsaft-core/design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md) |
+| Nivel 3 (RFID) en `sicsaft-core.exe` — CORE-Q-03 (parte RFID) | Sigue sin resolverse — no hay código `rfid/` que empaquetar. | `INTENT.md` CORE-Q-03 |
 | Deuda menor de SonarCloud en el código nuevo | props `readonly` (S6759) en los `Paso*.tsx`, `.find` vs `.filter` (S7750) en `lan-ip.ts`, `Write-Host` en `Bootstrap-Keycloak.psm1` (S8677) — code smells, no vulnerabilities, no bloquean el gate. | análisis SonarCloud PR #57 |
 
 ## Track paralelo: OPS (no es una fase, es continuo)

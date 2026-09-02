@@ -79,7 +79,7 @@ Igual que `devops/local/` — agregar al archivo hosts
 127.0.0.1 ccp.sicsaft.localhost
 ```
 
-(DOC-025 §1, rev. 2026-08-25: `admin` y `directivo` ya hacen falta desde Nivel 1 — solo `ccp` es
+(DOC-025 1, rev. 2026-08-25: `admin` y `directivo` ya hacen falta desde Nivel 1 — solo `ccp` es
 exclusivo de Nivel 2.)
 
 ### 2. Variables de entorno de este cliente
@@ -154,7 +154,7 @@ podman-compose --profile nivel2 up -d --build      # Nivel 2 (incluye Nivel 1 + 
   `devops/local/README.md` para cada portal).
 - APP QR (`http://qr.sicsaft.localhost`) loguea y sincroniza contra este CIS/CORE local.
 - `web-admin` y `core-frontend` levantan desde Nivel 1; `ccp` recién desde Nivel 2 — cada login
-  aterriza donde corresponde según el rol (DOC-025 §1, rev. 2026-08-25).
+  aterriza donde corresponde según el rol (DOC-025 1, rev. 2026-08-25).
 
 ### 7. Después de verificar
 

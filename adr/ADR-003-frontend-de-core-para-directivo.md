@@ -19,7 +19,7 @@ tres portales con login propio. El usuario del proyecto pidió explícitamente q
 Directivo viva dentro de la carpeta `core/` ("CORE va a estar conformado de backend y frontend"),
 no como un cuarto sistema top-level separado. Esto reabre la decisión de ADR-001 sobre qué
 sistemas tienen frontend, así que necesita su propio ADR en vez de simplemente contradecir el
-anterior en silencio (`CLAUDE.md` § "Decisiones de stack ya tomadas").
+anterior en silencio (`CLAUDE.md` "Decisiones de stack ya tomadas").
 
 ## Decision
 
@@ -36,7 +36,7 @@ a CORE directamente.**
   de autenticación OIDC/PKCE y el mismo cliente HTTP contra CIS que ya usan `ccp/`/`web_admin/`.
   Las capacidades nuevas que necesita (designar Profesional de AFT, gestionar roles de su
   organización) se implementan como endpoints nuevos en CIS
-  (`cis/src/directivo/`, DOC-022 §4) con un guard propio (`DirectivoGuard`) — mismo patrón ya
+  (`cis/src/directivo/`, DOC-022 4) con un guard propio (`DirectivoGuard`) — mismo patrón ya
   usado para Administrador del Sistema (`AdministradorSistemaGuard`, DOC-021): la escritura es
   gestión de identidad en Zitadel, no un cambio a la Base Patrimonial, así que no pasa por el
   Orquestador de CORE ni por el Motor de Auditoría de Tomo IV.
@@ -48,7 +48,7 @@ a CORE directamente.**
 
 - **Positivo**: la carpeta `core/` queda alineada con el pedido explícito del usuario
   ("CORE va a estar conformado de backend y frontend") sin abrir una brecha real en el modelo de
-  zero-trust de `ARQUITECTURA-WAF.md` §3 — el invariante "todo pasa por CIS" se verifica
+  zero-trust de `ARQUITECTURA-WAF.md` 3 — el invariante "todo pasa por CIS" se verifica
   literalmente igual que en `ccp/`/`web_admin/`, porque el frontend de `core/` es, en los hechos,
   un cliente más de CIS.
 - **Negativo/a vigilar**: el nombre "frontend de CORE" puede sugerir erróneamente que CORE ganó
@@ -57,7 +57,7 @@ a CORE directamente.**
   (saltándose CIS) necesita su propio ADR que reemplace este, no un commit silencioso.
 - Si en el futuro se agrega una cuarta superficie de escritura que si necesite pasar por el
   Orquestador/Motor de Auditoría de CORE (por ejemplo, si "valida" — capacidad del Directivo
-  dejada fuera de alcance en DOC-022 §6 — termina siendo una validación real sobre datos
+  dejada fuera de alcance en DOC-022 6 — termina siendo una validación real sobre datos
   patrimoniales), esa pieza específica sí seguiría el patrón CIS→CORE existente, no el atajo de
   `cis/src/directivo/`.
 

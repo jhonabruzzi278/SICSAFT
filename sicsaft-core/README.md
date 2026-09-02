@@ -114,6 +114,39 @@ y DOC-028 para el detalle real de cada uno, sin minimizar):
 - **La APK Android no existe todavía** — no hay una APK Capacitor construida (`CORE-Q-01`
   reabierta). El camino oficial es la PWA que sirve el `.exe` (DOC-028 Fase D); la APK es Fase E.
 
+**DOC-029 — endurecimiento para cliente real (stack local, sin merge a `main`)**
+([`aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md`](../aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md)) —
+lo que toca a `sicsaft-core`:
+
+- **RF-G — 3 bugs encontrados probando con el cliente real** (`fix/sicsaft-core-login-timeout-crash`,
+  `db268a1`): (1) crash del proceso `main` — el timeout de 60s del login hacía `.off()` sobre una
+  `WebContentsView` ya destruida (`portal-login-service.ts`), ahora con guard `isDestroyed()`;
+  (2) `<main>` del wizard con `items-center` recortaba la parte de arriba del paso "Instalación
+  completa" a pantalla completa (`WizardApp.tsx`, `[&>*]:m-auto`); (3) la vista embebida se
+  desalineaba al hacer scroll/reflow — se re-envían bounds en `resize`/`scroll` (`PasoListoConLogin.tsx`).
+- **RF-A — flag de nivel** (`feat/ccp-nivel-flag`): `asegurarServidoresPortales` inyecta
+  `VITE_SICSAFT_NIVEL` al `configRuntime` de `ccp` (mismo canal que la config OIDC de DOC-028 C.0);
+  `instalacion.json` gana `nivel` (default `1`).
+- **DOC-030 — selector de Nivel 1/2 en el wizard** (`feat/sicsaft-core-nivel-selector`): `PasoDatosCliente`
+  gana un radio "Nivel 1 / Nivel 2"; `bootstrapCliente` deja de hornear `nivel: 1`. En **Nivel 2**
+  el `.exe` sirve el CCP completo (Estructura, alta manual de Activos). **`web_admin/` (portal
+  Administración del Sistema) no se embebe en ningún nivel** — decisión del usuario (2026-09-02):
+  instalación autocontenida, sin canal de conexión del proveedor al cliente. Cierra la parte
+  Nivel 2 de `CORE-Q-03`; Nivel 3 (RFID) sigue abierta.
+- **RF-B.6.1 — selector de carpeta de ingesta de Excel** (`feat/ccp-ingesta-revision`, `707d732`):
+  el CCP embebido se sirve sin preload, así que el diálogo nativo va en el wizard del `.exe`.
+  IPC `elegir/leerCarpetaIngesta` (`dialog.showOpenDialog` con `openDirectory`/`createDirectory`),
+  persistido por `actualizarCarpetaIngestaInstalacion` (`instalacion-marker.ts`), expuesto al CCP
+  como `VITE_SICSAFT_CARPETA_INGESTA` (solo lectura). Componente `CarpetaIngesta.tsx` en el wizard.
+- **Pendiente (RF-B.6.2)**: watcher de la carpeta (`chokidar` → ETL Python → CIS) + service account
+  Keycloak `sicsaft-ingesta` (`client_credentials`) + empaquetado del sidecar Python
+  (`python-build-standalone` + venv `pandas`/`xlrd`) en `prepack.cjs` → `resources/etl-contable/`.
+  Necesita el stack levantado para validar el round-trip.
+- **RF-H (pendiente)** redefine el enfoque de la APK: **WebView Kotlin propia** en `apk-aft/`
+  servida por el mismo servidor estático del `.exe` + 2º QR — **no** el wrap Capacitor que
+  mencionan el Objetivo y "Fase E" arriba (ver DOC-029 H.1 para el porqué: un TWA con cert propio
+  en IP de LAN no carga). `CORE-Q-01` sigue reabierta hasta construirla.
+
 ## Depende de
 
 `cis/`, `core/`, `cip/`, `web_admin/`, `core/frontend/` (código de aplicación reusado tal cual) y

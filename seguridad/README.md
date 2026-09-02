@@ -121,7 +121,7 @@ para cada uno). **Excepción — `sicsaft-core.exe`** (CORE-RF-04): la app de es
 y `core/frontend` detrás de **un** login embebido (el formulario real de Keycloak en una
 `WebContentsView`) que lee `realm_access.roles` del JWT y muestra el portal que corresponde —
 sigue siendo un token por portal, pero el operador tipea sus credenciales una sola vez. `web_admin`
-no se embebe. Ver [DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) §F.
+no se embebe. Ver [DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) F.
 
 ## Capacidades previstas
 Autenticación, refresh/expiración de sesión, RBAC, segregación por organización, segregación

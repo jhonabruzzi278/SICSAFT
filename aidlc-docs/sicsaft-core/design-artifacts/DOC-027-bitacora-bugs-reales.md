@@ -534,7 +534,7 @@ migrados → wizard completo: cliente → Director → Profesional de AFT) apare
   (ver el commit citado en cada uno). CI en verde.
 - **BUG-26 a BUG-44** — mergeados a `main` en el PR #57 (CORE-RF-04 + endurecimiento de
   OIDC/Keycloak + los 4 fixes de seguridad de SonarCloud del 2026-08-28).
-- **BUG-45** (§G) — regresión introducida por el fix de S7044 en el PR #57, encontrada
+- **BUG-45** (G) — regresión introducida por el fix de S7044 en el PR #57, encontrada
   verificando el wizard real; corregida aparte.
 
 ## Gaps abiertos, no bugs
@@ -553,7 +553,7 @@ migrados → wizard completo: cliente → Director → Profesional de AFT) apare
   copiarlos junto a `cis`/`core`/`cip` (ver `package.json` `"build"`). Además, esos `dist/` traen
   `VITE_KEYCLOAK_ISSUER` (y variables viejas) **horneadas en el bundle** con la IP de LAN de
   cuando se corrió su `npm run build` — el login embebido apunta a una IP muerta si esa red
-  cambió (visto en la verificación de §G). Hace falta rebuildear los portales con la URL de
+  cambió (visto en la verificación de G). Hace falta rebuildear los portales con la URL de
   Keycloak de runtime, o inyectarla al servir el `dist/`.
 
 ## Documentos relacionados

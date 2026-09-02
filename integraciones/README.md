@@ -31,7 +31,7 @@ y el diseño real en
 ## Registro esperado por integración
 fecha, origen, destino, estado, resultado, errores, correlationId. Para `CON-CONTABILIDAD` esto
 se resuelve reusando el canal `POST /auditoria` ya existente, no una tabla nueva — decisión YAGNI
-documentada en DOC-016 §5/§9 (revisar si un futuro conector necesita más detalle del que
+documentada en DOC-016 5/9 (revisar si un futuro conector necesita más detalle del que
 `auditoria` puede dar).
 
 ## Depende de
@@ -47,6 +47,6 @@ Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 4 (circuit breaker por integra
 una caída de ERP/BI nunca bloquea el flujo interno Captura → CIS → CORE → Base Patrimonial).
 
 ## Próximo paso sugerido
-Implementar `cis/src/importacion-contable-conector/` según DOC-016 §2–§7. El resto de
+Implementar `cis/src/importacion-contable-conector/` según DOC-016 2–7. El resto de
 conectores (CON-ERP, CON-RRHH, CON-EMAIL, CON-POWERBI, CON-RFID, CON-API) sigue sin arrancar —
 priorizar según qué integración pida primero el negocio.

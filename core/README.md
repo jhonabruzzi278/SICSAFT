@@ -47,6 +47,13 @@ logging estructurado que lo use (WAF 2, pendiente).
   `../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md` y
   `seguridad/DOC-012-administrador-patrimonial.md` 5.1.
 - `GET /inventarios/:id/estado`.
+- `GET /inventarios/:id/control` (DOC-029 RF-I, "Pantalla 8") — informe de control de área de una
+  sesión: escaneados, del-área (n + %), desglose por estado declarado, lista de escaneados con
+  tipo `ordinario`/`extraordinario` (según `catalogo_activos.tecnologia_identificacion`),
+  fuera-de-área con su área real, faltantes, y el veredicto (`exitoso`/`aceptable`/`defectuoso`,
+  regla pura `src/inventarios/veredicto.ts` = `cip/src/agregacion/veredicto.ts`). `estado_declarado`
+  y `baja_sugerida_motivo` se persisten ahora por escaneo (migración `1756100000000`) además de
+  aplicarse como transición/evento. Sin backend nuevo del lado de CIS/APP QR — RF-I capa CORE.
 
 Verificado igual que el resto del sistema: unit (100% stmts/lines/funcs, 90%+ branches), e2e
 nuevo (`test/inventarios.e2e-spec.ts`) contra Postgres real, `docker build`/`docker run` real con
@@ -65,7 +72,15 @@ auditado. `ActivoRepository` cruza la organización del payload contra la organi
 activo objetivo antes de escribir (defensa en profundidad, 404 si no coincide) — corrige un
 hallazgo real de revisión de seguridad encontrado durante este mismo incremento. Se suman
 `POST /importaciones/contable` (`src/patrimonial/importacion-contable.*` — idempotente por fila,
-nunca sobrescribe ni elimina, DOC-012 6) y `POST /contratos` + `PATCH /contratos/:id`
+nunca sobrescribe ni elimina, DOC-012 6), la **bandeja de staging** de la ingesta de Excel
+supervisada (DOC-029 RF-B — `src/patrimonial/importacion-contable-lote.*`: `POST
+/importaciones/contable/lote` crea un lote en `pendiente_revision` con el dry-run por fila **sin
+tocar la Base Patrimonial**; `GET /importaciones/contable/lote[?estado]` + `/lote/:id` para revisar;
+`POST /lote/:id/aprobar` **resuelve-o-crea** área/responsable/catálogo por nombre
+(`ResolvedorImportacionService`, bajo la identidad del AFT que aprueba) y ejecuta la importación
+real reusando `ImportacionContableService.procesar`; `POST /lote/:id/rechazar` la cierra sin efecto
+— tablas `importacion_contable_lote(_fila)`, migración `1756000000000`) y `POST /contratos` +
+`PATCH /contratos/:id`
 (`src/entitlements/contrato-escritura.controller.ts` + `escritura-contrato.service.ts` — valida el
 invariante DOC-004 4 y la máquina de estados DOC-004 3, DOC-012 7; la escritura de `Contrato`
 corre en una transacción real vía `pool.connect()` porque un e2e contra Postgres real encontró que
@@ -109,6 +124,13 @@ exacto casi nunca matchearía) y `fechaDesde`/`fechaHasta` (rango inclusive sobr
 `ActivoRepository.findCatalogo`. El requisito original (`../aidlc-docs/ccp/requirements/`) pedía
 auditoría "filtrable por usuario/fecha/operación" — el primer incremento solo devolvía el listado
 sin filtro alguno; este cierra ese gap.
+
+**`auditoria.area_operativa` + filtro `?area=` (DOC-029 RF-E, migración `1756200000000`)**: columna
+nullable con el **área operativa del actor**. Se puebla hoy desde `POST /inventarios` (una acción
+de control ES sobre un área — `payload.areaId`, ver `OrquestadorService.procesarInventario`); las
+escrituras patrimoniales genéricas y el histórico quedan en `null` hasta que CIS propague el claim
+de Keycloak (RF-E E.3). `GET /auditoria?area=` filtra parcial (`ILIKE`), igual que
+`usuario`/`operacion` — lo usa el deep-link del CCP desde una sesión de control.
 
 **Módulo `src/estructura/` — Área/Ubicación/Responsable (2026-08-14, para Fase 5/WEB, RF-05)**:
 último módulo del MVP de WEB, el único sin ningún endpoint previo. `AreaRepository`/

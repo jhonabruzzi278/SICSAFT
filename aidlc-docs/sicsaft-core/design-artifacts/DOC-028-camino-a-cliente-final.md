@@ -191,5 +191,10 @@ propio `aidlc-docs/`.
       verificado E2E.
 - [x] El Profesional de AFT entra a la APP QR escaneando un QR de la pantalla del `.exe`, sin
       comandos (Fase D).
+- [x] **Nivel 2 (CCP completo)**: el vendedor lo elige en el wizard
+      ([DOC-030](DOC-030-nivel-2-en-sicsaft-core-exe.md)) — el `.exe` deja de estar limitado a
+      Nivel 1. Sin `web_admin/` embebido ni portal de administración remota (decisión del usuario
+      2026-09-02): **Fase F queda descartada** — cualquier soporte post-instalación es presencial o
+      por un paquete que el cliente envía, no un canal abierto a su PC.
 - [ ] APK Android: decidida (construida, o explícitamente diferida con la PWA como camino
       oficial) (Fase E).

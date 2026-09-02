@@ -2,6 +2,7 @@ import {
   actualizarAreaSchema,
   actualizarCondicionesContratoSchema,
   actualizarUbicacionSchema,
+  crearLoteImportacionContableSchema,
 } from './administrador.schemas';
 
 const ENVOLTORIO = { organizacionId: 'duoc-uc' };
@@ -115,6 +116,40 @@ describe('actualizarCondicionesContratoSchema', () => {
   it('rechaza el envoltorio sin ningun campo editable', () => {
     expect(
       actualizarCondicionesContratoSchema.safeParse(ENVOLTORIO).success,
+    ).toBe(false);
+  });
+});
+
+// DOC-029 RF-B — el refine "cada fila necesita catalogoId o categoriaNombre" solo se ejecuta al
+// parsear el body (ZodValidationPipe), invisible en los specs de controller/service.
+describe('crearLoteImportacionContableSchema', () => {
+  const base = { organizacionId: 'duoc-uc', origen: 'carpeta' as const };
+  const fila = { linea: 1, codigoPatrimonial: 'DG-001', codigoQr: 'DG-001' };
+
+  it('acepta una fila con catalogoId', () => {
+    expect(
+      crearLoteImportacionContableSchema.safeParse({
+        ...base,
+        filas: [{ ...fila, catalogoId: 'cat-1' }],
+      }).success,
+    ).toBe(true);
+  });
+
+  it('acepta una fila con categoriaNombre en vez de catalogoId', () => {
+    expect(
+      crearLoteImportacionContableSchema.safeParse({
+        ...base,
+        filas: [{ ...fila, categoriaNombre: 'MOBILIARIO' }],
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rechaza una fila sin catalogoId ni categoriaNombre', () => {
+    expect(
+      crearLoteImportacionContableSchema.safeParse({
+        ...base,
+        filas: [fila],
+      }).success,
     ).toBe(false);
   });
 });

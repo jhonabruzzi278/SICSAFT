@@ -31,6 +31,12 @@ test('el veredicto es exitoso cuando no falta nada y nada aparece fuera de área
 
   await expect(page.locator('[data-testid="report-verdict"]')).toHaveText('Exitoso');
   await expect(page.locator('[data-testid="report-verdict"]')).toHaveAttribute('data-verdict', 'exitoso');
+
+  // DOC-029 RF-I / CONTRATO-PANTALLA-8 — bloques 2 y 4 del informe de control de área.
+  await expect(page.locator('[data-testid="report-area-pct"]')).toHaveText('100 %');
+  const escaneados = page.locator('[data-testid="report-scanned-list"] li');
+  await expect(escaneados).toHaveCount(4);
+  await expect(escaneados.first()).toContainText('ORDINARIO');
 });
 
 test('el veredicto es aceptable cuando falta un activo pero nada aparece fuera de área', async ({ page }) => {
@@ -69,6 +75,13 @@ test('declarar mantenimiento en un activo y confirmar el envío no rompe el fluj
   await expect(page.locator('[data-testid="estado-declarado-select"]')).toHaveValue('mantenimiento');
 
   await page.click('[data-testid="finish-btn"]');
+
+  // DOC-029 RF-I / CONTRATO-PANTALLA-8 — bloque 3: el estado declarado por el controlador
+  // aparece en el desglose del informe (EN MANTENIMIENTO = 1).
+  const desglose = page.locator('[data-testid="report-estado-declarado"]');
+  await expect(desglose).toContainText('EN MANTENIMIENTO');
+  await expect(desglose).toContainText('1');
+
   await page.click('[data-testid="confirm-send-btn"]');
   await expect(page.locator('[data-testid="confirm-send-btn"]')).toHaveText('Enviado ✔');
 });

@@ -30,6 +30,7 @@ describe('InventariosController', () => {
             obtenerEstado: jest.fn(),
             listarSesiones: jest.fn(),
             obtenerDetalle: jest.fn(),
+            obtenerResumenControl: jest.fn(),
           },
         },
       ],
@@ -129,5 +130,40 @@ describe('InventariosController', () => {
       controller.getInventarioDetalle({ id: 'sesion-1' }),
     ).resolves.toBe(expected);
     expect(inventariosService.obtenerDetalle).toHaveBeenCalledWith('sesion-1');
+  });
+
+  it('getInventarioResumenControl delega en InventariosService con el id (RF-I)', async () => {
+    const expected = {
+      sesionId: 'sesion-1',
+      organizacionId: 'duoc-uc',
+      areaId: 'area-biblioteca',
+      ubicacionId: 'ubicacion-biblioteca-101',
+      operadorId: 'op-1',
+      fechaInicio: '2026-01-15T10:00:00.000Z',
+      fechaCierre: '2026-01-15T10:30:00.000Z',
+      estado: 'recibido' as const,
+      escaneados: 0,
+      delArea: 0,
+      activosDelArea: 0,
+      delAreaPct: 0,
+      porEstadoDeclarado: {
+        enServicio: 0,
+        enMantenimiento: 0,
+        inactivo: 0,
+        baja: 0,
+      },
+      escaneadosLista: [],
+      fueraDeArea: [],
+      faltantes: [],
+      veredicto: 'exitoso' as const,
+    };
+    inventariosService.obtenerResumenControl.mockResolvedValue(expected);
+
+    await expect(
+      controller.getInventarioResumenControl({ id: 'sesion-1' }),
+    ).resolves.toBe(expected);
+    expect(inventariosService.obtenerResumenControl).toHaveBeenCalledWith(
+      'sesion-1',
+    );
   });
 });

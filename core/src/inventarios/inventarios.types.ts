@@ -59,3 +59,23 @@ export type {
   SesionResumen,
   SesionDetalle,
 } from './sesion-inventario.repository';
+
+import type { ResumenControlSesion } from './sesion-inventario.repository';
+import type { Veredicto } from './veredicto';
+
+export type {
+  ResumenControlSesion,
+  EscaneoControl,
+  FueraDeAreaControl,
+  FaltanteControl,
+  PorEstadoDeclarado,
+  TipoControl,
+} from './sesion-inventario.repository';
+export type { Veredicto } from './veredicto';
+
+// DOC-029 RF-I — respuesta de GET /inventarios/:id/control: la agregación cruda + el % del área
+// y el veredicto (regla pura DOC-017 2).
+export interface ResumenControlResponse extends ResumenControlSesion {
+  delAreaPct: number;
+  veredicto: Veredicto;
+}

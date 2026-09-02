@@ -31,6 +31,10 @@ import {
   documentosActivoResponseSchema,
   entitlementsResponseSchema,
   importacionContableResponseSchema,
+  crearLoteImportacionContableResponseSchema,
+  lotesImportacionContableResponseSchema,
+  loteConFilasImportacionContableResponseSchema,
+  rechazoLoteImportacionContableResponseSchema,
   indicadoresResponseSchema,
   inventarioEstadoResponseSchema,
   organizacionResponseSchema,
@@ -38,6 +42,7 @@ import {
   postInventarioResponseSchema,
   responsableResponseSchema,
   responsablesPaginaResponseSchema,
+  resumenControlResponseSchema,
   sedeResponseSchema,
   sedesResponseSchema,
   sesionDetalleResponseSchema,
@@ -78,6 +83,13 @@ import {
   type PostContratoRequest,
   type PostDocumentoActivoRequest,
   type PostImportacionContableRequest,
+  type PostLoteImportacionContableRequest,
+  type AprobarLoteImportacionContableRequest,
+  type RechazarLoteImportacionContableRequest,
+  type CrearLoteImportacionContableResult,
+  type LoteImportacionContableResult,
+  type LoteConFilasImportacionContableResult,
+  type RechazoLoteImportacionContableResult,
   type PostInventarioResult,
   type PostOrganizacionRequest,
   type PostResponsableRequest,
@@ -85,6 +97,7 @@ import {
   type PostUbicacionRequest,
   type ResponsableResult,
   type ResponsablesPaginaResult,
+  type ResumenControlResult,
   type SedeResult,
   type SesionDetalleResult,
   type SesionResumenResult,
@@ -395,6 +408,94 @@ export class CoreClientService {
     );
   }
 
+  // DOC-029 RF-B — bandeja de staging. crear/aprobar/rechazar son escrituras oficiales (CORE
+  // verifica el rol desde rolesPorOrganizacion y audita); listar/obtener son lecturas.
+  async postLoteImportacionContable(
+    request: PostLoteImportacionContableRequest,
+    correlationId: string,
+  ): Promise<CrearLoteImportacionContableResult> {
+    const data = await this.post(
+      '/importaciones/contable/lote',
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403] },
+    );
+    return this.parse(
+      crearLoteImportacionContableResponseSchema,
+      data,
+      'importaciones/contable/lote',
+    );
+  }
+
+  async getLotesImportacionContable(
+    organizacionId: string,
+    estado: string | undefined,
+    correlationId: string,
+  ): Promise<LoteImportacionContableResult[]> {
+    const data = await this.get(
+      '/importaciones/contable/lote',
+      { organizacionId, estado },
+      correlationId,
+    );
+    return this.parse(
+      lotesImportacionContableResponseSchema,
+      data,
+      'importaciones/contable/lote',
+    );
+  }
+
+  async getLoteImportacionContable(
+    loteId: string,
+    correlationId: string,
+  ): Promise<LoteConFilasImportacionContableResult> {
+    const data = await this.get(
+      `/importaciones/contable/lote/${encodeURIComponent(loteId)}`,
+      undefined,
+      correlationId,
+    );
+    return this.parse(
+      loteConFilasImportacionContableResponseSchema,
+      data,
+      'importaciones/contable/lote/:id',
+    );
+  }
+
+  async postAprobarLoteImportacionContable(
+    loteId: string,
+    request: AprobarLoteImportacionContableRequest,
+    correlationId: string,
+  ): Promise<ImportacionContableResult> {
+    const data = await this.post(
+      `/importaciones/contable/lote/${encodeURIComponent(loteId)}/aprobar`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 404, 409] },
+    );
+    return this.parse(
+      importacionContableResponseSchema,
+      data,
+      'importaciones/contable/lote/:id/aprobar',
+    );
+  }
+
+  async postRechazarLoteImportacionContable(
+    loteId: string,
+    request: RechazarLoteImportacionContableRequest,
+    correlationId: string,
+  ): Promise<RechazoLoteImportacionContableResult> {
+    const data = await this.post(
+      `/importaciones/contable/lote/${encodeURIComponent(loteId)}/rechazar`,
+      request,
+      correlationId,
+      { passthroughStatuses: [400, 403, 404, 409] },
+    );
+    return this.parse(
+      rechazoLoteImportacionContableResponseSchema,
+      data,
+      'importaciones/contable/lote/:id/rechazar',
+    );
+  }
+
   // DOC-012 4/7 — GET /contratos es lectura abierta (mismo criterio que getCatalogo), sin
   // passthroughStatuses especiales: no hay 403 posible en este endpoint (CORE no exige el rol
   // para leer). Paginado (RNF-01, cierra el gap).
@@ -497,6 +598,24 @@ export class CoreClientService {
     return this.parse(sesionDetalleResponseSchema, data, 'inventarios/detalle');
   }
 
+  // DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"). Lectura abierta,
+  // mismo criterio que getInventarioDetalle.
+  async getInventarioResumenControl(
+    inventarioId: string,
+    correlationId: string,
+  ): Promise<ResumenControlResult> {
+    const data = await this.get(
+      `/inventarios/${encodeURIComponent(inventarioId)}/control`,
+      undefined,
+      correlationId,
+    );
+    return this.parse(
+      resumenControlResponseSchema,
+      data,
+      'inventarios/control',
+    );
+  }
+
   // RF-06 (Fase 5, WEB) — lectura abierta, mismo criterio que getCatalogo/getContratos. Paginado
   // (RNF-01, cierra el gap).
   async getAuditoria(
@@ -510,6 +629,7 @@ export class CoreClientService {
         operacion: filtro.operacion,
         fechaDesde: filtro.fechaDesde,
         fechaHasta: filtro.fechaHasta,
+        area: filtro.area,
         limit: filtro.limit,
         offset: filtro.offset,
       },

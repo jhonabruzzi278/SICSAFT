@@ -40,23 +40,35 @@ export class ImportacionContableService {
     };
   }
 
+  // DOC-029 RF-B — dry-run de una fila: qué haría `procesar` con ella, sin escribir. Lo reusa la
+  // bandeja de staging (ImportacionContableLoteService) para mostrarle al revisor el efecto de
+  // aprobar un lote antes de tocar la Base Patrimonial.
+  async evaluarFila(
+    organizacionId: string,
+    fila: FilaImportacionContable,
+  ): Promise<'crear' | 'ya_importado' | 'conflicto'> {
+    const existente = await this.activoRepository.findByCodigoPatrimonial(
+      fila.codigoPatrimonial,
+    );
+    if (!existente) return 'crear';
+    // Reintentar la misma fila con el mismo contenido no duplica; una fila con codigoPatrimonial
+    // ya existente pero contenido distinto es conflicto, nunca sobrescribe en silencio (DOC-012 6)
+    // — y nunca se elimina (Tomo III 1.4 Entrada 5).
+    return this.mismoContenido(existente, fila, organizacionId)
+      ? 'ya_importado'
+      : 'conflicto';
+  }
+
   private async procesarFila(
     organizacionId: string,
     fila: FilaImportacionContable,
     operadorId: string,
   ): Promise<ResultadoFila> {
-    const existente = await this.activoRepository.findByCodigoPatrimonial(
-      fila.codigoPatrimonial,
-    );
-
-    if (!existente) {
+    const decision = await this.evaluarFila(organizacionId, fila);
+    if (decision === 'crear') {
       return this.crearFila(organizacionId, fila, operadorId);
     }
-
-    // Reintentar la misma fila con el mismo contenido no duplica; una fila con
-    // codigoPatrimonial ya existente pero contenido distinto se reporta como conflicto, nunca
-    // sobrescribe en silencio (DOC-012 6) — y nunca se elimina (Tomo III 1.4 Entrada 5).
-    if (this.mismoContenido(existente, fila, organizacionId)) {
+    if (decision === 'ya_importado') {
       return {
         codigoPatrimonial: fila.codigoPatrimonial,
         resultado: 'ya_importado',

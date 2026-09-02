@@ -41,6 +41,35 @@ describe('ResponsableRepository', () => {
     });
   });
 
+  describe('buscarPorNombre (DOC-029 RF-B)', () => {
+    it('cruza responsables por su área para matchear en la organización', async () => {
+      const pool = {
+        query: jest.fn().mockResolvedValue({ rows: [RESPONSABLE_ROW] }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new ResponsableRepository(pool);
+
+      const responsable = await repository.buscarPorNombre(
+        'duoc-uc',
+        'Ana Soto',
+      );
+
+      expect(responsable).toEqual(RESPONSABLE_ROW);
+      expect(pool.query).toHaveBeenCalledWith(
+        expect.stringContaining('JOIN areas'),
+        ['duoc-uc', 'Ana Soto'],
+      );
+    });
+
+    it('devuelve null si no hay match', async () => {
+      const pool = {
+        query: jest.fn().mockResolvedValue({ rows: [] }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new ResponsableRepository(pool);
+
+      expect(await repository.buscarPorNombre('duoc-uc', 'nadie')).toBeNull();
+    });
+  });
+
   describe('crear', () => {
     it('inserta y devuelve el responsable recien creado cuando el area pertenece a la organizacion', async () => {
       const pool = {

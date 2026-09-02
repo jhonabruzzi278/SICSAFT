@@ -17,6 +17,7 @@ const ENTRADAS: AuditoriaEntrada[] = [
     observaciones: null,
     categoria: 'patrimonial',
     organizacionId: null,
+    areaOperativa: 'area-biblioteca',
   },
 ];
 const PAGINA: AuditoriaPagina = { entradas: ENTRADAS, total: 1 };

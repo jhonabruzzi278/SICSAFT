@@ -15,8 +15,12 @@ de productos como herramienta aparte, fuera del flujo oficial.
    (correcto, otra área, otra ubicación, no registrado, código inválido, ya escaneado), con
    declaración opcional de estado operativo por activo (en servicio/mantenimiento/inactivo, sin
    rol especial — Tomo III 1.4) y "sugerir baja" (informativo, la ejecuta el Administrador
-   Patrimonial desde WEB) → incidencias → cierre con veredicto de sesión
-   (exitoso/aceptable/defectuoso) y lista de AFT fuera de área agrupada por su área real → cola de
+   Patrimonial desde WEB) → incidencias → cierre con el **informe de control de área**
+   ("Pantalla 8", DOC-029 RF-I / `../casos-de-uso/CONTRATO-PANTALLA-8.md`): escaneados, % del
+   área, desglose por estado declarado (EN SERVICIO / EN MANTENIMIENTO / INACTIVO / BAJA), lista
+   de AFT escaneados (ORDINARIO — la APP QR sólo lee etiqueta; EXTRAORDINARIO QR+RFID es Nivel 3 y
+   lo marca CORE en el CCP), AFT fuera de área agrupados por su área real, faltantes, y la
+   declaración del proceso (exitoso/aceptable/defectuoso) con fondo de color → cola de
    sincronización offline y registro de auditoría (Fase 3.1, ver
    `../aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-017-fase-3.1-brechas-flujo.md`).
 2. **Catálogo** (`/catalog`, fuera del flujo oficial): alta de productos y generación/impresión de

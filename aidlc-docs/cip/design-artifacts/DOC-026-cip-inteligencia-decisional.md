@@ -17,7 +17,7 @@ una noción de riesgo — ninguna de las tres existe hoy en `aidlc-docs/cip/desi
 |---|---|---|
 | ¿qué activos no han sido verificados? | RF-11 | Parcial — RF-01 da el % de cobertura, no el listado de cuáles |
 | ¿qué áreas concentran incidencias? | RF-12 | Parcial — RF-06 lista incidencias, sin `areaId` para agrupar/rankear |
-| ¿qué activos cambian frecuentemente de responsable? | RF-13 | El evento existe (`cambio_responsable`, DOC-005 §6) y ya fluye por el outbox hacia CIP, pero **sin consumidor** — ver `ARCHITECTURE.md` §3, fila "Ninguno todavía (YAGNI)" |
+| ¿qué activos cambian frecuentemente de responsable? | RF-13 | El evento existe (`cambio_responsable`, DOC-005 6) y ya fluye por el outbox hacia CIP, pero **sin consumidor** — ver `ARCHITECTURE.md` 3, fila "Ninguno todavía (YAGNI)" |
 | ¿qué ubicaciones presentan mayores diferencias? | RF-14 | Parcial — `ACTIVO_FUERA_DE_AREA` existe por activo, no agregado/rankeado por ubicación |
 | ¿qué activos generan mayor riesgo? | RF-15 | No existe — concepto nuevo |
 | ¿cómo evoluciona el patrimonio? | RF-16 | No existe — todos los agregados de hoy son "último valor", sin serie temporal |
@@ -30,7 +30,7 @@ El usuario listó los campos que debería tener un Activo (código patrimonial, 
 ubicación, área, responsable, estado, documentos, fotografía, último inventario, movimientos,
 incidencias, eventos, auditoría, historial) con un ejemplo concreto. Verificado contra
 [`base-patrimonial/DOC-005-modelo-patrimonial.md`](../../../base-patrimonial/DOC-005-modelo-patrimonial.md)
-§2 y la migración `documentos_activo`
+2 y la migración `documentos_activo`
 (`core/migrations/1755800000000_gaps-ccp-y-admin-sistema.ts`): **todos estos campos ya están
 modelados e implementados** — no genera ningún cambio de esquema en `ACTIVO`. Se deja anotado acá
 solo como confirmación explícita (mismo criterio de honestidad que el resto del repo: no declarar
@@ -38,7 +38,7 @@ solo como confirmación explícita (mismo criterio de honestidad que el resto de
 
 ## 3. Modelo de datos — agregados nuevos en la base `cip`
 
-Mismo criterio que `DOMAIN_MODEL.md` §2 (agregados/vistas, no una copia 1:1 de las tablas
+Mismo criterio que `DOMAIN_MODEL.md` 2 (agregados/vistas, no una copia 1:1 de las tablas
 transaccionales de CORE):
 
 ```mermaid
@@ -81,12 +81,12 @@ erDiagram
 ```
 
 `RIESGO_ACTIVO`, `HISTORIAL_RESPONSABLE_ACTIVO`, `INCIDENCIA_AREA_RESUMEN` y
-`DIFERENCIA_UBICACION` son "último valor" (mismo patrón que las 7 tablas de `DOMAIN_MODEL.md` §2).
-`EVOLUCION_PATRIMONIO_SNAPSHOT` es el primer agregado de **serie temporal** de CIP (ver §6). La
-vista "revisión sugerida" (RF-17, §7) no es tabla nueva — es una consulta compuesta sobre las de
+`DIFERENCIA_UBICACION` son "último valor" (mismo patrón que las 7 tablas de `DOMAIN_MODEL.md` 2).
+`EVOLUCION_PATRIMONIO_SNAPSHOT` es el primer agregado de **serie temporal** de CIP (ver 6). La
+vista "revisión sugerida" (RF-17, 7) no es tabla nueva — es una consulta compuesta sobre las de
 arriba.
 
-**`INCIDENCIA` (ya existente, `DOMAIN_MODEL.md` §2) gana `areaId`**: hoy solo tiene
+**`INCIDENCIA` (ya existente, `DOMAIN_MODEL.md` 2) gana `areaId`**: hoy solo tiene
 `codigoQr`/`organizacionId`, insuficiente para RF-12 (rankear por área). Se resuelve el
 `areaId` en el worker al momento de recalcular (misma fuente que ya usa para `ACTIVO_FUERA_DE_AREA`
 — el catálogo completo de la organización vía `GET /catalogo`), no requiere ningún endpoint nuevo
@@ -94,10 +94,10 @@ en CORE.
 
 ## 4. Fuente de los datos — sin endpoints nuevos en CORE
 
-Igual que el primer dashboard (`ARCHITECTURA.md` §1): el worker de CIP relee de CORE vía
+Igual que el primer dashboard (`ARCHITECTURA.md` 1): el worker de CIP relee de CORE vía
 `GET /catalogo`/`GET /inventarios/:id` (ya existentes), usando el evento como señal de qué
 recalcular. Ningún RF de este documento requiere un endpoint HTTP nuevo en CORE — `cambio_responsable`
-ya viaja en `eventos.detalle` (DOC-005 §6, `{responsableAnteriorId, responsableNuevoId}`), y
+ya viaja en `eventos.detalle` (DOC-005 6, `{responsableAnteriorId, responsableNuevoId}`), y
 `areaId`/ubicación ya están en `GET /catalogo`.
 
 ## 5. Score de riesgo (RF-15) — fórmula simple, explícita, versionada
@@ -125,7 +125,7 @@ de tener señal real).
 
 ## 6. Evolución del patrimonio (RF-16) — primer patrón de serie temporal en CIP
 
-Hasta este incremento, todos los agregados de CIP son "último valor" (`DOMAIN_MODEL.md` §2). Un
+Hasta este incremento, todos los agregados de CIP son "último valor" (`DOMAIN_MODEL.md` 2). Un
 snapshot diario (`EVOLUCION_PATRIMONIO_SNAPSHOT`, una fila por organización por día) es el primer
 caso que necesita conservar historia en vez de sobrescribir. Disparado por un job periódico del
 worker de CIP (no por un evento de CORE — es una foto del estado agregado en un momento, no una
@@ -146,28 +146,28 @@ distintas.
 
 - **Implementación real** (`cip/src/`) — este documento es Inception, la Construction es un
   incremento posterior, igual que DOC-014 → DOC-018.
-- **Modelo predictivo/ML para el riesgo** — excluido explícitamente, no solo diferido (RNF-06, §5).
+- **Modelo predictivo/ML para el riesgo** — excluido explícitamente, no solo diferido (RNF-06, 5).
 - **Motor de Alertas** sobre estos nuevos indicadores — sin consumidor real todavía, mismo criterio
   YAGNI que el primer dashboard (`INTENT.md`).
 - **Cálculo en tiempo real** de ninguno de RF-11 a RF-17 — mismo patrón asíncrono/batch que RF-01 a
   RF-10 (RNF-07).
-- **Retención/purga de `EVOLUCION_PATRIMONIO_SNAPSHOT`** — sin definir, ver §6.
+- **Retención/purga de `EVOLUCION_PATRIMONIO_SNAPSHOT`** — sin definir, ver 6.
 - **UI (React) de estas vistas** — Construction posterior, mismo criterio que el dashboard actual.
 
 ## Depende de
 [DOC-014](DOC-014-cip-dashboard.md)/[DOC-018](DOC-018-cip-servicio-nestjs.md) (arquitectura de
 ingesta ya construida — este incremento la reusa, no la reemplaza) y del evento
-`cambio_responsable` ya emitido por CORE desde DOC-005 §6 (Fase 1, ✅ implementado).
+`cambio_responsable` ya emitido por CORE desde DOC-005 6 (Fase 1, ✅ implementado).
 
 ## Bloquea
 Nada — es una extensión aditiva sobre agregados ya existentes.
 
 ## Documentos relacionados
 [`DOMAIN_MODEL.md`](DOMAIN_MODEL.md) — modelo consolidado del primer incremento, referenciado y
-extendido acá. [`ARCHITECTURE.md`](ARCHITECTURE.md) §3 — tabla de eventos que importan al agregado,
-extendida en §4 de este documento. [`ROADMAP.md`](../../../ROADMAP.md) Fase 9.
+extendido acá. [`ARCHITECTURE.md`](ARCHITECTURE.md) 3 — tabla de eventos que importan al agregado,
+extendida en 4 de este documento. [`ROADMAP.md`](../../../ROADMAP.md) Fase 9.
 
 ## Próximo paso sugerido
 Construction: implementar `cip/src/agregacion/` con los 5 recálculos nuevos, activar
-`cambio_responsable` en el dispatcher (`ARCHITECTURE.md` §3), y los endpoints de lectura
+`cambio_responsable` en el dispatcher (`ARCHITECTURE.md` 3), y los endpoints de lectura
 correspondientes en `DashboardModule` — mismo patrón que DOC-018.

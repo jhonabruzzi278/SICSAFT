@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { QrAppQr } from "../components/QrAppQr";
+import { CarpetaIngesta } from "../components/CarpetaIngesta";
 
 // CORE-RF-04 (alcance corregido 2026-08-28) -- el "cuadrado" acá es un placeholder vacío en el
 // DOM: la WebContentsView real vive fuera del DOM, el proceso principal la dibuja encima de este
@@ -83,14 +84,26 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
         });
     }
 
-    // ResizeObserver alcanza solo -- cubre tanto un resize de la ventana (el placeholder es
-    // "w-full", su ancho cambia con la ventana) como cualquier reflow del layout de arriba
-    // (mensaje de error apareciendo/desapareciendo, o el cambio de tamaño de acá mismo cuando
-    // portalCargado pasa a true).
+    // ResizeObserver cubre los cambios de TAMAÑO del placeholder. No cubre que el placeholder se
+    // TRASLADE sin cambiar de tamaño -- pasa a pantalla completa / en ventanas bajas, cuando el
+    // <main> del wizard es overflow-y-auto y el usuario scrollea, o cuando un reflow de arriba lo
+    // empuja. Sin re-enviar bounds en esos casos, la WebContentsView nativa (que el proceso
+    // principal dibuja según el último bounds) queda desalineada del cuadro que el usuario ve.
+    // Bug encontrado probando con cliente real 2026-08-31.
     const observer = new ResizeObserver(enviarBoundsResize);
     observer.observe(elemento);
+    window.addEventListener("resize", enviarBoundsResize);
+    window.addEventListener("scroll", enviarBoundsResize, true);
+    const reflowTardio1 = window.setTimeout(enviarBoundsResize, 120);
+    const reflowTardio2 = window.setTimeout(enviarBoundsResize, 500);
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", enviarBoundsResize);
+      window.removeEventListener("scroll", enviarBoundsResize, true);
+      window.clearTimeout(reflowTardio1);
+      window.clearTimeout(reflowTardio2);
+    };
   }, [intentoLogin]);
 
   // Achica de vuelta al cuadro chico (dispara el efecto de arriba, que va a mandar el bounds
@@ -142,6 +155,7 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
           desde el teléfono del Profesional de AFT.
         </p>
         <QrAppQr />
+        <CarpetaIngesta />
       </div>
       {error && !portalCargado && (
         <p className="text-sm text-[var(--destructive)]">
@@ -151,16 +165,17 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
       <div
         className={
           portalCargado
-            ? "flex w-full items-center justify-end border-b border-[var(--border)] bg-card px-4 py-1.5"
-            : "flex w-full justify-end"
+            ? "flex w-full items-center justify-between gap-4 border-b border-[var(--border)] bg-card px-4 py-1.5"
+            : "flex w-full items-center justify-end gap-4"
         }
       >
+        {portalCargado && <CarpetaIngesta compact />}
         <button
           type="button"
           onClick={cambiarUsuario}
           className={
             portalCargado
-              ? "text-xs text-[var(--muted-foreground)] hover:text-foreground"
+              ? "shrink-0 text-xs text-[var(--muted-foreground)] hover:text-foreground"
               : "text-sm font-medium text-[var(--muted-foreground)] underline underline-offset-4 hover:text-foreground"
           }
         >

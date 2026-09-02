@@ -14,7 +14,7 @@ incremento (ver ROADMAP.md Fase 7 "Ojo con la clasificación").
 
 ## Próximo paso sugerido
 
-Implementar `cis/src/importacion-contable-conector/` según DOC-016 §2–§7, con tests unitarios
-del parseo CSV y del armado de la identidad sintética (§5) — sin depender de un sistema contable
-real todavía (riesgo aceptado, DOC-016 §8). Actualizar `integraciones/README.md` y `cis/README.md`
+Implementar `cis/src/importacion-contable-conector/` según DOC-016 2–7, con tests unitarios
+del parseo CSV y del armado de la identidad sintética (5) — sin depender de un sistema contable
+real todavía (riesgo aceptado, DOC-016 8). Actualizar `integraciones/README.md` y `cis/README.md`
 en el mismo commit que el código, no antes (regla de `CLAUDE.md` "Documentación").

@@ -52,6 +52,7 @@ describe('Conector QR (e2e) — DOC-002 + auth Keycloak (ADR-004) + entitlements
     getInventarioEstado: jest.Mock;
     getInventarios: jest.Mock;
     getInventarioDetalle: jest.Mock;
+    getInventarioResumenControl: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -154,6 +155,48 @@ describe('Conector QR (e2e) — DOC-002 + auth Keycloak (ADR-004) + entitlements
           }),
         );
       }),
+      getInventarioResumenControl: jest
+        .fn()
+        .mockImplementation((id: string) => {
+          if (id === 'sesion-e2e-1') {
+            return Promise.resolve({
+              sesionId: 'sesion-e2e-1',
+              organizacionId: 'duoc-uc',
+              areaId: 'laboratorio-informatica',
+              ubicacionId: 'melipilla',
+              operadorId: 'op-1',
+              fechaInicio: '2026-08-12T10:00:00.000Z',
+              fechaCierre: '2026-08-12T11:00:00.000Z',
+              estado: 'recibido',
+              escaneados: 1,
+              delArea: 1,
+              activosDelArea: 2,
+              delAreaPct: 0.5,
+              porEstadoDeclarado: {
+                enServicio: 1,
+                enMantenimiento: 0,
+                inactivo: 0,
+                baja: 0,
+              },
+              escaneadosLista: [
+                {
+                  codigoQr: 'QR-0001',
+                  nombre: 'Dell Latitude',
+                  tipo: 'ordinario',
+                  resultado: 'correcto',
+                },
+              ],
+              fueraDeArea: [],
+              faltantes: [{ codigoQr: 'QR-0002', nombre: 'Proyector Epson' }],
+              veredicto: 'aceptable',
+            });
+          }
+          return Promise.reject(
+            new NotFoundException({
+              message: `No existe el inventario '${id}'`,
+            }),
+          );
+        }),
     };
 
     // ADR-005 — RateLimitGuard/DeviceRegistryService ya no dependen de un cliente externo (viven
@@ -356,6 +399,37 @@ describe('Conector QR (e2e) — DOC-002 + auth Keycloak (ADR-004) + entitlements
       .get('/inventarios/no-existe')
       .set('Authorization', `Bearer ${bearerToken}`)
       .expect(404);
+  });
+
+  it('GET /inventarios/:id/control (Pantalla 8, RF-I) devuelve el informe de control', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/inventarios/sesion-e2e-1/control')
+      .set('Authorization', `Bearer ${bearerToken}`)
+      .expect(200);
+
+    const control = res.body as {
+      sesionId: string;
+      delAreaPct: number;
+      veredicto: string;
+      faltantes: unknown[];
+    };
+    expect(control.sesionId).toBe('sesion-e2e-1');
+    expect(control.delAreaPct).toBe(0.5);
+    expect(control.veredicto).toBe('aceptable');
+    expect(control.faltantes).toHaveLength(1);
+  });
+
+  it('GET /inventarios/:id/control con id inexistente devuelve 404', async () => {
+    await request(app.getHttpServer())
+      .get('/inventarios/no-existe/control')
+      .set('Authorization', `Bearer ${bearerToken}`)
+      .expect(404);
+  });
+
+  it('GET /inventarios/:id/control sin Authorization devuelve 401', async () => {
+    await request(app.getHttpServer())
+      .get('/inventarios/sesion-e2e-1/control')
+      .expect(401);
   });
 
   it('devuelve 429 cuando el operador supera el limite de requests (RateLimitGuard, WAF 4)', async () => {
