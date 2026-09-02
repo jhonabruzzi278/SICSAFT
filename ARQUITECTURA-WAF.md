@@ -26,10 +26,11 @@ Referencia cruzada: [README.md](README.md) (índice de sistemas) ·
   histórica de los Activos Fijos Tangibles de la organización — identificación, ubicación,
   responsable, estado, documentos, eventos e historial. Es el concepto de negocio (el **qué**),
   no una tecnología.
-- **BPI / Base Patrimonial Central — Nivel 4**: la estructura tecnológica que materializa ese
-  concepto — almacena, relaciona y conserva la información ya validada (el **dónde**; alias ya
-  aclarado en 1.1). La BPI no decide si una operación está permitida: solo persiste lo que el
-  CORE ya validó.
+- **BPI — Base Patrimonial Inteligente — Nivel 4**: la estructura tecnológica que materializa ese
+  concepto — almacena, relaciona y conserva la información ya validada (el **dónde**). La BPI no
+  decide si una operación está permitida: solo persiste lo que el CORE ya validó. *Nombre
+  histórico: "Base Patrimonial Central", depreciado 2026-09-02 (ver
+  [NOMENCLATURA.md](NOMENCLATURA.md)).*
 - **SICSAFT CORE — Nivel 3**: gobierna qué operación puede tocar la BPI (usuario, permisos,
   reglas, estado) antes de persistir — ver Regla de modularidad, abajo.
 - **CIP — Nivel 5**: consume la BPI para convertir datos validados en indicadores y alertas (el

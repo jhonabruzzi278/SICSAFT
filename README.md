@@ -1,21 +1,25 @@
 # Ecosistema SICSAFT — índice de sistemas
 
 Programa compuesto por varios sistemas coordinados. Ninguna fuente de captura debe modificar la
-Base Patrimonial Central directamente — todo pasa por CIS → CORE.
+BPI (Base Patrimonial Inteligente) directamente — todo pasa por CIS → CORE.
 
 ```
-Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
+Fuentes de captura (APP SICSAFT/QR, CCP/WEB, RFID, ERP, ...)
         ↓
       CIS (interoperabilidad)
         ↓
     SICSAFT CORE (orquestador + motores)
         ↓
-  Base Patrimonial Central (fuente única de verdad)
+  BPI — Base Patrimonial Inteligente (fuente única de verdad)
         ↓
-      CIP (inteligencia / BI)
+      CIP (inteligencia patrimonial — Nivel 2)
         ↓
   Usuarios / Organización
 ```
+
+**Nomenclatura vigente** (Tomo IV): [NOMENCLATURA.md](NOMENCLATURA.md). "Base Patrimonial Central"
+está depreciada → **BPI**; niveles = **Modo Básico / Profesional / Enterprise**; el CCP está en
+todos los niveles; CIP entra en Nivel 2.
 
 Diagrama completo con los módulos internos de cada nivel:
 [ARQUITECTURA-WAF.md 1.1](ARQUITECTURA-WAF.md#11-diagrama-maestro-de-arquitectura-funcional).
@@ -27,7 +31,7 @@ Diagrama completo con los módulos internos de cada nivel:
 | SYS-01 | [`app-qr-sicsaft/`](app-qr-sicsaft) | APP QR SICSAFT (captura vía QR) | 🟢 En desarrollo activo — ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` |
 | SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🟢 Conector QR real, proxy delgado hacia CORE (DOC-002/DOC-006), auth real via Keycloak (ADR-004, reemplaza a ADR-002), circuit breaker + reintentos + rate limiting (WAF 4), `deviceId` enforced, CORS para APP QR/WEB, puente de escritura oficial para Administrador Patrimonial (DOC-012 5), CRUD completo contra Keycloak sin Console (editar organización, quitar rol, dar de baja usuario) + auditoría de identidad hacia CORE (DOC-024). **DOC-029 (stack local, sin merge):** puente de lote de ingesta contable, passthrough de `GET /inventarios/:id/control` (Pantalla 8) y de `?area=` en `GET /auditoria` |
 | SYS-03 | [`core/`](core) | SICSAFT CORE | 🟡 Orquestador + 4 motores (Patrimonial, Reglas, Eventos, Auditoría — Fase 2) + escritura oficial de Activo/Contrato/importación masiva (Fase 4, DOC-012) sobre Postgres real, CRUD completo de Organización/Sede/Contrato con `estado` bidireccional (nunca DELETE real, Tomo III 4.10) y auditoría de identidad (DOC-024) — resto de los 9 motores de `core/README.md` sin implementar. **DOC-029 (stack local, sin merge):** bandeja de staging de ingesta contable (resuelve-o-crea) + `GET /inventarios/:id/control` + `auditoria.area_operativa` + `inventarios.estado_declarado`/`baja_sugerida_motivo` |
-| SYS-04 | [`base-patrimonial/`](base-patrimonial) | Base Patrimonial Central | 🟡 Modelo de Organización/Contrato/Sede documentado e implementado en Postgres (DOC-004), con CRUD completo y `estado` bidireccional (DOC-024) — resto de los 11 dominios sin definir |
+| SYS-04 | [`base-patrimonial/`](base-patrimonial) | BPI — Base Patrimonial Inteligente (ex "Base Patrimonial Central") | 🟡 Modelo de Organización/Contrato/Sede documentado e implementado en Postgres (DOC-004), con CRUD completo y `estado` bidireccional (DOC-024) — resto de los 11 dominios sin definir |
 | SYS-05 | [`ccp/`](ccp) | CCP — Centro de Control Patrimonial (Portal WEB del Profesional de AFT) | 🟢 Los 6 módulos del MVP implementados — login OIDC/PKCE real + Activos/Contratos/Inventarios verificados de punta a punta contra Postgres real, Auditoría y Áreas/Ubicaciones/Responsables verificados con e2e de CORE/CIS. Exclusivo del rol `administrador-patrimonial` (DOC-022) — Administrador del Sistema y Directivo tienen sus propios portales, ver SYS-09/SYS-10. **DOC-029 (stack local, sin merge):** flag de nivel 1/2 (oculta gestión avanzada), módulo QR/Etiquetas (RF-F), revisión de lotes de ingesta de Excel (RF-B), Pantalla 8 en el Resumen (RF-I), Auditoría por área operativa con columna "Revisar" (RF-E) |
 | SYS-06 | [`cip/`](cip) | Centro de Inteligencia Patrimonial | 🟢 Primer dashboard (Fase 6): worker de agregación (`pg-boss`, ADR-005) + 8 endpoints de lectura sobre base propia, verificado real de punta a punta — sin frontend todavía |
 | SYS-07 | [`rfid/`](rfid) | RFID SICSAFT | 🔲 No iniciado (fase tardía) |
