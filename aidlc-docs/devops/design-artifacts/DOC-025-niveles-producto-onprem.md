@@ -15,6 +15,21 @@ Documento citable desde otros DOC-XXX del repo, mismo esquema que DOC-002/004/00
 > abajo sigue sin una sola línea de código y `ccp` ya existe, probado de punta a punta. Esta
 > excepción aplica **solo** a `sicsaft-core.exe` — el modelo de niveles de `devops/onprem/`
 > (Compose profiles) de este documento sigue sin cambios para ese camino de instalación.
+>
+> **Ampliación 2026-08-31/09-02 (`sicsaft-core.exe`)**:
+> [DOC-029](../../ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md) RF-A le puso al
+> `ccp` embebido un flag `VITE_SICSAFT_NIVEL` que en `1` **oculta** los módulos de gestión avanzada
+> (Estructura, alta manual de Activos), y [DOC-030](../../sicsaft-core/design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md)
+> hace que el vendedor elija **Nivel 1 o Nivel 2** en el wizard (persistido en `instalacion.json`,
+> inyectado al servir el portal). Así el `.exe` cubre los dos niveles con el mismo binario. Lo que
+> **no** entra al `.exe` en ningún nivel es **`web_admin/`** (portal Administración del Sistema) ni
+> ningún portal de administración remota: la instalación de escritorio es autocontenida, sin
+> canal de conexión del proveedor al cliente (por eso la Fase F de DOC-028 quedó descartada). En
+> ese camino, "administración web" de Nivel 2 se cubre con lo que crea el wizard + el portal
+> Directivo ("designar Profesional de AFT") + el módulo Estructura del CCP; cambios de
+> sedes/contrato son una operación asistida del proveedor, no un portal en la PC del cliente. El
+> modelo de perfiles Compose de `devops/onprem/` (que sí incluye `web_admin` desde Nivel 1) no
+> cambia.
 
 ## 1. Los 3 niveles (modelo de precios del usuario)
 

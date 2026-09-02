@@ -59,7 +59,7 @@
   <div class="frame">
     <p class="eyebrow">Deployment · SICSAFT · Nivel 2</p>
     <h1>Despliegue Nivel 2 — + CCP</h1>
-    <p class="subtitle">Con el perfil <code>nivel2</code> activo, <code>podman-compose</code> agrega un único contenedor más — <code>ccp</code> — detrás de Traefik; <code>web-admin</code> y <code>core-frontend</code> ya venían desde Nivel 1 (docker-compose.yml, rev. 2026-08-25).</p>
+    <p class="subtitle">Con el perfil <code>nivel2</code> activo, <code>podman-compose</code> agrega un único contenedor más — <code>ccp</code> — detrás de Traefik; <code>web-admin</code> y <code>core-frontend</code> ya venían desde Nivel 1 (docker-compose.yml, rev. 2026-08-25). <strong>Camino alternativo — <code>sicsaft-core.exe</code> (DOC-030):</strong> el mismo Nivel 2 sin Podman ni Traefik, el vendedor elige "Nivel 2" en el wizard y el <code>.exe</code> sirve el CCP completo; <code>web_admin</code> <strong>no</strong> se embebe en ese camino (instalación autocontenida, sin conexión del proveedor al cliente).</p>
 
     <svg viewBox="0 0 1000 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="n2-dep-title n2-dep-desc">
       <title id="n2-dep-title">Despliegue on-premise de SICSAFT Nivel 2</title>

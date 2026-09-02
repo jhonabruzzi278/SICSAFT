@@ -88,5 +88,11 @@ dominios locales" — lo reemplaza por una app nativa que no expone nada de eso 
   vigente.
 - **CORE-Q-03**: Nivel 2 (CCP) y Nivel 3 (RFID) — ¿entran a `sicsaft-core.exe` en incrementos
   futuros con el mismo patrón (procesos embebidos), o Nivel 2/3 siguen necesitando el modelo
-  Podman/servidor por su mayor carga? No se asume una respuesta — Nivel 1 es el alcance confirmado
-  de este incremento.
+  Podman/servidor por su mayor carga?
+  - **Nivel 2 — resuelto (2026-09-02, [DOC-030](../design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md))**:
+    sí, mismo patrón embebido. El `.exe` ya hornea `ccp/` completo; Nivel 2 = servirlo con el flag
+    `VITE_SICSAFT_NIVEL=2`, elegido por el vendedor en el wizard. **Sin `web_admin/` en ningún
+    nivel** — decisión del usuario: la instalación es autocontenida, ninguna vía de conexión del
+    proveedor al cliente (esto además descarta [DOC-028](../design-artifacts/DOC-028-camino-a-cliente-final.md)
+    Fase F, el portal de administración remota).
+  - **Nivel 3 (RFID) — sigue abierta**: no hay código `rfid/` que empaquetar (ver `ROADMAP.md`).

@@ -111,4 +111,7 @@ Nada de forma dura — `devops/onprem/` (Podman) sigue existiendo en paralelo de
    --health-enabled=true` como paso del empaquetado (hoy manual, ver `resources/README.md`).
 3. Decidir cuándo/cómo se construye la APK Android (`CORE-Q-01`, reabierta — no existe todavía) —
    incremento aparte, no bloqueante para lo de arriba.
-4. CORE-Q-03 (Nivel 2/3 en `sicsaft-core.exe`) sigue sin resolverse, fuera de alcance por ahora.
+4. CORE-Q-03 — **Nivel 2 resuelto (2026-09-02, [DOC-030](design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md))**:
+   selector de nivel en el wizard, el `.exe` sirve el CCP completo en Nivel 2 con el mismo binario;
+   `web_admin/` no se embebe en ningún nivel (instalación autocontenida, sin conexión al cliente —
+   descarta DOC-028 Fase F). **Nivel 3 (RFID)** sigue sin resolverse (sin código `rfid/`).
