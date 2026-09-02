@@ -668,7 +668,8 @@ próxima sesión):
 | **RF-E follow-up** — poblar `area_operativa` en las escrituras patrimoniales desde el claim de Keycloak (hoy solo lo puebla `POST /inventarios`) | continuación de RF-E | Documentado en `core/README.md` |
 | **Decisión pre-entrega** — rol Keycloak Supervisor Patrimonial / Auditor propio (hoy los cubre `administrador-patrimonial`) | `feat/rbac-supervisor-auditor` | **No opcional** si el pliego del cliente exige separación de funciones — ver Vacíos |
 | Armar el `gh stack`, abrir PRs, CI en verde, mergear en orden | — | Ver "Topología de ramas" arriba |
-| Regenerar el `.exe` (`npm run dist:win`), transferir al cliente, reserva DHCP | — | Después de mergear |
+| **Nivel 2 en el `.exe`** — selector de nivel en el wizard | `feat/sicsaft-core-nivel-selector` (sobre esta punta) | DOC-030 — cliente Nivel 2; `web_admin` no se embebe (decisión del usuario 2026-09-02, descarta DOC-028 Fase F) |
+| Regenerar el `.exe` (`npm run dist:win`), **elegir Nivel 2 en el wizard**, transferir al cliente, reserva DHCP | — | Después de mergear |
 
 ### Documentación sincronizada esta sesión
 
@@ -678,6 +679,11 @@ próxima sesión):
 - `ccp/README.md`, `sicsaft-core/README.md` — actualizados en `feat/ccp-auditoria-area` (la rama que tiene el código), commit `docs:` inmediatamente siguiente.
 - `core/README.md`, `cis/README.md`, `app-qr-sicsaft/README.md` — ya actualizados en sus ramas de feature (RF-I / RF-E).
 - `aidlc-docs/diagrams/db-schema-core.html` — 17 tablas (antes 15): + `importacion_contable_lote`/`_fila`; + `inventarios.estado_declarado`/`baja_sugerida_motivo`; + `auditoria.area_operativa`. `arquitectura-ecosistema.html` y `grafo-dependencias-sistema.html` revisados — **no** cambian (la ingesta de Excel es una herramienta invocada por `sicsaft-core`, no un servicio nuevo, y sigue entrando por CIS→CORE).
+
+**Incremento Nivel 2 en el `.exe` (2026-09-02, [DOC-030](../../sicsaft-core/design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md))** — el próximo cliente es Nivel 2:
+
+- `feat/sicsaft-core-nivel-selector` (sobre `feat/ccp-auditoria-area`) — radio "Nivel 1 / Nivel 2" en `PasoDatosCliente`; `bootstrapCliente` deja de hornear `nivel: 1`. En Nivel 2 el `.exe` sirve el CCP completo. **`web_admin` no se embebe en ningún nivel** — decisión del usuario ("no quiero conectarme a nada del cliente"): descarta el portal de administración remota (DOC-028 Fase F).
+- Doc-sync en esa misma rama: `aidlc-docs/sicsaft-core/requirements/INTENT.md` (CORE-Q-03 Nivel 2 resuelto), `DOC-028` (§4 + Fase F descartada), `DOC-025` (excepción del `.exe` ampliada a Nivel 2), `00_PROJECT_METADATA.md`, `ROADMAP.md`, `sicsaft-core/README.md`, `aidlc-docs/diagrams/sicsaft-core-arquitectura.html` + `nivel2-despliegue.html`.
 
 ---
 
