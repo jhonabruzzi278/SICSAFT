@@ -10,6 +10,7 @@ import type {
   RectanguloPantalla,
 } from "@shared/ipc-contract";
 import type { ServiceOrchestrator } from "../services/service-orchestrator";
+import type { AdminBootstrapKeycloak } from "../services/keycloak-service";
 import {
   bootstrapPrimeraInstalacion,
   CLIENT_ID_APP_QR,
@@ -17,9 +18,12 @@ import {
   CLIENT_ID_CORE_FRONTEND,
   crearUsuarioDirector,
   crearUsuarioProfesionalAft,
+  obtenerTokenClientCredentials,
   reconfigurarClientAppQr,
   resolverCredencialesClienteAdminCis,
+  resolverCredencialesClienteIngesta,
 } from "../keycloak-bootstrap";
+import { reconfigurarWatcherIngesta } from "../services/ingesta-watcher";
 import { PUERTO_RENDERER } from "../renderer-config";
 import { PortalEmbebidoManager } from "../services/portal-login-service";
 import {
@@ -63,6 +67,63 @@ import { provisionarOrganizacionCore } from "../services/core-provisioning";
 // memoizada todos esperan el mismo arranque.
 let promesaServidoresPortales: Promise<void> | null = null;
 let promesaServidorAppQr: Promise<void> | null = null;
+
+// DOC-029 RF-B.6.2 -- credenciales del service account `sicsaft-ingesta` para el watcher de
+// ingesta. El secret no se persiste (mismo criterio que cis-admin, ver
+// resolverCredencialesClienteIngesta): se recupera de Keycloak la primera vez que hace falta y se
+// cachea en memoria del proceso. `null` = todavía no se resolvió.
+let credencialesIngesta: { clientId: string; secret: string } | null = null;
+
+async function tokenServicioIngesta(
+  admin: AdminBootstrapKeycloak,
+): Promise<string> {
+  credencialesIngesta ??= await resolverCredencialesClienteIngesta(admin);
+  try {
+    return await obtenerTokenClientCredentials(
+      credencialesIngesta.clientId,
+      credencialesIngesta.secret,
+    );
+  } catch {
+    // El secret cacheado pudo quedar viejo (rotación manual desde la consola de Keycloak) --
+    // reintentar una vez con credenciales frescas antes de dar el token por perdido.
+    credencialesIngesta = await resolverCredencialesClienteIngesta(admin);
+    return obtenerTokenClientCredentials(
+      credencialesIngesta.clientId,
+      credencialesIngesta.secret,
+    );
+  }
+}
+
+// Arranca (o reinicia, o apaga) el watcher de la carpeta de ingesta según el estado actual de
+// instalacion.json. Se llama tras cada punto donde `carpetaIngesta` o los servicios pueden haber
+// cambiado: fin del bootstrap, relanzamiento con wizard salteado, y cuando el usuario elige otra
+// carpeta desde el wizard. El watcher es una comodidad de fondo -- si no arranca (Keycloak lento,
+// carpeta borrada) se loguea y el `.exe` sigue: la carga manual de CSV desde el CCP es el camino
+// alternativo permanente (DOC-029 B.6 "no se unifica la carga manual bajo staging").
+async function asegurarWatcherIngesta(
+  orquestador: ServiceOrchestrator,
+): Promise<void> {
+  try {
+    const instalacion = leerInstalacionExistente();
+    const carpeta = instalacion?.carpetaIngesta;
+    const organizacionId = instalacion?.organizacionId;
+    if (!carpeta || !organizacionId) {
+      await reconfigurarWatcherIngesta(null);
+      return;
+    }
+    const admin = orquestador.getKeycloakAdmin();
+    await reconfigurarWatcherIngesta({
+      carpeta,
+      organizacionId,
+      obtenerToken: () => tokenServicioIngesta(admin),
+    });
+  } catch (err: unknown) {
+    console.error(
+      "[sicsaft-core] No se pudo iniciar el watcher de ingesta contable:",
+      err,
+    );
+  }
+}
 
 function asegurarServidoresPortales(): Promise<void> {
   promesaServidoresPortales ??= (async () => {
@@ -200,6 +261,8 @@ export function registrarIpcHandlers(
       if (resultado.canceled || resultado.filePaths.length === 0) return null;
       const carpeta = resultado.filePaths[0];
       actualizarCarpetaIngestaInstalacion(carpeta);
+      // DOC-029 RF-B.6.2 -- reapuntar el watcher a la carpeta nueva sin reiniciar la app.
+      await asegurarWatcherIngesta(orquestador);
       return carpeta;
     },
   );
@@ -219,6 +282,10 @@ export function registrarIpcHandlers(
       const admin = orquestador.getKeycloakAdmin();
       const adminCis = await resolverCredencialesClienteAdminCis(admin);
       await orquestador.iniciarCis(adminCis);
+      // DOC-029 RF-B.6.2 -- relanzamiento con el wizard salteado: si esta instalación ya tenía
+      // una carpeta de ingesta configurada, el watcher tiene que volver a levantarse acá (no lo
+      // hace nadie más en este camino).
+      await asegurarWatcherIngesta(orquestador);
     }
     return existente;
   });
@@ -285,6 +352,9 @@ export function registrarIpcHandlers(
         // NO se embebe en ningun nivel (decision del usuario 2026-09-02, ver DOC-030).
         nivel: input.nivel,
       });
+      // DOC-029 RF-B.6.2 -- si el vendedor ya eligió la carpeta de ingesta antes de este paso,
+      // dejar el watcher andando de una (si la elige después, elegirCarpetaIngesta lo levanta).
+      await asegurarWatcherIngesta(orquestador);
       return { organizacionId: resultado.organizacionId };
     },
   );

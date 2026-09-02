@@ -2,7 +2,9 @@ import { describe, expect, test, vi, beforeEach } from "vitest";
 import {
   crearUsuarioDirector,
   crearUsuarioProfesionalAft,
+  obtenerTokenClientCredentials,
   reconfigurarClientAppQr,
+  resolverCredencialesClienteIngesta,
 } from "./keycloak-bootstrap";
 
 const admin = { usuario: "admin", password: "pw" };
@@ -257,6 +259,89 @@ describe("crearUsuarioProfesionalAft", () => {
       name: string;
     };
     expect(grupoBody.name).toBe("municipalidad-x::administrador-patrimonial");
+  });
+});
+
+describe("obtenerTokenClientCredentials (DOC-029 RF-B.6.2)", () => {
+  test("pide un token client_credentials al realm sicsaft y devuelve el access_token", async () => {
+    const fetchMock = vi.fn(
+      async (input: string | URL | Request, init?: RequestInit) => {
+        const url = String(input);
+        expect(url).toContain("/realms/sicsaft/protocol/openid-connect/token");
+        const body = String(init?.body);
+        expect(body).toContain("grant_type=client_credentials");
+        expect(body).toContain("client_id=sicsaft-ingesta");
+        expect(body).toContain("client_secret=sec-1");
+        return jsonResponse({ access_token: "svc-token" });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      obtenerTokenClientCredentials("sicsaft-ingesta", "sec-1"),
+    ).resolves.toBe("svc-token");
+  });
+
+  test("tira si Keycloak responde no-ok", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("nope", { status: 401 })),
+    );
+    await expect(
+      obtenerTokenClientCredentials("sicsaft-ingesta", "mala"),
+    ).rejects.toThrow(/sicsaft-ingesta/);
+  });
+});
+
+describe("resolverCredencialesClienteIngesta (DOC-029 RF-B.6.2)", () => {
+  test("recupera el client_secret del service account ya creado", async () => {
+    const fetchMock = vi.fn(
+      async (input: string | URL | Request, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+        if (url.endsWith("/realms/master/protocol/openid-connect/token")) {
+          return jsonResponse({ access_token: "master-token" });
+        }
+        if (
+          url.includes("/clients?clientId=sicsaft-ingesta") &&
+          method === "GET"
+        ) {
+          return jsonResponse([{ id: "ingesta-uuid" }]);
+        }
+        if (
+          url.endsWith("/clients/ingesta-uuid/client-secret") &&
+          method === "GET"
+        ) {
+          return jsonResponse({ value: "sec-recuperado" });
+        }
+        throw new Error(`Llamada no esperada: ${method} ${url}`);
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(resolverCredencialesClienteIngesta(admin)).resolves.toEqual({
+      clientId: "sicsaft-ingesta",
+      secret: "sec-recuperado",
+    });
+  });
+
+  test("tira si el client sicsaft-ingesta no existe en el realm", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(input);
+        if (url.endsWith("/realms/master/protocol/openid-connect/token")) {
+          return jsonResponse({ access_token: "master-token" });
+        }
+        if (url.includes("/clients?clientId=sicsaft-ingesta")) {
+          return jsonResponse([]);
+        }
+        throw new Error(`Llamada no esperada: ${url}`);
+      }),
+    );
+    await expect(resolverCredencialesClienteIngesta(admin)).rejects.toThrow(
+      /sicsaft-ingesta/,
+    );
   });
 });
 
