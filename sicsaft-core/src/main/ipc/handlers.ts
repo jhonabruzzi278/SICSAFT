@@ -279,9 +279,11 @@ export function registrarIpcHandlers(
         organizacionId: resultado.organizacionId,
         clienteNombre: input.clienteNombre,
         ipLan: obtenerIpLan(),
-        // DOC-029 RF-A -- el .exe instala Nivel 1 (APP QR + CCP acotado). Nivel 2 hoy se activa
-        // editando instalacion.json a mano; un paso del wizard para elegirlo es trabajo futuro.
-        nivel: 1,
+        // DOC-030 -- nivel de producto contratado (DOC-025), elegido por el vendedor en el paso 1
+        // del wizard (PasoDatosCliente). Se inyecta al servir `ccp` como VITE_SICSAFT_NIVEL
+        // (asegurarServidoresPortales): en Nivel 2 el CCP muestra la gestion avanzada. `web_admin`
+        // NO se embebe en ningun nivel (decision del usuario 2026-09-02, ver DOC-030).
+        nivel: input.nivel,
       });
       return { organizacionId: resultado.organizacionId };
     },

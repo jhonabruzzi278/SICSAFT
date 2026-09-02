@@ -48,6 +48,23 @@ describe("instalacion-marker", () => {
     });
   });
 
+  // DOC-030 -- el `nivel` deja de estar horneado en `1`; el wizard lo elige (PasoDatosCliente) y
+  // el bootstrap lo pasa tal cual. asegurarServidoresPortales() lo lee de acá para servir el CCP
+  // en Nivel 1 (acotado) o Nivel 2 (completo).
+  test.each([1, 2] as const)(
+    "marcarInstalacionCompleta persiste nivel %i tal cual",
+    (nivel) => {
+      marcarInstalacionCompleta({
+        organizacionId: "muni-x",
+        clienteNombre: "Municipalidad X",
+        ipLan: "192.168.1.11",
+        nivel,
+      });
+
+      expect(leerInstalacionExistente()?.nivel).toBe(nivel);
+    },
+  );
+
   test("actualizarIpLanInstalacion reescribe solo la ipLan, deja el resto intacto", () => {
     marcarInstalacionCompleta({
       organizacionId: "muni-x",
