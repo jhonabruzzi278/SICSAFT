@@ -31,7 +31,7 @@ Componentes del repo que participan en este dominio: `ccp/` (interfaz), `cis/` (
 | **Resultado esperado** | Activo oficialmente incorporado a la BPI. |
 | **Componentes** | CCP · CIS · CORE (MOP + Motor Patrimonial + Reglas) · BPI · CIP. |
 | **Prioridad** | Crítica. |
-| **Estado en el repo** | 🟢 **Implementado** (Nivel 2): `ccp/src/pages/ActivosPage.tsx` "Alta de activo" → `cisClient.altaActivo` → `POST /admin/activos` (CIS) → `POST /activos` (CORE, DOC-012 §6). **En Nivel 1 (RF-A) el alta manual está oculta**: para el cliente Nivel 1 este objetivo se cumple por **RF-B** (ingesta de Excel) o por la APP QR, no por esta pantalla. |
+| **Estado en el repo** | 🟢 **Implementado** (todos los niveles): `ccp/src/pages/ActivosPage.tsx` "Alta de activo" → `cisClient.altaActivo` → `POST /admin/activos` (CIS) → `POST /activos` (CORE, DOC-012 §6). El alta manual está disponible desde Nivel 1 (corrección RF-A 2026-09-02); la ingesta de Excel (**RF-B**) y la APP QR son caminos alternativos. |
 
 ---
 
@@ -57,7 +57,7 @@ Componentes del repo que participan en este dominio: `ccp/` (interfaz), `cis/` (
 | **Resultado esperado** | Activo actualizado, historia intacta. |
 | **Componentes** | CCP · CIS · CORE · BPI. |
 | **Prioridad** | Alta. |
-| **Estado en el repo** | 🟢 **Implementado** (Nivel 2): `ActivosPage.tsx` panel "Editar" → `actualizarDescripcionActivo` / `altaDocumentoActivo`. Oculto en Nivel 1 (RF-A). |
+| **Estado en el repo** | 🟢 **Implementado** (todos los niveles): `ActivosPage.tsx` panel "Editar" → `actualizarDescripcionActivo` / `altaDocumentoActivo`. |
 
 ---
 
@@ -83,7 +83,7 @@ Componentes del repo que participan en este dominio: `ccp/` (interfaz), `cis/` (
 | **Resultado esperado** | Responsabilidad transferida, con rastro del responsable previo. |
 | **Componentes** | CCP · CIS · CORE · BPI. |
 | **Prioridad** | Alta. |
-| **Estado en el repo** | 🟢 **Implementado** (Nivel 2): `cisClient.cambiarResponsableActivo`. Oculto en Nivel 1 (RF-A). |
+| **Estado en el repo** | 🟢 **Implementado** (todos los niveles): `cisClient.cambiarResponsableActivo`. |
 
 ---
 
@@ -135,4 +135,4 @@ Componentes del repo que participan en este dominio: `ccp/` (interfaz), `cis/` (
 | **Resultado esperado** | Activo fuera de operación, historia preservada, auditable. |
 | **Componentes** | CCP · CIS · CORE · BPI. |
 | **Prioridad** | Crítica (por lo sensible). |
-| **Estado en el repo** | 🟢 **Implementado**: `cisClient.bajaActivo` → `POST /admin/activos/:id/baja` (soft-delete por `estado`, precedente real en el esquema). **Oculto en Nivel 1 (RF-A) hoy** — si el cliente Nivel 1 necesita dar de baja faltantes tras un relevamiento, hay que reexponer la acción (una línea en `nivel.ts`) o cubrirlo por **RF-D** (veredicto accionable → link a baja). |
+| **Estado en el repo** | 🟢 **Implementado**: `cisClient.bajaActivo` → `POST /admin/activos/:id/baja` (soft-delete por `estado`, precedente real en el esquema). Disponible en **todos los niveles** (corrección RF-A 2026-09-02). **RF-D** (veredicto accionable → link a baja) sigue siendo una mejora aparte. |

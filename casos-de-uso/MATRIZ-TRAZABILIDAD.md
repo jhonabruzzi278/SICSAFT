@@ -10,11 +10,11 @@ Instrumento vivo (§12.38 "Evaluación estratégica"). Permite recorrer cualquie
 
 | CU | Requisito | Proceso RMP | Reglas CFPS | Módulo (repo) | API (repo) | BPI (tabla) | Prueba | Versión | Estado |
 |---|---|---|---|---|---|---|---|---|---|
-| CU-PAT-001 Registrar activo | — | PAT-001 | CFP-001…005 | `ccp` · `cis/administrador` · `core/patrimonial` | `POST /admin/activos` → `POST /activos` | `activos` | `core` e2e activos · **falta** e2e UI Nivel 2 | 1.0 | 🟢 (Nivel 2) / vía RF-B en Nivel 1 |
-| CU-PAT-002 Modificar activo | — | PAT-002 | CFP-002, CFP-004 | `ccp` · `cis` · `core/patrimonial` | `PATCH /admin/activos/:id/...` | `activos`, historial | `core` e2e | 1.0 | 🟢 (Nivel 2) |
+| CU-PAT-001 Registrar activo | — | PAT-001 | CFP-001…005 | `ccp` · `cis/administrador` · `core/patrimonial` | `POST /admin/activos` → `POST /activos` | `activos` | `core` e2e activos · **falta** e2e UI | 1.0 | 🟢 (CCP — todos los niveles; también vía RF-B) |
+| CU-PAT-002 Modificar activo | — | PAT-002 | CFP-002, CFP-004 | `ccp` · `cis` · `core/patrimonial` | `PATCH /admin/activos/:id/...` | `activos`, historial | `core` e2e | 1.0 | 🟢 (CCP — todos los niveles) |
 | CU-PAT-003 Cambiar responsable | — | PAT-003 | RES-001…004 | `ccp` · `cis` · `core/patrimonial` | `PATCH /admin/activos/:id/responsable` | `activos`, historial | `core` e2e | 1.0 | 🟢 (Nivel 2) |
 | CU-PAT-004 Trasladar activo | — | PAT-004 | UBI-001…004 | `ccp` · `cis` · `core` | *(sin endpoint dedicado)* | `activos`, historial | — | — | 🟡 parcial (sin flujo de traslado con evento) |
-| CU-PAT-005 Dar de baja | — | PAT-005 | CFP-005 + estados | `ccp` · `cis` · `core/patrimonial` | `POST /admin/activos/:id/baja` | `activos.estado` (soft) | `core` e2e baja | 1.0 | 🟢 (oculto en Nivel 1) |
+| CU-PAT-005 Dar de baja | — | PAT-005 | CFP-005 + estados | `ccp` · `cis` · `core/patrimonial` | `POST /admin/activos/:id/baja` | `activos.estado` (soft) | `core` e2e baja | 1.0 | 🟢 (CCP — todos los niveles) |
 | CU-QR-001 Asignar QR | — | QR-001 | QR-001,002,005 | alta / ETL RF-B | parte de `POST /activos` | `activos.codigo_qr` (UNIQUE) | `core` e2e | 1.0 | 🟢 (en el alta) |
 | CU-QR-002 Consultar por QR | — | QR-002 | QR-002 + visibilidad | `app-qr-sicsaft` · `cis` · `core` | `GET` resolución de escaneo | `activos` (lectura) | `app-qr` e2e (`ScanPage`) | 1.0 | 🟢 |
 | CU-INV-001 Crear inventario | — | INV-001 | INV-001,002 | *(hoy la abre el operador en la APP)* | — | *(sesión ad-hoc)* | — | — | 🟡 parcial (sin "programar" por Adm/Supervisor) |

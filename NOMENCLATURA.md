@@ -37,7 +37,7 @@ no funde los conceptos: el CCP es el continente operativo, CIP la capa analític
 |---|---|---|
 | **Base Patrimonial Central** | **BPI — Base Patrimonial Inteligente** | Depreciada formalmente (2026-09-02, Tomo IV). Los `aidlc-docs/**/DOC-XXX.md` y diagramas anteriores a esta fecha son *snapshots*: conservan su texto; el trabajo nuevo usa BPI. |
 | "la WEB" / "el Dashboard" como nombre del portal AFT | **CCP** | La WEB del Profesional de AFT **es** el CCP; "Dashboard" es solo uno de sus módulos. |
-| "web-aft liviano" (portal AFT de Nivel 1 nunca construido) | **CCP acotado** | El CCP está incluido en **todos** los niveles; en Nivel 1 corre con los módulos de gestión avanzada ocultos (flag `VITE_SICSAFT_NIVEL`, DOC-029 RF-A). No es una app distinta. |
+| "web-aft liviano" (portal AFT de Nivel 1 nunca construido) · "CCP acotado en Nivel 1" | **CCP** (a secas — es el mismo en todos los niveles) | El CCP está **completo** en todos los niveles (2026-09-02). Lo único que Nivel 2 agrega es el **Dashboard/indicadores**, que es **CIP**. No es una app distinta. Flag `VITE_SICSAFT_NIVEL` (DOC-029 RF-A). |
 
 ## 3. Los tres conceptos patrimoniales — no confundir
 
@@ -61,14 +61,18 @@ Son cuatro niveles distintos. Detalle en
 
 | Nivel | Modo | Alcance | Servicios |
 |---|---|---|---|
-| **Nivel 1** | **Modo Básico** | APP SICSAFT (QR) + CCP acotado | `postgres`, `keycloak`, `cis`, `core`, `app-qr-sicsaft`, `core-frontend` (Directivo), `web-admin` (Adm. del Sistema), **CCP** |
-| **Nivel 2** | **Modo Profesional** | Nivel 1 + WEB completa + **CIP** (indicadores) | Nivel 1 + **`ccp` completo** + **`cip`** |
+| **Nivel 1** | **Modo Básico** | APP SICSAFT (QR) + **CCP completo** | `postgres`, `keycloak`, `cis`, `core`, `app-qr-sicsaft`, `core-frontend` (Directivo), **CCP** |
+| **Nivel 2** | **Modo Profesional** | Nivel 1 + **CIP** (Dashboard de indicadores y análisis) | Nivel 1 + **`cip`** |
 | **Nivel 3** | **Modo Enterprise** | Nivel 2 + RFID | Nivel 2 + `rfid/` (no iniciado) |
 
-- **El CCP está en todos los niveles.** En Nivel 1 los módulos de gestión avanzada (Estructura,
-  alta manual de Activos) y el Dashboard/indicadores quedan ocultos; en Nivel 2 se muestran.
-- **CIP entra en Nivel 2** (2026-09-02, revierte el cierre INST-Q-01 del 2026-08-25 que lo ponía
-  en Nivel 1). El módulo Dashboard del CCP, que consume CIP, es por lo tanto Nivel 2.
+- **El CCP está completo en todos los niveles** (operación, administración, control: activos con
+  alta manual, Estructura, importaciones, QR/Etiquetas, Auditoría). Corrección 2026-09-02 — antes
+  Nivel 1 lo corría acotado; ese "CCP acotado" queda revertido.
+- **La diferencia Nivel 1 ↔ 2 es el CIP**, no el CCP. **CIP entra en Nivel 2** (2026-09-02,
+  revierte el cierre INST-Q-01 del 2026-08-25 que lo ponía en Nivel 1). El módulo **Dashboard** del
+  CCP, que consume CIP, es lo único gateado a Nivel 2 (`ccp/src/lib/nivel.ts` `MODULOS_CIP`).
+- **CCP ≠ CIP** (Tomo IV, "distinción absolutamente congelada"): CCP = *hacer* (modificar un
+  responsable); CIP = *entender* (observar un indicador de activos no localizados).
 - Detalle y justificación de negocio en
   [DOC-025](aidlc-docs/devops/design-artifacts/DOC-025-niveles-producto-onprem.md).
 

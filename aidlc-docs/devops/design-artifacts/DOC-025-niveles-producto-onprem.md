@@ -39,17 +39,18 @@ Documento citable desde otros DOC-XXX del repo, mismo esquema que DOC-002/004/00
 
 | Nivel / Modo | Qué incluye | Servicios concretos del monorepo |
 |---|---|---|
-| **Nivel 1 — Modo Básico** | APP SICSAFT (QR, única fuente de captura) + SICSAFT CORE + BPI + CIS + portal Directivo + portal Administrador del Sistema + **CCP acotado** (sin gestión avanzada ni Dashboard/indicadores) | `postgres`, `keycloak` (ADR-004 Fase 3, reemplaza a `zitadel`), `core` (con `core-migrate`), `cis`, `app-qr-sicsaft`, `core-frontend` (Directivo), `web-admin` (Administrador del Sistema), `ccp` — sin `redis` desde [ADR-005](../../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md) |
-| **Nivel 2 — Modo Profesional** | Nivel 1 + **CCP completo** (gestión avanzada) + **CIP** (Dashboard/indicadores/alertas) | Nivel 1 + `ccp` completo + `cip` (con `cip-migrate`) |
+| **Nivel 1 — Modo Básico** | APP SICSAFT (QR, única fuente de captura) + SICSAFT CORE + BPI + CIS + portal Directivo + portal Administrador del Sistema + **CCP completo** (operación, administración, control — gestión avanzada incluida; sin el Dashboard/indicadores, que es CIP) | `postgres`, `keycloak` (ADR-004 Fase 3, reemplaza a `zitadel`), `core` (con `core-migrate`), `cis`, `app-qr-sicsaft`, `core-frontend` (Directivo), `web-admin` (Administrador del Sistema), `ccp` — sin `redis` desde [ADR-005](../../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md) |
+| **Nivel 2 — Modo Profesional** | Nivel 1 + **CIP** (Dashboard/indicadores/alertas). El CCP ya va completo en Nivel 1 (corrección 2026-09-02). | Nivel 1 + `cip` (con `cip-migrate`) |
 | **Nivel 3 — Modo Enterprise** | Nivel 2 + integración RFID, conectada a CIS preservando la independencia tecnológica de CORE | Nivel 2 + `rfid/` — **🔲 no iniciado, sin código que empaquetar (ver `ROADMAP.md`)** |
 
 Capacidades por nivel (lo que el cliente ve, no la lista de servicios):
 
 - **Nivel 1 — Modo Básico**: identificación, consulta, inventarios, incidencias, historial,
-  trazabilidad básica. **CCP incluido** pero acotado (los módulos de gestión avanzada y el
-  Dashboard quedan ocultos por el flag `VITE_SICSAFT_NIVEL`, DOC-029 RF-A).
-- **Nivel 2 — Modo Profesional** (suma): administración web, gestión avanzada, supervisión,
-  consultas institucionales, **reportes/indicadores (CIP)**, configuración, operación centralizada.
+  trazabilidad básica **+ el CCP completo** (activos con alta/edición/baja, estructura,
+  importaciones, QR/Etiquetas, auditoría). Solo el **Dashboard** queda oculto por el flag
+  `VITE_SICSAFT_NIVEL` (DOC-029 RF-A, corrección 2026-09-02) — es CIP, no CCP.
+- **Nivel 2 — Modo Profesional** (suma): **reportes/indicadores/alertas (CIP)** — el Dashboard
+  ejecutivo del CCP y lo que venga de `cip/`.
 - **Nivel 3 — Modo Enterprise** (suma): captura automática, eventos RFID, supervisión, zonas,
   movimientos, alertas, automatización patrimonial.
 
@@ -94,8 +95,8 @@ de este documento — hoy el nivel lo decide qué se instaló, no un flag que el
 > Profesional, no del Básico; un cliente Modo Básico no paga BI.
 >
 > - **Superficie visible** (lo que enforza el producto hoy): el módulo **Dashboard** del CCP —
->   único consumidor de CIP — pasa a Nivel 2 (`ccp/src/lib/nivel.ts`, fuera de `MODULOS_NIVEL_1`).
->   Un CCP acotado (Nivel 1) ya no muestra el Dashboard.
+>   único consumidor de CIP — es lo **único** gateado a Nivel 2 (`ccp/src/lib/nivel.ts`,
+>   `MODULOS_CIP`). El resto del CCP va completo desde Nivel 1 (corrección 2026-09-02).
 > - **`devops/onprem/docker-compose.yml`**: `cip`/`cip-migrate` **siguen arrancando desde el
 >   boot** por ahora, porque `cis` valida `CIP_URL`/`CIP_SERVICE_TOKEN` de forma incondicional
 >   (`cip-client.config.ts`). Moverlos al perfil `nivel2` exige que CIS degrade con elegancia

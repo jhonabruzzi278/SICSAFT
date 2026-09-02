@@ -43,9 +43,11 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
   la config OIDC — DOC-028 Fase C.0) o una env var en `devops/onprem`; sin eso se asume `2`
   (portal completo, caso de `npm run dev` suelto). **Contratos e Inventarios** están retirados del
   CCP en cualquier nivel (usuario 2026-08-31: el contrato no se gestiona desde el portal del AFT;
-  el escaneo se hace en la APP QR y los resultados se ven en el Resumen). En **Nivel 1** además
-  se oculta Estructura y Activos es solo consulta (sin alta manual). Las páginas y los métodos de
-  cliente siguen en el repo, solo sin exponer; el gate real igual está en CIS/CORE (DOC-023).
+  el escaneo se hace en la APP QR y los resultados se ven en el Resumen). **Corrección 2026-09-02**:
+  el CCP va **completo en todos los niveles** (activos con alta manual, Estructura, importaciones,
+  etiquetas, auditoría); lo único gateado a **Nivel 2** es el módulo `dashboard`, que es **CIP**
+  (`MODULOS_CIP`). Las páginas y los métodos de cliente de lo retirado siguen en el repo, solo sin
+  exponer; el gate real igual está en CIS/CORE (DOC-023).
 - `pages/HubPage.tsx` — lista las organizaciones con contrato vigente del operador (RF-02) y, por
   cada una, los módulos ya implementados (incluido `dashboard`, RF-09/DOC-019 — sigue siendo un
   módulo del Profesional de AFT), filtrados por `nivelActual()`. Sin segmentación por rol (DOC-020
@@ -196,10 +198,12 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
 ([DOC-029](../aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md)) — la
 fase nace en este portal (cliente real ya sobre `sicsaft-core.exe`). Lo hecho en `ccp/`:
 
-- **RF-A — flag de nivel 1/2** (`feat/ccp-nivel-flag`): `lib/nivel.ts` (`nivelActual()` /
-  `moduloHabilitado()`), gate de módulos en `HubPage`/`AppShell`. **Contratos e Inventarios
-  retirados del portal del AFT en cualquier nivel**; en Nivel 1 además Estructura se oculta y
-  Activos es solo consulta. Solo oculta en la UI — el guard real sigue en CIS/CORE (DOC-023).
+- **RF-A — flag de nivel 1/2** (`feat/ccp-nivel-flag`; **corrección** `feat/ccp-completo-en-nivel-1`):
+  `lib/nivel.ts` (`nivelActual()` / `moduloHabilitado()`), gate de módulos en `HubPage`/`AppShell`.
+  **Contratos e Inventarios retirados del portal del AFT en cualquier nivel.** El resto del CCP va
+  **completo en todos los niveles** (2026-09-02, revierte el "CCP acotado en Nivel 1"); lo único
+  gateado a **Nivel 2** es el módulo `dashboard` (CIP). Solo oculta en la UI — el guard real sigue
+  en CIS/CORE (DOC-023).
 - **RF-B — revisión de lotes de ingesta de Excel** (`feat/ccp-ingesta-revision`, `cecb0b7`):
   `ImportacionesPage.tsx` se parte en `pages/importaciones/` (`LotesRevision` + `CargaManualCsv`).
   `LotesRevision`: lista de lotes (`pendiente_revision` arriba), detalle con dry-run por fila

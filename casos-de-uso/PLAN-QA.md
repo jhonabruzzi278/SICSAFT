@@ -1,7 +1,8 @@
 # Plan de QA — Cliente SICSAFT Nivel 1 QR
 
 Objetivo: **validar la aplicación antes de entregarla a un cliente real** (`sicsaft-core.exe`,
-Nivel 1: APP QR + CCP acotado + Base Patrimonial + CIS + CORE + CIP). Deriva de los Casos de Uso
+Nivel 1: APP QR + **CCP completo** + Base Patrimonial + CIS + CORE; el Dashboard/CIP es Nivel 2).
+Deriva de los Casos de Uso
 de este directorio y de la estrategia de validación en 6 pasos del usuario (2026-08-31).
 
 Criterio de "correcto" por CU: §12.36 (actor autorizado puede iniciarlo · precondiciones
@@ -71,9 +72,9 @@ sea el que carga, que el auditor sea solo-lectura), **resolver el RBAC antes de 
 | 0.2 | Primer arranque → wizard | Paso 1 (datos cliente) → Paso 2 (Director) → Paso 3 (Profesional de AFT) → "Instalación completa" | CU-ADM-001 |
 | 0.3 | Pantalla "listo" | Se ve el QR de la PWA con `https://<ip-lan>:8765`; layout correcto también a **pantalla completa** (fix RF-G) | — |
 | 0.4 | Login embebido como Director | Entra al portal del Directivo sin segundo login; si tarda, mensaje claro y "Cambiar de usuario" (no crash, fix RF-G) | CU-SEG-001 |
-| 0.5 | "Cambiar de usuario" → Profesional de AFT | Entra al **CCP en Nivel 1**: menú = Resumen · Activos · Importaciones · Auditoría. **No** aparecen Contratos, Inventarios, Áreas y ubicaciones | RF-A |
-| 0.6 | Abrir por URL `/contratos` y `/inventarios` | Redirige al Resumen | RF-A |
-| 0.7 | Activos | Solo tabla de consulta; **sin** formulario de alta ni acciones por fila | RF-A / CU-PAT |
+| 0.5 | "Cambiar de usuario" → Profesional de AFT | Entra al **CCP completo**: menú = Resumen · Activos · Áreas y ubicaciones · Importaciones · QR/Etiquetas · Auditoría. **No** aparecen Contratos ni Inventarios (retirados). En **Nivel 1** tampoco el **Dashboard** (es CIP) | RF-A |
+| 0.6 | Abrir por URL `/contratos` y `/inventarios` (y `/dashboard` en Nivel 1) | Redirige al Resumen | RF-A |
+| 0.7 | Activos | Tabla de consulta **+ formulario de alta + acciones por fila** (baja, reincorporar, editar) — en todos los niveles | RF-A / CU-PAT |
 | 0.8 | Relanzar el `.exe` | Salta directo al login (no repite el wizard); si cambió la IP, pantalla de reconfiguración y "Reconfigurar y continuar" | DOC-028 C.1 |
 | 0.9 | Teléfono: escanear el QR de la pantalla "listo" | Abre la PWA; aviso de certificado propio una sola vez → "Continuar" → login de la APP QR | CU-SEG-001 |
 

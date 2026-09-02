@@ -61,8 +61,9 @@ La app levanta Postgres → Keycloak → CORE → CIP (~1–2 min la primera vez
 
 1. **Paso 1 — Datos de esta instalación**
    - Nombre del cliente, identificador (se autocompleta), sede principal.
-   - **Nivel contratado: elegir "Nivel 2 — Modo Profesional".** (Default es Nivel 1.) Esto habilita
-     el CCP completo + el Dashboard/indicadores de CIP.
+   - **Nivel contratado.** El **CCP va completo en ambos niveles** (activos con alta manual,
+     estructura, importaciones, etiquetas, auditoría). **Nivel 2 — Modo Profesional** agrega el
+     **Dashboard/indicadores (CIP)**. (Default es Nivel 1.) Elegir según el contrato.
    - Continuar. Crea el realm de Keycloak + la organización/contrato/sede en la BPI y arranca CIS.
 2. **Paso 2 — Director**: correo del Director. Queda con el rol `directivo` y `UPDATE_PASSWORD`
    forzado (define su clave en el primer login).
@@ -108,10 +109,11 @@ WebView acepta el cert autofirmado sola (sin el aviso del navegador) — esa es 
 
 ## 6. Qué mostrarle al cliente (checklist de demo)
 
-- [ ] **Wizard** — instalación de punta a punta, elección de Nivel 2.
-- [ ] **CCP (Profesional de AFT)** — login, hub de la organización. Módulos visibles en Nivel 2:
-      Resumen/Dashboard, Activos (con alta manual), Importaciones, Estructura (áreas/ubicaciones/
-      responsables), QR/Etiquetas, Auditoría.
+- [ ] **Wizard** — instalación de punta a punta, elección de nivel.
+- [ ] **CCP (Profesional de AFT)** — login, hub de la organización. Módulos del CCP (visibles en
+      **todos los niveles**): Activos (con alta manual, baja, edición), Estructura
+      (áreas/ubicaciones/responsables), Importaciones, QR/Etiquetas, Auditoría, Resumen.
+- [ ] **Dashboard / indicadores (CIP)** — visible **solo en Nivel 2**.
 - [ ] **Alta de un activo** desde el CCP → aparece en el catálogo.
 - [ ] **APP QR en el teléfono** — escanear ese activo, cerrar el control de un área → **Pantalla 8**
       (informe de control: % del área, estado declarado, veredicto con color).

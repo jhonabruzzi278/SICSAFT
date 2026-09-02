@@ -126,13 +126,17 @@ lo que toca a `sicsaft-core`:
   desalineaba al hacer scroll/reflow — se re-envían bounds en `resize`/`scroll` (`PasoListoConLogin.tsx`).
 - **RF-A — flag de nivel** (`feat/ccp-nivel-flag`): `asegurarServidoresPortales` inyecta
   `VITE_SICSAFT_NIVEL` al `configRuntime` de `ccp` (mismo canal que la config OIDC de DOC-028 C.0);
-  `instalacion.json` gana `nivel` (default `1`).
+  `instalacion.json` gana `nivel` (default `1`). **Corrección 2026-09-02** (`feat/ccp-completo-en-nivel-1`):
+  el **CCP va completo en todos los niveles** (operación, administración, control — activos con alta
+  manual, estructura, importaciones, etiquetas, auditoría). Lo único gateado a Nivel 2 es el
+  **Dashboard/indicadores**, que es **CIP** (NOMENCLATURA.md: "el CCP está en todos los niveles,
+  CIP entra en Nivel 2"; CCP ≠ CIP).
 - **DOC-030 — selector de Nivel 1/2 en el wizard** (`feat/sicsaft-core-nivel-selector`): `PasoDatosCliente`
   gana un radio "Nivel 1 / Nivel 2"; `bootstrapCliente` deja de hornear `nivel: 1`. En **Nivel 2**
-  el `.exe` sirve el CCP completo (Estructura, alta manual de Activos). **`web_admin/` (portal
-  Administración del Sistema) no se embebe en ningún nivel** — decisión del usuario (2026-09-02):
-  instalación autocontenida, sin canal de conexión del proveedor al cliente. Cierra la parte
-  Nivel 2 de `CORE-Q-03`; Nivel 3 (RFID) sigue abierta.
+  el `.exe` agrega el **Dashboard/indicadores (CIP)** — el CCP ya va completo en Nivel 1 (ver
+  corrección de RF-A arriba). **`web_admin/` (portal Administración del Sistema) no se embebe en
+  ningún nivel** — decisión del usuario (2026-09-02): instalación autocontenida, sin canal de
+  conexión del proveedor al cliente. Cierra la parte Nivel 2 de `CORE-Q-03`; Nivel 3 (RFID) sigue abierta.
 - **RF-B.6.1 — selector de carpeta de ingesta de Excel** (`feat/ccp-ingesta-revision`, `707d732`):
   el CCP embebido se sirve sin preload, así que el diálogo nativo va en el wizard del `.exe`.
   IPC `elegir/leerCarpetaIngesta` (`dialog.showOpenDialog` con `openDirectory`/`createDirectory`),
