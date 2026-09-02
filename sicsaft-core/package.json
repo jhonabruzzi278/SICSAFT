@@ -50,6 +50,14 @@
         "to": "keycloak"
       },
       {
+        "from": "resources/apk",
+        "to": "apk"
+      },
+      {
+        "from": "resources/etl-contable",
+        "to": "etl-contable"
+      },
+      {
         "from": "../cis",
         "to": "cis",
         "filter": [

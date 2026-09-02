@@ -50,6 +50,28 @@ descomprimido).
     http://127.0.0.1:<puerto HTTP>/health/ready` nunca responde. `keycloak-service.ts` ya apunta
     al puerto correcto.
 
+- **`apk/`** (DOC-029 RF-H) — un solo archivo, `sicsaft-aft.apk`: la WebView Android que el `.exe`
+  sirve en `https://<ip>:8765/sicsaft-aft.apk` (mismo servidor estático de la PWA) y ofrece como
+  2º QR en la pantalla "listo" del wizard. **No versionado** (binario). Lo copia
+  `scripts/prepack.cjs` (`copiarApk`) desde `apk-aft/app/build/outputs/apk/release/*.apk` **si
+  existe**; si no, el `.exe` se empaqueta sin él y queda la PWA por navegador como único camino.
+  Para incluirlo: bajar el artefacto `sicsaft-aft-apk-firmada` de la CI `apk-aft` a
+  `apk-aft/app/build/outputs/apk/release/` (o buildear local con `./gradlew assembleRelease`) y
+  correr `npm run dist:win`.
+- **`etl-contable/`** (DOC-029 RF-B.6.2) — sidecar Python de la ingesta contable, dos partes:
+  - **`app/`** — el ETL en sí (`etl_contable.py` + `mapeo/` + `requirements.txt`). Lo copia
+    `scripts/prepack.cjs` (`prepararEtlContable`) desde `herramientas/etl-contable/` en cada
+    empaquetado — **no** hay que ponerlo a mano.
+  - **`python/`** — el intérprete embebido: [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
+    (Windows x64, ~30 MB) + un venv con `pandas`/`xlrd`/`openpyxl`/`requests` (`requirements.txt`
+    de `app/`). **No versionado, hay que vendorizarlo a mano una vez** (necesita red y un Windows
+    real). Estructura esperada: `python/python.exe` en la raíz, con los paquetes ya instalados en
+    su `Lib/site-packages` (o un `python/Scripts/`+`python/Lib/` de un venv). Sin esto,
+    `ingesta-watcher.ts` no puede correr el ETL y en el `.exe` solo queda la carga manual de CSV
+    desde el CCP (`prepack.cjs` avisa y sigue). En **dev** no hace falta: `resolverRutasEtl()` usa
+    el `python` del sistema + `herramientas/etl-contable/` directo (o `SICSAFT_ETL_PYTHON` para
+    apuntar a un venv concreto).
+
 Sin `redis/`: [ADR-005](../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md) (2026-08-27) sacó a
 Redis del ecosistema completo — `cis/` mueve su rate-limiter/device-registry a memoria del propio
 proceso, y la cola CORE→CIP pasa a `pg-boss` sobre el mismo Postgres de arriba. Un binario menos
