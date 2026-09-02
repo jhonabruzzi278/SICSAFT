@@ -19,13 +19,16 @@ propia en vez de un TWA/Capacitor.
 
 ## Estado
 
-🟡 Código Kotlin + Gradle + workflow de CI creados (2026-09-02). Pendiente:
+🟡 Código Kotlin + Gradle + workflow de CI creados (2026-09-02). El copiado del `.apk` al `.exe`
+(`sicsaft-core/scripts/prepack.cjs` `copiarApk` + `extraResources`) también está. Pendiente:
 
 1. Generar el keystore de release y cargar los 4 secretos en GitHub.
 2. Correr el workflow `apk-aft` para producir el `.apk` firmado.
-3. Instalar en un teléfono real y verificar el flujo end-to-end (conexión por QR → PWA → login
+3. En `sicsaft-core`: servir el `.apk` en `https://<ip>:8765/sicsaft-aft.apk`
+   (`static-portal-server.ts`) + 2º QR de descarga en la pantalla "listo" del wizard.
+4. Instalar en un teléfono real y verificar el flujo end-to-end (conexión por QR → PWA → login
    OIDC → escaneo de activo con permiso de cámara).
-4. `gradle-wrapper.jar` no está commiteado desde este entorno (binario) — lo regenera
+5. `gradle-wrapper.jar` no está commiteado desde este entorno (binario) — lo regenera
    `gradle wrapper` / Android Studio / la CI.
 
 ## Depende de

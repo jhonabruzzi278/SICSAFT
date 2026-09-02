@@ -18,12 +18,18 @@ varias capas se documenta bajo el sistema donde nace la decisión").
 > agrega **Bitácora de la sesión** (todos los commits, bugs y pendiente en un solo lugar) y se
 > sincroniza la documentación antigua afectada (`README.md` raíz, `CLAUDE.md`, `ccp/README.md`,
 > `sicsaft-core/README.md`, `aidlc-docs/diagrams/db-schema-core.html`).
+> **v5 (2026-09-02)** — **RF-H** (proyecto `apk-aft/` WebView Kotlin + `apk-aft-ci.yml`) y
+> **RF-B.6.2** (watcher `ingesta-watcher.ts` + service account `sicsaft-ingesta` + wiring +
+> `prepack.cjs` del sidecar Python y del `.apk`) codeados y con tests, en el stack
+> `feat/apk-aft-webview` ← `feat/sicsaft-core-ingesta-watcher`. **Falta**: servir el `.apk` en
+> `:8765` + 2º QR en el wizard (RF-H); verificación real del round-trip de ingesta + del claim
+> `organization` en un token `client_credentials` (RF-B.6.2); keystore + APK en un teléfono real.
 
-**Estado (v3, act. 2026-08-31): RF-G, RF-A, RF-F, RF-I y RF-E completos; RF-B con las capas
-ETL/CORE/CIS + revisión CCP + selector de carpeta hechas (falta sólo B.6.2: watcher del `.exe` +
-service account + empaquetado del sidecar Python). Falta empezar: RF-D, RF-H. RF-C sigue bloqueado
-por el spec de Guido. Todo commiteado en un stack de ramas locales, sin push ni PR. Detalle por
-frente en la tabla 0 y estado por rama en Plan de fases.**
+**Estado (v5, act. 2026-09-02): RF-G, RF-A, RF-F, RF-I y RF-E completos. RF-B completo en código
+(B.6.2 — watcher + service account + wiring + `prepack.cjs`); falta verificar el round-trip real.
+RF-H con el proyecto `apk-aft/` + CI + copiado del `.apk` al `.exe`; falta servirlo en `:8765` +
+2º QR y probarlo en un teléfono. Falta empezar: RF-D. RF-C sigue bloqueado por el spec de Guido.
+Detalle por frente en la tabla 0 y estado por rama en Plan de fases.**
 
 ---
 
@@ -32,7 +38,7 @@ frente en la tabla 0 y estado por rama en Plan de fases.**
 | ID | Frente | Capas | Estado (v3, 2026-08-31) |
 |----|--------|-------|--------|
 | **RF-A** | Flag de nivel (1/2) en CCP — gate de módulos/features (+ retiro de Contratos e Inventarios del portal) | CCP + `sicsaft-core` config | ✅ **Hecho** (`feat/ccp-nivel-flag`, `92f6a0e`→`e3169bf`) |
-| **RF-B** | Ingesta de Excel supervisada — carpeta → **ETL Python** → CIS → CORE (staging) → **revisión del AFT** → BPI | Python sidecar + CORE + CIS + CCP | 🟡 **Parcial**: ETL Python (`772df6f`), CORE staging + resolve-or-create (`c41a054`), CIS puente (`cedd836`), **CCP revisión de lotes** (`cecb0b7`) y **selector de carpeta IPC** (`707d732`) hechos. **Falta B.6.2**: watcher del `.exe` (chokidar → ETL → CIS) + su token de servicio + empaquetado del sidecar Python en `prepack.cjs`. |
+| **RF-B** | Ingesta de Excel supervisada — carpeta → **ETL Python** → CIS → CORE (staging) → **revisión del AFT** → BPI | Python sidecar + CORE + CIS + CCP | 🟡 **Código completo, falta verificar el round-trip real**: ETL Python (`772df6f`), CORE staging + resolve-or-create (`c41a054`), CIS puente (`cedd836`), CCP revisión de lotes (`cecb0b7`), selector de carpeta IPC (`707d732`), y **B.6.2** (`feat/sicsaft-core-ingesta-watcher`): watcher `ingesta-watcher.ts` (chokidar → ETL → CIS) + service account `sicsaft-ingesta` + wiring + `prepack.cjs` del sidecar Python. |
 | **RF-C** | 3 pestañas nuevas en el resumen (Dashboard) | CCP | 🔒 **Bloqueado — spec lo entrega Guido** |
 | **RF-D** | Veredicto de sesión accionable → Auditoría / baja / Inventario / Contrato | CCP + 1 automatización en CORE | Diseñado — pendiente |
 | **RF-E** | Auditoría por **área operativa real** del actor + columna "Revisar" | CORE + CIS + CCP | ✅ **Hecho**: CORE (`17d6291`) + CIS (`80a5ccf`) + CCP (`3d91204`). El área se puebla hoy desde `POST /inventarios`; las escrituras patrimoniales genéricas quedan en `null` hasta que CIS propague el claim (E.3) |
@@ -191,11 +197,11 @@ identidad sintética de DOC-016 5 (`operadorId: 'ingesta-contable'`, rol
 `administrador-patrimonial` afirmado por config; CORE re-verifica igual). **La aprobación** la hace
 un humano con su JWT real desde CCP, no la identidad sintética.
 
-### B.6 CCP + watcher + empaquetado — lo único que falta de RF-B
+### B.6 CCP + watcher + empaquetado — RF-B
 
-Rama `feat/ccp-ingesta-revision` (off `feat/etl-contable-python`). Estado (2026-08-31): B.6.3 y
-B.6.1 **hechos y commiteados**; B.6.2 (watcher + empaquetado) pendiente — necesita el stack
-arriba para validar el round-trip real.
+B.6.3/B.6.1 en `feat/ccp-ingesta-revision` (off `feat/etl-contable-python`). **B.6.2 (2026-09-02)
+en `feat/sicsaft-core-ingesta-watcher`** (apilada sobre `feat/apk-aft-webview`): código completo
+con tests; falta el round-trip real contra el stack.
 
 #### B.6.3 CCP — módulo Importaciones (✅ hecho, `cecb0b7`)
 
@@ -222,14 +228,14 @@ config runtime, solo lectura.
 | `src/preload/index.ts` | Expone ambos. |
 | `src/renderer/.../components/CarpetaIngesta.tsx` | Componente del wizard, dos modos: tarjeta en "Instalación completa" + versión compacta en la franja del portal cargado. |
 
-#### B.6.2 `sicsaft-core` — watcher + token de servicio + empaquetado (⬜ pendiente)
+#### B.6.2 `sicsaft-core` — watcher + service account + empaquetado (✅ código, 2026-09-02)
 
-| Archivo | Cambio |
-|---|---|
-| `src/main/services/ingesta-watcher.ts` **(nuevo)** | `chokidar.watch(carpeta, { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 2000 } })` sobre `*.xls`/`*.xlsx`. Por cada `add`: `execFile(rutaPythonEmbebido, [rutaScript, '--entrada', archivo, '--organizacion', orgId, '--mapeo', rutaMapeoOrg, '--cis-url', 'http://127.0.0.1:56000', '--token', tokenServicio])`. Mueve el `.xls` a `<carpeta>/.procesados/` o `.error/`. Log a `ingesta.log`. Unit-testable con carpeta temporal + `execFile` mockeado. |
-| Wiring del arranque | Tras `asegurarServidoresPortales`, si hay `carpetaIngesta` → `iniciarWatcher`. Reiniciar cuando el usuario cambia la carpeta (el handler `elegirCarpetaIngesta` ya persiste; falta que dispare el reinicio). |
-| **token de servicio** — decisión pendiente | Todo `cis/src/administrador/AdministradorController` es `@UseGuards(KeycloakAuthGuard, RateLimitGuard)` — **no hay ruta con `ServiceTokenGuard`** para el lote. El watcher necesita un JWT que `KeycloakAuthGuard` acepte con el rol `administrador-patrimonial`. Opción v1: un **service account** dedicado en Keycloak (client `sicsaft-ingesta`, grant `client_credentials`, rol `administrador-patrimonial` en la organización del cliente), provisionado en el bootstrap junto al resto de clients. El `.exe` pide el token con `client_credentials` (mismo mecanismo que ya usa para la Admin API) y lo pasa al ETL. La "identidad sintética `ingesta-contable`" de DOC-016 5 sigue siendo lo que CIS **reenvía a CORE** como `operadorId`; la aprobación la hace el humano con su JWT real. |
-| `resources/etl-contable/` + `prepack.cjs` | Vendorizar `python-build-standalone` (win-x64, ~15 MB) + venv con `pandas`/`xlrd`, copiar `herramientas/etl-contable/`. `execFile` con ruta absoluta y `PATH` acotado (sonar S4036, mismo criterio que el `prepack.cjs` actual). En **dev** usa el `python` del sistema + la carpeta del repo. `extraResources` incluye `resources/etl-contable/**`. Necesita red (descarga) y un Windows real para validar. |
+| Archivo | Cambio | Estado |
+|---|---|---|
+| `src/main/services/ingesta-watcher.ts` **(nuevo)** + `.test.ts` | `chokidar` con `awaitWriteFinish` (2000 ms; overridable en tests) sobre `*.xls`/`*.xlsx`, `depth: 0`, ignora dotfiles. Cola serial. `construirEjecucionEtl` arma el comando del contrato (`--entrada/--organizacion/--cis-url/--token`, `--mapeo` opcional); `procesarArchivoIngesta` corre el ETL (`execFile`, PATH acotado S4036 solo con ruta absoluta), mueve a `.procesados/` o `.error/` (+ `<archivo>.log`) y escribe `ingesta.log`. `reconfigurarWatcherIngesta`/`detenerWatcherIngesta` para el ciclo de vida. Tests: `execFile` mockeado + tmpdir real. | ✅ |
+| Wiring — `ipc/handlers.ts` + `index.ts` | `asegurarWatcherIngesta(orquestador)`: lee `instalacion.json`, resuelve las creds de `sicsaft-ingesta` y levanta el watcher. Se llama tras `iniciarCis` en `bootstrapCliente` y en `getInstalacionExistente` (relanzamiento con wizard salteado), y tras `elegirCarpetaIngesta` (reapunta a la carpeta nueva). `before-quit` → `detenerWatcherIngesta()` antes de `orquestador.detenerTodo()`. | ✅ |
+| **service account** — `keycloak-bootstrap.ts` + `.test.ts` | `crearClientIngesta(token, organizacionId)` (en `bootstrapPrimeraInstalacion`): client confidencial `sicsaft-ingesta` con `serviceAccountsEnabled`, su SA user hecho miembro de la Organization + puesto en el grupo `{org}::administrador-patrimonial` (reusa `resolverOrganizacionPorAlias`/`agregarMiembroSiHaceFalta`/`resolverOCrearGrupoRol`). `obtenerTokenClientCredentials(clientId, secret)` + `resolverCredencialesClienteIngesta(admin)` (recupera el secret en cada relanzamiento, no se persiste). **⚠ pendiente de verificación real**: que un token `client_credentials` traiga el claim `organization` del SA user (el mapper vive en el scope `organization`, default-default; si no lo trae, `KeycloakAuthGuard` de cis/ ve `organizaciones: []` → 403; fallback = protocol-mapper "hardcoded claim"). | ✅ código |
+| `resources/etl-contable/` + `resources/apk/` + `prepack.cjs` | `prepararEtlContable()` copia `herramientas/etl-contable/` → `resources/etl-contable/app/` siempre; `copiarApk()` copia el `.apk` de `apk-aft/.../release/` → `resources/apk/` si existe. Ambos con degradación + `log` si falta el binario. `extraResources` suma `resources/apk` y `resources/etl-contable`. **Pendiente (manual, red + Windows real)**: vendorizar `python-build-standalone` + venv `pandas`/`xlrd`/`requests` en `resources/etl-contable/python/` (ver `sicsaft-core/resources/README.md`). | ✅ código / ⬜ vendoring |
 
 - No se unifica la carga manual bajo staging (decisión del usuario): el AFT que sube un CSV a mano
   ya es el humano que revisa, en ese acto.
@@ -531,7 +537,7 @@ campo `direccion` de B; I depende de que existan sesiones con `estadoDeclarado`,
 | 8 | `feat/core-ingesta-staging` | RF-B capa CORE (tablas espejo + dry-run) | 3 | ✅ `c41a054` |
 | 9 | `feat/cis-ingesta-lote` | RF-B capa CIS (endpoint de lote) + resolve-or-create en CORE | 8 | ✅ `cedd836` |
 | 10a | `feat/ccp-ingesta-revision` | **RF-B.6.3** CCP (revisión Aprobar/Rechazar) — `cecb0b7`; **RF-B.6.1** IPC selector de carpeta — `707d732` | 7, 9 | ✅ |
-| **10b** | `feat/ccp-ingesta-revision` (o rama nueva) | **RF-B.6.2** — watcher del `.exe` (chokidar → ETL → CIS) + service account Keycloak `sicsaft-ingesta` + `prepack.cjs` del sidecar Python | 10a | ⬜ **siguiente** (necesita el stack arriba) |
+| **10b** | `feat/sicsaft-core-ingesta-watcher` | **RF-B.6.2** — watcher del `.exe` (chokidar → ETL → CIS) + service account Keycloak `sicsaft-ingesta` + `prepack.cjs` del sidecar Python | 10a, 19 | ✅ código (2026-09-02) — falta el round-trip real contra el stack + el vendoring de Python |
 | 11 | `feat/core-cip-resumen-control` | RF-I capa CORE (`GET /inventarios/:id/control` + migración `estado_declarado`/`baja_sugerida_motivo` + `veredicto.ts`) | main (prod) | ✅ `f64bda1` |
 | 11b | `feat/cis-inventario-control` | RF-I puente CIS — passthrough de `GET /inventarios/:id/control` (sirve CCP y APP QR desde el mismo `QrConnectorController`) | 11 | ✅ `3d9256d` |
 | 13 | `feat/ccp-pantalla8` | RF-I CCP (detalle de sesión en el Resumen) | 11b, 14 | ✅ `c932766` |
@@ -541,7 +547,7 @@ campo `direccion` de B; I depende de que existan sesiones con `estadoDeclarado`,
 | 16 | `feat/cis-auditoria-area` | RF-E capa CIS (passthrough `?area=` + `areaOperativa` en la respuesta) | 15 | ✅ `80a5ccf` |
 | 17 | `feat/ccp-auditoria-area` | RF-E capa CCP (Área / Operación / Revisar + filtro por área) | 16 (+ 13 para el árbol CCP) | ✅ `3d91204` |
 | 18 | `feat/ccp-veredicto-accionable` | RF-D (links profundos + automatización D.3) | 13, 17 | ⬜ **siguiente** |
-| 19 | `apk-aft-webview` | RF-H (`apk-aft/` + CI + servido por el `.exe` + 2º QR) | 3 | ⬜ |
+| 19 | `feat/apk-aft-webview` | RF-H (`apk-aft/` WebView Kotlin + `apk-aft-ci.yml` + copiado del `.apk` en `prepack.cjs`) | 3 | 🟡 proyecto + CI + copiado hechos (2026-09-02); **falta** servirlo en `:8765` + 2º QR en el wizard, keystore y prueba en teléfono real |
 | — | RF-C | 3 pestañas — rama aparte cuando Guido entregue el spec | spec de Guido | 🔒 |
 
 **Camino crítico para desbloquear la QA completa** (`casos-de-uso/PLAN-QA.md 5`): #10 (desbloquea
@@ -661,9 +667,9 @@ próxima sesión):
 
 | Qué | Rama | Bloqueo / nota |
 |---|---|---|
-| **RF-B.6.2** — watcher del `.exe` (chokidar → ETL → CIS) + service account Keycloak `sicsaft-ingesta` + empaquetado del sidecar Python en `prepack.cjs` | `feat/ccp-ingesta-revision` o rama nueva | Necesita el stack arriba levantado (container stack) para validar el round-trip real |
+| **RF-B.6.2 — verificación** (código ✅ en `feat/sicsaft-core-ingesta-watcher`) | ídem | Round-trip real contra el stack (Excel → ETL → CIS → CORE staging → CCP); confirmar que el token `client_credentials` de `sicsaft-ingesta` trae el claim `organization`; vendorizar `python-build-standalone` en `resources/etl-contable/python/` |
 | **RF-D** — links profundos del veredicto + auto-auditoría D.3 al cerrar `defectuoso` | `feat/ccp-veredicto-accionable` (nueva) | Depende de `feat/ccp-pantalla8` (#13) y `feat/ccp-auditoria-area` (#17) |
-| **RF-H** — `apk-aft/` (WebView Kotlin) + `apk-aft-ci.yml` + servido por el `.exe` + 2º QR | `apk-aft-webview` (nueva) | Necesita Android SDK/Gradle en CI |
+| **RF-H — servir + QR** (proyecto + CI + copiado ✅ en `feat/apk-aft-webview` / `feat/sicsaft-core-ingesta-watcher`) | `feat/sicsaft-core-ingesta-watcher` o rama nueva | Servir el `.apk` en `https://<ip>:8765/sicsaft-aft.apk` (`static-portal-server.ts`) + 2º QR en `PasoListoConLogin.tsx`; generar el keystore + correr `apk-aft` CI; probar el `.apk` en un teléfono real |
 | **RF-C** — 3 pestañas del Dashboard | — | 🔒 Spec lo entrega Guido |
 | **RF-E follow-up** — poblar `area_operativa` en las escrituras patrimoniales desde el claim de Keycloak (hoy solo lo puebla `POST /inventarios`) | continuación de RF-E | Documentado en `core/README.md` |
 | **Decisión pre-entrega** — rol Keycloak Supervisor Patrimonial / Auditor propio (hoy los cubre `administrador-patrimonial`) | `feat/rbac-supervisor-auditor` | **No opcional** si el pliego del cliente exige separación de funciones — ver Vacíos |
