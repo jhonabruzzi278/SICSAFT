@@ -32,7 +32,7 @@ Dominio §12.23–§12.24. Reglas DOC-001…DOC-004 (tomo). Componentes: `ccp/`,
 | **Resultado esperado** | Expediente digital enriquecido y versionado. |
 | **Componentes** | CCP · CIS · CORE · BPI. |
 | **Prioridad** | Media. |
-| **Estado en el repo** | 🟢 **Implementado** (Nivel 2): `ActivosPage.tsx` panel "Editar" → "Documentación y fotografías" → `altaDocumentoActivo` / `eliminarDocumentoActivo` → `documentos_activo`. **Oculto en Nivel 1 (RF-A)** porque cuelga del panel de edición del activo. Hoy se guarda una `url`, no un archivo subido — verificar en la QA si el cliente Nivel 1 necesita carga de archivo real. |
+| **Estado en el repo** | 🟢 **Implementado** (todos los niveles): `ActivosPage.tsx` panel "Editar" → "Documentación y fotografías" → `altaDocumentoActivo` / `eliminarDocumentoActivo` → `documentos_activo`. Hoy se guarda una `url`, no un archivo subido — verificar en la QA si el cliente necesita carga de archivo real. |
 
 ---
 
@@ -58,4 +58,4 @@ Dominio §12.23–§12.24. Reglas DOC-001…DOC-004 (tomo). Componentes: `ccp/`,
 | **Resultado esperado** | El usuario ve solo los documentos autorizados. |
 | **Componentes** | CCP · CIS · CORE · BPI. |
 | **Prioridad** | Media. |
-| **Estado en el repo** | 🟢 **Implementado** (Nivel 2): `getDocumentosActivo` lista los documentos con enlace. Oculto en Nivel 1 (RF-A). Registro de la consulta en `auditoria`: verificar en la QA. |
+| **Estado en el repo** | 🟢 **Implementado** (todos los niveles): `getDocumentosActivo` lista los documentos con enlace. Registro de la consulta en `auditoria`: verificar en la QA. |

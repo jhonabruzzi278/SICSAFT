@@ -87,7 +87,7 @@ Reservados para el futuro (§12.34, sin documentar todavía): `CU-BLE`, `CU-GPS`
 | Actor del tomo | En el repo | Estado |
 |---|---|---|
 | **APP Móvil SICSAFT** | `app-qr-sicsaft/` (PWA servida por el `.exe`, [DOC-028](../aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md) Fase D) | 🟢 real. APK nativa = RF-H de DOC-029, pendiente. |
-| **Centro de Control Patrimonial (CCP)** | `ccp/` | 🟢 real. En Nivel 1 queda acotado (RF-A). |
+| **Centro de Control Patrimonial (CCP)** | `ccp/` | 🟢 real. **Completo en todos los niveles** (RF-A, corrección 2026-09-02); el Dashboard es CIP → Nivel 2. |
 | **Subsistema RFID** | `rfid/` | 🔲 **no iniciado** (Nivel 3). Todos los `CU-RFID-*` son pendientes. |
 | **Sistema ERP** | conector `CU-INT-001` / [DOC-016](../aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md) | 🔲 diseñado, sin código. RF-B de DOC-029 lo reemplaza para el flujo Excel. |
 | **Sistemas BI / Analítica** | consumen de `cip/` | 🟡 CIP real; API de salida a BI externo, pendiente. |

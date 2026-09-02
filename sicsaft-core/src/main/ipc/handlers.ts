@@ -281,8 +281,9 @@ export function registrarIpcHandlers(
         ipLan: obtenerIpLan(),
         // DOC-030 -- nivel de producto contratado (DOC-025), elegido por el vendedor en el paso 1
         // del wizard (PasoDatosCliente). Se inyecta al servir `ccp` como VITE_SICSAFT_NIVEL
-        // (asegurarServidoresPortales): en Nivel 2 el CCP muestra la gestion avanzada. `web_admin`
-        // NO se embebe en ningun nivel (decision del usuario 2026-09-02, ver DOC-030).
+        // (asegurarServidoresPortales): el CCP va completo en todos los niveles; Nivel 2 solo
+        // agrega el Dashboard/indicadores (CIP) -- correccion 2026-09-02, ver ccp/src/lib/nivel.ts.
+        // `web_admin` NO se embebe en ningun nivel (decision del usuario 2026-09-02, ver DOC-030).
         nivel: input.nivel,
       });
       return { organizacionId: resultado.organizacionId };

@@ -19,6 +19,17 @@
 > este documento contemplaba en su borrador y **deja [DOC-028](DOC-028-camino-a-cliente-final.md)
 > Fase F (portal de administración remota) sin efecto** — ver el punto 5.
 
+> **Corrección 2026-09-02 (`feat/ccp-completo-en-nivel-1`)** — la premisa de este documento
+> ("Nivel 2 = Nivel 1 + **CCP completo**") queda **superada**. Decisión del usuario: el **CCP va
+> completo en todos los niveles** (operación, administración, control). Lo que Nivel 2 agrega es el
+> **CIP** — el Dashboard de indicadores/análisis. Ver la corrección en
+> [DOC-029 RF-A](../../ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md#rf-a--flag-de-nivel-12-en-ccp)
+> y `ccp/src/lib/nivel.ts` (`MODULOS_CIP = {dashboard}`). El wizard sigue teniendo el selector
+> Nivel 1/2 y el `.exe` sigue inyectando `VITE_SICSAFT_NIVEL` igual — solo cambia **qué**
+> desbloquea el `2`: antes "Estructura + alta manual de Activos", ahora "el Dashboard (CIP)".
+> Las tablas y ejemplos de abajo se leen con esa corrección: donde dicen "CCP acotado en Nivel 1"
+> hoy el CCP está completo, y "lo que falta en Nivel 2" es solo el Dashboard/CIP.
+
 **Estado: diseño listo — alcance cerrado (solo el flag de nivel). Implementable.**
 
 ---

@@ -22,8 +22,8 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// DOC-029 RF-A -- un modulo no habilitado (retirado del CCP, o de "gestion avanzada"/Nivel 2 en
-// una instalacion Nivel 1) abierto por URL directa redirige al hub. El gate real igual esta en
+// DOC-029 RF-A -- un modulo no habilitado (retirado del CCP, o el `dashboard`/CIP en una
+// instalacion Nivel 1) abierto por URL directa redirige al hub. El gate real igual esta en
 // CIS/CORE (DOC-023) -- esto solo evita mostrar una pantalla sin salida.
 function RequireModulo({
   path,

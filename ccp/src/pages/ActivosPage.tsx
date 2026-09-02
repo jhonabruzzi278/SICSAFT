@@ -19,7 +19,6 @@ import {
   Input,
   Label,
 } from '@/components/ui';
-import { nivelActual } from '@/lib/nivel';
 
 // RF-03 — módulo Activos: consulta (GET /catalogo, ya existía) + alta (POST /admin/activos,
 // Fase 5/DOC-012). RF-08: el alta debe hacerse visible en el mismo catálogo que consume APP QR —
@@ -72,11 +71,6 @@ function errorDeCisApi(err: unknown, accion: string): string {
 export function ActivosPage() {
   const [searchParams] = useSearchParams();
   const organizacionId = searchParams.get('organizacionId') ?? '';
-  // DOC-029 RF-A -- en Nivel 1 este modulo es solo consulta: sin alta manual (activo ni tipo de
-  // catalogo), sin acciones de baja/edicion sobre las filas. El catalogo se puebla por la ingesta
-  // supervisada (RF-B) o por la APP QR.
-  const soloConsulta = nivelActual() === 1;
-
   const [activos, setActivos] = useState<ActivoCatalogo[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -292,11 +286,7 @@ export function ActivosPage() {
   }
 
   return (
-    <div
-      className={
-        soloConsulta ? 'space-y-6' : 'grid gap-8 lg:grid-cols-[1fr_360px]'
-      }
-    >
+    <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="space-y-6">
         <div>
           <h1 className="mb-4 text-2xl font-semibold text-accent-strong">
@@ -316,9 +306,7 @@ export function ActivosPage() {
                     <th className="px-4 py-2 font-medium">Nombre</th>
                     <th className="px-4 py-2 font-medium">Área</th>
                     <th className="px-4 py-2 font-medium">Estado</th>
-                    {!soloConsulta && (
-                      <th className="px-4 py-2 font-medium">Acciones</th>
-                    )}
+                    <th className="px-4 py-2 font-medium">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -335,38 +323,36 @@ export function ActivosPage() {
                       <td className="px-4 py-2">
                         <Badge>{activo.estado}</Badge>
                       </td>
-                      {!soloConsulta && (
-                        <td className="px-4 py-2">
-                          <div className="flex flex-wrap gap-2">
-                            {(activo.estado === 'activo' ||
-                              activo.estado === 'extraviado') && (
-                              <Button
-                                variant="ghost"
-                                className="!px-2 !py-1 text-xs"
-                                onClick={() => void darDeBaja(activo)}
-                              >
-                                Dar de baja
-                              </Button>
-                            )}
-                            {activo.estado === 'extraviado' && (
-                              <Button
-                                variant="ghost"
-                                className="!px-2 !py-1 text-xs"
-                                onClick={() => void reincorporar(activo)}
-                              >
-                                Reincorporar
-                              </Button>
-                            )}
+                      <td className="px-4 py-2">
+                        <div className="flex flex-wrap gap-2">
+                          {(activo.estado === 'activo' ||
+                            activo.estado === 'extraviado') && (
                             <Button
                               variant="ghost"
                               className="!px-2 !py-1 text-xs"
-                              onClick={() => abrirEdicion(activo)}
+                              onClick={() => void darDeBaja(activo)}
                             >
-                              Editar
+                              Dar de baja
                             </Button>
-                          </div>
-                        </td>
-                      )}
+                          )}
+                          {activo.estado === 'extraviado' && (
+                            <Button
+                              variant="ghost"
+                              className="!px-2 !py-1 text-xs"
+                              onClick={() => void reincorporar(activo)}
+                            >
+                              Reincorporar
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            className="!px-2 !py-1 text-xs"
+                            onClick={() => abrirEdicion(activo)}
+                          >
+                            Editar
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -375,7 +361,7 @@ export function ActivosPage() {
           )}
         </div>
 
-        {editando && !soloConsulta && (
+        {editando && (
           <Card>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-medium text-text">
@@ -504,143 +490,142 @@ export function ActivosPage() {
         )}
       </div>
 
-      {/* DOC-029 RF-A -- alta manual (activo + tipo de catalogo) solo en Nivel 2. */}
-      {!soloConsulta && (
-        <div className="space-y-6">
+      {/* Alta manual de activo + tipo de catalogo -- operacion del CCP, disponible en todos los
+          niveles (el gate de Nivel 1 se retiro con la correccion 2026-09-02, ver lib/nivel.ts). */}
+      <div className="space-y-6">
+        <Card className="h-fit">
+          <h2 className="mb-4 font-medium text-text">Alta de activo</h2>
+          <form
+            onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+            className="space-y-4"
+          >
+            <div>
+              <Label htmlFor="codigoPatrimonial">Código patrimonial</Label>
+              <Input
+                id="codigoPatrimonial"
+                {...register('codigoPatrimonial')}
+              />
+              <FieldError>{errors.codigoPatrimonial?.message}</FieldError>
+            </div>
+            <div>
+              <Label htmlFor="codigoQr">Código QR</Label>
+              <Input id="codigoQr" {...register('codigoQr')} />
+              <FieldError>{errors.codigoQr?.message}</FieldError>
+            </div>
+            <div>
+              <Label htmlFor="catalogoId">Catálogo (tipo)</Label>
+              <select
+                id="catalogoId"
+                {...register('catalogoId')}
+                className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text"
+              >
+                <option value="">— Elegir —</option>
+                {catalogoTipos.map((tipo) => (
+                  <option key={tipo.id} value={tipo.id}>
+                    {tipo.tipo} — {tipo.familia}
+                  </option>
+                ))}
+              </select>
+              <FieldError>{errors.catalogoId?.message}</FieldError>
+              <button
+                type="button"
+                className="mt-1 text-xs text-accent hover:text-accent-strong"
+                onClick={() => setNuevoTipoAbierto((v) => !v)}
+              >
+                {nuevoTipoAbierto ? 'Cancelar' : '+ Nuevo tipo de catálogo'}
+              </button>
+            </div>
+            <div>
+              <Label htmlFor="serie">Serie (opcional)</Label>
+              <Input id="serie" {...register('serie')} />
+            </div>
+            <div>
+              <Label htmlFor="areaId">Área (opcional)</Label>
+              <Input id="areaId" {...register('areaId')} />
+            </div>
+            <div>
+              <Label htmlFor="ubicacionId">Ubicación (opcional)</Label>
+              <Input id="ubicacionId" {...register('ubicacionId')} />
+            </div>
+            <div>
+              <Label htmlFor="descripcion">Descripción (opcional)</Label>
+              <Input id="descripcion" {...register('descripcion')} />
+            </div>
+
+            {submitError && <Alert>{submitError}</Alert>}
+            {submitOk && <Alert variant="success">Activo creado.</Alert>}
+
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? 'Creando…' : 'Crear activo'}
+            </Button>
+          </form>
+        </Card>
+
+        {nuevoTipoAbierto && (
           <Card className="h-fit">
-            <h2 className="mb-4 font-medium text-text">Alta de activo</h2>
+            <h2 className="mb-4 font-medium text-text">
+              Nuevo tipo de catálogo
+            </h2>
             <form
-              onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+              onSubmit={(e) => void handleSubmitTipo(onSubmitTipo)(e)}
               className="space-y-4"
             >
               <div>
-                <Label htmlFor="codigoPatrimonial">Código patrimonial</Label>
-                <Input
-                  id="codigoPatrimonial"
-                  {...register('codigoPatrimonial')}
-                />
-                <FieldError>{errors.codigoPatrimonial?.message}</FieldError>
+                <Label htmlFor="tipo-tipo">Tipo</Label>
+                <Input id="tipo-tipo" {...registerTipo('tipo')} />
+                <FieldError>{erroresTipo.tipo?.message}</FieldError>
               </div>
               <div>
-                <Label htmlFor="codigoQr">Código QR</Label>
-                <Input id="codigoQr" {...register('codigoQr')} />
-                <FieldError>{errors.codigoQr?.message}</FieldError>
+                <Label htmlFor="tipo-familia">Familia</Label>
+                <Input id="tipo-familia" {...registerTipo('familia')} />
+                <FieldError>{erroresTipo.familia?.message}</FieldError>
               </div>
               <div>
-                <Label htmlFor="catalogoId">Catálogo (tipo)</Label>
+                <Label htmlFor="tipo-subfamilia">Subfamilia (opcional)</Label>
+                <Input id="tipo-subfamilia" {...registerTipo('subfamilia')} />
+              </div>
+              <div>
+                <Label htmlFor="tipo-marca">Marca (opcional)</Label>
+                <Input id="tipo-marca" {...registerTipo('marca')} />
+              </div>
+              <div>
+                <Label htmlFor="tipo-modelo">Modelo (opcional)</Label>
+                <Input id="tipo-modelo" {...registerTipo('modelo')} />
+              </div>
+              <div>
+                <Label htmlFor="tipo-criticidad">Criticidad</Label>
                 <select
-                  id="catalogoId"
-                  {...register('catalogoId')}
+                  id="tipo-criticidad"
+                  {...registerTipo('criticidad')}
                   className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text"
                 >
-                  <option value="">— Elegir —</option>
-                  {catalogoTipos.map((tipo) => (
-                    <option key={tipo.id} value={tipo.id}>
-                      {tipo.tipo} — {tipo.familia}
-                    </option>
-                  ))}
+                  <option value="baja">Baja</option>
+                  <option value="media">Media</option>
+                  <option value="alta">Alta</option>
                 </select>
-                <FieldError>{errors.catalogoId?.message}</FieldError>
-                <button
-                  type="button"
-                  className="mt-1 text-xs text-accent hover:text-accent-strong"
-                  onClick={() => setNuevoTipoAbierto((v) => !v)}
+              </div>
+              <div>
+                <Label htmlFor="tipo-tecnologia">
+                  Tecnología de identificación
+                </Label>
+                <select
+                  id="tipo-tecnologia"
+                  {...registerTipo('tecnologiaIdentificacion')}
+                  className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text"
                 >
-                  {nuevoTipoAbierto ? 'Cancelar' : '+ Nuevo tipo de catálogo'}
-                </button>
+                  <option value="qr">QR</option>
+                  <option value="rfid">RFID</option>
+                  <option value="qr_rfid">QR + RFID</option>
+                </select>
               </div>
-              <div>
-                <Label htmlFor="serie">Serie (opcional)</Label>
-                <Input id="serie" {...register('serie')} />
-              </div>
-              <div>
-                <Label htmlFor="areaId">Área (opcional)</Label>
-                <Input id="areaId" {...register('areaId')} />
-              </div>
-              <div>
-                <Label htmlFor="ubicacionId">Ubicación (opcional)</Label>
-                <Input id="ubicacionId" {...register('ubicacionId')} />
-              </div>
-              <div>
-                <Label htmlFor="descripcion">Descripción (opcional)</Label>
-                <Input id="descripcion" {...register('descripcion')} />
-              </div>
-
-              {submitError && <Alert>{submitError}</Alert>}
-              {submitOk && <Alert variant="success">Activo creado.</Alert>}
-
-              <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting ? 'Creando…' : 'Crear activo'}
+              {tipoError && <Alert>{tipoError}</Alert>}
+              <Button type="submit" disabled={creandoTipo} className="w-full">
+                {creandoTipo ? 'Creando…' : 'Crear tipo'}
               </Button>
             </form>
           </Card>
-
-          {nuevoTipoAbierto && (
-            <Card className="h-fit">
-              <h2 className="mb-4 font-medium text-text">
-                Nuevo tipo de catálogo
-              </h2>
-              <form
-                onSubmit={(e) => void handleSubmitTipo(onSubmitTipo)(e)}
-                className="space-y-4"
-              >
-                <div>
-                  <Label htmlFor="tipo-tipo">Tipo</Label>
-                  <Input id="tipo-tipo" {...registerTipo('tipo')} />
-                  <FieldError>{erroresTipo.tipo?.message}</FieldError>
-                </div>
-                <div>
-                  <Label htmlFor="tipo-familia">Familia</Label>
-                  <Input id="tipo-familia" {...registerTipo('familia')} />
-                  <FieldError>{erroresTipo.familia?.message}</FieldError>
-                </div>
-                <div>
-                  <Label htmlFor="tipo-subfamilia">Subfamilia (opcional)</Label>
-                  <Input id="tipo-subfamilia" {...registerTipo('subfamilia')} />
-                </div>
-                <div>
-                  <Label htmlFor="tipo-marca">Marca (opcional)</Label>
-                  <Input id="tipo-marca" {...registerTipo('marca')} />
-                </div>
-                <div>
-                  <Label htmlFor="tipo-modelo">Modelo (opcional)</Label>
-                  <Input id="tipo-modelo" {...registerTipo('modelo')} />
-                </div>
-                <div>
-                  <Label htmlFor="tipo-criticidad">Criticidad</Label>
-                  <select
-                    id="tipo-criticidad"
-                    {...registerTipo('criticidad')}
-                    className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text"
-                  >
-                    <option value="baja">Baja</option>
-                    <option value="media">Media</option>
-                    <option value="alta">Alta</option>
-                  </select>
-                </div>
-                <div>
-                  <Label htmlFor="tipo-tecnologia">
-                    Tecnología de identificación
-                  </Label>
-                  <select
-                    id="tipo-tecnologia"
-                    {...registerTipo('tecnologiaIdentificacion')}
-                    className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text"
-                  >
-                    <option value="qr">QR</option>
-                    <option value="rfid">RFID</option>
-                    <option value="qr_rfid">QR + RFID</option>
-                  </select>
-                </div>
-                {tipoError && <Alert>{tipoError}</Alert>}
-                <Button type="submit" disabled={creandoTipo} className="w-full">
-                  {creandoTipo ? 'Creando…' : 'Crear tipo'}
-                </Button>
-              </form>
-            </Card>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

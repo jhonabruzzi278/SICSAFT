@@ -62,6 +62,16 @@ el invariante de Tomo III 4.10 (baja por `estado`, nunca `DELETE` — RF-D lo re
 
 ## RF-A — Flag de nivel (1/2) en CCP
 
+> **Corrección 2026-09-02 (`feat/ccp-completo-en-nivel-1`)** — decisión del usuario: **el CCP va
+> completo en TODOS los niveles**. El "Nivel 1 = CCP acotado" de A.3 (abajo) queda **revertido**.
+> Fundamento: `NOMENCLATURA.md` — "el CCP está en todos los niveles, CIP entra en Nivel 2"; y
+> Tomo IV "CCP ≠ CIP" (modificar un responsable = CCP; observar un indicador = CIP). El CCP es
+> **operación, administración y control** (activos con alta manual, estructura, importaciones,
+> etiquetas, auditoría) → Nivel 1. Lo único que Nivel 2 agrega es el **Dashboard/indicadores**,
+> que consume **CIP**. `ccp/src/lib/nivel.ts` pasa de `MODULOS_NIVEL_1` (allow-list) a
+> `MODULOS_CIP = {dashboard}` (única cosa gateada a Nivel 2). El resto de esta sección se lee con
+> esa corrección aplicada.
+
 ### A.1 Qué resuelve y por qué revierte DOC-025
 
 DOC-025 reservó para el Profesional de AFT **dos aplicaciones distintas**: un "web-aft" liviano de
@@ -92,16 +102,20 @@ Lectura en CCP: helper `nivelActual(): 1 | 2` en `src/lib/nivel.ts` (mismo patr�
 `nivel` es el **techo**; `modulosContratados` (ya existente) sigue siendo el permiso fino por
 organización. Un módulo se muestra si el nivel lo permite **y** está en `modulosContratados`.
 
-| Módulo del hub | Nivel 1 | Nivel 2 |
-|---|---|---|
-| Activos | ✅ **solo consulta** (sin alta manual) | ✅ completo |
-| Inventarios | ✅ | ✅ |
-| Dashboard | ✅ | ✅ |
-| **Ingesta / Importación (RF-B)** | ✅ (único camino de carga en Nivel 1) | ✅ |
-| **QR / Etiquetas (RF-F)** | ✅ | ✅ |
-| Contratos | ❌ | ✅ |
-| Estructura (ABM áreas/ubicaciones/responsables) | ❌ | ✅ |
-| Administración (transversal) | ❌ | ✅ |
+**Tabla vigente (corrección 2026-09-02):**
+
+| Módulo del hub | Nivel 1 | Nivel 2 | |
+|---|---|---|---|
+| Activos (con **alta manual**, baja, edición) | ✅ | ✅ | CCP — operación |
+| Estructura (ABM áreas/ubicaciones/responsables) | ✅ | ✅ | CCP — administración |
+| Importación / Ingesta (RF-B) | ✅ | ✅ | CCP — operación |
+| QR / Etiquetas (RF-F) | ✅ | ✅ | CCP — operación |
+| Auditoría | ✅ | ✅ | CCP — control |
+| **Dashboard** (indicadores, distribución, análisis) | ❌ | ✅ | **CIP** — inteligencia |
+| Contratos, Inventarios | ❌ retirados del portal en cualquier nivel | | decisión aparte 2026-08-31 |
+
+**Tabla previa (revertida, para historial):** Nivel 1 = solo `activos` (consulta), `importaciones`,
+`auditoria`, `etiquetas`, `dashboard`; `estructura` + alta manual de activos eran Nivel 2.
 
 Enforcement: **solo oculta en la UI**. El guard real sigue en CIS/CORE (DOC-023).
 

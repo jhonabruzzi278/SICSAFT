@@ -22,19 +22,20 @@ const MODULOS_RETIRADOS: ReadonlySet<string> = new Set([
   'inventarios',
 ]);
 
-// Modulos habilitados en Nivel 1 / Modo Basico (DOC-029 RF-A A.3, NOMENCLATURA.md 4):
-// identificacion, consulta, incidencias, historial, trazabilidad basica (DOC-025 1). El resto
-// — "gestion avanzada" (ABM de estructura, Administracion) y el Dashboard/indicadores, que
-// consume CIP — es Nivel 2 / Modo Profesional (CIP entra en Nivel 2, decision del 2026-09-02).
-// El alta manual de activos tambien es Nivel 2 (ver ActivosPage).
-const MODULOS_NIVEL_1: ReadonlySet<string> = new Set([
-  'activos',
-  'importaciones',
-  'auditoria',
-  'etiquetas',
-]);
+// El CCP — Centro de Control Patrimonial (operacion, administracion y control) — esta COMPLETO en
+// todos los niveles: activos (con alta manual), estructura (ABM de areas/ubicaciones/
+// responsables), importaciones, etiquetas, auditoria. Lo unico gateado a Nivel 2 es lo que
+// consume el CIP — Centro de Inteligencia Patrimonial (indicadores, analisis, dashboards
+// ejecutivos): el modulo `dashboard`.
+//
+// Correccion 2026-09-02 (revierte DOC-029 RF-A A.3 / DOC-030): NOMENCLATURA.md dice "el CCP esta
+// en todos los niveles, CIP entra en Nivel 2". El "Nivel 1 = CCP acotado" del diseño previo
+// queda sin efecto — la diferencia Nivel 1<->2 es CIP, no CCP. (CCP ≠ CIP, Tomo IV: modificar un
+// responsable = CCP; observar un indicador = CIP.)
+const MODULOS_CIP: ReadonlySet<string> = new Set(['dashboard']);
 
 export function moduloHabilitado(path: string): boolean {
   if (MODULOS_RETIRADOS.has(path)) return false;
-  return nivelActual() === 2 || MODULOS_NIVEL_1.has(path);
+  if (MODULOS_CIP.has(path)) return nivelActual() === 2;
+  return true;
 }

@@ -29,7 +29,7 @@ La matriz oficial del tomo, seguida de la lectura real contra los guards de CIS/
 
 | Rol Keycloak | Actor(es) del tomo que cubre | Portal | Notas |
 |---|---|---|---|
-| `administrador-patrimonial` | **Adm. Patrimonial** + hoy también **Supervisor** y **Auditor** ⚠ | `ccp/` (ahí "Profesional de AFT") | En **Nivel 1** su portal queda acotado (RF-A): consulta de activos, ingesta, Resumen, Auditoría. Sin alta/edición/baja/traslado en la UI. |
+| `administrador-patrimonial` | **Adm. Patrimonial** + hoy también **Supervisor** y **Auditor** ⚠ | `ccp/` (ahí "Profesional de AFT") | El **CCP va completo en todos los niveles** (RF-A, corrección 2026-09-02): activos con alta/edición/baja, Estructura, ingesta, Resumen, Auditoría, QR/Etiquetas. En **Nivel 1** solo se oculta el **Dashboard** (es CIP). |
 | `profesional-aft` | **Operador de Inventario** | `app-qr-sicsaft/` (PWA) | Escaneo, consulta por QR, ejecución y cierre de relevamiento. |
 | `directivo` | **Directivo** | `core/frontend/` | Solo consulta CIP / dashboards; puede designar Profesional de AFT en su organización (DOC-022). |
 | `administrador-sistema` | **Adm. SICSAFT** | `web_admin/` | Usuarios, roles, configuración, integraciones. Portal en construcción (sin e2e todavía). |

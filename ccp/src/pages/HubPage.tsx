@@ -32,9 +32,9 @@ type Modulo = {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 };
 
-// DOC-029 RF-A -- en Nivel 1 se listan solo los modulos de consulta/inventario/trazabilidad; los
-// de "gestion avanzada" (Contratos, Estructura) quedan fuera. `moduloHabilitado` decide por
-// `path` (ver lib/nivel.ts).
+// DOC-029 RF-A (corregido 2026-09-02) -- el CCP va completo en todos los niveles; lo unico que
+// `moduloHabilitado` oculta en Nivel 1 es `dashboard` (CIP). Contratos/Inventarios estan
+// retirados en cualquier nivel. Decide por `path` (ver lib/nivel.ts).
 const MODULOS: Modulo[] = [
   {
     path: 'activos',
