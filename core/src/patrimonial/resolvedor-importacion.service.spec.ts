@@ -148,4 +148,68 @@ describe('ResolvedorImportacionService', () => {
       expect(arg.organizacionId).toBe('muni');
     });
   });
+
+  describe('resolverSoloExistentes (DOC-030 — dry-run, no crea nada)', () => {
+    it('resuelve los nombres a los ids ya existentes sin crear', async () => {
+      const {
+        service,
+        areaRepository,
+        responsableRepository,
+        catalogoTipoActivoRepository,
+      } = build();
+      areaRepository.buscarPorNombre.mockResolvedValue({
+        id: 'area-1',
+      } as never);
+      responsableRepository.buscarPorNombre.mockResolvedValue({
+        id: 'resp-1',
+      } as never);
+      catalogoTipoActivoRepository.listar.mockResolvedValue([
+        { id: 'cat-mob', tipo: 'Escritorio', familia: 'Mobiliario' } as never,
+      ]);
+
+      expect(
+        await service.resolverSoloExistentes('muni', {
+          areaNombre: 'Oficina 1',
+          responsableNombre: 'Encargado 1',
+          categoriaNombre: 'MOBILIARIO',
+        }),
+      ).toEqual({
+        areaId: 'area-1',
+        responsableId: 'resp-1',
+        catalogoId: 'cat-mob',
+      });
+      expect(areaRepository.crear).not.toHaveBeenCalled();
+      expect(responsableRepository.crear).not.toHaveBeenCalled();
+      expect(catalogoTipoActivoRepository.crear).not.toHaveBeenCalled();
+    });
+
+    it('deja el campo en undefined cuando el nombre no corresponde a algo ya existente', async () => {
+      const { service, areaRepository, responsableRepository } = build();
+      areaRepository.buscarPorNombre.mockResolvedValue(null);
+      responsableRepository.buscarPorNombre.mockResolvedValue(null);
+
+      expect(
+        await service.resolverSoloExistentes('muni', {
+          areaNombre: 'Área nueva',
+          responsableNombre: 'Nadie',
+        }),
+      ).toEqual({
+        areaId: undefined,
+        responsableId: undefined,
+        catalogoId: undefined,
+      });
+    });
+
+    it('no consulta cuando no hay nombres', async () => {
+      const { service, areaRepository, responsableRepository } = build();
+
+      expect(await service.resolverSoloExistentes('muni', {})).toEqual({
+        areaId: undefined,
+        responsableId: undefined,
+        catalogoId: undefined,
+      });
+      expect(areaRepository.buscarPorNombre).not.toHaveBeenCalled();
+      expect(responsableRepository.buscarPorNombre).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -70,17 +70,28 @@ export class ImportacionContableLoteService {
   }): Promise<{ loteId: string; resumen: ResumenLote }> {
     const filasParaCrear: FilaLoteParaCrear[] = [];
     for (const fila of input.filas) {
-      // Dry-run: solo depende de si el codigoPatrimonial ya existe (evaluarFila no usa catalogoId
-      // ni los nombres). El resolve-o-crea real ocurre al aprobar.
+      // Dry-run: si el codigoPatrimonial no existe → `crear`; si existe, `evaluarFila` compara el
+      // contenido (área/responsable/QR). La fila del ETL trae nombres, no ids, así que primero se
+      // resuelven SOLO-LECTURA a los ids ya existentes (DOC-030) — sin esto, re-importar el mismo
+      // Excel tras aprobarlo se veía como `conflicto` en vez de `ya_importado`. El resolve-o-crea
+      // real (que sí crea área/responsable/catálogo faltantes) ocurre al aprobar.
+      const resueltos = await this.resolvedor.resolverSoloExistentes(
+        input.organizacionId,
+        {
+          areaNombre: fila.areaNombre,
+          responsableNombre: fila.responsableNombre,
+          categoriaNombre: fila.categoriaNombre,
+        },
+      );
       const dryRunResultado = await this.importacionContableService.evaluarFila(
         input.organizacionId,
         {
           codigoPatrimonial: fila.codigoPatrimonial,
           codigoQr: fila.codigoQr,
-          catalogoId: fila.catalogoId ?? '',
+          catalogoId: fila.catalogoId ?? resueltos.catalogoId ?? '',
           serie: fila.serie,
-          responsableId: fila.responsableId,
-          areaId: fila.areaId,
+          responsableId: fila.responsableId ?? resueltos.responsableId,
+          areaId: fila.areaId ?? resueltos.areaId,
           ubicacionId: fila.ubicacionId,
           valorPatrimonial: fila.valorPatrimonial,
         },

@@ -21,6 +21,7 @@ function build() {
     resolverCatalogo: jest.fn(),
     resolverArea: jest.fn(),
     resolverResponsable: jest.fn(),
+    resolverSoloExistentes: jest.fn().mockResolvedValue({}),
   } as unknown as jest.Mocked<ResolvedorImportacionService>;
   const service = new ImportacionContableLoteService(
     loteRepository,

@@ -34,14 +34,21 @@ export class ResolvedorImportacionService {
 
   // catalogo_activos es compartido entre organizaciones (sin organizacion_id) — se busca por
   // familia o tipo == categoría, sin distinguir mayúsculas ni espacios sobrantes.
-  async resolverCatalogo(categoriaNombre: string): Promise<string> {
+  private async buscarCatalogoExistente(
+    categoriaNombre: string,
+  ): Promise<string | undefined> {
     const clave = categoriaNombre.trim().toLowerCase();
     const existente = (await this.catalogoTipoActivoRepository.listar()).find(
       (t) =>
         t.familia.trim().toLowerCase() === clave ||
         t.tipo.trim().toLowerCase() === clave,
     );
-    if (existente) return existente.id;
+    return existente?.id;
+  }
+
+  async resolverCatalogo(categoriaNombre: string): Promise<string> {
+    const existente = await this.buscarCatalogoExistente(categoriaNombre);
+    if (existente) return existente;
     const creado = await this.catalogoTipoActivoRepository.crear({
       tipo: categoriaNombre.trim(),
       familia: categoriaNombre.trim(),
@@ -68,6 +75,42 @@ export class ResolvedorImportacionService {
       dependencia: direccionNombre?.trim() || undefined,
     });
     return creada.id;
+  }
+
+  // DOC-030 — resolución SOLO-LECTURA de los nombres del Excel a ids ya existentes, para el
+  // dry-run de la bandeja de staging (ImportacionContableLoteService.crearLote). No crea nada: si
+  // un nombre no corresponde a una entidad ya presente, devuelve undefined para ese campo (al
+  // aprobar sí se resuelve-o-crea). Sin esto, re-importar el mismo Excel después de aprobarlo se
+  // veía como `conflicto` en vez de `ya_importado`, porque `evaluarFila` comparaba el `area_id` ya
+  // resuelto del activo contra un `undefined` (la fila del ETL trae nombres, no ids).
+  async resolverSoloExistentes(
+    organizacionId: string,
+    nombres: {
+      areaNombre?: string | null;
+      responsableNombre?: string | null;
+      categoriaNombre?: string | null;
+    },
+  ): Promise<{ areaId?: string; responsableId?: string; catalogoId?: string }> {
+    const area = nombres.areaNombre
+      ? await this.areaRepository.buscarPorNombre(
+          organizacionId,
+          nombres.areaNombre,
+        )
+      : null;
+    const responsable = nombres.responsableNombre
+      ? await this.responsableRepository.buscarPorNombre(
+          organizacionId,
+          nombres.responsableNombre,
+        )
+      : null;
+    const catalogoId = nombres.categoriaNombre
+      ? await this.buscarCatalogoExistente(nombres.categoriaNombre)
+      : undefined;
+    return {
+      areaId: area?.id,
+      responsableId: responsable?.id,
+      catalogoId,
+    };
   }
 
   async resolverResponsable(
