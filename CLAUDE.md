@@ -18,33 +18,39 @@ del Directivo. `core/` es el único sistema con dos deployables (`core/` = backe
 [ADR-003](adr/ADR-003-frontend-de-core-para-directivo.md)), así que la regla de abajo sigue
 aplicando sin excepción.
 
+**Nomenclatura vigente**: [NOMENCLATURA.md](NOMENCLATURA.md) es el catálogo maestro (Tomo IV).
+Denominación obligatoria: **BPI — Base Patrimonial Inteligente** (nombre histórico: "Base
+Patrimonial Central", **depreciado** 2026-09-02); **CCP ≠ CIP** (Control vs. Inteligencia); niveles
+= **Modo Básico / Modo Profesional / Modo Enterprise**; el CCP está en todos los niveles, CIP entra
+en Nivel 2. Un doc o comentario que diga "Base Patrimonial Central" está desactualizado — se
+corrige, no se cita.
+
 ## Arquitectura del ecosistema (flujo de datos)
 
 ```
-Fuentes de captura (APP QR, WEB, RFID, ERP, ...)
+Fuentes de captura (APP SICSAFT/QR, CCP/WEB, RFID, ERP, ...)
         ↓
       CIS (interoperabilidad — cis/, NestJS)
         ↓
     SICSAFT CORE (orquestador + motores — core/, NestJS)
         ↓
-  Base Patrimonial Central (fuente única de verdad — Postgres)
+  BPI — Base Patrimonial Inteligente (fuente única de verdad — Postgres)
         ↓
-      CIP (inteligencia / BI — cip/)
+      CIP (inteligencia patrimonial — cip/, Nivel 2)
         ↓
   Usuarios / Organización (ccp/, web_admin/, core/frontend/)
 ```
 
 - **`cis/`** — backend NestJS, único punto de entrada para fuentes de captura (proxy delgado hacia
-  CORE, auth Zitadel, circuit breaker/reintentos/rate limiting). Nunca escribe directo a la Base
-  Patrimonial.
+  CORE, auth Zitadel, circuit breaker/reintentos/rate limiting). Nunca escribe directo a la BPI.
 - **`core/`** — backend NestJS, orquestador + motores (Patrimonial, Reglas, Eventos, Auditoría).
   Único sistema con dos deployables: el backend (`core/`) y su SPA (`core/frontend/`, portal del
   Directivo). El frontend habla con CIS, nunca directo al backend de CORE ([ADR-003](adr/ADR-003-frontend-de-core-para-directivo.md)).
 - **`ccp/`, `web_admin/`, `core/frontend/`** — tres SPAs Vite/React independientes, un portal por
   rol (Profesional de AFT / Administrador del Sistema / Directivo), cada una con su propio login
   OIDC/PKCE contra Zitadel. No comparten sesión ni código entre sí.
-- **`base-patrimonial/`** — modelo de dominio de la Base Patrimonial Central, documentado y
-  versionado en `core/migrations/` (Postgres real).
+- **`base-patrimonial/`** — modelo de dominio de la BPI (Base Patrimonial Inteligente), documentado
+  y versionado en `core/migrations/` (Postgres real).
 - **`devops/`** — tres stacks Docker Compose independientes, uno por entorno: `local/` (desarrollo
   — Traefik + Postgres + Zitadel + los 6 sistemas desplegables `cis`/`core`/`cip`/`ccp`/
   `web-admin`/`core-frontend` + observabilidad self-hosted Prometheus/Loki-Promtail/Grafana,
@@ -138,12 +144,16 @@ aislada dentro de su propia carpeta.
 
 ## Reglas no negociables del ecosistema
 
-**Ninguna fuente de captura (APP QR, WEB, RFID, ERP) puede modificar la Base Patrimonial Central
-directamente.** Todo pasa por `CIS → CORE`. Esto viene de Tomo IV 1.7 y está grabado en el
-diagrama de [README.md](README.md). Ningún cambio de código debe crear un atajo que la rompa
-(ej. un servicio nuevo que le escriba a `base-patrimonial`/Postgres sin pasar por `core/`).
+**Ninguna fuente de captura (APP SICSAFT/QR, CCP/WEB, RFID, ERP) puede modificar la BPI (Base
+Patrimonial Inteligente) directamente.** Todo pasa por `CIS → CORE`. Esto viene de Tomo III
+(principio no negociable) / Tomo IV 1.7 y está grabado en el diagrama de [README.md](README.md) y
+en [NOMENCLATURA.md, principio no negociable](NOMENCLATURA.md). Ningún cambio de código debe crear un atajo que la rompa
+(ej. un servicio nuevo que le escriba a `base-patrimonial`/Postgres sin pasar por `core/`). Único
+`write` patrimonial que no pasa por `CIS→CORE`: el `provisionarOrganizacionCore` del wizard del
+`.exe` (bootstrap del instalador, pre-autenticación, `INSERT` directo — documentado en DOC-028 B.2,
+no es una fuente de captura).
 
-**Ningún registro oficial de la Base Patrimonial (Organización, Sede, Contrato, Activo,
+**Ningún registro oficial de la BPI (Organización, Sede, Contrato, Activo,
 Responsable) se borra con `DELETE` real.** Se da de baja con un campo `estado` bidireccional
 (`activo`/`inactivo`, o la máquina de estados propia de la entidad), nunca eliminando la fila.
 Esto viene de Tomo III 4.10 y ya tiene precedente real en el esquema: `activos.estado`,
@@ -151,11 +161,15 @@ Esto viene de Tomo III 4.10 y ya tiene precedente real en el esquema: `activos.e
 [DOC-024](aidlc-docs/ccp/design-artifacts/DOC-024-crud-completo-auditoria-identidad.md) también
 `organizaciones.estado`/`sedes.estado`. La única excepción documentada es `documentos_activo`
 (comentario explícito en `core/migrations/1755800000000_gaps-ccp-y-admin-sistema.ts` sobre por qué
-no aplica). Antes de agregar un `DELETE` real a una tabla nueva de Base Patrimonial, confirmar
+no aplica). Antes de agregar un `DELETE` real a una tabla nueva de la BPI, confirmar
 primero que la entidad no sea un registro oficial cubierto por este invariante.
 
 ## Fuente de verdad de cada decisión
 
+- **Nomenclatura vigente (nombres de componentes, niveles/modos, conceptos patrimoniales)**:
+  [NOMENCLATURA.md](NOMENCLATURA.md) — catálogo maestro del Tomo IV. "Base Patrimonial Central"
+  está depreciada (→ BPI); `CCP ≠ CIP`; niveles = Modo Básico/Profesional/Enterprise; CIP entra en
+  Nivel 2. Un doc anterior que use el término viejo es un snapshot, no un precedente.
 - **Qué debe hacer cada sistema y qué reglas de negocio cumple**: los tomos oficiales
   (`TOMO III Cap.1/4`, `TOMO IV Cap.1/2`), citados por sección (`x.y`) en cada README y en
   `base-patrimonial/DOC-004-modelo-contrato.md`. Si el código y un README citando un tomo
@@ -293,5 +307,5 @@ aidlc-docs/
 
 Seguir el patrón ya usado por `cis/` y `core/`: esqueleto NestJS (`ADR-001`), `Dockerfile`
 multi-stage, workflow de CI dedicado con path filter (`paths: ["<sistema>/**", ...]`), README con
-la misma estructura que los demás, y sin acceso directo a Base Patrimonial si el sistema es una
+la misma estructura que los demás, y sin acceso directo a la BPI si el sistema es una
 fuente de captura (debe pasar por CIS/CORE).

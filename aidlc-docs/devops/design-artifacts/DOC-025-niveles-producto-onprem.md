@@ -33,19 +33,25 @@ Documento citable desde otros DOC-XXX del repo, mismo esquema que DOC-002/004/00
 
 ## 1. Los 3 niveles (modelo de precios del usuario)
 
-| Nivel | Qué incluye | Servicios concretos del monorepo |
+> **Nomenclatura vigente** ([NOMENCLATURA.md 4](../../../NOMENCLATURA.md)): Nivel 1 = **Modo
+> Básico**, Nivel 2 = **Modo Profesional**, Nivel 3 = **Modo Enterprise**. "Base Patrimonial
+> Central" → **BPI**. **CIP entra en Nivel 2** (2026-09-02, ver la nota de INST-Q-01 más abajo).
+
+| Nivel / Modo | Qué incluye | Servicios concretos del monorepo |
 |---|---|---|
-| **Nivel 1** | APP QR SICSAFT (única fuente de captura) + SICSAFT CORE + Base Patrimonial Central + CIS + portal Directivo + portal Administrador del Sistema + CIP (BI/dashboards) | `postgres`, `keycloak` (ADR-004 Fase 3, reemplaza a `zitadel`), `core` (con `core-migrate`), `cis`, `app-qr-sicsaft`, `core-frontend` (Directivo), `web-admin` (Administrador del Sistema), `cip` (con `cip-migrate`) — sin `redis` desde [ADR-005](../../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md) |
-| **Nivel 2** | Nivel 1 + CCP (Centro de Control Patrimonial, portal **completo** de Profesional de AFT) | Nivel 1 + `ccp` |
-| **Nivel 3** | Nivel 2 + integración RFID, conectada a CIS preservando la independencia tecnológica de CORE | Nivel 2 + `rfid/` — **🔲 no iniciado, sin código que empaquetar (ver `ROADMAP.md`)** |
+| **Nivel 1 — Modo Básico** | APP SICSAFT (QR, única fuente de captura) + SICSAFT CORE + BPI + CIS + portal Directivo + portal Administrador del Sistema + **CCP acotado** (sin gestión avanzada ni Dashboard/indicadores) | `postgres`, `keycloak` (ADR-004 Fase 3, reemplaza a `zitadel`), `core` (con `core-migrate`), `cis`, `app-qr-sicsaft`, `core-frontend` (Directivo), `web-admin` (Administrador del Sistema), `ccp` — sin `redis` desde [ADR-005](../../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md) |
+| **Nivel 2 — Modo Profesional** | Nivel 1 + **CCP completo** (gestión avanzada) + **CIP** (Dashboard/indicadores/alertas) | Nivel 1 + `ccp` completo + `cip` (con `cip-migrate`) |
+| **Nivel 3 — Modo Enterprise** | Nivel 2 + integración RFID, conectada a CIS preservando la independencia tecnológica de CORE | Nivel 2 + `rfid/` — **🔲 no iniciado, sin código que empaquetar (ver `ROADMAP.md`)** |
 
 Capacidades por nivel (lo que el cliente ve, no la lista de servicios):
 
-- **Nivel 1**: identificación, consulta, inventarios, incidencias, historial, trazabilidad básica.
-- **Nivel 2** (suma): administración web, gestión avanzada, supervisión, consultas
-  institucionales, reportes, configuración, operación centralizada.
-- **Nivel 3** (suma): captura automática, eventos RFID, supervisión, zonas, movimientos, alertas,
-  automatización patrimonial.
+- **Nivel 1 — Modo Básico**: identificación, consulta, inventarios, incidencias, historial,
+  trazabilidad básica. **CCP incluido** pero acotado (los módulos de gestión avanzada y el
+  Dashboard quedan ocultos por el flag `VITE_SICSAFT_NIVEL`, DOC-029 RF-A).
+- **Nivel 2 — Modo Profesional** (suma): administración web, gestión avanzada, supervisión,
+  consultas institucionales, **reportes/indicadores (CIP)**, configuración, operación centralizada.
+- **Nivel 3 — Modo Enterprise** (suma): captura automática, eventos RFID, supervisión, zonas,
+  movimientos, alertas, automatización patrimonial.
 
 ### Portal de Profesional de AFT: dos piezas distintas, no una
 
@@ -82,13 +88,22 @@ de este documento — hoy el nivel lo decide qué se instaló, no un flag que el
 - **Observabilidad (Prometheus/Loki/Grafana), `k6`, dashboard de Traefik**: herramienta del admin
   del producto, nunca se instala en el PC del cliente, en ningún nivel.
 
-> **`cip/` (Centro de Inteligencia Patrimonial / BI) — cierre de INST-Q-01 (2026-08-25)**: entra en
-> Nivel 1 (tabla arriba), no queda fuera de los 3 niveles. `devops/onprem/docker-compose.yml` suma
-> `cip`/`cip-migrate` sin perfil (siempre activos), con base propia `cip` separada de `core`
-> (RNF-01/RNF-05) — mismo patrón ya usado en `devops/local/`. CIS deja de usar el workaround de
-> `CIP_URL`/`CIP_SERVICE_TOKEN` de relleno (ver comentario del servicio `cis` en
-> `docker-compose.yml` antes de esta fecha) y pasa a hablarle al `cip` real de esta misma
-> instalación.
+> **`cip/` — INST-Q-01, reabierto y cerrado de nuevo (2026-09-02)**: **CIP es una capacidad de
+> Nivel 2** (Modo Profesional), no de Nivel 1. Revierte el cierre del 2026-08-25 (que lo ponía en
+> Nivel 1). Motivo: el Tomo IV lista "reportes / indicadores / inteligencia" como valor del Modo
+> Profesional, no del Básico; un cliente Modo Básico no paga BI.
+>
+> - **Superficie visible** (lo que enforza el producto hoy): el módulo **Dashboard** del CCP —
+>   único consumidor de CIP — pasa a Nivel 2 (`ccp/src/lib/nivel.ts`, fuera de `MODULOS_NIVEL_1`).
+>   Un CCP acotado (Nivel 1) ya no muestra el Dashboard.
+> - **`devops/onprem/docker-compose.yml`**: `cip`/`cip-migrate` **siguen arrancando desde el
+>   boot** por ahora, porque `cis` valida `CIP_URL`/`CIP_SERVICE_TOKEN` de forma incondicional
+>   (`cip-client.config.ts`). Moverlos al perfil `nivel2` exige que CIS degrade con elegancia
+>   cuando CIP no está — **follow-up**, no bloquea la venta por nivel (un cliente Nivel 1 corre el
+>   contenedor pero no ve ni paga la capacidad). El `.exe` (`sicsaft-core`) tiene la misma
+>   situación: embebe CIP siempre, lo expone solo en Nivel 2.
+> - Base propia `cip` separada de `core` (RNF-01/RNF-05) y el consumo real de eventos por pg-boss
+>   (ADR-005) no cambian.
 
 ## 4. Relación con `ADR-004` (Keycloak, reemplaza a `ADR-002`/Zitadel)
 

@@ -160,6 +160,9 @@ resuelta: no lo reemplaza).
 
 ## Documentos relacionados
 
+- [**RUNBOOK-INSTALACION.md**](RUNBOOK-INSTALACION.md) — paso a paso para instalar el `.exe` en la
+  PC de un cliente Nivel 2 (Modo Profesional) y poder mostrárselo: qué pedirle al cliente, build
+  del instalador, wizard, firewall, teléfono, checklist de demo, limitaciones conocidas.
 - [`aidlc-docs/sicsaft-core/`](../aidlc-docs/sicsaft-core) — INTENT/REQUIREMENTS/ARCHITECTURE
   completos.
 - [DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) —

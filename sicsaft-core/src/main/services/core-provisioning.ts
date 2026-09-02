@@ -2,7 +2,8 @@ import { Client } from "pg";
 import { POSTGRES_CONFIG } from "./postgres-service";
 import { slugificar } from "@shared/slugificar";
 
-// DOC-028 Fase B.2 — el wizard crea la organización del cliente en la Base Patrimonial de CORE
+// DOC-028 Fase B.2 — el wizard crea la organización del cliente en la BPI (Base Patrimonial
+// Inteligente) de CORE
 // (`organizaciones` + un contrato vigente + la sede principal + `contrato_sedes`), no solo la
 // Organization de Keycloak. INSERT directo con `pg`: a esta altura del wizard todavía no hay un
 // JWT con el que pasar por los endpoints de escritura de CIS/CORE (ni un rol asignable — el

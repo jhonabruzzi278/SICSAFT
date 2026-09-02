@@ -61,7 +61,7 @@ export function PasoDatosCliente({
     <WizardCard
       paso={1}
       titulo="Datos de esta instalación"
-      subtitulo="Crean el realm de identidad y la organización + contrato del cliente en la Base Patrimonial."
+      subtitulo="Crean el realm de identidad y la organización + contrato del cliente en la BPI (Base Patrimonial Inteligente)."
     >
       <form
         onSubmit={(e) => void handleSubmit(onSubmit)(e)}
@@ -101,13 +101,14 @@ export function PasoDatosCliente({
             {[
               {
                 valor: 1 as const,
-                titulo: "Nivel 1",
-                detalle: "APP QR + consulta e inventarios",
+                titulo: "Nivel 1 — Modo Básico",
+                detalle: "APP SICSAFT (QR) + consulta e inventarios",
               },
               {
                 valor: 2 as const,
-                titulo: "Nivel 2",
-                detalle: "+ gestión avanzada (Estructura, alta de Activos)",
+                titulo: "Nivel 2 — Modo Profesional",
+                detalle:
+                  "+ CCP completo (gestión avanzada) + CIP (indicadores)",
               },
             ].map(({ valor, titulo, detalle }) => (
               <label

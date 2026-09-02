@@ -33,27 +33,23 @@ describe('nivelActual', () => {
 });
 
 describe('moduloHabilitado', () => {
-  it('en Nivel 1 habilita consulta / dashboard / importaciones / auditoria / etiquetas', () => {
+  it('en Nivel 1 habilita consulta / importaciones / auditoria / etiquetas', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '1' };
-    for (const path of [
-      'dashboard',
-      'activos',
-      'importaciones',
-      'auditoria',
-      'etiquetas',
-    ]) {
+    for (const path of ['activos', 'importaciones', 'auditoria', 'etiquetas']) {
       expect(moduloHabilitado(path)).toBe(true);
     }
   });
 
-  it('en Nivel 1 oculta la gestion avanzada (estructura)', () => {
+  it('en Nivel 1 oculta la gestion avanzada (estructura) y el Dashboard/indicadores (CIP es Nivel 2)', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '1' };
     expect(moduloHabilitado('estructura')).toBe(false);
+    expect(moduloHabilitado('dashboard')).toBe(false);
   });
 
-  it('en Nivel 2 habilita la gestion avanzada (estructura)', () => {
+  it('en Nivel 2 habilita la gestion avanzada (estructura) y el Dashboard', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '2' };
     expect(moduloHabilitado('estructura')).toBe(true);
+    expect(moduloHabilitado('dashboard')).toBe(true);
   });
 
   it('contratos e inventarios estan retirados del CCP en cualquier nivel', () => {
