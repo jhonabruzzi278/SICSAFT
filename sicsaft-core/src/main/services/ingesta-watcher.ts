@@ -38,7 +38,10 @@ const CIS_URL_LOCAL = `http://127.0.0.1:${PUERTO_CIS}`;
 // Python vendorizado. En dev el ejecutable es "python" a secas (no una ruta) -> se hereda el PATH
 // del sistema: dev no es el producto empaquetado, y meter "." en el PATH sería justo lo que S4036
 // previene.
-const SYSTEM32 = join(process.env.SystemRoot ?? "C:\\Windows", "System32");
+const SYSTEM32 = join(
+  process.env.SystemRoot ?? String.raw`C:\Windows`,
+  "System32",
+);
 
 export interface EjecucionEtl {
   ejecutable: string;
