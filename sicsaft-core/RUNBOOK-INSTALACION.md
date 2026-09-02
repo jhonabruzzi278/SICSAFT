@@ -1,7 +1,8 @@
-# Runbook — instalar `sicsaft-core.exe` en un cliente (Nivel 2 / Modo Profesional)
+# Runbook — instalar y operar `sicsaft-core.exe` en un cliente (Nivel 2 / Modo Profesional)
 
-Paso a paso para dejar SICSAFT corriendo en la PC de un cliente y poder mostrárselo. Camino
-`.exe` (Electron, sin Podman/Docker/WSL2). Para el camino Podman ver
+Ciclo de vida completo en la PC de un cliente: **instalar** (§1–§6), **actualizar** a una versión
+nueva (§9) y **respaldar / restaurar** los datos (§10). Camino `.exe` (Electron, sin
+Podman/Docker/WSL2). Para el camino Podman ver
 [`devops/onprem/README.md`](../devops/onprem/README.md).
 
 Nomenclatura: [NOMENCLATURA.md](../NOMENCLATURA.md). Diseño del `.exe`:
@@ -129,6 +130,8 @@ WebView acepta el cert autofirmado sola (sin el aviso del navegador) — esa es 
 | Instalador sin firmar | SmartScreen pide "Ejecutar de todos modos". Firma de código = pendiente. |
 | Cert autofirmado en el teléfono | Aviso de seguridad la primera vez. Un cert sin aviso necesita hostname `.local` + mDNS (DOC-028 C.3, futuro). |
 | Más sedes / cambios de contrato | No hay portal de administración en la PC del cliente (decisión: instalación autocontenida, sin `web_admin` ni acceso remoto — DOC-030). Es una operación asistida del proveedor. |
+| Sin auto-update | Actualizar = correr el instalador nuevo encima (§9). No hay "buscar actualizaciones". |
+| Sin backup automático | El respaldo de `%APPDATA%\sicsaft-core\` es manual / tarea programada (§10). |
 | Watcher de ingesta de Excel | Código completo (RF-B.6.2). Falta vendorizar el intérprete Python (§1.1) y verificar el round-trip real contra el stack. Sin el intérprete: solo carga manual de CSV. |
 | APK Android | Proyecto `apk-aft/` + CI existen (RF-H) y el `.exe` la incluye en `resources/apk/` si está el artefacto firmado. Falta que el `.exe` la sirva en `:8765` + 2º QR — hoy es sideload manual del archivo (§5 opción B). |
 | Claim `organization` en el token de servicio | El service account `sicsaft-ingesta` necesita que su token `client_credentials` traiga el claim `organization`; no se pudo verificar contra un Keycloak real todavía. Si falla, el POST del ETL da 403 (fallback documentado en `keycloak-bootstrap.ts`). |
@@ -148,3 +151,102 @@ WebView acepta el cert autofirmado sola (sin el aviso del navegador) — esa es 
   subcarpetas.
 - **Bitácora de bugs reales de toda la línea**:
   [DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md).
+
+---
+
+## 9. Actualizar una instalación existente
+
+**No hay auto-update.** Es una decisión de diseño (DOC-030: "instalación autocontenida, sin canal
+de conexión del proveedor al cliente"). Actualizar = **correr el instalador nuevo encima** del
+viejo. Funciona sin perder datos porque el estado vive aparte de la carpeta de programa:
+
+| Se **preserva** (en `%APPDATA%\sicsaft-core\`) | Se **reemplaza** (carpeta de instalación) |
+|---|---|
+| `postgres-data\` — la base entera: BPI (activos, contratos, auditoría…) **y** el realm de Keycloak | Los binarios de la app + Electron + Postgres/Keycloak/JRE/Python vendorizados |
+| `keycloak-admin.json` · `instalacion.json` · `appqr-tls\` | El build de Keycloak (`kc.bat build`, horneado al empaquetar) |
+
+Al arrancar, `service-orchestrator` corre las migraciones de `core` y `cip` **en cada inicio**
+(`node-pg-migrate`, idempotente) → los cambios de esquema de la versión nueva se aplican solos
+sobre los datos existentes. El wizard se saltea (detecta `instalacion.json`).
+
+### 9.1 Pasos
+
+1. **En dev**: subir `version` en `sicsaft-core/package.json` (ej. `0.1.0` → `0.1.1`); si cambió la
+   APK, subir `versionCode`/`versionName` en `apk-aft/app/build.gradle.kts`. Después
+   `npm run dist:win` → `release/SICSAFT CORE Setup 0.1.1.exe`.
+2. **Llevar el `.exe`** al cliente (USB / link).
+3. **En la PC del cliente — primero el backup** (§10). Es la única red de seguridad: la app solo
+   corre migraciones `up`, no hay rollback automático.
+4. **Cerrar la app** por completo (que Postgres/Keycloak apaguen limpio — lo hace en `before-quit`).
+5. **Ejecutar el instalador nuevo.** SmartScreen → **Más información → Ejecutar de todos modos**.
+   UAC. Instala sobre la versión vieja (mismo `appId` `cl.sicsaft.core`). **No desinstalar
+   primero** — solo correr el nuevo encima.
+6. **Abrir la app.** Levanta Postgres contra `postgres-data\` existente → aplica migraciones
+   nuevas → Keycloak contra el realm existente → **directo al login**, sin wizard. Si la IP de LAN
+   cambió, primero la pantalla de reconfiguración de 1 clic.
+7. **Teléfonos**: la PWA se sirve fresca desde el `.exe`, se actualiza sola. La **APK no
+   auto-actualiza** (DOC-029 H.3) — si su contrato con CIS cambió, resideloadear la APK nueva.
+
+### 9.2 Verificación post-update
+
+- **Versión instalada**: Configuración de Windows → Aplicaciones → "SICSAFT CORE" (el instalador
+  NSIS la registra ahí). No se muestra dentro de la app.
+- Login del Directivo y del Profesional de AFT OK.
+- Un activo conocido sigue en el catálogo; la Auditoría conserva el historial.
+- Si algo quedó mal → restaurar el backup (§10.3) y no reintentar el update hasta entender qué
+  migración falló.
+
+### 9.3 Naturaleza de la operación
+
+Es una **visita asistida del proveedor** (o sesión remota guiada), igual que "más sedes / cambios
+de contrato" en §7 — no hay botón de "buscar actualizaciones". Un auto-update de verdad
+(`electron-updater` + un `publish` target: servidor HTTP propio, S3 o GitHub Releases + wiring en
+`index.ts`) **reabre** la decisión de DOC-030 (un auto-updater ES un canal proveedor→cliente) →
+necesita un ADR antes de implementarse.
+
+---
+
+## 10. Backup y restauración
+
+No hay mecanismo integrado — es copiar carpetas. Todo el estado del cliente está en
+**`%APPDATA%\sicsaft-core\`**.
+
+### 10.1 Qué respaldar
+
+| Carpeta / archivo | Crítico | Por qué |
+|---|---|---|
+| `postgres-data\` | **Sí** | La base entera. Incluye el realm de Keycloak (usuarios, roles, organización) — no hay que re-bootstrapear al restaurar. |
+| `keycloak-admin.json` | **Sí** | El admin de Keycloak se creó con **ese** password. Restaurar `postgres-data` con otro `keycloak-admin.json` (o sin él) = la app no puede autenticarse contra el realm restaurado. Va **siempre junto** con `postgres-data`. |
+| `instalacion.json` | Recomendado | Sin él, el próximo arranque vuelve a mostrar el wizard. Recuperable a mano, pero mejor incluirlo. |
+| `appqr-tls\` | Opcional | El cert autofirmado; si falta se regenera solo (el teléfono tendrá que re-aceptar el aviso una vez). |
+
+Lo simple y sin errores: **copiar la carpeta `%APPDATA%\sicsaft-core\` entera.**
+
+### 10.2 Cómo y cuándo
+
+- **Con la app cerrada.** Postgres tiene locks sobre `postgres-data\`; copiar en caliente puede
+  dar un backup inconsistente.
+- **Antes de cada update** (§9 paso 3), y idealmente **periódico**: una Tarea Programada de Windows
+  que, con la app cerrada de madrugada, copie `%APPDATA%\sicsaft-core\` a un disco externo o
+  carpeta de red, rotando algunas copias.
+- Alternativa en caliente (sin cerrar la app): `pg_dump` con el binario vendorizado
+  `…\resources\postgres\bin\pg_dump.exe` contra `127.0.0.1:55432` (Postgres embebido, puerto no
+  estándar). Más frágil y no cubre `keycloak-admin.json` — la copia en frío de la carpeta es lo
+  recomendado.
+
+### 10.3 Restaurar en la misma PC
+
+1. Cerrar la app.
+2. Renombrar `%APPDATA%\sicsaft-core\` a `…\sicsaft-core.roto`.
+3. Copiar el backup a `%APPDATA%\sicsaft-core\`.
+4. Abrir la app → vuelve exactamente al estado del backup.
+
+### 10.4 Restaurar en otra PC (la del cliente se murió)
+
+1. Instalar el `.exe` (misma versión que el backup, o más nueva) — §2.
+2. Dejar que abra y **cerrarla apenas termine el arranque** (o antes del wizard).
+3. Reemplazar `%APPDATA%\sicsaft-core\` con el backup (mismo criterio que §10.3).
+4. Reabrir. Si la PC nueva tiene otra IP de LAN → pantalla de reconfiguración de 1 clic al
+   arrancar; después, reserva DHCP para la IP nueva y (si hace falta) el 2º QR para los teléfonos.
+5. Si el `.exe` es más nuevo que el backup, las migraciones de esa versión corren sobre los datos
+   restaurados en el primer arranque (igual que en un update, §9).
