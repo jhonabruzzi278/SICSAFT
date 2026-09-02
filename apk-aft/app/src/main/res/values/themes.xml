@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema base de Material sin ActionBar propia: MainActivity es WebView a pantalla completa;
+         el menú "Reconectar / Recargar" sale por el overflow del sistema. ConexionActivity usa
+         el mismo tema con su propio título en el layout. -->
+    <style name="Theme.SicsaftAft" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/sicsaft_primary</item>
+        <item name="android:statusBarColor">@color/sicsaft_primary</item>
+    </style>
+</resources>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/conexion_titulo"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:paddingBottom="8dp" />
+
+    <TextView
+        android:id="@+id/ayuda"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:paddingBottom="24dp" />
+
+    <Button
+        android:id="@+id/boton_escanear"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/conexion_boton_escanear" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/conexion_o"
+        android:gravity="center"
+        android:paddingTop="16dp"
+        android:paddingBottom="8dp" />
+
+    <EditText
+        android:id="@+id/campo_url"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="https://192.168.1.10:8765"
+        android:inputType="textUri"
+        android:autofillHints="url" />
+
+    <Button
+        android:id="@+id/boton_conectar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/conexion_boton_conectar" />
+
+</LinearLayout>

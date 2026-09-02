@@ -665,6 +665,34 @@ esta línea en
 | Nivel 3 (RFID) en `sicsaft-core.exe` — CORE-Q-03 (parte RFID) | Sigue sin resolverse — no hay código `rfid/` que empaquetar. | `INTENT.md` CORE-Q-03 |
 | Deuda menor de SonarCloud en el código nuevo | props `readonly` (S6759) en los `Paso*.tsx`, `.find` vs `.filter` (S7750) en `lan-ip.ts`, `Write-Host` en `Bootstrap-Keycloak.psm1` (S8677) — code smells, no vulnerabilities, no bloquean el gate. | análisis SonarCloud PR #57 |
 
+## Backlog post-DOC-029 / DOC-030 — camino a cliente Nivel 2 (Modo Profesional)
+
+Todos los follow-ups pendientes después de mergear DOC-029 (RF-A/B/F/I/E), DOC-030 (selector de
+nivel) y la nomenclatura del Tomo IV. Prioridad: **P0** bloquea el demo/instalación · **P1**
+necesario para un cliente pagando, no solo un demo · **P2** conformidad / deuda · **P3** futuro o
+bloqueado.
+
+| ID | Ítem | Prio | Estado | Detalle / fuente |
+|---|---|---|---|---|
+| **RF-H** | **APK Android** — `apk-aft/` (WebView Kotlin propia) + `apk-aft-ci.yml` (build+firma) + el `.exe` la sirve en `https://<ip>:8765/sicsaft-aft.apk` + 2º QR (descargar APK) + QR de conexión | **P0** | 🟡 proyecto + CI + copiado del `.apk` en `prepack.cjs` hechos (`feat/apk-aft-webview` ← `feat/sicsaft-core-ingesta-watcher`, 2026-09-02). **Falta**: servirlo en `:8765` + 2º QR en el wizard; keystore + prueba en teléfono real | DOC-029 apéndice H. Reemplaza la idea Capacitor/TWA (no valida cert autofirmado de LAN). El `.apk` firmado lo produce el CI (keystore como secreto), no el repo. |
+| **RF-B.6.2** | **Watcher del `.exe`** (`chokidar` → ETL Python → CIS) + **service account Keycloak `sicsaft-ingesta`** (`client_credentials`, rol `administrador-patrimonial`) + **empaquetado del sidecar Python** (`python-build-standalone` + venv `pandas`/`xlrd`) en `prepack.cjs` → `resources/etl-contable/` | **P0** | ✅ código con tests (`feat/sicsaft-core-ingesta-watcher`, 2026-09-02). **Falta**: round-trip real contra el stack; confirmar el claim `organization` en el token `client_credentials`; vendorizar `python-build-standalone` a mano | DOC-029 apéndice B.6.2. Sin esto, en el `.exe` solo funciona la carga manual de CSV; el Excel del contador no se ingiere solo. |
+| **INST-1** | `npm run dist:win` verificado end-to-end contra una PC/VM Windows **100 % limpia** | **P0** | pendiente | DOC-028 "definición de listo". Es verificación, no código — riesgo: VC++ redist, rutas, permisos. Correr en una VM antes de ir al cliente. |
+| **INST-2** | **Firma de código del instalador** (cert OV/EV o Azure Trusted Signing) | **P1** | pendiente | Sin firma, SmartScreen muestra "Windows protegió tu PC" → "Ejecutar de todos modos". Aceptable para un demo, no para un cliente pagando. Requiere comprar/tramitar el cert. |
+| **RF-D** | **Veredicto de sesión accionable** — deep links del Resumen a Auditoría (`?area=`) / Inventario / Contrato / baja de activo + **1 auto-auditoría** en CORE al cerrar una sesión `defectuoso` | **P1** | diseñado, pendiente | DOC-029 apéndice D. `feat/ccp-veredicto-accionable`. Mejora la operación del AFT, no bloquea. |
+| **RBAC-SA** | **Rol Keycloak Supervisor Patrimonial / Auditor propio** — hoy los cubre `administrador-patrimonial` | **P1** si el pliego exige separación de funciones · si no **P3** | **decisión requerida antes de entregar** | DOC-029 "Vacíos de casos de uso". `feat/rbac-supervisor-auditor` (roles Keycloak + guards + DOC-023). No es opcional si el cliente exige que quien concilia ≠ quien carga, o un auditor solo-lectura. |
+| **CIP-gate** | Gatear el contenedor `cip` tras el perfil `nivel2` en `devops/onprem` **y** en el `.exe` (arranque condicional en `service-orchestrator.ts`) | **P2** | pendiente | DOC-025 (nota INST-Q-01 2026-09-02). Hoy `cip` arranca siempre porque `cis` valida `CIP_URL` incondicionalmente (`cip-client.config.ts`) — hay que hacer que CIS degrade sin CIP. Funciona igual; un cliente Nivel 1 corre un servicio que no paga. |
+| **RF-E-fu** | Poblar `auditoria.area_operativa` en las escrituras patrimoniales genéricas desde el claim de Keycloak (hoy solo lo puebla `POST /inventarios`) | **P2** | pendiente | DOC-029 apéndice E.3. Requiere que CIS propague el claim del actor humano. |
+| **CERT-mdns** | Hostname `.local` vía mDNS + cert propio — elimina el aviso de "certificado no confiable" en el teléfono | **P2** | pendiente | DOC-028 C.3. Robusto pero pesado; su propio incremento. Mitigación actual: reserva DHCP + aceptar el aviso una vez. |
+| **NOM-sweep** | Migrar "Base Patrimonial Central" → BPI en los ~24 `aidlc-docs/**/DOC-XXX` históricos + comentarios de código | **P2** | pendiente | NOMENCLATURA.md "Denominaciones depreciadas" los declara snapshots; migración gradual, no bloquea. |
+| **crearGrant-cis** | Gap del `crearGrant()` en `cis/src/keycloak-admin/` (el port a `sicsaft-core` ya lo cerró; el original sigue abierto) | **P2** | pendiente | DOC-027 "Gaps abiertos". Otro deployable. |
+| **ADR-004-45** | `devops/local/` y `devops/prod/` migrar de Zitadel a Keycloak (Fases 4-5) | **P2** | pendiente | No afecta el `.exe` on-prem (ya en Keycloak). Estado mixto documentado. |
+| **RF-C** | 3 pestañas nuevas del Dashboard | **P3 — bloqueado** | bloqueado | El spec lo entrega Guido. No se diseña ni codea hasta tenerlo. |
+| **RFID / Nivel 3** | `rfid/` + Nivel 3 (Modo Enterprise) en el `.exe` — CORE-Q-03 parte RFID | **P3** | no iniciado | Sin código `rfid/` que empaquetar. |
+| **SONAR-debt** | Deuda menor SonarCloud (S6759 props `readonly` en `Paso*.tsx`, S7750 en `lan-ip.ts`, S8677 en `Bootstrap-Keycloak.psm1`) | **P3** | pendiente | Code smells, no vulnerabilities, no bloquean el gate. |
+
+**Camino mínimo al demo Nivel 2**: RF-H + RF-B.6.2 + INST-1 (verificar el `.exe` en PC limpia). El
+resto (INST-2 firma, RF-D, RBAC-SA) según si el cliente pasa de demo a contrato.
+
 ## Track paralelo: OPS (no es una fase, es continuo)
 
 `devops/` no tiene una posición en la cadena de dependencias — tiene hitos atados a las fases:

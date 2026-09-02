@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Naranja SICSAFT (BRAND.md, origen landing/src/style.css). -->
+    <color name="sicsaft_primary">#EB6C36</color>
+    <color name="sicsaft_ink">#2D3142</color>
+</resources>

@@ -2,6 +2,7 @@ import { app, BrowserWindow } from "electron";
 import { join } from "node:path";
 import { ServiceOrchestrator } from "./services/service-orchestrator";
 import { registrarIpcHandlers } from "./ipc/handlers";
+import { detenerWatcherIngesta } from "./services/ingesta-watcher";
 
 // Punto de entrada del proceso principal -- ver
 // aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md "Primer arranque" para el flujo
@@ -99,6 +100,9 @@ app.on("before-quit", async (event) => {
   // SIGTERM antes que SIGKILL, ver managed-process.ts) -- sin esto, cerrar la ventana de golpe
   // podría cortar Postgres a mitad de un write.
   event.preventDefault();
+  // DOC-029 RF-B.6.2 -- cerrar el watcher de ingesta antes que los servicios: deja de encolar
+  // archivos y libera los handles de la carpeta vigilada.
+  await detenerWatcherIngesta();
   await orquestador.detenerTodo();
   app.exit(0);
 });
