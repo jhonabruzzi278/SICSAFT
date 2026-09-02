@@ -1,0 +1,74 @@
+name: apk-aft
+
+# DOC-029 RF-H — build (y, si hay keystore, firma) de la APK Android que sirve sicsaft-core.exe.
+# El .apk firmado sale de acá como artefacto; el repo NO guarda binarios. Para bundlearlo en el
+# .exe, bajar el artefacto a apk-aft/app/build/outputs/apk/release/ antes de `npm run dist:win`
+# (prepack.cjs lo copia a resources/apk/) — ver apk-aft/README.md.
+
+on:
+  push:
+    paths: ["apk-aft/**", ".github/workflows/apk-aft-ci.yml"]
+  pull_request:
+    paths: ["apk-aft/**", ".github/workflows/apk-aft-ci.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apk-aft
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Regenerar el wrapper de Gradle
+        # gradle-wrapper.jar es binario y no vive en el repo (ver apk-aft/.gitignore). `gradle`
+        # ya está en el PATH por setup-android/setup-java; genera el jar y deja `./gradlew` usable.
+        run: gradle wrapper --gradle-version 8.9
+
+      - name: Preparar keystore de firma (solo si hay secretos)
+        id: keystore
+        env:
+          KS_B64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.APK_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.APK_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > sicsaft-release.jks
+            {
+              echo "storeFile=sicsaft-release.jks"
+              echo "storePassword=$KS_PASS"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "keyPassword=$KEY_PASS"
+            } > keystore.properties
+            echo "firmado=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Sin secretos de keystore — se firma con la debug key (NO distribuir)." >&2
+            echo "firmado=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Limpiar keystore
+        if: always()
+        run: rm -f sicsaft-release.jks keystore.properties
+
+      - name: Publicar la APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sicsaft-aft-apk${{ steps.keystore.outputs.firmado == 'true' && '-firmada' || '-debug' }}
+          path: apk-aft/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

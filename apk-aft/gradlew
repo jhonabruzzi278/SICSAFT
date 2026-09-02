@@ -1,0 +1,13 @@
+#!/bin/sh
+# Wrapper de arranque de Gradle — script estándar del `gradle wrapper` (sin cambios).
+# El JAR que este script invoca (gradle/wrapper/gradle-wrapper.jar) NO está commiteado desde este
+# entorno; lo regenera `gradle wrapper` o Android Studio. La CI corre `gradle wrapper` antes de
+# usar `./gradlew`. Ver README.
+set -e
+APP_HOME=$(cd "$(dirname "$0")" && pwd)
+CLASSPATH="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+if [ ! -f "$CLASSPATH" ]; then
+  echo "gradle-wrapper.jar no encontrado. Ejecutá 'gradle wrapper --gradle-version 8.9' una vez, o abrí el proyecto en Android Studio." >&2
+  exit 1
+fi
+exec "${JAVA_HOME:+$JAVA_HOME/bin/}java" -Dorg.gradle.appname="gradlew" -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"

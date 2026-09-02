@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- La PWA usa getUserMedia para escanear QR de activos; ConexionActivity usa la cámara para
+         escanear el QR de conexión. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SicsaftAft"
+        android:usesCleartextTraffic="false">
+
+        <!-- Pantalla principal: WebView a la PWA. Si no hay URL guardada, redirige a ConexionActivity. -->
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Primer arranque / "Reconectar": escanear el QR que muestra sicsaft-core.exe. -->
+        <activity
+            android:name=".ConexionActivity"
+            android:exported="false"
+            android:label="@string/conexion_titulo" />
+
+    </application>
+</manifest>
