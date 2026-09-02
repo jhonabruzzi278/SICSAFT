@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",
+    "chokidar": "^4.0.3",
     "pg": "^8.23.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.8",
@@ -47,6 +48,14 @@
       {
         "from": "resources/keycloak",
         "to": "keycloak"
+      },
+      {
+        "from": "resources/apk",
+        "to": "apk"
+      },
+      {
+        "from": "resources/etl-contable",
+        "to": "etl-contable"
       },
       {
         "from": "../cis",

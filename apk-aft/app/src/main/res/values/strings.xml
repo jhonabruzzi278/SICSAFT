@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SICSAFT AFT</string>
+
+    <string name="conexion_titulo">Conectar con SICSAFT</string>
+    <string name="conexion_ayuda">Escaneá el código QR que muestra la pantalla \"Instalación completa\" de SICSAFT CORE en la PC, o escribí la dirección a mano. La PC y este teléfono tienen que estar en la misma red Wi-Fi.</string>
+    <string name="conexion_boton_escanear">Escanear código QR</string>
+    <string name="conexion_o">— o —</string>
+    <string name="conexion_boton_conectar">Conectar</string>
+    <string name="conexion_prompt_scan">Apuntá al QR de la pantalla de SICSAFT CORE</string>
+    <string name="conexion_url_invalida">Esa dirección no es válida. Tiene que ser https://&lt;ip&gt;:8765</string>
+
+    <string name="menu_reconectar">Reconectar</string>
+    <string name="menu_recargar">Recargar</string>
+    <string name="camara_denegada">Sin permiso de cámara no se puede escanear activos desde la app.</string>
+</resources>

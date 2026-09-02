@@ -1,0 +1,15 @@
+# Build output
+/build/
+/app/build/
+/.gradle/
+/local.properties
+/captures/
+
+# El wrapper JAR es binario y no se commitea desde este entorno — lo regenera `gradle wrapper`
+# (ver README) o Android Studio al abrir el proyecto. La CI (apk-aft-ci.yml) lo regenera sola.
+/gradle/wrapper/gradle-wrapper.jar
+
+# Keystore de firma — NUNCA se commitea. En CI llega como secreto (APK_KEYSTORE_BASE64).
+*.jks
+*.keystore
+keystore.properties

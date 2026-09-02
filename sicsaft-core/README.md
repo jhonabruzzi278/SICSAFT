@@ -138,14 +138,24 @@ lo que toca a `sicsaft-core`:
   IPC `elegir/leerCarpetaIngesta` (`dialog.showOpenDialog` con `openDirectory`/`createDirectory`),
   persistido por `actualizarCarpetaIngestaInstalacion` (`instalacion-marker.ts`), expuesto al CCP
   como `VITE_SICSAFT_CARPETA_INGESTA` (solo lectura). Componente `CarpetaIngesta.tsx` en el wizard.
-- **Pendiente (RF-B.6.2)**: watcher de la carpeta (`chokidar` → ETL Python → CIS) + service account
-  Keycloak `sicsaft-ingesta` (`client_credentials`) + empaquetado del sidecar Python
-  (`python-build-standalone` + venv `pandas`/`xlrd`) en `prepack.cjs` → `resources/etl-contable/`.
-  Necesita el stack levantado para validar el round-trip.
-- **RF-H (pendiente)** redefine el enfoque de la APK: **WebView Kotlin propia** en `apk-aft/`
-  servida por el mismo servidor estático del `.exe` + 2º QR — **no** el wrap Capacitor que
-  mencionan el Objetivo y "Fase E" arriba (ver DOC-029 H.1 para el porqué: un TWA con cert propio
-  en IP de LAN no carga). `CORE-Q-01` sigue reabierta hasta construirla.
+- **RF-B.6.2 — watcher de la carpeta de ingesta** (`feat/sicsaft-core-ingesta-watcher`):
+  `ingesta-watcher.ts` vigila `carpetaIngesta` con `chokidar` (`awaitWriteFinish` — un `.xls`
+  copiado por red tarda en asentarse), corre el ETL Python (`herramientas/etl-contable/`) por cada
+  archivo nuevo en cola serial, y lo mueve a `.procesados/` o `.error/` (+ `<archivo>.log`) dejando
+  traza en `ingesta.log`. El ETL postea el lote a CIS → CORE lo deja en `pendiente_revision`. Auth:
+  service account Keycloak `sicsaft-ingesta` (`client_credentials`, miembro de la Organization +
+  grupo `{org}::administrador-patrimonial`), token pedido por archivo. El watcher se levanta tras
+  arrancar cis, se reapunta cuando el usuario cambia la carpeta, y se apaga en `before-quit`.
+  `prepack.cjs` copia `herramientas/etl-contable/` → `resources/etl-contable/app/`; el intérprete
+  Python embebido (`resources/etl-contable/python/`) se vendoriza a mano (ver `resources/README.md`).
+  **Pendiente de verificación real**: el round-trip completo contra el stack + que un token
+  `client_credentials` traiga el claim `organization` (anotado en `keycloak-bootstrap.ts`).
+- **RF-H — APK Android** (`feat/apk-aft-webview` + `feat/sicsaft-core-ingesta-watcher`):
+  **WebView Kotlin propia** en `apk-aft/` (no el wrap Capacitor que mencionan el Objetivo y
+  "Fase E" arriba — ver DOC-029 H.1: un TWA con cert propio en IP de LAN no carga). `prepack.cjs`
+  (`copiarApk`) copia `apk-aft/app/build/outputs/apk/release/*.apk` → `resources/apk/` si existe.
+  **Pendiente**: servir el `.apk` en `:8765` + 2º QR de descarga en el wizard. `CORE-Q-01` sigue
+  reabierta hasta construir y verificar la APK en un teléfono real.
 
 ## Depende de
 
