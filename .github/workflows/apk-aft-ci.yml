@@ -30,7 +30,9 @@ jobs:
           java-version: "17"
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        # Pineado a SHA (no a `@v3`) — acción de terceros: SonarCloud githubactions:S7637 lo exige
+        # para acciones que no son `actions/*`. 9fc6c4e = tag v3.2.2.
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
 
       - name: Regenerar el wrapper de Gradle
         # gradle-wrapper.jar es binario y no vive en el repo (ver apk-aft/.gitignore). `gradle`
