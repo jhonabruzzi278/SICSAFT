@@ -43,8 +43,9 @@ EVENTOS_OUTBOX_DB_PASSWORD: cambiar-esta-clave-produccion
 # --- WEB ---
 WEB_VITE_ZITADEL_CLIENT_ID: cambiar-por-el-client-id-de-la-app-oidc-web-de-produccion
 
-# --- Administrador del Sistema (DOC-021) — integracion real con la API de administracion de
-# Zitadel, ver devops/local/README.md "Rol administrador-sistema + integracion Zitadel Admin API"
-# (mismos pasos en produccion, contra el Zitadel de produccion) ---
+# --- Service user para la Admin API de Zitadel — lo usa CIS para la integracion de identidad
+# (hoy: el portal Directivo designa al Profesional de AFT). Ver devops/local/README.md "Service
+# user + Personal Access Token para la Admin API de Zitadel" (mismos pasos, contra el Zitadel de
+# produccion) ---
 ZITADEL_ADMIN_TOKEN: cambiar-por-el-pat-del-service-user-de-produccion
 ZITADEL_PROJECT_ID: cambiar-por-el-resource-id-del-proyecto-zitadel-de-produccion

@@ -6,7 +6,7 @@
 # de instalación completo.
 #
 # Niveles (DOC-025 1, revisado 2026-09-02 — unificado con sicsaft-core.exe): Nivel 1 =
-# app-qr-sicsaft + ccp (CCP COMPLETO, Profesional de AFT) + web-admin + core-frontend + cip.
+# app-qr-sicsaft + ccp (CCP COMPLETO, Profesional de AFT) + core-frontend + cip.
 # Nivel 2 no agrega ningún servicio nuevo: la única diferencia es el flag VITE_SICSAFT_NIVEL que
 # se hornea en el build de `ccp` y decide si el módulo Dashboard/indicadores (CIP) se muestra.
 # `instalar-cliente.ps1 -Nivel N` lo pasa por `NIVEL_PRODUCTO` en el .env. El "CCP acotado en
@@ -145,13 +145,13 @@ services:
       CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
       # Solo el dominio local de este cliente — sin puertos de Vite (no hay `npm run dev` en una
       # instalación de cliente).
-      CIS_CORS_ORIGIN: http://qr.${DOMINIO_BASE},http://ccp.${DOMINIO_BASE},http://admin.${DOMINIO_BASE},http://directivo.${DOMINIO_BASE}
+      CIS_CORS_ORIGIN: http://qr.${DOMINIO_BASE},http://ccp.${DOMINIO_BASE},http://directivo.${DOMINIO_BASE}
       # Sin equivalente a ZITADEL_ORG_ID_MAP — Keycloak no lo necesita: el organizacionId que usa
       # el resto del ecosistema ES el alias de la Organization en Keycloak, decidido por CIS mismo
       # al crearla (slugificando el nombre, ver keycloak-admin.service.ts `crearOrganizacion`), no
       # un id externo que haya que mapear a mano acá.
-      # Integración con la Admin REST API de Keycloak (alta de organización/usuarios desde
-      # web-admin, DOC-021) — client confidencial con service account que crea
+      # Integración con la Admin REST API de Keycloak (el portal Directivo designa al Profesional
+      # de AFT vía cis/src/directivo/) — client confidencial con service account que crea
       # bootstrap-keycloak.ps1 (ver lib/Bootstrap-Keycloak.psm1). A diferencia del PAT estático de
       # Zitadel, este secreto autentica un flujo client_credentials — KeycloakAdminService lo
       # cambia por un token de vida corta y lo cachea (ver cis/src/keycloak-admin/).
@@ -270,24 +270,6 @@ services:
         # correr bootstrap-keycloak.ps1 (ver README.md "Orden obligatorio").
         VITE_KEYCLOAK_ISSUER: http://id.${DOMINIO_BASE}
         VITE_KEYCLOAK_CLIENT_ID: ${APP_QR_VITE_KEYCLOAK_CLIENT_ID}
-        VITE_CIS_URL: http://api.${DOMINIO_BASE}
-    networks:
-      - sicsaft
-    depends_on:
-      cis:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # web-admin y core-frontend van siempre (Nivel 1): el portal Directivo y el de Administrador
-  # del Sistema se instalan junto con app-qr-sicsaft y ccp (ver más abajo).
-
-  web-admin:
-    build:
-      context: ../../web_admin
-      dockerfile: Dockerfile
-      args:
-        VITE_KEYCLOAK_ISSUER: http://id.${DOMINIO_BASE}
-        VITE_KEYCLOAK_CLIENT_ID: ${WEB_ADMIN_VITE_KEYCLOAK_CLIENT_ID}
         VITE_CIS_URL: http://api.${DOMINIO_BASE}
     networks:
       - sicsaft

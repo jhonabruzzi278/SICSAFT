@@ -76,7 +76,6 @@ Igual que `devops/local/` — agregar al archivo hosts
 127.0.0.1 id.sicsaft.localhost
 127.0.0.1 api.sicsaft.localhost
 127.0.0.1 qr.sicsaft.localhost
-127.0.0.1 admin.sicsaft.localhost
 127.0.0.1 directivo.sicsaft.localhost
 127.0.0.1 ccp.sicsaft.localhost
 ```
@@ -139,8 +138,8 @@ y los `*_VITE_KEYCLOAK_CLIENT_ID`) al `.env`.
 
 ### 5. Orden obligatorio: bootstrap antes de build
 
-Los 4 frontends (`app-qr-sicsaft`, `web-admin`, `core-frontend`, `ccp` — todos desde Nivel 1)
-hornean `VITE_KEYCLOAK_CLIENT_ID` (y `ccp` además `VITE_SICSAFT_NIVEL`) en **build time** (mismo mecanismo que `devops/local/`, ver
+Los 3 frontends (`app-qr-sicsaft`, `core-frontend`, `ccp` — todos desde Nivel 1) hornean
+`VITE_KEYCLOAK_CLIENT_ID` (y `ccp` además `VITE_SICSAFT_NIVEL`) en **build time** (mismo mecanismo que `devops/local/`, ver
 `args:` en `docker-compose.yml`). Construir las imágenes antes de tener los Client IDs reales de
 este cliente obliga a reconstruirlas después — por eso el bootstrap (paso 4) va antes de este paso:
 
@@ -156,8 +155,8 @@ El nivel contratado no cambia qué contenedores se levantan: viaja por `NIVEL_PR
 - Login real de un usuario de prueba por rol contratado (mismo criterio que
   `devops/local/README.md` para cada portal).
 - APP QR (`http://qr.sicsaft.localhost`) loguea y sincroniza contra este CIS/CORE local.
-- `web-admin`, `core-frontend` y `ccp` levantan desde Nivel 1 — cada login aterriza donde
-  corresponde según el rol. En Nivel 1 el CCP no muestra el módulo Dashboard/indicadores (CIP).
+- `core-frontend` y `ccp` levantan desde Nivel 1 — cada login aterriza donde corresponde según
+  el rol. En Nivel 1 el CCP no muestra el módulo Dashboard/indicadores (CIP).
 
 ### 7. Después de verificar
 
