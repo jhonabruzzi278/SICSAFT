@@ -21,15 +21,16 @@ Documento citable desde otros DOC-XXX del repo, mismo esquema que DOC-002/004/00
 > el resto del CCP va completo en todos los niveles (corrección 2026-09-02) — y
 > [DOC-030](../../sicsaft-core/design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md)
 > hace que el vendedor elija **Nivel 1 o Nivel 2** en el wizard (persistido en `instalacion.json`,
-> inyectado al servir el portal). Así el `.exe` cubre los dos niveles con el mismo binario. Lo que
-> **no** entra al `.exe` en ningún nivel es **`web_admin/`** (portal Administración del Sistema) ni
-> ningún portal de administración remota: la instalación de escritorio es autocontenida, sin
-> canal de conexión del proveedor al cliente (por eso la Fase F de DOC-028 quedó descartada). En
+> inyectado al servir el portal). Así el `.exe` cubre los dos niveles con el mismo binario. El portal `web_admin/`
+> (Administración del Sistema) y su rol se **eliminaron por completo (2026-09)**; ningún portal de
+> administración remota entra al `.exe` en ningún nivel: la instalación de escritorio es
+> autocontenida, sin canal de conexión del proveedor al cliente (por eso la Fase F de DOC-028
+> quedó descartada). El CRUD de Organización/Contrato/Sede es intervención directa del proveedor. En
 > ese camino, "administración web" de Nivel 2 se cubre con lo que crea el wizard + el portal
 > Directivo ("designar Profesional de AFT") + el módulo Estructura del CCP; cambios de
 > sedes/contrato son una operación asistida del proveedor, no un portal en la PC del cliente. El
-> modelo de perfiles Compose de `devops/onprem/` (que sí incluye `web_admin` desde Nivel 1) no
-> cambia.
+> modelo de perfiles Compose de `devops/onprem/` tampoco incluye ya `web-admin` (se quitó de las
+> tres stacks en 2026-09).
 
 ## 1. Los 3 niveles (modelo de precios del usuario)
 
@@ -39,7 +40,7 @@ Documento citable desde otros DOC-XXX del repo, mismo esquema que DOC-002/004/00
 
 | Nivel / Modo | Qué incluye | Servicios concretos del monorepo |
 |---|---|---|
-| **Nivel 1 — Modo Básico** | APP SICSAFT (QR, única fuente de captura) + SICSAFT CORE + BPI + CIS + portal Directivo + portal Administrador del Sistema + **CCP completo** (operación, administración, control — gestión avanzada incluida; sin el Dashboard/indicadores, que es CIP) | `postgres`, `keycloak` (ADR-004 Fase 3, reemplaza a `zitadel`), `core` (con `core-migrate`), `cis`, `app-qr-sicsaft`, `core-frontend` (Directivo), `web-admin` (Administrador del Sistema), `ccp` — sin `redis` desde [ADR-005](../../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md) |
+| **Nivel 1 — Modo Básico** | APP SICSAFT (QR, única fuente de captura) + SICSAFT CORE + BPI + CIS + portal Directivo + **CCP completo** (operación, administración, control — gestión avanzada incluida; sin el Dashboard/indicadores, que es CIP). El portal Administrador del Sistema se eliminó en 2026-09 (CRUD de Organización/Contrato/Sede = intervención directa del proveedor). | `postgres`, `keycloak` (ADR-004 Fase 3, reemplaza a `zitadel`), `core` (con `core-migrate`), `cis`, `app-qr-sicsaft`, `core-frontend` (Directivo), `ccp` — sin `redis` desde [ADR-005](../../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md) |
 | **Nivel 2 — Modo Profesional** | Nivel 1 + **CIP** (Dashboard/indicadores/alertas). El CCP ya va completo en Nivel 1 (corrección 2026-09-02). | Nivel 1 + `cip` (con `cip-migrate`) |
 | **Nivel 3 — Modo Enterprise** | Nivel 2 + integración RFID, conectada a CIS preservando la independencia tecnológica de CORE | Nivel 2 + `rfid/` — **🔲 no iniciado, sin código que empaquetar (ver `ROADMAP.md`)** |
 
@@ -69,7 +70,7 @@ Capacidades por nivel (lo que el cliente ve, no la lista de servicios):
   oculta el módulo **Dashboard** (único consumidor del CIP), en `2` lo muestra. Es la única
   diferencia de UI entre niveles. `ccp/src/lib/nivel.ts` `MODULOS_CIP`.
 
-Directivo (`core/frontend`) y Administrador del Sistema (`web_admin`) tampoco tienen versión
+El Directivo (`core/frontend`) tampoco tiene versión
 liviana: el mismo portal en todos los niveles donde aparecen.
 
 ## 2. Dónde vive esta distinción

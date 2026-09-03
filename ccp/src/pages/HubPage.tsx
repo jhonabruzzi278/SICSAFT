@@ -60,8 +60,8 @@ const MODULOS: Modulo[] = [
     descripcion: 'ABM de la estructura patrimonial',
     icon: IconMapPin,
   },
-  // RF-14 (DOC-021, gap "importaciones controladas") — por organización, como el resto (a
-  // diferencia de "Administración", que es transversal — ver AppShell).
+  // RF-14 (DOC-021, gap "importaciones controladas") — por organización, como el resto de los
+  // módulos del hub.
   {
     path: 'importaciones',
     nombre: 'Importaciones',

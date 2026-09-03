@@ -22,7 +22,7 @@ ENV VITE_KEYCLOAK_ISSUER=${VITE_KEYCLOAK_ISSUER} \
 RUN npm run build
 
 # Imagen "unprivileged" — corre como usuario sin privilegios y escucha en 8080 por default (no
-# 80, que requeriria root), mismo criterio que ccp/Dockerfile y web_admin/Dockerfile.
+# 80, que requeriria root), mismo criterio que ccp/Dockerfile.
 FROM nginxinc/nginx-unprivileged:1.29-alpine AS runtime
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html

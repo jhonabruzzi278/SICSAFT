@@ -148,9 +148,10 @@ lo que toca a `sicsaft-core`:
 - **DOC-030 — selector de Nivel 1/2 en el wizard** (`feat/sicsaft-core-nivel-selector`): `PasoDatosCliente`
   gana un radio "Nivel 1 / Nivel 2"; `bootstrapCliente` deja de hornear `nivel: 1`. En **Nivel 2**
   el `.exe` agrega el **Dashboard/indicadores (CIP)** — el CCP ya va completo en Nivel 1 (ver
-  corrección de RF-A arriba). **`web_admin/` (portal Administración del Sistema) no se embebe en
-  ningún nivel** — decisión del usuario (2026-09-02): instalación autocontenida, sin canal de
-  conexión del proveedor al cliente. Cierra la parte Nivel 2 de `CORE-Q-03`; Nivel 3 (RFID) sigue abierta.
+  corrección de RF-A arriba). El portal `web_admin/` (Administración del Sistema) se **eliminó (2026-09)** —
+  instalación autocontenida, sin canal de conexión del proveedor al cliente; el CRUD de
+  Organización/Contrato/Sede es intervención directa del proveedor (BD / script) + el bootstrap
+  del wizard, y los errores se diagnostican por la consola de logs en pantalla. Cierra la parte Nivel 2 de `CORE-Q-03`; Nivel 3 (RFID) sigue abierta.
 - **RF-B.6.1 — selector de carpeta de ingesta de Excel** (`feat/ccp-ingesta-revision`, `707d732`):
   el CCP embebido se sirve sin preload, así que el diálogo nativo va en el wizard del `.exe`.
   IPC `elegir/leerCarpetaIngesta` (`dialog.showOpenDialog` con `openDirectory`/`createDirectory`),
@@ -177,7 +178,7 @@ lo que toca a `sicsaft-core`:
 
 ## Depende de
 
-`cis/`, `core/`, `cip/`, `web_admin/`, `core/frontend/` (código de aplicación reusado tal cual) y
+`cis/`, `core/`, `cip/`, `core/frontend/` (código de aplicación reusado tal cual) y
 de todo el trabajo de identidad de ADR-004 (Fases 1-3) — `KeycloakAdminService`,
 `KeycloakAuthGuard`, el modelo de roles por Organization.
 

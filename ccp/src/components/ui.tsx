@@ -54,7 +54,7 @@ const STAT_TONE_STYLES: Record<StatTone, string> = {
 };
 
 // KPI card estilo "Resumen ejecutivo" — icono acentuado + valor grande + etiqueta. Pensado para
-// filas de 3-4 tarjetas en la parte superior de un dashboard (DashboardPage, AdminPage).
+// filas de 3-4 tarjetas en la parte superior de un dashboard (DashboardPage).
 export function StatCard({
   label,
   value,

@@ -1,8 +1,8 @@
 # CU-SEG — Seguridad
 
-Dominio §12.27. Componentes: todos los portales (`ccp/`, `web_admin/`, `core/frontend/`,
+Dominio §12.27. Componentes: todos los portales (`ccp/`, `core/frontend/`,
 `app-qr-sicsaft/`), Keycloak. Base: [ADR-004](../../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)
-(Keycloak self-hosted), `lib/oidc/` (idéntico en los cuatro portales, DOC-023).
+(Keycloak self-hosted), `lib/oidc/` (idéntico en los tres portales, DOC-023).
 
 ---
 

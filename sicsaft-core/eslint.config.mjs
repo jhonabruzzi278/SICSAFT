@@ -6,7 +6,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-// Mismo patrón que web_admin/eslint.config.mjs (flat config, ESLint 9 + typescript-eslint +
+// Mismo patrón que ccp/eslint.config.mjs (flat config, ESLint 9 + typescript-eslint +
 // prettier) — separado en dos bloques porque acá conviven dos runtimes en un mismo proyecto:
 // src/main//src/preload/ (Node, proceso de Electron) y src/renderer/ (browser, React).
 export default tseslint.config(

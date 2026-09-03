@@ -1,5 +1,12 @@
 # Project Metadata — Portal WEB SICSAFT (Fase 5)
 
+> **Corrección (2026-09).** DOC-021 (rol `administrador-sistema`) y DOC-022 (portal `web_admin/`)
+> se **revirtieron**: el rol, el portal y sus endpoints de CIS/CORE se eliminaron por completo.
+> El CRUD de Organización/Contrato/Sede y la asignación de usuarios pasó a intervención directa
+> del proveedor externo (BD / script con service-token) + el bootstrap del wizard de
+> `sicsaft-core`; el diagnóstico de errores lo hace el soporte por la consola de logs en
+> pantalla. Quedan **dos** portales WEB: `ccp/` (Profesional de AFT) y `core/frontend/` (Directivo).
+
 **Sistema:** Portal WEB SICSAFT (SYS-05) — `ccp/`
 **Ciclo:** ROADMAP.md Fase 5 — "Portal WEB mínimo"
 **Metodología:** AI-DLC (tercer sistema que lo adopta, después de `aidlc-docs/app-qr-sicsaft/` y
@@ -12,9 +19,8 @@ Administrador del Sistema — DOC-021; mismo día, diseño de la reestructuraci�
 **Fase actual:** Construction — los 9 módulos (6 del MVP de Fase 5 + Dashboard RF-09 +
 Importaciones/Administración RF-14/RF-15) y RF-10 (segmentación por rol) tienen código
 funcionando. RF-01/RF-09/RF-10 verificados de punta a punta contra Docker/Zitadel reales; RF-11 a
-RF-15 (DOC-021) implementados con tsc/build/e2e en verde pero sin esa verificación real todavía
-(pendiente — requiere crear el rol `administrador-sistema` y el service user PAT en Zitadel real,
-ver `devops/local/README.md`).
+RF-14 (DOC-021, gaps del CCP) implementados y verificados. RF-15 (rol `administrador-sistema` +
+módulo Administración) se implementó y luego se **eliminó (2026-09)** junto con el portal `web_admin/`.
 
 ## Status
 
@@ -28,13 +34,11 @@ ver `devops/local/README.md`).
       y de punta a punta contra Docker/Zitadel reales (rol `directivo` creado en Zitadel, login
       real confirma el redirect automático a `/dashboard`).
 - [ ] Operations — pendiente.
-- [x] Construction — DOC-021 (cierre de gaps del CCP + Administrador del Sistema): diseñado y
-      construido 2026-08-18 (4 fases: CORE, CIS, WEB, devops). Falta verificación real de punta a
-      punta contra Docker/Zitadel (crear rol/service user reales).
-- [ ] Construction — DOC-022 (reestructuración de portales: `ccp/` → `ccp/`, `web_admin/` nuevo,
-      `core/frontend/` nuevo para el Directivo con gestión de roles acotada a su organización):
-      diseñado 2026-08-18, en construcción (6 fases: diseño+ADR, rename, `web_admin/`, CIS
-      `directivo/`, `core/frontend/`, cierre de docs).
+- [x] Construction — DOC-021 (cierre de gaps del CCP): los 5 gaps del CCP quedaron cerrados. La
+      parte "Administrador del Sistema" (rol + endpoints) se **eliminó (2026-09)**.
+- [x] Construction — DOC-022 (reestructuración de portales): `core/frontend/` (Directivo) vivo;
+      `web_admin/` se construyó y luego se **eliminó por completo (2026-09)** — quedan 2 portales.
+      La gestión de roles acotada a la organización (`cis/src/directivo/`) sigue vigente.
 
 ## Por qué este directorio existe ahora, adelantado
 

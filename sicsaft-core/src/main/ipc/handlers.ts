@@ -372,7 +372,8 @@ export function registrarIpcHandlers(
         // del wizard (PasoDatosCliente). Se inyecta al servir `ccp` como VITE_SICSAFT_NIVEL
         // (asegurarServidoresPortales): el CCP va completo en todos los niveles; Nivel 2 solo
         // agrega el Dashboard/indicadores (CIP) -- correccion 2026-09-02, ver ccp/src/lib/nivel.ts.
-        // `web_admin` NO se embebe en ningun nivel (decision del usuario 2026-09-02, ver DOC-030).
+        // El portal `web_admin` se eliminó por completo (2026-09, ver DOC-030) -- el CRUD de
+        // Organizacion/Contrato/Sede es intervencion directa del proveedor + el wizard.
         nivel: input.nivel,
       });
       // DOC-029 RF-B.6.2 -- si el vendedor ya eligió la carpeta de ingesta antes de este paso,

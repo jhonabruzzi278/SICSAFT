@@ -332,33 +332,33 @@ explotación de información. Complementa el modelo de 6 niveles (1) y el modelo
 [DOC-012](seguridad/DOC-012-administrador-patrimonial.md)): rol de Proyecto en Zitadel + claim
 `rolesPorOrganizacion` verificado en CORE (`core/src/common/auth/administrador-patrimonial.guard.ts`),
 alta/baja/reincorporación/cambio de responsable de `Activo`
-(`core/src/patrimonial/activo-escritura.controller.ts`), importación masiva idempotente de base
-contable (`POST /importaciones/contable`, precursor manual de `CON-CONTABILIDAD`) y escritura de
-`Contrato` (`POST /contratos`, `PATCH /contratos/:id`,
-`core/src/entitlements/contrato-escritura.controller.ts`) — las 3 operaciones que Tomo III 1.4 le
-exige a esta entrada. **Sistema Contable** (conector automático `CON-CONTABILIDAD`) sigue sin
+(`core/src/patrimonial/activo-escritura.controller.ts`) e importación masiva idempotente de base
+contable (`POST /importaciones/contable`, precursor manual de `CON-CONTABILIDAD`). La escritura de
+`Contrato` (`POST /contratos`, `PATCH /contratos/:id`) existía hasta 2026-09 y se **eliminó** con el
+portal `web_admin/` — crear/editar Contrato es hoy intervención directa del proveedor externo (BD /
+script con service-token) + el bootstrap del wizard; `GET /entitlements` (contrato vigente + módulos)
+queda intacto. Las 2 operaciones de escritura que Tomo III 1.4 le exige a esta entrada — `Activo` e
+importación contable — siguen implementadas. **Sistema Contable** (conector automático `CON-CONTABILIDAD`) sigue sin
 modelar: no hay integración con un sistema contable real en `integraciones/README.md` (el
 conector está listado pero sin iniciar, Fase 7 del ROADMAP) — la importación manual del
 Administrador Patrimonial cubre el 80% del valor mientras tanto.
 
 **Plataforma WEB** — las columnas "Permisos" (generar configuraciones, asignar usuarios, autorizar
-procesos) ya están implementadas: es exactamente el alcance del rol Administrador del Sistema
-(`administrador-sistema`, [DOC-021](aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
-2026-08-18) — crea organizaciones y contratos, asigna usuarios a organizaciones (integración real
-con la API de administración de Zitadel), ve indicadores de plataforma. Nunca modifica la Base
-Patrimonial directamente (columna "No puede" de esta fila), simétrico con que el Administrador
-Patrimonial nunca administra la plataforma — ver `seguridad/README.md` "Administrador del
-Sistema" para el detalle de los dos niveles de autorización server-side que usa esta entrada.
+procesos). El portal del **Administrador del Sistema** (`web_admin/`, [DOC-021](aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))
+que las cubría se **eliminó (2026-09)**: crear/editar Organización, Contrato, Sede y asignar
+usuarios pasó a ser intervención directa del proveedor externo (BD / script con service-token) +
+el bootstrap del wizard; el diagnóstico de errores se hace por la consola de logs de
+`sicsaft-core`. "Autorizar procesos" (columna "Permisos") sigue cubierta por el Directivo:
+designar quién es el Profesional de AFT de su propia organización (`GET/POST /directivo/usuarios`,
+`cis/src/directivo/`) — gestión de identidad acotada a una organización, que nunca modifica la
+Base Patrimonial directamente.
 
-**Nota de implementación (DOC-022, 2026-08-19)**: "Plataforma WEB" en la fila de arriba es una
-sola entrada oficial de Tomo III, pero se implementó como **tres portales separados**, uno por rol
-(`ccp/` para el Profesional de AFT, `web_admin/` para el Administrador del Sistema,
-`core/frontend/` para el Directivo — nunca un login compartido, ver `seguridad/README.md` "Mapeo
-rol → portal → hostname"). Autorizar procesos (columna "Permisos" de esta fila) también cubre la
-capacidad nueva del Directivo: designar quién es el Profesional de AFT de su propia organización
-(`GET/POST /directivo/usuarios`, `cis/src/directivo/`) — gestión de identidad acotada a una sola
-organización, mismo criterio de "nunca modifica la Base Patrimonial directamente" que el
-Administrador del Sistema.
+**Nota de implementación (DOC-022, 2026-08-19; revisada 2026-09)**: "Plataforma WEB" en la fila
+de arriba es una sola entrada oficial de Tomo III, implementada como **dos portales separados**,
+uno por rol (`ccp/` para el Profesional de AFT, `core/frontend/` para el Directivo — nunca un
+login compartido, ver `seguridad/README.md` "Mapeo rol → portal → hostname"). El tercer portal,
+del Administrador del Sistema (`web_admin/`), se eliminó en 2026-09 — su función es hoy
+intervención directa del proveedor.
 
 **Decisión de producto sobre esta entrada**: SICSAFT nunca se conecta directamente (API/DB) al
 sistema contable del cliente — la frontera de responsabilidad termina antes de esa integración.

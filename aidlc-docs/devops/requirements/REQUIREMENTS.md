@@ -6,21 +6,20 @@ colisionar con los RF/RNF ya numerados de otros sistemas (ver `REQUISITOS.md` ra
 ## Funcionales
 
 - **INST-RF-01**: El stack debe poder levantarse en modo Nivel 1 (Postgres, Keycloak — ADR-004
-  Fase 3, reemplaza a Zitadel —, CIS, CORE, CIP, APP QR SICSAFT, portal Directivo y portal
-  Administrador del Sistema; sin Redis desde ADR-005; DOC-025 1 rev. 2026-08-25) sin `ccp`
+  Fase 3, reemplaza a Zitadel —, CIS, CORE, CIP, APP QR SICSAFT y portal Directivo
+  (el portal Administrador del Sistema se eliminó en 2026-09); sin Redis desde ADR-005; DOC-025 1 rev. 2026-08-25) sin `ccp`
   (Profesional de AFT completo,
   exclusivo de Nivel 2).
-- **INST-RF-02**: El stack debe poder levantarse en modo Nivel 2 (Nivel 1 + `ccp` + `web-admin` +
+- **INST-RF-02**: El stack debe poder levantarse en modo Nivel 2 (Nivel 1 + `ccp` +
   `core-frontend`) desde el mismo `docker-compose.yml`, vía Compose profiles — sin mantener
   archivos compose separados por nivel.
 - **INST-RF-03**: Un script (`bootstrap-keycloak.ps1`, ADR-004 Fase 3 — reemplaza a
   `bootstrap-zitadel.ps1`) debe crear, contra un Keycloak recién levantado y vacío, el realm
-  `sicsaft` (Organizations habilitado), la Organization del cliente, los 3 realm roles de negocio
-  (`profesional-aft`, `directivo`, `administrador-sistema` — los 3 sin gating por nivel desde
-  DOC-025 1 rev. 2026-08-25, a diferencia del diseño original de esta línea), un client
+  `sicsaft` (Organizations habilitado), la Organization del cliente, los realm roles de negocio
+  (`profesional-aft`, `directivo` — `administrador-sistema` se eliminó en 2026-09; sin gating por
+  nivel desde DOC-025 1 rev. 2026-08-25, a diferencia del diseño original de esta línea), un client
   confidencial con service account para la integración de `cis/` con la Admin REST API, y las apps
-  OIDC públicas con PKCE (`app-qr-sicsaft`/`web-admin`/`core-frontend` siempre; `ccp` solo si Nivel
-  2) — sin pasos manuales en la Console de Keycloak.
+  OIDC públicas con PKCE (`app-qr-sicsaft`/`core-frontend` siempre; `ccp` solo si Nivel 2) — sin pasos manuales en la Console de Keycloak.
 - **INST-RF-04**: El script de bootstrap debe ser idempotente o fallar de forma clara si se corre
   dos veces contra la misma organización (no debe crear duplicados silenciosos).
 - **INST-RF-05**: `app-qr-sicsaft` necesita su propio `Dockerfile` (no existe hoy — hoy se

@@ -197,6 +197,19 @@ de agregación y la API de lectura ya existen y corren reales en `cip/` — ver 
 
 **Cierre de 5 gaps del CCP + rol Administrador del Sistema (2026-08-18,
 [DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
+
+> **Eliminado (2026-09).** Se retiró el portal `web_admin/` y el rol `administrador-sistema`. En
+> CORE se borraron el módulo `src/indicadores/` (`GET /indicadores`), los controllers/servicios de
+> escritura de Organización/Sede/Contrato (`organizacion-escritura`/`sede-escritura`/
+> `contrato-escritura.*`) y los `GET` standalone de Organización/Sede/Contrato — ninguno tenía
+> consumidor tras quitar el portal. `GET /entitlements` (contrato vigente + módulos, vía
+> `ContratoRepository`) **queda intacto** — lo consume `cis` en `auth/session` para todos los
+> portales. El CRUD de Organización/Contrato/Sede pasó a intervención directa del proveedor externo
+> (BD / script con service-token) + el bootstrap del wizard de `sicsaft-core`. Las tablas de la BPI
+> (`organizaciones`, `sedes`, sus `estado`) siguen en el esquema y en las migraciones — lo que se
+> quitó es la superficie HTTP de escritura, no el modelo de datos. El resto de este bloque queda
+> como registro histórico.
+
 migración `1755800000000` agrega `activos.descripcion` (nullable) y la tabla `documentos_activo`
 (URL + metadata, sin bucket/OCR propio todavía — versión mínima; a diferencia de `activos`, esta
 tabla no es BPI oficial y sí admite `DELETE` real). `PATCH /activos/:id/descripcion`
@@ -233,6 +246,14 @@ fuera de `devDependencies`, `supertest`/`@types/supertest` verificados en uso re
 
 **CRUD completo de Organización/Sede/Contrato + auditoría de identidad (2026-08-21,
 [DOC-024](../aidlc-docs/ccp/design-artifacts/DOC-024-crud-completo-auditoria-identidad.md))**:
+
+> **Parcialmente eliminado (2026-09).** Con `web_admin/` fuera, se borraron los endpoints de
+> escritura que este incremento agregó: `PATCH /organizaciones/:id(/estado)`, `PATCH /sedes/:id/estado`,
+> `GET /sedes`, `PATCH /contratos/:id/condiciones`. **Sobrevive** `POST /auditoria`
+> (`AuditoriaEscrituraController`): lo sigue usando `cis` para auditar el "designar Profesional de
+> AFT" del Directivo (`DirectivoService`). Las columnas `estado`/`categoria`/`organizacion_id` y su
+> migración aditiva siguen en el esquema. El resto de este bloque queda como registro histórico.
+
 Organización y Sede ganan `estado` (`activo`/`inactivo`, bidireccional, nunca `DELETE` real — Tomo
 III 4.10 prohíbe borrar registros oficiales de la Base Patrimonial) vía
 `PATCH /organizaciones/:id(/estado)` y `PATCH /sedes/:id/estado` — deliberadamente **sin cascada**:
@@ -289,7 +310,7 @@ Vite/React servida por su propio nginx (`frontend/Dockerfile`), con su propio CI
 (`core-frontend-ci.yml`, excluido del filtro de paths de `core-ci.yml` de arriba).
 
 **El frontend nunca le habla a este backend directo** — le habla a CIS, exactamente igual que
-`ccp/`/`web_admin/` (documentado formalmente en
+`ccp/` (documentado formalmente en
 [ADR-003](../adr/ADR-003-frontend-de-core-para-directivo.md), que reemplaza puntualmente a
 ADR-001 solo en este aspecto). Este backend no gana ninguna superficie HTTP nueva por la
 existencia de `frontend/` — sigue sin router de Traefik, sigue sin más consumidor que CIS dentro

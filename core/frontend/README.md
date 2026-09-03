@@ -11,7 +11,7 @@ identidad acotada a la propia organización). **Nunca** toca información patrim
 3/4.
 
 Vive físicamente dentro de `core/` (por eso "CORE está conformado de backend y frontend"), pero
-**le habla a CIS, nunca al backend de CORE directo** — mismo patrón exacto que `ccp/`/`web_admin/`,
+**le habla a CIS, nunca al backend de CORE directo** — mismo patrón exacto que `ccp/`,
 documentado formalmente en
 [ADR-003](../../adr/ADR-003-frontend-de-core-para-directivo.md). El backend de CORE
 (`core/src/`) no gana ninguna superficie HTTP nueva por este incremento.

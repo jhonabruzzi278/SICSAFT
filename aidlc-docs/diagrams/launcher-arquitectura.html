@@ -77,7 +77,7 @@
 
     <svg viewBox="0 0 1000 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="launcher-arq-title launcher-arq-desc">
       <title id="launcher-arq-title">Arquitectura prevista del Launcher SICSAFT — planificado, sin código</title>
-      <desc id="launcher-arq-desc">Un launcher instalable como un solo ejecutable de Windows, todavía sin código, mostraría botones de acceso por rol y abriría cada portal ya existente (APP QR, portal de AFT, Web Admin, Core Frontend) en su propia ventana; cada portal sigue autenticando contra Keycloak (ADR-004, reemplaza a Zitadel) y hablando con CIS de forma independiente, sin pasar por el launcher.</desc>
+      <desc id="launcher-arq-desc">Un launcher instalable como un solo ejecutable de Windows, todavía sin código, mostraría botones de acceso por rol y abriría cada portal ya existente (APP QR, portal de AFT, Core Frontend) en su propia ventana; cada portal sigue autenticando contra Keycloak (ADR-004, reemplaza a Zitadel) y hablando con CIS de forma independiente, sin pasar por el launcher.</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
         <marker id="arrow-planned" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="rgba(235,108,54,0.55)"/></marker>
@@ -87,26 +87,22 @@
 
       <!-- ===== ARROWS (before nodes) ===== -->
 
-      <!-- Launcher -> 4 portales, fan attach points along launcher's bottom edge (width 240, 4 pts) -->
-      <path d="M 452,112 V 136 Q 452,144 444,144 H 140 Q 132,144 132,152 V 176"
+      <!-- Launcher -> 3 portales, fan attach points along launcher's bottom edge (width 200, 3 pts) -->
+      <path d="M 452,112 V 136 Q 452,144 444,144 H 200 Q 192,144 192,152 V 176"
             fill="none" stroke="rgba(235,108,54,0.55)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-planned)"/>
-      <path d="M 476,112 V 136 Q 476,144 468,144 H 380 Q 372,144 372,152 V 176"
+      <path d="M 500,112 V 176"
             fill="none" stroke="rgba(235,108,54,0.55)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-planned)"/>
-      <path d="M 524,112 V 136 Q 524,144 532,144 H 604 Q 612,144 612,152 V 176"
-            fill="none" stroke="rgba(235,108,54,0.55)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-planned)"/>
-      <path d="M 548,112 V 136 Q 548,144 556,144 H 844 Q 852,144 852,152 V 176"
+      <path d="M 548,112 V 136 Q 548,144 556,144 H 800 Q 808,144 808,152 V 176"
             fill="none" stroke="rgba(235,108,54,0.55)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-planned)"/>
       <rect x="466" y="128" width="68" height="12" rx="2" fill="#f5f5f5"/>
       <text x="500" y="137" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">ABRE VENTANA</text>
 
-      <!-- 4 portales -> CIS, fan attach points along CIS top edge -->
-      <path d="M 132,304 V 332 Q 132,340 140,340 H 452 Q 460,340 460,348 V 376"
+      <!-- 3 portales -> CIS, fan attach points along CIS top edge -->
+      <path d="M 192,304 V 332 Q 192,340 200,340 H 452 Q 460,340 460,348 V 376"
             fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <path d="M 372,304 V 332 Q 372,340 380,340 H 476 Q 484,340 484,348 V 376"
+      <path d="M 500,304 V 376"
             fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <path d="M 612,304 V 332 Q 612,340 604,340 H 516 Q 508,340 508,348 V 376"
-            fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <path d="M 852,304 V 332 Q 852,340 844,340 H 540 Q 532,340 532,348 V 376"
+      <path d="M 808,304 V 332 Q 808,340 800,340 H 540 Q 532,340 532,348 V 376"
             fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
       <rect x="466" y="320" width="44" height="12" rx="2" fill="#f5f5f5"/>
       <text x="488" y="329" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">HTTPS</text>
@@ -120,27 +116,22 @@
       <text x="500" y="82" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Launcher SICSAFT</text>
       <text x="500" y="98" fill="#eb6c36" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">🔲 no reemplaza logins</text>
 
-      <!-- 4 portales -->
+      <!-- 3 portales -->
       <g font-family="'Geist', sans-serif">
-        <rect x="52" y="176" width="160" height="128" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
-        <text x="132" y="234" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">APP QR</text>
-        <text x="132" y="250" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Prof. AFT campo</text>
-        <text x="132" y="266" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">ya existe</text>
+        <rect x="112" y="176" width="160" height="128" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+        <text x="192" y="234" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">APP QR</text>
+        <text x="192" y="250" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Prof. AFT campo</text>
+        <text x="192" y="266" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">ya existe</text>
 
-        <rect x="292" y="176" width="160" height="128" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
-        <text x="372" y="234" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">CCP</text>
-        <text x="372" y="250" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Prof. AFT · web</text>
-        <text x="372" y="266" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">todos los niveles</text>
+        <rect x="420" y="176" width="160" height="128" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+        <text x="500" y="234" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">CCP</text>
+        <text x="500" y="250" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Prof. AFT · web</text>
+        <text x="500" y="266" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">todos los niveles</text>
 
-        <rect x="532" y="176" width="160" height="128" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
-        <text x="612" y="234" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Web Admin</text>
-        <text x="612" y="250" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Admin. Sistema</text>
-        <text x="612" y="266" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">ya existe</text>
-
-        <rect x="772" y="176" width="160" height="128" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
-        <text x="852" y="234" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Core Frontend</text>
-        <text x="852" y="250" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Directivo</text>
-        <text x="852" y="266" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">ya existe</text>
+        <rect x="728" y="176" width="160" height="128" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+        <text x="808" y="234" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Core Frontend</text>
+        <text x="808" y="250" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Directivo</text>
+        <text x="808" y="266" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">ya existe</text>
       </g>
 
       <!-- CIS -->

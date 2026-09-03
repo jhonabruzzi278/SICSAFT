@@ -6,7 +6,7 @@ import { IconChart, IconLogOut, IconUsers } from './icons';
 
 // DOC-022 3 — sidebar del portal del Directivo. Solo dos destinos reales: el dashboard ejecutivo
 // (InicioPage resuelve la única organización del Directivo y redirige a /dashboard, ver
-// InicioPage.tsx) y la gestión del Profesional de AFT — a diferencia de ccp/web_admin no hay
+// InicioPage.tsx) y la gestión del Profesional de AFT — a diferencia de ccp/ no hay
 // selector de organización (DirectivoGuard en CIS siempre deriva la organización del JWT).
 const NAV_ITEMS = [
   {

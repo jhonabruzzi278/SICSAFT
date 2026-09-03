@@ -1,5 +1,13 @@
 # DOC-022: Reestructuración de portales — CCP / `web_admin` / frontend de CORE (Directivo)
 
+> **Corrección (2026-09).** De los tres portales que este documento separa, `web_admin/`
+> (Administrador del Sistema) se **eliminó por completo** junto con su rol. Quedan **dos**
+> portales — `ccp/` (Profesional de AFT) y `core/frontend/` (Directivo) — cada uno con su
+> login propio, que sigue siendo la regla no negociable de `CLAUDE.md`. El CRUD de
+> Organización/Contrato/Sede y la asignación de usuarios pasó a intervención directa del
+> proveedor externo (BD / script) + el bootstrap del wizard de `sicsaft-core`. Lo de abajo
+> queda como registro histórico del rediseño.
+
 > **Estado**: diseño (2026-08-18), en construcción el mismo día. Precisión explícita del usuario
 > del proyecto (2026-08-18, no cita textual de tomo): un solo portal WEB mezclaba tres audiencias
 > con privilegios distintos — el Profesional de AFT, el Administrador del Sistema (DOC-021) y el
@@ -9,8 +17,8 @@
 
 | Rol Zitadel | Nombre funcional | Portal | Qué hace | Toca la BPI |
 |---|---|---|---|---|
-| `administrador-patrimonial` | Profesional de AFT | **CCP** (`ccp/`, ex-`ccp/`) | Carga/actualiza información patrimonial (activos, catálogo, documentos, importaciones) — DOC-012, DOC-021 3-5 | Sí, es el único (junto con `administrador-sistema` para Contrato) |
-| `administrador-sistema` | Administrador del Sistema | **`web_admin/`** (nuevo) | Administra la plataforma: organizaciones, contratos, usuarios, indicadores — DOC-021 | Nunca |
+| `administrador-patrimonial` | Profesional de AFT | **CCP** (`ccp/`, ex-`ccp/`) | Carga/actualiza información patrimonial (activos, catálogo, documentos, importaciones) — DOC-012, DOC-021 3-5 | Sí, es el único (Contrato ya no tiene camino de escritura por API desde 2026-09) |
+| ~~`administrador-sistema`~~ | ~~Administrador del Sistema~~ | ~~**`web_admin/`**~~ | **Eliminado (2026-09)** — organizaciones/contratos/sedes/usuarios pasaron a intervención directa del proveedor (BD / script) + el wizard | — |
 | `directivo` | Directivo | **`core/frontend/`** (nuevo) | Máximo privilegio a nivel de **su organización**: dashboard de solo lectura (ya existía, DOC-020) + designar quién es el Profesional de AFT de su organización + gestionar roles dentro de ella (nuevo) | Nunca |
 
 Cada portal es un origen HTTP distinto (hostname propio en Traefik, Application OIDC propia en

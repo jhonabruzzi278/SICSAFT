@@ -18,10 +18,9 @@ import {
 } from '@/components/ui';
 
 // DOC-022 3 — designar quién es el Profesional de AFT (administrador-patrimonial) de la propia
-// organización del Directivo. Sin selector de organización (a diferencia de la sección análoga en
-// web_admin/AdminPage.tsx): DirectivoGuard en CIS deriva siempre la organización del propio JWT,
-// nunca de lo que mande este formulario — por eso tampoco hay un campo `rol`, el único rol
-// asignable desde acá está fijo en el servicio.
+// organización del Directivo. Sin selector de organización: DirectivoGuard en CIS deriva siempre
+// la organización del propio JWT, nunca de lo que mande este formulario — por eso tampoco hay un
+// campo `rol`, el único rol asignable desde acá está fijo en el servicio.
 const asignarProfesionalAftSchema = z.object({
   email: z.string().email('Email inválido'),
 });

@@ -27,7 +27,7 @@ prefijo; este prefijo es solo para requisitos de ESTE incremento (la app de escr
   que detecta el rol del token y muestra el portal correspondiente — vista embebida, no una
   ventana de navegador aparte con URL visible, servidos desde `127.0.0.1` en vez de `file://`
   (mismo motivo que ya evitó el bug de secure context/`crypto.subtle` con dominios `.test`).
-  `web_admin` (Administrador del Sistema) queda **fuera** de este alcance — no es un rol que este
+  `web_admin` (Administrador del Sistema) se **eliminó por completo (2026-09)** — no es un rol que este
   incremento necesite embebido.
   **Modelo de niveles unificado con [DOC-025](../../devops/design-artifacts/DOC-025-niveles-producto-onprem.md)**
   (§1.1, corrección 2026-09-02): `ccp` va **completo en todos los niveles**; el "web-aft" liviano

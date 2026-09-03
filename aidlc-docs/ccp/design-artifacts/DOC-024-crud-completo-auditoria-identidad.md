@@ -1,5 +1,13 @@
 # DOC-024: CRUD completo sin Consola de Zitadel, auditoría de identidad y matriz de roles
 
+> **Corrección (2026-09).** Este incremento construyó los CRUD de Organización/Sede/Contrato
+> sobre el portal `web_admin/`. Ese portal y el rol `administrador-sistema` se **eliminaron**;
+> con ellos se borraron los endpoints `PATCH /admin/organizaciones|sedes/:id/estado`,
+> `GET /admin/sedes` y `PATCH /admin/contratos/:id/condiciones`. **Sobrevive** `POST /auditoria`
+> de CORE (`categoria = identidad`), que ahora sólo audita el "designar Profesional de AFT" del
+> Directivo. La regla "`estado` bidireccional, nunca `DELETE` real" (Tomo III 4.10) sigue
+> vigente en el esquema. Lo de abajo queda como registro histórico.
+
 > **Estado**: implementado (2026-08-21) — CORE, CIS y `web_admin/` verificados de punta a punta
 > contra Docker/Zitadel reales, ver `core/README.md`, `cis/README.md` y `web_admin/README.md`
 > "Estado" para el detalle. Diseñado el 2026-08-20. Motivado por un pedido explícito

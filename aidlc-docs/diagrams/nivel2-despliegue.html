@@ -59,11 +59,11 @@
   <div class="frame">
     <p class="eyebrow">Deployment · SICSAFT · Nivel 2</p>
     <h1>Despliegue Nivel 2 — mismo stack, CCP con Dashboard</h1>
-    <p class="subtitle">Desde 2026-09-02 (unificado con <code>sicsaft-core.exe</code>) Nivel 1 y Nivel 2 despliegan <strong>los mismos contenedores</strong> — <code>ccp</code> incluido. Ningún servicio está gateado por perfil de Compose: la única diferencia es el build arg <code>VITE_SICSAFT_NIVEL</code> del <code>ccp</code>, que en <code>2</code> muestra el módulo Dashboard/indicadores (CIP). <strong>Camino <code>sicsaft-core.exe</code> (DOC-030):</strong> el mismo Nivel 2 sin Podman ni Traefik; <code>web_admin</code> <strong>no</strong> se embebe ahí (instalación autocontenida).</p>
+    <p class="subtitle">Desde 2026-09-02 (unificado con <code>sicsaft-core.exe</code>) Nivel 1 y Nivel 2 despliegan <strong>los mismos contenedores</strong> — <code>ccp</code> incluido. Ningún servicio está gateado por perfil de Compose: la única diferencia es el build arg <code>VITE_SICSAFT_NIVEL</code> del <code>ccp</code>, que en <code>2</code> muestra el módulo Dashboard/indicadores (CIP). <strong>Camino <code>sicsaft-core.exe</code> (DOC-030):</strong> el mismo Nivel 2 sin Podman ni Traefik; el portal del Administrador del Sistema quedó eliminado (2026-09).</p>
 
     <svg viewBox="0 0 1000 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="n2-dep-title n2-dep-desc">
       <title id="n2-dep-title">Despliegue on-premise de SICSAFT Nivel 2</title>
-      <desc id="n2-dep-desc">El mismo stack que Nivel 1 (app-qr-sicsaft, ccp, web-admin, core-frontend, todos vía CIS, más cip interno) dentro de la máquina Podman en WSL2. La diferencia de Nivel 2 es el build arg VITE_SICSAFT_NIVEL=2 del ccp, que habilita el módulo Dashboard/CIP. ADR-004: Keycloak reemplaza a Zitadel.</desc>
+      <desc id="n2-dep-desc">El mismo stack que Nivel 1 (app-qr-sicsaft, ccp, core-frontend, todos vía CIS, más cip interno) dentro de la máquina Podman en WSL2. La diferencia de Nivel 2 es el build arg VITE_SICSAFT_NIVEL=2 del ccp, que habilita el módulo Dashboard/CIP. ADR-004: Keycloak reemplaza a Zitadel.</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
         <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
@@ -120,7 +120,7 @@
         <text x="404" y="132" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">app-qr</text>
         <text x="488" y="132" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="end">n1</text>
         <rect x="504" y="118" width="100" height="20" rx="4" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
-        <text x="512" y="132" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">web-admin</text>
+        <text x="512" y="132" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">app-qr</text>
         <rect x="396" y="142" width="208" height="20" rx="4" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
         <text x="404" y="156" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">core-frontend</text>
         <text x="596" y="156" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="end">n1</text>

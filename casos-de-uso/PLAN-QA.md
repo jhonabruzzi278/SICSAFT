@@ -38,7 +38,7 @@ respetadas · BPI íntegra · eventos generados · auditoría presente · result
 | CU-INV-001 "programar inventario" | Hoy la sesión la abre el operador en la APP, sin paso previo del Adm/Supervisor. | Decisión de diseño nueva |
 | CU-INC-002 (resolver incidencia) | Sin endpoint de cierre; el Resumen solo muestra. | Trabajo nuevo |
 | CU-CIP-002 (reporte parametrizado PDF/Excel) | Sin generador. | Trabajo nuevo |
-| CU-ADM-001/002 CRUD completo | `web_admin/` en construcción. Para Nivel 1 alcanza el wizard + "designar AFT". | DOC-022 |
+| CU-ADM-001/002 CRUD completo | `web_admin/` eliminado (2026-09) → el CRUD amplio es intervención directa del proveedor (BD / script). Para Nivel 1 alcanza el wizard + "designar AFT". | DOC-022 |
 | CU-RFID-* | Nivel 3, sin código. | — |
 | CU-DOC-* | Nivel 2 (cuelgan de la edición de activo, oculta en Nivel 1). | — |
 

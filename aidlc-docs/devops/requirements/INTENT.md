@@ -14,7 +14,8 @@ cuando el cliente paga.
 Modelo de precios nuevo en 3 niveles de producto, confirmado con el usuario:
 
 - **Nivel 1**: APP QR SICSAFT + SICSAFT (CIS + CORE) — captura vía QR, sin portal web.
-- **Nivel 2**: Nivel 1 + portal(es) web (`ccp`, `web_admin`, `core/frontend` — los 3 roles).
+- **Nivel 2**: Nivel 1 + portal(es) web (`ccp`, `core/frontend` — los 2 roles con portal; el
+  tercer portal, `web_admin/`, se eliminó en 2026-09).
 - **Nivel 3**: Nivel 2 + RFID.
 
 Este modelo de venta por instalación aislada es incompatible con la arquitectura actual, pensada

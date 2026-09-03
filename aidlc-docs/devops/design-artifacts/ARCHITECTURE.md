@@ -21,7 +21,7 @@ flowchart TB
         L1[traefik + dashboard]
         L2[postgres + zitadel]
         L3[cis + core + cip]
-        L4[ccp + web-admin + core-frontend]
+        L4[ccp + core-frontend]
         L5[Prometheus + Loki + Grafana + cAdvisor + node-exporter]
         L6[k6]
     end
@@ -31,7 +31,7 @@ flowchart TB
         O2["postgres + keycloak (ADR-004 Fase 3)"]
         O3[cis + core]
         O4["app-qr-sicsaft (nuevo Dockerfile)"]
-        O5["ccp + web-admin + core-frontend — solo perfil nivel2"]
+        O5["ccp + core-frontend"]
     end
 
     local -. "subconjunto, no copia" .-> onprem
@@ -53,13 +53,13 @@ flowchart TB
 
 | Nivel | Servicios que se levantan |
 |---|---|
-| Nivel 1 | `postgres`, `keycloak`, `core-migrate`→`core`, `cis`, `cip-migrate`→`cip`, `app-qr-sicsaft`, `web-admin`, `core-frontend` |
+| Nivel 1 | `postgres`, `keycloak`, `core-migrate`→`core`, `cis`, `cip-migrate`→`cip`, `app-qr-sicsaft`, `core-frontend` |
 | Nivel 2 | Nivel 1 + `ccp` |
 | Nivel 3 | Nivel 2 + RFID — **no implementado, `rfid/` no tiene código todavía** |
 
 Implementado con **Compose profiles** (`nivel2`) en un solo `docker-compose.yml` — mismo mecanismo
 que ya usa `devops/local/docker-compose.yml` para aislar el servicio `k6` (`profiles: ["k6"]`).
-Los servicios base (postgres/keycloak/cis/core/cip/app-qr-sicsaft/web-admin/core-frontend) no
+Los servicios base (postgres/keycloak/cis/core/cip/app-qr-sicsaft/core-frontend) no
 llevan profile (siempre se levantan, desde Nivel 1 — DOC-025 1 revisado 2026-08-25); `ccp` es el
 único con `profiles: ["nivel2"]`.
 

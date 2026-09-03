@@ -59,17 +59,17 @@
   <div class="frame">
     <p class="eyebrow">Org chart · SICSAFT · sistema completo</p>
     <h1>Roles y qué sistema tiene cada uno</h1>
-    <p class="subtitle">No es una jerarquía de mando — es un mapa de responsabilidad: quién administra los accesos y qué rol usa qué portal (DOC-025). El Profesional de AFT tiene la APP QR y el CCP completo desde Nivel 1.</p>
+    <p class="subtitle">No es una jerarquía de mando — es un mapa de responsabilidad: quién provisiona los accesos y qué rol usa qué portal (DOC-025). El Profesional de AFT tiene la APP QR y el CCP completo desde Nivel 1.</p>
 
     <svg viewBox="0 0 1040 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="org-title org-desc">
       <title id="org-title">Organigrama de roles y sistemas de SICSAFT</title>
-      <desc id="org-desc">El Administrador del Sistema provisiona los accesos de los otros dos roles vía Keycloak (ADR-004, reemplaza a Zitadel); el Profesional de AFT usa la APP QR y el CCP completo (en todos los niveles), mientras el Directivo usa únicamente Core Frontend.</desc>
+      <desc id="org-desc">El proveedor de SICSAFT provisiona los accesos de los dos roles vía el wizard del instalador + Keycloak (ADR-004, reemplaza a Zitadel) — no hay portal de administración; el Profesional de AFT usa la APP QR y el CCP completo (en todos los niveles), mientras el Directivo usa únicamente Core Frontend.</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
       </defs>
       <rect width="1040" height="620" fill="#f5f5f5"/>
 
-      <text x="40" y="64" fill="#4f5d75" font-family="'Geist Mono', monospace" font-size="9" letter-spacing="0.16em">PUNTO DE ACCESO</text>
+      <text x="40" y="64" fill="#4f5d75" font-family="'Geist Mono', monospace" font-size="9" letter-spacing="0.16em">PROVISIÓN DE ACCESOS</text>
       <text x="40" y="196" fill="#4f5d75" font-family="'Geist Mono', monospace" font-size="9" letter-spacing="0.16em">ROLES</text>
       <text x="40" y="348" fill="#4f5d75" font-family="'Geist Mono', monospace" font-size="9" letter-spacing="0.16em">PORTALES / SISTEMAS</text>
       <line x1="36" y1="148" x2="1004" y2="148" stroke="rgba(45,49,66,0.12)"/>
@@ -87,8 +87,8 @@
       <rect x="420" y="72" width="200" height="48" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
       <rect x="428" y="80" width="60" height="12" rx="2" fill="transparent" stroke="#eb6c36" stroke-opacity="0.55" stroke-width="0.8"/>
       <text x="458" y="89" fill="#eb6c36" font-family="'Geist Mono', monospace" font-size="9" text-anchor="middle" letter-spacing="0.08em">ACCESOS</text>
-      <text x="520" y="104" fill="#2d3142" font-family="'Geist', sans-serif" font-size="12" font-weight="600" text-anchor="middle">Administrador Sistema</text>
-      <text x="520" y="116" fill="#4f5d75" font-family="'Geist Mono', monospace" font-size="9" text-anchor="middle">web_admin · provisiona vía Keycloak</text>
+      <text x="520" y="104" fill="#2d3142" font-family="'Geist', sans-serif" font-size="12" font-weight="600" text-anchor="middle">Proveedor SICSAFT</text>
+      <text x="520" y="116" fill="#4f5d75" font-family="'Geist Mono', monospace" font-size="9" text-anchor="middle">wizard del instalador + Keycloak · sin portal</text>
 
       <!-- ===== TIER 1: roles ===== -->
       <rect x="280" y="220" width="200" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>

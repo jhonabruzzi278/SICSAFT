@@ -87,7 +87,7 @@ display name, `AppShell` perdiendo la sidebar tras el login client-side, ...).
 
 ## Depende de
 
-`cis/`, `core/`, `cip/`, `web_admin/`, `core/frontend/` (código de aplicación reusado tal cual,
+`cis/`, `core/`, `cip/`, `core/frontend/` (código de aplicación reusado tal cual,
 sin cambios) — y de todo el trabajo de identidad de ADR-004 Fases 1-3 (`KeycloakAdminService`,
 `KeycloakAuthGuard`, el modelo de roles por Organization) y de ADR-005 (`pg-boss`,
 `InMemoryRateLimiter`), que se reusan sin reescribir.
@@ -115,5 +115,6 @@ Nada de forma dura — `devops/onprem/` (Podman) sigue existiendo en paralelo de
    servirla desde el `.exe` con un 2º QR de descarga.
 4. CORE-Q-03 — **Nivel 2 resuelto (2026-09-02, [DOC-030](design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md))**:
    selector de nivel en el wizard, el `.exe` sirve el CCP completo en Nivel 2 con el mismo binario;
-   `web_admin/` no se embebe en ningún nivel (instalación autocontenida, sin conexión al cliente —
-   descarta DOC-028 Fase F). **Nivel 3 (RFID)** sigue sin resolverse (sin código `rfid/`).
+   `web_admin/` se **eliminó por completo (2026-09)** — instalación autocontenida, sin conexión al
+   cliente (descarta DOC-028 Fase F); el CRUD de Organización/Contrato/Sede es intervención directa
+   del proveedor. **Nivel 3 (RFID)** sigue sin resolverse (sin código `rfid/`).

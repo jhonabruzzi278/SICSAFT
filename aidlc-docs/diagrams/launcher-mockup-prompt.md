@@ -22,8 +22,10 @@ ya instalados).
 SICSAFT es un sistema de gestión patrimonial. Cada cliente instala un nivel de producto (1, 2 o 3)
 que determina qué portales tiene disponibles:
 
-- **Siempre disponibles**: Portal Directivo (vista ejecutiva/supervisión) y Portal Administrador
-  del Sistema (gestión de usuarios, configuración).
+- **Siempre disponible**: Portal Directivo (vista ejecutiva/supervisión). La gestión de
+  usuarios/organizaciones/contratos/sedes **no tiene portal** (el Portal Administrador del Sistema
+  se eliminó en 2026-09) — es intervención directa del proveedor de SICSAFT (BD / script) + el
+  wizard de primer arranque.
 - **Nivel 1**: además, acceso de Profesional de AFT vía app móvil QR (y a futuro un portal web
   liviano de consulta).
 - **Nivel 2**: el Profesional de AFT pasa a tener CCP (Centro de Control Patrimonial), un portal
@@ -32,7 +34,7 @@ que determina qué portales tiene disponibles:
   nuevo, potencia los que ya existen.
 
 El launcher **no reemplaza el login de cada portal** — cada uno sigue autenticando por separado
-contra el proveedor de identidad (Zitadel, OIDC). El launcher solo decide qué botones mostrar según
+contra el proveedor de identidad (Keycloak, OIDC). El launcher solo decide qué botones mostrar según
 lo que el cliente tiene contratado, y abre cada portal en su propia ventana/pestaña del sistema.
 
 ### Pantallas a diseñar
@@ -43,15 +45,14 @@ lo que el cliente tiene contratado, y abre cada portal en su propia ventana/pest
      marca del producto.
    - Una fila o grid de **botones de acceso por rol**, uno por sistema disponible para ESE cliente
      según su nivel contratado. Cada botón: ícono distintivo, nombre del rol (Directivo,
-     Administrador del Sistema, Profesional de AFT), y un estado visual claro de "disponible" vs
+     Profesional de AFT), y un estado visual claro de "disponible" vs
      "no incluido en tu plan" (mostrar los no incluidos atenuados/deshabilitados, no ocultarlos —
      así el cliente ve qué podría contratar, sin ser agresivo con el upsell).
    - Debajo o al costado: estado de conexión (online/offline), versión instalada, último acceso.
-2. **Estado "nivel 1"** — variante del home mostrando: Directivo + Administrador del Sistema
-   activos, Profesional de AFT marcado como "usa la app móvil QR" (con un botón secundario para
-   generar/mostrar el QR de descarga de la app móvil), CCP atenuado con un tag "Disponible en
-   Nivel 2".
-3. **Estado "nivel 2"** — variante mostrando los 3 botones activos (Directivo, Admin, CCP).
+2. **Estado "nivel 1"** — variante del home mostrando: Directivo activo, Profesional de AFT
+   marcado como "usa la app móvil QR" (con un botón secundario para generar/mostrar el QR de
+   descarga de la app móvil), CCP atenuado con un tag "Disponible en Nivel 2".
+3. **Estado "nivel 2"** — variante mostrando los 2 botones activos (Directivo, CCP).
 4. **Pantalla "acerca de / sistemas"** — una vista secundaria (no la primera que se ve) con el
    detalle técnico para el administrador: qué versión de cada portal está instalada, el dominio
    base de esta instalación (ej. `sicsaft-duoc-melipilla.localhost`), y un botón de soporte.
