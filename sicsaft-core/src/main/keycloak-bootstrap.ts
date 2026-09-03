@@ -142,11 +142,11 @@ function idDeLocation(location: string | null): string {
 // portal-login-service.ts no puede rutear al usuario a ningún portal. Verificado real: "Designar
 // Profesional de AFT" reportaba éxito igual (silencioso del lado de cis, gap aparte a revisar) sin
 // que el rol quedara asignado de verdad.
-const ROLES_DE_NEGOCIO = [
-  "administrador-patrimonial",
-  "directivo",
-  "administrador-sistema",
-] as const;
+//
+// 2026-09: "administrador-sistema" salió de esta lista al eliminarse el portal web_admin/ -- el
+// CRUD de Organización/Contrato/Sede y la asignación de usuarios pasó a ser intervención directa
+// del proveedor (BD / script con service-token) + este mismo wizard.
+const ROLES_DE_NEGOCIO = ["administrador-patrimonial", "directivo"] as const;
 
 // Paso 1-2 de Invoke-BootstrapCliente (Bootstrap-Keycloak.psm1): realm + scopes (organization
 // promovido a default, cis-audience con Audience mapper) + roles. Corre una sola vez, al primer
