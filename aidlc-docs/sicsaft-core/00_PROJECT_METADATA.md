@@ -5,9 +5,10 @@
 **Sistema:** `sicsaft-core/` (nuevo — app de escritorio Electron, reemplaza a `devops/onprem/`
 como camino principal de instalación por cliente, ver `INTENT.md` CORE-Q-02)
 
-**Incremento:** Nivel 1 embebido en un único instalador `.exe` (Postgres/Keycloak/CIS/CORE/CIP como
-procesos nativos, sin contenedores — sin Redis, ver ADR-005) + wizard de primer arranque (alta del
-Director, alta del Profesional de AFT).
+**Incremento:** Nivel 1 **y Nivel 2** en un único instalador `.exe` (Postgres/Keycloak/CIS/CORE/CIP
+como procesos nativos, sin contenedores — sin Redis, ver ADR-005) + wizard de primer arranque (alta
+del Director, alta del Profesional de AFT) + selector de nivel (DOC-030) + consola técnica en
+pantalla para diagnóstico de arranque (0.1.1, PR #97).
 
 ## Quick links
 
@@ -106,11 +107,12 @@ Nada de forma dura — `devops/onprem/` (Podman) sigue existiendo en paralelo de
    pasa a (re)asignar el role mapping siempre, no solo al crear el grupo — cierra la versión
    porteada del gap silencioso de `crearGrant()` (DOC-027 "Gaps abiertos" actualizado). El gap del
    `crearGrant()` de `cis/` en sí sigue abierto, es otro deployable.
-2. Agregar `ccp`/`core-frontend` a `extraResources` de `electron-builder` (hoy `static-portal-server.ts`
-   resuelve el `dist/` hermano solo en dev) y automatizar `kc.bat build --db=postgres
-   --health-enabled=true` como paso del empaquetado (hoy manual, ver `resources/README.md`).
-3. Decidir cuándo/cómo se construye la APK Android (`CORE-Q-01`, reabierta — no existe todavía) —
-   incremento aparte, no bloqueante para lo de arriba.
+2. ~~Agregar `ccp`/`core-frontend` a `extraResources` y automatizar `kc.bat build`~~ **Hecho** —
+   `scripts/prepack.cjs` (DOC-028 Fase A) buildea el `dist/` de los 6 hermanos y corre `kc.bat
+   build` si falta; `npm run dist:win` produce el instalador NSIS real con todo adentro.
+3. APK Android (`CORE-Q-01`) — **construida** (DOC-029 RF-H, WebView Kotlin propia en `apk-aft/`,
+   `.apk` firmado empaquetado por `prepack.cjs`). Sigue abierto: verificarla en un teléfono real y
+   servirla desde el `.exe` con un 2º QR de descarga.
 4. CORE-Q-03 — **Nivel 2 resuelto (2026-09-02, [DOC-030](design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md))**:
    selector de nivel en el wizard, el `.exe` sirve el CCP completo en Nivel 2 con el mismo binario;
    `web_admin/` no se embebe en ningún nivel (instalación autocontenida, sin conexión al cliente —

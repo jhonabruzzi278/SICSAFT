@@ -29,11 +29,11 @@ prefijo; este prefijo es solo para requisitos de ESTE incremento (la app de escr
   (mismo motivo que ya evitó el bug de secure context/`crypto.subtle` con dominios `.test`).
   `web_admin` (Administrador del Sistema) queda **fuera** de este alcance — no es un rol que este
   incremento necesite embebido.
-  **Reabre la frontera Nivel 1/Nivel 2 de [DOC-025](../../devops/design-artifacts/DOC-025-niveles-producto-onprem.md)
-  para `sicsaft-core.exe` específicamente**: `ccp` está clasificado ahí como Nivel 2 (portal
-  completo de Profesional de AFT), pero el "web-aft" liviano previsto para Nivel 1 no tiene una
-  sola línea de código. Decisión explícita del usuario: `sicsaft-core.exe` embebe `ccp` completo
-  igual, sin condicionarlo al nivel contratado — ver la nota correspondiente en DOC-025 1.
+  **Modelo de niveles unificado con [DOC-025](../../devops/design-artifacts/DOC-025-niveles-producto-onprem.md)**
+  (§1.1, corrección 2026-09-02): `ccp` va **completo en todos los niveles**; el "web-aft" liviano
+  de Nivel 1 quedó descartado. `sicsaft-core.exe` inyecta `VITE_SICSAFT_NIVEL` al servir el portal
+  (leído de `instalacion.json`) — en Nivel 1 oculta el módulo Dashboard/indicadores (CIP), en
+  Nivel 2 lo muestra. Es la única diferencia de UI entre niveles.
   El rol de Keycloak que rutea al Profesional de AFT a `ccp` es `administrador-patrimonial` (el
   que `cis` asigna y `ccp` exige), **no** `profesional-aft` — ver [DOC-027](../design-artifacts/DOC-027-bitacora-bugs-reales.md)
   BUG-29 y F para el detalle de implementación (`WebContentsView` embebida, servidor estático

@@ -8,18 +8,18 @@ Documento citable desde otros DOC-XXX del repo, mismo esquema que DOC-002/004/00
 > los 3 portales juntos recién en Nivel 2) — ver historial de git para la versión previa si hace
 > falta reconstruir una instalación vieja.
 >
-> **Excepción 2026-08-28 (`sicsaft-core.exe` específicamente)**: el camino de instalación de
-> escritorio ([`aidlc-docs/sicsaft-core/`](../../sicsaft-core/requirements/REQUIREMENTS.md)
-> CORE-RF-04) embebe `ccp` completo para el Profesional de AFT sin condicionarlo al nivel
-> contratado — decisión explícita del usuario, tomada porque el "web-aft" liviano de Nivel 1 de
-> abajo sigue sin una sola línea de código y `ccp` ya existe, probado de punta a punta. Esta
-> excepción aplica **solo** a `sicsaft-core.exe` — el modelo de niveles de `devops/onprem/`
-> (Compose profiles) de este documento sigue sin cambios para ese camino de instalación.
+> **Historia (2026-08-28 → 2026-09-02)**: el camino `sicsaft-core.exe` (CORE-RF-04) empezó como
+> una **excepción** — embebía `ccp` completo en todos los niveles porque el "web-aft" liviano de
+> Nivel 1 nunca tuvo código y `ccp` ya existía probado de punta a punta. El 2026-09-02 esa
+> excepción se generalizó: **`devops/onprem/` adoptó el mismo modelo** (ver §1.1). El "web-aft"
+> queda descartado; en los dos caminos de instalación el `ccp` completo va desde Nivel 1 y ningún
+> servicio está gateado por perfil de Compose.
 >
 > **Ampliación 2026-08-31/09-02 (`sicsaft-core.exe`)**:
 > [DOC-029](../../ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md) RF-A le puso al
-> `ccp` embebido un flag `VITE_SICSAFT_NIVEL` que en `1` **oculta** los módulos de gestión avanzada
-> (Estructura, alta manual de Activos), y [DOC-030](../../sicsaft-core/design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md)
+> `ccp` un flag `VITE_SICSAFT_NIVEL` que en `1` **oculta el módulo Dashboard/indicadores (CIP)** —
+> el resto del CCP va completo en todos los niveles (corrección 2026-09-02) — y
+> [DOC-030](../../sicsaft-core/design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md)
 > hace que el vendedor elija **Nivel 1 o Nivel 2** en el wizard (persistido en `instalacion.json`,
 > inyectado al servir el portal). Así el `.exe` cubre los dos niveles con el mismo binario. Lo que
 > **no** entra al `.exe` en ningún nivel es **`web_admin/`** (portal Administración del Sistema) ni
@@ -54,35 +54,33 @@ Capacidades por nivel (lo que el cliente ve, no la lista de servicios):
 - **Nivel 3 — Modo Enterprise** (suma): captura automática, eventos RFID, supervisión, zonas,
   movimientos, alertas, automatización patrimonial.
 
-### Portal de Profesional de AFT: dos piezas distintas, no una
+### Portal de Profesional de AFT: una sola pieza, `ccp/`, en todos los niveles
 
-A diferencia de Directivo y Administrador del Sistema (un solo portal cada uno, disponible desde
-Nivel 1), el rol Profesional de AFT tiene **dos accesos web distintos en dos niveles distintos**:
+> **Corrección 2026-09-02** (unifica con `sicsaft-core.exe`): esta sección describía **dos
+> aplicaciones distintas** — un "web-aft" liviano de Nivel 1 (nunca construido) y `ccp/` completo
+> recién en Nivel 2. Queda **revertido**: el Profesional de AFT usa el **mismo `ccp/` completo en
+> todos los niveles**. Lo único que Nivel 2 agrega es el módulo **Dashboard/indicadores**, que
+> consume el **CIP**, no el CCP (CCP ≠ CIP, Tomo IV).
 
-- **Nivel 1** — un portal liviano de AFT ("web-aft": identificación, consulta, inventarios,
-  incidencias, historial, trazabilidad básica), pensado para complementar la APP QR desde un
-  navegador. **🔲 No iniciado — sin código, sin carpeta propia en el monorepo todavía.** No hay
-  servicio para él en `devops/onprem/docker-compose.yml` hasta que se construya (mismo criterio de
-  honestidad que RFID en Nivel 3, más abajo). Al agregarse, seguirá el mismo patrón de
-  `CLAUDE.md` "Al agregar un sistema nuevo" (esqueleto Vite/React, Dockerfile, CI dedicado, login
-  OIDC propio).
-- **Nivel 2** — `ccp/` (Centro de Control Patrimonial), el portal **completo** ya implementado en
-  el monorepo, con las capacidades de gestión avanzada listadas arriba. No es una versión
-  "desbloqueada" del portal de Nivel 1 vía feature flag — es una aplicación distinta
-  (`ccp/`), gated por el perfil `nivel2` de Compose igual que antes.
+- **`ccp/`** (Centro de Control Patrimonial) — el portal del Profesional de AFT, ya implementado,
+  con toda su gestión avanzada (alta de activos, Estructura, importaciones, QR/Etiquetas,
+  auditoría). Va **completo desde Nivel 1**. No hay ni habrá un "web-aft" liviano aparte.
+- El nivel contratado se hornea en el build de `ccp` como `VITE_SICSAFT_NIVEL` (`1` | `2`): en `1`
+  oculta el módulo **Dashboard** (único consumidor del CIP), en `2` lo muestra. Es la única
+  diferencia de UI entre niveles. `ccp/src/lib/nivel.ts` `MODULOS_CIP`.
 
-Directivo (`core/frontend`) y Administrador del Sistema (`web_admin`) no tienen este problema: es
-el mismo portal en todos los niveles donde aparecen, ya implementado, sin versión liviana.
+Directivo (`core/frontend`) y Administrador del Sistema (`web_admin`) tampoco tienen versión
+liviana: el mismo portal en todos los niveles donde aparecen.
 
 ## 2. Dónde vive esta distinción
 
-**A nivel de despliegue** (qué contenedores se levantan, vía Compose profiles en
-`devops/onprem/docker-compose.yml` — ver `ARCHITECTURE.md`), **no a nivel de dato**. No se agrega
-ningún campo "nivel" a `Contrato`/`Organización`/`Sede` en `base-patrimonial/` — el nivel
-contratado no es un atributo del dominio patrimonial, es una decisión de qué instalar en el PC del
-cliente. Si en el futuro se necesita que el propio sistema sepa "en qué nivel corre" (por ejemplo,
-para ocultar features de un nivel superior en la UI), eso es una decisión de diseño nueva, fuera
-de este documento — hoy el nivel lo decide qué se instaló, no un flag que el software consulte.
+**En el build del portal `ccp`** (`VITE_SICSAFT_NIVEL`, horneado desde `NIVEL_PRODUCTO` en el
+`.env` por `instalar-cliente.ps1 -Nivel N` — o desde `instalacion.json` en `sicsaft-core.exe`),
+**no a nivel de dato**. No se agrega ningún campo "nivel" a `Contrato`/`Organización`/`Sede` en
+`base-patrimonial/` — el nivel contratado no es un atributo del dominio patrimonial. Desde
+2026-09-02 tampoco es una decisión de qué contenedores levantar: Nivel 1 y Nivel 2 despliegan los
+mismos servicios (ver §1.1). La distinción vive solo en ese flag de build del CCP, que decide si
+el módulo Dashboard/CIP aparece.
 
 ## 3. Qué queda explícitamente fuera de los 3 niveles
 
@@ -99,10 +97,10 @@ de este documento — hoy el nivel lo decide qué se instaló, no un flag que el
 >   `MODULOS_CIP`). El resto del CCP va completo desde Nivel 1 (corrección 2026-09-02).
 > - **`devops/onprem/docker-compose.yml`**: `cip`/`cip-migrate` **siguen arrancando desde el
 >   boot** por ahora, porque `cis` valida `CIP_URL`/`CIP_SERVICE_TOKEN` de forma incondicional
->   (`cip-client.config.ts`). Moverlos al perfil `nivel2` exige que CIS degrade con elegancia
->   cuando CIP no está — **follow-up**, no bloquea la venta por nivel (un cliente Nivel 1 corre el
->   contenedor pero no ve ni paga la capacidad). El `.exe` (`sicsaft-core`) tiene la misma
->   situación: embebe CIP siempre, lo expone solo en Nivel 2.
+>   (`cip-client.config.ts`). Gatearlos por nivel exigiría que CIS degrade con elegancia cuando
+>   CIP no está — **follow-up**, no bloquea la venta por nivel (un cliente Nivel 1 corre el
+>   contenedor `cip` pero el Dashboard queda oculto en el CCP, no ve ni paga la capacidad). El
+>   `.exe` (`sicsaft-core`) tiene la misma situación: embebe CIP siempre, lo expone solo en Nivel 2.
 > - Base propia `cip` separada de `core` (RNF-01/RNF-05) y el consumo real de eventos por pg-boss
 >   (ADR-005) no cambian.
 
@@ -133,13 +131,12 @@ tecnológico, instalación sencilla, inventario digital, trazabilidad y una Base
 desde el primer día, con camino de crecimiento hacia Nivel 2/3 sin migrar de plataforma. Es el
 nivel de entrada natural: no depende de que el cliente compre nada más para justificar su precio.
 
-**Nivel 2 — alta prioridad, viable**: lo que suma la WEB (CCP) es administración, supervisión,
-gestión avanzada y acceso institucional — pero ese valor está condicionado a que ya exista CORE y
-la Base Patrimonial detrás (Nivel 1). **WEB sola no es ventaja competitiva**: sin un CORE real
-gobernando qué operación puede tocar la base y sin una Base Patrimonial con datos reales, un
-portal de administración es una interfaz sobre nada. Por eso Nivel 2 nunca se vende suelto — es
-Nivel 1 obligatorio más CCP, nunca CCP sin la base debajo (consistente con la tabla de la sección
-1: Nivel 2 = Nivel 1 + `ccp`, no un stack alternativo).
+**Nivel 2 — alta prioridad, viable**: lo que suma es el **CIP** — reportes, indicadores, alertas
+y análisis ejecutivo sobre la Base Patrimonial. Ese valor está condicionado a que ya exista CORE y
+la Base Patrimonial con datos reales detrás (Nivel 1): un dashboard sobre una base vacía no es
+ventaja competitiva. Por eso Nivel 2 nunca se vende suelto — es Nivel 1 obligatorio más el CIP
+(consistente con la tabla de la sección 1: Nivel 2 = Nivel 1 + `cip`, no un stack alternativo). El
+CCP completo — administración, supervisión, gestión avanzada — ya viene en Nivel 1.
 
 **Nivel 3 — viable, mediante integración**: RFID entra como conector adicional sobre lo que ya
 existe (Nivel 2), no como una reconstrucción — mismo criterio ya fijado en la sección 1 ("RFID,
