@@ -313,7 +313,7 @@ function Invoke-BootstrapCliente {
     Write-Host "== 4. Creando client confidencial de administración (CIS) =="
     $adminClient = New-KeycloakAdminServiceAccount -KeycloakUrl $KeycloakUrl -Token $token
 
-    Write-Host "== 5. Creando apps OIDC públicas =="
+    Write-Host "== 5. Creando apps OIDC públicas (Nivel $Nivel) =="
     $appQrClientId = New-KeycloakPublicClient -KeycloakUrl $KeycloakUrl -Token $token `
         -ClientId "app-qr-sicsaft" -Dominio "qr.$DominioBase"
     $webAdminClientId = New-KeycloakPublicClient -KeycloakUrl $KeycloakUrl -Token $token `
@@ -321,11 +321,13 @@ function Invoke-BootstrapCliente {
     $coreFrontendClientId = New-KeycloakPublicClient -KeycloakUrl $KeycloakUrl -Token $token `
         -ClientId "core-frontend-sicsaft" -Dominio "directivo.$DominioBase"
 
-    $ccpClientId = $null
-    if ($Nivel -eq 2) {
-        $ccpClientId = New-KeycloakPublicClient -KeycloakUrl $KeycloakUrl -Token $token `
-            -ClientId "ccp-sicsaft" -Dominio "ccp.$DominioBase"
-    }
+    # CCP en TODOS los niveles (unificado con sicsaft-core.exe, 2026-09-02): el portal del
+    # Profesional de AFT es el mismo binario en Nivel 1 y Nivel 2. Lo único que Nivel 2 agrega es
+    # el Dashboard/indicadores (CIP), gateado por el flag VITE_SICSAFT_NIVEL en el build de `ccp`,
+    # no por un client OIDC aparte. Antes este client solo se creaba en Nivel 2 ("CCP acotado en
+    # Nivel 1", revertido).
+    $ccpClientId = New-KeycloakPublicClient -KeycloakUrl $KeycloakUrl -Token $token `
+        -ClientId "ccp-sicsaft" -Dominio "ccp.$DominioBase"
 
     return @{
         KEYCLOAK_ADMIN_CLIENT_ID              = $adminClient.ClientId

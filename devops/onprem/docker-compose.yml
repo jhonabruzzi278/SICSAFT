@@ -5,11 +5,12 @@
 # `podman-compose` (INST-RNF-01), no Docker Desktop — ver README.md de esta carpeta para el flujo
 # de instalación completo.
 #
-# Niveles (DOC-025 1, revisado 2026-08-25): Nivel 1 = app-qr-sicsaft + web-admin + core-frontend +
-# cip (Directivo, Administrador del Sistema y CIP/BI vienen desde el arranque, cierra INST-Q-01);
-# Nivel 2 agrega ccp (portal COMPLETO de Profesional de AFT, perfil "nivel2"). El portal liviano de
-# AFT propio de Nivel 1 ("web-aft") todavía no tiene código — no hay servicio para él en este
-# archivo (🔲, DOC-025 1).
+# Niveles (DOC-025 1, revisado 2026-09-02 — unificado con sicsaft-core.exe): Nivel 1 =
+# app-qr-sicsaft + ccp (CCP COMPLETO, Profesional de AFT) + web-admin + core-frontend + cip.
+# Nivel 2 no agrega ningún servicio nuevo: la única diferencia es el flag VITE_SICSAFT_NIVEL que
+# se hornea en el build de `ccp` y decide si el módulo Dashboard/indicadores (CIP) se muestra.
+# `instalar-cliente.ps1 -Nivel N` lo pasa por `NIVEL_PRODUCTO` en el .env. El "CCP acotado en
+# Nivel 1" del modelo previo quedó revertido.
 
 name: sicsaft-onprem
 
@@ -277,10 +278,8 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # web-admin y core-frontend van SIN perfil (Nivel 1, DOC-025 1 rev. 2026-08-25): el portal
-  # Directivo y el de Administrador del Sistema se instalan siempre, junto con app-qr-sicsaft. Solo
-  # falta el portal liviano de Profesional de AFT propio de Nivel 1 ("web-aft") — no tiene código
-  # todavía (🔲, ver DOC-025 1) y por eso no hay un servicio acá para él.
+  # web-admin y core-frontend van siempre (Nivel 1): el portal Directivo y el de Administrador
+  # del Sistema se instalan junto con app-qr-sicsaft y ccp (ver más abajo).
 
   web-admin:
     build:
@@ -312,12 +311,15 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # --- A partir de acá, solo perfil "nivel2" (INST-RF-02) — un cliente Nivel 1 nunca lo levanta.
-  # CCP (Centro de Control Patrimonial) es el portal COMPLETO de Profesional de AFT — se desbloquea
-  # recién en Nivel 2. El acceso básico de AFT en Nivel 1 es la APP QR (más, a futuro, "web-aft").
+  # CCP (Centro de Control Patrimonial) — portal del Profesional de AFT. Va en TODOS los niveles
+  # (unificado con sicsaft-core.exe, 2026-09-02): el mismo servicio en Nivel 1 y Nivel 2. Lo único
+  # que Nivel 2 agrega es el módulo Dashboard/indicadores (CIP), gateado por VITE_SICSAFT_NIVEL en
+  # el build — no por un perfil de Compose. Antes estaba en `profiles: ["nivel2"]` ("CCP acotado
+  # en Nivel 1"), revertido. `cip`/`cip-migrate` siguen arrancando desde el boot en ambos niveles
+  # (CIS valida CIP_URL de forma incondicional — DOC-025 INST-Q-01); en Nivel 1 el contenedor
+  # corre pero el Dashboard queda oculto en la UI.
 
   ccp:
-    profiles: ["nivel2"]
     build:
       context: ../../ccp
       dockerfile: Dockerfile
@@ -325,6 +327,7 @@ services:
         VITE_KEYCLOAK_ISSUER: http://id.${DOMINIO_BASE}
         VITE_KEYCLOAK_CLIENT_ID: ${CCP_VITE_KEYCLOAK_CLIENT_ID}
         VITE_CIS_URL: http://api.${DOMINIO_BASE}
+        VITE_SICSAFT_NIVEL: ${NIVEL_PRODUCTO}
     networks:
       - sicsaft
     depends_on:

@@ -7,7 +7,10 @@ compartido. Ver [`../../aidlc-docs/devops/`](../../aidlc-docs/devops) para el di
 [`../README.md`](../README.md) para cómo encaja con `devops/local/`/`devops/prod/`.
 
 Subconjunto de [`devops/local/`](../local): sin observabilidad, sin `k6`, sin dashboard de Traefik
-expuesto. `cip` (BI) sí entra, desde Nivel 1 (ver `DOC-025` 1/3, cierra INST-Q-01).
+expuesto. Modelo de niveles unificado con `sicsaft-core.exe` (2026-09-02): Nivel 1 = APP QR +
+**CCP completo** + Directivo + Admin + `cip`; Nivel 2 solo suma el módulo Dashboard/indicadores
+(CIP) vía el flag `NIVEL_PRODUCTO` en `.env` (horneado como `VITE_SICSAFT_NIVEL` en el build de
+`ccp`). Ningún servicio está gateado por perfil de Compose.
 
 ## Instalación automatizada (recomendada)
 
@@ -57,8 +60,7 @@ consumo de recursos en reposo, sin licenciamiento comercial de Docker Desktop.
 **Riesgo a verificar antes de usar en un cliente real** (no asumido): los `healthcheck`/
 `depends_on: condition: service_healthy` que este compose usa fuerte (`core-migrate` → `core`,
 `postgres` healthy antes de levantar `cis`/`core`) deben comportarse igual bajo
-`podman-compose` — probar `podman-compose --profile nivel1 up -d` de punta a punta antes de una
-instalación real.
+`podman-compose` — probar `podman-compose up -d` de punta a punta antes de una instalación real.
 
 ## Instalación manual (paso a paso)
 
@@ -79,8 +81,8 @@ Igual que `devops/local/` — agregar al archivo hosts
 127.0.0.1 ccp.sicsaft.localhost
 ```
 
-(DOC-025 1, rev. 2026-08-25: `admin` y `directivo` ya hacen falta desde Nivel 1 — solo `ccp` es
-exclusivo de Nivel 2.)
+(Los 4 portales — `qr`, `admin`, `directivo`, `ccp` — hacen falta desde Nivel 1. La diferencia
+Nivel 1 ↔ 2 es el flag `VITE_SICSAFT_NIVEL` que decide si el Dashboard/CIP se muestra en el CCP.)
 
 ### 2. Variables de entorno de este cliente
 
@@ -137,24 +139,25 @@ y los `*_VITE_KEYCLOAK_CLIENT_ID`) al `.env`.
 
 ### 5. Orden obligatorio: bootstrap antes de build
 
-Los frontends (`app-qr-sicsaft`, `web-admin`, `core-frontend` desde Nivel 1, y `ccp` desde Nivel 2)
-hornean `VITE_KEYCLOAK_CLIENT_ID` en **build time** (mismo mecanismo que `devops/local/`, ver
+Los 4 frontends (`app-qr-sicsaft`, `web-admin`, `core-frontend`, `ccp` — todos desde Nivel 1)
+hornean `VITE_KEYCLOAK_CLIENT_ID` (y `ccp` además `VITE_SICSAFT_NIVEL`) en **build time** (mismo mecanismo que `devops/local/`, ver
 `args:` en `docker-compose.yml`). Construir las imágenes antes de tener los Client IDs reales de
 este cliente obliga a reconstruirlas después — por eso el bootstrap (paso 4) va antes de este paso:
 
 ```bash
-podman-compose --profile nivel1 up -d --build      # Nivel 1: app-qr-sicsaft + web-admin + core-frontend
-# o
-podman-compose --profile nivel2 up -d --build      # Nivel 2 (incluye Nivel 1 + ccp)
+podman-compose up -d --build      # los mismos servicios en Nivel 1 y Nivel 2
 ```
+
+El nivel contratado no cambia qué contenedores se levantan: viaja por `NIVEL_PRODUCTO` en `.env`
+(lo pone `instalar-cliente.ps1 -Nivel N`) y el build de `ccp` lo hornea como `VITE_SICSAFT_NIVEL`.
 
 ### 6. Verificar antes de cerrar la instalación
 
 - Login real de un usuario de prueba por rol contratado (mismo criterio que
   `devops/local/README.md` para cada portal).
 - APP QR (`http://qr.sicsaft.localhost`) loguea y sincroniza contra este CIS/CORE local.
-- `web-admin` y `core-frontend` levantan desde Nivel 1; `ccp` recién desde Nivel 2 — cada login
-  aterriza donde corresponde según el rol (DOC-025 1, rev. 2026-08-25).
+- `web-admin`, `core-frontend` y `ccp` levantan desde Nivel 1 — cada login aterriza donde
+  corresponde según el rol. En Nivel 1 el CCP no muestra el módulo Dashboard/indicadores (CIP).
 
 ### 7. Después de verificar
 

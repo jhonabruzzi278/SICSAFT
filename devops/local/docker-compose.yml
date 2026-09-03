@@ -306,6 +306,10 @@ services:
         VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
         VITE_ZITADEL_CLIENT_ID: ${WEB_VITE_ZITADEL_CLIENT_ID}
         VITE_CIS_URL: http://api.sicsaft.localhost
+        # DOC-029 RF-A — nivel de producto. En dev se deja en 2 (portal completo, incluido el
+        # Dashboard/CIP). El .exe de sicsaft-core y devops/onprem lo bajan a 1 para un cliente
+        # Modo Básico. Ver ccp/src/lib/nivel.ts.
+        VITE_SICSAFT_NIVEL: "2"
     networks:
       - sicsaft
     depends_on:

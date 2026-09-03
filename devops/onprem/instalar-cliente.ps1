@@ -156,12 +156,9 @@ function Set-HostsLocales {
     # y el tecnico no puede entrar a los portales desde el navegador tampoco.
     Write-Paso "0. Configurando dominios locales (hosts)"
     $hostsPath = "$env:SystemRoot\System32\drivers\etc\hosts"
-    # web-admin y core-frontend van siempre desde Nivel 1 (DOC-025 1, revisado 2026-08-25); ccp
-    # (portal COMPLETO de AFT) sigue siendo exclusivo de Nivel 2.
-    $dominios = @("id.$DominioBase", "api.$DominioBase", "qr.$DominioBase", "admin.$DominioBase", "directivo.$DominioBase")
-    if ($Nivel -eq 2) {
-        $dominios += @("ccp.$DominioBase")
-    }
+    # Todos los portales van desde Nivel 1 (unificado con sicsaft-core.exe, 2026-09-02): ccp
+    # incluido -- la diferencia Nivel 1<->2 es el flag VITE_SICSAFT_NIVEL, no qué se levanta.
+    $dominios = @("id.$DominioBase", "api.$DominioBase", "qr.$DominioBase", "admin.$DominioBase", "directivo.$DominioBase", "ccp.$DominioBase")
     $contenidoActual = Get-Content $hostsPath -Raw -ErrorAction SilentlyContinue
     $lineasNuevas = @()
     foreach ($dominio in $dominios) {
@@ -338,6 +335,7 @@ function New-EnvDeCliente {
     $contenido = [regex]::Replace($contenido, 'cambiar-por-una-clave-unica-de-este-cliente', { New-ClavealAzar })
     $contenido = $contenido -replace 'cambiar-por-64-caracteres-hex-random', ((1..32 | ForEach-Object { "{0:x2}" -f (Get-Random -Max 256) }) -join '')
     $contenido = $contenido -replace 'cambiar-por-dominio-base-de-este-cliente', $DominioBase
+    $contenido = $contenido -replace 'cambiar-por-nivel-de-producto', "$Nivel"
     Set-Content $EnvPath $contenido -NoNewline
     Write-Host ".env generado con credenciales unicas de este cliente."
 
@@ -454,8 +452,11 @@ Write-Paso "8. Construyendo y levantando el stack completo (Nivel $Nivel)"
 # los contenedores), y con el archivo restringido a Administradores+SYSTEM el proceso de Python
 # de podman-compose fallaba con "PermissionError: [Errno 13] Permission denied" al abrirlo. .env
 # se protege mas abajo, despues de que este paso ya no lo necesita.
-podman-compose -f $ComposeFile --profile "nivel$Nivel" up -d --build
-if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose --profile nivel$Nivel up -d --build'." }
+# Sin --profile: desde 2026-09-02 ningún servicio está gateado por perfil (ccp va en Nivel 1).
+# El nivel contratado viaja por NIVEL_PRODUCTO en .env, que el build de `ccp` hornea como
+# VITE_SICSAFT_NIVEL para mostrar u ocultar el Dashboard/CIP.
+podman-compose -f $ComposeFile up -d --build
+if ($LASTEXITCODE -ne 0) { throw "Fallo 'podman-compose up -d --build'." }
 
 # .env ya cumplio su funcion en este script -- recien ahora se restringe, una vez que nada mas en
 # la instalacion necesita leerlo. A diferencia del flujo de Zitadel que esto reemplaza, no hay un
@@ -467,9 +468,7 @@ $servicios = @{
     "CIS"           = "http://api.$DominioBase/health"
     "web-admin"     = "http://admin.$DominioBase/"
     "core-frontend" = "http://directivo.$DominioBase/"
-}
-if ($Nivel -eq 2) {
-    $servicios["ccp"] = "http://ccp.$DominioBase/"
+    "ccp"           = "http://ccp.$DominioBase/"
 }
 $todoOk = $true
 foreach ($nombre in $servicios.Keys) {
@@ -485,9 +484,7 @@ if ($todoOk) {
 Write-Host "APP QR:    http://qr.$DominioBase"
 Write-Host "Admin:     http://admin.$DominioBase"
 Write-Host "Directivo: http://directivo.$DominioBase"
-if ($Nivel -eq 2) {
-    Write-Host "CCP:       http://ccp.$DominioBase"
-}
+Write-Host "CCP:       http://ccp.$DominioBase  (Nivel $Nivel$(if ($Nivel -eq 1) { ' - sin Dashboard/CIP' }))"
 Write-Host ""
 Write-Host "IMPORTANTE: guardar KEYCLOAK_ADMIN_CLIENT_SECRET y KEYCLOAK_ADMIN_PASSWORD (en .env) en" -ForegroundColor Yellow
 Write-Host "el gestor de secretos del admin antes de irse del sitio - se necesitan para soportar" -ForegroundColor Yellow
