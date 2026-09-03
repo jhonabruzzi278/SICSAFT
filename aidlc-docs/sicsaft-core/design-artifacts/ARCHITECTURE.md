@@ -120,10 +120,10 @@ acá el único cliente de Postgres es esta misma app, no hay superficie multi-te
 
 `sicsaft-core.exe` embebe `core/frontend` (Directivo) y `ccp` (Profesional de AFT) — `web_admin`
 (Administrador del Sistema) queda fuera de este incremento, no es un rol que esta app necesite
-embebido. `ccp` está clasificado Nivel 2 en DOC-025 1 (el "web-aft" liviano de Nivel 1 sigue sin
-código) — excepción documentada explícitamente en DOC-025 1 y en `REQUIREMENTS.md` CORE-RF-04:
-se embebe igual, sin condicionarlo al nivel contratado, porque `ccp` ya existe y ya está probado
-de punta a punta.
+embebido. `ccp` va **completo en todos los niveles** (DOC-025 §1.1, corrección 2026-09-02 — el "web-aft"
+liviano quedó descartado). El nivel contratado solo decide, vía `VITE_SICSAFT_NIVEL` inyectado al
+servir el portal, si el módulo **Dashboard/indicadores** (CIP) aparece: Nivel 1 lo oculta, Nivel 2
+lo muestra. `web_admin` no se embebe en ningún nivel.
 
 Ambos son builds Vite estáticos (`npm run build`). Se sirven por `http://127.0.0.1:<puerto>`
 (`ccp` → 8766, `core/frontend` → 8768 — los mismos puertos que cada portal ya reserva para su
@@ -182,6 +182,14 @@ todo es loopback, `http://` alcanza.
 
 ### La APK de Android — CORE-Q-01 reabierta (2026-08-27): no existe todavía
 
+> **► Actualización 2026-09 ([DOC-029](../../ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md) RF-H)**:
+> la APK **se construyó**, pero **no como un wrap Capacitor** — es una **WebView Kotlin propia** en
+> `apk-aft/` (un TWA con el cert autofirmado en IP de LAN no carga: la WebView propia sí puede
+> aceptar ese cert). `prepack.cjs` empaqueta el `.apk` firmado en `resources/apk/`. Lo de abajo
+> sobre Capacitor / `capacitor.config.ts` quedó sin efecto. Sigue abierto verificar la APK en un
+> teléfono real y servirla desde el `.exe` con un 2º QR.
+
+
 Se había dado por resuelta el mismo día asumiendo que era un wrap Capacitor de
 `app-qr-sicsaft/` "ya compilado, mantenido fuera de este repo" (confirmado por `grep` que no hay
 tooling de Capacitor/Cordova/Tauri-mobile en ningún `package.json` del monorepo) — el usuario
@@ -189,6 +197,32 @@ corrigió que esa APK **no existe todavía**, esa afirmación era incorrecta. Es
 construye ni diseña su mecanismo de red (ver siguiente sección, que queda sin resolver hasta que
 la APK exista) — es un incremento aparte, no bloqueante para Nivel 1 embebido
 (Postgres/Keycloak/`cis`/`core`/`cip`, que no depende de la APK para nada).
+
+## Consola técnica en pantalla — diagnóstico de arranque (0.1.1)
+
+**Problema real**: el `.exe` se abre con doble clic y no tiene stdout visible. Cuando la
+instalación en la PC de un cliente falla (Postgres no levanta, una migración de CORE/CIP se rompe,
+Keycloak devuelve 409 en el bootstrap), el motivo se perdía — no hay terminal en terreno. Surgió
+de un fallo real de instalación que no se pudo diagnosticar.
+
+**Solución** (PR #97, `src/main/services/logger.ts` + `src/renderer/src/components/ConsolaTecnica.tsx`):
+
+- **Log unificado del proceso principal** — `console.*` (parcheado en `index.ts`), transiciones del
+  `ServiceOrchestrator` (`postgres → iniciando` / `error: …`) y `stdout`/`stderr` crudo de los 5
+  servicios embebidos van todos a un **buffer en memoria** (3000 líneas) + un **archivo por día**
+  en `%APPDATA%\sicsaft-core\logs\` (rota por día, purga a los 7). `redactar()` tapa
+  `password`/`secret`/`token`/`Bearer`/URLs de Postgres antes de tocar disco o pantalla.
+- **Consola técnica en el renderer** — se despliega sola si un servicio quedó en `error`
+  (`PasoIniciandoServicios`), plegada al pie del wizard si no (`WizardApp`). Botones **"Copiar
+  todo"** (`clipboard.writeText` de Electron — no `navigator.clipboard`, que depende de secure
+  context y el renderer se sirve por `file://`) y **"Abrir carpeta de logs"**.
+- **IPC**: `obtenerLog()` (snapshot) · `onLogLinea(cb)` (push en vivo) · `abrirCarpetaLog()` ·
+  `copiarAlPortapapeles(texto)`.
+- Un fallo al iniciar el log **no impide que la app abra** (`try/catch` en `index.ts`) — es ayuda
+  de diagnóstico, no ruta crítica.
+
+Verificado real en el `.exe` empaquetado 0.1.1: arranque completo Postgres→Keycloak→core→cip→cis
+capturado en el `.log`, sin fuga de secretos.
 
 ## Red: localhost para el escritorio, LAN para el teléfono (riesgo nuevo, mismo tipo que el ya encontrado)
 

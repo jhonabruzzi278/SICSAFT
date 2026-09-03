@@ -50,7 +50,7 @@ describe("instalacion-marker", () => {
 
   // DOC-030 -- el `nivel` deja de estar horneado en `1`; el wizard lo elige (PasoDatosCliente) y
   // el bootstrap lo pasa tal cual. asegurarServidoresPortales() lo lee de acá para servir el CCP
-  // en Nivel 1 (acotado) o Nivel 2 (completo).
+  // (completo en ambos niveles) con o sin el Dashboard/CIP -- Nivel 2 = Nivel 1 + Dashboard.
   test.each([1, 2] as const)(
     "marcarInstalacionCompleta persiste nivel %i tal cual",
     (nivel) => {

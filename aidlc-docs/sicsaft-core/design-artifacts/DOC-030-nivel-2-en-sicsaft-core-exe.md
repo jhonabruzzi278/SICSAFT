@@ -1,8 +1,9 @@
 # DOC-030 — Nivel 2 en `sicsaft-core.exe`
 
 > Cierra la parte **Nivel 2** de `CORE-Q-03` (`requirements/INTENT.md`): el instalador de
-> escritorio pasa de "Nivel 1 con el CCP acotado" a "**Nivel 2** — **CCP completo**", sin salir
-> del patrón de procesos embebidos (sin Podman). No reabre ADR-004/ADR-005. Se apoya en
+> escritorio gana un **selector Nivel 1 / Nivel 2** en el wizard, sin salir del patrón de procesos
+> embebidos (sin Podman). El CCP va completo en ambos niveles (DOC-025 §1.1, corrección
+> 2026-09-02); Nivel 2 solo agrega el módulo Dashboard/indicadores (CIP). No reabre ADR-004/ADR-005. Se apoya en
 > [DOC-029](../../ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md) RF-A (el flag
 > `nivel` en el CCP) y complementa [DOC-028](DOC-028-camino-a-cliente-final.md) y
 > [DOC-025](../../devops/design-artifacts/DOC-025-niveles-producto-onprem.md).
@@ -36,11 +37,11 @@
 
 ## 1. Qué es "Nivel 2" acá y qué falta hoy
 
-[DOC-025](../../devops/design-artifacts/DOC-025-niveles-producto-onprem.md) 1:
-**Nivel 2 = Nivel 1 + `ccp/` (CCP completo)**. La excepción de `sicsaft-core.exe` (2026-08-28) ya
-embebe `ccp/` **entero**; [DOC-029](../../ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md)
-RF-A le puso un flag `VITE_SICSAFT_NIVEL` que en `1` **oculta** los módulos de gestión avanzada
-(Estructura, alta manual de Activos). Nivel 2 = servir ese mismo CCP con el flag en `2`.
+[DOC-025](../../devops/design-artifacts/DOC-025-niveles-producto-onprem.md) §1.1 (corrección
+2026-09-02): **Nivel 2 = Nivel 1 + CIP** (Dashboard/indicadores). `sicsaft-core.exe` embebe `ccp/`
+**entero** y lo sirve completo en los dos niveles; [DOC-029](../../ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md)
+RF-A le puso un flag `VITE_SICSAFT_NIVEL` que en `1` **oculta el módulo Dashboard (CIP)** y en `2`
+lo muestra. Nivel 2 = servir ese mismo CCP con el flag en `2`.
 
 | Pieza | Nivel 1 (hoy) | Nivel 2 (objetivo) |
 |---|---|---|

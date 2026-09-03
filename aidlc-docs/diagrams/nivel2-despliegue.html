@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SICSAFT — Despliegue Nivel 2 (QR + WEB)</title>
+  <title>SICSAFT — Despliegue Nivel 2 (mismo stack, CCP con Dashboard)</title>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -58,12 +58,12 @@
 <body>
   <div class="frame">
     <p class="eyebrow">Deployment · SICSAFT · Nivel 2</p>
-    <h1>Despliegue Nivel 2 — + CCP</h1>
-    <p class="subtitle">Con el perfil <code>nivel2</code> activo, <code>podman-compose</code> agrega un único contenedor más — <code>ccp</code> — detrás de Traefik; <code>web-admin</code> y <code>core-frontend</code> ya venían desde Nivel 1 (docker-compose.yml, rev. 2026-08-25). <strong>Camino alternativo — <code>sicsaft-core.exe</code> (DOC-030):</strong> el mismo Nivel 2 sin Podman ni Traefik, el vendedor elige "Nivel 2" en el wizard y el <code>.exe</code> sirve el CCP completo; <code>web_admin</code> <strong>no</strong> se embebe en ese camino (instalación autocontenida, sin conexión del proveedor al cliente).</p>
+    <h1>Despliegue Nivel 2 — mismo stack, CCP con Dashboard</h1>
+    <p class="subtitle">Desde 2026-09-02 (unificado con <code>sicsaft-core.exe</code>) Nivel 1 y Nivel 2 despliegan <strong>los mismos contenedores</strong> — <code>ccp</code> incluido. Ningún servicio está gateado por perfil de Compose: la única diferencia es el build arg <code>VITE_SICSAFT_NIVEL</code> del <code>ccp</code>, que en <code>2</code> muestra el módulo Dashboard/indicadores (CIP). <strong>Camino <code>sicsaft-core.exe</code> (DOC-030):</strong> el mismo Nivel 2 sin Podman ni Traefik; <code>web_admin</code> <strong>no</strong> se embebe ahí (instalación autocontenida).</p>
 
     <svg viewBox="0 0 1000 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="n2-dep-title n2-dep-desc">
       <title id="n2-dep-title">Despliegue on-premise de SICSAFT Nivel 2</title>
-      <desc id="n2-dep-desc">Sobre la base de Nivel 1 (app-qr-sicsaft, web-admin, core-frontend, todos vía CIS), Traefik suma el enrutamiento hacia ccp dentro de la misma máquina Podman en WSL2; CIS llama a CORE, y CORE junto con Keycloak escriben en el mismo Postgres compartido. ADR-004: Keycloak reemplaza a Zitadel, ya desplegado en este perfil (onprem).</desc>
+      <desc id="n2-dep-desc">El mismo stack que Nivel 1 (app-qr-sicsaft, ccp, web-admin, core-frontend, todos vía CIS, más cip interno) dentro de la máquina Podman en WSL2. La diferencia de Nivel 2 es el build arg VITE_SICSAFT_NIVEL=2 del ccp, que habilita el módulo Dashboard/CIP. ADR-004: Keycloak reemplaza a Zitadel.</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
         <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
@@ -126,7 +126,7 @@
         <text x="596" y="156" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="end">n1</text>
         <rect x="396" y="166" width="208" height="20" rx="4" fill="rgba(45,49,66,0.05)" stroke="#eb6c36" stroke-width="1"/>
         <text x="404" y="180" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">ccp</text>
-        <text x="596" y="180" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="end">nuevo</text>
+        <text x="596" y="180" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="end">NIVEL=2</text>
       </g>
 
       <!-- CIS -->

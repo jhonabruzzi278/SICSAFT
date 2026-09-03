@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SICSAFT — Arquitectura Nivel 1 (QR + Directivo + Admin)</title>
+  <title>SICSAFT — Arquitectura Nivel 1 (QR + CCP + Directivo + Admin)</title>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -58,12 +58,12 @@
 <body>
   <div class="frame">
     <p class="eyebrow">Architecture · SICSAFT · Nivel 1</p>
-    <h1>Nivel 1 — QR + Directivo + Admin</h1>
-    <p class="subtitle">DOC-025 (rev. 2026-08-25): APP QR (única fuente de captura) + portal Directivo + portal Administrador del Sistema, todos desde el arranque. El portal liviano de AFT ("web-aft") todavía no tiene código.</p>
+    <h1>Nivel 1 — QR + CCP + Directivo + Admin</h1>
+    <p class="subtitle">DOC-025 (rev. 2026-09-02): APP QR (única fuente de captura) + <strong>CCP completo</strong> (Profesional de AFT) + portal Directivo + portal Administrador del Sistema, todos desde el arranque. Lo único que Nivel 2 agrega es el Dashboard/indicadores, que es CIP (NOMENCLATURA.md). "CCP acotado en Nivel 1" quedó revertido.</p>
 
     <svg viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="n1-arq-title n1-arq-desc">
       <title id="n1-arq-title">Arquitectura de componentes de SICSAFT Nivel 1</title>
-      <desc id="n1-arq-desc">La APP QR, el portal Directivo, el portal Administrador del Sistema y un futuro portal liviano de AFT entran por CIS, que hace de proxy hacia SICSAFT CORE; CORE escribe en la Base Patrimonial Central.</desc>
+      <desc id="n1-arq-desc">La APP QR, el CCP (Profesional de AFT), el portal Directivo y el portal Administrador del Sistema entran por CIS, que hace de proxy hacia SICSAFT CORE; CORE escribe en la BPI (Base Patrimonial Inteligente).</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
         <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
@@ -87,7 +87,7 @@
       <path d="M 612,148 V 176 Q 612,184 604,184 H 516 Q 508,184 508,192 V 220"
             fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
       <path d="M 852,148 V 176 Q 852,184 844,184 H 540 Q 532,184 532,192 V 220"
-            fill="none" stroke="rgba(235,108,54,0.55)" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-planned)"/>
+            fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
       <rect x="676" y="164" width="44" height="12" rx="2" fill="#f5f5f5"/>
       <text x="698" y="173" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">HTTPS</text>
 
@@ -115,9 +115,9 @@
         <text x="612" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Web Admin</text>
         <text x="612" y="118" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Admin. Sistema</text>
 
-        <rect x="772" y="68" width="160" height="64" rx="6" fill="rgba(235,108,54,0.04)" stroke="rgba(235,108,54,0.45)" stroke-width="1" stroke-dasharray="4,3"/>
-        <text x="852" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">web-aft</text>
-        <text x="852" y="118" fill="#eb6c36" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">🔲 planificado</text>
+        <rect x="772" y="68" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+        <text x="852" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">CCP</text>
+        <text x="852" y="118" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Prof. AFT · web</text>
       </g>
 
       <!-- CIS -->
@@ -138,7 +138,7 @@
       <rect x="380" y="460" width="240" height="64" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
       <rect x="388" y="468" width="24" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
       <text x="400" y="477" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">DB</text>
-      <text x="500" y="498" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Base Patrimonial Central</text>
+      <text x="500" y="498" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">BPI — Base Patrimonial Inteligente</text>
       <text x="500" y="514" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">PostgreSQL · fuente única de verdad</text>
 
       <!-- ===== LEGEND ===== -->
@@ -148,11 +148,8 @@
       <rect x="150" y="564" width="12" height="12" rx="3" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
       <text x="168" y="574" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Portal / fuente de captura ya implementado</text>
 
-      <rect x="460" y="564" width="12" height="12" rx="3" fill="rgba(235,108,54,0.04)" stroke="rgba(235,108,54,0.45)" stroke-width="1" stroke-dasharray="3,2"/>
-      <text x="478" y="574" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Planificado — sin código</text>
-
-      <rect x="700" y="564" width="12" height="12" rx="3" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
-      <text x="718" y="574" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Focal</text>
+      <rect x="460" y="564" width="12" height="12" rx="3" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="478" y="574" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Focal (CORE + BPI)</text>
     </svg>
   </div>
 </body>

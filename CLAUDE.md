@@ -108,7 +108,7 @@ npm run test:e2e              # playwright test
 npx playwright test archivo.spec.ts   # un solo archivo e2e
 ```
 
-**Stack local completo** (Traefik + Postgres + Redis + Zitadel + los 6 sistemas desplegables +
+**Stack local completo** (Traefik + Postgres + Zitadel + los 6 sistemas desplegables +
 observabilidad self-hosted — Prometheus/Loki/Grafana):
 ```bash
 cd devops/local && docker compose up -d

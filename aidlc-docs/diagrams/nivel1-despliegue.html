@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SICSAFT — Despliegue Nivel 1 (QR + Directivo + Admin)</title>
+  <title>SICSAFT — Despliegue Nivel 1 (QR + CCP + Directivo + Admin)</title>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -58,12 +58,12 @@
 <body>
   <div class="frame">
     <p class="eyebrow">Deployment · SICSAFT · Nivel 1</p>
-    <h1>Despliegue Nivel 1 — QR + Directivo + Admin</h1>
-    <p class="subtitle"><code>instalar-cliente.ps1</code> con <code>-Nivel 1</code>: <code>web-admin</code> y <code>core-frontend</code> se levantan sin perfil (siempre); <code>ccp</code> queda gated a <code>--profile nivel2</code> (docker-compose.yml, rev. 2026-08-25).</p>
+    <h1>Despliegue Nivel 1 — QR + CCP + Directivo + Admin</h1>
+    <p class="subtitle"><code>instalar-cliente.ps1</code> con <code>-Nivel 1</code>: los 4 portales (<code>app-qr-sicsaft</code>, <code>web-admin</code>, <code>core-frontend</code>, <code>ccp</code>) se levantan siempre. Ningún servicio está gateado por perfil de Compose — la diferencia Nivel 1 ↔ 2 es el flag <code>VITE_SICSAFT_NIVEL</code> (oculta el Dashboard/CIP en el CCP). Unificado con <code>sicsaft-core.exe</code>, 2026-09-02.</p>
 
     <svg viewBox="0 0 1000 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="n1-dep-title n1-dep-desc">
       <title id="n1-dep-title">Despliegue on-premise de SICSAFT Nivel 1</title>
-      <desc id="n1-dep-desc">Traefik enruta hacia app-qr-sicsaft, web-admin y core-frontend (todos vía CIS) y hacia Keycloak dentro de una máquina Podman en WSL2; CIS llama a CORE, y CORE junto con Keycloak escriben en el mismo Postgres compartido. ccp queda fuera de este nivel. ADR-004: Keycloak reemplaza a Zitadel, ya desplegado en este perfil (onprem).</desc>
+      <desc id="n1-dep-desc">Traefik enruta hacia app-qr-sicsaft, web-admin, core-frontend y ccp (todos vía CIS) y hacia Keycloak dentro de una máquina Podman en WSL2; CIS llama a CORE, y CORE junto con Keycloak escriben en el mismo Postgres compartido. ADR-004: Keycloak reemplaza a Zitadel, ya desplegado en este perfil (onprem).</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
         <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
@@ -116,12 +116,9 @@
         <text x="404" y="156" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">web-admin</text>
         <rect x="504" y="142" width="100" height="20" rx="4" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
         <text x="512" y="156" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">core-frontend</text>
-        <rect x="396" y="166" width="100" height="20" rx="4" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.15)" stroke-width="1" stroke-dasharray="4,3"/>
-        <text x="404" y="180" fill="rgba(45,49,66,0.35)" font-size="11" font-family="'Geist', sans-serif">ccp</text>
-        <text x="488" y="180" fill="rgba(45,49,66,0.35)" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">nivel2</text>
-        <rect x="504" y="166" width="100" height="20" rx="4" fill="rgba(235,108,54,0.03)" stroke="rgba(235,108,54,0.35)" stroke-width="1" stroke-dasharray="4,3"/>
-        <text x="512" y="180" fill="#eb6c36" font-size="11" font-family="'Geist', sans-serif">web-aft</text>
-        <text x="596" y="180" fill="#eb6c36" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">🔲</text>
+        <rect x="396" y="166" width="208" height="20" rx="4" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+        <text x="404" y="180" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">ccp</text>
+        <text x="596" y="180" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">Prof. AFT</text>
       </g>
 
       <!-- CIS -->
@@ -178,11 +175,8 @@
       <rect x="190" y="708" width="12" height="12" rx="3" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
       <text x="208" y="718" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Contenedor levantado en este nivel</text>
 
-      <rect x="470" y="708" width="12" height="12" rx="3" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="3,2"/>
-      <text x="488" y="718" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Existe, no en este nivel (nivel2)</text>
-
-      <rect x="700" y="708" width="12" height="12" rx="3" fill="rgba(235,108,54,0.03)" stroke="rgba(235,108,54,0.45)" stroke-width="1" stroke-dasharray="3,2"/>
-      <text x="718" y="718" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Planificado — sin código</text>
+      <rect x="470" y="708" width="12" height="12" rx="3" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="488" y="718" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Focal (CORE + Postgres)</text>
     </svg>
   </div>
 </body>

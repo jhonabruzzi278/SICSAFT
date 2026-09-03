@@ -58,8 +58,10 @@ export interface InstalacionCompleta {
   ipLan?: string;
   // DOC-029 RF-A -- nivel de producto contratado (DOC-025). Se fija en el bootstrap y se inyecta
   // al servir `ccp` (VITE_SICSAFT_NIVEL, ver ipc/handlers.ts asegurarServidoresPortales) para que
-  // el portal oculte los módulos de "gestión avanzada" en Nivel 1. Opcional: una instalación
-  // anterior a RF-A no lo tiene -- ahí se asume Nivel 1.
+  // el portal oculte el módulo Dashboard (CIP) en Nivel 1 -- el CCP va completo en todos los
+  // niveles, lo único gateado a Nivel 2 es el Dashboard (corrección 2026-09-02, ver ccp/src/lib/
+  // nivel.ts MODULOS_CIP). Opcional: una instalación anterior a RF-A no lo tiene -- ahí se asume
+  // Nivel 1.
   nivel?: 1 | 2;
   // DOC-029 RF-B.6 -- carpeta del PC del cliente donde el especialista contable deja los .xls/.xlsx.
   // El watcher del proceso principal (ingesta-watcher.ts) la vigila y corre el ETL Python por cada
