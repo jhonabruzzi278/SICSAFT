@@ -6,6 +6,7 @@ import type {
 } from "@shared/ipc-contract";
 import { BrandBar } from "../components/BrandBar";
 import { Button } from "../components/Button";
+import { ConsolaTecnica } from "../components/ConsolaTecnica";
 import { PasoDatosCliente } from "./PasoDatosCliente";
 import { PasoDirector } from "./PasoDirector";
 import { PasoProfesionalAft } from "./PasoProfesionalAft";
@@ -188,6 +189,14 @@ export function WizardApp() {
       >
         {contenido()}
       </main>
+      {/* Consola de diagnóstico, plegada -- disponible en cualquier paso del wizard por si el
+          bootstrap (alta de cliente/Director/Profesional) falla con un error poco claro. Se
+          oculta una vez que el portal real ocupa la ventana. */}
+      {!portalCargado && (
+        <footer className="flex shrink-0 justify-center border-t border-[var(--border)] px-4 pb-3">
+          <ConsolaTecnica />
+        </footer>
+      )}
     </div>
   );
 }

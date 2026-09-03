@@ -1,5 +1,6 @@
 import type { EstadoServicios, NombreServicio } from "@shared/ipc-contract";
 import { BrandBar } from "../components/BrandBar";
+import { ConsolaTecnica } from "../components/ConsolaTecnica";
 
 const ETIQUETAS: Record<NombreServicio, string> = {
   postgres: "Base de datos",
@@ -55,6 +56,8 @@ export function PasoIniciandoServicios({
               );
             })}
           </ul>
+          {/* Log en vivo del arranque -- desplegado de una si algo ya falló, plegado si no. */}
+          <ConsolaTecnica defaultAbierta={hayError} />
         </div>
       </div>
     </div>
