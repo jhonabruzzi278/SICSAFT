@@ -8,12 +8,9 @@ import { InventariosController } from '../inventarios/inventarios.controller';
 import { ActivoEscrituraController } from '../patrimonial/activo-escritura.controller';
 import { ImportacionContableController } from '../patrimonial/importacion-contable.controller';
 import { ImportacionContableLoteController } from '../patrimonial/importacion-contable-lote.controller';
-import { ContratoEscrituraController } from '../entitlements/contrato-escritura.controller';
 import { EstructuraEscrituraController } from '../estructura/estructura-escritura.controller';
 import { CatalogoTipoActivoEscrituraController } from '../patrimonial/catalogo-tipo-activo-escritura.controller';
 import { DocumentoActivoController } from '../patrimonial/documento-activo.controller';
-import { OrganizacionEscrituraController } from '../entitlements/organizacion-escritura.controller';
-import { SedeEscrituraController } from '../entitlements/sede-escritura.controller';
 import { OrquestadorService } from './orquestador.service';
 
 // DOC-007 — aloja acá todos los controllers de escritura oficial (no en sus modulos de dominio)
@@ -32,12 +29,9 @@ import { OrquestadorService } from './orquestador.service';
     ActivoEscrituraController,
     ImportacionContableController,
     ImportacionContableLoteController,
-    ContratoEscrituraController,
     EstructuraEscrituraController,
     CatalogoTipoActivoEscrituraController,
     DocumentoActivoController,
-    OrganizacionEscrituraController,
-    SedeEscrituraController,
   ],
   providers: [OrquestadorService],
 })

@@ -2,49 +2,19 @@ import { Module } from '@nestjs/common';
 import { EventosModule } from '../eventos/eventos.module';
 import { EntitlementsController } from './entitlements.controller';
 import { EntitlementsService } from './entitlements.service';
-import { ContratoController } from './contrato.controller';
 import { ContratoRepository } from './contrato.repository';
-import { EscrituraContratoService } from './escritura-contrato.service';
-import { OrganizacionController } from './organizacion.controller';
-import { OrganizacionRepository } from './organizacion.repository';
-import { EscrituraOrganizacionService } from './escritura-organizacion.service';
-import { SedeController } from './sede.controller';
-import { SedeRepository } from './sede.repository';
-import { EscrituraSedeService } from './escritura-sede.service';
 
-// DOC-012 7 (Fase 4) + DOC-021 4 (Administrador del Sistema) + Gap 2 (flujo real Admin->Directivo
-// ->Profesional AFT) — EscrituraContratoService/ContratoRepository/EscrituraOrganizacionService/
-// OrganizacionRepository/EscrituraSedeService/SedeRepository se exportan para OrquestadorModule
-// (ContratoEscrituraController/OrganizacionEscrituraController/SedeEscrituraController viven ahí,
-// no acá, mismo motivo que ActivoEscrituraController: evita el ciclo <Modulo> ->
-// OrquestadorModule -> <Modulo>). ContratoController/OrganizacionController/SedeController
-// (lectura) sí viven acá — no necesitan OrquestadorService. DOC-024 1 agrega SedeController: hasta
-// ese incremento Sede no tenia controller de lectura propio (se leia vía JOIN dentro de
-// ContratoRepository).
+// GET /entitlements (EntitlementsController) resuelve el contrato vigente + módulos contratados de
+// una organización — lo consume `cis` en `auth/session` para todos los portales. 2026-09: se
+// retiraron los controllers/servicios de escritura de Organización/Sede/Contrato y sus GET
+// standalone junto con el portal del Administrador del Sistema; la intervención del proveedor en
+// el core de la organización pasa a ser directa (BD / script) + el bootstrap del wizard.
+// ContratoRepository se exporta porque `entitlements.service` lo usa y `contrato.seed` (fixture de
+// tests) también.
 @Module({
   imports: [EventosModule],
-  controllers: [
-    EntitlementsController,
-    ContratoController,
-    OrganizacionController,
-    SedeController,
-  ],
-  providers: [
-    EntitlementsService,
-    ContratoRepository,
-    EscrituraContratoService,
-    OrganizacionRepository,
-    EscrituraOrganizacionService,
-    SedeRepository,
-    EscrituraSedeService,
-  ],
-  exports: [
-    ContratoRepository,
-    EscrituraContratoService,
-    OrganizacionRepository,
-    EscrituraOrganizacionService,
-    SedeRepository,
-    EscrituraSedeService,
-  ],
+  controllers: [EntitlementsController],
+  providers: [EntitlementsService, ContratoRepository],
+  exports: [ContratoRepository],
 })
 export class EntitlementsModule {}

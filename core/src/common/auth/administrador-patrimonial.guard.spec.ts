@@ -2,11 +2,13 @@ import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import {
   AdministradorPatrimonialGuard,
   ADMINISTRADOR_PATRIMONIAL_ROLE,
-  ADMINISTRADOR_SISTEMA_ROLE,
   verificarRolAdministradorPatrimonial,
-  verificarRolEnCualquierOrganizacion,
   verificarRolesPermitidos,
 } from './administrador-patrimonial.guard';
+
+// Rol NO patrimonial cualquiera, para ejercitar la variante multi-rol de verificarRolesPermitidos
+// sin acoplar el test a un segundo rol de negocio concreto.
+const OTRO_ROL = 'directivo';
 
 function buildContext(
   body: unknown,
@@ -69,104 +71,42 @@ describe('verificarRolAdministradorPatrimonial', () => {
 });
 
 describe('verificarRolesPermitidos', () => {
-  // DOC-021 2 — Contrato acepta administrador-patrimonial O administrador-sistema; el resto de
-  // escrituras oficiales (Activo, Catalogo, Documento) siguen aceptando solo un rol (via el
-  // wrapper verificarRolAdministradorPatrimonial de arriba, que delega en esta funcion).
+  // Funcion generica: acepta una lista de roles permitidos en la organizacion. Hoy en produccion
+  // solo se la usa con un unico rol (via verificarRolAdministradorPatrimonial); la variante
+  // multi-rol se conserva y se ejercita aca.
   it('no lanza si el operador tiene CUALQUIERA de los roles permitidos en esa organizacion', () => {
     expect(() =>
-      verificarRolesPermitidos(
-        { 'org-1': [ADMINISTRADOR_SISTEMA_ROLE] },
-        'org-1',
-        [ADMINISTRADOR_PATRIMONIAL_ROLE, ADMINISTRADOR_SISTEMA_ROLE],
-      ),
+      verificarRolesPermitidos({ 'org-1': [OTRO_ROL] }, 'org-1', [
+        ADMINISTRADOR_PATRIMONIAL_ROLE,
+        OTRO_ROL,
+      ]),
     ).not.toThrow();
     expect(() =>
       verificarRolesPermitidos(
         { 'org-1': [ADMINISTRADOR_PATRIMONIAL_ROLE] },
         'org-1',
-        [ADMINISTRADOR_PATRIMONIAL_ROLE, ADMINISTRADOR_SISTEMA_ROLE],
+        [ADMINISTRADOR_PATRIMONIAL_ROLE, OTRO_ROL],
       ),
     ).not.toThrow();
   });
 
   it('lanza 403 si no tiene ninguno de los roles permitidos en esa organizacion', () => {
     expect(() =>
-      verificarRolesPermitidos({ 'org-1': ['directivo'] }, 'org-1', [
+      verificarRolesPermitidos({ 'org-1': ['operador'] }, 'org-1', [
         ADMINISTRADOR_PATRIMONIAL_ROLE,
-        ADMINISTRADOR_SISTEMA_ROLE,
+        OTRO_ROL,
       ]),
     ).toThrow(ForbiddenException);
   });
 
-  // El circulo de DOC-021 1: administrador-sistema nunca puede escribir informacion patrimonial,
-  // administrador-patrimonial nunca puede administrar la plataforma.
-  it('administrador-sistema no alcanza cuando el endpoint solo permite administrador-patrimonial', () => {
+  it('un rol permitido en otra organizacion no alcanza para esta', () => {
     expect(() =>
       verificarRolesPermitidos(
-        { 'org-1': [ADMINISTRADOR_SISTEMA_ROLE] },
+        { 'org-2': [ADMINISTRADOR_PATRIMONIAL_ROLE] },
         'org-1',
-        [ADMINISTRADOR_PATRIMONIAL_ROLE],
+        [ADMINISTRADOR_PATRIMONIAL_ROLE, OTRO_ROL],
       ),
     ).toThrow(ForbiddenException);
-  });
-
-  it('administrador-patrimonial no alcanza cuando el endpoint solo permite administrador-sistema', () => {
-    expect(() =>
-      verificarRolesPermitidos(
-        { 'org-1': [ADMINISTRADOR_PATRIMONIAL_ROLE] },
-        'org-1',
-        [ADMINISTRADOR_SISTEMA_ROLE],
-      ),
-    ).toThrow(ForbiddenException);
-  });
-});
-
-describe('verificarRolEnCualquierOrganizacion', () => {
-  // DOC-022 3 — a diferencia de verificarRolesPermitidos (arriba), este chequeo ignora en qué
-  // organización está el rol: alcanza con que aparezca en CUALQUIER entrada de
-  // rolesPorOrganizacion. Es el fix del bug real que motivó separar web_admin/ — antes,
-  // administrador-sistema necesitaba el grant dentro de una organización específica para poder
-  // crear una organización nueva, lo cual no tiene sentido para un rol que administra toda la
-  // plataforma.
-  it('no lanza si el rol aparece en cualquier organizacion, sin importar cual', () => {
-    expect(() =>
-      verificarRolEnCualquierOrganizacion(
-        {
-          'org-1': [ADMINISTRADOR_PATRIMONIAL_ROLE],
-          'org-2': [ADMINISTRADOR_SISTEMA_ROLE],
-        },
-        [ADMINISTRADOR_SISTEMA_ROLE],
-      ),
-    ).not.toThrow();
-  });
-
-  it('lanza 403 si el rol no aparece en ninguna organizacion', () => {
-    expect(() =>
-      verificarRolEnCualquierOrganizacion(
-        { 'org-1': [ADMINISTRADOR_PATRIMONIAL_ROLE] },
-        [ADMINISTRADOR_SISTEMA_ROLE],
-      ),
-    ).toThrow(ForbiddenException);
-  });
-
-  it('lanza 403 si rolesPorOrganizacion esta vacio o no es un objeto', () => {
-    expect(() =>
-      verificarRolEnCualquierOrganizacion({}, [ADMINISTRADOR_SISTEMA_ROLE]),
-    ).toThrow(ForbiddenException);
-    expect(() =>
-      verificarRolEnCualquierOrganizacion(undefined, [
-        ADMINISTRADOR_SISTEMA_ROLE,
-      ]),
-    ).toThrow(ForbiddenException);
-  });
-
-  it('no lanza si CUALQUIERA de los roles permitidos aparece en alguna organizacion', () => {
-    expect(() =>
-      verificarRolEnCualquierOrganizacion(
-        { 'org-1': [ADMINISTRADOR_PATRIMONIAL_ROLE] },
-        [ADMINISTRADOR_PATRIMONIAL_ROLE, ADMINISTRADOR_SISTEMA_ROLE],
-      ),
-    ).not.toThrow();
   });
 });
 

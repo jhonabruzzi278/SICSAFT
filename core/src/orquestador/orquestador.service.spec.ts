@@ -5,9 +5,6 @@ import { InventariosService } from '../inventarios/inventarios.service';
 import { EscrituraActivoService } from '../patrimonial/escritura-activo.service';
 import { ImportacionContableService } from '../patrimonial/importacion-contable.service';
 import { ImportacionContableLoteService } from '../patrimonial/importacion-contable-lote.service';
-import { EscrituraContratoService } from '../entitlements/escritura-contrato.service';
-import { EscrituraOrganizacionService } from '../entitlements/escritura-organizacion.service';
-import { EscrituraSedeService } from '../entitlements/escritura-sede.service';
 import { EscrituraEstructuraService } from '../estructura/escritura-estructura.service';
 import { EscrituraDocumentoActivoService } from '../patrimonial/escritura-documento-activo.service';
 import { CatalogoTipoActivoRepository } from '../patrimonial/catalogo-tipo-activo.repository';
@@ -16,8 +13,6 @@ import type { InventarioRequest } from '../inventarios/inventarios.types';
 import type { AltaActivoBody } from '../patrimonial/activo.schemas';
 import type { Activo } from '../patrimonial/activo.types';
 import type { ImportacionContableResultado } from '../patrimonial/importacion-contable.types';
-import type { AltaContratoBody } from '../entitlements/contrato.schemas';
-import type { Contrato } from '../entitlements/contrato.types';
 import type { AltaCatalogoTipoBody } from '../patrimonial/catalogo-tipo-activo.schemas';
 import type { CatalogoTipoActivo } from '../patrimonial/catalogo-tipo-activo.types';
 import type {
@@ -25,10 +20,6 @@ import type {
   EliminarDocumentoActivoBody,
 } from '../patrimonial/documento-activo.schemas';
 import type { DocumentoActivo } from '../patrimonial/documento-activo.types';
-import type { AltaOrganizacionBody } from '../entitlements/organizacion.schemas';
-import type { Organizacion } from '../entitlements/organizacion.types';
-import type { AltaSedeBody } from '../entitlements/sede.schemas';
-import type { Sede } from '../entitlements/sede.types';
 import type {
   AltaAreaBody,
   AltaResponsableBody,
@@ -90,12 +81,6 @@ const DOCUMENTO: DocumentoActivo = {
   creadoPor: 'op-admin',
 };
 
-const ORGANIZACION: Organizacion = {
-  id: 'duoc-uc',
-  nombre: 'DUOC UC',
-  estado: 'activo',
-};
-
 function buildPayload(): InventarioRequest {
   return {
     correlationId: 'corr-1',
@@ -147,11 +132,6 @@ function buildService() {
     aprobarLote: jest.fn(),
     rechazarLote: jest.fn(),
   } as unknown as jest.Mocked<ImportacionContableLoteService>;
-  const escrituraContratoService = {
-    alta: jest.fn(),
-    actualizarEstado: jest.fn(),
-    actualizarCondiciones: jest.fn(),
-  } as unknown as jest.Mocked<EscrituraContratoService>;
   const escrituraEstructuraService = {
     altaArea: jest.fn(),
     actualizarArea: jest.fn(),
@@ -160,15 +140,6 @@ function buildService() {
     altaResponsable: jest.fn(),
     actualizarEstadoResponsable: jest.fn(),
   } as unknown as jest.Mocked<EscrituraEstructuraService>;
-  const escrituraOrganizacionService = {
-    crear: jest.fn(),
-    actualizarNombre: jest.fn(),
-    actualizarEstado: jest.fn(),
-  } as unknown as jest.Mocked<EscrituraOrganizacionService>;
-  const escrituraSedeService = {
-    crear: jest.fn(),
-    actualizarEstado: jest.fn(),
-  } as unknown as jest.Mocked<EscrituraSedeService>;
   const escrituraDocumentoActivoService = {
     crear: jest.fn(),
     eliminar: jest.fn(),
@@ -186,10 +157,7 @@ function buildService() {
     escrituraActivoService,
     importacionContableService,
     importacionContableLoteService,
-    escrituraContratoService,
     escrituraEstructuraService,
-    escrituraOrganizacionService,
-    escrituraSedeService,
     escrituraDocumentoActivoService,
     catalogoTipoActivoRepository,
     auditoriaRepository,
@@ -201,39 +169,10 @@ function buildService() {
     escrituraActivoService,
     importacionContableService,
     importacionContableLoteService,
-    escrituraContratoService,
     escrituraEstructuraService,
-    escrituraOrganizacionService,
-    escrituraSedeService,
     escrituraDocumentoActivoService,
     catalogoTipoActivoRepository,
     auditoriaRepository,
-  };
-}
-
-const CONTRATO: Contrato = {
-  id: 'contrato-1',
-  organizacionId: 'duoc-uc',
-  organizacionNombre: 'DUOC UC',
-  sedes: [{ id: 'melipilla', nombre: 'Melipilla' }],
-  vigenciaDesde: '2026-01-01T00:00:00.000Z',
-  vigenciaHasta: null,
-  estado: 'vigente',
-  modulosContratados: ['inventario-qr'],
-};
-
-function buildAltaContratoPayload(
-  overrides: Partial<AltaContratoBody> = {},
-): AltaContratoBody {
-  return {
-    correlationId: 'corr-1',
-    operadorId: 'op-admin',
-    organizacionId: 'duoc-uc',
-    rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
-    sedeIds: ['melipilla'],
-    vigenciaDesde: '2026-01-01T00:00:00.000Z',
-    modulosContratados: ['inventario-qr'],
-    ...overrides,
   };
 }
 
@@ -699,310 +638,6 @@ describe('OrquestadorService', () => {
     });
   });
 
-  describe('procesarAltaOrganizacion', () => {
-    const payload: AltaOrganizacionBody = {
-      correlationId: 'corr-1',
-      operadorId: 'op-admin',
-      rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
-      id: 'duoc-uc',
-      nombre: 'DUOC UC',
-    };
-
-    it('crea la organizacion, audita el resultado (id) y la devuelve', async () => {
-      const { service, escrituraOrganizacionService, auditoriaRepository } =
-        buildService();
-      escrituraOrganizacionService.crear.mockResolvedValue(ORGANIZACION);
-
-      await expect(service.procesarAltaOrganizacion(payload)).resolves.toBe(
-        ORGANIZACION,
-      );
-      expect(escrituraOrganizacionService.crear).toHaveBeenCalledWith({
-        id: 'duoc-uc',
-        nombre: 'DUOC UC',
-      });
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'POST /organizaciones',
-        resultado: 'duoc-uc',
-      });
-    });
-
-    // DOC-021 4 — a diferencia de Activo/Catalogo/Documento (solo administrador-patrimonial),
-    // Organizacion solo acepta administrador-sistema: administrador-patrimonial no alcanza.
-    it('rechaza con 403 y audita sin llamar al servicio si el operador solo tiene administrador-patrimonial', async () => {
-      const { service, escrituraOrganizacionService, auditoriaRepository } =
-        buildService();
-
-      await expect(
-        service.procesarAltaOrganizacion({
-          ...payload,
-          rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
-        }),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(escrituraOrganizacionService.crear).not.toHaveBeenCalled();
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'POST /organizaciones',
-        resultado: 'rechazado:403',
-      });
-    });
-
-    it('rechaza con 403 y audita sin llamar al servicio si falta el rol', async () => {
-      const { service, escrituraOrganizacionService, auditoriaRepository } =
-        buildService();
-
-      await expect(
-        service.procesarAltaOrganizacion({
-          ...payload,
-          rolesPorOrganizacion: {},
-        }),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(escrituraOrganizacionService.crear).not.toHaveBeenCalled();
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'POST /organizaciones',
-        resultado: 'rechazado:403',
-      });
-    });
-  });
-
-  describe('procesarActualizarOrganizacion', () => {
-    const payload = {
-      correlationId: 'corr-1',
-      operadorId: 'op-admin',
-      rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
-      nombre: 'DUOC UC (renombrada)',
-    };
-
-    it('edita el nombre, audita el resultado (id) y lo devuelve (DOC-024 1)', async () => {
-      const { service, escrituraOrganizacionService, auditoriaRepository } =
-        buildService();
-      const renombrada = { ...ORGANIZACION, nombre: 'DUOC UC (renombrada)' };
-      escrituraOrganizacionService.actualizarNombre.mockResolvedValue(
-        renombrada,
-      );
-
-      await expect(
-        service.procesarActualizarOrganizacion('duoc-uc', payload),
-      ).resolves.toBe(renombrada);
-      expect(
-        escrituraOrganizacionService.actualizarNombre,
-      ).toHaveBeenCalledWith('duoc-uc', 'DUOC UC (renombrada)');
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'PATCH /organizaciones/duoc-uc',
-        resultado: 'duoc-uc',
-      });
-    });
-
-    it('rechaza con 403 y audita sin llamar al servicio si falta el rol administrador-sistema', async () => {
-      const { service, escrituraOrganizacionService, auditoriaRepository } =
-        buildService();
-
-      await expect(
-        service.procesarActualizarOrganizacion('duoc-uc', {
-          ...payload,
-          rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
-        }),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(
-        escrituraOrganizacionService.actualizarNombre,
-      ).not.toHaveBeenCalled();
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'PATCH /organizaciones/duoc-uc',
-        resultado: 'rechazado:403',
-      });
-    });
-  });
-
-  describe('procesarActualizarEstadoOrganizacion', () => {
-    const payload = {
-      correlationId: 'corr-1',
-      operadorId: 'op-admin',
-      rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
-      estado: 'inactivo' as const,
-    };
-
-    it('cambia el estado, audita el resultado (estado) y lo devuelve — sin cascada (DOC-024 1)', async () => {
-      const { service, escrituraOrganizacionService, auditoriaRepository } =
-        buildService();
-      const inactiva = { ...ORGANIZACION, estado: 'inactivo' as const };
-      escrituraOrganizacionService.actualizarEstado.mockResolvedValue(inactiva);
-
-      await expect(
-        service.procesarActualizarEstadoOrganizacion('duoc-uc', payload),
-      ).resolves.toBe(inactiva);
-      expect(
-        escrituraOrganizacionService.actualizarEstado,
-      ).toHaveBeenCalledWith('duoc-uc', 'inactivo');
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'PATCH /organizaciones/duoc-uc/estado',
-        resultado: 'inactivo',
-      });
-    });
-
-    it('rechaza con 403 y audita sin llamar al servicio si falta el rol administrador-sistema', async () => {
-      const { service, escrituraOrganizacionService, auditoriaRepository } =
-        buildService();
-
-      await expect(
-        service.procesarActualizarEstadoOrganizacion('duoc-uc', {
-          ...payload,
-          rolesPorOrganizacion: {},
-        }),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(
-        escrituraOrganizacionService.actualizarEstado,
-      ).not.toHaveBeenCalled();
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'PATCH /organizaciones/duoc-uc/estado',
-        resultado: 'rechazado:403',
-      });
-    });
-  });
-
-  describe('procesarAltaSede', () => {
-    const SEDE: Sede = {
-      id: 'sede-1',
-      organizacionId: 'duoc-uc',
-      nombre: 'Melipilla',
-      estado: 'activo',
-    };
-    const payload: AltaSedeBody = {
-      correlationId: 'corr-1',
-      operadorId: 'op-admin',
-      organizacionId: 'duoc-uc',
-      rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
-      nombre: 'Melipilla',
-    };
-
-    // A diferencia de Organizacion (solo administrador-sistema), Sede usa el mismo verificador
-    // que Contrato — administrador-patrimonial SI alcanza, contra la organizacion puntual.
-    it('crea la sede, audita el resultado (id) y la devuelve', async () => {
-      const { service, escrituraSedeService, auditoriaRepository } =
-        buildService();
-      escrituraSedeService.crear.mockResolvedValue(SEDE);
-
-      await expect(service.procesarAltaSede(payload)).resolves.toBe(SEDE);
-      expect(escrituraSedeService.crear).toHaveBeenCalledWith({
-        organizacionId: 'duoc-uc',
-        nombre: 'Melipilla',
-      });
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'POST /sedes',
-        resultado: 'sede-1',
-      });
-    });
-
-    it('administrador-sistema tambien puede crear una sede (administracion de plataforma)', async () => {
-      const { service, escrituraSedeService } = buildService();
-      escrituraSedeService.crear.mockResolvedValue(SEDE);
-
-      await expect(
-        service.procesarAltaSede({
-          ...payload,
-          rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
-        }),
-      ).resolves.toBe(SEDE);
-    });
-
-    it('rechaza con 403 y audita sin llamar al servicio si falta el rol', async () => {
-      const { service, escrituraSedeService, auditoriaRepository } =
-        buildService();
-
-      await expect(
-        service.procesarAltaSede({ ...payload, rolesPorOrganizacion: {} }),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(escrituraSedeService.crear).not.toHaveBeenCalled();
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'POST /sedes',
-        resultado: 'rechazado:403',
-      });
-    });
-  });
-
-  describe('procesarActualizarEstadoSede', () => {
-    const payload = {
-      correlationId: 'corr-1',
-      operadorId: 'op-admin',
-      organizacionId: 'duoc-uc',
-      rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
-      estado: 'inactivo' as const,
-    };
-
-    it('cambia el estado, audita el resultado (estado) y lo devuelve — sin cascada (DOC-024 1)', async () => {
-      const { service, escrituraSedeService, auditoriaRepository } =
-        buildService();
-      const inactiva = {
-        id: 'sede-1',
-        organizacionId: 'duoc-uc',
-        nombre: 'Melipilla',
-        estado: 'inactivo' as const,
-      };
-      escrituraSedeService.actualizarEstado.mockResolvedValue(inactiva);
-
-      await expect(
-        service.procesarActualizarEstadoSede('sede-1', payload),
-      ).resolves.toBe(inactiva);
-      expect(escrituraSedeService.actualizarEstado).toHaveBeenCalledWith(
-        'sede-1',
-        'duoc-uc',
-        'inactivo',
-      );
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'PATCH /sedes/sede-1/estado',
-        resultado: 'inactivo',
-      });
-    });
-
-    it('administrador-sistema tambien puede desactivar una sede (administracion de plataforma)', async () => {
-      const { service, escrituraSedeService } = buildService();
-      escrituraSedeService.actualizarEstado.mockResolvedValue({
-        id: 'sede-1',
-        organizacionId: 'duoc-uc',
-        nombre: 'Melipilla',
-        estado: 'inactivo',
-      });
-
-      await expect(
-        service.procesarActualizarEstadoSede('sede-1', {
-          ...payload,
-          rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
-        }),
-      ).resolves.toEqual(expect.objectContaining({ estado: 'inactivo' }));
-    });
-
-    it('rechaza con 403 y audita sin llamar al servicio si falta el rol', async () => {
-      const { service, escrituraSedeService, auditoriaRepository } =
-        buildService();
-
-      await expect(
-        service.procesarActualizarEstadoSede('sede-1', {
-          ...payload,
-          rolesPorOrganizacion: {},
-        }),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(escrituraSedeService.actualizarEstado).not.toHaveBeenCalled();
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'PATCH /sedes/sede-1/estado',
-        resultado: 'rechazado:403',
-      });
-    });
-  });
-
   describe('procesarImportacionContable', () => {
     const RESULTADO: ImportacionContableResultado = {
       filas: [{ codigoPatrimonial: 'AFT-1', resultado: 'creado' }],
@@ -1235,180 +870,6 @@ describe('OrquestadorService', () => {
         usuario: 'op-admin',
         operacion: 'POST /importaciones/contable/lote/lote-1/rechazar',
         resultado: 'rechazado',
-      });
-    });
-  });
-
-  describe('procesarAltaContrato', () => {
-    it('crea el contrato, audita el resultado y lo devuelve (camino feliz)', async () => {
-      const { service, escrituraContratoService, auditoriaRepository } =
-        buildService();
-      escrituraContratoService.alta.mockResolvedValue(CONTRATO);
-
-      const contrato = await service.procesarAltaContrato(
-        buildAltaContratoPayload(),
-      );
-
-      expect(contrato).toBe(CONTRATO);
-      expect(escrituraContratoService.alta).toHaveBeenCalledWith(
-        expect.objectContaining({ sedeIds: ['melipilla'] }),
-        'op-admin',
-      );
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'POST /contratos',
-        resultado: 'vigente',
-      });
-    });
-
-    it('rechaza con 403 y audita sin llamar al servicio si falta el rol', async () => {
-      const { service, escrituraContratoService, auditoriaRepository } =
-        buildService();
-
-      await expect(
-        service.procesarAltaContrato(
-          buildAltaContratoPayload({ rolesPorOrganizacion: {} }),
-        ),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(escrituraContratoService.alta).not.toHaveBeenCalled();
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'POST /contratos',
-        resultado: 'rechazado:403',
-      });
-    });
-  });
-
-  describe('procesarActualizacionContrato', () => {
-    it('actualiza el estado, audita el resultado y lo devuelve', async () => {
-      const { service, escrituraContratoService, auditoriaRepository } =
-        buildService();
-      const suspendido = { ...CONTRATO, estado: 'suspendido' as const };
-      escrituraContratoService.actualizarEstado.mockResolvedValue(suspendido);
-
-      const contrato = await service.procesarActualizacionContrato(
-        'contrato-1',
-        {
-          correlationId: 'corr-1',
-          operadorId: 'op-admin',
-          organizacionId: 'duoc-uc',
-          rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
-          estado: 'suspendido',
-        },
-      );
-
-      expect(contrato).toBe(suspendido);
-      expect(escrituraContratoService.actualizarEstado).toHaveBeenCalledWith(
-        'contrato-1',
-        'duoc-uc',
-        'suspendido',
-        'op-admin',
-      );
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'PATCH /contratos/contrato-1',
-        resultado: 'suspendido',
-      });
-    });
-
-    it('rechaza con 403 y audita sin llamar al servicio si falta el rol', async () => {
-      const { service, escrituraContratoService, auditoriaRepository } =
-        buildService();
-
-      await expect(
-        service.procesarActualizacionContrato('contrato-1', {
-          correlationId: 'corr-1',
-          operadorId: 'op-admin',
-          organizacionId: 'duoc-uc',
-          rolesPorOrganizacion: {},
-          estado: 'suspendido',
-        }),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(escrituraContratoService.actualizarEstado).not.toHaveBeenCalled();
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'PATCH /contratos/contrato-1',
-        resultado: 'rechazado:403',
-      });
-    });
-  });
-
-  describe('procesarActualizarCondicionesContrato', () => {
-    const payload = {
-      correlationId: 'corr-1',
-      operadorId: 'op-admin',
-      organizacionId: 'duoc-uc',
-      rolesPorOrganizacion: ADMIN_ROLES_DUOC_UC,
-      vigenciaHasta: '2027-01-01T00:00:00.000Z',
-    };
-
-    it('edita las condiciones, audita el resultado (estado) y lo devuelve (DOC-024 2)', async () => {
-      const { service, escrituraContratoService, auditoriaRepository } =
-        buildService();
-      const actualizado = {
-        ...CONTRATO,
-        vigenciaHasta: '2027-01-01T00:00:00.000Z',
-      };
-      escrituraContratoService.actualizarCondiciones.mockResolvedValue(
-        actualizado,
-      );
-
-      await expect(
-        service.procesarActualizarCondicionesContrato('contrato-1', payload),
-      ).resolves.toBe(actualizado);
-      expect(
-        escrituraContratoService.actualizarCondiciones,
-      ).toHaveBeenCalledWith(
-        'contrato-1',
-        'duoc-uc',
-        {
-          sedeIds: undefined,
-          vigenciaHasta: '2027-01-01T00:00:00.000Z',
-          modulosContratados: undefined,
-        },
-        'op-admin',
-      );
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'PATCH /contratos/contrato-1/condiciones',
-        resultado: 'vigente',
-      });
-    });
-
-    it('administrador-sistema tambien puede editar las condiciones (administracion de plataforma)', async () => {
-      const { service, escrituraContratoService } = buildService();
-      escrituraContratoService.actualizarCondiciones.mockResolvedValue(
-        CONTRATO,
-      );
-
-      await expect(
-        service.procesarActualizarCondicionesContrato('contrato-1', {
-          ...payload,
-          rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
-        }),
-      ).resolves.toBe(CONTRATO);
-    });
-
-    it('rechaza con 403 y audita sin llamar al servicio si falta el rol', async () => {
-      const { service, escrituraContratoService, auditoriaRepository } =
-        buildService();
-
-      await expect(
-        service.procesarActualizarCondicionesContrato('contrato-1', {
-          ...payload,
-          rolesPorOrganizacion: {},
-        }),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(
-        escrituraContratoService.actualizarCondiciones,
-      ).not.toHaveBeenCalled();
-      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
-        usuario: 'op-admin',
-        operacion: 'PATCH /contratos/contrato-1/condiciones',
-        resultado: 'rechazado:403',
       });
     });
   });

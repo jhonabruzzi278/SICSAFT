@@ -10,7 +10,6 @@ import { CorrelationIdMiddleware } from './common/correlation-id/correlation-id.
 import { PatrimonialModule } from './patrimonial/patrimonial.module';
 import { OrquestadorModule } from './orquestador/orquestador.module';
 import { EventosOutboxModule } from './eventos-outbox/eventos-outbox.module';
-import { IndicadoresModule } from './indicadores/indicadores.module';
 
 @Module({
   imports: [
@@ -30,9 +29,6 @@ import { IndicadoresModule } from './indicadores/indicadores.module';
     // pg-boss (ADR-005) que consumirá el worker de CIP — CORE no depende de CIP para responder al
     // usuario (ver DOC-014 8, reconciliación con Tomo IV 2.15/2.19).
     EventosOutboxModule,
-    // DOC-021 4 (Administrador del Sistema) — conteos de plataforma, sin OrquestadorService (solo
-    // lectura, sin auditoria).
-    IndicadoresModule,
   ],
   controllers: [AppController],
   providers: [AppService],
