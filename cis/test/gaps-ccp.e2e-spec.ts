@@ -7,10 +7,7 @@ import type {
   CatalogoTipoResult,
   DocumentoActivoResult,
   ImportacionContableResult,
-  IndicadoresResult,
-  OrganizacionResult,
 } from './../src/core-client/core-client.types';
-import type { GrantUsuario } from './../src/keycloak-admin/keycloak-admin.types';
 import { crearAppE2e } from './support/e2e-app';
 import { firmarTokenKeycloak } from './support/jwt';
 
@@ -63,18 +60,6 @@ const DOCUMENTO_STUB: DocumentoActivoResult = {
   creadoPor: 'op-admin',
 };
 
-const ORGANIZACION_STUB: OrganizacionResult = {
-  id: ORGANIZACION_ID,
-  nombre: 'DUOC UC',
-  estado: 'activo',
-};
-
-const INDICADORES_STUB: IndicadoresResult = {
-  totalOrganizaciones: 1,
-  totalSedes: 1,
-  contratosPorEstado: { vigente: 1, suspendido: 0, vencido: 0, cancelado: 0 },
-};
-
 const IMPORTACION_STUB: ImportacionContableResult = {
   filas: [{ codigoPatrimonial: 'AFT-1', resultado: 'creado' }],
   creados: 1,
@@ -98,10 +83,9 @@ const LOTE_STUB = {
 const CREAR_LOTE_STUB = { loteId: 'lote-1', resumen: LOTE_STUB.resumen };
 const LOTE_CON_FILAS_STUB = { lote: LOTE_STUB, filas: [] };
 
-describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2e)', () => {
+describe('DOC-021 — cierre de gaps del CCP (CIS e2e)', () => {
   let app: INestApplication<App>;
   let tokenPatrimonial: string;
-  let tokenSistema: string;
   let coreClientService: {
     postActivoBaja: jest.Mock;
     postActivoReincorporacion: jest.Mock;
@@ -112,22 +96,14 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
     getDocumentosActivo: jest.Mock;
     postDocumentoActivo: jest.Mock;
     deleteDocumentoActivo: jest.Mock;
-    getOrganizaciones: jest.Mock;
-    postOrganizacion: jest.Mock;
-    getIndicadores: jest.Mock;
     postImportacionContable: jest.Mock;
     postLoteImportacionContable: jest.Mock;
     getLotesImportacionContable: jest.Mock;
     getLoteImportacionContable: jest.Mock;
     postAprobarLoteImportacionContable: jest.Mock;
     postRechazarLoteImportacionContable: jest.Mock;
-    postAuditoria: jest.Mock;
   };
   let keycloakAdminService: {
-    buscarUsuarioPorEmail: jest.Mock;
-    listarGrants: jest.Mock;
-    crearGrant: jest.Mock;
-    crearOrganizacion: jest.Mock;
     resolverRolesPorOrganizacionDeUsuario: jest.Mock;
   };
 
@@ -145,16 +121,10 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
         subject: 'op-patrimonial',
       },
     );
-    tokenSistema = await firmarTokenKeycloak(privateKey, [ORGANIZACION_ID], {
-      issuer: ISSUER,
-      audience: AUDIENCE,
-      subject: 'op-sistema',
-    });
     const localJwks: JWTVerifyGetKey = () => Promise.resolve(publicKey);
 
     const ROLES_POR_OPERADOR: Record<string, Record<string, string[]>> = {
       'op-patrimonial': { [ORGANIZACION_ID]: ['administrador-patrimonial'] },
-      'op-sistema': { [ORGANIZACION_ID]: ['administrador-sistema'] },
     };
 
     coreClientService = {
@@ -170,9 +140,6 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
       getDocumentosActivo: jest.fn().mockResolvedValue([DOCUMENTO_STUB]),
       postDocumentoActivo: jest.fn().mockResolvedValue(DOCUMENTO_STUB),
       deleteDocumentoActivo: jest.fn().mockResolvedValue(undefined),
-      getOrganizaciones: jest.fn().mockResolvedValue([ORGANIZACION_STUB]),
-      postOrganizacion: jest.fn().mockResolvedValue(ORGANIZACION_STUB),
-      getIndicadores: jest.fn().mockResolvedValue(INDICADORES_STUB),
       postImportacionContable: jest.fn().mockResolvedValue(IMPORTACION_STUB),
       postLoteImportacionContable: jest.fn().mockResolvedValue(CREAR_LOTE_STUB),
       getLotesImportacionContable: jest.fn().mockResolvedValue([LOTE_STUB]),
@@ -185,28 +152,8 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
       postRechazarLoteImportacionContable: jest
         .fn()
         .mockResolvedValue({ estado: 'rechazado' }),
-      // DOC-024 3 — AdministradorService ahora envuelve asignarUsuarioOrganizacion en
-      // AuditoriaIdentidadService, que reporta el resultado via CoreClientService.postAuditoria.
-      postAuditoria: jest.fn().mockResolvedValue(undefined),
     };
     keycloakAdminService = {
-      buscarUsuarioPorEmail: jest.fn().mockResolvedValue({
-        id: 'usuario-keycloak-1',
-        email: null,
-        displayName: null,
-      }),
-      listarGrants: jest.fn().mockResolvedValue([
-        {
-          userId: 'usuario-keycloak-1',
-          email: 'a@duoc.cl',
-          displayName: null,
-          roles: ['administrador-patrimonial'],
-        },
-      ] satisfies GrantUsuario[]),
-      crearGrant: jest.fn().mockResolvedValue(undefined),
-      // Gap 1 (flujo real Admin->Directivo->Profesional AFT) — usado por
-      // AdministradorService.altaOrganizacion (ver el describe de organizaciones mas abajo).
-      crearOrganizacion: jest.fn().mockResolvedValue({ id: ORGANIZACION_ID }),
       // ADR-004 — consumido por KeycloakAuthGuard para resolver rolesPorOrganizacion de cada
       // operador de prueba (ver keycloak-auth.guard.ts).
       resolverRolesPorOrganizacionDeUsuario: jest
@@ -430,102 +377,6 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (CIS e2
       await request(app.getHttpServer())
         .get('/admin/importaciones/contable/lote?organizacionId=duoc-uc')
         .expect(401);
-    });
-  });
-
-  describe('GET/POST /admin/organizaciones (Administrador del Sistema)', () => {
-    it('lista organizaciones sin exigir rol', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/admin/organizaciones')
-        .set('Authorization', `Bearer ${tokenPatrimonial}`)
-        .expect(200);
-      expect(res.body).toEqual([ORGANIZACION_STUB]);
-    });
-
-    it('crea una organizacion cuando el operador tiene administrador-sistema', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/admin/organizaciones')
-        .set('Authorization', `Bearer ${tokenSistema}`)
-        .send({
-          organizacionId: 'duoc-uc',
-          id: 'org-nueva',
-          nombre: 'Organización Nueva',
-        })
-        .expect(201);
-      expect(res.body).toEqual(ORGANIZACION_STUB);
-    });
-  });
-
-  describe('GET /admin/indicadores', () => {
-    // DOC-023 3 — hallazgo corregido: antes cualquier operador autenticado (incluido
-    // administrador-patrimonial) podía leer indicadores de plataforma; ahora exige
-    // administrador-sistema en cualquier organización (AdministradorSistemaEnCualquierOrganizacionGuard).
-    it('devuelve los conteos de plataforma cuando el operador tiene administrador-sistema', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/admin/indicadores')
-        .set('Authorization', `Bearer ${tokenSistema}`)
-        .expect(200);
-      expect(res.body).toEqual(INDICADORES_STUB);
-    });
-
-    it('devuelve 403 si el operador tiene administrador-patrimonial pero no administrador-sistema', async () => {
-      await request(app.getHttpServer())
-        .get('/admin/indicadores')
-        .set('Authorization', `Bearer ${tokenPatrimonial}`)
-        .expect(403);
-    });
-  });
-
-  describe('GET/POST /admin/organizaciones/:orgId/usuarios (asignar usuarios, Keycloak real)', () => {
-    it('lista los usuarios de la organizacion cuando el operador tiene administrador-sistema', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/admin/organizaciones/duoc-uc/usuarios')
-        .set('Authorization', `Bearer ${tokenSistema}`)
-        .expect(200);
-
-      expect(res.body).toEqual(
-        await keycloakAdminService.listarGrants.mock.results[0].value,
-      );
-      expect(keycloakAdminService.listarGrants).toHaveBeenCalledWith(
-        ORGANIZACION_ID,
-        expect.any(String),
-      );
-    });
-
-    it('devuelve 403 si el operador tiene administrador-patrimonial pero no administrador-sistema', async () => {
-      await request(app.getHttpServer())
-        .get('/admin/organizaciones/duoc-uc/usuarios')
-        .set('Authorization', `Bearer ${tokenPatrimonial}`)
-        .expect(403);
-    });
-
-    it('asigna un usuario por email a la organizacion', async () => {
-      await request(app.getHttpServer())
-        .post('/admin/organizaciones/duoc-uc/usuarios')
-        .set('Authorization', `Bearer ${tokenSistema}`)
-        .send({ email: 'nuevo@duoc.cl', rol: 'administrador-patrimonial' })
-        .expect(201);
-
-      expect(keycloakAdminService.buscarUsuarioPorEmail).toHaveBeenCalledWith(
-        'nuevo@duoc.cl',
-        expect.any(String),
-      );
-      expect(keycloakAdminService.crearGrant).toHaveBeenCalledWith(
-        ORGANIZACION_ID,
-        'usuario-keycloak-1',
-        'administrador-patrimonial',
-        expect.any(String),
-      );
-    });
-
-    it('devuelve 404 si el email no corresponde a ningún usuario de Keycloak', async () => {
-      keycloakAdminService.buscarUsuarioPorEmail.mockResolvedValue(null);
-
-      await request(app.getHttpServer())
-        .post('/admin/organizaciones/duoc-uc/usuarios')
-        .set('Authorization', `Bearer ${tokenSistema}`)
-        .send({ email: 'no-existe@duoc.cl', rol: 'administrador-patrimonial' })
-        .expect(404);
     });
   });
 });

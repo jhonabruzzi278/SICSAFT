@@ -200,7 +200,7 @@ describe('DOC-022 3 — CIS módulo directivo (gestión de roles acotada a la pr
       await request(app.getHttpServer())
         .post('/directivo/usuarios')
         .set('Authorization', `Bearer ${tokenDirectivoDuoc}`)
-        .send({ email: 'nuevo@duoc.cl', rol: 'administrador-sistema' })
+        .send({ email: 'nuevo@duoc.cl', rol: 'rol-inexistente' })
         .expect(201);
 
       // El schema ignora campos extra como `rol` (zod no-strict) — lo que realmente importa es

@@ -1356,7 +1356,7 @@ describe('CoreClientService', () => {
       correlationId: 'corr-1',
       operadorId: 'op-admin',
       organizacionId: 'duoc-uc',
-      rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
       tipo: 'Equipo Computacional',
       familia: 'Informática',
       criticidad: 'media' as const,
@@ -1529,7 +1529,7 @@ describe('CoreClientService', () => {
       correlationId: 'corr-1',
       operadorId: 'op-admin',
       organizacionId: 'duoc-uc',
-      rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
       id: 'zitadel-org-nueva',
       nombre: 'Nueva Organización',
     };
@@ -1576,7 +1576,7 @@ describe('CoreClientService', () => {
     const patchOrganizacionRequest = {
       correlationId: 'corr-1',
       operadorId: 'op-admin',
-      rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
+      rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
       nombre: 'DUOC UC (renombrada)',
     };
 
@@ -1604,7 +1604,7 @@ describe('CoreClientService', () => {
       const request = {
         correlationId: 'corr-1',
         operadorId: 'op-admin',
-        rolesPorOrganizacion: { 'duoc-uc': ['administrador-sistema'] },
+        rolesPorOrganizacion: { 'duoc-uc': ['administrador-patrimonial'] },
         estado: 'inactivo' as const,
       };
 

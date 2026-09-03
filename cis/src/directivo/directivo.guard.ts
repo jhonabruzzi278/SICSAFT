@@ -24,11 +24,9 @@ export function requireDirectivoOrganizacionId(
   return request.directivoOrganizacionId;
 }
 
-// DOC-022 3 — a diferencia de AdministradorSistemaGuard (que lee `:orgId` de la URL porque
-// Administrador del Sistema puede operar sobre cualquier organización), el Directivo solo puede
-// operar sobre LA SUYA — este controller nunca acepta un organizacionId de ruta o body, siempre
-// se deriva del propio JWT ya validado por ZitadelAuthGuard (cero confianza en lo que manda el
-// cliente, mismo criterio que el resto de CIS).
+// DOC-022 3 — el Directivo solo puede operar sobre SU organización: este controller nunca acepta
+// un organizacionId de ruta o body, siempre se deriva del propio JWT ya validado por
+// ZitadelAuthGuard (cero confianza en lo que manda el cliente, mismo criterio que el resto de CIS).
 //
 // Si el rol `directivo` aparece en más de una organización del token se rechaza en vez de
 // adivinar cuál usar: hoy ningún flujo asigna `directivo` a la misma persona en más de una

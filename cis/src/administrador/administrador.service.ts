@@ -1,8 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CoreClientService } from '../core-client/core-client.service';
-import { AuditoriaIdentidadService } from '../auditoria-identidad/auditoria-identidad.service';
-import { KeycloakAdminService } from '../keycloak-admin/keycloak-admin.service';
-import type { GrantUsuario } from '../keycloak-admin/keycloak-admin.types';
 import type {
   ActivoResult,
   AreaResult,
@@ -10,71 +7,49 @@ import type {
   AuditoriaFiltro,
   AuditoriaPaginaResult,
   CatalogoTipoResult,
-  ContratoResult,
-  ContratosPaginaResult,
   DocumentoActivoResult,
   ImportacionContableResult,
   CrearLoteImportacionContableResult,
   LoteImportacionContableResult,
   LoteConFilasImportacionContableResult,
   RechazoLoteImportacionContableResult,
-  IndicadoresResult,
-  OrganizacionResult,
   Paginacion,
   ResponsableResult,
   ResponsablesPaginaResult,
-  SedeResult,
   UbicacionResult,
   UbicacionesPaginaResult,
 } from '../core-client/core-client.types';
 import type { KeycloakAuthContext } from '../common/auth/keycloak-auth.guard';
 import type {
-  ActualizarCondicionesContratoBody,
   ActualizarDescripcionActivoBody,
-  ActualizarEstadoOrganizacionBody,
-  ActualizarEstadoSedeBody,
   AltaActivoBody,
   AltaAreaBody,
   AltaCatalogoTipoBody,
-  AltaContratoBody,
   AltaDocumentoActivoBody,
-  AltaOrganizacionBody,
   AltaResponsableBody,
-  AltaSedeBody,
   AltaUbicacionBody,
   ActualizarAreaBody,
-  ActualizarContratoBody,
   ActualizarEstadoResponsableBody,
   ActualizarUbicacionBody,
-  AsignarUsuarioOrganizacionBody,
   CambioResponsableActivoBody,
-  EditarOrganizacionBody,
   EscrituraOficialActivoBody,
   ImportacionContableBody,
   CrearLoteImportacionContableBody,
   AprobarLoteImportacionContableBody,
   RechazarLoteImportacionContableBody,
-  QuitarRolUsuarioOrganizacionBody,
 } from './administrador.schemas';
 
-// DOC-012 5 (Fase 4/5) — puente WEB->CIS->CORE para la escritura oficial de Activo. WEB nunca
-// le habla a CORE directo (regla no negociable de CLAUDE.md) — este servicio traduce el contexto
-// ya autenticado por Keycloak (KeycloakAuthGuard) al contrato de escritura oficial que CORE espera
-// (DOC-012 3.3).
+// DOC-012 5 (Fase 4/5) — puente WEB->CIS->CORE para la escritura oficial de Activo y la estructura
+// (areas/ubicaciones/responsables). WEB nunca le habla a CORE directo (regla no negociable de
+// CLAUDE.md) — este servicio traduce el contexto ya autenticado por Keycloak (KeycloakAuthGuard)
+// al contrato de escritura oficial que CORE espera (DOC-012 3.3).
 //
-// ADR-004 — ya no traduce rolesPorOrganizacion: con Zitadel, el organizacionId que firmaba el JWT
-// era un id numérico interno distinto del organizacionId de texto que usa CORE
-// (ORGANIZACION_MAPPING/OrganizacionMappingDinamicoService resolvían esa diferencia). Con
-// Keycloak, `rolesPorOrganizacion` ya viene keyed por el alias de la Organization — el mismo
-// organizacionId que usa CORE por construcción (ver KeycloakAdminService.crearOrganizacion) — así
-// que se pasa tal cual, sin traducción ni caché de mapeo.
+// 2026-09: las operaciones de Organizacion/Contrato/Sede/usuarios/indicadores se retiraron al
+// eliminar el portal del Administrador del Sistema — el proveedor externo interviene en el core de
+// la organizacion de forma directa (BD / script con service-token) + el bootstrap del wizard.
 @Injectable()
 export class AdministradorService {
-  constructor(
-    private readonly coreClientService: CoreClientService,
-    private readonly keycloakAdminService: KeycloakAdminService,
-    private readonly auditoriaIdentidad: AuditoriaIdentidadService,
-  ) {}
+  constructor(private readonly coreClientService: CoreClientService) {}
 
   altaActivo(
     body: AltaActivoBody,
@@ -166,7 +141,7 @@ export class AdministradorService {
     );
   }
 
-  // DOC-021 4 (gap "familias/categorías") — lectura abierta, mismo criterio que getContratos.
+  // DOC-021 4 (gap "familias/categorías") — lectura abierta, mismo criterio que getAuditoria.
   getCatalogoTipos(correlationId: string): Promise<CatalogoTipoResult[]> {
     return this.coreClientService.getCatalogoTipos(correlationId);
   }
@@ -331,300 +306,7 @@ export class AdministradorService {
     );
   }
 
-  // DOC-021 4 (Administrador del Sistema) — lectura abierta (mismo criterio que getContratos):
-  // necesita ver TODAS las organizaciones, no solo las con contrato vigente.
-  getOrganizaciones(correlationId: string): Promise<OrganizacionResult[]> {
-    return this.coreClientService.getOrganizaciones(correlationId);
-  }
-
-  // Gap 1 (flujo real Admin->Directivo->Profesional AFT) — ADR-004: ya no hay paso de
-  // "ProjectGrant" (concepto propio de Zitadel, sin equivalente en Keycloak) ni registro de mapeo
-  // dinámico — KeycloakAdminService.crearOrganizacion decide el organizacionId (alias) y CORE usa
-  // ese mismo id directo, sin pasos intermedios.
-  //
-  // Si CORE falla después de crear la Organization en Keycloak, esta queda huérfana (estado
-  // recuperable a mano, no distinto de cualquier otra falla de red a mitad de un alta) — no se
-  // implementa un rollback automático, ningún otro flujo de este servicio lo hace tampoco.
-  async altaOrganizacion(
-    body: AltaOrganizacionBody,
-    auth: KeycloakAuthContext,
-    correlationId: string,
-  ): Promise<OrganizacionResult> {
-    const { id: organizacionId } =
-      await this.keycloakAdminService.crearOrganizacion(
-        body.nombre,
-        correlationId,
-      );
-    return this.coreClientService.postOrganizacion(
-      {
-        id: organizacionId,
-        nombre: body.nombre,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
-      correlationId,
-    );
-  }
-
-  // DOC-024 1 — PATCH /admin/organizaciones/:orgId (editar nombre). Misma secuencia que
-  // altaOrganizacion (Keycloak primero, CORE despues). ADR-004: `organizacionId` ya es el alias de
-  // la Organization, sin resolución previa.
-  async editarOrganizacion(
-    organizacionId: string,
-    body: EditarOrganizacionBody,
-    auth: KeycloakAuthContext,
-    correlationId: string,
-  ): Promise<OrganizacionResult> {
-    await this.keycloakAdminService.actualizarNombreOrganizacion(
-      organizacionId,
-      body.nombre,
-      correlationId,
-    );
-    return this.coreClientService.patchOrganizacion(
-      organizacionId,
-      {
-        nombre: body.nombre,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
-      correlationId,
-    );
-  }
-
-  // DOC-024 1 — PATCH /admin/organizaciones/:orgId/estado. Solo CORE, sin tocar Keycloak ni
-  // cascada a Contrato (bookkeeping de plataforma, ver DOC-024 1).
-  actualizarEstadoOrganizacion(
-    organizacionId: string,
-    body: ActualizarEstadoOrganizacionBody,
-    auth: KeycloakAuthContext,
-    correlationId: string,
-  ): Promise<OrganizacionResult> {
-    return this.coreClientService.patchOrganizacionEstado(
-      organizacionId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
-      correlationId,
-    );
-  }
-
-  // DOC-021 4 — lectura abierta, sin auditoria (CORE tampoco la exige).
-  getIndicadores(correlationId: string): Promise<IndicadoresResult> {
-    return this.coreClientService.getIndicadores(correlationId);
-  }
-
-  // DOC-021 4 — asignar usuarios a organizaciones, integración real con Keycloak (no CORE: esto
-  // nunca toca la BPI, es gestión de identidad). `organizacionId` acá es el id de CORE (ej.
-  // 'duoc-uc'), y ADR-004 lo hace también el alias de Keycloak directo — sin traducción.
-  listarUsuariosOrganizacion(
-    organizacionId: string,
-    correlationId: string,
-  ): Promise<GrantUsuario[]> {
-    return this.keycloakAdminService.listarGrants(
-      organizacionId,
-      correlationId,
-    );
-  }
-
-  // DOC-024 3 — envuelto en AuditoriaIdentidadService.ejecutar: esta operacion nunca toca CORE
-  // (es gestion de identidad en Keycloak), asi que sin esto quedaba fuera del Motor de Auditoria
-  // de Tomo IV por completo — ver DOC-024 3.
-  async asignarUsuarioOrganizacion(
-    organizacionId: string,
-    body: AsignarUsuarioOrganizacionBody,
-    auth: KeycloakAuthContext,
-    correlationId: string,
-  ): Promise<void> {
-    return this.auditoriaIdentidad.ejecutar(
-      `POST /admin/organizaciones/${organizacionId}/usuarios`,
-      auth.operadorId,
-      correlationId,
-      async () => {
-        const usuario = await this.keycloakAdminService.buscarUsuarioPorEmail(
-          body.email,
-          correlationId,
-        );
-        if (!usuario) {
-          throw new NotFoundException({
-            message: `No existe ningún usuario de Keycloak con el email '${body.email}'`,
-          });
-        }
-        await this.keycloakAdminService.crearGrant(
-          organizacionId,
-          usuario.id,
-          body.rol,
-          correlationId,
-        );
-      },
-      { organizacionId },
-    );
-  }
-
-  // DOC-024 — DELETE /admin/organizaciones/:orgId/usuarios/:userId. Inverso de
-  // asignarUsuarioOrganizacion, mismo wrapper de auditoria.
-  async quitarRolUsuarioOrganizacion(
-    organizacionId: string,
-    userId: string,
-    body: QuitarRolUsuarioOrganizacionBody,
-    auth: KeycloakAuthContext,
-    correlationId: string,
-  ): Promise<void> {
-    return this.auditoriaIdentidad.ejecutar(
-      `DELETE /admin/organizaciones/${organizacionId}/usuarios/${userId}`,
-      auth.operadorId,
-      correlationId,
-      async () => {
-        await this.keycloakAdminService.quitarRolDeGrant(
-          organizacionId,
-          userId,
-          body.rol,
-          correlationId,
-        );
-      },
-      { organizacionId },
-    );
-  }
-
-  // DOC-024 — POST /admin/organizaciones/:orgId/usuarios/:userId/desactivar. Mismo wrapper de
-  // auditoria. ADR-004: deshabilitar una cuenta de Keycloak es global (no scoped a una
-  // organización, a diferencia del estado "initial" de Zitadel) — ya no recibe `organizacionId`.
-  async desactivarUsuarioOrganizacion(
-    organizacionId: string,
-    userId: string,
-    auth: KeycloakAuthContext,
-    correlationId: string,
-  ): Promise<void> {
-    return this.auditoriaIdentidad.ejecutar(
-      `POST /admin/organizaciones/${organizacionId}/usuarios/${userId}/desactivar`,
-      auth.operadorId,
-      correlationId,
-      async () => {
-        await this.keycloakAdminService.desactivarUsuario(
-          userId,
-          correlationId,
-        );
-      },
-      { organizacionId },
-    );
-  }
-
-  // DOC-012 4 — lectura abierta, no necesita rolesPorOrganizacion (CORE no exige rol para GET
-  // /contratos, mismo criterio que GET /catalogo). Paginado (RNF-01, cierra el gap).
-  getContratos(
-    paginacion: Paginacion,
-    correlationId: string,
-  ): Promise<ContratosPaginaResult> {
-    return this.coreClientService.getContratos(paginacion, correlationId);
-  }
-
-  altaContrato(
-    body: AltaContratoBody,
-    auth: KeycloakAuthContext,
-    correlationId: string,
-  ): Promise<ContratoResult> {
-    return this.coreClientService.postContrato(
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
-      correlationId,
-    );
-  }
-
-  actualizarEstadoContrato(
-    contratoId: string,
-    body: ActualizarContratoBody,
-    auth: KeycloakAuthContext,
-    correlationId: string,
-  ): Promise<ContratoResult> {
-    return this.coreClientService.patchContrato(
-      contratoId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
-      correlationId,
-    );
-  }
-
-  // DOC-024 2 — PATCH /admin/contratos/:id/condiciones. Endpoint separado de
-  // actualizarEstadoContrato (que solo cambia `estado`) — ver DOC-024 2.
-  actualizarCondicionesContrato(
-    contratoId: string,
-    body: ActualizarCondicionesContratoBody,
-    auth: KeycloakAuthContext,
-    correlationId: string,
-  ): Promise<ContratoResult> {
-    return this.coreClientService.patchContratoCondiciones(
-      contratoId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
-      correlationId,
-    );
-  }
-
-  // Gap 2 (flujo real Admin->Directivo->Profesional AFT) — cierra el gap "no hay ABM de Sede":
-  // sin esto, ninguna organización nueva podía tener nunca un Contrato (altaContrato exige
-  // sedeIds ya existentes).
-  altaSede(
-    body: AltaSedeBody,
-    auth: KeycloakAuthContext,
-    correlationId: string,
-  ): Promise<SedeResult> {
-    return this.coreClientService.postSede(
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
-      correlationId,
-    );
-  }
-
-  // DOC-024 1 — GET /admin/sedes?organizacionId=, el picker que reemplaza copiar/pegar un id a
-  // mano en el formulario de Contrato de web_admin. Lectura abierta, mismo criterio que
-  // getOrganizaciones.
-  getSedes(
-    organizacionId: string,
-    correlationId: string,
-  ): Promise<SedeResult[]> {
-    return this.coreClientService.getSedes(organizacionId, correlationId);
-  }
-
-  // DOC-024 1 — PATCH /admin/sedes/:id/estado. Bidireccional, sin cascada a Contrato (DOC-024 1).
-  actualizarEstadoSede(
-    sedeId: string,
-    body: ActualizarEstadoSedeBody,
-    auth: KeycloakAuthContext,
-    correlationId: string,
-  ): Promise<SedeResult> {
-    return this.coreClientService.patchSedeEstado(
-      sedeId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
-      correlationId,
-    );
-  }
-
-  // RF-06 (Fase 5) — lectura abierta, mismo criterio que getContratos.
+  // RF-06 (Fase 5) — lectura abierta.
   getAuditoria(
     filtro: AuditoriaFiltro,
     correlationId: string,
@@ -632,7 +314,7 @@ export class AdministradorService {
     return this.coreClientService.getAuditoria(filtro, correlationId);
   }
 
-  // RF-05 (Fase 5) — lectura abierta, mismo criterio que getContratos. Paginado (RNF-01, cierra
+  // RF-05 (Fase 5) — lectura abierta, mismo criterio que getAuditoria. Paginado (RNF-01, cierra
   // el gap).
   getAreas(
     organizacionId: string,
