@@ -2,24 +2,27 @@
 
 ## Objetivo
 
-Instalador `.exe` único que empaqueta todos los beneficios de Nivel 1 (Postgres, Keycloak, `cis/`,
-`core/`, `cip/` — sin Redis, ver ADR-005) como procesos nativos embebidos en una app Electron — sin
-Podman, sin Docker, sin WSL2, sin navegador visible para el cliente. Es el camino **prioritario** de
+Instalador `.exe` único que empaqueta Nivel 1 **y** Nivel 2 (Postgres, Keycloak, `cis/`, `core/`,
+`cip/` — sin Redis, ver ADR-005) como procesos nativos embebidos en una app Electron — sin Podman,
+sin Docker, sin WSL2, sin navegador visible para el cliente. El vendedor elige Nivel 1 o Nivel 2 en
+el wizard y el mismo binario sirve el nivel elegido (DOC-030). Es el camino **prioritario** de
 instalación por cliente; `devops/onprem/` (Podman) se mantiene como alternativa para un perfil de
 cliente con servidor dedicado — confirmado con el usuario 2026-08-27, ver
 [`aidlc-docs/sicsaft-core/requirements/INTENT.md`](../aidlc-docs/sicsaft-core/requirements/INTENT.md)
 CORE-Q-02.
 
-Está previsto instalar una APK de Android junto a esta app (un wrap de `app-qr-sicsaft/` con
-Capacitor para la APP QR), pero **esa APK no existe todavía** — `CORE-Q-01` quedó reabierta el
-2026-08-27 (ver `INTENT.md`): construirla, o decidir cómo/cuándo, es un incremento aparte, no
-bloqueante para Nivel 1 embebido.
+Junto a esta app se instala una **APK de Android** para la APP QR — construida como WebView
+Kotlin propia en `apk-aft/` (DOC-029 RF-H, no un wrap Capacitor: un TWA con cert propio en IP de
+LAN no carga). El `.apk` firmado se baja del workflow `apk-aft` y `prepack.cjs` lo empaqueta en
+`resources/apk/`. `CORE-Q-01` sigue abierta hasta verificar la APK en un teléfono real y servirla
+desde el `.exe` con un 2º QR de descarga.
 
 ## Estado
 
-🟢 Los 5 servicios de Nivel 1 (Postgres, Keycloak, `cis`, `core`, `cip`) arrancan de verdad,
-verificado real (2026-08-27) — no solo compilado. `npm run typecheck`/`lint:ci`/`build`/`test` en
-verde:
+🟢 Los 5 servicios embebidos (Postgres, Keycloak, `cis`, `core`, `cip`) arrancan de verdad,
+verificado real (2026-08-27) — no solo compilado. El `.exe` cubre Nivel 1 y Nivel 2 con el mismo
+binario (Nivel 2 = Nivel 1 + Dashboard/indicadores del CIP; el CCP va completo en ambos —
+DOC-030). `npm run typecheck`/`lint:ci`/`build`/`test` en verde:
 
 - Estructura Electron completa (`electron-vite`: main/preload/renderer) con contextIsolation +
   sandbox — el renderer nunca tiene acceso directo a Node/secretos, todo pasa por IPC tipado
@@ -99,9 +102,10 @@ desarrollador" a "se le entrega el `.exe` a un cliente" está en
 Estado: **Fases A, B, C y D hechas** — `pack`/`dist:win` sin pasos manuales (A), base patrimonial
 limpia + alta de la organización del cliente por el wizard (B), config de portal en runtime +
 reconfiguración de ~1 clic ante un cambio de IP (C), y el propio `.exe` sirve la PWA de la APP QR
-por HTTPS + muestra un QR en la pantalla "listo" (D). Verificado E2E el 2026-08-29 (39/39). Queda
-**Fase E** (APK Android, `CORE-Q-01`) como track aparte — la PWA por QR es el camino oficial
-mientras tanto.
+por HTTPS + muestra un QR en la pantalla "listo" (D). Verificado E2E el 2026-08-29 (39/39). La
+**Fase E** (APK Android) la des-difirió DOC-029 RF-H con alcance acotado: WebView Kotlin propia en
+`apk-aft/`, `.apk` firmado empaquetado por `prepack.cjs`. La PWA por QR sigue siendo el camino sin
+instalar nada.
 
 **Lo que NO está resuelto todavía** (ver
 [`aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md`](../aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md)
@@ -119,10 +123,12 @@ y DOC-028 para el detalle real de cada uno, sin minimizar):
 - **Certificado autofirmado de la APP QR**: el navegador del teléfono muestra un aviso de
   seguridad la primera vez (se acepta y queda). Un cert que valide sin aviso requiere el hostname
   `.local` + mDNS de C.3, o una CA propia — fuera de alcance de Fase D.
-- **La APK Android no existe todavía** — no hay una APK Capacitor construida (`CORE-Q-01`
-  reabierta). El camino oficial es la PWA que sirve el `.exe` (DOC-028 Fase D); la APK es Fase E.
+- **APK Android** — construida como **WebView Kotlin propia** en `apk-aft/` (DOC-029 RF-H, no
+  el wrap Capacitor de "Fase E"). El `.apk` firmado (keystore de release) se baja del workflow
+  `apk-aft` y `prepack.cjs` lo empaqueta en `resources/apk/` si está. La PWA que sirve el `.exe`
+  (DOC-028 Fase D) sigue siendo el camino sin instalar nada. Ver la sección RF-H abajo.
 
-**DOC-029 — endurecimiento para cliente real (stack local, sin merge a `main`)**
+**DOC-029 — endurecimiento para cliente real (mergeado a `main`, PRs #90/#92/#94/#96)**
 ([`aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md`](../aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md)) —
 lo que toca a `sicsaft-core`:
 
@@ -215,13 +221,14 @@ sin ellos, `service-orchestrator.ts` falla apenas intenta arrancar Postgres/Keyc
 claro. `npm run pack`/`dist:win` además necesitan `node_modules` en `ccp/`, `core/frontend/`,
 `cis/`, `core/` y `cip/` (`npm ci` en cada uno) — `scripts/prepack.cjs` falla con un error claro
 si falta alguno. `npm run dev`/`npm run pack`/`npm run dist:win` abren DevTools automáticamente en modo no
-empaquetado (`!app.isPackaged`) — mirar la consola ahí es el primer paso real para diagnosticar
-cualquier pantalla en blanco, no asumir que el problema está en el backend solo porque los
-health-checks respondan bien.
+empaquetado (`!app.isPackaged`). En el `.exe` instalado, la **Consola técnica en pantalla** (0.1.1,
+`ConsolaTecnica.tsx`) y el archivo `%APPDATA%\sicsaft-core\logs\` cubren ese rol — no asumir que
+el problema está en el backend solo porque los health-checks respondan bien.
 
 ## Próximo paso sugerido
 
 Ver "Próximo paso sugerido" en
-[`aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md`](../aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md)
-— cablear el paso "Profesional de AFT" del wizard al endpoint real de `cis/`, y decidir cuándo/cómo
-se construye la APK Android (`CORE-Q-01`, reabierta).
+[`aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md`](../aidlc-docs/sicsaft-core/00_PROJECT_METADATA.md).
+Abierto hoy: verificar la APK (`apk-aft/`) en un teléfono real y servirla desde el `.exe` con un 2º
+QR de descarga (`CORE-Q-01`); mover `cip`/`cip-migrate` a arranque perezoso en Nivel 1 (hoy
+embebe CIP siempre, solo lo expone en Nivel 2 — DOC-025 INST-Q-01).

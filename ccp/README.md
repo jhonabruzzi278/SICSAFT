@@ -190,11 +190,10 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
     CORE, solo faltaba el puente).
 - **Rol nuevo Administrador del Sistema** (`administrador-sistema`, DOC-021) — módulo
   `AdminPage.tsx` (Organizaciones/Contratos/Usuarios/Indicadores), nunca toca información
-  patrimonial. Integración real con la API de administración de Zitadel para asignar usuarios a
-  organizaciones (`cis/src/zitadel-admin/`) — shapes de la API sin verificar todavía contra un
-  Zitadel real, ver nota en ese módulo.
+  patrimonial. Integración real con la API de administración de Keycloak (ADR-004, reemplaza a Zitadel) para
+  asignar usuarios a organizaciones (`cis/src/keycloak-admin/`).
 
-**DOC-029 — endurecimiento para cliente real (stack local, sin merge a `main`)**
+**DOC-029 — endurecimiento para cliente real (mergeado a `main`, PRs #90/#92/#94/#96)**
 ([DOC-029](../aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md)) — la
 fase nace en este portal (cliente real ya sobre `sicsaft-core.exe`). Lo hecho en `ccp/`:
 
@@ -239,7 +238,7 @@ nunca le habla a CIP directo. Dos módulos más (2026-08-18, DOC-021): **Importa
 cliente-side → `POST /admin/importaciones/contable`) y **Administración** (🟢, exclusivo de
 `administrador-sistema` — Organizaciones/Contratos/Usuarios/Indicadores, transversal como
 Auditoría, no vive dentro del flujo por-organización del hub). Un décimo módulo, **QR / Etiquetas**
-(🟡 DOC-029 RF-F, stack local sin merge — ver el bloque DOC-029 arriba). El resto — Incidencias,
+(🟢 DOC-029 RF-F, mergeado — ver el bloque DOC-029 arriba). El resto — Incidencias,
 Movimientos, RFID, Reportes, Roles, Configuración, Integraciones — sigue sin diseñar (sin
 consumidor real).
 
