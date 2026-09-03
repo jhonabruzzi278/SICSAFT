@@ -35,7 +35,7 @@ a aparecer una y otra vez, para no volver a pisarlo en el próximo incremento.
 Contexto de diseño: [ADR-004](../../../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md).
 
 ### BUG-01 — Los 4 portales tenían los endpoints de Zitadel hardcodeados
-- **Dónde**: `app-qr-sicsaft/`, `ccp/`, `web_admin/`, `core/frontend/` — `src/lib/oidc/oidc-client.ts`
+- **Dónde**: `app-qr-sicsaft/`, `ccp/`, `core/frontend/` — `src/lib/oidc/oidc-client.ts`
 - **Síntoma**: el ADR-004 anticipaba que el flujo PKCE "no hacía falta tocarlo, solo la config
   de issuer/client". Falso: cada `oidc-client.ts` tenía `/oauth/v2/authorize` y `/oauth/v2/token`
   (rutas de Zitadel) escritas a mano.
@@ -44,7 +44,7 @@ Contexto de diseño: [ADR-004](../../../adr/ADR-004-identidad-keycloak-reemplaza
 - **Fix**: endpoints reescritos contra Keycloak en los 4 portales. Commit `2287eab` (Fase 2).
 
 ### BUG-02 — Los realm roles de Keycloak son globales por usuario, no anidados por organización
-- **Dónde**: `cis/src/common/auth/keycloak-auth.guard.ts`, `web_admin/src/lib/oidc/oidc-client.ts`
+- **Dónde**: `cis/src/common/auth/keycloak-auth.guard.ts`, `ccp/src/lib/oidc/oidc-client.ts`
 - **Síntoma**: el claim propietario de Zitadel (`urn:zitadel:iam:org:project:roles`) firmaba
   `{"<rol>": {"<orgId>": "<nombre>"}}` — rol *por organización* dentro del JWT. El ADR asumía
   que Keycloak podía hacer lo mismo.
@@ -71,7 +71,7 @@ Contexto de diseño: [ADR-004](../../../adr/ADR-004-identidad-keycloak-reemplaza
   `d0239fa`.
 
 ### BUG-04 — Los specs de guard de rol firmaban dos roles para el mismo `sub`
-- **Dónde**: `cis/` e2e specs con guard de rol, `web_admin/` unit tests
+- **Dónde**: `cis/` e2e specs con guard de rol, `ccp/` unit tests
 - **Causa raíz**: el guard cachea `rolesPorOrganizacion` por `sub`, y en Keycloak el rol lo
   resuelve el servidor por usuario, no el JWT presentado — a diferencia de Zitadel, un mismo
   usuario de prueba no puede "firmar" dos roles distintos.

@@ -32,7 +32,7 @@ La matriz oficial del tomo, seguida de la lectura real contra los guards de CIS/
 | `administrador-patrimonial` | **Adm. Patrimonial** + hoy también **Supervisor** y **Auditor** ⚠ | `ccp/` (ahí "Profesional de AFT") | El **CCP va completo en todos los niveles** (RF-A, corrección 2026-09-02): activos con alta/edición/baja, Estructura, ingesta, Resumen, Auditoría, QR/Etiquetas. En **Nivel 1** solo se oculta el **Dashboard** (es CIP). |
 | `profesional-aft` | **Operador de Inventario** | `app-qr-sicsaft/` (PWA) | Escaneo, consulta por QR, ejecución y cierre de relevamiento. |
 | `directivo` | **Directivo** | `core/frontend/` | Solo consulta CIP / dashboards; puede designar Profesional de AFT en su organización (DOC-022). |
-| `administrador-sistema` | **Adm. SICSAFT** | `web_admin/` | Usuarios, roles, configuración, integraciones. Portal en construcción (sin e2e todavía). |
+| — | **Adm. SICSAFT** | — | **Sin rol/portal.** `administrador-sistema` y `web_admin/` se eliminaron (2026-09): el CRUD de Organización/Contrato/Sede/usuarios es hoy intervención directa del proveedor (BD / script con service-token) + el bootstrap del wizard; los errores se diagnostican por la consola de logs de `sicsaft-core`. |
 | — | **Supervisor Patrimonial** ⚠ | — | **No existe rol propio.** Conciliar/cerrar inventario, resolver incidencias: hoy caerían en `administrador-patrimonial`. Separarlo es trabajo futuro. |
 | — | **Auditor** ⚠ | — | **No existe rol propio.** La Auditoría del CCP hoy la ve `administrador-patrimonial`. |
 

@@ -7,13 +7,9 @@ const paginacionSchema = {
   offset: z.coerce.number().int().nonnegative().default(0),
 };
 
-// RNF-01 (cierra el gap) — GET /admin/contratos ahora acepta limit/offset.
-export const contratosQuerySchema = z.object({ ...paginacionSchema });
-export type ContratosQuery = z.infer<typeof contratosQuerySchema>;
-
 // DOC-012 5 — lo que WEB manda a CIS. Mas chico que PostActivoRequest (core-client.types.ts):
 // `operadorId`/`rolesPorOrganizacion` los resuelve CIS a partir del access token ya validado
-// (ZitadelAuthGuard), nunca se confian desde el body de un cliente de navegador.
+// (KeycloakAuthGuard), nunca se confian desde el body de un cliente de navegador.
 export const altaActivoSchema = z.object({
   organizacionId: z.string().min(1),
   codigoPatrimonial: z.string().min(1),
@@ -152,97 +148,6 @@ export type RechazarLoteImportacionContableBody = z.infer<
   typeof rechazarLoteImportacionContableSchema
 >;
 
-// Gap 1 (flujo real Admin->Directivo->Profesional AFT) — ya no se le pide el id de Zitadel al
-// cliente: AdministradorService.altaOrganizacion crea la Organización en Zitadel primero
-// (ZitadelAdminService.crearOrganizacion) y usa el id que Zitadel devuelve. Sin
-// `organizacionId` a propósito — el rol se verifica en cualquier organización del token, no en
-// una puntual (mismo motivo que el schema de CORE).
-export const altaOrganizacionSchema = z.object({
-  nombre: z.string().min(1),
-});
-export type AltaOrganizacionBody = z.infer<typeof altaOrganizacionSchema>;
-
-// DOC-024 1 — PATCH /admin/organizaciones/:orgId (editar nombre). Sin `organizacionId` a
-// propósito, mismo motivo que altaOrganizacionSchema: el `:orgId` de la ruta ya identifica el
-// objetivo, el rol se verifica en cualquier organización del token.
-export const editarOrganizacionSchema = z.object({
-  nombre: z.string().min(1),
-});
-export type EditarOrganizacionBody = z.infer<typeof editarOrganizacionSchema>;
-
-// DOC-024 1 — PATCH /admin/organizaciones/:orgId/estado. Bidireccional, nunca DELETE (Tomo III
-// 4.10) — sin cascada a Contrato (DOC-024 1).
-export const actualizarEstadoOrganizacionSchema = z.object({
-  estado: z.enum(['activo', 'inactivo']),
-});
-export type ActualizarEstadoOrganizacionBody = z.infer<
-  typeof actualizarEstadoOrganizacionSchema
->;
-
-// DOC-021 4 (Administrador del Sistema) — asignar un usuario a una organizacion. Enum cerrado de
-// roles asignables (los 3 roles de Proyecto que existen hoy en Zitadel, DOC-020/DOC-012/DOC-021
-// 1) — evita que un typo en el body cree un grant con un rol que no existe en el proyecto.
-const ROLES_ASIGNABLES = [
-  'administrador-patrimonial',
-  'directivo',
-  'administrador-sistema',
-] as const;
-
-export const asignarUsuarioOrganizacionSchema = z.object({
-  email: z.string().email(),
-  rol: z.enum(ROLES_ASIGNABLES),
-});
-export type AsignarUsuarioOrganizacionBody = z.infer<
-  typeof asignarUsuarioOrganizacionSchema
->;
-
-// DOC-024 3 — DELETE /admin/organizaciones/:orgId/usuarios/:userId. Mismo enum cerrado que
-// asignarUsuarioOrganizacionSchema — solo tiene sentido quitar un rol que se pudo haber asignado.
-export const quitarRolUsuarioOrganizacionSchema = z.object({
-  rol: z.enum(ROLES_ASIGNABLES),
-});
-export type QuitarRolUsuarioOrganizacionBody = z.infer<
-  typeof quitarRolUsuarioOrganizacionSchema
->;
-
-// DOC-012 7 — lo que WEB manda a CIS para POST /contratos / PATCH /contratos/:id. Mismo criterio
-// que altaActivoSchema: operadorId/rolesPorOrganizacion los resuelve CIS, nunca el body.
-export const altaContratoSchema = z.object({
-  organizacionId: z.string().min(1),
-  sedeIds: z.array(z.string().min(1)).min(1),
-  vigenciaDesde: z.string().min(1),
-  vigenciaHasta: z.string().min(1).nullable().optional(),
-  modulosContratados: z.array(z.literal('inventario-qr')).min(1),
-});
-export type AltaContratoBody = z.infer<typeof altaContratoSchema>;
-
-export const actualizarContratoSchema = z.object({
-  organizacionId: z.string().min(1),
-  estado: z.enum(['vigente', 'suspendido', 'vencido', 'cancelado']),
-});
-export type ActualizarContratoBody = z.infer<typeof actualizarContratoSchema>;
-
-// DOC-024 2 — PATCH /admin/contratos/:id/condiciones. Endpoint separado de
-// actualizarContratoSchema (que solo cambia `estado`) — ver DOC-024 2. Mismo `.refine` que CORE:
-// al menos un campo, `vigenciaDesde` no editable.
-export const actualizarCondicionesContratoSchema = z
-  .object({
-    organizacionId: z.string().min(1),
-    sedeIds: z.array(z.string().min(1)).min(1).optional(),
-    vigenciaHasta: z.string().min(1).nullable().optional(),
-    modulosContratados: z.array(z.literal('inventario-qr')).min(1).optional(),
-  })
-  .refine(
-    (body) =>
-      body.sedeIds !== undefined ||
-      body.vigenciaHasta !== undefined ||
-      body.modulosContratados !== undefined,
-    { message: 'Debe incluir al menos un campo a actualizar' },
-  );
-export type ActualizarCondicionesContratoBody = z.infer<
-  typeof actualizarCondicionesContratoSchema
->;
-
 // RF-05 (Fase 5) — lo que WEB manda a CIS para POST /admin/areas/ubicaciones/responsables. Mismo
 // criterio que altaActivoSchema: operadorId/rolesPorOrganizacion los resuelve CIS, nunca el body.
 export const altaAreaSchema = z.object({
@@ -284,31 +189,6 @@ export const areasQuerySchema = z.object({
   ...paginacionSchema,
 });
 export type AreasQuery = z.infer<typeof areasQuerySchema>;
-
-// Gap 2 (flujo real Admin->Directivo->Profesional AFT) — lo que WEB manda a CIS para
-// POST /admin/sedes. Mismo criterio que altaActivoSchema: operadorId/rolesPorOrganizacion los
-// resuelve CIS, nunca el body.
-export const altaSedeSchema = z.object({
-  organizacionId: z.string().min(1),
-  nombre: z.string().min(1),
-});
-export type AltaSedeBody = z.infer<typeof altaSedeSchema>;
-
-// DOC-024 1 — GET /admin/sedes?organizacionId=, el picker que reemplaza copiar/pegar un id a
-// mano en el formulario de Contrato de web_admin.
-export const sedesQuerySchema = z.object({
-  organizacionId: z.string().min(1),
-});
-export type SedesQuery = z.infer<typeof sedesQuerySchema>;
-
-// DOC-024 1 — PATCH /admin/sedes/:id/estado. Bidireccional, sin cascada a Contrato (DOC-024 1).
-export const actualizarEstadoSedeSchema = z.object({
-  organizacionId: z.string().min(1),
-  estado: z.enum(['activo', 'inactivo']),
-});
-export type ActualizarEstadoSedeBody = z.infer<
-  typeof actualizarEstadoSedeSchema
->;
 
 export const altaUbicacionSchema = z.object({
   organizacionId: z.string().min(1),

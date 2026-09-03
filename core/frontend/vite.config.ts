@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
-// Puerto 5177 (5173 app-qr-sicsaft, 5174/5175 ccp, 5176 web_admin) para poder correr junto a los
+// Puerto 5177 (5173 app-qr-sicsaft, 5174/5175 ccp) para poder correr junto a los
 // demas portales en desarrollo sin chocar — ver devops/local/docker-compose.yml CIS_CORS_ORIGIN.
 export default defineConfig({
   plugins: [react(), tailwindcss()],

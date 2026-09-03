@@ -55,51 +55,40 @@ el guard, DOC-027 BUG-02), autorización verificada en CORE por organización de
 `OrquestadorService`, los 4 endpoints de escritura de `Activo` (alta/baja/reincorporación/
 cambio de responsable, `core/src/patrimonial/activo-escritura.controller.ts`), importación masiva
 idempotente por fila de base contable (`POST /importaciones/contable`,
-`core/src/patrimonial/importacion-contable.service.ts`, precursor manual de `CON-CONTABILIDAD`) y
-escritura de `Contrato` (`POST /contratos`, `PATCH /contratos/:id`,
-`core/src/entitlements/contrato-escritura.controller.ts` + `escritura-contrato.service.ts`).
-**Pendiente**: las 4 acciones restantes de Gestión de Permisos (Autorizar/Exportar/Administrar/
-Configurar) — sin consumidor real hasta que WEB (Fase 5) tenga su propio ABM.
+`core/src/patrimonial/importacion-contable.service.ts`, precursor manual de `CON-CONTABILIDAD`).
+La escritura de `Contrato` (`POST /contratos`, `PATCH /contratos/:id`) existió hasta 2026-09 y se
+**eliminó** junto con el portal `web_admin/` — crear/editar Contrato es hoy intervención directa
+del proveedor externo (BD / script con service-token) + el bootstrap del wizard de `sicsaft-core`.
+`GET /entitlements` (contrato vigente + módulos, sólo lectura) queda intacto.
 
-### Rol ✅ implementado: Administrador del Sistema (DOC-021, sin fuente en un tomo — vision del usuario 2026-08-18)
-Segundo realm role de Keycloak (`administrador-sistema`), administra la **plataforma**
-(organizaciones, contratos además del Profesional de AFT, usuarios, indicadores) — nunca
-información patrimonial (Activos/Catálogo/Documentos siguen exclusivos de
-`administrador-patrimonial`, y simétricamente el Profesional de AFT nunca administra la
-plataforma). Diseño completo en
-[DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
-extraído a su propio portal (`web_admin/`) por
-[DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
-Único caso de este repo con autorización server-side en dos niveles distintos según el endpoint:
-`POST /organizaciones` (verifica el rol en **cualquier** organización del token, vía el
-Orquestador de CORE — `verificarRolEnCualquierOrganizacion`, DOC-022 2, no una organización
-puntual como el resto de las escrituras oficiales) y `GET/POST /organizaciones/:orgId/usuarios`
-(guard normal de CIS, `AdministradorSistemaGuard` — no pasa por CORE, es gestión de identidad en
-el proveedor de identidad, no información patrimonial auditable por Tomo IV). `POST/PATCH /contratos`
-generalizado para aceptar este rol además de `administrador-patrimonial` (Tomo III 1.4 no le quita
-esa capacidad al Profesional de AFT). Integración real con la Admin REST API para asignar usuarios
-— hoy `cis/src/keycloak-admin/` (`KeycloakAdminService`, ADR-004 Fase 1). La versión Zitadel de
-esto (`cis/src/zitadel-admin/`, **verificada real contra Zitadel v2.65 el 2026-08-19**, DOC-022 4)
-corrigió en su momento dos bugs de la API de Zitadel que la documentación pública no revelaba
-(`listarGrants` pedía un filtro de organización que la API real no tiene; `crearGrant` no sabía
-sumar un rol a un usuario que ya tenía otro rol en el mismo proyecto) — ese módulo ya no existe,
-pero la lógica de negocio se portó tal cual a `keycloak-admin/`. El equivalente de Keycloak trajo
-sus propios hallazgos: `POST /organizations/{id}/members` roto en Keycloak 26.0.0-26.0.5 y luego
-exigiendo string JSON con comillas + `Content-Type` explícito (DOC-027 BUG-25/26) — ver
-`cis/README.md`.
+### Rol ❌ eliminado (2026-09): Administrador del Sistema (DOC-021 — visión del usuario 2026-08-18)
+Hubo un segundo realm role de Keycloak, `administrador-sistema`, que administraba la **plataforma**
+(organizaciones, contratos, sedes, usuarios) desde su propio portal `web_admin/`
+([DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
+[DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)).
+El rol, el portal, sus rutas de CIS (`/admin/organizaciones|contratos|sedes|indicadores` +
+`/:orgId/usuarios`) y los controllers/servicios de escritura de Organización/Sede/Contrato de CORE
+se **eliminaron por completo**. Crear/editar Organización, Contrato y Sede, y asignar usuarios a una
+organización, pasó a ser **intervención directa del proveedor externo** (BD / script con
+service-token) + el bootstrap del wizard de `sicsaft-core`; cuando un cliente reporta un problema,
+el encargado de soporte de SICSAFT lo diagnostica por la **consola de logs en pantalla** de
+`sicsaft-core` y lo corrige contra la BD. `cis/src/keycloak-admin/` (`KeycloakAdminService`,
+ADR-004 Fase 1) sigue vivo: lo usan el alta de usuarios del wizard y el "designar Profesional de
+AFT" del Directivo. Los hallazgos históricos de la Admin API (Zitadel `listarGrants`/`crearGrant`
+en DOC-022 4; Keycloak `POST /organizations/{id}/members` en DOC-027 BUG-25/26) siguen documentados
+en `cis/README.md` y DOC-027 porque el mismo `KeycloakAdminService` los hereda.
 
 ### Rol ✅ implementado: Directivo (DOC-020, reestructurado por DOC-022 3/4 el 2026-08-19)
 Tercer realm role de Keycloak (`directivo`) — el de **mayor privilegio a nivel de
 organización**: dashboard ejecutivo de solo lectura (RF-09/DOC-019) y designación de quién es el
 Profesional de AFT de su propia organización (`administrador-patrimonial`). Nunca información
 patrimonial en sí (Activos/Catálogo/Documentos exclusivos del Profesional de AFT en CCP) ni
-administración de plataforma (exclusiva del Administrador del Sistema en `web_admin/`). Portal
-propio (`core/frontend/`, ver ese README) — hasta DOC-022 vivía dentro de CCP con una redirección
+administración de plataforma (hoy intervención directa del proveedor, sin portal — ver arriba).
+Portal propio (`core/frontend/`, ver ese README) — hasta DOC-022 vivía dentro de CCP con una redirección
 automática al Dashboard (DOC-020, superado). El límite de organización es **estructural, no solo
 verificado por tests**: `DirectivoGuard` (`cis/src/directivo/directivo.guard.ts`) nunca acepta un
 organizacionId de ruta o body para este rol, siempre lo deriva del propio JWT — si el rol
-`directivo` no aparece en exactamente una organización del token, rechaza con 403. Mismo enfoque
-de autorización en dos niveles que Administrador del Sistema: `GET/POST /directivo/usuarios` es
+`directivo` no aparece en exactamente una organización del token, rechaza con 403. `GET/POST /directivo/usuarios` es
 gestión de identidad en el proveedor de identidad (guard normal de CIS, no pasa por CORE),
 reusando el mismo `KeycloakAdminService` (ver arriba). Diseño completo en
 [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md).
@@ -111,17 +100,17 @@ de alcance — sin tomo ni definición todavía, ver DOC-022 "Fuera de alcance".
 | Realm role (Keycloak) | Nombre funcional | Portal | Hostname (local) |
 |---|---|---|---|
 | `administrador-patrimonial` | Profesional de AFT | `ccp/` | `ccp.sicsaft.localhost` |
-| `administrador-sistema` | Administrador del Sistema | `web_admin/` | `admin.sicsaft.localhost` |
 | `directivo` | Directivo | `core/frontend/` | `directivo.sicsaft.localhost` |
 
-Tres portales, tres roles, tres logins — nunca uno compartido (DOC-022, regla no negociable de
-`CLAUDE.md`). Los tres son SPAs independientes contra el mismo realm `sicsaft` de Keycloak, cada
-uno con su propio client OIDC público con PKCE (ver `devops/local/README.md` "Cliente OIDC real"
-para cada uno). **Excepción — `sicsaft-core.exe`** (CORE-RF-04): la app de escritorio embebe `ccp`
-y `core/frontend` detrás de **un** login embebido (el formulario real de Keycloak en una
+Dos portales, dos roles, dos logins — nunca uno compartido (DOC-022, regla no negociable de
+`CLAUDE.md`; el tercer portal, `web_admin/` del Administrador del Sistema, se eliminó en 2026-09).
+Los dos son SPAs independientes contra el mismo realm `sicsaft` de Keycloak, cada uno con su
+propio client OIDC público con PKCE (ver `devops/local/README.md` "Cliente OIDC real" para cada
+uno). **Excepción — `sicsaft-core.exe`** (CORE-RF-04): la app de escritorio embebe `ccp` y
+`core/frontend` detrás de **un** login embebido (el formulario real de Keycloak en una
 `WebContentsView`) que lee `realm_access.roles` del JWT y muestra el portal que corresponde —
-sigue siendo un token por portal, pero el operador tipea sus credenciales una sola vez. `web_admin`
-no se embebe. Ver [DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) F.
+sigue siendo un token por portal, pero el operador tipea sus credenciales una sola vez. Ver
+[DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) F.
 
 ## Capacidades previstas
 Autenticación, refresh/expiración de sesión, RBAC, segregación por organización, segregación
@@ -135,7 +124,7 @@ mismo resultado a cualquier operador — ver DOC-004 7.
 
 ## Bloquea
 CIS (validar `sedeId`/contrato vigente en cada request — ver ADR-002), CORE (autorización), los
-tres portales WEB (`ccp/`, `web_admin/`, `core/frontend/` — roles/permisos), APP QR (login de
+dos portales WEB (`ccp/`, `core/frontend/` — roles/permisos), APP QR (login de
 operador — TASK futura), `sicsaft-core.exe` (reusa `KeycloakAdminService`/`KeycloakAuthGuard` y el
 modelo de roles por Organization tal cual, ver `aidlc-docs/sicsaft-core/`).
 
@@ -155,8 +144,8 @@ este documento.
 [`ccp/DOC-023`](../aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md) — matriz de
 permisos por rol (Rol × Módulo × Acción) extraída endpoint por endpoint de los guards reales de
 CIS/CORE; encontró y corrigió el mismo día un hallazgo real (`GET /admin/indicadores` sin guard de
-rol en backend, solo restringido en la UI de `web_admin/` — ver `AdministradorSistemaEnCualquierOrganizacionGuard`
-en `cis/src/administrador/`).
+rol en backend, solo restringido en la UI de `web_admin/`) — ese endpoint y su guard se
+eliminaron con `web_admin/` en 2026-09, el hallazgo queda como referencia de método.
 Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 3 (cero confianza entre niveles, permisos
 mínimos necesarios, segregación por organización/área validada en el CORE, no solo en el cliente
 — ahora extendida a sede/contrato).

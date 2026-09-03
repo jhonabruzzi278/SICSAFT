@@ -118,12 +118,12 @@ acá el único cliente de Postgres es esta misma app, no hay superficie multi-te
 
 ### Los portales embebidos (`core/frontend`, `ccp`) — CORE-RF-04 (alcance corregido 2026-08-28)
 
-`sicsaft-core.exe` embebe `core/frontend` (Directivo) y `ccp` (Profesional de AFT) — `web_admin`
-(Administrador del Sistema) queda fuera de este incremento, no es un rol que esta app necesite
-embebido. `ccp` va **completo en todos los niveles** (DOC-025 §1.1, corrección 2026-09-02 — el "web-aft"
+`sicsaft-core.exe` embebe `core/frontend` (Directivo) y `ccp` (Profesional de AFT). El portal
+`web_admin` (Administrador del Sistema) se **eliminó por completo (2026-09)**; el CRUD de
+Organización/Contrato/Sede es intervención directa del proveedor (BD / script) + el wizard. `ccp` va **completo en todos los niveles** (DOC-025 §1.1, corrección 2026-09-02 — el "web-aft"
 liviano quedó descartado). El nivel contratado solo decide, vía `VITE_SICSAFT_NIVEL` inyectado al
 servir el portal, si el módulo **Dashboard/indicadores** (CIP) aparece: Nivel 1 lo oculta, Nivel 2
-lo muestra. `web_admin` no se embebe en ningún nivel.
+lo muestra.
 
 Ambos son builds Vite estáticos (`npm run build`). Se sirven por `http://127.0.0.1:<puerto>`
 (`ccp` → 8766, `core/frontend` → 8768 — los mismos puertos que cada portal ya reserva para su

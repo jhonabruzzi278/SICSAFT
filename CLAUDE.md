@@ -1,7 +1,7 @@
 # SICSAFT — reglas del repo
 
 Monorepo de varios sistemas independientes (no workspace/npm-workspaces): cada carpeta de nivel
-raíz (`cis/`, `core/`, `ccp/`, `web_admin/`, ...) es su propio desplegable con su propio
+raíz (`cis/`, `core/`, `ccp/`, `cip/`, ...) es su propio desplegable con su propio
 `package.json`, `Dockerfile` y pipeline de CI. Ver [README.md](README.md) para el mapa completo de
 sistemas y [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md) para el marco de arquitectura.
 
@@ -11,9 +11,12 @@ del lado del operador o empaquetada dentro de otro sistema, no en su propio cont
 `herramientas/etl-contable/` (ETL Python del Excel contable, invocado por `sicsaft-core`, DOC-029).
 `apk-aft/` (WebView Android de DOC-029 RF-H) seguirá el mismo criterio cuando exista.
 
-**Tres portales, tres roles, tres logins — nunca uno compartido** (DOC-022): `ccp/` (ex-`web/`) es
-exclusivo del Profesional de AFT, `web_admin/` del Administrador del Sistema, y `core/frontend/`
-del Directivo. `core/` es el único sistema con dos deployables (`core/` = backend NestJS,
+**Dos portales, dos roles, dos logins — nunca uno compartido** (DOC-022): `ccp/` (ex-`web/`) es
+exclusivo del Profesional de AFT y `core/frontend/` del Directivo. El portal del Administrador del
+Sistema (`web_admin/`) se eliminó (2026-09): esa función — crear/editar Organización, Contrato,
+Sede, usuarios — pasó a ser intervención directa del proveedor externo (BD / script con
+service-token) + el bootstrap del wizard, y el diagnóstico de errores se hace por la consola de
+logs de `sicsaft-core`. `core/` es el único sistema con dos deployables (`core/` = backend NestJS,
 `core/frontend/` = SPA) — el frontend le habla a CIS, nunca a CORE directo (ver
 [ADR-003](adr/ADR-003-frontend-de-core-para-directivo.md)), así que la regla de abajo sigue
 aplicando sin excepción.
@@ -38,7 +41,7 @@ Fuentes de captura (APP SICSAFT/QR, CCP/WEB, RFID, ERP, ...)
         ↓
       CIP (inteligencia patrimonial — cip/, Nivel 2)
         ↓
-  Usuarios / Organización (ccp/, web_admin/, core/frontend/)
+  Usuarios / Organización (ccp/, core/frontend/)
 ```
 
 - **`cis/`** — backend NestJS, único punto de entrada para fuentes de captura (proxy delgado hacia
@@ -46,14 +49,14 @@ Fuentes de captura (APP SICSAFT/QR, CCP/WEB, RFID, ERP, ...)
 - **`core/`** — backend NestJS, orquestador + motores (Patrimonial, Reglas, Eventos, Auditoría).
   Único sistema con dos deployables: el backend (`core/`) y su SPA (`core/frontend/`, portal del
   Directivo). El frontend habla con CIS, nunca directo al backend de CORE ([ADR-003](adr/ADR-003-frontend-de-core-para-directivo.md)).
-- **`ccp/`, `web_admin/`, `core/frontend/`** — tres SPAs Vite/React independientes, un portal por
-  rol (Profesional de AFT / Administrador del Sistema / Directivo), cada una con su propio login
-  OIDC/PKCE contra Zitadel. No comparten sesión ni código entre sí.
+- **`ccp/`, `core/frontend/`** — dos SPAs Vite/React independientes, un portal por rol (Profesional
+  de AFT / Directivo), cada una con su propio login OIDC/PKCE contra Zitadel. No comparten sesión
+  ni código entre sí.
 - **`base-patrimonial/`** — modelo de dominio de la BPI (Base Patrimonial Inteligente), documentado
   y versionado en `core/migrations/` (Postgres real).
 - **`devops/`** — tres stacks Docker Compose independientes, uno por entorno: `local/` (desarrollo
   — Traefik + Postgres + Zitadel + los 6 sistemas desplegables `cis`/`core`/`cip`/`ccp`/
-  `web-admin`/`core-frontend` + observabilidad self-hosted Prometheus/Loki-Promtail/Grafana,
+  `core-frontend` + observabilidad self-hosted Prometheus/Loki-Promtail/Grafana,
   equivalente a CloudWatch/CloudTrail administrado por el operador del VPS — `app-qr-sicsaft/` es
   un PWA cliente sin contenedor propio en ningún stack), `prod/` (mismo VPS propio, orquestado por
   **Coolify** en vez de un Traefik propio) y `onprem/` (instalación aislada por cliente sobre
@@ -65,10 +68,10 @@ completa en [README.md](README.md) y el `README.md` propio de cada carpeta.
 
 ## Comandos por sistema
 
-`cis/`, `core/` y `cip/` son NestJS (Jest); `ccp/`, `web_admin/`, `app-qr-sicsaft/` y `core/frontend/`
-son Vite/React. `ccp/`, `web_admin/` y `core/frontend/` tienen ESLint + Vitest (unit) — `app-qr-sicsaft/`
+`cis/`, `core/` y `cip/` son NestJS (Jest); `ccp/`, `app-qr-sicsaft/` y `core/frontend/` son Vite/React. `ccp/` y
+`core/frontend/` tienen ESLint + Vitest (unit) — `app-qr-sicsaft/`
 todavía no tiene ninguno de los dos configurado. Playwright (e2e) existe en `ccp/` y
-`app-qr-sicsaft/`; instalado pero sin specs en `web_admin/`; inexistente en `core/frontend/`. Cada
+`app-qr-sicsaft/`; inexistente en `core/frontend/`. Cada
 comando corre desde la carpeta del sistema.
 
 **Backends (`cis/`, `core/`, `cip/`):**
@@ -87,13 +90,13 @@ npm run build                # nest build
 `cip/` además corre un worker `pg-boss` (`AgregacionModule`, ADR-005) contra la cola `cip-eventos`
 que puebla consumiendo eventos reales de `core/`, no expone frontend propio — ver `cip/README.md`.
 
-**Frontends, todas (`ccp/`, `web_admin/`, `app-qr-sicsaft/`, `core/frontend/`):**
+**Frontends, todas (`ccp/`, `app-qr-sicsaft/`, `core/frontend/`):**
 ```bash
 npm run dev                  # vite
 npm run build                 # tsc -b && vite build
 ```
 
-**`ccp/`, `web_admin/`, `core/frontend/` además tienen:**
+**`ccp/` y `core/frontend/` además tienen:**
 ```bash
 npm run lint:ci               # eslint --max-warnings=0 (mismo criterio que cis/core)
 npm test                      # vitest run — hoy solo cubre src/lib/oidc/ (PKCE/tokens/refresh, DOC-023)
@@ -101,8 +104,7 @@ npx vitest run src/lib/oidc/pkce.test.ts   # un solo archivo de test
 npm run test:cov              # vitest run --coverage
 ```
 
-**`ccp/` y `app-qr-sicsaft/` además tienen e2e real** (`web_admin/` tiene Playwright instalado pero
-sin specs todavía; `core/frontend/` no tiene e2e):
+**`ccp/` y `app-qr-sicsaft/` además tienen e2e real** (`core/frontend/` no tiene e2e):
 ```bash
 npm run test:e2e              # playwright test
 npx playwright test archivo.spec.ts   # un solo archivo e2e
@@ -178,7 +180,7 @@ primero que la entidad no sea un registro oficial cubierto por este invariante.
 - **Cómo construir eso de forma escalable/resiliente**: [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md).
 - **Identidad visual / paleta de colores**: [BRAND.md](BRAND.md), origen canónico en
   `landing/src/style.css` — no reinventar colores por sistema en trabajo de frontend (`ccp/`,
-  `web_admin/`, `core/frontend/`, `app-qr-sicsaft/`, `cip/`).
+  `core/frontend/`, `app-qr-sicsaft/`, `cip/`).
 - **Decisiones de stack ya tomadas**: [`adr/`](adr) (NestJS, Postgres, `pg-boss`, Zitadel
   self-hosted). No reabrir estas decisiones sin un ADR nuevo que las reemplace explícitamente.
 - **Qué puede hacer cada rol (RBAC), endpoint por endpoint**:
@@ -282,11 +284,11 @@ aidlc-docs/
 
 ## CI / calidad
 
-- Los seis sistemas desplegables (`cis/`, `core/`, `cip/`, `ccp/`, `web_admin/`, `core/frontend/`)
+- Los cinco sistemas desplegables (`cis/`, `core/`, `cip/`, `ccp/`, `core/frontend/`)
   tienen su propio workflow en `.github/workflows/` con `paths` filtrado a su carpeta. `cis/`,
   `core/` y `cip/` corren lint, unit tests con cobertura, e2e contra Postgres real
-  (Testcontainers-style service en GitHub Actions, no mocks), build y `docker build`. `ccp/`,
-  `web_admin/` y `core/frontend/` corren lint, `vitest run --coverage`, build y `docker build` (con
+  (Testcontainers-style service en GitHub Actions, no mocks), build y `docker build`. `ccp/` y
+  `core/frontend/` corren lint, `vitest run --coverage`, build y `docker build` (con
   placeholders `VITE_*`, nunca hosts reales); solo `ccp/` corre además Playwright e2e en CI. Ver
   `core-ci.yml`/`cis-ci.yml` como plantilla para un sistema backend nuevo, o `ccp-ci.yml` para uno
   frontend.

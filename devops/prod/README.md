@@ -28,8 +28,8 @@ panel, ahí sí reconsiderar (decisión futura, no bloqueante hoy).
 2. Cargar las variables de `devops/prod/.env.example` con sus valores reales en la pestaña
    "Environment Variables" del recurso (nunca completar ese archivo `.env.example` con valores
    reales ni commitearlo).
-3. Para cada servicio expuesto públicamente (`zitadel`, `cis`, `ccp`, `web-admin`,
-   `core-frontend`, `grafana` — los únicos con `expose:` en el compose), asignar su dominio real
+3. Para cada servicio expuesto públicamente (`zitadel`, `cis`, `ccp`, `core-frontend`,
+   `grafana` — los únicos con `expose:` en el compose), asignar su dominio real
    desde la pestaña "Domains" de ese servicio (ver tabla de dominios en `devops/README.md`) —
    Coolify emite el certificado TLS solo (Let's Encrypt) apenas el dominio resuelve al VPS. No
    hace falta escribir labels de Traefik a mano.

@@ -2,8 +2,8 @@ import { Navigate } from 'react-router-dom';
 import { oidcClient } from '@/lib/oidc/oidc-client';
 import { Button } from '@/components/ui';
 
-// Login vía Keycloak (authorization code + PKCE, ADR-004), mismo mecanismo probado end-to-end en ccp/ y
-// web_admin/. Sin credenciales propias del portal.
+// Login vía Keycloak (authorization code + PKCE, ADR-004), mismo mecanismo probado end-to-end en
+// ccp/. Sin credenciales propias del portal.
 export function LoginPage() {
   if (oidcClient.isAuthenticated()) {
     return <Navigate to="/" replace />;

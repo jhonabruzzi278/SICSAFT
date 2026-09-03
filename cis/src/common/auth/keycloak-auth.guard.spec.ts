@@ -141,7 +141,7 @@ describe('KeycloakAuthGuard', () => {
       payload: { sub: 'op-1', exp: 9999999999, organization: ['duoc-uc', 42] },
     });
     keycloakAdminService.resolverRolesPorOrganizacionDeUsuario.mockResolvedValue(
-      { 'duoc-uc': ['administrador-sistema'] },
+      { 'duoc-uc': ['directivo'] },
     );
     const request = buildRequest({ authorization: 'Bearer token-1' }, 'corr-1');
     const context = buildContext(request);
@@ -158,7 +158,7 @@ describe('KeycloakAuthGuard', () => {
       payload: { sub: 'op-1', exp: 9999999999, organization: ['duoc-uc'] },
     });
     keycloakAdminService.resolverRolesPorOrganizacionDeUsuario.mockResolvedValue(
-      { 'duoc-uc': ['administrador-sistema'] },
+      { 'duoc-uc': ['directivo'] },
     );
     const request = buildRequest({ authorization: 'Bearer token-1' }, 'corr-1');
     const context = buildContext(request);
@@ -166,7 +166,7 @@ describe('KeycloakAuthGuard', () => {
     await guard.canActivate(context);
 
     expect(request.auth?.rolesPorOrganizacion).toEqual({
-      'duoc-uc': ['administrador-sistema'],
+      'duoc-uc': ['directivo'],
     });
   });
 
@@ -193,7 +193,7 @@ describe('KeycloakAuthGuard', () => {
       payload: { sub: 'op-1', exp: 9999999999, organization: ['duoc-uc'] },
     });
     keycloakAdminService.resolverRolesPorOrganizacionDeUsuario.mockResolvedValue(
-      { 'duoc-uc': ['administrador-sistema'] },
+      { 'duoc-uc': ['directivo'] },
     );
     const context = buildContext(
       buildRequest({ authorization: 'Bearer token-1' }, 'corr-1'),
@@ -218,7 +218,7 @@ describe('KeycloakAuthGuard', () => {
       payload: { sub: 'op-1', exp: 9999999999, organization: ['duoc-uc'] },
     });
     keycloakAdminService.resolverRolesPorOrganizacionDeUsuario.mockResolvedValue(
-      { 'duoc-uc': ['administrador-sistema'] },
+      { 'duoc-uc': ['directivo'] },
     );
 
     await guard.canActivate(

@@ -83,16 +83,15 @@ por `build.context` relativo (ver ese archivo).
 | `id.sicsaft.cl` | Identidad/SSO — Zitadel (ver ADR-002) |
 | `api.sicsaft.cl` | CIS (API Gateway) |
 | `app.sicsaft.cl` | CCP — Centro de Control Patrimonial (hub post-login del Profesional de AFT) |
-| `admin.sicsaft.cl` | web_admin — Portal WEB del Administrador del Sistema (DOC-022) |
 | `directivo.sicsaft.cl` | core/frontend — Portal WEB del Directivo (DOC-022, ADR-003) |
 | `grafana.sicsaft.cl` | Grafana — dashboards de observabilidad (acceso solo con login, ver "Observabilidad self-hosted" abajo) |
 | `qr.sicsaft.cl` | APP QR SICSAFT (PWA instalable, subdominio propio por `scope` del manifest) |
 | `cip.sicsaft.cl` | CIP (dashboards/BI), separable de `app.` si el tráfico lo justifica |
 
-Las filas `admin.`/`directivo.`/`grafana.` se agregaron acá (2026-08-20) siguiendo el mismo patrón
-de nombre corto por rol/propósito que ya usa esta tabla — mismo criterio que los hostnames locales
-`admin.sicsaft.localhost`/`directivo.sicsaft.localhost` de `devops/local/docker-compose.yml`, no
-una decisión nueva de naming.
+Las filas `directivo.`/`grafana.` se agregaron acá (2026-08-20) siguiendo el mismo patrón de
+nombre corto por rol/propósito que ya usa esta tabla — mismo criterio que el hostname local
+`directivo.sicsaft.localhost` de `devops/local/docker-compose.yml`, no una decisión nueva de
+naming.
 
 ## Rama `main` — regla no negociable
 **Nunca push directo a `main`**, configurado como branch protection en GitHub desde ya, aunque el

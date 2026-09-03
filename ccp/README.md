@@ -188,10 +188,13 @@ login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/
   - **Importaciones controladas desde archivos** — `ImportacionesPage.tsx` nueva (CSV
     cliente-side, sin dependencia nueva) → `POST /admin/importaciones/contable` (ya funcionaba en
     CORE, solo faltaba el puente).
-- **Rol nuevo Administrador del Sistema** (`administrador-sistema`, DOC-021) — módulo
-  `AdminPage.tsx` (Organizaciones/Contratos/Usuarios/Indicadores), nunca toca información
-  patrimonial. Integración real con la API de administración de Keycloak (ADR-004, reemplaza a Zitadel) para
-  asignar usuarios a organizaciones (`cis/src/keycloak-admin/`).
+- **Rol Administrador del Sistema** (`administrador-sistema`, DOC-021) — se extrajo de
+  `AdminPage.tsx` a su propio portal `web_admin/` (DOC-022) y ese portal, el rol y las rutas
+  `/admin/organizaciones|contratos|sedes|indicadores` de CIS se **eliminaron (2026-09)**: crear/
+  editar Organización/Contrato/Sede y asignar usuarios pasó a ser intervención directa del
+  proveedor externo (BD / script con service-token) + el bootstrap del wizard de `sicsaft-core`;
+  el diagnóstico de errores se hace por la consola de logs de `sicsaft-core`. `cis/src/keycloak-admin/`
+  sigue vivo: lo usa el alta de usuarios del wizard y el "designar Profesional de AFT" del Directivo.
 
 **DOC-029 — endurecimiento para cliente real (mergeado a `main`, PRs #90/#92/#94/#96)**
 ([DOC-029](../aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md)) — la
@@ -234,10 +237,11 @@ arriba), Áreas/Ubicaciones/Responsables (🟢, ABM completo incluida la edició
 RF-05 cerrado, ver "Gaps" arriba). Un séptimo módulo, Dashboard (🟢 implementado — RF-09,
 [DOC-019](../aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md)), expone el primer
 dashboard de CIP (SYS-06, Fase 6) vía un proxy nuevo en CIS (`src/dashboard-connector/`) — WEB
-nunca le habla a CIP directo. Dos módulos más (2026-08-18, DOC-021): **Importaciones** (🟢, CSV
-cliente-side → `POST /admin/importaciones/contable`) y **Administración** (🟢, exclusivo de
-`administrador-sistema` — Organizaciones/Contratos/Usuarios/Indicadores, transversal como
-Auditoría, no vive dentro del flujo por-organización del hub). Un décimo módulo, **QR / Etiquetas**
+nunca le habla a CIP directo. Un módulo más (2026-08-18, DOC-021): **Importaciones** (🟢, CSV
+cliente-side → `POST /admin/importaciones/contable`). El módulo **Administración** que se diseñó
+el mismo día (exclusivo de `administrador-sistema` — Organizaciones/Contratos/Usuarios/Indicadores)
+se extrajo a `web_admin/` (DOC-022) y se **eliminó (2026-09)** junto con el portal y el rol. Un
+módulo más, **QR / Etiquetas**
 (🟢 DOC-029 RF-F, mergeado — ver el bloque DOC-029 arriba). El resto — Incidencias,
 Movimientos, RFID, Reportes, Roles, Configuración, Integraciones — sigue sin diseñar (sin
 consumidor real).
@@ -251,10 +255,12 @@ responsables, estados, documentación/fotografías, preparación de inventarios 
 controladas. **Directivo** (DOC-020, reestructurado por DOC-022 el 2026-08-19) ya no entra a CCP —
 tiene su propio portal en `../core/frontend/`, ver ese README para su vista ejecutiva de solo
 Dashboard + gestión de roles acotada a su organización.
-**Administrador del Sistema** (`administrador-sistema`, DOC-021) ya implementado — administra la
-plataforma (organizaciones, contratos, usuarios, indicadores), nunca información patrimonial; el
-Profesional de AFT, simétricamente, nunca administra la plataforma. Perfiles futuros anticipados,
-sin diseño ni realm role de Keycloak todavía: Supervisor, Auditor — sin que ninguno reemplace la
+El **Administrador del Sistema** (`administrador-sistema`, DOC-021) tuvo su propio portal
+`web_admin/` para administrar la plataforma (organizaciones, contratos, sedes, usuarios); ese
+portal y ese rol se **eliminaron (2026-09)** — el CRUD de Organización/Contrato/Sede y la
+asignación de usuarios pasó a intervención directa del proveedor externo (BD / script con
+service-token) + el bootstrap del wizard de `sicsaft-core`. Perfiles futuros anticipados, sin
+diseño ni realm role de Keycloak todavía: Supervisor, Auditor — sin que ninguno reemplace la
 responsabilidad de Nivel 1 del Profesional de AFT.
 
 ## Desarrollo local

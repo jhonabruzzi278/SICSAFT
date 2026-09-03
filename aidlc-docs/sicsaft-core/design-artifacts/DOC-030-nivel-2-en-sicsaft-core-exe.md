@@ -13,6 +13,11 @@
 > "Nivel 2 hoy se activa editando `instalacion.json` a mano" (comentario en `handlers.ts`) no es
 > entregable.
 
+> **Actualización (2026-09)**: el portal de Administración del Sistema (`web_admin/`) y su rol
+> `administrador-sistema` se **eliminaron por completo** del repo, no sólo del `.exe`. El CRUD de
+> Organización/Contrato/Sede pasó a intervención directa del proveedor (BD / script) + el wizard.
+> El resto de este documento queda como registro de la decisión original (2026-09-02).
+>
 > **Decisión del usuario (2026-09-02)**: el portal de Administración del Sistema (`web_admin/`)
 > **no se embebe** y **no** se hace ningún portal de administración remota — *"quita la web admin
 > por completo porque no quiero conectarme a nada del cliente"*. La instalación es autocontenida:

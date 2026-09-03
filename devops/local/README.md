@@ -21,7 +21,6 @@ secas). Agregar al archivo hosts (`C:\Windows\System32\drivers\etc\hosts`, como 
 127.0.0.1 api.sicsaft.localhost
 127.0.0.1 traefik.sicsaft.localhost
 127.0.0.1 ccp.sicsaft.localhost
-127.0.0.1 admin.sicsaft.localhost
 127.0.0.1 directivo.sicsaft.localhost
 ```
 
@@ -30,9 +29,7 @@ secas). Agregar al archivo hosts (`C:\Windows\System32\drivers\etc\hosts`, como 
 `ccp.sicsaft.localhost` sirve el build de producción de CCP (nginx, ver `ccp/Dockerfile`) cuando
 corre dentro del stack (`docker compose up -d --build ccp`) — para desarrollo día a día seguí
 usando `npm run dev` (puerto 5174, hot reload), ver `../../ccp/README.md` Desarrollo local.
-`admin.sicsaft.localhost` es el equivalente para `web_admin/` (Administrador del Sistema,
-DOC-022) — `docker compose up -d --build web-admin`, o `npm run dev` (puerto 5176) para
-desarrollo día a día. `directivo.sicsaft.localhost` es el equivalente para `core/frontend/`
+`directivo.sicsaft.localhost` es el equivalente para `core/frontend/`
 (Directivo, DOC-022) — `docker compose up -d --build core-frontend`, o `npm run dev` (puerto
 5177) para desarrollo día a día.
 
@@ -270,36 +267,10 @@ tabla en el encabezado de [DOC-020](../../aidlc-docs/ccp/design-artifacts/DOC-02
 Nota: si `ccp` corría desde antes de este incremento, hace falta `docker compose build ccp` — la
 imagen no se reconstruye sola al mergear código nuevo.
 
-## Cliente OIDC real (web_admin) — DOC-022 2
-
-`web_admin/` necesita su propia Application OIDC (no reusa `web-sicsaft`) — mismo proyecto "CIS" y
-misma organización "DUOC UC". Pasos reales seguidos (2026-08-18), reproducibles desde el dashboard:
-
-1. Proyecto "CIS" → **Applications** → New → tipo **User Agent** (SPA, PKCE) → nombre
-   `web-admin-sicsaft` → **Development Mode** habilitado → redirect URI
-   `http://localhost:5176/auth/callback` (puerto de Vite de `web_admin/`) **y también**
-   `http://admin.sicsaft.localhost/auth/callback` si se va a probar corriendo el stack de Docker
-   detrás de Traefik, no solo `npm run dev` — ver la nota ⚠️ en "Cliente OIDC real (WEB) — Fase 5"
-   arriba para el porqué (mismo criterio para `postLogoutRedirectUris`/`allowedOrigins`).
-2. En **Token Settings**: **Auth Token Type = JWT**, **Access Token Role Assertion** e **ID Token
-   Role Assertion** habilitados, grant type `refresh_token` agregado — mismo criterio que
-   `web-sicsaft`.
-3. Copiar el **Client ID** a `web_admin/.env` (`VITE_ZITADEL_CLIENT_ID`) y a
-   `devops/local/.env` (`WEB_ADMIN_VITE_ZITADEL_CLIENT_ID`, para cuando corre dentro del stack).
-4. `CIS_CORS_ORIGIN` en `docker-compose.yml` (servicio `cis`) debe incluir
-   `http://localhost:5176` y `http://admin.sicsaft.localhost` — ya seteado.
-5. Usuario de prueba en "DUOC UC" con el rol `administrador-sistema` (ver más abajo "Rol
-   `administrador-sistema`") → login desde `web_admin/` → alta de organización sin necesitar decir
-   "en qué organización tengo el rol" (verifica `verificarRolEnCualquierOrganizacion` en CORE).
-
-**Verificado real de punta a punta el 2026-08-18**: usuario `admin.sicsaft.localhost` con el rol
-`administrador-sistema`, login OIDC/PKCE real, alta de una organización nueva (`doc022-verify-org`)
-confirmada visible en la lista de organizaciones.
-
 ## Cliente OIDC real (core/frontend) — DOC-022 4
 
 `core/frontend/` (portal del Directivo) necesita su propia Application OIDC — mismo proyecto "CIS"
-y misma organización "DUOC UC", mismo patrón que `web_admin` arriba:
+y misma organización "DUOC UC", mismo patrón que `ccp` arriba:
 
 1. Proyecto "CIS" → **Applications** → New → tipo **User Agent** (SPA, PKCE) → nombre
    `core-frontend-sicsaft` → **Development Mode** habilitado → redirect URI
@@ -321,7 +292,7 @@ y misma organización "DUOC UC", mismo patrón que `web_admin` arriba:
 **Verificado real de punta a punta el 2026-08-19**: Application OIDC `core-frontend-sicsaft`
 creada, login real con `directivo-test`, Dashboard con datos reales, designación de Profesional de
 AFT confirmada (dos casos: usuario sin grant previo, y usuario con otro rol ya asignado — este
-último destapó y corrigió dos bugs reales en `cis/src/zitadel-admin/`, ver `cis/README.md`).
+último destapó y corrigió dos bugs reales en `cis/src/keycloak-admin/`, ver `cis/README.md`).
 
 ## Rol `directivo` + gestión de roles (core/frontend) — DOC-022 3
 
@@ -329,33 +300,22 @@ El rol de Proyecto `directivo` ya existe (creado para DOC-020, ver arriba) — e
 suma una capacidad de **escritura** nueva: designar quién es el Profesional de AFT
 (`administrador-patrimonial`) de su propia organización, vía `cis/src/directivo/`
 (`GET/POST /directivo/usuarios`). Reusa el mismo `ZitadelAdminService` y el mismo service user con
-Personal Access Token ya configurado para `administrador-sistema` (ver más abajo) — sin
-infraestructura nueva de ese lado.
+Personal Access Token del service user (ver más abajo) — sin infraestructura nueva de ese lado.
 
 1. Usuario de prueba en "DUOC UC" con el rol `directivo` → **Profesional de AFT** en
    `core/frontend/` → designar un email de un usuario ya existente en Zitadel.
 2. Verificar el límite de organización: un segundo Directivo de prueba en una organización
-   distinta (crear una organización nueva vía `web_admin/` primero, ver arriba) no debería poder
+   distinta (crear una organización nueva vía la Console de Zitadel primero) no debería poder
    ver ni tocar los usuarios de "DUOC UC" — `DirectivoGuard` en CIS deriva la organización siempre
    del propio JWT, nunca de un parámetro que el cliente pueda mandar.
 
 ⚠️ Pendiente verificación real de punta a punta (mismo estado que la sección anterior).
 
-## Rol `administrador-sistema` + integración Zitadel Admin API (WEB) — DOC-021
+## Service user + Personal Access Token para la Admin API de Zitadel
 
-Dos partes: el rol de Proyecto (mismo mecanismo que `directivo`, sin infraestructura nueva) y el
-service user con Personal Access Token que CIS necesita para la integración real de "asignar
-usuarios a organizaciones" (`cis/src/zitadel-admin/`).
-
-### 1. Rol de Proyecto
-
-1. Proyecto "CIS" → **Roles** → crear un rol de Proyecto `administrador-sistema` (mismo mecanismo
-   que `administrador-patrimonial`/`directivo`, "Assert Roles on Authentication" ya está
-   habilitado a nivel de proyecto).
-2. Usuario de prueba en "DUOC UC" → **Authorizations** → New → proyecto "CIS" → rol
-   `administrador-sistema`.
-
-### 2. Service user + Personal Access Token (integración Zitadel Admin API)
+CIS necesita este service user para la integración real de identidad (hoy: el portal Directivo
+designa al Profesional de AFT de su organización, `cis/src/keycloak-admin/` en el stack de
+Keycloak, `cis/src/zitadel-admin/` cuando el stack todavía corre Zitadel).
 
 A diferencia del resto de la integración con Zitadel de este repo (login de operadores vía
 OIDC/PKCE), esto es autenticación **service-to-service** de CIS hacia la API de administración de

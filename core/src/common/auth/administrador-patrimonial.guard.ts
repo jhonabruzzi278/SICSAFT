@@ -10,12 +10,6 @@ import type { ServiceAuthenticatedRequest } from './service-token.guard';
 // Patrimonial (Tomo III 1.4 Entrada 4).
 export const ADMINISTRADOR_PATRIMONIAL_ROLE = 'administrador-patrimonial';
 
-// Rol de Proyecto en Zitadel (DOC-021 1) — administracion de la plataforma (organizaciones,
-// contratos, usuarios, indicadores), nunca de informacion patrimonial. Mismo mecanismo que
-// ADMINISTRADOR_PATRIMONIAL_ROLE (rol de Proyecto asignado por organizacion), sin cambios en
-// ZitadelAuthGuard — generico por nombre de rol (mismo precedente que `directivo`, DOC-020).
-export const ADMINISTRADOR_SISTEMA_ROLE = 'administrador-sistema';
-
 interface EscrituraOficialBody {
   organizacionId?: unknown;
   rolesPorOrganizacion?: unknown;
@@ -38,12 +32,10 @@ function esRecordDeRoles(value: unknown): value is Record<string, unknown> {
 // administrador-patrimonial de la Organizacion A escribir sobre activos de la Organizacion B
 // (hallazgo real de revision de seguridad, corregido en este mismo incremento — ver tambien el
 // cruce adicional contra la organizacion real del activo en ActivoRepository).
-// Generalizacion (DOC-021 2) — Contrato pasa a aceptar administrador-patrimonial O
-// administrador-sistema (Tomo III 1.4 ya se lo exigia al primero, no se le quita esa capacidad;
-// el segundo la gana para poder administrar la plataforma). Los endpoints puramente
-// patrimoniales (Activo, Catalogo, Documento) siguen usando solo
-// verificarRolAdministradorPatrimonial (wrapper de abajo, un solo rol) y los puramente
-// administrativos (Organizacion) usan [ADMINISTRADOR_SISTEMA_ROLE] en solitario.
+// `verificarRolesPermitidos` es generico (acepta una lista de roles) pero hoy solo lo invoca
+// `verificarRolAdministradorPatrimonial` de abajo con un unico rol — la variante multi-rol se
+// habia agregado para Contrato/Organizacion (DOC-021 2), camino que se elimino en 2026-09 con el
+// portal web_admin/.
 export function verificarRolesPermitidos(
   rolesPorOrganizacion: unknown,
   organizacionId: string,
@@ -68,35 +60,6 @@ export function verificarRolAdministradorPatrimonial(
   return verificarRolesPermitidos(rolesPorOrganizacion, organizacionId, [
     ADMINISTRADOR_PATRIMONIAL_ROLE,
   ]);
-}
-
-// DOC-022 3 — variante sin `organizacionId`, para el unico caso donde no tiene sentido pedirlo:
-// crear una Organizacion nueva. `verificarRolesPermitidos` de arriba (usado por
-// Activo/Contrato/Catalogo/Documento) exige el rol DENTRO de una organizacionId puntual a
-// proposito (evita que alguien de la Organizacion A escriba sobre la Organizacion B) — pero
-// Administrador del Sistema administra la plataforma entera, no pertenece a una organizacion de
-// negocio en particular. Antes de esta funcion, `procesarAltaOrganizacion` reusaba el chequeo de
-// arriba con un organizacionId inventado por el cliente ("la primera organizacion que administro"),
-// lo que en la practica forzaba a que el grant de administrador-sistema viviera dentro de una
-// organizacion especifica para que el chequeo pasara — incorrecto para un rol que no deberia
-// depender de ninguna. Alcanza con que el rol aparezca en CUALQUIER entrada de
-// rolesPorOrganizacion.
-export function verificarRolEnCualquierOrganizacion(
-  rolesPorOrganizacion: unknown,
-  rolesPermitidos: readonly string[],
-): void {
-  const mapa = esRecordDeRoles(rolesPorOrganizacion)
-    ? rolesPorOrganizacion
-    : {};
-  const tieneAlguno = Object.values(mapa).some((roles) => {
-    const lista = Array.isArray(roles) ? roles : [];
-    return rolesPermitidos.some((rol) => lista.includes(rol));
-  });
-  if (!tieneAlguno) {
-    throw new ForbiddenException(
-      `Requiere alguno de estos roles en alguna organizacion: ${rolesPermitidos.join(', ')}`,
-    );
-  }
 }
 
 // CIS certifica que Zitadel firmo el rol en esa organizacion (ZitadelAuthGuard.rolesPorOrganizacion,

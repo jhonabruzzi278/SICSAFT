@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SICSAFT — Arquitectura Nivel 1 (QR + CCP + Directivo + Admin)</title>
+  <title>SICSAFT — Arquitectura Nivel 1 (QR + CCP + Directivo)</title>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -58,12 +58,12 @@
 <body>
   <div class="frame">
     <p class="eyebrow">Architecture · SICSAFT · Nivel 1</p>
-    <h1>Nivel 1 — QR + CCP + Directivo + Admin</h1>
-    <p class="subtitle">DOC-025 (rev. 2026-09-02): APP QR (única fuente de captura) + <strong>CCP completo</strong> (Profesional de AFT) + portal Directivo + portal Administrador del Sistema, todos desde el arranque. Lo único que Nivel 2 agrega es el Dashboard/indicadores, que es CIP (NOMENCLATURA.md). "CCP acotado en Nivel 1" quedó revertido.</p>
+    <h1>Nivel 1 — QR + CCP + Directivo</h1>
+    <p class="subtitle">DOC-025 (rev. 2026-09-02): APP QR (única fuente de captura) + <strong>CCP completo</strong> (Profesional de AFT) + portal Directivo, todos desde el arranque. Lo único que Nivel 2 agrega es el Dashboard/indicadores, que es CIP (NOMENCLATURA.md). "CCP acotado en Nivel 1" quedó revertido.</p>
 
     <svg viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="n1-arq-title n1-arq-desc">
       <title id="n1-arq-title">Arquitectura de componentes de SICSAFT Nivel 1</title>
-      <desc id="n1-arq-desc">La APP QR, el CCP (Profesional de AFT), el portal Directivo y el portal Administrador del Sistema entran por CIS, que hace de proxy hacia SICSAFT CORE; CORE escribe en la BPI (Base Patrimonial Inteligente).</desc>
+      <desc id="n1-arq-desc">La APP QR, el CCP (Profesional de AFT) y el portal Directivo entran por CIS, que hace de proxy hacia SICSAFT CORE; CORE escribe en la BPI (Base Patrimonial Inteligente).</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
         <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
@@ -82,11 +82,9 @@
 
       <path d="M 132,148 V 176 Q 132,184 140,184 H 452 Q 460,184 460,192 V 220"
             fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
-      <path d="M 372,148 V 176 Q 372,184 380,184 H 476 Q 484,184 484,192 V 220"
+      <path d="M 400,148 V 220"
             fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
-      <path d="M 612,148 V 176 Q 612,184 604,184 H 516 Q 508,184 508,192 V 220"
-            fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
-      <path d="M 852,148 V 176 Q 852,184 844,184 H 540 Q 532,184 532,192 V 220"
+      <path d="M 668,148 V 176 Q 668,184 660,184 H 548 Q 540,184 540,192 V 220"
             fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
       <rect x="676" y="164" width="44" height="12" rx="2" fill="#f5f5f5"/>
       <text x="698" y="173" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">HTTPS</text>
@@ -101,23 +99,19 @@
       <rect x="508" y="424" width="46" height="16" rx="2" fill="#f5f5f5"/>
       <text x="512" y="435" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">WRITE</text>
 
-      <!-- ===== INPUT NODES (4) ===== -->
+      <!-- ===== INPUT NODES (3) ===== -->
       <g font-family="'Geist', sans-serif">
         <rect x="52" y="68" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
         <text x="132" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">APP QR</text>
         <text x="132" y="118" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Prof. AFT campo</text>
 
-        <rect x="292" y="68" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
-        <text x="372" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Core Frontend</text>
-        <text x="372" y="118" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Directivo</text>
+        <rect x="320" y="68" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+        <text x="400" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">CCP</text>
+        <text x="400" y="118" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Prof. AFT · web</text>
 
-        <rect x="532" y="68" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
-        <text x="612" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Web Admin</text>
-        <text x="612" y="118" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Admin. Sistema</text>
-
-        <rect x="772" y="68" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
-        <text x="852" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">CCP</text>
-        <text x="852" y="118" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Prof. AFT · web</text>
+        <rect x="588" y="68" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+        <text x="668" y="102" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Core Frontend</text>
+        <text x="668" y="118" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Directivo</text>
       </g>
 
       <!-- CIS -->

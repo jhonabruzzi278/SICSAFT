@@ -78,7 +78,7 @@ operar.
   "sede principal", campo nuevo del paso 1), `contrato_sedes`. INSERT parametrizado directo
   (mismo patrón que `postgres-bootstrap.ts`), **no vía HTTP** — a esa altura del wizard no hay
   usuario autenticado.
-  - **Alternativa descartada**: embeber `web_admin` en el `.exe` para que el Administrador del
+  - **Alternativa descartada** (y desde 2026-09 el portal `web_admin/` ya no existe): embeber `web_admin` en el `.exe` para que el Administrador del
     Sistema cree la org. Descartada — suma un 4.º portal + un rol + un login más a un instalador
     que hoy tiene 2, para una operación que se hace una sola vez por instalación.
   - **Consistencia de alias**: con ADR-004, el `alias` de la Organization de Keycloak **es** el

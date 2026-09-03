@@ -81,7 +81,7 @@ cambia el diseño respecto al ADR: los realm roles de Keycloak son globales por 
 anidados por organización como el claim propietario de Zitadel — `KeycloakAuthGuard` resuelve
 `rolesPorOrganizacion` llamando a `KeycloakAdminService` (grupos `{organizacionId}::{rol}`, con
 caché corta de 30s en memoria del propio proceso) en vez de leerlo directo del token. Alcance de
-esta fase: solo `cis/`. Los 4 portales (`app-qr-sicsaft/`, `ccp/`, `web_admin/`, `core/frontend/`)
+esta fase: solo `cis/`. Los 3 portales (`app-qr-sicsaft/`, `ccp/`, `core/frontend/`)
 y los 3 stacks de `devops/` siguen apuntando a Zitadel hasta que se ejecuten las fases siguientes
 (ver [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) "Consequences") — hasta
 entonces, `cis/` no tiene un Keycloak real contra el cual autenticar en `devops/local/`.
@@ -163,6 +163,20 @@ devuelven el envelope `{ <entidad>, total }` tal cual, sin reinterpretarlo.
 
 **Cierre de 5 gaps del CCP + rol Administrador del Sistema (2026-08-18,
 [DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md))**:
+
+> **Eliminado (2026-09).** El portal `web_admin/` y el rol `administrador-sistema` se retiraron por
+> completo. `AdministradorModule` conserva **solo las rutas `/admin/*` del CCP** (Activo:
+> `POST`/baja/reincorporación/`PATCH responsable`/`descripcion`; `GET/POST /admin/catalogo-tipos`;
+> `GET/POST/DELETE /admin/activos/:id/documentos`; `POST /admin/importaciones/contable` + la
+> bandeja de staging `/lote*`; `GET /admin/auditoria`; `/admin/areas|ubicaciones|responsables*`).
+> Se borraron las rutas `/admin/organizaciones*` (+ `/:orgId/usuarios*`), `/admin/contratos*`,
+> `/admin/sedes*` e `/admin/indicadores`, más `AdministradorSistemaGuard` y
+> `AdministradorSistemaEnCualquierOrganizacionGuard`. El CRUD de Organización/Contrato/Sede y la
+> asignación de usuarios pasó a intervención directa del proveedor externo (BD / script con
+> service-token) + el bootstrap del wizard de `sicsaft-core`; los errores se diagnostican por la
+> consola de logs de `sicsaft-core`. El resto de este bloque queda como registro histórico de
+> cómo se construyó el módulo.
+
 `AdministradorController`/`AdministradorService` suman ~15 endpoints nuevos, mismo patrón puente
 que el resto del módulo — `POST/baja/reincorporacion/PATCH responsable/descripcion` de Activo,
 `GET/POST /admin/catalogo-tipos`, `GET/POST/DELETE /admin/activos/:id/documentos`,
@@ -429,8 +443,8 @@ supersede-en-vez-de-rechazo y el TTL atado al token.
 
 ## Próximo paso sugerido
 Fases siguientes de [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md): reemplazar
-Zitadel por Keycloak en `devops/local/`/`devops/prod/`/`devops/onprem/` y en los 4 portales
-(`app-qr-sicsaft/`, `ccp/`, `web_admin/`, `core/frontend/`) — hoy solo `cis/` migró, así que no hay
+Zitadel por Keycloak en `devops/local/`/`devops/prod/`/`devops/onprem/` y en los 3 portales
+(`app-qr-sicsaft/`, `ccp/`, `core/frontend/`) — hoy solo `cis/` migró, así que no hay
 todavía un Keycloak real contra el cual verificar en vivo. Recién con eso resuelto vuelve a ser
 posible la verificación en vivo de TASK-007 (`app-qr-sicsaft/`, ver su
 `HANDOFF-APP-QR-SICSAFT.md` 7): crear el client OIDC público en Keycloak con `offline_access`

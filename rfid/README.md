@@ -6,7 +6,7 @@ para activos extraordinarios. Dispositivos en entradas/salidas con visualizació
 
 ## Estado
 🔲 No iniciado. Fase tardía del plan maestro (después de estabilizar CORE + CIS + los portales
-WEB — hoy `ccp/`, `web_admin/` y `core/frontend/`, ver DOC-022).
+WEB — hoy `ccp/` y `core/frontend/`, ver DOC-022).
 
 ## Arquitectura futura
 ```

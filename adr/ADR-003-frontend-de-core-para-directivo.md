@@ -21,10 +21,16 @@ no como un cuarto sistema top-level separado. Esto reabre la decisión de ADR-00
 sistemas tienen frontend, así que necesita su propio ADR en vez de simplemente contradecir el
 anterior en silencio (`CLAUDE.md` "Decisiones de stack ya tomadas").
 
+> **Nota (2026-09).** Este ADR menciona `web_admin/` y `AdministradorSistemaGuard` como
+> precedentes; ambos, junto con el rol `administrador-sistema`, se eliminaron por completo en
+> 2026-09. La decisión de este ADR (el frontend del Directivo es un deploy independiente que
+> habla con CIS, nunca con CORE directo) **no cambia** — sólo desaparece el portal hermano que se
+> citaba como paralelo.
+
 ## Decision
 
 **`core/frontend/` es un deploy independiente (Vite + React + TypeScript, mismo stack que
-`ccp/`/`web_admin/` — no cambia la elección de ADR-001, solo dónde se usa) que le habla a CIS, no
+`ccp/` — no cambia la elección de ADR-001, solo dónde se usa) que le habla a CIS, no
 a CORE directamente.**
 
 - `core/frontend/` es sibling de `core/src/` dentro de la misma carpeta de sistema: `core/` pasa
@@ -33,12 +39,12 @@ a CORE directamente.**
   pipelines de CI independientes con path filters distintos (`core/**` excluyendo
   `core/frontend/**` para el backend; `core/frontend/**` para el frontend).
 - El frontend nunca llama al puerto interno de CORE ni a su base de datos — usa el mismo patrón
-  de autenticación OIDC/PKCE y el mismo cliente HTTP contra CIS que ya usan `ccp/`/`web_admin/`.
+  de autenticación OIDC/PKCE y el mismo cliente HTTP contra CIS que ya usa `ccp/`.
   Las capacidades nuevas que necesita (designar Profesional de AFT, gestionar roles de su
   organización) se implementan como endpoints nuevos en CIS
-  (`cis/src/directivo/`, DOC-022 4) con un guard propio (`DirectivoGuard`) — mismo patrón ya
-  usado para Administrador del Sistema (`AdministradorSistemaGuard`, DOC-021): la escritura es
-  gestión de identidad en Zitadel, no un cambio a la Base Patrimonial, así que no pasa por el
+  (`cis/src/directivo/`, DOC-022 4) con un guard propio (`DirectivoGuard`) — mismo patrón que
+  usó en su momento `AdministradorSistemaGuard` (DOC-021, eliminado en 2026-09): la escritura es
+  gestión de identidad en el IdP, no un cambio a la Base Patrimonial, así que no pasa por el
   Orquestador de CORE ni por el Motor de Auditoría de Tomo IV.
 - CORE-el-backend no gana ninguna ruta HTTP nueva ni deja de ser un servicio interno — "CORE gana
   un frontend" describe únicamente dónde vive el código en el repositorio, no un cambio de qué
@@ -49,7 +55,7 @@ a CORE directamente.**
 - **Positivo**: la carpeta `core/` queda alineada con el pedido explícito del usuario
   ("CORE va a estar conformado de backend y frontend") sin abrir una brecha real en el modelo de
   zero-trust de `ARQUITECTURA-WAF.md` 3 — el invariante "todo pasa por CIS" se verifica
-  literalmente igual que en `ccp/`/`web_admin/`, porque el frontend de `core/` es, en los hechos,
+  literalmente igual que en `ccp/`, porque el frontend de `core/` es, en los hechos,
   un cliente más de CIS.
 - **Negativo/a vigilar**: el nombre "frontend de CORE" puede sugerir erróneamente que CORE ganó
   una API pública o que el Orquestador ahora se llama desde fuera de la red interna de Docker —

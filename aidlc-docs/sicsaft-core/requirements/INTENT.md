@@ -15,7 +15,7 @@ Tauri, con Postgres/Keycloak/CIS/CORE/CIP corriendo como procesos embebidos dent
 como contenedores (sin Redis — ver ADR-005, decidido más tarde ese mismo día: sacado del
 ecosistema completo). Esto vuelve obsoleta la capa de empaquetado que
 `devops/onprem/docker-compose.yml`/`instalar-cliente.ps1`/Podman construían — el código de
-aplicación de `cis/`, `core/`, `cip/`, y los 4 portales (`app-qr-sicsaft`, `ccp`, `web_admin`,
+aplicación de `cis/`, `core/`, `cip/`, y los 3 portales (`app-qr-sicsaft`, `ccp`,
 `core/frontend`) NO cambia, solo cómo se empaqueta y arranca todo junto.
 
 Flujo de instalación/primer uso que el usuario describió explícitamente:

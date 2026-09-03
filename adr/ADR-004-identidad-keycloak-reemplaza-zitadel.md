@@ -43,12 +43,12 @@ Un solo modelo de identidad para todo el ecosistema, sin bifurcar por perfil de 
   realm igual existe con una sola Organization activa — sin caso especial en código: `cis/` habla
   siempre contra "un realm con Organizations", nunca necesita saber si está en modo compartido o
   aislado.
-- **Roles de producto** (`profesional-aft`, `directivo`, `administrador-sistema`) pasan a ser
-  **realm roles** de Keycloak — hoy son roles del "Proyecto CIS" de Zitadel, compartidos por los 4
-  portales; en Keycloak esa noción de "proyecto compartiendo roles entre apps" es exactamente lo
+- **Roles de producto** (`profesional-aft`, `directivo`, ~~`administrador-sistema`~~ — este
+  último eliminado en 2026-09) pasan a ser **realm roles** de Keycloak — hoy son roles del
+  "Proyecto CIS" de Zitadel, compartidos por los portales; en Keycloak esa noción de "proyecto compartiendo roles entre apps" es exactamente lo
   que ya hacen los realm roles por defecto, sin necesitar un concepto adicional.
-- **Cada portal** (`app-qr-sicsaft`, `web-admin-sicsaft`, `core-frontend-sicsaft`, `ccp-sicsaft`)
-  pasa a ser un **client OIDC público** (authorization code + PKCE, `standardFlowEnabled`,
+- **Cada portal** (`app-qr-sicsaft`, `core-frontend-sicsaft`, `ccp-sicsaft` — el client
+  `web-admin-sicsaft` se retiró en 2026-09 con el portal) pasa a ser un **client OIDC público** (authorization code + PKCE, `standardFlowEnabled`,
   `publicClient`) del realm `sicsaft` — mismo rol que las "Apps OIDC" de Zitadel hoy, 1:1.
 - **Sin cambios en el modelo de Contrato/Sede**: ese dominio vive enteramente en Base Patrimonial
   (`base-patrimonial/DOC-004-modelo-contrato.md`), nunca en el IdP — ADR-002 ya estableció "el
@@ -90,9 +90,10 @@ mediano plazo aunque el costo de migración inicial sea mayor.
 ## Consequences
 
 - **`cis/src/zitadel-admin/`** se reescribe contra la Admin REST API de Keycloak (endpoints,
-  payloads y auth completamente distintos a la Management API de Zitadel) — misma responsabilidad
-  (alta/edición de organización, usuarios, roles desde `web_admin` sin pasar por la consola del
-  IdP, ver DOC-021/DOC-024).
+  payloads y auth completamente distintos a la Management API de Zitadel) — hoy `cis/src/keycloak-admin/`,
+  usado por el alta de usuarios del wizard de `sicsaft-core` y el "designar Profesional de AFT" del
+  Directivo (`cis/src/directivo/`). El portal `web_admin/` que motivó parte de este módulo
+  (DOC-021/DOC-024) se eliminó en 2026-09; la lógica de la Admin API quedó.
 - **`cis/src/common/auth/`** (JWKS + validación de JWT) cambia el `issuer`/JWKS URI (Keycloak:
   `/realms/sicsaft/protocol/openid-connect/certs`, no `/oauth/v2/keys` de Zitadel) y los nombres de
   claim que lee (`realm_access.roles`/`organization` de Keycloak en vez de `roles[]`/`org_id` de

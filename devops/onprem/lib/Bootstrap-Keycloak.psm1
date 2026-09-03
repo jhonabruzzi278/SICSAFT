@@ -156,11 +156,13 @@ function New-KeycloakRealmScaffold {
     Invoke-KeycloakAdminApi -KeycloakUrl $KeycloakUrl -Realm "sicsaft" -Token $Token `
         -Method Put -Path "/default-default-client-scopes/$audScopeId" | Out-Null
 
-    # Mismos 3 roles que ya usaba el proyecto "CIS" de Zitadel. "profesional-aft" es el rol de
-    # realm; el que rutea al Profesional de AFT al portal `ccp` es "administrador-patrimonial"
-    # (grupo por Organization). El CCP va completo en todos los niveles (DOC-025 §1.1).
+    # "profesional-aft" es el rol de realm; el que rutea al Profesional de AFT al portal `ccp` es
+    # "administrador-patrimonial" (grupo por Organization). El CCP va completo en todos los niveles
+    # (DOC-025 §1.1). Sin "administrador-sistema" desde 2026-09: se eliminó el portal del
+    # Administrador del Sistema; el proveedor externo interviene en el core de la organización de
+    # forma directa (BD / script).
     Write-Host "  Creando realm roles..."
-    foreach ($rol in @("profesional-aft", "directivo", "administrador-sistema")) {
+    foreach ($rol in @("profesional-aft", "directivo")) {
         Invoke-KeycloakAdminApi -KeycloakUrl $KeycloakUrl -Realm "sicsaft" -Token $Token `
             -Method Post -Path "/roles" -Body @{ name = $rol } | Out-Null
         Write-Host "    rol creado: $rol"
@@ -316,8 +318,6 @@ function Invoke-BootstrapCliente {
     Write-Host "== 5. Creando apps OIDC públicas (Nivel $Nivel) =="
     $appQrClientId = New-KeycloakPublicClient -KeycloakUrl $KeycloakUrl -Token $token `
         -ClientId "app-qr-sicsaft" -Dominio "qr.$DominioBase"
-    $webAdminClientId = New-KeycloakPublicClient -KeycloakUrl $KeycloakUrl -Token $token `
-        -ClientId "web-admin-sicsaft" -Dominio "admin.$DominioBase"
     $coreFrontendClientId = New-KeycloakPublicClient -KeycloakUrl $KeycloakUrl -Token $token `
         -ClientId "core-frontend-sicsaft" -Dominio "directivo.$DominioBase"
 
@@ -334,7 +334,6 @@ function Invoke-BootstrapCliente {
         KEYCLOAK_ADMIN_CLIENT_SECRET          = $adminClient.Secret
         APP_QR_VITE_KEYCLOAK_CLIENT_ID        = $appQrClientId
         CCP_VITE_KEYCLOAK_CLIENT_ID           = $ccpClientId
-        WEB_ADMIN_VITE_KEYCLOAK_CLIENT_ID     = $webAdminClientId
         CORE_FRONTEND_VITE_KEYCLOAK_CLIENT_ID = $coreFrontendClientId
     }
 }

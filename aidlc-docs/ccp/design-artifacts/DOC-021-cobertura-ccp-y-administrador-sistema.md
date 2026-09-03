@@ -1,5 +1,11 @@
 # DOC-021: Cierre de gaps del CCP + Administrador del Sistema
 
+> **Corrección (2026-09).** El portal `web_admin/` y el rol `administrador-sistema` se
+> eliminaron por completo. El CRUD de Organización/Contrato/Sede y la asignación de usuarios pasó
+> a ser intervención directa del proveedor externo (BD / script con service-token) + el bootstrap
+> del wizard de `sicsaft-core`; el diagnóstico de errores lo hace el soporte de SICSAFT por la
+> consola de logs en pantalla. Lo que sigue queda como registro histórico del diseño.
+
 > **Estado**: diseño (2026-08-18), en construcción el mismo día. Cierra los 5 gaps que
 > [DOC-012 "Cobertura real desde el CCP hoy"](../../../seguridad/DOC-012-administrador-patrimonial.md)
 > documentó, y agrega un rol nuevo — **Administrador del Sistema** — para las capacidades que el

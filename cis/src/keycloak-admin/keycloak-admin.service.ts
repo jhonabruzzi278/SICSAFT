@@ -97,7 +97,7 @@ export class KeycloakAdminService {
   // decidía el id y CIS solo lo propagaba. `domains` es obligatorio para crear una Organization;
   // como SICSAFT no ata organizaciones a un dominio de email real, se usa un dominio sintético bajo
   // `.invalid` (RFC 2606, nunca resuelve — mismo criterio que ya usan los placeholders de CI de
-  // ccp-ci.yml/web-admin-ci.yml) solo para satisfacer el requisito de la API.
+  // ccp-ci.yml) solo para satisfacer el requisito de la API.
   async crearOrganizacion(
     nombre: string,
     correlationId: string,

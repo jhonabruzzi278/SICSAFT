@@ -22,11 +22,6 @@ http:
       entryPoints:
         - web
       service: ccp
-    web-admin:
-      rule: "Host(`admin.sicsaft.localhost`)"
-      entryPoints:
-        - web
-      service: web-admin
     core-frontend:
       rule: "Host(`directivo.sicsaft.localhost`)"
       entryPoints:
@@ -51,10 +46,6 @@ http:
       loadBalancer:
         servers:
           - url: "http://ccp:8080"
-    web-admin:
-      loadBalancer:
-        servers:
-          - url: "http://web-admin:8080"
     core-frontend:
       loadBalancer:
         servers:

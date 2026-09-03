@@ -160,7 +160,7 @@ services:
       METRICS_TOKEN: ${METRICS_TOKEN}
       # Solo los 3 portales reales de producción — sin puertos de Vite (eso era solo para
       # `npm run dev` local).
-      CIS_CORS_ORIGIN: https://app.sicsaft.cl,https://admin.sicsaft.cl,https://directivo.sicsaft.cl
+      CIS_CORS_ORIGIN: https://app.sicsaft.cl,https://directivo.sicsaft.cl
       # Entre comillas a propósito: es JSON literal (ej. {"<org-id>":"duoc-uc"}) — sin comillas,
       # Docker Compose interpola el valor DENTRO del YAML antes de parsearlo, y `{"a":"b"}` sin
       # comillas es un mapping YAML válido, no el string que CIS espera recibir y hacerle
@@ -284,23 +284,6 @@ services:
       args:
         VITE_ZITADEL_ISSUER: https://id.sicsaft.cl
         VITE_ZITADEL_CLIENT_ID: ${WEB_VITE_ZITADEL_CLIENT_ID}
-        VITE_CIS_URL: https://api.sicsaft.cl
-    expose:
-      - "8080"
-    networks:
-      - sicsaft
-    depends_on:
-      cis:
-        condition: service_healthy
-    restart: unless-stopped
-
-  web-admin:
-    build:
-      context: ../../web_admin
-      dockerfile: Dockerfile
-      args:
-        VITE_ZITADEL_ISSUER: https://id.sicsaft.cl
-        VITE_ZITADEL_CLIENT_ID: ${WEB_ADMIN_VITE_ZITADEL_CLIENT_ID}
         VITE_CIS_URL: https://api.sicsaft.cl
     expose:
       - "8080"

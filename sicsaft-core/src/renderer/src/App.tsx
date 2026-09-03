@@ -24,7 +24,7 @@ const SERVICIOS_ARRANQUE_INICIAL: NombreServicio[] = [
 // Raíz de la app -- decide entre "todavía arrancando servicios embebidos" (splash, CORE-RNF-02)
 // y el wizard real. No hay routing de verdad todavía (react-router) -- con una sola pantalla
 // visible a la vez no hace falta, se agrega si este scaffold crece a más vistas (ej. las vistas
-// embebidas de web_admin/core-frontend, ver ARCHITECTURE.md).
+// embebidas de core-frontend/ccp, ver ARCHITECTURE.md).
 export function App() {
   const [estadoServicios, setEstadoServicios] =
     useState<EstadoServicios | null>(null);

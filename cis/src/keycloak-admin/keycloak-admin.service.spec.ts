@@ -258,18 +258,13 @@ describe('KeycloakAdminService', () => {
         .mockResolvedValueOnce(axiosResponse([])) // buscarGrupoPorNombre -> no existe
         .mockResolvedValueOnce(
           axiosResponse({
-            id: 'rol-administrador-sistema',
-            name: 'administrador-sistema',
+            id: 'rol-directivo',
+            name: 'directivo',
           }),
         ); // obtenerRol
       axiosRef.put.mockResolvedValueOnce(axiosResponse({}));
 
-      await service.crearGrant(
-        'duoc-uc',
-        'usuario-1',
-        'administrador-sistema',
-        'corr-1',
-      );
+      await service.crearGrant('duoc-uc', 'usuario-1', 'directivo', 'corr-1');
 
       // Body como string JSON (con comillas) + Content-Type explícito -- bug real encontrado
       // 2026-08-28, ver el comentario de agregarMiembroSiHaceFalta en keycloak-admin.service.ts.
@@ -288,7 +283,7 @@ describe('KeycloakAdminService', () => {
       expect(axiosRef.post).toHaveBeenNthCalledWith(
         4,
         `${CONFIG.adminBaseUrl}/groups/grupo-1/role-mappings/realm`,
-        [{ id: 'rol-administrador-sistema', name: 'administrador-sistema' }],
+        [{ id: 'rol-directivo', name: 'directivo' }],
         expect.any(Object),
       );
       expect(axiosRef.put).toHaveBeenCalledWith(
@@ -440,7 +435,7 @@ describe('KeycloakAdminService', () => {
           ]),
         ) // members
         .mockResolvedValueOnce(
-          axiosResponse([{ id: 'g1', name: 'duoc-uc::administrador-sistema' }]),
+          axiosResponse([{ id: 'g1', name: 'duoc-uc::directivo' }]),
         ) // grupos de usuario-1
         .mockResolvedValueOnce(axiosResponse([])); // grupos de usuario-2 (ninguno)
 
@@ -451,7 +446,7 @@ describe('KeycloakAdminService', () => {
           userId: 'usuario-1',
           email: 'a@duoc.cl',
           displayName: 'Ana Soto',
-          roles: ['administrador-sistema'],
+          roles: ['directivo'],
         },
       ]);
     });
@@ -493,9 +488,9 @@ describe('KeycloakAdminService', () => {
       axiosRef.post.mockResolvedValueOnce(TOKEN_RESPONSE);
       axiosRef.get.mockResolvedValueOnce(
         axiosResponse([
-          { id: 'g1', name: 'duoc-uc::administrador-sistema' },
+          { id: 'g1', name: 'duoc-uc::directivo' },
           { id: 'g2', name: 'duoc-uc::directivo' },
-          { id: 'g3', name: 'otra-org::administrador-sistema' },
+          { id: 'g3', name: 'otra-org::directivo' },
         ]),
       );
 
@@ -506,7 +501,7 @@ describe('KeycloakAdminService', () => {
       );
 
       expect(resultado).toEqual({
-        'duoc-uc': ['administrador-sistema', 'directivo'],
+        'duoc-uc': ['directivo', 'directivo'],
       });
     });
 

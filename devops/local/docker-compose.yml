@@ -149,21 +149,20 @@ services:
       CIP_URL: http://cip:3002
       CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
       # Origen permitido para CORS (TASK-007 de APP QR, ver app-qr-sicsaft/src/lib/qr-connector.ts;
-      # Fase 5 de CCP, ver ccp/src/lib/oidc/; DOC-022 para web_admin/core-frontend) — sin esto,
+      # Fase 5 de CCP, ver ccp/src/lib/oidc/; DOC-022 para core-frontend) — sin esto,
       # ningun navegador puede llamar a CIS directo (solo servicio-a-servicio, que no pasa por
-      # CORS). Puertos de Vite en dev (APP QR 5173, CCP 5174, web_admin 5176, core/frontend 5177)
-      # + los dominios de Traefik de `ccp`, `web-admin` y `core-frontend` (abajo) para cuando
+      # CORS). Puertos de Vite en dev (APP QR 5173, CCP 5174, core/frontend 5177) + los dominios
+      # de Traefik de `ccp` y `core-frontend` (abajo) para cuando
       # corren dentro del stack en vez de con `npm run dev`; agregar los dominios reales cuando
       # exista deploy.
-      CIS_CORS_ORIGIN: http://localhost:5173,http://localhost:5174,http://localhost:5176,http://localhost:5177,http://ccp.sicsaft.localhost,http://admin.sicsaft.localhost,http://directivo.sicsaft.localhost
+      CIS_CORS_ORIGIN: http://localhost:5173,http://localhost:5174,http://localhost:5177,http://ccp.sicsaft.localhost,http://directivo.sicsaft.localhost
       # DOC-012 5 (Fase 5) — mapeo Zitadel org id -> organizacionId de CORE, ver
       # src/administrador/organizacion-mapping.config.ts. Solo DUOC UC tiene datos reales hoy
       # (mismo caso que el resto del stack local) — Resource Id de la organizacion "DUOC UC" en
       # Zitadel, ver devops/local/README.md "Cliente OIDC real (WEB)".
       ZITADEL_ORG_ID_MAP: '{"386029528616558597":"duoc-uc"}'
-      # DOC-021 4 (Administrador del Sistema) — integración real con la API de administración de
-      # Zitadel, ver devops/local/README.md "Rol administrador-sistema + integración Zitadel
-      # Admin API".
+      # Admin API del proveedor de identidad — la usa cis/src/directivo/ (designar Profesional de
+      # AFT) y el alta de usuarios del wizard de sicsaft-core; ver devops/local/README.md.
       ZITADEL_ADMIN_TOKEN: ${ZITADEL_ADMIN_TOKEN}
       ZITADEL_PROJECT_ID: ${ZITADEL_PROJECT_ID}
     networks:
@@ -317,26 +316,6 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # DOC-022 2 — Administrador del Sistema, extraido de ccp/AdminPage.tsx a su propio sistema con
-  # login propio (organizaciones/contratos/usuarios/indicadores, nunca informacion patrimonial).
-  web-admin:
-    build:
-      context: ../../web_admin
-      dockerfile: Dockerfile
-      args:
-        VITE_ZITADEL_ISSUER: http://id.sicsaft.localhost
-        VITE_ZITADEL_CLIENT_ID: ${WEB_ADMIN_VITE_ZITADEL_CLIENT_ID}
-        VITE_CIS_URL: http://api.sicsaft.localhost
-    networks:
-      - sicsaft
-    depends_on:
-      cis:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # DOC-022 3/4 — portal del Directivo, vive en core/frontend/ pero le habla a CIS, nunca al
-  # backend de CORE directo (ADR-003). Dashboard ejecutivo (RF-09, movido desde ccp/) + designar
-  # al Profesional de AFT (cis/src/directivo/, acotado a la propia organizacion del Directivo).
   core-frontend:
     build:
       context: ../../core/frontend

@@ -158,7 +158,7 @@ function Set-HostsLocales {
     $hostsPath = "$env:SystemRoot\System32\drivers\etc\hosts"
     # Todos los portales van desde Nivel 1 (unificado con sicsaft-core.exe, 2026-09-02): ccp
     # incluido -- la diferencia Nivel 1<->2 es el flag VITE_SICSAFT_NIVEL, no qué se levanta.
-    $dominios = @("id.$DominioBase", "api.$DominioBase", "qr.$DominioBase", "admin.$DominioBase", "directivo.$DominioBase", "ccp.$DominioBase")
+    $dominios = @("id.$DominioBase", "api.$DominioBase", "qr.$DominioBase", "directivo.$DominioBase", "ccp.$DominioBase")
     $contenidoActual = Get-Content $hostsPath -Raw -ErrorAction SilentlyContinue
     $lineasNuevas = @()
     foreach ($dominio in $dominios) {
@@ -466,7 +466,6 @@ Protect-Archivo -Ruta $EnvPath
 Write-Paso "9. Verificacion (smoke check)"
 $servicios = @{
     "CIS"           = "http://api.$DominioBase/health"
-    "web-admin"     = "http://admin.$DominioBase/"
     "core-frontend" = "http://directivo.$DominioBase/"
     "ccp"           = "http://ccp.$DominioBase/"
 }
@@ -482,7 +481,6 @@ if ($todoOk) {
     Write-Host "Instalacion terminada con al menos un servicio que no respondio - revisar 'podman-compose logs' antes de entregar al cliente." -ForegroundColor Yellow
 }
 Write-Host "APP QR:    http://qr.$DominioBase"
-Write-Host "Admin:     http://admin.$DominioBase"
 Write-Host "Directivo: http://directivo.$DominioBase"
 Write-Host "CCP:       http://ccp.$DominioBase  (Nivel $Nivel$(if ($Nivel -eq 1) { ' - sin Dashboard/CIP' }))"
 Write-Host ""

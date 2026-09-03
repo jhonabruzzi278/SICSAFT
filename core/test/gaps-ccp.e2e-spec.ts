@@ -4,14 +4,15 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { SERVICE_TOKEN_HEADER } from './../src/common/auth/service-token.guard';
 import type { Activo } from './../src/patrimonial/activo.types';
-import type { Indicadores } from './../src/indicadores/indicadores.types';
 import {
   ADMIN_ROLES_DUOC_UC,
   crearAppE2e,
   SERVICE_TOKEN,
 } from './support/e2e-app';
 
-const ADMIN_SISTEMA_ROLES_DUOC_UC = { 'duoc-uc': ['administrador-sistema'] };
+// Un rol NO patrimonial, para probar que las escrituras de Activo/catálogo exigen
+// `administrador-patrimonial` y devuelven 403 con cualquier otro rol.
+const DIRECTIVO_ROLES_DUOC_UC = { 'duoc-uc': ['directivo'] };
 
 function buildAltaActivoBody(overrides: Record<string, unknown> = {}) {
   return {
@@ -36,7 +37,7 @@ function buildEscrituraOficialBody(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (e2e)', () => {
+describe('DOC-021 — cierre de gaps del CCP (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
@@ -100,7 +101,7 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (e2e)',
         .send(
           buildEscrituraOficialBody({
             descripcion: 'algo',
-            rolesPorOrganizacion: ADMIN_SISTEMA_ROLES_DUOC_UC,
+            rolesPorOrganizacion: DIRECTIVO_ROLES_DUOC_UC,
           }),
         )
         .expect(403);
@@ -148,7 +149,7 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (e2e)',
             familia: 'Mobiliario',
             criticidad: 'baja',
             tecnologiaIdentificacion: 'qr',
-            rolesPorOrganizacion: ADMIN_SISTEMA_ROLES_DUOC_UC,
+            rolesPorOrganizacion: DIRECTIVO_ROLES_DUOC_UC,
           }),
         )
         .expect(403);
@@ -199,77 +200,6 @@ describe('DOC-021 — cierre de gaps del CCP + Administrador del Sistema (e2e)',
         .query({ organizacionId: 'duoc-uc' })
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
         .expect(404);
-    });
-  });
-
-  describe('GET/POST /organizaciones (Administrador del Sistema)', () => {
-    it('crea una organizacion cuando el operador tiene administrador-sistema', async () => {
-      const id = `org-e2e-${randomUUID()}`;
-      await request(app.getHttpServer())
-        .post('/organizaciones')
-        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
-        .send(
-          buildEscrituraOficialBody({
-            id,
-            nombre: 'Organizacion E2E',
-            rolesPorOrganizacion: ADMIN_SISTEMA_ROLES_DUOC_UC,
-          }),
-        )
-        .expect(201);
-
-      const listado = await request(app.getHttpServer())
-        .get('/organizaciones')
-        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
-        .expect(200);
-      expect((listado.body as { id: string }[]).some((o) => o.id === id)).toBe(
-        true,
-      );
-    });
-
-    // DOC-021 1 — el circulo cerrado: administrador-patrimonial (Profesional de AFT) no puede
-    // administrar la plataforma, aunque tenga el rol en la misma organizacion.
-    it('devuelve 403 si el operador tiene administrador-patrimonial pero no administrador-sistema', async () => {
-      await request(app.getHttpServer())
-        .post('/organizaciones')
-        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
-        .send(
-          buildEscrituraOficialBody({
-            id: `org-e2e-${randomUUID()}`,
-            nombre: 'Organizacion E2E',
-          }),
-        )
-        .expect(403);
-    });
-  });
-
-  describe('POST /contratos acepta administrador-patrimonial O administrador-sistema (DOC-021 2)', () => {
-    it('devuelve 403 si el operador no tiene ninguno de los dos roles', async () => {
-      await request(app.getHttpServer())
-        .post('/contratos')
-        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
-        .send(
-          buildEscrituraOficialBody({
-            sedeIds: ['melipilla'],
-            vigenciaDesde: new Date().toISOString(),
-            modulosContratados: ['inventario-qr'],
-            rolesPorOrganizacion: { 'duoc-uc': ['directivo'] },
-          }),
-        )
-        .expect(403);
-    });
-  });
-
-  describe('GET /indicadores (Administrador del Sistema)', () => {
-    it('devuelve conteos de plataforma sin exigir rol', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/indicadores')
-        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
-        .expect(200);
-
-      const indicadores = res.body as Indicadores;
-      expect(typeof indicadores.totalOrganizaciones).toBe('number');
-      expect(typeof indicadores.totalSedes).toBe('number');
-      expect(typeof indicadores.contratosPorEstado).toBe('object');
     });
   });
 });

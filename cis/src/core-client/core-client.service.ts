@@ -25,8 +25,6 @@ import {
   catalogoResponseSchema,
   catalogoTipoResponseSchema,
   catalogoTiposResponseSchema,
-  contratoResponseSchema,
-  contratosPaginaResponseSchema,
   documentoActivoResponseSchema,
   documentosActivoResponseSchema,
   entitlementsResponseSchema,
@@ -35,16 +33,11 @@ import {
   lotesImportacionContableResponseSchema,
   loteConFilasImportacionContableResponseSchema,
   rechazoLoteImportacionContableResponseSchema,
-  indicadoresResponseSchema,
   inventarioEstadoResponseSchema,
-  organizacionResponseSchema,
-  organizacionesResponseSchema,
   postInventarioResponseSchema,
   responsableResponseSchema,
   responsablesPaginaResponseSchema,
   resumenControlResponseSchema,
-  sedeResponseSchema,
-  sedesResponseSchema,
   sesionDetalleResponseSchema,
   sesionesResumenResponseSchema,
   ubicacionResponseSchema,
@@ -56,31 +49,21 @@ import {
   type AuditoriaPaginaResult,
   type CatalogoResult,
   type CatalogoTipoResult,
-  type ContratoResult,
-  type ContratosPaginaResult,
   type DocumentoActivoResult,
   type EntitlementsResult,
   type EscrituraOficialRequest,
   type ImportacionContableResult,
-  type IndicadoresResult,
   type InventarioEstadoResult,
-  type OrganizacionResult,
   type Paginacion,
   type PatchActivoDescripcionRequest,
   type PatchActivoResponsableRequest,
   type PatchAreaRequest,
-  type PatchContratoCondicionesRequest,
-  type PatchContratoRequest,
-  type PatchOrganizacionEstadoRequest,
-  type PatchOrganizacionRequest,
   type PatchResponsableEstadoRequest,
-  type PatchSedeEstadoRequest,
   type PatchUbicacionRequest,
   type PostActivoRequest,
   type PostAreaRequest,
   type PostAuditoriaRequest,
   type PostCatalogoTipoRequest,
-  type PostContratoRequest,
   type PostDocumentoActivoRequest,
   type PostImportacionContableRequest,
   type PostLoteImportacionContableRequest,
@@ -91,14 +74,11 @@ import {
   type LoteConFilasImportacionContableResult,
   type RechazoLoteImportacionContableResult,
   type PostInventarioResult,
-  type PostOrganizacionRequest,
   type PostResponsableRequest,
-  type PostSedeRequest,
   type PostUbicacionRequest,
   type ResponsableResult,
   type ResponsablesPaginaResult,
   type ResumenControlResult,
-  type SedeResult,
   type SesionDetalleResult,
   type SesionResumenResult,
   type UbicacionResult,
@@ -294,100 +274,6 @@ export class CoreClientService {
       { passthroughStatuses: [400, 403, 404] },
     );
   }
-
-  // DOC-021 4 (Administrador del Sistema) — GET /organizaciones es lectura abierta a proposito
-  // (a diferencia de GET /entitlements, que filtra por contrato vigente): necesita ver TODAS las
-  // organizaciones, incluidas las que todavia no tienen contrato, para poder crearles el primero.
-  async getOrganizaciones(
-    correlationId: string,
-  ): Promise<OrganizacionResult[]> {
-    const data = await this.get('/organizaciones', undefined, correlationId);
-    return this.parse(organizacionesResponseSchema, data, 'organizaciones');
-  }
-
-  async postOrganizacion(
-    request: PostOrganizacionRequest,
-    correlationId: string,
-  ): Promise<OrganizacionResult> {
-    const data = await this.post('/organizaciones', request, correlationId, {
-      passthroughStatuses: [400, 403, 409],
-    });
-    return this.parse(organizacionResponseSchema, data, 'organizaciones');
-  }
-
-  // DOC-024 1 — PATCH /organizaciones/:id (editar nombre).
-  async patchOrganizacion(
-    organizacionId: string,
-    request: PatchOrganizacionRequest,
-    correlationId: string,
-  ): Promise<OrganizacionResult> {
-    const data = await this.patch(
-      `/organizaciones/${encodeURIComponent(organizacionId)}`,
-      request,
-      correlationId,
-      { passthroughStatuses: [400, 403] },
-    );
-    return this.parse(organizacionResponseSchema, data, 'organizaciones');
-  }
-
-  // DOC-024 1 — PATCH /organizaciones/:id/estado. Bidireccional, sin cascada (ver DOC-024 1).
-  async patchOrganizacionEstado(
-    organizacionId: string,
-    request: PatchOrganizacionEstadoRequest,
-    correlationId: string,
-  ): Promise<OrganizacionResult> {
-    const data = await this.patch(
-      `/organizaciones/${encodeURIComponent(organizacionId)}/estado`,
-      request,
-      correlationId,
-      { passthroughStatuses: [400, 403] },
-    );
-    return this.parse(organizacionResponseSchema, data, 'organizaciones');
-  }
-
-  // Gap 2 (flujo real Admin->Directivo->Profesional AFT) — sin 409: el id lo genera CORE (UUID),
-  // no hay colisión posible a diferencia de Organizacion (id = org_id real de Zitadel).
-  async postSede(
-    request: PostSedeRequest,
-    correlationId: string,
-  ): Promise<SedeResult> {
-    const data = await this.post('/sedes', request, correlationId, {
-      passthroughStatuses: [400, 403],
-    });
-    return this.parse(sedeResponseSchema, data, 'sedes');
-  }
-
-  // DOC-024 1 — GET /sedes?organizacionId=, el picker que reemplaza copiar/pegar un id a mano en
-  // el formulario de Contrato de web_admin. Lectura abierta, mismo criterio que getOrganizaciones.
-  async getSedes(
-    organizacionId: string,
-    correlationId: string,
-  ): Promise<SedeResult[]> {
-    const data = await this.get('/sedes', { organizacionId }, correlationId);
-    return this.parse(sedesResponseSchema, data, 'sedes');
-  }
-
-  // DOC-024 1 — PATCH /sedes/:id/estado.
-  async patchSedeEstado(
-    sedeId: string,
-    request: PatchSedeEstadoRequest,
-    correlationId: string,
-  ): Promise<SedeResult> {
-    const data = await this.patch(
-      `/sedes/${encodeURIComponent(sedeId)}/estado`,
-      request,
-      correlationId,
-      { passthroughStatuses: [400, 403, 404] },
-    );
-    return this.parse(sedeResponseSchema, data, 'sedes');
-  }
-
-  // DOC-021 4 — lectura abierta, sin auditoria (CORE tampoco la exige).
-  async getIndicadores(correlationId: string): Promise<IndicadoresResult> {
-    const data = await this.get('/indicadores', undefined, correlationId);
-    return this.parse(indicadoresResponseSchema, data, 'indicadores');
-  }
-
   // DOC-012 6 (gap "importaciones controladas") — proxy hacia POST /importaciones/contable de
   // CORE, idempotente por fila (nunca 409 a nivel de request completo, ver
   // ImportacionContableService).
@@ -495,68 +381,6 @@ export class CoreClientService {
       'importaciones/contable/lote/:id/rechazar',
     );
   }
-
-  // DOC-012 4/7 — GET /contratos es lectura abierta (mismo criterio que getCatalogo), sin
-  // passthroughStatuses especiales: no hay 403 posible en este endpoint (CORE no exige el rol
-  // para leer). Paginado (RNF-01, cierra el gap).
-  async getContratos(
-    paginacion: Paginacion,
-    correlationId: string,
-  ): Promise<ContratosPaginaResult> {
-    const data = await this.get(
-      '/contratos',
-      { limit: paginacion.limit, offset: paginacion.offset },
-      correlationId,
-    );
-    return this.parse(contratosPaginaResponseSchema, data, 'contratos');
-  }
-
-  // DOC-012 7 — proxy hacia POST /contratos de CORE (escritura oficial), mismo criterio de
-  // passthroughStatuses que postActivo (400/403/409).
-  async postContrato(
-    request: PostContratoRequest,
-    correlationId: string,
-  ): Promise<ContratoResult> {
-    const data = await this.post('/contratos', request, correlationId, {
-      passthroughStatuses: [400, 403, 409],
-    });
-    return this.parse(contratoResponseSchema, data, 'contratos');
-  }
-
-  // DOC-012 7 — proxy hacia PATCH /contratos/:id de CORE. A diferencia de postActivo, acá
-  // también se propaga un 404 legítimo del negocio (contrato inexistente o de otra organización,
-  // ver DOC-012 3.2) — el 404 ya se propaga sin pedirlo explícito (ver callCore), pero se lista
-  // en passthroughStatuses igual para que quede documentado junto al resto de esta llamada.
-  async patchContrato(
-    contratoId: string,
-    request: PatchContratoRequest,
-    correlationId: string,
-  ): Promise<ContratoResult> {
-    const data = await this.patch(
-      `/contratos/${encodeURIComponent(contratoId)}`,
-      request,
-      correlationId,
-      { passthroughStatuses: [400, 403, 409] },
-    );
-    return this.parse(contratoResponseSchema, data, 'contratos');
-  }
-
-  // DOC-024 2 — PATCH /contratos/:id/condiciones. Separado de patchContrato (que solo cambia
-  // `estado`) — ver DOC-024 2.
-  async patchContratoCondiciones(
-    contratoId: string,
-    request: PatchContratoCondicionesRequest,
-    correlationId: string,
-  ): Promise<ContratoResult> {
-    const data = await this.patch(
-      `/contratos/${encodeURIComponent(contratoId)}/condiciones`,
-      request,
-      correlationId,
-      { passthroughStatuses: [400, 403, 409] },
-    );
-    return this.parse(contratoResponseSchema, data, 'contratos');
-  }
-
   async getInventarioEstado(
     inventarioId: string,
     correlationId: string,

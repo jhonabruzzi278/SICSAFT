@@ -75,7 +75,7 @@ Reservados para el futuro (§12.34, sin documentar todavía): `CU-BLE`, `CU-GPS`
 
 | Actor del tomo | En el repo hoy | Notas |
 |---|---|---|
-| **Administrador SICSAFT** | rol Keycloak `administrador-sistema`, portal `web_admin/` | Config, usuarios, permisos, integraciones. |
+| **Administrador SICSAFT** | **⚠️ sin rol/portal** — `administrador-sistema` y `web_admin/` eliminados (2026-09) | Config, usuarios, organizaciones/contratos/sedes: intervención directa del proveedor (BD / script con service-token) + bootstrap del wizard; diagnóstico por la consola de logs de `sicsaft-core`. |
 | **Administrador Patrimonial** | rol Keycloak `administrador-patrimonial`, portal `ccp/` (ahí se lo llama **Profesional de AFT**) | Activos, responsables, ubicaciones, inventarios, documentación. |
 | **Operador de Inventario** | usuario de la **APP QR** (`app-qr-sicsaft/`), rol Keycloak `profesional-aft` | Captura, identificación, ejecución de inventario. |
 | **Supervisor Patrimonial** | **⚠️ sin rol propio** — hoy lo cubre `administrador-patrimonial` | Supervisión de operaciones, incidencias, conciliación. Gap: separar el rol es trabajo futuro. |
@@ -100,7 +100,7 @@ Salvo CU puramente consultivos o tecnológicos, toda operación transaccional re
 ```
 ACTOR
   ↓
-INTERFAZ / FUENTE           (APP QR · CCP · web_admin · core/frontend · RFID · ERP)
+INTERFAZ / FUENTE           (APP QR · CCP · core/frontend · RFID · ERP)
   ↓
 AUTENTICACIÓN Y AUTORIZACIÓN  (Keycloak OIDC/PKCE + guards de rol, DOC-023)
   ↓

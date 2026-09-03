@@ -525,7 +525,7 @@ auditoría por QR + carga inicial; la "gestión avanzada" es Nivel 2 (RF-A ya la
 | **CU-INC-002** Resolver incidencia | Sin endpoint de cierre; el Resumen sólo muestra en lectura | **Fuera de v1** (depende de CU-INC-001) | Junto con CU-INC-001 |
 | **CU-PAT-004** Traslado dedicado | `areaId`/`ubicacionId` se editan, pero no hay flujo "Trasladar" con evento y registro de ubicación anterior | **Fuera de v1** — oculto en Nivel 1 por RF-A de todos modos; la discrepancia de ubicación se ve en el relevamiento | RF nuevo cuando se habilite Nivel 2 |
 | **CU-CIP-002** Reporte parametrizado PDF/Excel | Hay dashboards interactivos, no un generador con export y bloque "fecha + parámetros + contexto" | **Fuera de v1** — los dashboards alcanzan para la validación | RF nuevo `feat/cip-reporte-parametrizado` (usa el estilo de informe `.docx` ya definido en memoria del proyecto) |
-| **CU-ADM-001/002** CRUD completo de usuarios | Sólo alta del Director (wizard) + "designar AFT" (Directivo). `web_admin/` en construcción (DOC-022) | **Suficiente para v1** — con 2-3 usuarios por organización el wizard + designar AFT cubren el alta | Terminar `web_admin/` (DOC-022, ya diseñado) |
+| **CU-ADM-001/002** CRUD completo de usuarios | Sólo alta del Director (wizard) + "designar AFT" (Directivo). `web_admin/` **eliminado (2026-09)** | **Suficiente para v1** — con 2-3 usuarios por organización el wizard + designar AFT cubren el alta | El CRUD amplio es intervención directa del proveedor (BD / script), sin portal |
 | **RBAC** — Supervisor Patrimonial / Auditor sin rol propio | Hoy los cubre `administrador-patrimonial` (`casos-de-uso/MATRIZ-ACTOR-FUNCION.md`) | **Decisión requerida ANTES de entregar** si el cliente exige separación de funciones (que quien concilia ≠ quien carga; auditor sólo-lectura) | Rama `feat/rbac-supervisor-auditor` (roles Keycloak nuevos + guards + DOC-023) — **no** es opcional si el pliego lo pide |
 | **CU-RFID-\*** | Nivel 3, sin código | **Fuera** — no es Nivel 1 | Nivel 3 (`rfid/` nuevo, ROADMAP) |
 
@@ -688,7 +688,7 @@ próxima sesión):
 | **RF-E follow-up** — poblar `area_operativa` en las escrituras patrimoniales desde el claim de Keycloak (hoy solo lo puebla `POST /inventarios`) | continuación de RF-E | Documentado en `core/README.md` |
 | **Decisión pre-entrega** — rol Keycloak Supervisor Patrimonial / Auditor propio (hoy los cubre `administrador-patrimonial`) | `feat/rbac-supervisor-auditor` | **No opcional** si el pliego del cliente exige separación de funciones — ver Vacíos |
 | Armar el `gh stack`, abrir PRs, CI en verde, mergear en orden | — | Ver "Topología de ramas" arriba |
-| **Nivel 2 en el `.exe`** — selector de nivel en el wizard | `feat/sicsaft-core-nivel-selector` (sobre esta punta) | DOC-030 — cliente Nivel 2; `web_admin` no se embebe (decisión del usuario 2026-09-02, descarta DOC-028 Fase F) |
+| **Nivel 2 en el `.exe`** — selector de nivel en el wizard | `feat/sicsaft-core-nivel-selector` (sobre esta punta) | DOC-030 — cliente Nivel 2; `web_admin/` eliminado por completo (2026-09, descarta DOC-028 Fase F) |
 | Regenerar el `.exe` (`npm run dist:win`), **elegir Nivel 2 en el wizard**, transferir al cliente, reserva DHCP | — | Después de mergear |
 
 ### Documentación sincronizada esta sesión
@@ -702,7 +702,7 @@ próxima sesión):
 
 **Incremento Nivel 2 en el `.exe` (2026-09-02, [DOC-030](../../sicsaft-core/design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md))** — el próximo cliente es Nivel 2:
 
-- `feat/sicsaft-core-nivel-selector` (sobre `feat/ccp-auditoria-area`) — radio "Nivel 1 / Nivel 2" en `PasoDatosCliente`; `bootstrapCliente` deja de hornear `nivel: 1`. En Nivel 2 el `.exe` sirve el CCP completo. **`web_admin` no se embebe en ningún nivel** — decisión del usuario ("no quiero conectarme a nada del cliente"): descarta el portal de administración remota (DOC-028 Fase F).
+- `feat/sicsaft-core-nivel-selector` (sobre `feat/ccp-auditoria-area`) — radio "Nivel 1 / Nivel 2" en `PasoDatosCliente`; `bootstrapCliente` deja de hornear `nivel: 1`. En Nivel 2 el `.exe` sirve el CCP completo. **`web_admin/` se eliminó por completo (2026-09)** — decisión del usuario ("no quiero conectarme a nada del cliente"): descarta el portal de administración remota (DOC-028 Fase F); el CRUD de Organización/Contrato/Sede es intervención directa del proveedor.
 - Doc-sync en esa misma rama: `aidlc-docs/sicsaft-core/requirements/INTENT.md` (CORE-Q-03 Nivel 2 resuelto), `DOC-028` (§4 + Fase F descartada), `DOC-025` (excepción del `.exe` ampliada a Nivel 2), `00_PROJECT_METADATA.md`, `ROADMAP.md`, `sicsaft-core/README.md`, `aidlc-docs/diagrams/sicsaft-core-arquitectura.html` + `nivel2-despliegue.html`.
 
 ---
