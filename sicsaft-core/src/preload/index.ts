@@ -45,6 +45,16 @@ const api: SicsaftCoreApi = {
         listener,
       );
   },
+  obtenerLog: () => ipcRenderer.invoke("sicsaft-core:obtenerLog"),
+  abrirCarpetaLog: () => ipcRenderer.invoke("sicsaft-core:abrirCarpetaLog"),
+  copiarAlPortapapeles: (texto) =>
+    ipcRenderer.invoke("sicsaft-core:copiarAlPortapapeles", texto),
+  onLogLinea: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, linea: string): void =>
+      callback(linea);
+    ipcRenderer.on("sicsaft-core:logLinea", listener);
+    return () => ipcRenderer.removeListener("sicsaft-core:logLinea", listener);
+  },
 };
 
 contextBridge.exposeInMainWorld("sicsaftCore", api);

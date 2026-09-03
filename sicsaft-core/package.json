@@ -1,6 +1,6 @@
 {
   "name": "sicsaft-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "App de escritorio SICSAFT CORE — Nivel 1 completo (Postgres/Keycloak/CIS/CORE/CIP) embebido en un instalador .exe, sin Podman/Docker/WSL2. Ver aidlc-docs/sicsaft-core/.",

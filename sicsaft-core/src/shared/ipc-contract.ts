@@ -158,4 +158,18 @@ export interface SicsaftCoreApi {
     forzarNuevoLogin?: boolean,
   ): Promise<void>;
   actualizarBoundsPortalEmbebido(bounds: RectanguloPantalla): void;
+  // Log unificado de la app (proceso principal + orquestador + salida cruda de cada servicio
+  // embebido -- ver src/main/services/logger.ts). La "Consola técnica" del renderer lo usa para
+  // diagnosticar en pantalla un arranque que falla, sin abrir una terminal (CORE-RNF-02).
+  //  - obtenerLog(): snapshot de lo acumulado, para pintar la consola al abrirla.
+  //  - onLogLinea(cb): una llamada por línea nueva en vivo; devuelve el "unsubscribe".
+  //  - abrirCarpetaLog(): abre en el explorador la carpeta con los .log del día (rotan por día,
+  //    se borra lo de más de 7) para adjuntarlos a un correo de soporte.
+  obtenerLog(): Promise<string[]>;
+  onLogLinea(callback: (linea: string) => void): () => void;
+  abrirCarpetaLog(): Promise<void>;
+  // El botón "Copiar" de la Consola técnica -- usa el portapapeles de Electron (clipboard.writeText)
+  // y no navigator.clipboard, que depende de secure context (el renderer se sirve por file:// en
+  // producción, ver el comentario de crypto.subtle en src/main/index.ts).
+  copiarAlPortapapeles(texto: string): Promise<void>;
 }

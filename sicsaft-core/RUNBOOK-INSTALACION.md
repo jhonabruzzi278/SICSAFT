@@ -141,8 +141,13 @@ WebView acepta el cert autofirmado sola (sin el aviso del navegador) — esa es 
 
 ## 8. Si algo falla
 
+- **Consola técnica en pantalla** (desde 0.1.1): si un servicio no arranca, la pantalla de primer
+  arranque despliega sola el **"Detalle técnico"** con el log en vivo (Postgres/Keycloak/CIS/CORE/
+  CIP + transiciones del orquestador). En cualquier paso del wizard está plegada al pie. Botón
+  **"Copiar todo"** para pegar el detalle en un correo de soporte y **"Abrir carpeta de logs"**.
 - **Ventana en blanco / servicio caído**: la app abre DevTools sola en modo no empaquetado; en el
-  `.exe` instalado, revisar `%APPDATA%\sicsaft-core\logs\`.
+  `.exe` instalado, la Consola técnica de arriba, o el archivo `%APPDATA%\sicsaft-core\logs\sicsaft-core-<fecha>.log`
+  (uno por día, se purga lo de más de 7; passwords/tokens ya vienen tapados).
 - **El teléfono no conecta**: verificar que están en la misma LAN, el firewall permitió, y la IP
   del QR es la de LAN (no `127.0.0.1`). Si la IP de la PC cambió, relanzar la app → pantalla de
   reconfiguración.

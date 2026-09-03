@@ -1,4 +1,10 @@
-import { dialog, ipcMain, type BrowserWindow } from "electron";
+import {
+  clipboard,
+  dialog,
+  ipcMain,
+  shell,
+  type BrowserWindow,
+} from "electron";
 import type {
   AltaDirectorInput,
   AltaDirectorResultado,
@@ -50,6 +56,7 @@ import {
 } from "../services/instalacion-marker";
 import { evaluarCambioIpLan } from "../services/ip-lan-guard";
 import { provisionarOrganizacionCore } from "../services/core-provisioning";
+import { obtenerBuffer, rutaCarpetaLog } from "../services/logger";
 
 // Todos los handlers reciben el ServiceOrchestrator ya arrancado -- ningún handler expone
 // secretos al renderer (el admin de Keycloak, el client secret de cis-admin) más allá de lo que
@@ -210,6 +217,21 @@ export function registrarIpcHandlers(
 
   ipcMain.handle("sicsaft-core:getEstadoServicios", () =>
     orquestador.getEstado(),
+  );
+
+  // Log unificado (src/main/services/logger.ts) -- la Consola técnica del renderer pide el
+  // snapshot al abrirse y recibe las líneas nuevas por el push `sicsaft-core:logLinea` (que
+  // engancha src/main/index.ts). `abrirCarpetaLog` abre en el explorador la carpeta con los .log
+  // del día para adjuntarlos a un correo de soporte.
+  ipcMain.handle("sicsaft-core:obtenerLog", (): string[] => obtenerBuffer());
+  ipcMain.handle("sicsaft-core:abrirCarpetaLog", async (): Promise<void> => {
+    await shell.openPath(rutaCarpetaLog());
+  });
+  ipcMain.handle(
+    "sicsaft-core:copiarAlPortapapeles",
+    (_event, texto: string): void => {
+      clipboard.writeText(String(texto));
+    },
   );
 
   // DOC-028 Fase C.1 -- el wizard llama esto al relanzar, después de getInstalacionExistente(). Si

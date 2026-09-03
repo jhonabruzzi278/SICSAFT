@@ -1,8 +1,15 @@
 import { app, BrowserWindow } from "electron";
 import { join } from "node:path";
+import { inspect } from "node:util";
 import { ServiceOrchestrator } from "./services/service-orchestrator";
 import { registrarIpcHandlers } from "./ipc/handlers";
 import { detenerWatcherIngesta } from "./services/ingesta-watcher";
+import {
+  alRegistrar,
+  cerrarLogger,
+  iniciarLogger,
+  registrar,
+} from "./services/logger";
 
 // Punto de entrada del proceso principal -- ver
 // aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md "Primer arranque" para el flujo
@@ -11,6 +18,30 @@ import { detenerWatcherIngesta } from "./services/ingesta-watcher";
 
 let ventanaPrincipal: BrowserWindow | null = null;
 const orquestador = new ServiceOrchestrator();
+
+// Redirige todo `console.*` del proceso principal (este archivo, ipc/handlers.ts y cualquier
+// servicio) también al log unificado. En un `.exe` que se abre con doble clic, stdout no lo ve
+// nadie -- sin esto, el motivo real de un arranque fallido se pierde. Los originales se siguen
+// llamando (stdout normal en `npm run dev`).
+function engancharConsola(): void {
+  const niveles = ["log", "info", "warn", "error", "debug"] as const;
+  for (const nivel of niveles) {
+    const original = console[nivel].bind(console);
+    console[nivel] = (...args: unknown[]): void => {
+      original(...args);
+      const texto = args
+        .map((a) =>
+          a instanceof Error
+            ? (a.stack ?? `${a.name}: ${a.message}`)
+            : typeof a === "string"
+              ? a
+              : inspect(a, { depth: 4, breakLength: 120 }),
+        )
+        .join(" ");
+      registrar("app", texto);
+    };
+  }
+}
 
 function crearVentana(): BrowserWindow {
   const ventana = new BrowserWindow({
@@ -64,6 +95,21 @@ function crearVentana(): BrowserWindow {
 }
 
 app.whenReady().then(async () => {
+  // Antes que nada -- abre el archivo de log del día y engancha console.* para que TODO lo que
+  // pase de acá en adelante (arranque de servicios incluido) quede registrado. Un fallo acá (disco
+  // lleno, permisos en %APPDATA%) NO debe impedir que la app abra: el log es una ayuda de
+  // diagnóstico, no ruta crítica -- si no arranca, se sigue sin él.
+  try {
+    iniciarLogger();
+    engancharConsola();
+    registrar(
+      "app",
+      `SICSAFT CORE ${app.getVersion()} -- proceso principal listo`,
+    );
+  } catch (err: unknown) {
+    console.error("[sicsaft-core] No se pudo iniciar el log de la app:", err);
+  }
+
   ventanaPrincipal = crearVentana();
   registrarIpcHandlers(orquestador, ventanaPrincipal);
 
@@ -72,6 +118,12 @@ app.whenReady().then(async () => {
       "sicsaft-core:estadoServiciosChanged",
       estado,
     );
+  });
+
+  // Cada línea nueva del log unificado se empuja al renderer -- la Consola técnica la muestra en
+  // vivo (útil mientras el arranque está en curso, no solo después de que falla).
+  alRegistrar((linea) => {
+    ventanaPrincipal?.webContents.send("sicsaft-core:logLinea", linea);
   });
 
   try {
@@ -104,5 +156,7 @@ app.on("before-quit", async (event) => {
   // archivos y libera los handles de la carpeta vigilada.
   await detenerWatcherIngesta();
   await orquestador.detenerTodo();
+  registrar("app", "--- sesión finalizada ---");
+  cerrarLogger();
   app.exit(0);
 });

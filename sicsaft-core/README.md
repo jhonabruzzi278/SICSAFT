@@ -57,6 +57,14 @@ verde:
   mano en un hook `afterPack`). `pack`/`dist:win` corren primero `scripts/prepack.cjs` (DOC-028
   Fase A): buildea el `dist/` de los 5 sistemas hermanos y corre `kc.bat build --db=postgres
   --health-enabled=true` si falta — ya no hay pasos manuales antes de empaquetar.
+- **Consola técnica en pantalla** (0.1.1, `src/main/services/logger.ts` +
+  `src/renderer/src/components/ConsolaTecnica.tsx`) — log unificado del proceso principal
+  (`console.*`, transiciones del orquestador, stdout/stderr crudo de los 5 servicios) a un buffer
+  en memoria + un archivo por día en `%APPDATA%\sicsaft-core\logs\` (purga a los 7 días,
+  `redactar()` tapa passwords/tokens/secrets). El renderer lo muestra en vivo: desplegado si un
+  servicio quedó en `error`, plegado al pie del wizard si no. Botones "Copiar todo"
+  (`clipboard.writeText` de Electron) y "Abrir carpeta de logs". Verificado real en el `.exe`
+  empaquetado (arranque completo Postgres→…→cis capturado, sin fuga de secretos).
 
 **3 bugs reales del renderer, encontrados recién con DevTools abierto (2026-08-27)** — todos con
 la app arrancando "bien" por fuera (los 5 servicios en verde), pero la ventana quedaba en blanco

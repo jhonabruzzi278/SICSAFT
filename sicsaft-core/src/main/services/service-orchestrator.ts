@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import type { EstadoServicios, NombreServicio } from "@shared/ipc-contract";
 import { ManagedProcess } from "./managed-process";
+import { registrar } from "./logger";
 import { crearPostgresService, POSTGRES_CONFIG } from "./postgres-service";
 import {
   crearKeycloakService,
@@ -49,6 +50,10 @@ export class ServiceOrchestrator extends EventEmitter {
     estado: EstadoServicios[string],
   ): void {
     this.estado[servicio] = estado;
+    // Cada transición al log unificado -- si un servicio se queda en "iniciando" o pasa a
+    // "error", la Consola técnica del renderer lo muestra sin que nadie tenga que leer stdout.
+    const sufijo = estado.detalle ? `: ${estado.detalle}` : "";
+    registrar("orquestador", `${servicio} → ${estado.estado}${sufijo}`);
     this.emit("estado-cambio", this.getEstado());
   }
 
@@ -143,6 +148,11 @@ export class ServiceOrchestrator extends EventEmitter {
     try {
       const proceso = await procesoPromise;
       this.procesos.set(nombre, proceso);
+      // stdout/stderr crudos del servicio embebido al log unificado -- se suscribe ANTES de
+      // proceso.iniciar() para no perder las primeras líneas (Postgres/Keycloak escupen el motivo
+      // del fallo justo al arrancar). logger.redactar() tapa secretos antes de tocar disco.
+      proceso.on("stdout", (chunk: string) => registrar(nombre, chunk));
+      proceso.on("stderr", (chunk: string) => registrar(nombre, chunk));
       await proceso.iniciar();
       this.marcar(nombre, { estado: "listo" });
     } catch (err: unknown) {
