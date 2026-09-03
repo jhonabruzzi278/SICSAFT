@@ -59,11 +59,11 @@
   <div class="frame">
     <p class="eyebrow">Data flow · SICSAFT · Nivel 1</p>
     <h1>Capacidades y responsabilidades — Nivel 1</h1>
-    <p class="subtitle">Qué hace cada rol y cada sistema, no solo qué capacidades expone. El flujo detallado de captura de la APP QR vive aparte — ver <a href="nivel1-flujo-captura-qr.html">nivel1-flujo-captura-qr.html</a>.</p>
+    <p class="subtitle">Qué hace cada rol y cada sistema, no solo qué capacidades expone. El Profesional de AFT tiene el <strong>CCP completo</strong> desde Nivel 1 (activos con alta manual, estructura, importaciones, etiquetas, auditoría) — lo único que Nivel 2 agrega es el Dashboard/indicadores (CIP). El flujo de captura de la APP QR vive aparte — ver <a href="nivel1-flujo-captura-qr.html">nivel1-flujo-captura-qr.html</a>.</p>
 
     <svg viewBox="0 0 1000 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="n1-cap-title n1-cap-desc">
       <title id="n1-cap-title">Capacidades y responsabilidades de SICSAFT Nivel 1 por rol y por sistema</title>
-      <desc id="n1-cap-desc">Los tres roles de Nivel 1 (Profesional de AFT, Directivo, Administrador del Sistema) entran hacia CIS, que valida identidad y hace de proxy hacia CORE; CORE aplica reglas de negocio antes de escribir en la Base Patrimonial (que nunca borra registros oficiales, solo cambia su estado) y emite eventos asíncronos que CIP consume para dashboards.</desc>
+      <desc id="n1-cap-desc">Los tres roles de Nivel 1 (Profesional de AFT con el CCP completo, Directivo, Administrador del Sistema) entran hacia CIS, que valida identidad y hace de proxy hacia CORE; CORE aplica reglas de negocio antes de escribir en la BPI (que nunca borra registros oficiales, solo cambia su estado) y emite eventos asíncronos que CIP consume para los dashboards, capacidad que se expone recién en Nivel 2.</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
         <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
@@ -107,9 +107,10 @@
       <!-- ===== ROLE NODES (row 1) ===== -->
       <g font-family="'Geist', sans-serif">
         <rect x="40" y="40" width="280" height="76" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
-        <text x="180" y="64" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Profesional AFT</text>
-        <text x="180" y="82" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">capta activos (QR)</text>
-        <text x="180" y="98" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">consulta, incidencias</text>
+        <text x="180" y="62" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Profesional AFT</text>
+        <text x="180" y="80" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">capta activos (QR)</text>
+        <text x="180" y="94" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">CCP: alta/estructura/importa</text>
+        <text x="180" y="108" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">etiquetas, auditoría</text>
 
         <rect x="360" y="40" width="280" height="76" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
         <text x="500" y="64" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Directivo</text>
@@ -149,13 +150,13 @@
       <text x="720" y="397" fill="rgba(45,49,66,0.60)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">BI</text>
       <text x="830" y="418" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">CIP</text>
       <text x="830" y="434" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">consume eventos (pg-boss)</text>
-      <text x="830" y="448" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">dashboards, KPIs, cobertura</text>
+      <text x="830" y="448" fill="#7a8399" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">dashboards, KPIs — Nivel 2</text>
 
       <!-- Base Patrimonial (focal) -->
       <rect x="360" y="496" width="280" height="92" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
       <rect x="368" y="504" width="24" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
       <text x="380" y="513" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">DB</text>
-      <text x="500" y="534" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Base Patrimonial Central</text>
+      <text x="500" y="534" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">BPI — Base Patrimonial Inteligente</text>
       <text x="500" y="552" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">valida reglas antes de escribir</text>
       <text x="500" y="568" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">estado bidireccional — nunca DELETE</text>
 
@@ -194,7 +195,7 @@
       <text x="338" y="722" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Motor / dato único</text>
 
       <rect x="540" y="712" width="12" height="12" rx="3" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="3,2"/>
-      <text x="558" y="722" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Consumidor asíncrono (CIP)</text>
+      <text x="558" y="722" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Consumidor asíncrono (CIP · Nivel 2)</text>
     </svg>
   </div>
 </body>
