@@ -1,0 +1,9 @@
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+.cache/
+# Generado por global-setup a partir de .env.example (lleva el KEYCLOAK_ADMIN_CLIENT_SECRET real
+# tras el bootstrap). El .env.example commiteado es la fuente de verdad.
+.env
+*.log

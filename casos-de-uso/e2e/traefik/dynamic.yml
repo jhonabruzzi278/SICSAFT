@@ -1,0 +1,43 @@
+# Render estático de devops/onprem/traefik/dynamic.yml.template con DOMINIO_BASE=sicsaft.localhost.
+# Traefik lee el provider "file" tal cual (no interpola env, a diferencia de docker-compose.yml).
+# Si se cambia el dominio del harness hay que regenerar este archivo.
+http:
+  routers:
+    keycloak:
+      rule: "Host(`id.sicsaft.localhost`)"
+      entryPoints:
+        - web
+      service: keycloak
+    cis:
+      rule: "Host(`api.sicsaft.localhost`)"
+      entryPoints:
+        - web
+      service: cis
+    ccp:
+      rule: "Host(`ccp.sicsaft.localhost`)"
+      entryPoints:
+        - web
+      service: ccp
+    core-frontend:
+      rule: "Host(`directivo.sicsaft.localhost`)"
+      entryPoints:
+        - web
+      service: core-frontend
+
+  services:
+    keycloak:
+      loadBalancer:
+        servers:
+          - url: "http://keycloak:8080"
+    cis:
+      loadBalancer:
+        servers:
+          - url: "http://cis:3000"
+    ccp:
+      loadBalancer:
+        servers:
+          - url: "http://ccp:8080"
+    core-frontend:
+      loadBalancer:
+        servers:
+          - url: "http://core-frontend:8080"

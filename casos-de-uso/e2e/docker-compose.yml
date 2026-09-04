@@ -1,0 +1,260 @@
+# Stack real para el harness de casos de uso (Playwright). Derivado de
+# devops/onprem/docker-compose.yml — el mismo diseño ya verificado call-by-call contra un
+# Keycloak 26.0 real (ver devops/onprem/lib/Bootstrap-Keycloak.psm1) — con estos ajustes de
+# laboratorio:
+#
+#   * name propio (sicsaft-cu-e2e) para no pisar los proyectos de devops/local ni devops/onprem.
+#   * SICSAFT_SEED_DEV=1 en core-migrate → la Base Patrimonial arranca con el caso DUOC UC /
+#     Melipilla (org `duoc-uc`, sede `melipilla`, contrato vigente `inventario-qr`) + el fixture
+#     patrimonial (área, responsable, ubicación, catálogo, 2 activos). Ver
+#     core/migrations/1755000000001_seed-dev-fixture.ts y 1755100000001_seed-dev-fixture-patrimonial.ts.
+#     El alias de la Organization en Keycloak (scripts/keycloak-seed.mjs) se crea con ESE mismo id
+#     `duoc-uc` para que el claim `organization` del JWT calce con los datos de CORE.
+#   * sin `restart: unless-stopped` — en un test, que un servicio se caiga debe romper la corrida,
+#     no reintentar en silencio.
+#   * postgres publica 55432 → inspección/depuración desde el host (no lo necesita ningún test).
+#   * app-qr-sicsaft queda comentado — ninguno de los CU de ejemplo lo toca y ahorra un build de
+#     Vite. Su client OIDC igual lo crea el seed; descomentar este servicio + agregar specs
+#     CU-QR-*/CU-INV-* cuando haga falta.
+#
+# El dominio es fijo `sicsaft.localhost` (RFC 6761: cualquier host bajo `.localhost` resuelve a
+# loopback Y es secure context en Chromium, condición para que crypto.subtle/PKCE funcionen — ver
+# devops/onprem/.env.example). global-setup.mjs no necesita tocar /etc/hosts: Chromium resuelve
+# `*.localhost` solo y el bootstrap por HTTP usa un dispatcher de undici (scripts/localhost-agent.mjs).
+
+name: sicsaft-cu-e2e
+
+networks:
+  sicsaft:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+      - --log.level=INFO
+    ports:
+      - "80:80"
+    volumes:
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic/dynamic.yml:ro
+    networks:
+      sicsaft:
+        aliases:
+          - id.${DOMINIO_BASE}
+
+  postgres:
+    # Igual que devops/onprem/postgres (pgaudit sobre postgres:16-bookworm) pero con los mirrors
+    # de apt sobre HTTPS + un bundle de CA — algunos proxies de salida (el de Docker Desktop entre
+    # ellos) devuelven 403 para apt sobre HTTP:80. Ver casos-de-uso/e2e/postgres/Dockerfile.
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pgaudit"
+      - "-c"
+      - "pgaudit.log=write, ddl, role"
+    environment:
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      POSTGRES_DB: postgres
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+      CIP_DB_USER: ${CIP_DB_USER}
+      CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
+      EVENTOS_OUTBOX_DB_USER: ${EVENTOS_OUTBOX_DB_USER}
+      EVENTOS_OUTBOX_DB_PASSWORD: ${EVENTOS_OUTBOX_DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../devops/onprem/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "55432:5432"
+    networks:
+      - sicsaft
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ADMIN_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: start
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_HOSTNAME: http://id.${DOMINIO_BASE}
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USERNAME}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  core-migrate:
+    build:
+      context: ../../core
+      dockerfile: Dockerfile
+    command: ["node", "scripts/migrate.js", "up"]
+    environment:
+      CORE_DB_HOST: postgres
+      CORE_DB_PORT: 5432
+      CORE_DB_NAME: core
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+      # Caso DUOC UC / Melipilla + fixture patrimonial. Ver cabecera de este archivo.
+      SICSAFT_SEED_DEV: "1"
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  core:
+    build:
+      context: ../../core
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3001
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      CORE_DB_HOST: postgres
+      CORE_DB_PORT: 5432
+      CORE_DB_NAME: core
+      CORE_DB_USER: ${CORE_DB_USER}
+      CORE_DB_PASSWORD: ${CORE_DB_PASSWORD}
+      EVENTOS_OUTBOX_DATABASE_URL: postgres://${EVENTOS_OUTBOX_DB_USER}:${EVENTOS_OUTBOX_DB_PASSWORD}@postgres:5432/eventos_outbox
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+      core-migrate:
+        condition: service_completed_successfully
+
+  cip-migrate:
+    build:
+      context: ../../cip
+      dockerfile: Dockerfile
+    command: ["node", "scripts/migrate.js", "up"]
+    environment:
+      CIP_DB_HOST: postgres
+      CIP_DB_PORT: 5432
+      CIP_DB_NAME: cip
+      CIP_DB_USER: ${CIP_DB_USER}
+      CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  cip:
+    build:
+      context: ../../cip
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3002
+      CIP_DB_HOST: postgres
+      CIP_DB_PORT: 5432
+      CIP_DB_NAME: cip
+      CIP_DB_USER: ${CIP_DB_USER}
+      CIP_DB_PASSWORD: ${CIP_DB_PASSWORD}
+      CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
+      CORE_URL: http://core:3001
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      EVENTOS_OUTBOX_DATABASE_URL: postgres://${EVENTOS_OUTBOX_DB_USER}:${EVENTOS_OUTBOX_DB_PASSWORD}@postgres:5432/eventos_outbox
+    networks:
+      - sicsaft
+    depends_on:
+      postgres:
+        condition: service_healthy
+      cip-migrate:
+        condition: service_completed_successfully
+      core:
+        condition: service_healthy
+
+  cis:
+    build:
+      context: ../../cis
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3000
+      KEYCLOAK_URL: http://id.${DOMINIO_BASE}
+      KEYCLOAK_REALM: sicsaft
+      KEYCLOAK_AUDIENCE: cis
+      CORE_URL: http://core:3001
+      CORE_SERVICE_TOKEN: ${CORE_SERVICE_TOKEN}
+      CIP_URL: http://cip:3002
+      CIP_SERVICE_TOKEN: ${CIP_SERVICE_TOKEN}
+      CIS_CORS_ORIGIN: http://qr.${DOMINIO_BASE},http://ccp.${DOMINIO_BASE},http://directivo.${DOMINIO_BASE}
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID}
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
+    networks:
+      - sicsaft
+    depends_on:
+      keycloak:
+        condition: service_started
+      core:
+        condition: service_healthy
+      cip:
+        condition: service_healthy
+
+  core-frontend:
+    build:
+      context: ../../core/frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_KEYCLOAK_ISSUER: http://id.${DOMINIO_BASE}/realms/sicsaft
+        VITE_KEYCLOAK_CLIENT_ID: ${CORE_FRONTEND_VITE_KEYCLOAK_CLIENT_ID}
+        VITE_CIS_URL: http://api.${DOMINIO_BASE}
+    networks:
+      - sicsaft
+    depends_on:
+      cis:
+        condition: service_healthy
+
+  ccp:
+    build:
+      context: ../../ccp
+      dockerfile: Dockerfile
+      args:
+        VITE_KEYCLOAK_ISSUER: http://id.${DOMINIO_BASE}/realms/sicsaft
+        VITE_KEYCLOAK_CLIENT_ID: ${CCP_VITE_KEYCLOAK_CLIENT_ID}
+        VITE_CIS_URL: http://api.${DOMINIO_BASE}
+        VITE_SICSAFT_NIVEL: ${NIVEL_PRODUCTO}
+    networks:
+      - sicsaft
+    depends_on:
+      cis:
+        condition: service_healthy
+
+  # app-qr-sicsaft:
+  #   build:
+  #     context: ../../app-qr-sicsaft
+  #     dockerfile: Dockerfile
+  #     args:
+  #       VITE_KEYCLOAK_ISSUER: http://id.${DOMINIO_BASE}/realms/sicsaft
+  #       VITE_KEYCLOAK_CLIENT_ID: ${APP_QR_VITE_KEYCLOAK_CLIENT_ID}
+  #       VITE_CIS_URL: http://api.${DOMINIO_BASE}
+  #   networks:
+  #     - sicsaft
+  #   depends_on:
+  #     cis:
+  #       condition: service_healthy

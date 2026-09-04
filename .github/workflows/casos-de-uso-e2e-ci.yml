@@ -1,0 +1,64 @@
+name: Casos de Uso E2E
+
+# Harness de casos de uso (casos-de-uso/e2e/) contra el stack real levantado por docker compose.
+# NO corre en cada push: la primera corrida construye 5 imágenes (~15-25 min). Se dispara a mano
+# o de noche. Un equipo que quiera gate por PR agrega acá un trigger `pull_request` con `paths`
+# a los sistemas involucrados (cis/, core/, cip/, ccp/, core/frontend/).
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * *" # 05:00 UTC diario
+
+defaults:
+  run:
+    working-directory: casos-de-uso/e2e
+
+jobs:
+  casos-de-uso:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: casos-de-uso/e2e/package-lock.json
+
+      - run: npm ci --ignore-scripts
+
+      - name: Instalar Chromium (Playwright)
+        # Binario local, no `npx playwright` (S6505) — usa la versión ya fijada en package-lock.json.
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Resolver dominios locales
+        # Chromium y el dispatcher de undici resuelven *.localhost solos, pero cualquier
+        # herramienta que use el resolver del SO (curl de diagnóstico, etc.) necesita estas
+        # entradas. Barato como seguro.
+        run: |
+          sudo tee -a /etc/hosts >/dev/null <<'EOF'
+          127.0.0.1 id.sicsaft.localhost
+          127.0.0.1 api.sicsaft.localhost
+          127.0.0.1 ccp.sicsaft.localhost
+          127.0.0.1 directivo.sicsaft.localhost
+          127.0.0.1 qr.sicsaft.localhost
+          EOF
+
+      - name: Correr casos de uso
+        run: npm test
+
+      - name: Logs del stack (si falló)
+        if: failure()
+        run: docker compose -p sicsaft-cu-e2e logs --no-color --tail 200 || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: casos-de-uso/e2e/playwright-report/
+          retention-days: 7
+
+      - name: Bajar el stack
+        if: always()
+        run: npm run stack:down || true

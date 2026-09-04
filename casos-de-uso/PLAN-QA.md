@@ -28,6 +28,11 @@ respetadas · BPI íntegra · eventos generados · auditoría presente · result
 | Matriz Actor–Función | RBAC real (CCP vs APP QR) | QA-6 |
 | RF-A | Portal Nivel 1 recortado, redirects | QA-0 |
 
+> **Automatización parcial** — CU-SEG-001, CU-PAT-001 y CU-ADM-002 tienen además un harness
+> Playwright contra el **stack real** en [`e2e/`](e2e) (login real de Keycloak, cadena
+> `CIS → CORE → BPI`, gate RBAC real). Se corre a mano o de noche en CI; no reemplaza la corrida
+> manual con el `.exe` y un teléfono (APP QR / inventario siguen siendo manuales).
+
 ### NO entra / bloqueado (y por qué)
 
 | CU / tema | Motivo | Desbloquea |
