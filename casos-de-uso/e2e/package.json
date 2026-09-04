@@ -1,0 +1,21 @@
+{
+  "name": "sicsaft-casos-de-uso-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Harness Playwright de casos de uso SICSAFT contra el stack real (docker compose: Postgres + Keycloak + cis + core + cip + ccp + core-frontend).",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "stack:down": "docker compose -p sicsaft-cu-e2e down -v --remove-orphans",
+    "stack:logs": "docker compose -p sicsaft-cu-e2e logs -f",
+    "stack:ps": "docker compose -p sicsaft-cu-e2e ps"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.1.2",
+    "undici": "^6.21.0"
+  }
+}

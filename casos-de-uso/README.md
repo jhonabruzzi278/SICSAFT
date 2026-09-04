@@ -19,6 +19,7 @@ Desarrollo y el Plan Maestro de Pruebas (§12.1).
 | [`MATRIZ-TRAZABILIDAD.md`](MATRIZ-TRAZABILIDAD.md) | MMTS (§12.38 "Evaluación") — Requisito → Proceso → CU → Regla → Módulo → API → BPI → Prueba → Versión |
 | [`CONTRATO-PANTALLA-8.md`](CONTRATO-PANTALLA-8.md) | Contenido exacto del informe de control de área ("Pantalla 8") que arma la APP QR y envía a CORE — la cara detallada de CU-INV-003/004 |
 | [`PLAN-QA.md`](PLAN-QA.md) | Plan de QA para el cliente **Nivel 1 QR**: qué CU se prueban hoy, en qué orden, criterios de aceptación (§12.36), qué queda fuera y por qué |
+| [`e2e/`](e2e) | Harness Playwright que corre CU end-to-end contra el **stack real** (docker compose: Postgres + Keycloak + `cis`/`core`/`cip`/`ccp`/`core-frontend`, sembrado con el caso DUOC UC). Hoy: CU-SEG-001, CU-PAT-001, CU-ADM-002 — ver [`e2e/README.md`](e2e/README.md) |
 
 ## Principio fundamental (§12.3)
 

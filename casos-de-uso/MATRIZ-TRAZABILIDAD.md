@@ -10,7 +10,7 @@ Instrumento vivo (§12.38 "Evaluación estratégica"). Permite recorrer cualquie
 
 | CU | Requisito | Proceso RMP | Reglas CFPS | Módulo (repo) | API (repo) | BPI (tabla) | Prueba | Versión | Estado |
 |---|---|---|---|---|---|---|---|---|---|
-| CU-PAT-001 Registrar activo | — | PAT-001 | CFP-001…005 | `ccp` · `cis/administrador` · `core/patrimonial` | `POST /admin/activos` → `POST /activos` | `activos` | `core` e2e activos · **falta** e2e UI | 1.0 | 🟢 (CCP — todos los niveles; también vía RF-B) |
+| CU-PAT-001 Registrar activo | — | PAT-001 | CFP-001…005 | `ccp` · `cis/administrador` · `core/patrimonial` | `POST /admin/activos` → `POST /activos` | `activos` | `core` e2e activos · `casos-de-uso/e2e/cu-pat-001` (alta real CIS→CORE) | 1.0 | 🟢 (CCP — todos los niveles; también vía RF-B) |
 | CU-PAT-002 Modificar activo | — | PAT-002 | CFP-002, CFP-004 | `ccp` · `cis` · `core/patrimonial` | `PATCH /admin/activos/:id/...` | `activos`, historial | `core` e2e | 1.0 | 🟢 (CCP — todos los niveles) |
 | CU-PAT-003 Cambiar responsable | — | PAT-003 | RES-001…004 | `ccp` · `cis` · `core/patrimonial` | `PATCH /admin/activos/:id/responsable` | `activos`, historial | `core` e2e | 1.0 | 🟢 (CCP — todos los niveles) |
 | CU-PAT-004 Trasladar activo | — | PAT-004 | UBI-001…004 | `ccp` · `cis` · `core` | *(sin endpoint dedicado)* | `activos`, historial | — | — | 🟡 parcial (sin flujo de traslado con evento) |
@@ -26,8 +26,8 @@ Instrumento vivo (§12.38 "Evaluación estratégica"). Permite recorrer cualquie
 | CU-DOC-001 Incorporar documento | — | DOC-001 | DOC-001…004 | `ccp` · `cis` · `core` | `POST /admin/activos/:id/documentos` | `documentos_activo` | `core` e2e | 1.0 | 🟢 (CCP — todos los niveles) |
 | CU-DOC-002 Consultar expediente | — | DOC-002 | DOC-003,004 + visibilidad | `ccp` · `cis` · `core` | `GET /admin/activos/:id/documentos` | `documentos_activo` (lectura) | `core` e2e | 1.0 | 🟢 (CCP — todos los niveles) |
 | CU-ADM-001 Crear usuario | — | ADM-001 | identidad + RBAC | wizard `.exe` / `core/frontend` | `keycloak-admin` (CIS) | Keycloak + `auditoria` (`identidad`) | `sicsaft-core` keycloak-bootstrap tests | 1.0 | 🟡 parcial (Director en wizard + designar AFT; el CRUD amplio pasó a intervención directa del proveedor, 2026-09) |
-| CU-ADM-002 Asignar roles | — | ADM-002 | DOC-023 | `core/frontend` · `cis` | `keycloak-admin` (CIS) | Keycloak + `auditoria` | `cis` guard tests | 1.0 | 🟡 parcial (designar AFT desde `core/frontend`; el resto = intervención directa del proveedor) |
-| CU-SEG-001 Autenticar | — | SEG-001 | políticas de realm | los 3 portales `lib/oidc/` · Keycloak | OIDC authorize/token | sesión Keycloak | `lib/oidc/` unit (PKCE/tokens/refresh) | 1.0 | 🟢 |
+| CU-ADM-002 Asignar roles | — | ADM-002 | DOC-023 | `core/frontend` · `cis` | `keycloak-admin` (CIS) | Keycloak + `auditoria` | `cis` guard tests · `casos-de-uso/e2e/cu-adm-002` (designar AFT + 403 real) | 1.0 | 🟡 parcial (designar AFT desde `core/frontend`; el resto = intervención directa del proveedor) |
+| CU-SEG-001 Autenticar | — | SEG-001 | políticas de realm | los 3 portales `lib/oidc/` · Keycloak | OIDC authorize/token | sesión Keycloak | `lib/oidc/` unit · `casos-de-uso/e2e/cu-seg-001` (login real Directivo/AFT) | 1.0 | 🟢 |
 | CU-INT-001 Sincronizar ERP / Excel | — | INT-001 | reglas de integración + idempotencia | `herramientas/etl-contable` (RF-B) · `cis` · `core` | `POST /importaciones/contable/lote` + aprobar/rechazar | `importacion_contable_lote(_fila)` + `activos` | ETL pytest · `core` e2e ciclo lote (RF-B) | — | 🔲 pendiente (RF-B). Hoy solo CSV manual: `POST /admin/importaciones/contable` |
 | CU-CIP-001 Dashboard ejecutivo | — | CIP-001 | visibilidad + drill-down | `ccp`/`core/frontend` · `cis/dashboard-connector` · `cip` | `GET /dashboard/*` | agregados `cip` (lectura) | `ccp` Dashboard tests · `cip` e2e | 1.0 | 🟢 |
 | CU-CIP-002 Reporte parametrizado | — | CIP-002 | visibilidad + marcado | — | *(sin generador)* | — | — | — | 🔲 pendiente |
