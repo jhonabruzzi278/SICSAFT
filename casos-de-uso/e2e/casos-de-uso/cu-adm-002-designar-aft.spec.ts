@@ -7,7 +7,7 @@ import { URLS } from '../test-data.mjs';
 
 test.describe('CU-ADM-002 Designar Profesional de AFT', () => {
   test('el Directivo designa un Profesional de AFT desde su portal', async ({ directivo }) => {
-    const email = `aft-designado-${Date.now().toString(36)}@duoc-uc.e2e`;
+    const email = `aft-designado-${Date.now().toString(36)}@duoc-uc.test`;
 
     await directivo.page.goto(`${URLS.directivo}/gestionar-profesional-aft`);
     await directivo.page.fill('#profesional-email', email);
@@ -36,7 +36,7 @@ test.describe('CU-ADM-002 Designar Profesional de AFT', () => {
     expect(get.status()).toBe(403);
 
     const post = await aft.api.post('/directivo/usuarios', {
-      data: { email: 'intruso@duoc-uc.e2e' },
+      data: { email: 'intruso@duoc-uc.test' },
     });
     expect(post.status()).toBe(403);
   });

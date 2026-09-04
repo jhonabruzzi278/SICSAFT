@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/auth';
+import { test, expect, completarLoginKeycloak } from '../fixtures/auth';
 import { URLS, USUARIOS } from '../test-data.mjs';
 
 // CU-SEG-001 — Autenticar (casos-de-uso/dominios/CU-SEG-seguridad.md).
@@ -42,15 +42,18 @@ test.describe('CU-SEG-001 Autenticar', () => {
   }) => {
     await page.goto(`${URLS.ccp}/`);
     const boton = page.getByRole('button', { name: /iniciar sesión/i });
-    if (await boton.isVisible().catch(() => false)) await boton.click();
+    if (await boton.isVisible().catch(() => false)) {
+      await boton.click({ noWaitAfter: true }).catch(() => undefined);
+    }
 
-    await page.waitForURL(/\/realms\/sicsaft\/protocol\/openid-connect\/auth/, { timeout: 20_000 });
-    await page.fill('#username', USUARIOS.aft.email);
-    await page.fill('#password', 'password-incorrecta');
-    await page.click('#kc-login');
+    await page.waitForURL(/\/realms\/sicsaft\//, { timeout: 30_000 });
+    await completarLoginKeycloak(page, {
+      email: USUARIOS.aft.email,
+      password: 'password-incorrecta',
+    });
 
     // Sigue en Keycloak (no redirigió al portal) y muestra un error de credenciales.
-    await expect(page).toHaveURL(/\/realms\/sicsaft\/protocol\/openid-connect\//);
+    await expect(page).toHaveURL(/\/realms\/sicsaft\/(login-actions|protocol\/openid-connect)\//);
     await expect(
       page.locator('#input-error, .kc-feedback-text, [class*="alert-error"], #kc-error-message'),
     ).toBeVisible();

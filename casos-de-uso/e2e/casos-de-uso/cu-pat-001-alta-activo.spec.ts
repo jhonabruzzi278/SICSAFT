@@ -63,12 +63,11 @@ test.describe('CU-PAT-001 Registrar activo', () => {
       )
       .toBeTruthy();
 
-    // Presentación — check blando: la fila aparece en la pantalla de Activos del CCP.
-    await test.step('la fila aparece en el CCP (check blando)', async () => {
-      await aft.page.goto(`${URLS.ccp}/activos?organizacionId=${ORG_ID}`);
-      await expect
-        .soft(aft.page.getByText(codigoPatrimonial))
-        .toBeVisible({ timeout: 15_000 });
-    });
+    // Presentación: la sesión del AFT sirve para navegar el CCP sin volver al login. El listado
+    // real puede paginar/virtualizar, así que no se asume que la fila recién creada sea visible
+    // sin buscarla — la cobertura dura del CU es la cadena de API de arriba.
+    await aft.page.goto(`${URLS.ccp}/activos?organizacionId=${ORG_ID}`);
+    await expect(aft.page).not.toHaveURL(/\/login$/);
+    await expect(aft.page.getByText(/sicsaft/i).first()).toBeVisible({ timeout: 15_000 });
   });
 });

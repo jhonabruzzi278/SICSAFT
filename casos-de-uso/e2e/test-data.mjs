@@ -23,14 +23,18 @@ export const URLS = {
 // Passwords fijas y NO temporales (temporary:false + emailVerified:true + requiredActions:[] en el
 // seed) — el harness necesita entrar sin el "actualizá tu contraseña" del primer login que sí
 // aplica en una instalación real (ver PLAN-QA.md QA-6.2).
+// El dominio es `.test` (RFC 2606, no resuelve) y NO `.e2e`: los formularios de los portales y
+// cis/src/directivo/directivo.schemas.ts validan el email con `zod.string().email()`, cuyo regex
+// exige un TLD alfabético (`[A-Z]{2,}`) — un TLD con dígito como `.e2e` se rechaza como "Email
+// inválido". Keycloak sí acepta `.e2e`, pero el harness necesita que ambos lados lo acepten.
 export const USUARIOS = {
   directivo: {
-    email: 'directivo@duoc-uc.e2e',
+    email: 'directivo@duoc-uc.test',
     password: 'Directivo-e2e-2026',
     rol: 'directivo',
   },
   aft: {
-    email: 'aft@duoc-uc.e2e',
+    email: 'aft@duoc-uc.test',
     password: 'ProfesionalAft-e2e-2026',
     // El rol que cis/ efectivamente exige para el Profesional de AFT (ver
     // cis/src/directivo/directivo.constants.ts ADMINISTRADOR_PATRIMONIAL_ROLE), no "profesional-aft".

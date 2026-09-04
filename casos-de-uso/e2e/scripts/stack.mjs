@@ -3,7 +3,7 @@
 // --env-file.
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 export const RAIZ = path.resolve(DIR, '..');
@@ -39,15 +39,19 @@ export function down() {
   compose(['down', '-v', '--remove-orphans']);
 }
 
-// CLI mínima para depuración: `node scripts/stack.mjs down`
-const modo = process.argv[2];
-if (modo === 'down') {
-  down();
-} else if (modo === 'ps') {
-  compose(['ps']);
-} else if (modo) {
-  console.error(
-    `Modo '${modo}' no soportado. El stack lo levanta \`npm test\` (global-setup). Usá 'down' o 'ps'.`,
-  );
-  process.exit(1);
+// CLI mínima para depuración: `node scripts/stack.mjs down` — sólo cuando se ejecuta este archivo
+// directamente, no cuando lo importa global-setup (ahí `process.argv[2]` sería `test`, de
+// `playwright test`).
+const ejecutadoDirecto =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (ejecutadoDirecto) {
+  const modo = process.argv[2];
+  if (modo === 'down') {
+    down();
+  } else if (modo === 'ps') {
+    compose(['ps']);
+  } else {
+    console.error(`Uso: node scripts/stack.mjs <down|ps>. El stack lo levanta \`npm test\`.`);
+    process.exit(1);
+  }
 }

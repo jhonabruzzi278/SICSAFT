@@ -41,9 +41,10 @@ npx playwright install chromium
 npm test
 ```
 
-La **primera** corrida construye 5 imágenes (3 NestJS + 2 Vite) + la de Postgres con `pgaudit`:
-**~15–25 min**. Las siguientes reusan la cache de capas y sólo reconstruyen lo que cambió
-(~1–2 min de arranque).
+La **primera** corrida construye 6 imágenes (3 NestJS + 2 Vite + Postgres con `pgaudit`):
+**~15–20 min** según red/CPU. Con la cache de capas caliente, `global-setup` tarda ~3 min
+(rebuild incremental + seed + arranque). Corrida verificada de punta a punta (`down -v` → 7/7
+verde) el 2026-09-04.
 
 `global-setup` hace: (1) `.env` desde `.env.example`, (2) `up` de postgres/keycloak/traefik,
 (3) bootstrap de Keycloak (realm `sicsaft`, Organization `duoc-uc`, clientes OIDC, usuarios
@@ -66,8 +67,12 @@ Usuarios de laboratorio (en [`test-data.mjs`](test-data.mjs)):
 
 | Rol | Email | Password | Portal |
 |---|---|---|---|
-| Directivo | `directivo@duoc-uc.e2e` | `Directivo-e2e-2026` | `http://directivo.sicsaft.localhost` |
-| Profesional de AFT | `aft@duoc-uc.e2e` | `ProfesionalAft-e2e-2026` | `http://ccp.sicsaft.localhost` |
+| Directivo | `directivo@duoc-uc.test` | `Directivo-e2e-2026` | `http://directivo.sicsaft.localhost` |
+| Profesional de AFT | `aft@duoc-uc.test` | `ProfesionalAft-e2e-2026` | `http://ccp.sicsaft.localhost` |
+
+> El dominio es `.test` (no `.e2e`): los portales y `cis/src/directivo/directivo.schemas.ts`
+> validan el email con `zod.string().email()`, cuyo regex exige un TLD alfabético — un TLD con
+> dígito (`.e2e`) se rechaza como "Email inválido".
 
 No son secretos: el stack es efímero y sólo existe en la máquina que corre los tests. **Nunca**
 reusar estos valores en `devops/onprem` ni `devops/prod`.
@@ -78,14 +83,21 @@ reusar estos valores en `devops/onprem` ni `devops/prod`.
   (mismo diseño verificado call-by-call contra Keycloak 26.0). Diferencias: `name` propio,
   `SICSAFT_SEED_DEV=1`, sin `restart`, Postgres publicado en `55432`, `VITE_KEYCLOAK_ISSUER` con
   el sufijo `/realms/sicsaft` correcto (ver `ccp/.env.example`).
+- **`postgres/Dockerfile`** — `pgaudit` sobre `postgres:16-bookworm`, igual que
+  `devops/onprem/postgres/` pero con los mirrors de apt sobre HTTPS + un bundle de CA copiado de
+  `node:24-alpine`. Necesario porque algunos proxies de salida (el de Docker Desktop,
+  `http.docker.internal:3128`) devuelven **403 para apt sobre HTTP:80**. En CI (sin proxy) es
+  inocuo.
 - **`scripts/keycloak-seed.mjs`** — port a Node de `devops/onprem/lib/Bootstrap-Keycloak.psm1` +
   `sicsaft-core/src/main/keycloak-bootstrap.ts` (creación de usuarios). Mismas llamadas a la Admin
   REST API. Idempotente ante `KEEP_STACK=1`.
-- **`fixtures/auth.ts`** — login real por el formulario de Keycloak, en un browser context por
-  rol. Los tokens viven en `sessionStorage` (no `storageState`), así que no se cachean entre
-  tests. Expone `{ page, token, api }` — `api` es un `APIRequestContext` con `Bearer` hacia CIS.
-- **Asserts blandos** (`expect.soft`) para lo periférico (fila en el DOM, texto de la auditoría):
-  el harness es útil desde ya y esos checks informan sin romper la corrida.
+- **`fixtures/auth.ts`** — login real por el formulario de Keycloak, un browser context por rol.
+  El realm tiene **Organizations habilitado** → login en **dos pasos** (usuario, después
+  contraseña). Los tokens viven en `sessionStorage` bajo una clave distinta por portal
+  (`web-sicsaft-oidc-tokens` / `core-frontend-sicsaft-oidc-tokens`), que Playwright no persiste
+  con `storageState` — de ahí el login por navegador en cada fixture, con un pequeño retry para
+  el primer login en frío de Keycloak. Expone `{ page, token, api }` — `api` es un
+  `APIRequestContext` con `Bearer` hacia CIS.
 
 ## CI
 
@@ -101,5 +113,7 @@ involucrados.
 | `bind: address already in use` en `:80` | Otro servicio usa el 80 (IIS, otro Traefik, Skype). Liberarlo o cambiar el mapeo en `docker-compose.yml` + `test-data.mjs`. |
 | `Timeout esperando Keycloak` | `docker compose -p sicsaft-cu-e2e logs keycloak`. Casi siempre es Postgres sin healthy o el puerto 80 ocupado. |
 | Login queda en el form de Keycloak | Realm/cliente a medio sembrar de una corrida previa: `npm run stack:down` y reintentar. |
+| Build de `postgres` falla con `403 Forbidden` en `deb.debian.org` | Proxy de salida que bloquea apt sobre HTTP. `postgres/Dockerfile` ya fuerza HTTPS; si aun así falla, revisar la config de proxy de Docker Desktop (`docker info | grep -i proxy`). |
 | `net::ERR_CLEARTEXT_NOT_PERMITTED` / `crypto.subtle is undefined` | El portal se abrió por una URL que **no** termina en `.localhost`. Usar siempre los hosts de `test-data.mjs`. |
+| `Email inválido` al designar un AFT | El email de prueba usa un TLD con dígito. `test-data.mjs` ya usa `.test`; no cambiarlo a `.e2e`/`.local`-con-dígitos. |
 | `.env` quedó con un secret tras una corrida interrumpida | Inofensivo — es git-ignored; la próxima corrida lo regenera. Borrarlo si molesta. |

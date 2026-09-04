@@ -15,48 +15,101 @@ const PORTAL: Record<Rol, string> = {
   aft: URLS.ccp,
 };
 
-// Los tokens del portal viven en sessionStorage (ver ccp/src/lib/oidc/token-store.ts), que
-// Playwright NO persiste con storageState — por eso cada fixture hace un login real por el
-// navegador (formulario de Keycloak) en su propio context. Con ~6 tests el costo es aceptable.
-const TOKENS_KEY = 'web-sicsaft-oidc-tokens';
+// Cada portal guarda sus tokens OIDC en sessionStorage bajo su propia clave (ver
+// ccp/src/lib/oidc/token-store.ts y core/frontend/src/lib/oidc/token-store.ts). Playwright NO
+// persiste sessionStorage con storageState — por eso cada fixture hace un login real por el
+// navegador (formulario de Keycloak) en su propio context.
+const TOKENS_KEY: Record<Rol, string> = {
+  aft: 'web-sicsaft-oidc-tokens',
+  directivo: 'core-frontend-sicsaft-oidc-tokens',
+};
 
-async function loginPorNavegador(page: Page, rol: Rol): Promise<void> {
-  const { email, password } = USUARIOS[rol];
-  const origin = new URL(PORTAL[rol]).origin;
+/**
+ * Completa el formulario de Keycloak. El realm tiene Organizations habilitado, así que el login
+ * es en DOS pasos (`login-username.ftl` → `login-password.ftl`): usuario primero, contraseña
+ * después. Si el `#password` ya estuviera en la misma página (flujo clásico), se saltea el submit
+ * intermedio. No espera el resultado — el llamador decide qué verificar (vuelta al portal, o un
+ * error de credenciales).
+ */
+export async function completarLoginKeycloak(
+  page: Page,
+  credenciales: { email: string; password: string },
+): Promise<void> {
+  await page.locator('#username').waitFor({ state: 'visible', timeout: 20_000 });
+  await page.locator('#username').fill(credenciales.email);
 
-  await page.goto(`${PORTAL[rol]}/`);
-
-  // Ambos portales muestran un botón "Iniciar sesión" que dispara el redirect a Keycloak.
-  const boton = page.getByRole('button', { name: /iniciar sesión/i });
-  if (await boton.isVisible({ timeout: 10_000 }).catch(() => false)) {
-    await boton.click();
+  const passwordYaVisible = await page
+    .locator('#password')
+    .isVisible()
+    .catch(() => false);
+  if (!passwordYaVisible) {
+    await page.locator('#kc-login').click(); // "Sign In" del paso de usuario
+    // La corrida en frío de Keycloak a veces devuelve una página de error en este paso — no
+    // esperamos 15s de timeout, cortamos apenas aparezca el error o el campo de contraseña.
+    await Promise.race([
+      page.locator('#password').waitFor({ state: 'visible', timeout: 15_000 }),
+      page
+        .getByText(/we are sorry|unexpected error/i)
+        .waitFor({ state: 'visible', timeout: 15_000 })
+        .catch(() => undefined),
+    ]);
+    if (await page.getByText(/we are sorry|unexpected error/i).isVisible().catch(() => false)) {
+      throw new Error('Keycloak devolvió una página de error en el paso de usuario (reintentar)');
+    }
   }
 
-  // Formulario de Keycloak (salteado si ya hubiera una sesión SSO en este context).
-  await page
-    .waitForURL(/\/realms\/sicsaft\/protocol\/openid-connect\/auth/, { timeout: 20_000 })
-    .catch(() => undefined);
-  if (page.url().includes('/realms/sicsaft/')) {
-    await page.fill('#username', email);
-    await page.fill('#password', password);
-    await page.click('#kc-login');
-  }
-
-  // Vuelta al portal y token ya guardado por AuthCallbackPage.
-  await page.waitForURL(
-    (u) => u.origin === origin && !u.pathname.startsWith('/auth/callback'),
-    { timeout: 30_000 },
-  );
-  await expect
-    .poll(async () => page.evaluate((k) => sessionStorage.getItem(k) !== null, TOKENS_KEY), {
-      timeout: 15_000,
-      message: 'el portal no guardó el token OIDC tras el callback',
-    })
-    .toBe(true);
+  await page.locator('#password').fill(credenciales.password);
+  await page.locator('#kc-login').click();
 }
 
-async function tokenDeSesion(page: Page): Promise<string> {
-  const raw = await page.evaluate((k) => sessionStorage.getItem(k), TOKENS_KEY);
+async function intentarLogin(page: Page, rol: Rol): Promise<boolean> {
+  const { email, password } = USUARIOS[rol];
+  const origin = new URL(PORTAL[rol]).origin;
+  const tokensKey = TOKENS_KEY[rol];
+
+  try {
+    await page.goto(`${PORTAL[rol]}/`, { waitUntil: 'domcontentloaded' });
+
+    // Ambos portales muestran un botón "Iniciar sesión" que dispara `window.location.assign(<KC>)`.
+    const boton = page.getByRole('button', { name: /iniciar sesión/i });
+    if (await boton.isVisible({ timeout: 10_000 }).catch(() => false)) {
+      await boton.click({ noWaitAfter: true }).catch(() => undefined);
+    }
+
+    await page
+      .waitForURL(/\/realms\/sicsaft\/(protocol\/openid-connect|login-actions)\//, {
+        timeout: 30_000,
+      })
+      .catch(() => undefined);
+    if (/\/realms\/sicsaft\//.test(page.url())) {
+      await completarLoginKeycloak(page, { email, password });
+    }
+
+    await page
+      .waitForURL((u) => u.origin === origin && !u.pathname.startsWith('/auth/callback'), {
+        timeout: 30_000,
+      })
+      .catch(() => undefined);
+
+    return await page
+      .evaluate((k) => sessionStorage.getItem(k) !== null, tokensKey)
+      .catch(() => false);
+  } catch {
+    // Cualquier fallo (página de error de Keycloak en frío, timeout de campo) → el loop reintenta.
+    return false;
+  }
+}
+
+async function loginPorNavegador(page: Page, rol: Rol): Promise<void> {
+  for (let intento = 1; intento <= 4; intento += 1) {
+    if (await intentarLogin(page, rol)) return;
+    await page.waitForTimeout(1500);
+  }
+  throw new Error(`No se pudo completar el login OIDC de '${rol}' tras 4 intentos`);
+}
+
+async function tokenDeSesion(page: Page, rol: Rol): Promise<string> {
+  const raw = await page.evaluate((k) => sessionStorage.getItem(k), TOKENS_KEY[rol]);
   if (!raw) throw new Error('No hay token OIDC en sessionStorage — ¿falló el login?');
   return (JSON.parse(raw) as { accessToken: string }).accessToken;
 }
@@ -91,7 +144,7 @@ async function conSesion(
   const context = await browser.newContext({ ignoreHTTPSErrors: true });
   const page = await context.newPage();
   await loginPorNavegador(page, rol);
-  const token = await tokenDeSesion(page);
+  const token = await tokenDeSesion(page, rol);
   const api = await request.newContext({
     baseURL: URLS.cis,
     extraHTTPHeaders: {

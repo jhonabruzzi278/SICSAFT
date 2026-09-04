@@ -49,8 +49,11 @@ services:
           - id.${DOMINIO_BASE}
 
   postgres:
+    # Igual que devops/onprem/postgres (pgaudit sobre postgres:16-bookworm) pero con los mirrors
+    # de apt sobre HTTPS + un bundle de CA — algunos proxies de salida (el de Docker Desktop entre
+    # ellos) devuelven 403 para apt sobre HTTP:80. Ver casos-de-uso/e2e/postgres/Dockerfile.
     build:
-      context: ../../devops/onprem/postgres
+      context: ./postgres
       dockerfile: Dockerfile
     command:
       - "postgres"
