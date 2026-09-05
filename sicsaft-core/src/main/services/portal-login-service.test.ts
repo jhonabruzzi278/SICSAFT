@@ -62,7 +62,10 @@ describe("crearWatchdogLogin (bug del timeout de 60s del login embebido, 2026-09
 
     // Actividad cada 10s indefinidamente -- sin tope absoluto no vencería nunca.
     let transcurrido = 0;
-    while (transcurrido < TOPE_ABSOLUTO_LOGIN_MS + 60_000 && alVencer.mock.calls.length === 0) {
+    while (
+      transcurrido < TOPE_ABSOLUTO_LOGIN_MS + 60_000 &&
+      alVencer.mock.calls.length === 0
+    ) {
       vi.advanceTimersByTime(10_000);
       transcurrido += 10_000;
       wd.actividad();
@@ -70,7 +73,9 @@ describe("crearWatchdogLogin (bug del timeout de 60s del login embebido, 2026-09
 
     expect(alVencer).toHaveBeenCalledTimes(1);
     expect(transcurrido).toBeGreaterThanOrEqual(TOPE_ABSOLUTO_LOGIN_MS);
-    expect(transcurrido).toBeLessThan(TOPE_ABSOLUTO_LOGIN_MS + INACTIVIDAD_LOGIN_MS);
+    expect(transcurrido).toBeLessThan(
+      TOPE_ABSOLUTO_LOGIN_MS + INACTIVIDAD_LOGIN_MS,
+    );
   });
 
   test("cancelar() frena el watchdog para siempre", () => {
