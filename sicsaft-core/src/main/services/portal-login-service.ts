@@ -45,9 +45,9 @@ interface ClaimsJwt {
 // verdad -- mismo tipo de hallazgo que forzó el reintento de obtenerTokenAdmin en
 // keycloak-bootstrap.ts, pero ese cubre las llamadas administrativas (Admin API), no esta pantalla
 // de login interactiva. Sin esto, el primer intento de login después de cada arranque se quedaba
-// colgado hasta el timeout de 60s de esperarCodigo() -- el usuario tenía que forzar un reload a
-// mano para que funcionara. Se chequea el endpoint público bien conocido de OIDC del realm (no
-// requiere token de admin) con el mismo criterio de reintentos cortos.
+// colgado hasta que el watchdog de esperarCodigo() cortaba -- el usuario tenía que forzar un
+// reload a mano para que funcionara. Se chequea el endpoint público bien conocido de OIDC del
+// realm (no requiere token de admin) con el mismo criterio de reintentos cortos.
 const REINTENTOS_REALM_LISTO = 5;
 const ESPERA_ENTRE_REINTENTOS_REALM_MS = 800;
 
@@ -66,7 +66,7 @@ async function esperarRealmListo(): Promise<void> {
     }
   }
   // No se corta el login acá -- si Keycloak sigue sin responder después de los reintentos, dejar
-  // que el flujo normal (esperarCodigo, timeout de 60s) sea la única fuente de ese error, en vez
+  // que el flujo normal (el watchdog de esperarCodigo) sea la única fuente de ese error, en vez
   // de duplicar el mensaje de fallo por dos caminos distintos.
 }
 
@@ -134,9 +134,61 @@ async function intercambiarCodigo(
 // nada escucha en ese puerto). `will-redirect` cubre el caso real (Keycloak responde con un 302
 // tras el submit del form de login); `will-navigate` queda como respaldo por si algún flujo
 // termina navegando ahí por otro camino (ej. un error mostrado como página propia).
-// Keycloak "en frío" puede tardar (ver keycloak-service.ts, hasta 60s de JVM en frío) -- mismo
-// valor acá para no cortar un login legítimo que todavía está esperando que la JVM responda.
-const TIMEOUT_LOGIN_MS = 60_000;
+
+// El login embebido puede incluir pantallas de "acción requerida" de Keycloak -- sobre todo el
+// cambio de contraseña obligatorio (UPDATE_PASSWORD) que trae CADA usuario recién provisionado en
+// su primer login (Director y Profesional de AFT). Un humano leyendo esas pantallas tarda
+// tranquilamente más de un minuto, así que un tope de tiempo TOTAL corto rompía el primer login
+// del cliente: `mostrarPortalEmbebido` rechazaba a los 60s, la vista quedaba en blanco y el
+// callback de Keycloak (que sí llegaba, tarde) caía en un puerto sin nadie escuchando
+// (ERR_CONNECTION_REFUSED) -> pantalla muerta. Verificado real 2026-09-05.
+//
+// Por eso el watchdog mide INACTIVIDAD, no tiempo total: cada navegación nueva del form de login
+// (submit de usuario, de contraseña, del cambio de contraseña, o un redirect de Keycloak) es
+// progreso y reinicia la cuenta. `TOPE_ABSOLUTO` es la red de seguridad para un flujo realmente
+// colgado (Keycloak caído a mitad de camino). El valor de inactividad también cubre la JVM de
+// Keycloak "en frío" antes de servir la primera pantalla (ver keycloak-service.ts).
+export const INACTIVIDAD_LOGIN_MS = 90_000;
+export const TOPE_ABSOLUTO_LOGIN_MS = 10 * 60_000;
+
+export interface WatchdogLogin {
+  /** Hubo progreso (una navegación del form) -- reinicia la cuenta de inactividad. */
+  actividad(): void;
+  /** El login terminó (bien o mal) -- frena el watchdog. */
+  cancelar(): void;
+}
+
+export function crearWatchdogLogin(
+  alVencer: () => void,
+  inactividadMs: number = INACTIVIDAD_LOGIN_MS,
+  topeAbsolutoMs: number = TOPE_ABSOLUTO_LOGIN_MS,
+): WatchdogLogin {
+  const inicio = Date.now();
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let vencido = false;
+
+  const armar = (): void => {
+    if (vencido) return;
+    if (timer) clearTimeout(timer);
+    const restanteHastaTope = topeAbsolutoMs - (Date.now() - inicio);
+    const espera = Math.max(0, Math.min(inactividadMs, restanteHastaTope));
+    timer = setTimeout(() => {
+      vencido = true;
+      timer = null;
+      alVencer();
+    }, espera);
+  };
+
+  armar();
+  return {
+    actividad: armar,
+    cancelar: (): void => {
+      vencido = true;
+      if (timer) clearTimeout(timer);
+      timer = null;
+    },
+  };
+}
 
 function esperarCodigo(
   view: WebContentsView,
@@ -145,35 +197,40 @@ function esperarCodigo(
   return new Promise((resolve, reject) => {
     // Bug real encontrado 2026-08-28: mostrarLoginYPortal() ya no espera el resultado de
     // loadURL(authorizeUrl) (rechaza con ERR_FAILED apenas SSO silencioso redirige antes de que
-    // termine de cargar, ver el comentario en mostrarLoginYPortal), así que sin este timeout un
+    // termine de cargar, ver el comentario en mostrarLoginYPortal), así que sin este watchdog un
     // fallo real (Keycloak inalcanzable, DNS) dejaría esta promesa colgada para siempre en vez de
     // fallar con un mensaje claro.
-    // El WebContents puede haber sido destruido antes de que dispare el timeout: el usuario se
-    // quedó en la pantalla previa (o el wizard cambió de paso y cerró la vista) sin completar el
-    // login. Sin este guardia `view.webContents` es undefined y `.off()` tira una excepción no
+    // El WebContents puede haber sido destruido antes de que se limpien los listeners: el usuario
+    // se quedó en la pantalla previa (o el wizard cambió de paso y cerró la vista) sin completar
+    // el login. Sin este guardia `view.webContents` es undefined y `.off()` tira una excepción no
     // capturada que mata el proceso main -- crash real 2026-08-31 ("Cannot read properties of
     // undefined (reading 'off')").
     const quitarListeners = (): void => {
+      watchdog.cancelar();
       const wc: WebContents | undefined = view.webContents;
       if (wc && !wc.isDestroyed()) {
         wc.off("will-redirect", manejar);
         wc.off("will-navigate", manejar);
+        wc.off("did-start-navigation", registrarActividad);
+        wc.off("did-navigate", registrarActividad);
+        wc.off("did-frame-navigate", registrarActividad);
       }
     };
 
-    const timeout = setTimeout(() => {
+    const watchdog = crearWatchdogLogin(() => {
       quitarListeners();
       reject(
         new Error(
-          "No se pudo completar el login en 60s -- ¿Keycloak sigue corriendo?",
+          'El login embebido no avanzó en 90s -- ¿Keycloak sigue respondiendo? Probá "Cambiar de usuario".',
         ),
       );
-    }, TIMEOUT_LOGIN_MS);
+    });
+
+    const registrarActividad = (): void => watchdog.actividad();
 
     const manejar = (event: Electron.Event, url: string): void => {
       if (!url.startsWith(REDIRECT_URI_LOGIN)) return;
       event.preventDefault();
-      clearTimeout(timeout);
       quitarListeners();
 
       const parsed = new URL(url);
@@ -196,6 +253,12 @@ function esperarCodigo(
     };
     view.webContents.on("will-redirect", manejar);
     view.webContents.on("will-navigate", manejar);
+    // Progreso del login: cada submit/redirect del form de Keycloak reinicia la cuenta de
+    // inactividad del watchdog, así el cambio de contraseña obligatorio del primer login (que
+    // lleva minutos) no dispara un timeout espurio.
+    view.webContents.on("did-start-navigation", registrarActividad);
+    view.webContents.on("did-navigate", registrarActividad);
+    view.webContents.on("did-frame-navigate", registrarActividad);
   });
 }
 
@@ -250,43 +313,53 @@ export class PortalEmbebidoManager {
     this.ventana.contentView.addChildView(view);
     view.setBounds(bounds);
 
-    const { codeVerifier, codeChallenge } = generarPkce();
-    const state = randomBytes(16).toString("base64url");
+    try {
+      const { codeVerifier, codeChallenge } = generarPkce();
+      const state = randomBytes(16).toString("base64url");
 
-    const authorizeUrl = new URL(
-      `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}/protocol/openid-connect/auth`,
-    );
-    authorizeUrl.searchParams.set("client_id", CLIENT_ID_LOGIN);
-    authorizeUrl.searchParams.set("redirect_uri", REDIRECT_URI_LOGIN);
-    authorizeUrl.searchParams.set("response_type", "code");
-    authorizeUrl.searchParams.set("scope", "openid");
-    authorizeUrl.searchParams.set("code_challenge", codeChallenge);
-    authorizeUrl.searchParams.set("code_challenge_method", "S256");
-    authorizeUrl.searchParams.set("state", state);
-    if (forzarNuevoLogin) {
-      authorizeUrl.searchParams.set("prompt", "login");
+      const authorizeUrl = new URL(
+        `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}/protocol/openid-connect/auth`,
+      );
+      authorizeUrl.searchParams.set("client_id", CLIENT_ID_LOGIN);
+      authorizeUrl.searchParams.set("redirect_uri", REDIRECT_URI_LOGIN);
+      authorizeUrl.searchParams.set("response_type", "code");
+      authorizeUrl.searchParams.set("scope", "openid");
+      authorizeUrl.searchParams.set("code_challenge", codeChallenge);
+      authorizeUrl.searchParams.set("code_challenge_method", "S256");
+      authorizeUrl.searchParams.set("state", state);
+      if (forzarNuevoLogin) {
+        authorizeUrl.searchParams.set("prompt", "login");
+      }
+
+      const codigoPromise = esperarCodigo(view, state);
+      // No se puede esperar esta promesa con el mismo criterio que loadURL(origenPortal) más abajo
+      // -- bug real encontrado 2026-08-28: cuando la cookie de sesión de Keycloak ya es válida (SSO
+      // silencioso, ej. un segundo login en la misma corrida), Keycloak responde /auth con un
+      // redirect directo al REDIRECT_URI_LOGIN sin mostrar el formulario -- esperarCodigo() lo
+      // intercepta con event.preventDefault() (ver más abajo), lo que hace que ESTA navegación
+      // nunca "termine" a los ojos de Electron y la promesa de loadURL() rechace con ERR_FAILED,
+      // aunque el código ya se haya obtenido bien vía codigoPromise. codigoPromise (nuestro propio
+      // listener) es la única fuente de verdad real acá, no el resultado de loadURL().
+      view.webContents.loadURL(authorizeUrl.toString()).catch(() => {
+        // Rechazo esperado en el caso de SSO silencioso, ver comentario arriba -- si el problema
+        // es real (Keycloak inalcanzable, DNS, etc.) codigoPromise nunca resuelve y
+        // esperarRealmListo()/el watchdog de esperarCodigo lo va a reflejar igual.
+      });
+      const codigo = await codigoPromise;
+
+      const tokens = await intercambiarCodigo(codigo, codeVerifier);
+      const roles = decodificarRoles(tokens.access_token);
+      const origenPortal = resolverOrigenPortal(roles);
+
+      await view.webContents.loadURL(origenPortal);
+    } catch (err) {
+      // Si el login falló (watchdog, Keycloak rechazó, sin rol válido), no dejar la
+      // WebContentsView en blanco tapando la UI: un WebContentsView nativo se dibuja fuera del
+      // árbol del DOM y cubre cualquier cosa bajo sus bounds. Cerrarla deja ver el mensaje de
+      // error del wizard y su franja "Cambiar de usuario". El wizard reintenta con un nuevo
+      // `intentoLogin` (PasoListoConLogin.tsx).
+      this.cerrar();
+      throw err;
     }
-
-    const codigoPromise = esperarCodigo(view, state);
-    // No se puede esperar esta promesa con el mismo criterio que loadURL(origenPortal) más abajo
-    // -- bug real encontrado 2026-08-28: cuando la cookie de sesión de Keycloak ya es válida (SSO
-    // silencioso, ej. un segundo login en la misma corrida), Keycloak responde /auth con un
-    // redirect directo al REDIRECT_URI_LOGIN sin mostrar el formulario -- esperarCodigo() lo
-    // intercepta con event.preventDefault() (ver más abajo), lo que hace que ESTA navegación
-    // nunca "termine" a los ojos de Electron y la promesa de loadURL() rechace con ERR_FAILED,
-    // aunque el código ya se haya obtenido bien vía codigoPromise. codigoPromise (nuestro propio
-    // listener) es la única fuente de verdad real acá, no el resultado de loadURL().
-    view.webContents.loadURL(authorizeUrl.toString()).catch(() => {
-      // Rechazo esperado en el caso de SSO silencioso, ver comentario arriba -- si el problema es
-      // real (Keycloak inalcanzable, DNS, etc.) codigoPromise nunca resuelve y esperarListo()/el
-      // timeout de más arriba en la cadena de llamadas lo va a reflejar igual.
-    });
-    const codigo = await codigoPromise;
-
-    const tokens = await intercambiarCodigo(codigo, codeVerifier);
-    const roles = decodificarRoles(tokens.access_token);
-    const origenPortal = resolverOrigenPortal(roles);
-
-    await view.webContents.loadURL(origenPortal);
   }
 }

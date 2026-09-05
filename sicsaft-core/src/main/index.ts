@@ -19,6 +19,45 @@ import {
 let ventanaPrincipal: BrowserWindow | null = null;
 const orquestador = new ServiceOrchestrator();
 
+// Una sola instancia por PC. Sin esto, abrir el `.exe` una segunda vez (doble clic al acceso
+// directo, o "no pasó nada, lo abro de nuevo") levanta un segundo proceso completo: su Postgres
+// embebido choca con el `postmaster.pid` del primero y el wizard muestra "Hubo un problema al
+// iniciar" -- aunque la primera instancia esté sana. `requestSingleInstanceLock()` hace que la
+// segunda invocación no arranque y solo traiga al frente la ventana que ya está.
+const obtuvoLockUnicaInstancia = app.requestSingleInstanceLock();
+if (!obtuvoLockUnicaInstancia) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (!ventanaPrincipal) return;
+    if (ventanaPrincipal.isMinimized()) ventanaPrincipal.restore();
+    ventanaPrincipal.focus();
+  });
+}
+
+// Marcado en 'before-quit': a partir de ahí no se empuja nada más al renderer (los servicios
+// embebidos siguen emitiendo líneas de log y cambios de estado mientras se apagan, y su
+// webContents ya puede estar destruido).
+let appCerrandose = false;
+// Se sueltan en 'before-quit' para dejar de escuchar durante el apagado.
+let desuscribirLog: (() => void) | null = null;
+
+// Empuja al renderer solo si la ventana y su webContents siguen vivos. `ventanaPrincipal?.` tapa
+// la ventana en null pero NO un webContents ya destruido: al cerrar la app, esos listeners
+// seguían disparando `.send()` sobre un objeto destruido -> "TypeError: Object has been
+// destroyed" no capturado que abría el diálogo de crash de Electron (en cascada, uno por línea
+// de log del apagado). Verificado real 2026-09-05.
+function enviarAlRenderer(canal: string, ...args: unknown[]): void {
+  if (appCerrandose) return;
+  const wc = ventanaPrincipal?.webContents;
+  if (!wc || wc.isDestroyed()) return;
+  try {
+    wc.send(canal, ...args);
+  } catch {
+    // La ventana pudo destruirse entre el chequeo y el send (cierre en curso) -- descartar.
+  }
+}
+
 // Redirige todo `console.*` del proceso principal (este archivo, ipc/handlers.ts y cualquier
 // servicio) también al log unificado. En un `.exe` que se abre con doble clic, stdout no lo ve
 // nadie -- sin esto, el motivo real de un arranque fallido se pierde. Los originales se siguen
@@ -95,6 +134,10 @@ function crearVentana(): BrowserWindow {
 }
 
 app.whenReady().then(async () => {
+  // Segunda instancia: ya se llamó a app.quit() arriba, no arrancar nada (ni logger, ni ventana,
+  // ni los servicios embebidos) -- la instancia que tiene el lock sigue siendo la única.
+  if (!obtuvoLockUnicaInstancia) return;
+
   // Antes que nada -- abre el archivo de log del día y engancha console.* para que TODO lo que
   // pase de acá en adelante (arranque de servicios incluido) quede registrado. Un fallo acá (disco
   // lleno, permisos en %APPDATA%) NO debe impedir que la app abra: el log es una ayuda de
@@ -114,16 +157,13 @@ app.whenReady().then(async () => {
   registrarIpcHandlers(orquestador, ventanaPrincipal);
 
   orquestador.on("estado-cambio", (estado) => {
-    ventanaPrincipal?.webContents.send(
-      "sicsaft-core:estadoServiciosChanged",
-      estado,
-    );
+    enviarAlRenderer("sicsaft-core:estadoServiciosChanged", estado);
   });
 
   // Cada línea nueva del log unificado se empuja al renderer -- la Consola técnica la muestra en
   // vivo (útil mientras el arranque está en curso, no solo después de que falla).
-  alRegistrar((linea) => {
-    ventanaPrincipal?.webContents.send("sicsaft-core:logLinea", linea);
+  desuscribirLog = alRegistrar((linea) => {
+    enviarAlRenderer("sicsaft-core:logLinea", linea);
   });
 
   try {
@@ -152,6 +192,12 @@ app.on("before-quit", async (event) => {
   // SIGTERM antes que SIGKILL, ver managed-process.ts) -- sin esto, cerrar la ventana de golpe
   // podría cortar Postgres a mitad de un write.
   event.preventDefault();
+  // Dejar de empujar al renderer: la ventana se está por destruir y los servicios embebidos
+  // siguen emitiendo líneas de log / cambios de estado mientras se apagan.
+  appCerrandose = true;
+  desuscribirLog?.();
+  desuscribirLog = null;
+  orquestador.removeAllListeners("estado-cambio");
   // DOC-029 RF-B.6.2 -- cerrar el watcher de ingesta antes que los servicios: deja de encolar
   // archivos y libera los handles de la carpeta vigilada.
   await detenerWatcherIngesta();
