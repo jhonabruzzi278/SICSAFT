@@ -40,7 +40,28 @@ export class ManagedProcess extends EventEmitter {
   async iniciar(): Promise<void> {
     if (this.estaCorriendo) return;
 
-    this.proceso = spawn(this.opciones.command, this.opciones.args, {
+    // Bug real encontrado corriendo `npm run dev` por primera vez (2026-08-27): spawn() de
+    // Windows no puede ejecutar un .bat/.cmd directo (kc.bat, ver keycloak-service.ts) -- no es
+    // un PE ejecutable, Windows necesita cmd.exe de por medio para interpretarlo. Sin esto tira
+    // "spawn EINVAL" apenas intenta arrancar Keycloak. postgres.exe/node.exe (los otros 4
+    // servicios) son PE reales, no lo necesitan -- shell:true solo cuando hace falta, no
+    // siempre (evita el riesgo de escaping de shell:true global con args que vengan de fuera).
+    //
+    // Bug real encontrado instalando el .exe en la ruta por defecto (2026-09-03): con `shell:true`
+    // Node corre `cmd /d /s /c "<command> <args>"` y NO quotea el command -- si el command tiene un
+    // espacio (el caso real: instalado en `%LOCALAPPDATA%\Programs\SICSAFT CORE\...\kc.bat`) cmd lo
+    // corta en el primer espacio y tira "'C:\...\SICSAFT' no se reconoce como un comando". Se
+    // quotea el command; cmd (/d /s /c) descarta el primer y ultimo `"` y ejecuta el resto tal
+    // cual. Los args de este proyecto (`start --optimized`) no traen espacios; todo lo que si
+    // podria traerlos (JAVA_HOME, rutas de datos) viaja por `env`, no por la linea de comandos.
+    const nombreComando = this.opciones.command.toLowerCase();
+    const necesitaShell =
+      nombreComando.endsWith(".bat") || nombreComando.endsWith(".cmd");
+    const comando = necesitaShell
+      ? `"${this.opciones.command}"`
+      : this.opciones.command;
+
+    this.proceso = spawn(comando, this.opciones.args, {
       cwd: this.opciones.cwd,
       env: this.opciones.env,
       // "pipe" (no "inherit") -- capturamos stdout/stderr acá para poder detectar el patrón de
@@ -49,13 +70,7 @@ export class ManagedProcess extends EventEmitter {
       // que se pierdan en la consola del proceso principal, que el vendedor nunca ve.
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
-      // Bug real encontrado corriendo `npm run dev` por primera vez (2026-08-27): spawn() de
-      // Windows no puede ejecutar un .bat/.cmd directo (kc.bat, ver keycloak-service.ts) -- no es
-      // un PE ejecutable, Windows necesita cmd.exe de por medio para interpretarlo. Sin esto tira
-      // "spawn EINVAL" apenas intenta arrancar Keycloak. postgres.exe/node.exe (los otros 4
-      // servicios) son PE reales, no lo necesitan -- shell:true solo cuando hace falta, no
-      // siempre (evita el riesgo de escaping de shell:true global con args que vengan de fuera).
-      shell: this.opciones.command.toLowerCase().endsWith(".bat"),
+      shell: necesitaShell,
     });
 
     this.proceso.stdout?.on("data", (chunk: Buffer) => {
