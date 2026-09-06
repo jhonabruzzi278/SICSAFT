@@ -198,7 +198,7 @@ export async function arrancarExe(): Promise<HandleExe> {
 
   if (!hijo.pid) throw new Error("spawn del `.exe` no devolvió pid");
 
-  for (let i = 0; i < 60; i += 1) {
+  for (let i = 0; i < 120; i += 1) {
     if ((await status(`http://127.0.0.1:${PUERTO_CDP}/json/version`)) === 200) {
       const handle: HandleExe = {
         pid: hijo.pid,
@@ -217,13 +217,38 @@ export async function arrancarExe(): Promise<HandleExe> {
 }
 
 /**
+ * Abre la conexión CDP al `.exe`. Reintenta: en el arranque el endpoint HTTP contesta
+ * `/json/version` antes de que el handshake CDP completo ande (el proceso principal está
+ * saturado levantando los 4 servicios embebidos) y `connectOverCDP` puede colgar el handshake.
+ */
+async function conectarCdp(cdpPort: number): Promise<Browser> {
+  const fin = Date.now() + 150_000;
+  for (let intento = 1; ; intento += 1) {
+    try {
+      return await chromium.connectOverCDP(`http://127.0.0.1:${cdpPort}`, {
+        timeout: 45_000,
+      });
+    } catch (e) {
+      if (Date.now() > fin) {
+        throw new Error(
+          `No pude conectar por CDP a :${cdpPort} tras ${intento} intentos: ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+        );
+      }
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
+}
+
+/**
  * Conecta un chromium por CDP al `.exe` y devuelve la página del renderer del wizard (no la
  * WebContentsView del login embebido). Reintenta hasta que `window.sicsaftCore` esté expuesto.
  */
 export async function conectarPaginaWizard(
   cdpPort: number,
 ): Promise<{ browser: Browser; page: Page }> {
-  const browser = await chromium.connectOverCDP(`http://127.0.0.1:${cdpPort}`);
+  const browser = await conectarCdp(cdpPort);
   const fin = Date.now() + 60_000;
   for (;;) {
     for (const ctx of browser.contexts()) {

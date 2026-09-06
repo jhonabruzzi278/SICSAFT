@@ -51,7 +51,7 @@ export const test = base.extend<{}, { exe: ContextoExe }>({
         await browser.close().catch(() => undefined);
       }
     },
-    { scope: "worker", timeout: 90_000 },
+    { scope: "worker", timeout: 240_000 },
   ],
 });
 

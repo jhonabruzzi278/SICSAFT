@@ -103,6 +103,14 @@ test.describe("02 - Wizard de primer arranque", () => {
     const clave = (await page.locator("code").first().textContent())?.trim();
     expect(clave).toBeTruthy();
     registrarUsuario("aft", ORG.id, USUARIOS.aft.email, clave!);
+
+    // Cerrar el wizard -> pantalla "Instalación completa" (PasoListoConLogin), que es el estado
+    // que esperan las specs 03/04 (botón "Cambiar de usuario") y donde arrancan los servidores
+    // estáticos de los portales.
+    await page.getByRole("button", { name: "Continuar" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Instalación completa" }),
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test("los usuarios quedaron en Keycloak con grupo {org}::{rol} y UPDATE_PASSWORD", async ({

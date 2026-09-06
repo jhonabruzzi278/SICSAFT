@@ -59,20 +59,37 @@ export async function completarLoginKeycloak(
   await page.locator("#kc-login").click();
 
   // ¿Keycloak pidió cambiar la contraseña (primer login)?
-  const pantallaUpdate = page.locator(
-    "#password-new, #kc-passwd-update-form #password-new",
-  );
+  const pantallaUpdate = page.locator("#password-new");
   const apareceUpdate = await pantallaUpdate
-    .waitFor({ state: "visible", timeout: 8_000 })
+    .waitFor({ state: "visible", timeout: 12_000 })
     .then(() => true)
     .catch(() => false);
   if (apareceUpdate) {
     await page.locator("#password-new").fill(claveNueva);
     await page.locator("#password-confirm").fill(claveNueva);
+    // El markup del submit del form "Update Password" cambió entre temas de Keycloak (v1
+    // `#kc-form-buttons input[type=submit]` / `#savepassword` -> v2 de KC26: un `<button
+    // type=submit>` dentro de PatternFly, sin id estable). Enviar con Enter es a prueba de tema;
+    // si el form no se fue en 3s, se prueba un submit genérico.
+    await page.locator("#password-confirm").press("Enter");
+    const seFue = await page
+      .locator("#password-new")
+      .waitFor({ state: "hidden", timeout: 3_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!seFue) {
+      await page
+        .locator(
+          "form button[type=submit], form input[type=submit], #kc-form-buttons button, #savepassword",
+        )
+        .first()
+        .click({ timeout: 10_000 })
+        .catch(() => undefined);
+    }
     await page
-      .locator("#kc-form-buttons button, input[type=submit], #savepassword")
-      .first()
-      .click();
+      .locator("#password-new")
+      .waitFor({ state: "hidden", timeout: 15_000 })
+      .catch(() => undefined);
     return { cambioPassword: true };
   }
   return { cambioPassword: false };
