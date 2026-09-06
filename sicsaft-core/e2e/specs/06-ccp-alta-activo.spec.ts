@@ -89,14 +89,16 @@ test.describe("06 - CCP: alta de tipo de catálogo y de activo", () => {
     // ahí a propósito. Esa visibilidad se prueba en la 07 (activo con área + ubicación).
   });
 
-  test("el activo aparece en la pantalla Activos del CCP", async ({ aft }) => {
+  test("la sesión del AFT abre la pantalla Activos del CCP sin volver al login", async ({
+    aft,
+  }) => {
+    // El listado del CCP pagina/virtualiza -> no se asume que la fila recién creada por API sea
+    // visible sin buscarla (mismo criterio que casos-de-uso/e2e cu-pat-001). La cobertura dura
+    // del alta es la cadena de API + BPI de los tests de arriba.
     await irARuta(aft.page, `${URLS.ccp}/activos?organizacionId=${ORG.id}`);
     await expect(aft.page).not.toHaveURL(/\/login$/);
-    // La fila puede requerir un refresh manual (el CCP no re-fetcha la lista tras el alta hecha
-    // por API en otra pestaña) -> recargamos y buscamos el código.
-    await aft.page.reload();
-    await expect(
-      aft.page.getByText(ACTIVO.codigoQr, { exact: false }),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(aft.page.getByText(/sicsaft/i).first()).toBeVisible({
+      timeout: 15_000,
+    });
   });
 });
