@@ -140,9 +140,7 @@ def test_cargar_mapeo_none_devuelve_default():
 
 # --- categoria_por_defecto: una celda de CATEGORIA en blanco no debe perder el lote entero -----
 
-FIXTURE_CLIENTE_REAL = (
-    Path(__file__).resolve().parent / "fixtures" / "ejemplo-suchel-tropical.xls"
-)
+FIXTURE_CLIENTE_REAL = Path(__file__).resolve().parent / "fixtures" / "ejemplo-suchel-tropical.xls"
 
 
 def _excel_con_categoria_en_blanco(ruta: Path) -> Path:
@@ -185,9 +183,7 @@ def test_procesar_excel_real_del_cliente_adapta_todo_a_la_bpi():
     """El Excel real de un cliente (252 activos, 4 direcciones, bloques enteros sin CATEGORIA)
     tiene que salir 100% mapeado: ninguna fila sin `categoriaNombre`, sin duplicados, y con el
     `codigoQr` acuñado dentro del patrón de escaneo."""
-    cuerpo = etl.procesar(
-        FIXTURE_CLIENTE_REAL, "suchel-tropical", etl.MAPEO_POR_DEFECTO
-    )
+    cuerpo = etl.procesar(FIXTURE_CLIENTE_REAL, "suchel-tropical", etl.MAPEO_POR_DEFECTO)
     filas = cuerpo["filas"]
 
     assert len(filas) == 252
