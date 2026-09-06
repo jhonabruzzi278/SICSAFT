@@ -6,9 +6,10 @@ import { defineConfig, devices } from "@playwright/test";
 // huérfano en Windows): tope de 15s + `taskkill /T` del árbol (ver fixtures/electron.ts y
 // scripts/exe-process.ts).
 //
-//   * `principal` (specs 01..11) -- un solo `.exe` vivo vía la fixture worker `exe`. El wizard
-//     corre en la 02 y las demás dependen de ese estado; por eso workers:1, fullyParallel:false y
-//     orden alfabético de archivos.
+//   * `principal` (specs 01..11 + 14..18) -- un solo `.exe` vivo vía la fixture worker `exe`. El
+//     wizard corre en la 02 y las demás dependen de ese estado; por eso workers:1,
+//     fullyParallel:false y orden alfabético de archivos. 14..18 amplían la cobertura (funciones
+//     del AFT / del Directivo, validaciones, shell, ingesta de Excel) y corren después de la 11.
 //   * `ciclo-vida` (specs 12..13) -- relanzamiento y cierre limpio. `dependencies: ['principal']`
 //     garantiza que corra DESPUÉS (la instancia de `principal` ya se cerró); estas specs lanzan su
 //     propia instancia con `_electron.launch`.
@@ -44,7 +45,7 @@ export default defineConfig({
   projects: [
     {
       name: "principal",
-      testMatch: /specs[\\/](0[1-9]|1[01])-.*\.spec\.ts$/,
+      testMatch: /specs[\\/](0[1-9]|1[01]|1[4-8])-.*\.spec\.ts$/,
     },
     {
       name: "ciclo-vida",
