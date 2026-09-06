@@ -1,4 +1,4 @@
-import { test, expect } from "../fixtures/portales";
+import { test, expect, irARuta } from "../fixtures/portales";
 import { ORG, URLS } from "../test-data";
 
 // Portal del Directivo (core/frontend) servido por el `.exe`. Con Nivel 2 el Dashboard ejecutivo
@@ -8,7 +8,7 @@ test.describe("08 - Portal del Directivo: Dashboard (Nivel 2 / CIP)", () => {
   test("el Directivo ve el Dashboard ejecutivo y el menú Directivo", async ({
     directivo,
   }) => {
-    await directivo.page.goto(`${URLS.directivo}/`);
+    await irARuta(directivo.page, `${URLS.directivo}/`);
     await expect(directivo.page).not.toHaveURL(/\/login$/);
 
     // Cabecera del portal + email del usuario.

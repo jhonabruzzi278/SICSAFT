@@ -95,13 +95,38 @@ export async function completarLoginKeycloak(
   return { cambioPassword: false };
 }
 
+/**
+ * `page.goto` con reintento ante ERR_CONNECTION_REFUSED: si Playwright recicló el worker por un
+ * test fallido, el `.exe` está relanzando y el servidor estático del portal (8766/8768) tarda
+ * unos segundos más que Postgres/Keycloak en volver. Sin esto, un fallo puntual cascadea en
+ * varios CONNECTION_REFUSED de las specs siguientes.
+ */
+export async function irARuta(
+  page: Page,
+  url: string,
+  timeoutMs = 90_000,
+): Promise<void> {
+  const fin = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      return;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!/ERR_CONNECTION_REFUSED|ERR_CONNECTION_RESET/.test(msg)) throw e;
+      if (Date.now() > fin) throw e;
+      await page.waitForTimeout(3000);
+    }
+  }
+}
+
 async function loginPorNavegador(page: Page, rol: Rol): Promise<string> {
   const cred = leerCredenciales();
   const datos = cred[rol];
   const origin = new URL(PORTAL[rol]).origin;
   const clave = CLAVE_TOKENS[rol];
 
-  await page.goto(`${PORTAL[rol]}/`, { waitUntil: "domcontentloaded" });
+  await irARuta(page, `${PORTAL[rol]}/`);
   const boton = page.getByRole("button", { name: /iniciar sesión/i });
   if (await boton.isVisible({ timeout: 10_000 }).catch(() => false)) {
     await boton.click({ noWaitAfter: true }).catch(() => undefined);

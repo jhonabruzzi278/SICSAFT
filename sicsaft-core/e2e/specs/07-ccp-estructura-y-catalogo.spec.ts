@@ -112,5 +112,14 @@ test.describe("07 - CCP: estructura (área/ubicación/responsable)", () => {
       ubicacion_id: ubicacionId,
       responsable_id: responsableId,
     });
+
+    // Con área + ubicación asignadas, el activo SÍ aparece en `GET /catalogo` (el que consume la
+    // APP QR -- filtra por area_id/ubicacion_id NOT NULL).
+    const cat = await aft.api.get(`/catalogo?organizacionId=${ORG.id}`);
+    expect(cat.ok()).toBeTruthy();
+    const { activos } = await cat.json();
+    expect(
+      (activos as Array<{ codigoQr: string }>).map((a) => a.codigoQr),
+    ).toContain(`E2E-ESTQR-${sufijo}`);
   });
 });

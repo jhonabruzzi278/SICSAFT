@@ -1,4 +1,4 @@
-import { test, expect } from "../fixtures/portales";
+import { test, expect, irARuta } from "../fixtures/portales";
 import { consultar } from "../scripts/db";
 import { REALM } from "../test-data";
 
@@ -11,7 +11,8 @@ test.describe("09 - Portal del Directivo: designar Profesional de AFT", () => {
   test("crea un AFT nuevo, muestra la clave inicial una vez y refresca la tabla", async ({
     directivo,
   }) => {
-    await directivo.page.goto(
+    await irARuta(
+      directivo.page,
       "http://127.0.0.1:8768/gestionar-profesional-aft",
     );
     await directivo.page.locator("#profesional-email").fill(emailNuevo);

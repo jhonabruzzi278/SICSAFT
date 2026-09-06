@@ -1,4 +1,4 @@
-import { test, expect } from "../fixtures/portales";
+import { test, expect, irARuta } from "../fixtures/portales";
 import { unaFila } from "../scripts/db";
 import { ORG, URLS } from "../test-data";
 
@@ -44,7 +44,7 @@ test.describe("06 - CCP: alta de tipo de catálogo y de activo", () => {
     process.env.E2E_CATALOGO_ID = tipo.id;
   });
 
-  test("da de alta un activo contra ese catálogo → BPI + visible en /catalogo", async ({
+  test("da de alta un activo contra ese catálogo → persiste en la BPI", async ({
     aft,
   }) => {
     const catalogoId =
@@ -84,18 +84,13 @@ test.describe("06 - CCP: alta de tipo de catálogo y de activo", () => {
       estado: "activo",
       organizacion_id: ORG.id,
     });
-
-    // Visible en el catálogo que consumen CCP y APP QR.
-    const cat = await aft.api.get(`/catalogo?organizacionId=${ORG.id}`);
-    expect(cat.ok()).toBeTruthy();
-    const { activos } = await cat.json();
-    expect(
-      (activos as Array<{ codigoQr: string }>).map((a) => a.codigoQr),
-    ).toContain(ACTIVO.codigoQr);
+    // Nota: `GET /catalogo` (el que consume la APP QR) filtra por `area_id`/`ubicacion_id NOT
+    // NULL` (ver core activo.repository.ts findCatalogo) -- un activo sin ubicación no aparece
+    // ahí a propósito. Esa visibilidad se prueba en la 07 (activo con área + ubicación).
   });
 
   test("el activo aparece en la pantalla Activos del CCP", async ({ aft }) => {
-    await aft.page.goto(`${URLS.ccp}/activos?organizacionId=${ORG.id}`);
+    await irARuta(aft.page, `${URLS.ccp}/activos?organizacionId=${ORG.id}`);
     await expect(aft.page).not.toHaveURL(/\/login$/);
     // La fila puede requerir un refresh manual (el CCP no re-fetcha la lista tras el alta hecha
     // por API en otra pestaña) -> recargamos y buscamos el código.
