@@ -138,6 +138,75 @@ def test_cargar_mapeo_none_devuelve_default():
     assert etl.cargar_mapeo(None) is etl.MAPEO_POR_DEFECTO
 
 
+# --- categoria_por_defecto: una celda de CATEGORIA en blanco no debe perder el lote entero -----
+
+FIXTURE_CLIENTE_REAL = Path(__file__).resolve().parent / "fixtures" / "ejemplo-suchel-tropical.xls"
+
+
+def _excel_con_categoria_en_blanco(ruta: Path) -> Path:
+    filas = [
+        ["No.", "DIRECCION", "CODIGO", "CATEGORIA", "RESPONSABLE"],
+        [1, "DIR A", "A-001", "MOBILIARIO", "JUAN"],
+        [2, None, "A-002", None, None],  # sin categoría
+        [3, None, "A-003", "INFORMATICA", None],
+    ]
+    pd.DataFrame(filas).to_excel(ruta, header=False, index=False, engine="openpyxl")
+    return ruta
+
+
+def test_categoria_por_defecto_rellena_las_filas_sin_categoria(tmp_path: Path):
+    ruta = _excel_con_categoria_en_blanco(tmp_path / "blancos.xlsx")
+    cuerpo = etl.procesar(ruta, "muni", etl.MAPEO_POR_DEFECTO)
+    filas = cuerpo["filas"]
+    assert [f["categoriaNombre"] for f in filas] == [
+        "MOBILIARIO",
+        "SIN CATEGORIA",
+        "INFORMATICA",
+    ]
+    # el schema de CORE queda satisfecho: toda fila tiene categoriaNombre
+    assert all(f.get("categoriaNombre") for f in filas)
+
+
+def test_categoria_por_defecto_null_vuelve_al_modo_estricto(tmp_path: Path):
+    ruta = _excel_con_categoria_en_blanco(tmp_path / "blancos.xlsx")
+    mapeo_ruta = tmp_path / "mapeo-x.json"
+    mapeo_ruta.write_text('{"categoria_por_defecto": null}', encoding="utf-8")
+    cuerpo = etl.procesar(ruta, "muni", etl.cargar_mapeo(mapeo_ruta))
+    # la fila del medio queda SIN categoriaNombre (CORE la rechazaría -> decisión del cliente)
+    assert "categoriaNombre" not in cuerpo["filas"][1]
+
+
+@pytest.mark.skipif(
+    not FIXTURE_CLIENTE_REAL.exists(), reason="falta el .xls de ejemplo del cliente"
+)
+def test_procesar_excel_real_del_cliente_adapta_todo_a_la_bpi():
+    """El Excel real de un cliente (252 activos, 4 direcciones, bloques enteros sin CATEGORIA)
+    tiene que salir 100% mapeado: ninguna fila sin `categoriaNombre`, sin duplicados, y con el
+    `codigoQr` acuñado dentro del patrón de escaneo."""
+    cuerpo = etl.procesar(FIXTURE_CLIENTE_REAL, "suchel-tropical", etl.MAPEO_POR_DEFECTO)
+    filas = cuerpo["filas"]
+
+    assert len(filas) == 252
+    assert all(f.get("categoriaNombre") for f in filas), "hay filas sin categoriaNombre"
+
+    codigos = [f["codigoPatrimonial"] for f in filas]
+    assert len(codigos) == len(set(codigos)), "hay codigoPatrimonial duplicados"
+
+    assert all(etl.PATRON_QR.match(f["codigoQr"]) for f in filas)
+
+    direcciones = {f["direccionNombre"] for f in filas}
+    assert direcciones == {
+        "DIRECCION COMERCIAL",
+        "DIRECCION ECONOMIA",
+        "DIRECCION GENERAL",
+        "DIRECCION TECNICO-PRODUCTIVA",
+    }
+
+    # el bloque que llegó sin CATEGORIA entró con la categoría de reserva, no perdido
+    reserva = [f["codigoPatrimonial"] for f in filas if f["categoriaNombre"] == "SIN CATEGORIA"]
+    assert "DL-01" in reserva and "DG-048" in reserva
+
+
 def test_main_salida_stdout(excel_cliente: Path, capsys: pytest.CaptureFixture[str]):
     codigo = etl.main(["--entrada", str(excel_cliente), "--organizacion", "muni", "--salida", "-"])
     assert codigo == 0

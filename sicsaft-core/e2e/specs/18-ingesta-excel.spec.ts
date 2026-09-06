@@ -311,7 +311,28 @@ test.describe("18 - Ingesta de Excel contable (DOC-029 RF-B)", () => {
       `/admin/importaciones/contable/lote/${lote!.id}`,
     );
     expect(rd.ok()).toBeTruthy();
-    const { filas } = (await rd.json()) as { filas: unknown[] };
+    const { filas } = (await rd.json()) as {
+      filas: Array<{ codigoPatrimonial: string }>;
+    };
     expect(filas.length).toBeGreaterThan(0);
+
+    // Aprobar -> los activos del Excel real quedan en la BPI (adaptados: dirección/área/
+    // responsable/categoría resueltos-o-creados por nombre bajo la identidad del AFT).
+    const codigos = filas.map((f) => f.codigoPatrimonial);
+    const rap = await aft.api.post(
+      `/admin/importaciones/contable/lote/${lote!.id}/aprobar`,
+      { data: { organizacionId: ORG.id } },
+    );
+    expect(
+      rap.ok(),
+      `aprobar → ${rap.status()} ${await rap.text()}`,
+    ).toBeTruthy();
+
+    const enBpi = await consultar<{ n: string }>(
+      "core",
+      "select count(*)::text as n from activos where organizacion_id=$1 and codigo_patrimonial = any($2::text[])",
+      [ORG.id, codigos],
+    );
+    expect(Number(enBpi[0].n)).toBe(codigos.length);
   });
 });

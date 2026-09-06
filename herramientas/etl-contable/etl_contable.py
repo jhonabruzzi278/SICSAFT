@@ -42,6 +42,13 @@ MAPEO_POR_DEFECTO: dict[str, Any] = {
         "VALOR.CLP.": "valorPatrimonial",
     },
     "rellenar_hacia_abajo": ["direccionNombre", "areaNombre", "responsableNombre"],
+    # El schema de CORE exige `catalogoId` o `categoriaNombre` en CADA fila -- una sola celda de
+    # categoría en blanco rechazaría el lote entero (400). El Excel real del cliente trae bloques
+    # sin categoría (secciones que el contador no completó). En vez de perder el lote, las filas
+    # sin categoría entran con esta categoría de reserva; el Profesional de AFT las ve marcadas
+    # en el dry-run y las reclasifica antes de aprobar (DOC-029 RF-B, "el revisor decide").
+    # Poné `null` en un `mapeo-<org>.json` para volver al rechazo estricto.
+    "categoria_por_defecto": "SIN CATEGORIA",
 }
 
 CAMPOS_OPCIONALES_TEXTO = (
@@ -144,9 +151,14 @@ def acunar_qr(codigo_patrimonial: str) -> str:
     return codigo_patrimonial.strip().upper()
 
 
-def construir_filas(df: pd.DataFrame, df_crudo: pd.DataFrame) -> list[dict[str, Any]]:
+def construir_filas(
+    df: pd.DataFrame,
+    df_crudo: pd.DataFrame,
+    categoria_por_defecto: str | None = None,
+) -> list[dict[str, Any]]:
     """`df` ya renombrado/rellenado; `df_crudo` con los nombres y valores originales del Excel
-    (para el bloque `crudo`, que el revisor ve tal cual llegó)."""
+    (para el bloque `crudo`, que el revisor ve tal cual llegó). `categoria_por_defecto` (si se
+    pasa) rellena `categoriaNombre` en las filas que llegaron sin categoría en el Excel."""
     filas: list[dict[str, Any]] = []
     for pos in range(len(df)):
         cruda = df.iloc[pos]
@@ -166,6 +178,8 @@ def construir_filas(df: pd.DataFrame, df_crudo: pd.DataFrame) -> list[dict[str, 
             valor = _o_none(cruda.get(campo))
             if valor is not None:
                 fila[campo] = valor
+        if "categoriaNombre" not in fila and categoria_por_defecto:
+            fila["categoriaNombre"] = categoria_por_defecto
         valor_num = normalizar_valor(cruda.get("valorPatrimonial"))
         if valor_num is not None:
             fila["valorPatrimonial"] = valor_num
@@ -184,7 +198,7 @@ def procesar(entrada: Path, organizacion: str, mapeo: dict[str, Any]) -> dict[st
     tabla_original = aplicar_encabezado(crudo, fila_enc)
     tabla = renombrar_columnas(tabla_original, mapeo["columnas"])
     tabla = rellenar_hacia_abajo(tabla, mapeo["rellenar_hacia_abajo"])
-    filas = construir_filas(tabla, tabla_original)
+    filas = construir_filas(tabla, tabla_original, mapeo.get("categoria_por_defecto"))
     if not filas:
         raise ValueError(f"{entrada.name}: 0 filas con codigoPatrimonial.")
     qr_invalidos = [f["codigoQr"] for f in filas if not PATRON_QR.match(f["codigoQr"])]

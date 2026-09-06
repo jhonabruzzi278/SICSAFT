@@ -34,6 +34,11 @@ directamente; todo pasa por CIS → CORE") se cumple: este ETL es un cliente má
 6. Manda **los nombres tal cual del Excel** (`categoriaNombre`, `areaNombre`,
    `responsableNombre`, `direccionNombre`) — CORE los resuelve-o-crea al aprobar. Además guarda
    el bloque `crudo` con las columnas originales, para que el revisor vea qué llegó.
+7. Las filas que llegan **sin categoría** (bloques que el contador no completó) entran con
+   `categoriaNombre = "SIN CATEGORIA"` en vez de rechazar el lote entero — CORE exige
+   `catalogoId` o `categoriaNombre` en cada fila. El Profesional de AFT las reclasifica en la
+   revisión antes de aprobar. Poné `"categoria_por_defecto": null` en el `mapeo-<org>.json` para
+   volver al rechazo estricto.
 
 ## Uso
 
