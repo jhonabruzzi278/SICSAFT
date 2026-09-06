@@ -21,7 +21,10 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,
-  retries: 0,
+  // Playwright recicla el worker tras cada test fallido -> el `.exe` relanza (~3 min). Contra
+  // este build de Electron la sesión CDP de `_electron.launch` es intermitente (el network
+  // service de Chromium crashea a veces); un retry en worker nuevo lo suele resolver.
+  retries: process.env.CI ? 2 : 1,
   timeout: 120_000,
   expect: { timeout: 20_000 },
   globalSetup: "./global-setup.ts",

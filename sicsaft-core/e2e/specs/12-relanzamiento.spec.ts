@@ -29,7 +29,7 @@ test.beforeAll(async () => {
   const { exe } = resolverExe();
   app = await electron.launch({
     executablePath: exe,
-    args: [],
+    args: ["--disable-gpu"],
     timeout: 60_000,
   });
   page = await app.firstWindow({ timeout: 60_000 });

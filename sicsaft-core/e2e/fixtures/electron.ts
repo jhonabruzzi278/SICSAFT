@@ -33,13 +33,23 @@ export interface ContextoExe {
 }
 
 async function cerrarAcotado(app: ElectronApplication): Promise<void> {
-  const pid = app.process().pid;
-  await Promise.race([
-    app.close().catch(() => undefined),
-    new Promise((r) => setTimeout(r, 15_000)),
-  ]);
-  if (pid) await matarArbol(pid); // remata el `java` huérfano de Keycloak, etc.
-  await barrerHuerfanos();
+  // Nunca tira: cualquier fallo acá deja el worker "sucio" y Playwright cuelga el teardown 120s.
+  let pid: number | undefined;
+  try {
+    pid = app.process().pid;
+  } catch {
+    /* el proceso ya no existe */
+  }
+  try {
+    await Promise.race([
+      app.close().catch(() => undefined),
+      new Promise((r) => setTimeout(r, 12_000)),
+    ]);
+  } catch {
+    /* ignore */
+  }
+  if (pid) await matarArbol(pid).catch(() => undefined); // remata el `java` huérfano de Keycloak
+  await barrerHuerfanos().catch(() => undefined);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -50,7 +60,9 @@ export const test = base.extend<{}, { exe: ContextoExe }>({
       const { exe, empaquetadoConEspacio } = resolverExe();
       const app = await electron.launch({
         executablePath: exe,
-        args: [],
+        // `--disable-gpu` reduce la superficie de crash del proceso utilitario de Chromium
+        // (el "network service crashed" que tiraba la sesión CDP a mitad de un page.evaluate).
+        args: ["--disable-gpu"],
         timeout: 60_000,
       });
       const page = await app.firstWindow({ timeout: 60_000 });

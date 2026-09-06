@@ -27,7 +27,7 @@ test.describe("13 - Cierre limpio (bug #4)", () => {
     const { exe } = resolverExe();
     const app = await electron.launch({
       executablePath: exe,
-      args: [],
+      args: ["--disable-gpu"],
       timeout: 60_000,
     });
     const page = await app.firstWindow({ timeout: 60_000 });
