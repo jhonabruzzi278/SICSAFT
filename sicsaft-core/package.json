@@ -16,7 +16,10 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "prepack:artefactos": "node scripts/prepack.cjs",
     "pack": "npm run prepack:artefactos && electron-vite build && electron-builder --dir",
-    "dist:win": "npm run prepack:artefactos && electron-vite build && electron-builder --win"
+    "dist:win": "npm run prepack:artefactos && electron-vite build && electron-builder --win",
+    "e2e": "playwright test --config e2e/playwright.config.ts",
+    "e2e:headed": "playwright test --config e2e/playwright.config.ts --headed",
+    "e2e:report": "playwright show-report e2e/playwright-report"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",
@@ -120,6 +123,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.1.2",
     "@types/pg": "^8.15.5",
