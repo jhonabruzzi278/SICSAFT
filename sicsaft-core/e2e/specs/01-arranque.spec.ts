@@ -1,4 +1,12 @@
-import { test, expect, PUERTOS, esperarHttp } from "../fixtures/electron";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import {
+  test,
+  expect,
+  PUERTOS,
+  esperarHttp,
+  resolverExe,
+} from "../fixtures/electron";
 import { URLS } from "../test-data";
 
 // Primer arranque del `.exe`: Postgres + Keycloak + CORE + CIP suben antes del wizard (CIS
@@ -24,16 +32,18 @@ test.describe("01 - Primer arranque de los servicios embebidos", () => {
     );
   });
 
-  test("Keycloak responde el well-known del realm; los portales sirven su index", async ({
+  test("Keycloak responde el well-known del realm `master` (el realm `sicsaft` lo crea el wizard)", async ({
     exe,
   }) => {
     void exe;
+    // El realm `sicsaft` no existe hasta el paso 1 del wizard (bootstrapCliente) -- se verifica
+    // en 02. Acá sólo que Keycloak está sirviendo (realm `master`, siempre presente). Que los
+    // portales sirven su index queda probado en las specs 05..09 (login real contra cada uno);
+    // sus servidores estáticos arrancan recién en el primer `mostrarPortalEmbebido`.
     await esperarHttp(
-      `${URLS.keycloak}/realms/sicsaft/.well-known/openid-configuration`,
+      `${URLS.keycloak}/realms/master/.well-known/openid-configuration`,
       { aceptar: (s) => s === 200 },
     );
-    await esperarHttp(`${URLS.ccp}/`);
-    await esperarHttp(`${URLS.directivo}/`);
   });
 
   test("#108 — Keycloak arranca aunque `kc.bat` esté en una ruta con espacio", async ({
@@ -44,12 +54,17 @@ test.describe("01 - Primer arranque de los servicios embebidos", () => {
       "el `.exe` no corre desde una ruta con espacio -- este bug no se puede reproducir acá",
     );
 
-    // La ruta que el `.exe` empaquetado usa para los binarios de Keycloak tiene un espacio...
-    const rutaKc = await exe.app.evaluate(async () => {
-      const { join } = await import("node:path");
-      return join(process.resourcesPath, "keycloak", "bin", "kc.bat");
-    });
+    // La ruta que el `.exe` empaquetado usa para los binarios de Keycloak (extraResources,
+    // contigua al `.exe`) tiene un espacio...
+    const rutaKc = join(
+      dirname(resolverExe().exe),
+      "resources",
+      "keycloak",
+      "bin",
+      "kc.bat",
+    );
     expect(rutaKc).toContain(" ");
+    expect(existsSync(rutaKc), `no existe ${rutaKc}`).toBe(true);
 
     // ...y aun así Keycloak quedó 'listo' (sin el fix quedaría en 'error' con
     // "'C:\\...\\SICSAFT' no se reconoce como un comando").

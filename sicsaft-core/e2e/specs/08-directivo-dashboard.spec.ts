@@ -1,5 +1,5 @@
 import { test, expect } from "../fixtures/portales";
-import { URLS } from "../test-data";
+import { ORG, URLS } from "../test-data";
 
 // Portal del Directivo (core/frontend) servido por el `.exe`. Con Nivel 2 el Dashboard ejecutivo
 // (indicadores del CIP) está presente; la navegación del portal funciona con la sesión real.
@@ -34,13 +34,15 @@ test.describe("08 - Portal del Directivo: Dashboard (Nivel 2 / CIP)", () => {
   test("los endpoints del dashboard (CIP connector) responden 200 con el token del Directivo", async ({
     directivo,
   }) => {
-    for (const path of [
+    // `organizacionId` es requerido por el schema del dashboard-connector de CIS
+    // (coberturaQuerySchema, DOC-019 3.1) -- sin él responde 400.
+    for (const ruta of [
       "/dashboard/cobertura",
       "/dashboard/categorias",
       "/dashboard/estado-activos",
     ]) {
-      const r = await directivo.api.get(path);
-      expect(r.ok(), `${path} → ${r.status()}`).toBeTruthy();
+      const r = await directivo.api.get(`${ruta}?organizacionId=${ORG.id}`);
+      expect(r.ok(), `${ruta} → ${r.status()} ${await r.text()}`).toBeTruthy();
     }
   });
 });

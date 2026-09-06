@@ -1,52 +1,44 @@
-import { test, expect, _electron as electron } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { readdirSync, readFileSync } from "node:fs";
-import { resolverExe, esperarServiciosListos } from "../fixtures/electron";
+import {
+  barrerHuerfanos,
+  esperarExeAbajo,
+  leerHandleExe,
+  matarArbol,
+  pedirCierreLimpio,
+} from "../scripts/exe-process";
 import { rutaCarpetaLogs } from "../scripts/appdata";
 
 // #4 -- cerrar el `.exe` con los servicios corriendo NO debe abrir el diálogo de crash de
 // Electron ("A JavaScript error occurred in the main process" / "Object has been destroyed").
 // El fix guarda `webContents.isDestroyed()` antes de cada `.send()` y suelta los listeners en
-// before-quit.
-//
-// Igual que la spec 12, usa su propia instancia (no la fixture worker).
+// before-quit. Se cierra la instancia compartida (que la spec 12 relanzó) con un WM_CLOSE -- el
+// mismo camino que el usuario clickeando la X -> dispara el `before-quit`.
+
+function logCompleto(): string {
+  const dir = rutaCarpetaLogs();
+  return readdirSync(dir)
+    .filter((f) => f.endsWith(".log"))
+    .map((f) => readFileSync(`${dir}/${f}`, "utf8"))
+    .join("\n");
+}
 
 test.describe("13 - Cierre limpio (bug #4)", () => {
-  test("close() con los 5 servicios arriba: exit 0, sin excepción no capturada, log finaliza limpio", async () => {
-    const { exe } = resolverExe();
-    const app = await electron.launch({
-      executablePath: exe,
-      args: [],
-      timeout: 60_000,
-    });
-    const page = await app.firstWindow({ timeout: 60_000 });
-    await page.waitForLoadState("domcontentloaded");
-    await esperarServiciosListos(page, { incluirCis: true });
+  test("cerrar la ventana con los 5 servicios arriba: log finaliza limpio, sin excepción de main", async () => {
+    const { pid } = leerHandleExe();
 
-    const errores: string[] = [];
-    app.process().stderr?.on("data", (b: Buffer) => errores.push(b.toString()));
-    app.on("console", (msg) => {
-      if (msg.type() === "error") errores.push(msg.text());
-    });
+    await pedirCierreLimpio(pid); // WM_CLOSE -> window-all-closed -> before-quit
+    await esperarExeAbajo(60_000);
+    // rematar el `java` de Keycloak que el `.exe` deja huérfano al cerrar en Windows
+    await matarArbol(pid);
+    await barrerHuerfanos();
 
-    await app.close();
-
-    // El proceso terminó sin código de error.
-    const code = app.process().exitCode;
-    expect(code === 0 || code === null).toBeTruthy();
-
-    // Nada de "Object has been destroyed" / excepción no capturada en stderr.
-    const stderr = errores.join("\n");
-    expect(stderr).not.toMatch(/Object has been destroyed/i);
-    expect(stderr).not.toMatch(/A JavaScript error occurred/i);
-    expect(stderr).not.toMatch(/uncaughtException/i);
-
-    // El log del `.exe` cierra con "--- sesión finalizada ---" y sin la excepción.
-    const dir = rutaCarpetaLogs();
-    const contenido = readdirSync(dir)
-      .filter((f) => f.endsWith(".log"))
-      .map((f) => readFileSync(`${dir}/${f}`, "utf8"))
-      .join("\n");
+    const contenido = logCompleto();
+    // El logger escribe esto en el before-quit, después de apagar los 5 servicios.
     expect(contenido).toContain("--- sesión finalizada ---");
+    // Nada del diálogo de crash de Electron ni excepción no capturada en el proceso principal.
     expect(contenido).not.toMatch(/Object has been destroyed/i);
+    expect(contenido).not.toMatch(/A JavaScript error occurred/i);
+    expect(contenido).not.toMatch(/uncaughtException|unhandledRejection/i);
   });
 });
