@@ -1,35 +1,45 @@
 import {
   test as base,
   expect,
-  type Browser,
+  _electron as electron,
+  type ElectronApplication,
   type Page,
 } from "@playwright/test";
 import { PUERTOS } from "../test-data";
 import { resolverExe } from "../scripts/exe-path";
 import {
-  conectarPaginaWizard,
+  barrerHuerfanos,
   esperarCisListo,
   esperarHttp,
   esperarServiciosListos,
-  leerHandleExe,
+  matarArbol,
 } from "../scripts/exe-process";
 
-// El `.exe` lo arranca/para global-setup/global-teardown (ver scripts/exe-process.ts). Esta
-// fixture sólo se ADJUNTA por CDP al proceso ya vivo -- reconectar es instantáneo, así que
-// sobrevive al reciclado de worker que Playwright hace tras cada test fallido. Cerrarla sólo
-// desconecta el chromium de CDP, NO mata el `.exe`.
+// Un solo `.exe` vivo para todo el project `principal` (workers:1), vía `_electron.launch`.
+// global-setup/global-teardown aíslan/restauran `%APPDATA%\sicsaft-core` y barren huérfanos.
+//
+// `connectOverCDP` no sirve contra este build de Electron (el handshake CDP se cuelga), así que
+// se usa `_electron.launch`. El teardown NO espera indefinidamente el `app.close()` (se colgaba
+// 120s porque el `.exe` deja huérfano el `java` de Keycloak en Windows y su pipe queda abierto):
+// se le da un tope y después se remata el árbol con `taskkill /T`.
 
 export interface ContextoExe {
-  /** Página del renderer del wizard (por CDP). */
+  /** El proceso Electron del `.exe`. */
+  app: ElectronApplication;
+  /** La ventana principal (renderer del wizard / consola técnica). */
   page: Page;
-  /** El chromium conectado por CDP (para desconectar en el teardown de la fixture). */
-  browser: Browser;
-  /** Puerto del DevTools Protocol del `.exe`. */
-  cdpPort: number;
-  /** PID del `.exe` de la corrida. */
-  pid: number;
   /** true si el `.exe` corre desde una ruta con un espacio (condición del bug de PR #108). */
   empaquetadoConEspacio: boolean;
+}
+
+async function cerrarAcotado(app: ElectronApplication): Promise<void> {
+  const pid = app.process().pid;
+  await Promise.race([
+    app.close().catch(() => undefined),
+    new Promise((r) => setTimeout(r, 15_000)),
+  ]);
+  if (pid) await matarArbol(pid); // remata el `java` huérfano de Keycloak, etc.
+  await barrerHuerfanos();
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -37,21 +47,22 @@ export const test = base.extend<{}, { exe: ContextoExe }>({
   exe: [
     // eslint-disable-next-line no-empty-pattern
     async ({}, use) => {
-      const handle = leerHandleExe();
-      const { browser, page } = await conectarPaginaWizard(handle.cdpPort);
+      const { exe, empaquetadoConEspacio } = resolverExe();
+      const app = await electron.launch({
+        executablePath: exe,
+        args: [],
+        timeout: 60_000,
+      });
+      const page = await app.firstWindow({ timeout: 60_000 });
+      await page.waitForLoadState("domcontentloaded");
+      await esperarServiciosListos(page);
       try {
-        await use({
-          page,
-          browser,
-          cdpPort: handle.cdpPort,
-          pid: handle.pid,
-          empaquetadoConEspacio: handle.empaquetadoConEspacio,
-        });
+        await use({ app, page, empaquetadoConEspacio });
       } finally {
-        await browser.close().catch(() => undefined);
+        await cerrarAcotado(app);
       }
     },
-    { scope: "worker", timeout: 240_000 },
+    { scope: "worker", timeout: 8 * 60_000 },
   ],
 });
 

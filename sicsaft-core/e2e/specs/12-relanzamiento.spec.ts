@@ -1,11 +1,14 @@
-import { test, expect } from "@playwright/test";
-import type { Browser, Page } from "@playwright/test";
 import {
-  arrancarExe,
-  conectarPaginaWizard,
-  esperarExeAbajo,
+  test,
+  expect,
+  _electron as electron,
+  type ElectronApplication,
+  type Page,
+} from "@playwright/test";
+import { resolverExe } from "../scripts/exe-path";
+import {
+  barrerHuerfanos,
   esperarServiciosListos,
-  leerHandleExe,
   matarArbol,
 } from "../scripts/exe-process";
 import { ORG } from "../test-data";
@@ -13,27 +16,35 @@ import { ORG } from "../test-data";
 // Relanzamiento: con la instalación ya hecha (instalacion.json presente tras el wizard de la 02),
 // el `.exe` NO vuelve a mostrar el wizard -- salta directo al login, y esta vez CIS también
 // arranca (en el primer arranque quedaba abajo hasta el paso 1). Este project (`ciclo-vida`) corre
-// DESPUÉS de `principal`, así que la instancia compartida ya terminó su trabajo: acá se la para y
-// se levanta una nueva de verdad para probar el camino de relanzamiento.
+// DESPUÉS de `principal`, así que su `.exe` ya se cerró: acá se lanza una instancia nueva de
+// verdad (mismo `%APPDATA%` aislado y persistido) para probar el camino de relanzamiento.
 
 test.describe.configure({ mode: "serial" });
 
-let browser: Browser;
+let app: ElectronApplication;
 let page: Page;
 
 test.beforeAll(async () => {
-  const anterior = leerHandleExe();
-  await matarArbol(anterior.pid); // baja la instancia compartida de `principal`
-  await esperarExeAbajo();
-
-  const nuevo = await arrancarExe(); // relanzamiento real (reescribe .artefactos/exe.json)
-  ({ browser, page } = await conectarPaginaWizard(nuevo.cdpPort));
+  await barrerHuerfanos();
+  const { exe } = resolverExe();
+  app = await electron.launch({
+    executablePath: exe,
+    args: [],
+    timeout: 60_000,
+  });
+  page = await app.firstWindow({ timeout: 60_000 });
+  await page.waitForLoadState("domcontentloaded");
   await esperarServiciosListos(page, { incluirCis: true });
 });
 
 test.afterAll(async () => {
-  // Dejar el `.exe` vivo para la spec 13 (cierre limpio); sólo desconectar el CDP.
-  await browser?.close().catch(() => undefined);
+  const pid = app?.process().pid;
+  await Promise.race([
+    app?.close().catch(() => undefined),
+    new Promise((r) => setTimeout(r, 15_000)),
+  ]);
+  if (pid) await matarArbol(pid);
+  await barrerHuerfanos();
 });
 
 test.describe("12 - Relanzamiento (wizard salteado)", () => {
@@ -51,7 +62,6 @@ test.describe("12 - Relanzamiento (wizard salteado)", () => {
   });
 
   test("los 5 servicios (con CIS) quedan 'listo' contra los datos existentes", async () => {
-    await esperarServiciosListos(page, { incluirCis: true });
     const estado = await page.evaluate(() =>
       window.sicsaftCore.getEstadoServicios(),
     );

@@ -1,19 +1,21 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Harness E2E del `.exe` (Electron). El `.exe` lo arranca/para global-setup/global-teardown (NO
-// una fixture worker: así sobrevive al reciclado de worker que Playwright hace tras cada test
-// fallido -- ver scripts/exe-process.ts). Las specs se ADJUNTAN por CDP.
+// Harness E2E del `.exe` (Electron). Se usa `_electron.launch` (no `connectOverCDP`: contra este
+// build de Electron el handshake CDP se cuelga). El teardown de la fixture NO espera
+// indefinidamente el `app.close()` (se colgaba 120s por el `java` de Keycloak que el `.exe` deja
+// huérfano en Windows): tope de 15s + `taskkill /T` del árbol (ver fixtures/electron.ts y
+// scripts/exe-process.ts).
 //
-//   * `principal` (specs 01..11) -- corren contra la instancia compartida. El wizard corre en la
-//     02 y las demás dependen de ese estado; por eso workers:1, fullyParallel:false y orden
-//     alfabético de archivos.
+//   * `principal` (specs 01..11) -- un solo `.exe` vivo vía la fixture worker `exe`. El wizard
+//     corre en la 02 y las demás dependen de ese estado; por eso workers:1, fullyParallel:false y
+//     orden alfabético de archivos.
 //   * `ciclo-vida` (specs 12..13) -- relanzamiento y cierre limpio. `dependencies: ['principal']`
-//     garantiza que corra DESPUÉS; estas specs gestionan el proceso del `.exe` a mano (parar,
-//     relanzar, cerrar) y actualizan `.artefactos/exe.json`.
+//     garantiza que corra DESPUÉS (la instancia de `principal` ya se cerró); estas specs lanzan su
+//     propia instancia con `_electron.launch`.
 //
-// global-setup aísla `%APPDATA%\sicsaft-core` (lo comparten los dos projects); global-teardown
-// cierra el `.exe` y lo restaura (salvo KEEP_APPDATA=1). SICSAFT_CORE_EXE puede apuntar a otro
-// `.exe` (default: la instalación real -- ruta con espacio -> cubre el bug de PR #108).
+// global-setup aísla `%APPDATA%\sicsaft-core` (lo comparten los dos projects) y barre huérfanos;
+// global-teardown restaura (salvo KEEP_APPDATA=1). SICSAFT_CORE_EXE puede apuntar a otro `.exe`
+// (default: la instalación real -- ruta con espacio -> cubre el bug de PR #108).
 export default defineConfig({
   testDir: "./specs",
   fullyParallel: false,

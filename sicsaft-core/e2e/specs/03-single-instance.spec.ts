@@ -24,10 +24,7 @@ test.describe("03 - Una sola instancia (bug #1)", () => {
   test("una segunda invocación no arranca nada y termina sola", async ({
     exe,
   }) => {
-    const paginasAntes = exe.browser
-      .contexts()
-      .flatMap((c) => c.pages())
-      .filter((p) => p.url().includes("renderer/index.html")).length;
+    const ventanasAntes = exe.app.windows().length;
     const listoAntes = contarLineasLog(/proceso principal listo/);
     const colisionAntes = contarLineasLog(
       /postmaster\.pid.*already exists|Hubo un problema/,
@@ -58,13 +55,8 @@ test.describe("03 - Una sola instancia (bug #1)", () => {
     expect(
       contarLineasLog(/postmaster\.pid.*already exists|Hubo un problema/),
     ).toBe(colisionAntes);
-    // ...y su renderer sigue con una sola ventana de wizard.
-    expect(
-      exe.browser
-        .contexts()
-        .flatMap((c) => c.pages())
-        .filter((p) => p.url().includes("renderer/index.html")).length,
-    ).toBe(paginasAntes);
+    // ...y la primera instancia sigue con una sola ventana.
+    expect(exe.app.windows().length).toBe(ventanasAntes);
 
     // El wizard de la primera instancia sigue operativo (no en pantalla de error).
     await expect(
