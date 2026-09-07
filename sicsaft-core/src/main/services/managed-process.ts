@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { execFile, spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 
 // Wrapper reusado por los 5 servicios embebidos (Postgres, Keycloak, cis, core, cip — ADR-005
@@ -17,6 +17,35 @@ export interface ManagedProcessOptions {
   // health-check HTTP (Postgres no lo tiene nativo, se detecta por stdout: "database system is
   // ready to accept connections"), de ahí que esto sea una función genérica, no un endpoint fijo.
   esperarListo: (proceso: ManagedProcess) => Promise<void>;
+  // Mata el árbol de procesos por pid (ver matarArbolWindows). Inyectable sólo para tests --
+  // en producción se usa el `taskkill` de abajo.
+  matarArbol?: (pid: number) => Promise<void>;
+}
+
+// Windows no tiene señales POSIX: `child.kill('SIGTERM')` termina el proceso hijo DIRECTO y no
+// toca a sus descendientes. Keycloak arranca por `kc.bat` con `shell:true`, así que el hijo
+// directo es un `cmd.exe` y el `java.exe` real es un NIETO: al cerrar la app quedaba vivo con el
+// puerto 58080 tomado y el SIGUIENTE arranque fallaba ("address already in use"). Lo mismo con los
+// backends que el postmaster de Postgres deja atrás. `taskkill /T` baja el árbol completo.
+//
+// El orden importa: hay que matar el árbol ANTES que al hijo directo. Cuando el padre muere, el
+// nieto queda reparentado y `taskkill /T <pid del padre>` ya no lo alcanza.
+//
+// `/F` (forzado) no es una regresión de seguridad para Postgres: en Windows el `kill('SIGTERM')`
+// que ya había era un TerminateProcess, igual de duro, pero además dejaba backends sueltos. Un
+// apagado realmente ordenado necesitaría `pg_ctl stop -m fast` (fuera de alcance de este fix).
+async function matarArbolWindows(pid: number): Promise<void> {
+  await new Promise<void>((resolver) => {
+    execFile(
+      "taskkill",
+      ["/pid", String(pid), "/T", "/F"],
+      { windowsHide: true },
+      // Se ignora el resultado a propósito: taskkill sale != 0 si el proceso ya no existe, y para
+      // un apagado eso no es un error. `detener()` nunca debe tirar -- el orquestador para los 5
+      // servicios en un for, y una excepción acá dejaría los siguientes sin apagar.
+      () => resolver(),
+    );
+  });
 }
 
 export type EventoProceso = "stdout" | "stderr" | "listo" | "error" | "salio";
@@ -109,19 +138,29 @@ export class ManagedProcess extends EventEmitter {
 
   async detener(): Promise<void> {
     if (!this.proceso || !this.estaCorriendo) return;
-    // SIGTERM primero (permite un shutdown limpio -- importante para Postgres, que puede corromper
-    // datos con un kill duro a mitad de un write) -- SIGKILL como fallback si no responde.
-    this.proceso.kill("SIGTERM");
-    await new Promise<void>((resolvePromise) => {
-      const timeout = setTimeout(() => {
-        this.proceso?.kill("SIGKILL");
-        resolvePromise();
-      }, 10_000);
-      this.proceso?.once("exit", () => {
-        clearTimeout(timeout);
-        resolvePromise();
-      });
+    const proceso = this.proceso;
+    const pid = proceso.pid;
+
+    // El listener va ANTES de matar: si se registrara después, un proceso que muere rápido
+    // (taskkill es síncrono para el árbol) ya habría emitido 'exit' y esperaríamos los 10s en vano.
+    const salio = new Promise<void>((resolvePromise) => {
+      proceso.once("exit", () => resolvePromise());
     });
+
+    if (process.platform === "win32" && pid !== undefined) {
+      // Ver matarArbolWindows: en Windows hay que bajar el árbol, no sólo el hijo directo.
+      await (this.opciones.matarArbol ?? matarArbolWindows)(pid);
+    } else {
+      // POSIX: el SIGTERM sí llega ordenado y Postgres lo aprovecha para cerrar sin corromper.
+      proceso.kill("SIGTERM");
+    }
+
+    await Promise.race([
+      salio,
+      new Promise<void>((r) => setTimeout(r, 10_000)),
+    ]);
+    // Último recurso si algo sobrevivió al camino de arriba.
+    if (this.estaCorriendo) proceso.kill("SIGKILL");
   }
 }
 

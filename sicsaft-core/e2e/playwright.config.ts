@@ -49,7 +49,7 @@ export default defineConfig({
     },
     {
       name: "ciclo-vida",
-      testMatch: /specs[\\/]1[23]-.*\.spec\.ts$/,
+      testMatch: /specs[\\/]1[239]-.*\.spec\.ts$/,
       dependencies: ["principal"],
     },
   ],
