@@ -5,7 +5,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$Version = '1.0.0',
+    [string]$Version = (Get-Content (Join-Path $PSScriptRoot '..\..\VERSION') -Raw).Trim(),
     [switch]$BuildInstaller
 )
 
@@ -22,10 +22,10 @@ Write-Host '==========================================================' -Foregro
 
 # 1. Compilar instalador si se solicita
 if ($BuildInstaller) {
-    Write-Host 'Compilando instalador .exe de sicsaft-core...' -ForegroundColor Yellow
+    Write-Host 'Compilando instalador .exe de sicsaft-core con Bun...' -ForegroundColor Yellow
     Push-Location (Join-Path $raiz 'sicsaft-core')
     try {
-        npm run dist:win
+        bun run dist:win
     } finally {
         Pop-Location
     }
