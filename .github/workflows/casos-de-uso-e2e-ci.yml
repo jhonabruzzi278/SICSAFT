@@ -47,7 +47,7 @@ jobs:
           EOF
 
       - name: Correr casos de uso
-        run: bun test
+        run: bun run test
 
       - name: Logs del stack (si falló)
         if: failure()
@@ -62,4 +62,4 @@ jobs:
 
       - name: Bajar el stack
         if: always()
-        run: npm run stack:down || true
+        run: bun run stack:down || true

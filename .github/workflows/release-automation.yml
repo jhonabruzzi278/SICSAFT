@@ -19,16 +19,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configurar Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Configurar Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: "npm"
-          cache-dependency-path: |
-            sicsaft-core/package-lock.json
-            cis/package-lock.json
-            core/package-lock.json
-            ccp/package-lock.json
 
       - name: Configurar Python 3.12 (para ETL Contable)
         uses: actions/setup-python@v5
@@ -36,18 +35,20 @@ jobs:
           python-version: "3.12"
 
       - name: Instalar Dependencias de los Subsistemas
+        shell: bash
         run: |
-          npm ci --prefix cis
-          npm ci --prefix core
-          npm ci --prefix ccp
-          npm ci --prefix sicsaft-core
+          (cd cis && bun install --frozen-lockfile)
+          (cd core && bun install --frozen-lockfile)
+          (cd ccp && bun install --frozen-lockfile)
+          (cd sicsaft-core && bun install --frozen-lockfile)
 
       - name: Ejecutar Pruebas Automatizadas
+        shell: bash
         run: |
-          npm test --prefix cis
-          npm test --prefix core
-          npm test --prefix ccp -- --run
-          npm test --prefix sicsaft-core
+          (cd cis && bun run test)
+          (cd core && bun run test)
+          (cd ccp && bun run test)
+          (cd sicsaft-core && bun run test)
 
       - name: Extraer Versión del Tag
         id: get_version
@@ -59,15 +60,17 @@ jobs:
           echo "version_raw=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Pre-empaquetado y Compilación de Frontend / Sidecars
+        shell: bash
         run: |
-          npm run prepack:artefactos --prefix sicsaft-core
+          (cd sicsaft-core && bun run prepack:artefactos)
 
       - name: Compilar Instalador Windows (.exe)
         env:
           CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+        shell: bash
         run: |
-          npm run dist:win --prefix sicsaft-core
+          (cd sicsaft-core && bun run dist:win)
 
       - name: Empaquetar Bundle ZIP de Distribución On-Premise
         shell: powershell
