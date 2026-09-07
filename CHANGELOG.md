@@ -3,6 +3,28 @@
 Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/) y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.0.1] - 2026-09-07
+
+### Added
+- **Skills y Auditoría de Seguridad Automatizada**:
+  - Integración del catálogo de skills de auditoría (`security-and-hardening`, `security-audit`, `security-best-practices`, `improve-codebase-architecture`) en `.agents/skills/`.
+  - Documento de auditoría exhaustiva de vulnerabilidades en [AUDITORIA-VULNERABILIDADES.md](AUDITORIA-VULNERABILIDADES.md).
+  - Verificación de duplicados y validación estricta de coherencia contable en `herramientas/etl-contable/`.
+
+### Changed
+- **Migración Integral a Bun**:
+  - Transición completa del gestor de paquetes de todo el monorepo de `npm` a `bun` (`bun.lock` en los 9 subsistemas).
+  - Eliminación de archivos obsoletos `package-lock.json`.
+  - Actualización de `Dockerfile`s multi-stage a imágenes base `oven/bun:1-alpine`.
+  - Actualización de pipelines de CI/CD en `.github/workflows/` a `oven-sh/setup-bun@v2`.
+  - Homologación de comandos de ejecución y desarrollo en `CLAUDE.md` y `sicsaft.ps1`.
+
+### Security
+- **SEC-01 (OIDC Token Store)**: Eliminación de persistencia de tokens en `localStorage` en `ccp/src/lib/oidc/token-store.ts`, limitando el ciclo de vida a `sessionStorage` para mitigar ataques XSS.
+- **SEC-02 (Protección de Métricas Prometheus)**: Endurecimiento de `cis/src/common/metrics/metrics-token.guard.ts` con política *fail-closed* en entornos de producción si `METRICS_TOKEN` no está configurado.
+- **SEC-03 (Seguridad de Credenciales en Ingesta Contable)**: Pasaje seguro de tokens JWT a través de la variable de entorno `ETL_TOKEN` en lugar de argumentos de línea de comandos en `sicsaft-core` y `etl_contable.py`.
+- **SEC-04 (Cabeceras de Seguridad HTTP)**: Incorporación de middleware de cabeceras seguras (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`) en `devops/onprem/traefik/dynamic.yml.template` para protección contra Clickjacking y MIME-sniffing.
+
 ---
 
 ## [1.0.0] - 2026-09-07

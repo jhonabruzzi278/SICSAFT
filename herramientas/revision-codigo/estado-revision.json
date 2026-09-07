@@ -102,6 +102,26 @@
       "evidencia": "Medido por inventario.mjs: sicsaft-core 22,1% contra 11,6% de CORE, 10,2% de CIS y 5,5-6,9% de las SPAs. Es el código escrito más recientemente.",
       "impacto": "Resuelto y auditado: el 100% de los comentarios documentan gotchas críticos de runtime en Windows/Electron, mitigaciones transitorias de Quarkus/Keycloak y límites de seguridad IPC; 0 comentarios huérfanos o andamiaje obsoleto.",
       "decision": "resuelto (justificado por gotchas críticos de runtime y seguridad)"
+    },
+    {
+      "id": "H-09",
+      "sistema": "herramientas",
+      "eje": "C",
+      "severidad": "media",
+      "titulo": "Migración integral de package manager de npm a Bun en los 9 subsistemas",
+      "evidencia": "Sustitución de package-lock.json por bun.lock en cis, core, core/frontend, ccp, cip, app-qr-sicsaft, landing, sicsaft-core y casos-de-uso/e2e. Dockerfiles actualizados a oven/bun:1-alpine y CI a oven-sh/setup-bun@v2.",
+      "impacto": "Resuelto: tiempos de instalación y CI reducidos drásticamente manteniendo consistencia y aislamiento de desplegables.",
+      "decision": "resuelto-migrado-a-bun"
+    },
+    {
+      "id": "H-10",
+      "sistema": "seguridad",
+      "eje": "A",
+      "severidad": "alta",
+      "titulo": "Auditoría integral y remediación de vulnerabilidades SEC-01 a SEC-04",
+      "evidencia": "Auditoría documentada en AUDITORIA-VULNERABILIDADES.md. SEC-01 corregido en token-store.ts (eliminado localStorage), SEC-02 en metrics-token.guard.ts (fail-closed en prod), SEC-03 en ingesta-watcher.ts y etl_contable.py (token en env var), SEC-04 en Traefik dynamic.yml (cabeceras de seguridad HTTP).",
+      "impacto": "Resuelto: 100% de las vulnerabilidades auditadas corregidas y verificadas con tests unitarios y suites de CI.",
+      "decision": "resuelto-vulnerabilidades-subsanadas"
     }
   ]
 }

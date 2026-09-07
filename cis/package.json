@@ -1,6 +1,6 @@
 {
   "name": "@sicsaft/cis",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CIS — Centro de Interoperabilidad SICSAFT (Nivel 2). Ver ADR-001/ADR-002 en /adr.",
   "author": "",
   "private": true,

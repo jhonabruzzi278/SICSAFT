@@ -1,6 +1,6 @@
 {
   "name": "@sicsaft/core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SICSAFT CORE — orquestador + motores (Nivel 3). Ver ADR-001/ADR-002 en /adr.",
   "author": "",
   "private": true,
