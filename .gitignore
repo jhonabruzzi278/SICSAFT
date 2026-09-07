@@ -75,3 +75,7 @@ sicsaft-core/release/
 # Informes/entregables generados para el usuario — no son código ni documentación del repo
 /SICSAFT-informe-integral-proyecto*.docx
 ~$*.docx
+~$*.xlsx
+~$*.xls
+.pytest_tmp/
+

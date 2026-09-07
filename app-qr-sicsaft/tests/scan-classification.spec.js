@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { resetApp, scanCode } from './helpers.js';
 
 // Ubicación por defecto de los tests (tests/helpers.js): org-001/area-001/loc-001.
-// P001 = correcto, P005 = otra ubicación (misma área), P008 = otra área
+// DG-001 = correcto, DG-005 = otra ubicación (misma área), DG-008 = otra área
 // (misma organización) — ver catalog-data.ts.
 
 test.beforeEach(async ({ page }) => {
@@ -11,22 +11,21 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('clasifica un activo correcto', async ({ page }) => {
-  await scanCode(page, 'P001');
+  await scanCode(page, 'QR-DG-001');
   await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('✔ Correcto');
 });
 
 test('clasifica un activo de otra área y permite marcarlo fuera de lugar', async ({ page }) => {
-  await scanCode(page, 'P008');
+  await scanCode(page, 'QR-DG-008');
   await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('⚠ Otra área');
-  // CIS/CORE no exponen nombre propio de área — se muestra el id crudo (ver session-setup.spec.js).
-  await expect(page.locator('[data-testid="scanned-item-expected"]')).toContainText('area-002');
+  await expect(page.locator('[data-testid="scanned-item-expected"]')).toContainText('OFICINA SECRETARIA EJECUTIVA');
 
   await page.click('[data-testid="mark-out-of-place-btn"]');
   await expect(page.locator('[data-testid="mark-out-of-place-btn"]')).toHaveText('Marcado fuera de lugar');
 });
 
 test('clasifica un activo de otra ubicación', async ({ page }) => {
-  await scanCode(page, 'P005');
+  await scanCode(page, 'QR-DG-005');
   await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('⚠ Otra ubicación');
   // scan-resolve.ts usa el ubicacionId crudo del activo para expectedLocationName, no lo resuelve
   // contra sedes[] como sí hace buildOrganizationTree para el picker (hallazgo del plan de e2e,
@@ -57,7 +56,7 @@ test('un código con formato inválido no se agrega a la lista', async ({ page }
 });
 
 test('agregar una incidencia queda reflejada en el ítem y en el reporte', async ({ page }) => {
-  await scanCode(page, 'P001');
+  await scanCode(page, 'QR-DG-001');
   await page.click('[data-testid="add-incident-btn"]');
   await expect(page.locator('[data-testid="incident-modal"]')).toBeVisible();
 

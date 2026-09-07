@@ -85,29 +85,34 @@ Los relanzamientos saltan el wizard (via `instalacion.json`) pero **re-levantan 
 había carpeta configurada. Si la IP de LAN cambió, muestra primero la pantalla de reconfiguración
 de ~1 clic.
 
-## 4. Firewall de Windows
+## 4. Firewall de Windows y Configuración de Red Local (LAN / WiFi)
 
-La primera vez que Keycloak/CIS escuchan en la IP de LAN, Windows pregunta. → **Permitir acceso**
-(redes privadas). Sin esto el teléfono no llega.
+Tanto la PC donde corre `sicsaft-core.exe` como los teléfonos móviles deben estar conectados a la **misma red Wi-Fi / LAN**.
+
+Para habilitar los puertos necesarios sin depender de las ventanas emergentes de Windows, ejecutar en PowerShell como Administrador:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\herramientas\devops\configurar-firewall-sicsaft.ps1
+```
+Este script abre de manera segura las reglas de entrada para:
+- **8765 TCP**: Servidor PWA Móvil y descarga de APK (HTTPS).
+- **58080 TCP**: Keycloak Auth Server (OIDC / JWT).
+- **56000 TCP**: CIS API Gateway (Catálogo y Sincronización de Inventarios).
 
 ## 5. Teléfono — APP QR
 
-**Opción A — PWA por navegador (camino oficial hoy):**
+**Opción A — PWA por navegador (camino oficial y directo):**
 
-1. Escanear con la cámara el QR de la pantalla "listo" → abre `https://<ip-lan>:8765`.
-2. El navegador avisa **certificado no confiable** (es autofirmado, LAN). → Continuar/Avanzado →
-   Acceder. Se acepta una vez y queda.
-3. Login OIDC del Profesional de AFT. Ya se puede escanear activos.
+1. Conectar el teléfono a la misma red Wi-Fi.
+2. Escanear con la cámara el QR que muestra la pantalla "listo" del `.exe` → abre `https://<ip-lan>:8765`.
+3. El navegador avisará **"Sitio no seguro / Certificado no confiable"** (debido al certificado SSL autofirmado de LAN). → Clic en **Configuración avanzada / Continuar al sitio**. Se acepta una sola vez por dispositivo.
+4. Iniciar sesión con las credenciales del Profesional de AFT y comenzar el control de inventario.
 
-**Opción B — APK Android (RF-H, si se incluyó en el `.exe`):**
+**Opción B — APK Android (`sicsaft-aft.apk`):**
 
-El instalador ya trae `sicsaft-aft.apk` en `resources/apk/`. Servirlo desde el `.exe` en
-`:8765/sicsaft-aft.apk` + un 2º QR de descarga está **pendiente** — por ahora el APK se instala a
-mano: copiar el archivo al teléfono (USB/Drive), instalarlo ("permitir orígenes desconocidos"),
-abrirlo, y en el primer arranque **escanear el mismo QR de conexión** de la pantalla "listo". La
-WebView acepta el cert autofirmado sola (sin el aviso del navegador) — esa es la razón de la APK.
+El instalador `.exe` sirve automáticamente la APK en `https://<ip-lan>:8765/sicsaft-aft.apk` y muestra el QR de descarga en la pantalla "listo". Al abrir la app nativa, esta valida el certificado autofirmado internamente sin mostrar advertencias del navegador.
 
 ## 6. Qué mostrarle al cliente (checklist de demo)
+
 
 - [ ] **Wizard** — instalación de punta a punta, elección de nivel.
 - [ ] **CCP (Profesional de AFT)** — login, hub de la organización. Módulos del CCP (visibles en
@@ -213,40 +218,41 @@ necesita un ADR antes de implementarse.
 
 ---
 
-## 10. Backup y restauración
+## 10. Backup y restauración (Base Patrimonial BPI)
 
-No hay mecanismo integrado — es copiar carpetas. Todo el estado del cliente está en
-**`%APPDATA%\sicsaft-core\`**.
+Todo el estado del cliente reside en **`%APPDATA%\sicsaft-core\`**.
 
-### 10.1 Qué respaldar
+### 10.1 Mecanismo Integrado de Respaldo de Emergencia
+
+La aplicación cuenta con dos métodos directos para generar copias de seguridad:
+
+1. **Desde la aplicación (Recomendado)**:
+   - Desplegar **"Detalle técnico y Respaldos"** en la pantalla del sistema.
+   - Clic en el botón **"Respaldar BPI"**: ejecuta un volcado SQL íntegro (`pg_dumpall`) y copia la configuración activa hacia `%APPDATA%\sicsaft-core\backups\`.
+   - Clic en **"Carpeta Respaldos"** para abrir el directorio con los archivos generados.
+
+2. **Script PowerShell de Emergencia (Sin abrir la app o desde consola)**:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\herramientas\devops\respaldo-bpi.ps1
+   ```
+   Genera una copia en frío/caliente de `postgres-data\` e `instalacion.json` con marca de tiempo.
+
+### 10.2 Qué respaldar
 
 | Carpeta / archivo | Crítico | Por qué |
 |---|---|---|
-| `postgres-data\` | **Sí** | La base entera. Incluye el realm de Keycloak (usuarios, roles, organización) — no hay que re-bootstrapear al restaurar. |
-| `keycloak-admin.json` | **Sí** | El admin de Keycloak se creó con **ese** password. Restaurar `postgres-data` con otro `keycloak-admin.json` (o sin él) = la app no puede autenticarse contra el realm restaurado. Va **siempre junto** con `postgres-data`. |
-| `instalacion.json` | Recomendado | Sin él, el próximo arranque vuelve a mostrar el wizard. Recuperable a mano, pero mejor incluirlo. |
-| `appqr-tls\` | Opcional | El cert autofirmado; si falta se regenera solo (el teléfono tendrá que re-aceptar el aviso una vez). |
-
-Lo simple y sin errores: **copiar la carpeta `%APPDATA%\sicsaft-core\` entera.**
-
-### 10.2 Cómo y cuándo
-
-- **Con la app cerrada.** Postgres tiene locks sobre `postgres-data\`; copiar en caliente puede
-  dar un backup inconsistente.
-- **Antes de cada update** (§9 paso 3), y idealmente **periódico**: una Tarea Programada de Windows
-  que, con la app cerrada de madrugada, copie `%APPDATA%\sicsaft-core\` a un disco externo o
-  carpeta de red, rotando algunas copias.
-- Alternativa en caliente (sin cerrar la app): `pg_dump` con el binario vendorizado
-  `…\resources\postgres\bin\pg_dump.exe` contra `127.0.0.1:55432` (Postgres embebido, puerto no
-  estándar). Más frágil y no cubre `keycloak-admin.json` — la copia en frío de la carpeta es lo
-  recomendado.
+| `postgres-data\` / `.sql` dump | **Sí** | La base entera. Incluye el realm de Keycloak (usuarios, roles, organización) y todo el patrimonio BPI. |
+| `keycloak-admin.json` | **Sí** | Credenciales internas del bootstrap de Keycloak. Va **siempre junto** con `postgres-data`. |
+| `instalacion.json` | Recomendado | Guarda el identificador de la organización, IP base y nivel contratado. |
+| `backups\` | Seguro | Contiene los volcados SQL históricos generados. |
 
 ### 10.3 Restaurar en la misma PC
 
 1. Cerrar la app.
-2. Renombrar `%APPDATA%\sicsaft-core\` a `…\sicsaft-core.roto`.
-3. Copiar el backup a `%APPDATA%\sicsaft-core\`.
-4. Abrir la app → vuelve exactamente al estado del backup.
+2. Renombrar `%APPDATA%\sicsaft-core\` a `%APPDATA%\sicsaft-core.roto`.
+3. Copiar la carpeta o restaurar los datos en `%APPDATA%\sicsaft-core\`.
+4. Abrir la app → vuelve exactamente al estado respaldado.
+
 
 ### 10.4 Restaurar en otra PC (la del cliente se murió)
 

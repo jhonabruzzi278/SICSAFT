@@ -79,7 +79,7 @@ export function EtiquetaActivo({
               {etiqueta.areaNombre}
             </p>
             <p className="font-mono text-xs font-bold tracking-wider text-black">
-              {etiqueta.codigoQr}
+              AFT: {etiqueta.codigoAft || etiqueta.codigoQr}
             </p>
           </div>
         </div>
@@ -126,7 +126,7 @@ export function EtiquetaActivo({
               </div>
             )}
             <p className="font-mono text-sm font-bold tracking-wider text-black">
-              {etiqueta.codigoQr}
+              AFT: {etiqueta.codigoAft || etiqueta.codigoQr} | QR: {etiqueta.codigoQr}
             </p>
           </div>
         </div>
@@ -162,7 +162,7 @@ export function EtiquetaActivo({
           </div>
         )}
         <p className="font-mono text-[11px] font-bold tracking-wide text-neutral-950">
-          {etiqueta.codigoQr}
+          AFT: {etiqueta.codigoAft || etiqueta.codigoQr} | QR: {etiqueta.codigoQr}
         </p>
       </div>
     </div>

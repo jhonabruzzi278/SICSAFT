@@ -50,6 +50,10 @@ const api: SicsaftCoreApi = {
   abrirCarpetaLog: () => ipcRenderer.invoke("sicsaft-core:abrirCarpetaLog"),
   copiarAlPortapapeles: (texto) =>
     ipcRenderer.invoke("sicsaft-core:copiarAlPortapapeles", texto),
+  crearRespaldoBpi: () => ipcRenderer.invoke("sicsaft-core:crearRespaldoBpi"),
+  listarRespaldos: () => ipcRenderer.invoke("sicsaft-core:listarRespaldos"),
+  abrirCarpetaRespaldos: () =>
+    ipcRenderer.invoke("sicsaft-core:abrirCarpetaRespaldos"),
   onLogLinea: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, linea: string): void =>
       callback(linea);

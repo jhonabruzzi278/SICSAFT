@@ -60,6 +60,11 @@ import {
 import { evaluarCambioIpLan } from "../services/ip-lan-guard";
 import { provisionarOrganizacionCore } from "../services/core-provisioning";
 import { obtenerBuffer, rutaCarpetaLog } from "../services/logger";
+import {
+  abrirCarpetaRespaldos,
+  crearRespaldoBpi,
+  listarRespaldos,
+} from "../services/backup-service";
 
 // Todos los handlers reciben el ServiceOrchestrator ya arrancado -- ningún handler expone
 // secretos al renderer (el admin de Keycloak, el client secret de cis-admin) más allá de lo que
@@ -231,12 +236,21 @@ export function registrarIpcHandlers(
   ipcMain.handle("sicsaft-core:abrirCarpetaLog", async (): Promise<void> => {
     await shell.openPath(rutaCarpetaLog());
   });
-  ipcMain.handle(
-    "sicsaft-core:copiarAlPortapapeles",
-    (_event, texto: string): void => {
-      clipboard.writeText(String(texto));
-    },
-  );
+  ipcMain.handle("sicsaft-core:copiarAlPortapapeles", (_event, texto: string): void => {
+    clipboard.writeText(String(texto));
+  });
+
+  // Respaldo de emergencia y gestión de copias de seguridad de la Base Patrimonial (BPI)
+  ipcMain.handle("sicsaft-core:crearRespaldoBpi", async () => {
+    return crearRespaldoBpi();
+  });
+  ipcMain.handle("sicsaft-core:listarRespaldos", () => {
+    return listarRespaldos();
+  });
+  ipcMain.handle("sicsaft-core:abrirCarpetaRespaldos", async (): Promise<void> => {
+    await abrirCarpetaRespaldos();
+  });
+
 
   // DOC-028 Fase C.1 -- el wizard llama esto al relanzar, después de getInstalacionExistente(). Si
   // la IP de LAN de la PC cambió desde la instalación, devuelve cambio: true y el wizard muestra

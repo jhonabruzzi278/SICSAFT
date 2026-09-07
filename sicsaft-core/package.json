@@ -113,7 +113,11 @@
     ],
     "afterPack": "./scripts/electron-builder-after-pack.cjs",
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "signingHashAlgorithms": [
+        "sha256"
+      ],
+      "signAndEditExecutable": true
     },
     "nsis": {
       "oneClick": false,

@@ -90,7 +90,7 @@ export function WizardPreviewPage() {
                   <input
                     type="text"
                     readOnly
-                    value="DUOC UC"
+                    value="EMPRESA SUCHEL TROPICAL - DIRECCIÓN GENERAL"
                     className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text font-medium"
                   />
                 </div>
@@ -102,7 +102,7 @@ export function WizardPreviewPage() {
                   <input
                     type="text"
                     readOnly
-                    value="duoc-uc"
+                    value="suchel-dg"
                     className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text font-mono"
                   />
                 </div>
@@ -114,7 +114,7 @@ export function WizardPreviewPage() {
                   <input
                     type="text"
                     readOnly
-                    value="Sede Melipilla"
+                    value="Oficina Director General & Secretaría"
                     className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text"
                   />
                 </div>
@@ -160,7 +160,7 @@ export function WizardPreviewPage() {
                   Director dado de alta
                 </h1>
                 <p className="mt-1 text-sm text-text-dim">
-                  Credencial de acceso generada con rol <strong>Directivo</strong> en DUOC UC.
+                  Credencial de acceso generada con rol <strong>Directivo</strong> en EMPRESA SUCHEL TROPICAL.
                 </p>
               </div>
 
@@ -172,7 +172,7 @@ export function WizardPreviewPage() {
                   <input
                     type="text"
                     readOnly
-                    value="director@duoc.cl"
+                    value="director@sucheltropical.cu"
                     className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text"
                   />
                 </div>
@@ -215,7 +215,7 @@ export function WizardPreviewPage() {
                   Profesional de AFT dado de alta
                 </h1>
                 <p className="mt-1 text-sm text-text-dim">
-                  Credencial generada con rol <strong>Administrador Patrimonial</strong> en DUOC UC.
+                  Credencial generada con rol <strong>Administrador Patrimonial</strong> en EMPRESA SUCHEL TROPICAL.
                 </p>
               </div>
 
@@ -227,7 +227,7 @@ export function WizardPreviewPage() {
                   <input
                     type="text"
                     readOnly
-                    value="aft@duoc.cl"
+                    value="aft@sucheltropical.cu"
                     className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text"
                   />
                 </div>

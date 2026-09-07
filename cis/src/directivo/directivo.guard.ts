@@ -27,7 +27,7 @@ export function requireDirectivoOrganizacionId(
 // DOC-022 3 — el Directivo solo puede operar sobre SU organización: este controller nunca acepta
 // un organizacionId de ruta o body, siempre se deriva del propio JWT ya validado por
 // KeycloakAuthGuard (cero confianza en lo que manda el cliente, mismo criterio que el resto de CIS).
-//
+// --
 // Si el rol `directivo` aparece en más de una organización del token se rechaza en vez de
 // adivinar cuál usar: hoy ningún flujo asigna `directivo` a la misma persona en más de una
 // organización, así que la ambigüedad es una configuración inesperada, no un caso válido que

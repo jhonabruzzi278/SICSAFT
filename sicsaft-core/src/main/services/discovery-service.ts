@@ -14,6 +14,7 @@ export interface InfoRespuestaDiscovery {
   tipo: string;
   url: string;
   ip: string;
+  hostname: string;
   puerto: number;
   nombre: string;
   version: string;
@@ -21,6 +22,7 @@ export interface InfoRespuestaDiscovery {
 
 export interface ServicioDiscovery {
   socket: Socket;
+  mdnsSocket?: Socket;
   detener: () => Promise<void>;
 }
 
@@ -34,6 +36,7 @@ export function armarRespuestaDiscovery(
     tipo: "DISCOVERY_PONG",
     url: `https://${ipLan}:${puertoApp}`,
     ip: ipLan,
+    hostname: "sicsaft.local",
     puerto: puertoApp,
     nombre: nombreOrg,
     version: "1.0.0",

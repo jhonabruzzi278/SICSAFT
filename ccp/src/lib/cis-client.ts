@@ -20,9 +20,11 @@ export interface ActivoCatalogo {
   // DOC-021 3 — necesario para ofrecer baja/reincorporación/responsable/descripción por fila.
   id: string;
   codigoQr: string;
+  codigoAft?: string;
   nombre: string;
   organizacionId: string;
   areaId: string;
+  areaNombre?: string;
   ubicacionId: string;
   estado: string;
 }

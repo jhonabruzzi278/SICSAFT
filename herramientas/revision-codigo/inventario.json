@@ -1,11 +1,11 @@
 {
-  "generado": "2026-09-07T06:38:14.767Z",
-  "commit": "b334b72",
-  "rama": "chore/revision-codigo-y-grafo-contexto",
+  "generado": "2026-09-07T19:29:57.205Z",
+  "commit": "2dd0ced",
+  "rama": "main",
   "totales": {
-    "loc": 40819,
-    "locTests": 31154,
-    "docs": 123,
+    "loc": 45449,
+    "locTests": 31751,
+    "docs": 124,
     "huerfanos": 0,
     "docsDesactualizados": 28,
     "todos": 5
@@ -13,19 +13,54 @@
   "nodos": [
     {
       "id": "cis",
-      "nombre": "CIS",
+      "nombre": "CIS (API Gateway)",
       "capa": "backend",
+      "capaMaestra": "Capa 2: Centro de Interoperabilidad",
       "rutas": [
         "cis/"
       ],
       "entrega": true,
+      "puerto": "3000 (HTTP / REST)",
+      "entrypoint": "cis/src/main.ts",
+      "protocolos": [
+        "HTTP/1.1",
+        "OIDC JWT",
+        "Zod Validation",
+        "Circuit Breaker",
+        "Rate Limiting"
+      ],
+      "almacenamiento": "Stateless (Valida tokens y enruta)",
+      "coberturaTests": "309 tests unitarios/integración Jest (37 suites)",
+      "modos": [
+        "Nivel 1 (Base)",
+        "Nivel 2 (Avanzado)"
+      ],
+      "rol": "API Gateway & Autenticación OIDC",
+      "tecnologias": [
+        "NestJS",
+        "Keycloak 26",
+        "Zod",
+        "Axios",
+        "Circuit Breaker",
+        "Rate Limiting"
+      ],
+      "funcionalidades": [
+        "Punto de Entrada Único Seguro para todas las aplicaciones cliente (Web, Móvil, ETL)",
+        "Validación Criptográfica de Tokens JWT OIDC emitidos por Keycloak 26",
+        "Validación de Esquemas de Entrada con Zod en todas las rutas",
+        "Circuit Breaker y Rate Limiting para protección contra sobrecarga",
+        "Inyección de Token de Servicio Interno hacia CORE y CIP",
+        "Degradación Elegante en Nivel 1 cuando CIP no está desplegado (CIP-05)",
+        "Normalización y Logging estructurado de peticiones y respuestas"
+      ],
+      "resumenTecnico": "Centro de Interoperabilidad: Punto de entrada único seguro, validación de JWT OIDC con Keycloak 26, proxy seguro a CORE/CIP y tolerancia a fallos.",
       "archivosFuente": 65,
       "archivosTest": 46,
       "docs": 1,
-      "loc": 5888,
-      "locComentario": 591,
-      "locTests": 8775,
-      "pctComentario": 10,
+      "loc": 5890,
+      "locComentario": 593,
+      "locTests": 8771,
+      "pctComentario": 10.1,
       "ratioTest": 1.49,
       "todos": 0,
       "huerfanos": [],
@@ -33,14 +68,48 @@
     },
     {
       "id": "core",
-      "nombre": "CORE",
+      "nombre": "CORE (Motor BPI)",
       "capa": "backend",
+      "capaMaestra": "Capa 3: Motor de Orquestación Patrimonial",
       "rutas": [
         "core/src/",
         "core/test/",
         "core/migrations/"
       ],
       "entrega": true,
+      "puerto": "3001 (Interno BPI)",
+      "entrypoint": "core/src/main.ts",
+      "protocolos": [
+        "HTTP Interno",
+        "PostgreSQL Wire",
+        "pg-boss Outbox",
+        "ACID Transactions"
+      ],
+      "almacenamiento": "PostgreSQL 16 (Esquema BPI versionado con node-pg-migrate)",
+      "coberturaTests": "95 tests Vitest (11 dominios patrimoniales)",
+      "modos": [
+        "Nivel 1 (Base)",
+        "Nivel 2 (Avanzado)"
+      ],
+      "rol": "Motor Patrimonial BPI & Orquestador",
+      "tecnologias": [
+        "NestJS",
+        "PostgreSQL",
+        "node-pg-migrate",
+        "pg-boss",
+        "Reglas CFPS"
+      ],
+      "funcionalidades": [
+        "Gobernanza y Regla de Oro: Único componente autorizado a mutar la Base Patrimonial Inteligente (BPI)",
+        "Máquina de Estados de Contratos y Licencias de Uso (DOC-004)",
+        "Motor de Reglas de Negocio CFPS (Clasificador Funcional del Patrimonio)",
+        "11 Dominios Patrimoniales: Bienes, Ubicaciones, Estructura Org, Custodios, etc.",
+        "Ingesta Transaccional de Lotes Contables desde Staging",
+        "Procesamiento de Sesiones de Inventario Físico y Conciliación",
+        "Generación de Eventos de Dominio asíncronos vía cola transaccional pg-boss",
+        "Auditoría Inmutable (Quién, Qué, Cuándo, Dónde) con snapshots de estado"
+      ],
+      "resumenTecnico": "Núcleo de negocio: Esquema BPI PostgreSQL versionado, máquina de estados de contratos (DOC-004), 11 dominios patrimoniales y auditoría inmutable.",
       "archivosFuente": 111,
       "archivosTest": 77,
       "docs": 1,
@@ -55,12 +124,42 @@
     },
     {
       "id": "cip",
-      "nombre": "CIP",
+      "nombre": "CIP (Analítica)",
       "capa": "backend",
+      "capaMaestra": "Capa 5: Centro de Inteligencia Patrimonial",
       "rutas": [
         "cip/"
       ],
       "entrega": false,
+      "puerto": "3002 (Worker Interno)",
+      "entrypoint": "cip/src/main.ts",
+      "protocolos": [
+        "HTTP Interno",
+        "pg-boss Event Queue",
+        "PostgreSQL Wire"
+      ],
+      "almacenamiento": "PostgreSQL 16 (Vistas materializadas y series temporales)",
+      "coberturaTests": "26 suites Jest (Veredicto cruzado y agregación)",
+      "modos": [
+        "Nivel 2 (Opcional - desactivable en N1 para ahorrar 120MB RAM)"
+      ],
+      "rol": "Inteligencia Decisional & Agregación",
+      "tecnologias": [
+        "NestJS",
+        "PostgreSQL",
+        "pg-boss",
+        "Worker Asíncrono"
+      ],
+      "funcionalidades": [
+        "Consumo Asíncrono de Eventos de Inventario y Bienes vía pg-boss",
+        "Cálculo de Veredicto Patrimonial Canónico (4 estados con matriz de contrato cruzada)",
+        "Alertas Analíticas y Detección de Inconsistencias (CIP-04)",
+        "Evolución Patrimonial Temporal y Matriz de Score de Riesgo (CIP-06)",
+        "Generación de Vistas Materializadas para Reportes y KPIs Ejecutivos",
+        "Endpoints de Alta Velocidad para Dashboards Directivos",
+        "Arranque Condicional Nivel 1 / Nivel 2 (CIP-05)"
+      ],
+      "resumenTecnico": "Centro de Inteligencia Patrimonial: Agregación asíncrona desacoplada de eventos de inventario, cálculo de veredictos y endpoints para dashboards directivos.",
       "archivosFuente": 36,
       "archivosTest": 26,
       "docs": 1,
@@ -75,20 +174,52 @@
     },
     {
       "id": "ccp",
-      "nombre": "CCP (portal AFT)",
+      "nombre": "CCP (Portal AFT)",
       "capa": "frontend",
+      "capaMaestra": "Capa 1: Fuentes de Captura y Gestión",
       "rutas": [
         "ccp/"
       ],
       "entrega": true,
-      "archivosFuente": 41,
-      "archivosTest": 13,
+      "puerto": "8766 (HTTP Local)",
+      "entrypoint": "ccp/src/main.tsx",
+      "protocolos": [
+        "HTTP/1.1",
+        "OIDC PKCE (RFC 7636)",
+        "REST Client"
+      ],
+      "almacenamiento": "LocalStorage / SessionStorage (Tokens OIDC de sesión)",
+      "coberturaTests": "86 tests Vitest (Ficha activos, catálogos, lotes)",
+      "modos": [
+        "Nivel 1 (Base)",
+        "Nivel 2 (Avanzado)"
+      ],
+      "rol": "Portal Web del Profesional de AFT",
+      "tecnologias": [
+        "React 19",
+        "Vite",
+        "Tailwind CSS",
+        "OIDC PKCE (RFC 7636)",
+        "Vitest"
+      ],
+      "funcionalidades": [
+        "Ficha Integral de Activo Fijo (Datos técnicos, contables, fotos, custodio, ubicación)",
+        "Árbol de Estructura Organizacional (Gerencia / Subgerencia / Departamento)",
+        "Wizard de Ingesta Masiva de Planillas Excel con Validación Previa y Mapeo Dinámico",
+        "Generación e Impresión de Etiquetas QR y Código 128",
+        "Gestión de Bajas, Traslados y Reasignaciones de Bienes",
+        "Monitoreo de Sesiones de Inventario en Tiempo Real",
+        "Flujo de Autenticación Segura OIDC con PKCE (RFC 7636)"
+      ],
+      "resumenTecnico": "Centro de Control Patrimonial: Ficha de activos, estructura organizacional, ingesta supervisada de planillas Excel y generación de etiquetas QR/Código 128.",
+      "archivosFuente": 51,
+      "archivosTest": 15,
       "docs": 1,
-      "loc": 7759,
-      "locComentario": 398,
-      "locTests": 1147,
-      "pctComentario": 5.1,
-      "ratioTest": 0.15,
+      "loc": 11058,
+      "locComentario": 428,
+      "locTests": 1506,
+      "pctComentario": 3.9,
+      "ratioTest": 0.14,
       "todos": 0,
       "huerfanos": [],
       "docsDesactualizados": []
@@ -97,17 +228,48 @@
       "id": "core-frontend",
       "nombre": "CORE frontend (Directivo)",
       "capa": "frontend",
+      "capaMaestra": "Capa 1: Fuentes de Captura y Gestión",
       "rutas": [
         "core/frontend/"
       ],
       "entrega": true,
-      "archivosFuente": 20,
+      "puerto": "8768 (HTTP Local)",
+      "entrypoint": "core/frontend/src/main.tsx",
+      "protocolos": [
+        "HTTP/1.1",
+        "OIDC PKCE (RFC 7636)",
+        "REST Client"
+      ],
+      "almacenamiento": "SessionStorage (Tokens OIDC directivos)",
+      "coberturaTests": "4 suites Vitest (KPIs ejecutivos y conciliación)",
+      "modos": [
+        "Nivel 1 (Base)",
+        "Nivel 2 (Avanzado)"
+      ],
+      "rol": "Dashboard Ejecutivo Directivo",
+      "tecnologias": [
+        "React 19",
+        "Vite",
+        "Tailwind CSS",
+        "OIDC PKCE",
+        "Analítica CIP"
+      ],
+      "funcionalidades": [
+        "Dashboard Ejecutivo con Gráficos de Conciliación Física vs Contable",
+        "Indicadores Clave de Desempeño (KPIs de Cobertura Patrimonial y Avance)",
+        "Designación y Asignación Formal de Profesionales AFT a Unidades",
+        "Visualización de Veredictos y Alertas de Inconsistencia (Nivel 2)",
+        "Reportes de Estado Patrimonial para Dirección y Finanzas",
+        "Acceso Restringido por Rol Directivo con OIDC PKCE"
+      ],
+      "resumenTecnico": "Portal institucional para directores y autoridades: Indicadores de conciliación física, cobertura patrimonial y designación de profesionales AFT.",
+      "archivosFuente": 21,
       "archivosTest": 4,
       "docs": 1,
-      "loc": 2507,
-      "locComentario": 116,
+      "loc": 2528,
+      "locComentario": 118,
       "locTests": 600,
-      "pctComentario": 4.6,
+      "pctComentario": 4.7,
       "ratioTest": 0.24,
       "todos": 1,
       "huerfanos": [],
@@ -115,19 +277,52 @@
     },
     {
       "id": "app-qr",
-      "nombre": "APP QR (PWA)",
+      "nombre": "APP QR (PWA Móvil)",
       "capa": "frontend",
+      "capaMaestra": "Capa 1: Fuentes de Captura y Gestión",
       "rutas": [
         "app-qr-sicsaft/"
       ],
       "entrega": true,
+      "puerto": "8767 / sicsaft.local (HTTPS LAN)",
+      "entrypoint": "app-qr-sicsaft/src/main.tsx",
+      "protocolos": [
+        "HTTPS / TLS SAN",
+        "mDNS (.local)",
+        "OIDC PKCE",
+        "Offline Sync"
+      ],
+      "almacenamiento": "IndexedDB (Cola offline de sesiones de escaneo)",
+      "coberturaTests": "15 suites Vitest (Flujo oficial 8 pasos y escaneo)",
+      "modos": [
+        "Nivel 1 (Base)",
+        "Nivel 2 (Avanzado)"
+      ],
+      "rol": "PWA Móvil de Captura en Terreno",
+      "tecnologias": [
+        "React 19",
+        "Vite PWA",
+        "Html5Qrcode",
+        "IndexedDB",
+        "Offline Queue"
+      ],
+      "funcionalidades": [
+        "Flujo Oficial de Escaneo de 8 Pasos en Terreno (DOC-001)",
+        "Escaneo Óptico por Cámara de Códigos QR y Códigos de Barra 128",
+        "Verificación Instantánea del Bien (Descripción, Serie, Estado, Custodio)",
+        "Levantamiento de Incidencias con Registro de Daños o Faltantes",
+        "Operación Offline 100% Autónoma con Almacenamiento en IndexedDB",
+        "Cola de Sincronización Automática al Recuperar Conectividad LAN",
+        "Acceso LAN sin Advertencias SSL vía mDNS `sicsaft.local` y TLS SAN (FUT-04)"
+      ],
+      "resumenTecnico": "Aplicación móvil de inventario: Flujo oficial de escaneo de 8 pasos (DOC-001), validación de bien, registro de incidencias y operación offline con cola de reintentos.",
       "archivosFuente": 80,
-      "archivosTest": 13,
+      "archivosTest": 15,
       "docs": 2,
-      "loc": 7893,
-      "locComentario": 467,
-      "locTests": 1112,
-      "pctComentario": 5.9,
+      "loc": 8309,
+      "locComentario": 453,
+      "locTests": 1200,
+      "pctComentario": 5.5,
       "ratioTest": 0.14,
       "todos": 0,
       "huerfanos": [],
@@ -137,18 +332,51 @@
       "id": "sicsaft-core",
       "nombre": "SICSAFT CORE (.exe)",
       "capa": "entregable",
+      "capaMaestra": "Entregable On-Premise (Windows .exe)",
       "rutas": [
         "sicsaft-core/"
       ],
       "entrega": true,
-      "archivosFuente": 46,
-      "archivosTest": 49,
+      "puerto": "8765 (IPC / Electron API)",
+      "entrypoint": "sicsaft-core/src/main/main.ts",
+      "protocolos": [
+        "Electron IPC",
+        "Process Orchestration",
+        "mDNS Beacon",
+        "Self-signed TLS"
+      ],
+      "almacenamiento": "AppData/Local (Postgres binario + Keycloak data)",
+      "coberturaTests": "50 suites Playwright/Vitest (Supervisión de procesos y fallback)",
+      "modos": [
+        "Nivel 1 (Sin CIP ~120MB RAM)",
+        "Nivel 2 (Full Stack)"
+      ],
+      "rol": "App de Escritorio Nativa (.exe)",
+      "tecnologias": [
+        "Electron",
+        "PostgreSQL Embebido",
+        "Keycloak 26",
+        "Playwright E2E",
+        "Inno Setup"
+      ],
+      "funcionalidades": [
+        "Orquestación y Supervisión de Ciclo de Vida de Subprocesos (Postgres, Keycloak, CIS, CORE, CIP)",
+        "Cero Dependencias Externas: No requiere Docker, WSL2 ni instalaciones previas en el SO",
+        "Servidor HTTP Embebido para Portales Web (CCP en :8766, Directivo en :8768)",
+        "Servidor HTTPS LAN y Emisor mDNS `sicsaft.local` en :8767 para Conexión Móvil",
+        "Arranque Condicional Nivel 1 (Omite subproceso CIP ahorrando ~120MB de RAM)",
+        "Bandeja de Sistema (System Tray) con Monitoreo de Salud de Servicios y Logs",
+        "Firma Digital de Código con Authenticode SHA-256 (SmartScreen EXE-08)"
+      ],
+      "resumenTecnico": "Entregable cliente On-Premise: Binario nativo Windows que orquesta y aísla Postgres, Keycloak 26, CIS, CORE y CIP sin requerir Docker ni WSL2.",
+      "archivosFuente": 48,
+      "archivosTest": 51,
       "docs": 4,
-      "loc": 5941,
-      "locComentario": 1276,
-      "locTests": 5047,
-      "pctComentario": 21.5,
-      "ratioTest": 0.85,
+      "loc": 6272,
+      "locComentario": 1290,
+      "locTests": 5172,
+      "pctComentario": 20.6,
+      "ratioTest": 0.82,
       "todos": 3,
       "huerfanos": [],
       "docsDesactualizados": []
@@ -157,30 +385,86 @@
       "id": "herramientas",
       "nombre": "Herramientas (ETL)",
       "capa": "tooling",
+      "capaMaestra": "Capa 1: Fuentes de Captura y Gestión",
       "rutas": [
         "herramientas/"
       ],
       "entrega": true,
-      "archivosFuente": 1,
+      "puerto": "CLI / Script Python",
+      "entrypoint": "herramientas/ingesta-contable/normalizar.py",
+      "protocolos": [
+        "File System",
+        "CSV / XLSX",
+        "HTTP Upload"
+      ],
+      "almacenamiento": "Archivos temporales staging .parquet / .csv",
+      "coberturaTests": "16 tests Pytest (Normalización contable)",
+      "modos": [
+        "Nivel 1 (Base)",
+        "Nivel 2 (Avanzado)"
+      ],
+      "rol": "Normalizador Contable Excel/CSV",
+      "tecnologias": [
+        "Python 3.12",
+        "Pandas",
+        "Pytest",
+        "Ruff",
+        "ETL"
+      ],
+      "funcionalidades": [
+        "Normalización de Planillas Contables Institucionales Heterogéneas (Excel/CSV)",
+        "Limpieza de Caracteres, Formateo de Fechas, Valores Monetarios y Códigos de Inventario",
+        "Generación de Archivos Canónicos para Carga en Staging de la BPI",
+        "Validación de Integridad y Detección Temprana de Duplicados"
+      ],
+      "resumenTecnico": "Sidecar de ingesta contable: Transforma formatos heterogéneos de planillas contables institucionales hacia el esquema canónico de importación de la BPI.",
+      "archivosFuente": 6,
       "archivosTest": 1,
-      "docs": 1,
-      "loc": 262,
-      "locComentario": 10,
-      "locTests": 257,
-      "pctComentario": 3.8,
-      "ratioTest": 0.98,
+      "docs": 2,
+      "loc": 823,
+      "locComentario": 35,
+      "locTests": 286,
+      "pctComentario": 4.3,
+      "ratioTest": 0.35,
       "todos": 0,
       "huerfanos": [],
       "docsDesactualizados": []
     },
     {
       "id": "devops",
-      "nombre": "DevOps",
+      "nombre": "DevOps & Release",
       "capa": "tooling",
+      "capaMaestra": "Herramientas & Despliegue",
       "rutas": [
         "devops/"
       ],
       "entrega": false,
+      "puerto": "CI/CD & PowerShell",
+      "entrypoint": "herramientas/devops/firmar-instalador.ps1",
+      "protocolos": [
+        "Authenticode SHA-256",
+        "Inno Setup 6.x",
+        "GitHub Actions"
+      ],
+      "almacenamiento": "Artefactos ZIP y ejecutables .exe firmados",
+      "coberturaTests": "Pipeline CI/CD automatizado en GitHub Actions",
+      "modos": [
+        "Release Automation"
+      ],
+      "rol": "Infraestructura On-Premise & CI/CD",
+      "tecnologias": [
+        "Inno Setup .iss",
+        "GitHub Actions",
+        "PowerShell",
+        "Authenticode"
+      ],
+      "funcionalidades": [
+        "Generación del Instalador Desatendido Windows (.exe) con Inno Setup",
+        "Pipeline Automatizado de Release en GitHub Actions (.github/workflows/release-automation.yml)",
+        "Firma Digital de Código con Authenticode SHA-256 (firmar-instalador.ps1)",
+        "Empaquetado Completo en ZIP para Entrega a Clientes On-Premise con Documentación y Checksums"
+      ],
+      "resumenTecnico": "Instalador desatendido para Windows Server / Windows 10/11, scripts de provisioning y pipelines de CI/CD automatizados.",
       "archivosFuente": 2,
       "archivosTest": 0,
       "docs": 3,
@@ -197,10 +481,34 @@
       "id": "casos-de-uso",
       "nombre": "Casos de uso (e2e)",
       "capa": "tooling",
+      "capaMaestra": "Aseguramiento de Calidad",
       "rutas": [
         "casos-de-uso/"
       ],
       "entrega": false,
+      "puerto": "Test Runner",
+      "entrypoint": "casos-de-uso/playwright.config.ts",
+      "protocolos": [
+        "E2E Acceptance",
+        "Playwright Automation"
+      ],
+      "almacenamiento": "Resultados de test y traces Playwright",
+      "coberturaTests": "12 especificaciones de casos de uso completos",
+      "modos": [
+        "Validación Integral"
+      ],
+      "rol": "Harness de Casos de Uso E2E",
+      "tecnologias": [
+        "Playwright",
+        "TypeScript",
+        "Pruebas de Aceptación"
+      ],
+      "funcionalidades": [
+        "Validación de Flujos de Usuario Reales (Directivo, Profesional AFT, Capturista)",
+        "Pruebas de Integración Extremo a Extremo (E2E) con Playwright",
+        "Verificación de Concurrencia y Resiliencia en el Stack Real"
+      ],
+      "resumenTecnico": "Validación end-to-end de los flujos de usuario completos (Directivo, Profesional AFT y Capturista) contra el stack real.",
       "archivosFuente": 0,
       "archivosTest": 12,
       "docs": 16,
@@ -215,12 +523,35 @@
     },
     {
       "id": "landing",
-      "nombre": "Landing",
+      "nombre": "Landing Page",
       "capa": "frontend",
+      "capaMaestra": "Portal Institucional",
       "rutas": [
         "landing/"
       ],
       "entrega": false,
+      "puerto": "Estático",
+      "entrypoint": "landing/index.html",
+      "protocolos": [
+        "HTML5",
+        "CSS3"
+      ],
+      "almacenamiento": "N/A",
+      "coberturaTests": "Inspección visual",
+      "modos": [
+        "Institucional"
+      ],
+      "rol": "Portal Institucional y Marca",
+      "tecnologias": [
+        "HTML5",
+        "CSS3 Moderno",
+        "Brand Guidelines"
+      ],
+      "funcionalidades": [
+        "Presentación Institucional del Ecosistema SICSAFT",
+        "Demostración de Principios de Diseño y Marca (BRAND.md)"
+      ],
+      "resumenTecnico": "Página institucional y presentación del ecosistema SICSAFT basada en BRAND.md.",
       "archivosFuente": 3,
       "archivosTest": 0,
       "docs": 1,
@@ -235,8 +566,9 @@
     },
     {
       "id": "docs",
-      "nombre": "Documentación",
+      "nombre": "Documentación Normativa",
       "capa": "docs",
+      "capaMaestra": "Gobernanza Arquitectónica",
       "rutas": [
         "aidlc-docs/",
         "adr/",
@@ -247,6 +579,32 @@
         "apk-aft/"
       ],
       "entrega": false,
+      "puerto": "N/A",
+      "entrypoint": "aidlc-docs/README.md",
+      "protocolos": [
+        "Markdown",
+        "Mermaid",
+        "DOC/ADR Specifications"
+      ],
+      "almacenamiento": "Repositorio Git",
+      "coberturaTests": "Auditoría DOC-032 (100% resuelta)",
+      "modos": [
+        "Referencia Global"
+      ],
+      "rol": "Arquitectura & Decisiones AI-DLC",
+      "tecnologias": [
+        "Markdown",
+        "Mermaid",
+        "ADR",
+        "DOC Specifications"
+      ],
+      "funcionalidades": [
+        "124 Documentos Normativos y de Especificación Arquitectónica (Tomos I a IV)",
+        "Registro Inmutable de Decisiones de Arquitectura (ADRs 001-005)",
+        "Especificaciones Técnicas Detalladas (DOCs 001-032)",
+        "Auditoría Integral de Calidad y Consistencia DOC-032"
+      ],
+      "resumenTecnico": "124 documentos normativos y de especificación arquitectónica del ecosistema (Tomos I a IV, ADRs 001-005, DOCs 001-032).",
       "archivosFuente": 0,
       "archivosTest": 0,
       "docs": 91,
@@ -433,67 +791,100 @@
     {
       "de": "app-qr",
       "a": "cis",
-      "tipo": "captura"
+      "tipo": "captura",
+      "label": "Captura QR (HTTPS / mDNS)",
+      "desc": "Envío de sesiones de escaneo e incidencias con JWT OIDC PKCE a sicsaft.local:8767 / cis:3000 con cola offline IndexedDB."
     },
     {
       "de": "ccp",
       "a": "cis",
-      "tipo": "captura"
+      "tipo": "captura",
+      "label": "Portal AFT (REST)",
+      "desc": "CRUD de bienes, catálogos, estructuras y aprobación de lotes Excel vía JWT OIDC."
     },
     {
       "de": "core-frontend",
       "a": "cis",
-      "tipo": "captura"
+      "tipo": "captura",
+      "label": "Directivo (REST)",
+      "desc": "Consultas de KPIs patrimoniales ejecutivos y designación de profesionales AFT."
     },
     {
       "de": "cis",
       "a": "core",
-      "tipo": "orquestacion"
+      "tipo": "orquestacion",
+      "label": "Orquestación BPI",
+      "desc": "Validación Zod, token de servicio interno y persistencia transaccional BPI."
     },
     {
       "de": "core",
       "a": "cip",
-      "tipo": "eventos"
+      "tipo": "eventos",
+      "label": "Outbox pg-boss",
+      "desc": "Publicación asíncrona desacoplada de eventos de inventario para cálculo de veredictos."
     },
     {
       "de": "herramientas",
       "a": "cis",
-      "tipo": "captura"
+      "tipo": "captura",
+      "label": "ETL Contable",
+      "desc": "Carga de planillas Excel normalizadas en Python 3.12 hacia la bandeja de staging."
     },
     {
       "de": "sicsaft-core",
       "a": "cis",
-      "tipo": "embebe"
+      "tipo": "supervisa",
+      "label": "Subproceso Gateway",
+      "desc": "Supervisión de ciclo de vida del API Gateway NestJS en puerto 3000."
     },
     {
       "de": "sicsaft-core",
       "a": "core",
-      "tipo": "embebe"
+      "tipo": "supervisa",
+      "label": "Subproceso Motor BPI",
+      "desc": "Supervisión del backend central NestJS y migraciones PostgreSQL en puerto 3001."
     },
     {
       "de": "sicsaft-core",
       "a": "cip",
-      "tipo": "embebe"
+      "tipo": "supervisa",
+      "label": "Worker CIP (N2)",
+      "desc": "Supervisión de worker de analítica (apagado condicionalmente en Nivel 1 para ahorrar 120MB RAM)."
     },
     {
       "de": "sicsaft-core",
       "a": "ccp",
-      "tipo": "embebe"
+      "tipo": "sirve",
+      "label": "Servidor Estático AFT",
+      "desc": "Servidor local HTTP embebido en puerto 8766 para la SPA de profesional AFT."
     },
     {
       "de": "sicsaft-core",
       "a": "core-frontend",
-      "tipo": "embebe"
+      "tipo": "sirve",
+      "label": "Servidor Estático Directivo",
+      "desc": "Servidor local HTTP embebido en puerto 8768 para el portal directivo."
+    },
+    {
+      "de": "sicsaft-core",
+      "a": "app-qr",
+      "tipo": "sirve",
+      "label": "mDNS Beacon & HTTPS",
+      "desc": "Difusión de nombre sicsaft.local y servidor HTTPS en puerto 8767 para móviles."
     },
     {
       "de": "casos-de-uso",
       "a": "cis",
-      "tipo": "prueba"
+      "tipo": "prueba",
+      "label": "Harness E2E Playwright",
+      "desc": "Validación automatizada de flujos de usuario reales contra el stack completo."
     },
     {
       "de": "devops",
-      "a": "cis",
-      "tipo": "despliega"
+      "a": "sicsaft-core",
+      "tipo": "empaqueta",
+      "label": "Inno Setup & Authenticode",
+      "desc": "Compilación del instalador Windows desatendido y firma digital SHA-256."
     }
   ]
 }

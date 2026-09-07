@@ -82,6 +82,23 @@ export function ConsolaTecnica({ defaultAbierta = false }: Props) {
     }
   }
 
+  const [respaldando, setRespaldando] = useState(false);
+  const [respaldoMensaje, setRespaldoMensaje] = useState<string | null>(null);
+
+  async function ejecutarRespaldo(): Promise<void> {
+    setRespaldando(true);
+    setRespaldoMensaje(null);
+    try {
+      const res = await window.sicsaftCore.crearRespaldoBpi();
+      setRespaldoMensaje(`Respaldo OK: ${res.nombre}`);
+      setTimeout(() => setRespaldoMensaje(null), 5000);
+    } catch (err: any) {
+      setRespaldoMensaje(`Error: ${err?.message || err}`);
+    } finally {
+      setRespaldando(false);
+    }
+  }
+
   return (
     <div className="mt-4 w-full max-w-md overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-card text-left">
       <button
@@ -92,7 +109,7 @@ export function ConsolaTecnica({ defaultAbierta = false }: Props) {
         <span aria-hidden className="text-xs">
           {abierta ? "▾" : "▸"}
         </span>
-        Detalle técnico
+        Detalle técnico y Respaldos
         <span className="ml-auto text-xs text-[var(--faint-foreground)]">
           {entradas.length} líneas
         </span>
@@ -113,9 +130,30 @@ export function ConsolaTecnica({ defaultAbierta = false }: Props) {
               onClick={() => void window.sicsaftCore.abrirCarpetaLog()}
               className="rounded-[var(--radius)] border border-[var(--border-strong)] px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-[var(--input)]"
             >
-              Abrir carpeta de logs
+              Logs
+            </button>
+            <button
+              type="button"
+              disabled={respaldando}
+              onClick={() => void ejecutarRespaldo()}
+              className="rounded-[var(--radius)] border border-[var(--primary)] bg-[var(--primary)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--primary)] transition-colors hover:bg-[var(--primary)]/20 disabled:opacity-50"
+            >
+              {respaldando ? "Respaldando…" : "Respaldar BPI"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void window.sicsaftCore.abrirCarpetaRespaldos()}
+              className="rounded-[var(--radius)] border border-[var(--border-strong)] px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-[var(--input)]"
+            >
+              Carpeta Respaldos
             </button>
           </div>
+          {respaldoMensaje && (
+            <div className="px-3 pb-2 text-xs font-medium text-[var(--primary)]">
+              {respaldoMensaje}
+            </div>
+          )}
+
           <pre
             ref={preRef}
             onScroll={alScrollear}

@@ -7,9 +7,11 @@ import { loadEnvConfig } from '../common/load-env-config';
 // valor configurado en CIP (cip/src/common/auth/service-token.config.ts), no un token propio de
 // CIS. Ya estaba reservado en .env.example desde DOC-018 3, sin consumidor real hasta este
 // módulo.
+// CIP-05: En instalaciones Nivel 1 (sin analítica CIP), CIP_URL y CIP_SERVICE_TOKEN son opcionales.
+// Si no están configurados, CIS degrada limpiamente sin bloquear el arranque ni requerir el subproceso CIP.
 const cipClientEnvSchema = z.object({
-  CIP_URL: z.string().min(1, 'es requerido'),
-  CIP_SERVICE_TOKEN: z.string().min(1, 'es requerido'),
+  CIP_URL: z.string().optional().default(''),
+  CIP_SERVICE_TOKEN: z.string().optional().default(''),
 });
 
 export interface CipClientConfig {

@@ -12,7 +12,7 @@ interface Contador {
 // sin depender de ningún proceso externo. Sin I/O de red no hay nada que "falle": el
 // comportamiento "falla abierto" del limiter original (WAF 4, aislamiento de fallos) queda
 // automáticamente satisfecho, no hace falta try/catch.
-//
+// --
 // NOTA DE HONESTIDAD: las entradas nunca se limpian activamente entre ventanas (a diferencia de
 // Redis, que expiraba la clave sola) — el Map crece con la cantidad de claves *distintas* vistas
 // alguna vez (hoy, un operador por clave), no con el volumen de requests. Al tamaño real de

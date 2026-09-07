@@ -12,6 +12,7 @@ import {
 
 beforeEach(() => {
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 const TOKENS: StoredTokens = {

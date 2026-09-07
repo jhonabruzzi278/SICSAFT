@@ -24,7 +24,7 @@ test('agregar un producto nuevo lo muestra como registrado', async ({ page }) =>
 test('no permite crear un producto con un código ya existente', async ({ page }) => {
   await page.click('[data-testid="new-product-btn"]');
   await page.fill('[data-testid="pf-name"]', 'Duplicado');
-  await page.fill('[data-testid="pf-code"]', 'p001');
+  await page.fill('[data-testid="pf-code"]', 'qr-dg-001');
   await page.click('[data-testid="pf-submit"]');
 
   await expect(page.locator('[data-testid="pf-code-error"]')).toBeVisible();
@@ -79,7 +79,7 @@ test('el diálogo de impresión recuerda la última cantidad de columnas elegida
   await page.reload();
   await page.waitForTimeout(300);
 
-  const card = page.locator('[data-testid="product-card"][data-code="P001"]');
+  const card = page.locator('[data-testid="product-card"][data-code="QR-DG-001"]');
   await card.locator('[data-testid="product-card-print"]').click();
 
   await expect(page.locator('[data-testid="print-options-modal"]')).toBeVisible();
@@ -93,7 +93,7 @@ test('imprimir varias copias de la misma etiqueta genera esa cantidad de etiquet
     };
   });
 
-  const card = page.locator('[data-testid="product-card"][data-code="P001"]');
+  const card = page.locator('[data-testid="product-card"][data-code="QR-DG-001"]');
   await card.locator('[data-testid="product-card-print"]').click();
 
   await expect(page.locator('[data-testid="print-options-modal"]')).toBeVisible();
@@ -119,19 +119,19 @@ test('un producto con stock igual o menor al mínimo muestra la insignia de stoc
 });
 
 test('quitar un producto del inventario lo marca como no registrado', async ({ page }) => {
-  const card = page.locator('[data-testid="product-card"][data-code="P001"]');
+  const card = page.locator('[data-testid="product-card"][data-code="QR-DG-001"]');
   await card.locator('[data-testid="product-card-delete"]').click();
 
   await expect(page.locator('[data-testid="registered-count"]')).toHaveText('14');
-  await expect(page.locator('[data-testid="unregistered-count"]')).toHaveText('6');
+  await expect(page.locator('[data-testid="unregistered-count"]')).toHaveText('46');
   await expect(card.locator('[data-testid="product-card-delete"]')).toHaveCount(0);
 });
 
 test('el buscador filtra por código y por nombre', async ({ page }) => {
-  await page.fill('[data-testid="search-input"]', 'yogurt');
+  await page.fill('[data-testid="search-input"]', 'QR-DG-001');
   await expect(page.locator('[data-testid="product-card"]')).toHaveCount(1);
 
-  await page.fill('[data-testid="search-input"]', 'p003');
+  await page.fill('[data-testid="search-input"]', 'qr-dg-003');
   await expect(page.locator('[data-testid="product-card"]')).toHaveCount(1);
 
   await page.fill('[data-testid="search-input"]', 'no-existe-este-producto');

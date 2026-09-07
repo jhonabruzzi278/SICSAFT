@@ -1,7 +1,7 @@
 // DOC-029 RF-F — generador de código de barras Code 128-B, sin dependencia (mismo criterio que
 // icons.tsx / ui.tsx: no sumar una lib para algo acotado). Devuelve las barras negras ya
 // posicionadas en módulos (ancho 1 por módulo); el componente las pinta como <rect> en un <svg>.
-//
+// --
 // Code 128-B cubre ASCII 32..126 — suficiente para los códigos patrimoniales del ecosistema
 // (`^[A-Z0-9]+(-[A-Z0-9]+)?$`, ver core/src/reglas/clasificar-escaneo.ts). Un carácter fuera de
 // rango tira: el llamador cae a mostrar el código como texto.

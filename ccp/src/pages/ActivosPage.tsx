@@ -303,7 +303,8 @@ export function ActivosPage() {
                 <thead className="bg-bg-raised text-text-dim">
                   <tr>
                     <th className="px-4 py-2 font-medium">Código QR</th>
-                    <th className="px-4 py-2 font-medium">Nombre</th>
+                    <th className="px-4 py-2 font-medium">Código AFT</th>
+                    <th className="px-4 py-2 font-medium">Nombre AFT</th>
                     <th className="px-4 py-2 font-medium">Área</th>
                     <th className="px-4 py-2 font-medium">Estado</th>
                     <th className="px-4 py-2 font-medium">Acciones</th>
@@ -315,11 +316,16 @@ export function ActivosPage() {
                       key={activo.codigoQr}
                       className="border-t border-border"
                     >
-                      <td className="px-4 py-2 font-mono text-xs">
+                      <td className="px-4 py-2 font-mono text-xs font-semibold text-accent-strong">
                         {activo.codigoQr}
                       </td>
-                      <td className="px-4 py-2">{activo.nombre}</td>
-                      <td className="px-4 py-2">{activo.areaId}</td>
+                      <td className="px-4 py-2 font-mono text-xs text-text">
+                        {activo.codigoAft || activo.codigoQr}
+                      </td>
+                      <td className="px-4 py-2 font-medium text-text">{activo.nombre}</td>
+                      <td className="px-4 py-2 font-medium text-text">
+                        {activo.areaNombre || activo.areaId}
+                      </td>
                       <td className="px-4 py-2">
                         <Badge>{activo.estado}</Badge>
                       </td>

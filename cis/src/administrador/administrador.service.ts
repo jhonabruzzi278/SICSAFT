@@ -43,7 +43,7 @@ import type {
 // (areas/ubicaciones/responsables). WEB nunca le habla a CORE directo (regla no negociable de
 // CLAUDE.md) — este servicio traduce el contexto ya autenticado por Keycloak (KeycloakAuthGuard)
 // al contrato de escritura oficial que CORE espera (DOC-012 3.3).
-//
+// --
 // 2026-09: las operaciones de Organizacion/Contrato/Sede/usuarios/indicadores se retiraron al
 // eliminar el portal del Administrador del Sistema — el proveedor externo interviene en el core de
 // la organizacion de forma directa (BD / script con service-token) + el bootstrap del wizard.

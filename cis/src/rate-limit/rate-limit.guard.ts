@@ -20,7 +20,7 @@ const RATE_LIMIT_KEY_PREFIX = 'rate-limit:operador:';
 // corrido y seteado `request.auth` (orden en @UseGuards: KeycloakAuthGuard, RateLimitGuard). Por
 // dispositivo sigue sin cubrir aca: `deviceId` solo llega en el body de auth/session, no en las
 // otras 3 rutas (ver src/device-registry/ para el enforcement de "un solo dispositivo").
-//
+// --
 // ADR-005 — `InMemoryRateLimiter` se instancia una sola vez acá (el guard es un provider
 // singleton, mismo criterio que ya usaba `new RedisRateLimiter(...)` en el constructor) — el
 // estado vive en el propio proceso, no en un backend externo.

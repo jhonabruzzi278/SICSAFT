@@ -4,7 +4,7 @@ import { resetApp, scanCode } from './helpers.js';
 test('el registro de auditoría refleja inicio, escaneo, incidencia, cierre y sincronización', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'P001');
+  await scanCode(page, 'QR-DG-001');
 
   await page.click('[data-testid="add-incident-btn"]');
   await page.fill('[data-testid="incident-note-input"]', 'Golpe visible en la carcasa');
@@ -20,7 +20,7 @@ test('el registro de auditoría refleja inicio, escaneo, incidencia, cierre y si
   const auditList = page.locator('[data-testid="audit-list"]');
   await expect(auditList).toContainText('Inventario iniciado');
   await expect(auditList).toContainText('Escaneo');
-  await expect(auditList).toContainText('P001');
+  await expect(auditList).toContainText('QR-DG-001');
   await expect(auditList).toContainText('Incidencia registrada');
   await expect(auditList).toContainText('Golpe visible en la carcasa');
   await expect(auditList).toContainText('Inventario finalizado');

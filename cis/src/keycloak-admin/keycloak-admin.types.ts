@@ -3,7 +3,7 @@ import { z } from 'zod';
 // ADR-004 — formas mínimas de la Admin REST API de Keycloak (`/admin/realms/{realm}/...`) que
 // este cliente necesita. Verificado real contra un Keycloak 26.6 de prueba (2026-08-26, ver
 // notas de la Fase 1 de la implementación de ADR-004) — no contra la documentación pública sola:
-//
+// --
 // - Crear una Organization con un `id` propio en el body NO lo respeta: Keycloak siempre genera su
 //   propio UUID interno. Lo que SÍ se puede fijar (y queda tal cual) es `alias` — por eso este
 //   cliente usa `organizacionId` de CORE como `alias` de la Organization, nunca como `id`.

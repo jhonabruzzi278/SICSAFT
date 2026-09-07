@@ -9,7 +9,7 @@
 import type { ScanCategory } from './db';
 import type { ConnectorAsset } from './qr-connector';
 
-const ASSET_CODE_PATTERN = /^[A-Z0-9]+(-[A-Z0-9]+)?$/;
+const ASSET_CODE_PATTERN = /^[A-Z0-9]+(-[A-Z0-9]+)*$/;
 
 export interface ScanResolution {
   category: ScanCategory;
@@ -81,7 +81,7 @@ export function resolveScannedProduct(
     return {
       category: 'wrong-area',
       name,
-      expectedAreaName: asset.areaId,
+      expectedAreaName: asset.areaNombre ?? asset.areaId,
       expectedLocationName: asset.ubicacionId,
     };
   }
@@ -90,7 +90,7 @@ export function resolveScannedProduct(
     return {
       category: 'wrong-location',
       name,
-      expectedAreaName: asset.areaId,
+      expectedAreaName: asset.areaNombre ?? asset.areaId,
       expectedLocationName: asset.ubicacionId,
     };
   }

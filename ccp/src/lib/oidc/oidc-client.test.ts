@@ -53,6 +53,7 @@ function tokensWithClaims(claims: Record<string, unknown>): StoredTokens {
 
 beforeEach(() => {
   sessionStorage.clear();
+  localStorage.clear();
   import.meta.env.VITE_KEYCLOAK_ISSUER = ISSUER;
   import.meta.env.VITE_KEYCLOAK_CLIENT_ID = CLIENT_ID;
   import.meta.env.VITE_CIS_URL = CIS_URL;

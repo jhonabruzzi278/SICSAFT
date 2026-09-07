@@ -5,10 +5,10 @@ test('entrada manual de código agrega un producto escaneado', async ({ page }) 
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  await scanCode(page, 'p001');
+  await scanCode(page, 'qr-dg-001');
 
   await expect(page.locator('[data-testid="scanned-count"]')).toHaveText('1');
-  await expect(page.locator('[data-testid="scanned-item-code"]')).toHaveText('P001');
+  await expect(page.locator('[data-testid="scanned-item-code"]')).toHaveText('QR-DG-001');
   await expect(page.locator('[data-testid="manual-code-input"]')).toHaveValue('');
 });
 
@@ -27,11 +27,11 @@ test('en mobile, la bottom nav está siempre visible y navega (sin trigger)', as
 });
 
 test('el escáner reconoce un código de variante BASE-VARIANTE', async ({ page }) => {
-  // P001 tiene una variante 'M' en el catálogo mockeado del Conector QR (src/mocks/fixtures.ts) —
+  // QR-DG-001 tiene una variante 'M' en el catálogo mockeado del Conector QR (src/mocks/fixtures.ts) —
   // CatalogPage (catálogo local) está desconectado del catálogo real desde TASK-007, ver HANDOFF 3.
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'p001-m');
+  await scanCode(page, 'qr-dg-001-m');
 
   await expect(page.locator('[data-testid="scanned-count"]')).toHaveText('1');
   await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('✔ Correcto');
@@ -57,7 +57,7 @@ test('finalizar escaneo guarda una sesión y aparece en el historial', async ({ 
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  const codes = Array.from({ length: 20 }, (_, i) => `P${String(i + 1).padStart(3, '0')}`);
+  const codes = Array.from({ length: 20 }, (_, i) => `QR-DG-${String(i + 1).padStart(3, '0')}`);
   for (const code of codes) {
     await scanCode(page, code);
   }
@@ -74,13 +74,13 @@ test('finalizar escaneo guarda una sesión y aparece en el historial', async ({ 
   await expect(page.locator('[data-testid="history-item"]')).toContainText('20 escaneados');
   await expect(page.locator('[data-testid="history-item"]')).toContainText('4 correctos');
   await expect(page.locator('[data-testid="history-item"]')).toContainText('11 no registrados');
-  await expect(page.locator('[data-testid="history-item"]')).toContainText('P016');
+  await expect(page.locator('[data-testid="history-item"]')).toContainText('QR-DG-016');
 });
 
 test('exportar CSV genera un archivo con los productos escaneados', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'P001');
+  await scanCode(page, 'QR-DG-001');
   await scanCode(page, 'P999');
   await page.click('[data-testid="finish-btn"]');
   await expect(page.locator('[data-testid="export-csv-btn"]')).toBeVisible();
@@ -104,6 +104,6 @@ test('exportar CSV genera un archivo con los productos escaneados', async ({ pag
   });
 
   expect(csv).toContain('codigo,nombre,categoria,incidencia,fuera_de_lugar');
-  expect(csv).toContain('P001,Caramelos Verdes,correct,,no');
+  expect(csv).toContain('QR-DG-001,MESA BURO/ 4 GAVETAS,correct,,no');
   expect(csv).toContain('P999,Producto desconocido,unregistered,,no');
 });

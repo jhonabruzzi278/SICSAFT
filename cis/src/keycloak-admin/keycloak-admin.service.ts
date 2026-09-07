@@ -68,7 +68,7 @@ class KeycloakConflictError extends Error {}
 // Autenticación: client_credentials contra un client confidencial con serviceAccountsEnabled
 // (este token expira — se cachea y renueva acá, ver obtenerTokenDeServicio).
 // Exclusivo de CIS para gestión de identidades y membresías.
-//
+// --
 // Diseño de roles por organización: verificado real contra un Keycloak 26.6 de prueba (2026-08-26)
 // que los realm roles son globales por usuario (`realm_access.roles` del JWT no distingue por
 // organización) — no existe una forma nativa de Keycloak de anidar "este rol aplica solo en esta

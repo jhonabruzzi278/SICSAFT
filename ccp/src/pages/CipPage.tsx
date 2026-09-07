@@ -244,6 +244,7 @@ export function CipPage() {
         if (a.estado === 'baja') est = 'Baja';
         return {
           codigo: a.codigoQr,
+          codigoAft: a.codigoAft || a.codigoQr,
           nombre: a.nombre,
           categoria: 'General',
           estado: est,
@@ -1005,8 +1006,9 @@ export function CipPage() {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-border text-text-dim">
-                <th className="py-2.5 pr-4 font-semibold">Código</th>
-                <th className="py-2.5 pr-4 font-semibold">Nombre</th>
+                <th className="py-2.5 pr-4 font-semibold">Código QR</th>
+                <th className="py-2.5 pr-4 font-semibold">Código AFT</th>
+                <th className="py-2.5 pr-4 font-semibold">Nombre AFT</th>
                 <th className="py-2.5 pr-4 font-semibold">Categoría</th>
                 <th className="py-2.5 pr-4 font-semibold">Estado</th>
                 <th className="py-2.5 pr-4 font-semibold">Ubicación</th>
@@ -1016,7 +1018,7 @@ export function CipPage() {
             <tbody className="divide-y divide-border/60">
               {filasFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-text-dim">
+                  <td colSpan={7} className="py-8 text-center text-text-dim">
                     No se encontraron activos con los filtros seleccionados.
                   </td>
                 </tr>
@@ -1024,9 +1026,12 @@ export function CipPage() {
                 filasFiltradas.slice(0, 10).map((fila) => (
                   <tr key={fila.codigo} className="transition-colors hover:bg-bg-raised/60">
                     <td className="py-3 pr-4 font-mono font-medium text-text">
-                      <span className="rounded bg-bg-raised px-1.5 py-0.5 ring-1 ring-border">
+                      <span className="rounded bg-bg-raised px-1.5 py-0.5 ring-1 ring-border text-accent-strong">
                         {fila.codigo}
                       </span>
+                    </td>
+                    <td className="py-3 pr-4 font-mono text-text-dim">
+                      {fila.codigoAft || fila.codigo}
                     </td>
                     <td className="py-3 pr-4 font-medium text-text">{fila.nombre}</td>
                     <td className="py-3 pr-4 text-text-dim">{fila.categoria}</td>

@@ -93,21 +93,26 @@ export class ServiceOrchestrator extends EventEmitter {
       Promise.resolve(crearNodeBackendService(configCore)),
     );
 
-    const configCip = crearConfigCip(this.eventosOutboxUrl, this.tokens);
-    correrMigraciones({
-      sistema: "cip",
-      env: {
-        CIP_DB_HOST: configCip.env.CIP_DB_HOST,
-        CIP_DB_PORT: configCip.env.CIP_DB_PORT,
-        CIP_DB_NAME: configCip.env.CIP_DB_NAME,
-        CIP_DB_USER: configCip.env.CIP_DB_USER,
-        CIP_DB_PASSWORD: configCip.env.CIP_DB_PASSWORD,
-      },
-    });
-    await this.iniciar(
-      "cip",
-      Promise.resolve(crearNodeBackendService(configCip)),
-    );
+    const nivel = process.env.VITE_SICSAFT_NIVEL || process.env.SICSAFT_NIVEL || "2";
+    if (nivel !== "1") {
+      const configCip = crearConfigCip(this.eventosOutboxUrl, this.tokens);
+      correrMigraciones({
+        sistema: "cip",
+        env: {
+          CIP_DB_HOST: configCip.env.CIP_DB_HOST,
+          CIP_DB_PORT: configCip.env.CIP_DB_PORT,
+          CIP_DB_NAME: configCip.env.CIP_DB_NAME,
+          CIP_DB_USER: configCip.env.CIP_DB_USER,
+          CIP_DB_PASSWORD: configCip.env.CIP_DB_PASSWORD,
+        },
+      });
+      await this.iniciar(
+        "cip",
+        Promise.resolve(crearNodeBackendService(configCip)),
+      );
+    } else {
+      registrar("orquestador", "Nivel 1 configurado: arranque de subproceso CIP omitido para optimizar recursos (CIP-05)");
+    }
   }
 
   // Llamado por el handler IPC `bootstrapCliente` (ipc/handlers.ts) una vez que

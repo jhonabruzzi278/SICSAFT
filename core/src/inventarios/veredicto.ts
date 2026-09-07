@@ -1,7 +1,7 @@
 // DOC-029 RF-I / DOC-017 2 — puerto de la misma regla que app-qr-sicsaft/src/lib/verdict.ts y
 // cip/src/agregacion/veredicto.ts (implementación independiente por desplegable, ARCHITECTURE.md
 // 5). "EXITOSO" del negocio ("excelente") = `exitoso`.
-//
+// --
 // EXITOSO: nada falta y nada apareció fuera del área/ubicación.
 // ACEPTABLE: exactamente uno de los dos problemas (falta algo, o apareció algo de otra área) —
 //            no ambos.

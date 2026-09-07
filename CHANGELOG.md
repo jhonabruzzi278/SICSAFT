@@ -12,11 +12,15 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
   - Instalador único NSIS (`sicsaft-core.exe`) para Windows con procesos embebidos (PostgreSQL 16 portable, Eclipse Temurin JRE 17, Keycloak 26, CIS, CORE, CIP).
   - Selector de modo en el wizard de instalación: **Nivel 1 (Modo Básico)** y **Nivel 2 (Modo Profesional)**.
   - Consola técnica en vivo para diagnóstico y logs en pantalla.
+  - **Mecanismo de Respaldo de Emergencia (BPI)**: Volcados SQL y copias de seguridad de la base patrimonial desde la interfaz y vía script `herramientas/devops/respaldo-bpi.ps1`.
+  - **Configuración Automatizada de Red / Firewall**: Script `herramientas/devops/configurar-firewall-sicsaft.ps1` para apertura de puertos 8765, 58080 y 56000 en Windows Defender Firewall.
 - **Portales Web Unificados**:
   - Centro de Control Patrimonial (`ccp/`) completo en Nivel 1 y Nivel 2 con 6 módulos activos (Activos, Estructura, Ingesta Excel, Etiquetas QR, Auditoría y Reportes).
   - Portal Directivo (`core/frontend/`) segmentado por rol Keycloak 26 ([DOC-022](aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)).
-- **Aplicación de Captura Móvil (`app-qr-sicsaft/`)**:
+- **Aplicación de Captura Móvil (`app-qr-sicsaft/` y `apk-aft/`)**:
   - Flujo oficial de captura patrimonial en 8 pasos con soporte offline mediante IndexedDB y cola de reintentos.
+  - Servidor PWA en LAN con certificado HTTPS autofirmado y distribución directa de APK nativa (`sicsaft-aft.apk`) con código QR de descarga.
+
 - **Centro de Inteligencia Patrimonial (`cip/`)**:
   - Worker de agregación asíncrono con PostgreSQL y `pg-boss` para cálculo de evolución patrimonial y cobertura.
 - **Integración y Automatización con Linear**:

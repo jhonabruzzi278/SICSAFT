@@ -31,9 +31,11 @@ export interface OrganizacionSummary {
 
 export interface ConnectorAsset {
   codigoQr: string;
+  codigoAft?: string;
   nombre: string;
   organizacionId: string;
   areaId: string;
+  areaNombre?: string;
   ubicacionId: string;
   // Extensión no cubierta por DOC-002 todavía: el contrato documentado no
   // modela variantes/talles. Se mantiene para que el escaneo de códigos
@@ -248,7 +250,7 @@ export function buildOrganizationTree(
 
     let area = areasById.get(activo.areaId);
     if (!area) {
-      area = { id: activo.areaId, name: activo.areaId, locations: [] };
+      area = { id: activo.areaId, name: activo.areaNombre ?? activo.areaId, locations: [] };
       areasById.set(activo.areaId, area);
     }
 

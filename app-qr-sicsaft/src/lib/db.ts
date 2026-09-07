@@ -12,6 +12,7 @@ export interface ProductVariant {
 
 export interface Product {
   code: string;
+  codigoAft?: string;
   name: string;
   description?: string;
   category?: string;

@@ -75,10 +75,11 @@ Para incluirlo:
    `apk-aft/app/build/outputs/apk/release/`, o buildearlo local (`./gradlew assembleRelease`).
 2. `cd sicsaft-core && npm run dist:win`.
 
-**Servirlo + 2º QR (pendiente).** Falta que `sicsaft-core` sirva el `.apk` en
-`https://<ip>:8765/sicsaft-aft.apk` (el servidor estático de la APP QR, `static-portal-server.ts`)
-y que la pantalla "listo" del wizard (`PasoListoConLogin.tsx`) muestre un segundo QR para
-descargarlo. Diseño en DOC-029 apéndice H.2.
+**Servirlo + 2º QR (Implementado en el .exe).** `sicsaft-core` ya sirve automáticamente el `.apk` en
+`https://<ip>:8765/sicsaft-aft.apk` (servidor estático `static-portal-server.ts`) y la pantalla "listo"
+del wizard (`PasoListoConLogin.tsx` / `QrAppQr.tsx`) muestra el QR para descargarlo directamente
+en el teléfono móvil.
+
 
 ## Depende de
 

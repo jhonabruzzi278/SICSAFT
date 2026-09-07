@@ -13,7 +13,7 @@ test('sin conexión, el inventario queda en cola y se sincroniza solo al volver'
   await selectOrgAreaLocation(page);
 
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'P001');
+  await scanCode(page, 'QR-DG-001');
 
   // MSW responde dentro del Service Worker sin tocar red real, así que page.context().setOffline()
   // no garantiza que un fetch mockeado falle — se simula la falla directo en el handler de

@@ -33,7 +33,7 @@ export class DirectivoService {
   // en el proveedor de identidad (buscarUsuarioPorEmail -> 404 si no). Ahora, si no existe, lo
   // crea (KeycloakAdminService.crearUsuarioHuman, con contraseña inicial generada) antes de
   // asignarle el rol — mismo flujo, un solo paso para el Directivo.
-  //
+  // --
   // DOC-024 3 — envuelto en AuditoriaIdentidadService.ejecutar: mismo motivo que
   // AdministradorService.asignarUsuarioOrganizacion, esto nunca toca CORE.
   async asignarProfesionalAft(

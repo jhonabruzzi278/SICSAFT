@@ -4,7 +4,7 @@
 import { test } from '@playwright/test';
 import { resetApp, scanCode } from './helpers.js';
 
-const OUT = 'test-results/redesign';
+const OUT = 'docs/screenshots';
 test.use({ viewport: { width: 390, height: 844 } });
 
 /** Screenshot del viewport (no fullPage): el app bar fijo queda pinneado arriba como en un móvil real. */

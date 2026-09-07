@@ -29,9 +29,9 @@ test('el resumen muestra esperados/faltantes y activos externos', async ({ page 
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  await scanCode(page, 'P001');
-  await scanCode(page, 'P002');
-  await scanCode(page, 'P003');
+  await scanCode(page, 'QR-DG-001');
+  await scanCode(page, 'QR-DG-002');
+  await scanCode(page, 'QR-DG-003');
   await scanCode(page, 'P999');
   await page.click('[data-testid="mark-external-find-btn"]');
 
@@ -39,14 +39,14 @@ test('el resumen muestra esperados/faltantes y activos externos', async ({ page 
 
   await expect(page.locator('[data-testid="report-expected"]')).toHaveText('4');
   await expect(page.locator('[data-testid="report-missing"]')).toHaveText('1');
-  await expect(page.locator('[data-testid="report-missing-list"]')).toContainText('P004');
+  await expect(page.locator('[data-testid="report-missing-list"]')).toContainText('QR-DG-004');
   await expect(page.locator('[data-testid="report-external-finds"]')).toHaveText('1');
 });
 
 test('el inventario no se guarda hasta confirmar el envío', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'P001');
+  await scanCode(page, 'QR-DG-001');
   await page.click('[data-testid="finish-btn"]');
 
   await expect(page.locator('[data-testid="confirm-send-btn"]')).toHaveText('Confirmar y enviar');

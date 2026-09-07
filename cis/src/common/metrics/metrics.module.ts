@@ -11,7 +11,7 @@ import { MetricsTokenGuard } from './metrics-token.guard';
 // metrics-token.guard.ts y devops/prod/README.md "Hallazgo real": a diferencia de core/cip (sin
 // router publico en Traefik/Coolify), CIS si tiene uno, asi que este endpoint quedaba
 // publicamente alcanzable sin este guard.
-//
+// --
 // @Global(): PrometheusModule.register() registra MetricsController como controller de SU
 // PROPIO modulo dinamico, no del nuestro -- sin @Global() acá, el guard de ese controller no
 // puede resolver METRICS_CONFIG (verificado real: Nest tira "can't resolve dependencies of

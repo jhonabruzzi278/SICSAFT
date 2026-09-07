@@ -181,4 +181,16 @@ export interface SicsaftCoreApi {
   // y no navigator.clipboard, que depende de secure context (el renderer se sirve por file:// en
   // producción, ver el comentario de crypto.subtle en src/main/index.ts).
   copiarAlPortapapeles(texto: string): Promise<void>;
+  // Respaldo de emergencia y gestión de copias de seguridad de la Base Patrimonial (BPI)
+  crearRespaldoBpi(): Promise<RespaldoInfo>;
+  listarRespaldos(): Promise<RespaldoInfo[]>;
+  abrirCarpetaRespaldos(): Promise<void>;
 }
+
+export interface RespaldoInfo {
+  nombre: string;
+  ruta: string;
+  tamanoBytes: number;
+  fechaCreacion: string;
+}
+

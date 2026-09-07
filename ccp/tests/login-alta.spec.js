@@ -26,14 +26,14 @@ test.describe('Login + alta de activo (RF-01/RF-03/RF-08)', () => {
     // organizaciones, para que el sidebar de módulos aparezca de inmediato (ver HubPage.tsx).
     await expect(page).toHaveURL(/\/dashboard\?organizacionId=/);
     await expect(
-      page.getByRole('heading', { name: 'Dashboard' }),
+      page.getByRole('heading', { name: /Resumen Operativo|Dashboard/ }),
     ).toBeVisible();
 
-    await page.getByRole('link', { name: 'Activos' }).click();
+    await page.getByRole('link', { name: 'Activos', exact: true }).click();
     await expect(page).toHaveURL(/\/activos\?organizacionId=/);
 
     // Catálogo inicial del fixture (MOCK_CATALOGO) ya visible.
-    await expect(page.getByText('QR-NOTEBOOK-001')).toBeVisible();
+    await expect(page.getByText('QR-DG-001').first()).toBeVisible();
 
     await page.getByLabel('Código patrimonial').fill('PAT-E2E-001');
     await page.getByLabel('Código QR').fill('QR-E2E-001');
@@ -44,6 +44,6 @@ test.describe('Login + alta de activo (RF-01/RF-03/RF-08)', () => {
 
     // RF-08 — el alta debe verse en el mismo catálogo sin recargar la página a mano.
     await expect(page.getByText('Activo creado.')).toBeVisible();
-    await expect(page.getByText('QR-E2E-001')).toBeVisible();
+    await expect(page.getByText('QR-E2E-001').first()).toBeVisible();
   });
 });

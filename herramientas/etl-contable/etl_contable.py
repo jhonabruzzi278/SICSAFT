@@ -25,12 +25,13 @@ from typing import Any
 import pandas as pd
 
 # Mismo patrón que app-qr-sicsaft/src/lib/scan-resolve.ts / core clasificar-escaneo.ts.
-PATRON_QR = re.compile(r"^[A-Z0-9]+(-[A-Z0-9]+)?$")
+PATRON_QR = re.compile(r"^[A-Z0-9]+(-[A-Z0-9]+)*$")
 
 # Mapeo por defecto: nombres de columna del Excel -> campo canónico de la fila de importación.
 MAPEO_POR_DEFECTO: dict[str, Any] = {
     "hoja": "REGISTRO DE ACTIVOS NUEVOS",
     "marcador_encabezado": "CODIGO",
+    "prefijo_qr": "",
     "columnas": {
         "CODIGO": "codigoPatrimonial",
         "DIRECCION": "direccionNombre",
@@ -146,15 +147,19 @@ def normalizar_valor(valor: Any) -> float | None:
     return numero if numero >= 0 else None
 
 
-def acunar_qr(codigo_patrimonial: str) -> str:
-    """Deriva el codigoQr del código patrimonial (DG-001 -> DG-001)."""
-    return codigo_patrimonial.strip().upper()
+def acunar_qr(codigo_patrimonial: str, prefijo: str = "") -> str:
+    """Deriva el codigoQr del código patrimonial (ej. DG-001 -> QR-DG-001 o DG-001)."""
+    limpio = codigo_patrimonial.strip().upper()
+    if prefijo:
+        return f"{prefijo}{limpio}"
+    return limpio
 
 
 def construir_filas(
     df: pd.DataFrame,
     df_crudo: pd.DataFrame,
     categoria_por_defecto: str | None = None,
+    prefijo_qr: str = "",
 ) -> list[dict[str, Any]]:
     """`df` ya renombrado/rellenado; `df_crudo` con los nombres y valores originales del Excel
     (para el bloque `crudo`, que el revisor ve tal cual llegó). `categoria_por_defecto` (si se
@@ -169,7 +174,7 @@ def construir_filas(
         fila: dict[str, Any] = {
             "linea": pos + 1,
             "codigoPatrimonial": codigo,
-            "codigoQr": acunar_qr(codigo),
+            "codigoQr": acunar_qr(codigo, prefijo_qr),
             "crudo": {
                 str(k): str(v).strip() for k, v in original.items() if _o_none(v) is not None
             },
@@ -198,7 +203,12 @@ def procesar(entrada: Path, organizacion: str, mapeo: dict[str, Any]) -> dict[st
     tabla_original = aplicar_encabezado(crudo, fila_enc)
     tabla = renombrar_columnas(tabla_original, mapeo["columnas"])
     tabla = rellenar_hacia_abajo(tabla, mapeo["rellenar_hacia_abajo"])
-    filas = construir_filas(tabla, tabla_original, mapeo.get("categoria_por_defecto"))
+    filas = construir_filas(
+        tabla,
+        tabla_original,
+        mapeo.get("categoria_por_defecto"),
+        mapeo.get("prefijo_qr", ""),
+    )
     if not filas:
         raise ValueError(f"{entrada.name}: 0 filas con codigoPatrimonial.")
     qr_invalidos = [f["codigoQr"] for f in filas if not PATRON_QR.match(f["codigoQr"])]
@@ -230,6 +240,20 @@ def enviar_a_cis(cuerpo: dict[str, Any], cis_url: str, token: str) -> dict[str, 
     return resp.json()
 
 
+def aprobar_lote_en_cis(lote_id: str, cis_url: str, token: str) -> dict[str, Any]:
+    import requests
+
+    resp = requests.post(
+        f"{cis_url.rstrip('/')}/admin/importaciones/contable/lote/{lote_id}/aprobar",
+        json={},
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=60,
+    )
+    if resp.status_code >= 400:
+        raise SystemExit(f"CIS (Aprobación BPI) respondió {resp.status_code}: {resp.text[:500]}")
+    return resp.json()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--entrada", required=True, type=Path, help="Archivo .xls/.xlsx")
@@ -237,6 +261,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--mapeo", type=Path, help="mapeo-<org>.json (opcional)")
     parser.add_argument("--cis-url", help="Base URL de CIS (ej. http://127.0.0.1:56000)")
     parser.add_argument("--token", help="Bearer JWT para CIS")
+    parser.add_argument(
+        "--auto-aprobar",
+        action="store_true",
+        help="Aprueba inmediatamente el lote en CORE tras crearlo, insertando directo en la BPI",
+    )
     parser.add_argument(
         "--salida",
         help="'-' imprime el cuerpo JSON por stdout en vez de enviarlo a CIS",
@@ -252,8 +281,17 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.cis_url or not args.token:
         parser.error("se necesita --cis-url y --token (o usar --salida -)")
-    respuesta = enviar_a_cis(cuerpo, args.cis_url, args.token)
-    print(json.dumps(respuesta, ensure_ascii=False))
+    
+    creacion = enviar_a_cis(cuerpo, args.cis_url, args.token)
+    lote_id = creacion.get("loteId")
+
+    if args.auto_aprobar and lote_id:
+        print(f"Lote creado ({lote_id}). Ejecutando auto-aprobación hacia BPI...", file=sys.stderr)
+        aprobacion = aprobar_lote_en_cis(lote_id, args.cis_url, args.token)
+        print(json.dumps({"lote": creacion, "bpi": aprobacion}, ensure_ascii=False))
+        return 0
+
+    print(json.dumps(creacion, ensure_ascii=False))
     return 0
 
 

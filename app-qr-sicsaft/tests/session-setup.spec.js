@@ -35,17 +35,16 @@ test('la pantalla de inicio muestra el resumen de operador/organización/área/u
   await resetApp(page);
 
   await expect(page.locator('[data-testid="session-summary"]')).toContainText('Operador Test');
-  await expect(page.locator('[data-testid="session-summary"]')).toContainText('Municipalidad Central');
-  // CIS/CORE no exponen nombre propio de área (buildOrganizationTree, qr-connector.ts) — se
-  // muestra el id crudo tal cual, a diferencia de organización/ubicación que sí tienen nombre real.
-  await expect(page.locator('[data-testid="session-summary"]')).toContainText('area-001');
-  await expect(page.locator('[data-testid="session-summary"]')).toContainText('Edificio Principal — Piso 1');
+  await expect(page.locator('[data-testid="session-summary"]')).toContainText('EMPRESA SUCHEL TROPICAL');
+  // Muestra el nombre del área real (buildOrganizationTree, qr-connector.ts)
+  await expect(page.locator('[data-testid="session-summary"]')).toContainText('OFICINA DIRECTOR GENERAL');
+  await expect(page.locator('[data-testid="session-summary"]')).toContainText('Oficina Director General');
 });
 
 test('el historial muestra los metadatos de la sesión y el estado de sincronización', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'P001');
+  await scanCode(page, 'QR-DG-001');
   await page.click('[data-testid="finish-btn"]');
   await page.click('[data-testid="confirm-send-btn"]');
   await page.click('[data-testid="reset-btn"]');
@@ -54,6 +53,6 @@ test('el historial muestra los metadatos de la sesión y el estado de sincroniza
 
   const item = page.locator('[data-testid="history-item"]').first();
   await expect(item.locator('[data-testid="history-location"]')).toContainText('Operador Test');
-  await expect(item.locator('[data-testid="history-location"]')).toContainText('Municipalidad Central');
+  await expect(item.locator('[data-testid="history-location"]')).toContainText('EMPRESA SUCHEL TROPICAL');
   await expect(item.locator('[data-testid="history-sync-status"]')).toContainText('Sincronizado');
 });

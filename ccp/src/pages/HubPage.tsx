@@ -20,7 +20,7 @@ import {
 // propio valor en `modulosContratados` — acá simplemente se listan las organizaciones donde el
 // operador tiene contrato vigente (GET /entitlements vía auth/session) y, por cada una, los
 // módulos ya implementados (Activos, Contratos).
-//
+// --
 // DOC-022 — el Directivo ya no entra a CCP: tiene su propio portal (`core/frontend/`), así que la
 // segmentación por rol de DOC-020 (vista ejecutiva de solo-Dashboard, redirect automático) queda
 // superada por este incremento y se elimina de acá. `dashboard` se queda en este listado porque

@@ -14,15 +14,11 @@ describe('loadCipClientConfig', () => {
     });
   });
 
-  it('lanza si falta CIP_URL', () => {
-    expect(() =>
-      loadCipClientConfig({ CIP_SERVICE_TOKEN: 'secreto-compartido' }),
-    ).toThrow('CIP_URL');
-  });
-
-  it('lanza si falta CIP_SERVICE_TOKEN', () => {
-    expect(() => loadCipClientConfig({ CIP_URL: 'http://cip:3002' })).toThrow(
-      'CIP_SERVICE_TOKEN',
-    );
+  it('permite valores vacios por defecto para Nivel 1 sin CIP (CIP-05)', () => {
+    const config = loadCipClientConfig({});
+    expect(config).toEqual({
+      baseUrl: '',
+      serviceToken: '',
+    });
   });
 });

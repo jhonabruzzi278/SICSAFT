@@ -18,7 +18,7 @@ import type { RegistrarAuditoriaBody } from './auditoria.schemas';
 // ServiceTokenGuard. Vive en AuditoriaModule, junto al AuditoriaController de lectura. No
 // "corregir" esto para que quede junto a los demas — es la unica escritura de este incremento que
 // no pasa por OrquestadorService a proposito.
-//
+// --
 // `categoria` se fuerza a 'identidad' server-side: ningun llamador puede reportarse a si mismo
 // como 'patrimonial' (esa categoria es exclusiva de OrquestadorService.ejecutarOperacionOficial).
 @Controller('auditoria')

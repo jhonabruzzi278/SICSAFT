@@ -9,7 +9,7 @@ import { CoreClientService } from '../core-client/core-client.service';
 // guard de CIS alcanza"), pero eso dejaba un punto ciego real: nadie quedaba registrado
 // asignando o quitando un rol. Este wrapper cierra ese punto ciego sin tocar la autorizacion
 // (los guards de CIS siguen cortando exactamente igual antes de llegar acá).
-//
+// --
 // Diferencias deliberadas con ejecutarOperacionOficial (ver DOC-024 3):
 // - No audita rechazos de guard: un guard de CIS (AdministradorSistemaGuard/DirectivoGuard) sigue
 //   cortando la request ANTES de que el metodo envuelto se ejecute — auditar eso requeriria

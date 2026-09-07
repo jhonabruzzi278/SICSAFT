@@ -3,7 +3,7 @@
 import { test } from '@playwright/test';
 import { seedAuth } from './helpers.js';
 
-const OUT = 'test-results/redesign';
+const OUT = 'docs/screenshots';
 test.use({ viewport: { width: 1440, height: 900 } });
 
 test('login', async ({ page }) => {
@@ -23,15 +23,15 @@ test('hub (multi-organización)', async ({ page }) => {
         organizaciones: [
           {
             id: 'duoc-uc',
-            nombre: 'DUOC UC',
-            sedes: [{ id: 's1', nombre: 'Sede Melipilla' }],
+            nombre: 'EMPRESA SUCHEL TROPICAL - DIRECCIÓN TÉCNICO-PRODUCTIVA',
+            sedes: [{ id: 's1', nombre: 'Planta Técnico-Productiva Principal' }],
           },
           {
             id: 'muni-melipilla',
-            nombre: 'Municipalidad de Melipilla',
+            nombre: 'EMPRESA SUCHEL TROPICAL - DIRECCIÓN COMERCIAL',
             sedes: [
-              { id: 's2', nombre: 'Casa Central' },
-              { id: 's3', nombre: 'Anexo' },
+              { id: 's2', nombre: 'Oficinas Dirección Comercial' },
+              { id: 's3', nombre: 'Anexo Logística' },
             ],
           },
         ],
@@ -46,7 +46,7 @@ test('hub (multi-organización)', async ({ page }) => {
 test('dashboard', async ({ page }) => {
   await seedAuth(page);
   await page.goto('/dashboard?organizacionId=duoc-uc');
-  await page.waitForSelector('h1:has-text("Dashboard")');
+  await page.waitForSelector('h1:has-text("Resumen Operativo"), h1:has-text("Dashboard")');
   await page.waitForTimeout(600);
   await page.screenshot({ path: `${OUT}/03-dashboard.png`, fullPage: true });
 });

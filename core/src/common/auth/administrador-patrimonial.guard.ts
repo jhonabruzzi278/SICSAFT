@@ -25,7 +25,7 @@ function esRecordDeRoles(value: unknown): value is Record<string, unknown> {
 // auditado igual que cualquier otro rechazo (DOC-012 8; un guard corta antes de que el
 // Orquestador pueda envolver el error en su try/catch, asi que auditar ahi requeria mover el
 // chequeo adentro).
-//
+// --
 // Siempre valida el rol CONTRA `organizacionId` — nunca "¿tiene el rol en algun lado?". El rol es
 // de Proyecto en Zitadel pero asignado por organizacion (DOC-012 2); una version anterior de
 // este chequeo aceptaba una lista plana de roles sin organizacion, lo que le permitia a un
@@ -69,7 +69,7 @@ export function verificarRolAdministradorPatrimonial(
 // DOC-012 3.2) — pero este guard en si (a diferencia de `verificarRolAdministradorPatrimonial`)
 // no se usa en los endpoints reales de escritura de Activo (ver arriba); queda disponible para un
 // futuro caso donde cortar antes del Orquestador sea aceptable (sin auditoria de rechazo).
-//
+// --
 // Nunca usar este guard sin ServiceTokenGuard antes en la cadena — un body sin haber pasado por
 // ServiceTokenGuard es autodeclarado por cualquier caller, no un hecho confiable.
 // `serviceAuthenticated` (seteado por ServiceTokenGuard) hace explicita esa dependencia y falla

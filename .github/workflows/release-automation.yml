@@ -9,9 +9,9 @@ permissions:
   contents: write
 
 jobs:
-  validate-and-release:
-    name: Validar y Publicar Release
-    runs-on: ubuntu-latest
+  build-and-release:
+    name: Compilar, Empaquetar y Publicar Release Oficial
+    runs-on: windows-latest
 
     steps:
       - name: Checkout del Repositorio
@@ -19,29 +19,88 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configurar Node.js
+      - name: Configurar Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: "24"
+          cache: "npm"
+          cache-dependency-path: |
+            sicsaft-core/package-lock.json
+            cis/package-lock.json
+            core/package-lock.json
+            ccp/package-lock.json
 
-      - name: Instalar Dependencias en CIS y CORE
+      - name: Configurar Python 3.12 (para ETL Contable)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar Dependencias de los Subsistemas
         run: |
           npm ci --prefix cis
           npm ci --prefix core
+          npm ci --prefix ccp
+          npm ci --prefix sicsaft-core
 
-      - name: Ejecutar Tests Automatizados
+      - name: Ejecutar Pruebas Automatizadas
         run: |
           npm test --prefix cis
           npm test --prefix core
+          npm test --prefix ccp -- --run
+          npm test --prefix sicsaft-core
 
       - name: Extraer Versión del Tag
         id: get_version
+        shell: bash
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "tag_name=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
+          echo "version_raw=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Sincronizar con Linear
+      - name: Pre-empaquetado y Compilación de Frontend / Sidecars
+        run: |
+          npm run prepack:artefactos --prefix sicsaft-core
+
+      - name: Compilar Instalador Windows (.exe)
+        env:
+          CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+        run: |
+          npm run dist:win --prefix sicsaft-core
+
+      - name: Empaquetar Bundle ZIP de Distribución On-Premise
+        shell: powershell
+        run: |
+          $ver = "${{ steps.get_version.outputs.version_raw }}"
+          $zipName = "SICSAFT-v$ver-Windows-OnPremise.zip"
+          $distDir = "release-bundle"
+          New-Item -ItemType Directory -Path $distDir -Force | Out-Null
+          
+          # Copiar instalador .exe
+          $exeFile = Get-ChildItem -Path "sicsaft-core\release" -Filter "*.exe" | Select-Object -First 1
+          if ($exeFile) {
+              Copy-Item $exeFile.FullName -Destination "$distDir\"
+          }
+          
+          # Copiar manuales y guías de instalación
+          Copy-Item "sicsaft-core\RUNBOOK-INSTALACION.md" -Destination "$distDir\"
+          Copy-Item "devops\onprem\MANUAL-DESPLIEGUE.md" -Destination "$distDir\"
+          Copy-Item "CHANGELOG.md" -Destination "$distDir\"
+          Copy-Item "VERSION" -Destination "$distDir\"
+          
+          # Generar checksums SHA256
+          Get-ChildItem -Path $distDir -File | ForEach-Object {
+              $hash = Get-FileHash -Path $_.FullName -Algorithm SHA256
+              "$($hash.Hash)  $($_.Name)" | Out-File -FilePath "$distDir\CHECKSUMS.sha256" -Append -Encoding utf8
+          }
+          
+          # Crear archivo ZIP final
+          Compress-Archive -Path "$distDir\*" -DestinationPath $zipName -Force
+          echo "ZIP_PATH=$zipName" >> $env:GITHUB_ENV
+          echo "EXE_PATH=$($exeFile.FullName)" >> $env:GITHUB_ENV
+
+      - name: Sincronizar Estado en Linear
         env:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
         run: |
@@ -50,15 +109,28 @@ jobs:
           else
             echo "LINEAR_API_KEY no configurada en GitHub Secrets, omitiendo sync."
           fi
+        shell: bash
 
-      - name: Crear GitHub Release Oficial
+      - name: Publicar GitHub Release Oficial con Artefactos
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_version.outputs.tag_name }}
-          name: Release ${{ steps.get_version.outputs.tag_name }}
+          name: SICSAFT Release ${{ steps.get_version.outputs.tag_name }}
           body: |
-            ## SICSAFT Release ${{ steps.get_version.outputs.tag_name }}
+            ## SICSAFT Release ${{ steps.get_version.outputs.tag_name }} — Entregable On-Premise
             
-            Consulta el detalle completo en [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md).
+            Este release contiene el instalador de escritorio de **SICSAFT CORE** para Windows y su paquete de distribución completo.
+            
+            ### 📦 Contenido del Paquete:
+            - **Instalador de escritorio**: `SICSAFT CORE Setup ${{ steps.get_version.outputs.version_raw }}.exe`
+            - **Paquete completo en ZIP**: `SICSAFT-v${{ steps.get_version.outputs.version_raw }}-Windows-OnPremise.zip`
+            - **Guía de instalación paso a paso**: `RUNBOOK-INSTALACION.md`
+            - **Manual de despliegue on-premise**: `MANUAL-DESPLIEGUE.md`
+            - **Verificación de integridad**: `CHECKSUMS.sha256`
+            
+            Consulta las notas completas en [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md).
+          files: |
+            ${{ env.ZIP_PATH }}
+            sicsaft-core/release/*.exe
           draft: false
           prerelease: false

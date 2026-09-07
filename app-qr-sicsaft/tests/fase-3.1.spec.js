@@ -15,7 +15,7 @@ test('el selector de modo muestra Modo 3 deshabilitado y Modo 1/2 llevan al mism
 
   await page.click('[data-testid="scan-mode-qr-web"]');
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'P001');
+  await scanCode(page, 'QR-DG-001');
   await expect(page.locator('[data-testid="scanned-count"]')).toHaveText('1');
 });
 
@@ -23,10 +23,10 @@ test('el veredicto es exitoso cuando no falta nada y nada aparece fuera de área
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  await scanCode(page, 'P001');
-  await scanCode(page, 'P002');
-  await scanCode(page, 'P003');
-  await scanCode(page, 'P004');
+  await scanCode(page, 'QR-DG-001');
+  await scanCode(page, 'QR-DG-002');
+  await scanCode(page, 'QR-DG-003');
+  await scanCode(page, 'QR-DG-004');
   await page.click('[data-testid="finish-btn"]');
 
   await expect(page.locator('[data-testid="report-verdict"]')).toHaveText('Exitoso');
@@ -43,11 +43,11 @@ test('el veredicto es aceptable cuando falta un activo pero nada aparece fuera d
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  // P001-P003 (esta área) — P004 queda faltante, nada aparece fuera de área: exactamente un
+  // QR-DG-001-QR-DG-003 (esta área) — QR-DG-004 queda faltante, nada aparece fuera de área: exactamente un
   // problema, no ambos (ver lib/verdict.ts).
-  await scanCode(page, 'P001');
-  await scanCode(page, 'P002');
-  await scanCode(page, 'P003');
+  await scanCode(page, 'QR-DG-001');
+  await scanCode(page, 'QR-DG-002');
+  await scanCode(page, 'QR-DG-003');
   await page.click('[data-testid="finish-btn"]');
 
   await expect(page.locator('[data-testid="report-verdict"]')).toHaveText('Aceptable');
@@ -58,9 +58,9 @@ test('el veredicto es defectuoso cuando faltan activos y aparece uno de otra ár
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  // P001 (esta área) + P008 (otra área, ver catalog-data.ts) — P002/P003/P004 quedan faltantes.
-  await scanCode(page, 'P001');
-  await scanCode(page, 'P008');
+  // QR-DG-001 (esta área) + QR-DG-008 (otra área, ver catalog-data.ts) — QR-DG-002/QR-DG-003/QR-DG-004 quedan faltantes.
+  await scanCode(page, 'QR-DG-001');
+  await scanCode(page, 'QR-DG-008');
   await page.click('[data-testid="finish-btn"]');
 
   await expect(page.locator('[data-testid="report-verdict"]')).toHaveAttribute('data-verdict', 'defectuoso');
@@ -69,14 +69,14 @@ test('el veredicto es defectuoso cuando faltan activos y aparece uno de otra ár
 test('declarar mantenimiento en un activo y confirmar el envío no rompe el flujo', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'P001');
+  await scanCode(page, 'QR-DG-001');
 
   await page.selectOption('[data-testid="estado-declarado-select"]', 'mantenimiento');
   await expect(page.locator('[data-testid="estado-declarado-select"]')).toHaveValue('mantenimiento');
 
   await page.click('[data-testid="finish-btn"]');
 
-  // DOC-029 RF-I / CONTRATO-PANTALLA-8 — bloque 3: el estado declarado por el controlador
+  // DOC-029 RF-I / CONTRATO-PANTALLA-8 — bloque 3: el estado declared por el controlador
   // aparece en el desglose del informe (EN MANTENIMIENTO = 1).
   const desglose = page.locator('[data-testid="report-estado-declarado"]');
   await expect(desglose).toContainText('EN MANTENIMIENTO');
@@ -89,7 +89,7 @@ test('declarar mantenimiento en un activo y confirmar el envío no rompe el fluj
 test('sugerir baja guarda el motivo sin ejecutar ninguna baja', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'P001');
+  await scanCode(page, 'QR-DG-001');
 
   await page.click('[data-testid="suggest-baja-btn"]');
   await expect(page.locator('[data-testid="baja-sugerida-modal"]')).toBeVisible();
@@ -107,10 +107,10 @@ test('sugerir baja guarda el motivo sin ejecutar ninguna baja', async ({ page })
 test('un activo de otra área aparece agrupado por su área real en el reporte', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'P008'); // otra área, ver catalog-data.ts
+  await scanCode(page, 'QR-DG-008'); // otra área, ver catalog-data.ts
   await page.click('[data-testid="finish-btn"]');
 
   await expect(page.locator('[data-testid="report-out-of-area-list"]')).toBeVisible();
-  await expect(page.locator('[data-testid="report-out-of-area-list"]')).toContainText('area-002');
-  await expect(page.locator('[data-testid="report-out-of-area-list"]')).toContainText('P008');
+  await expect(page.locator('[data-testid="report-out-of-area-list"]')).toContainText('OFICINA SECRETARIA EJECUTIVA');
+  await expect(page.locator('[data-testid="report-out-of-area-list"]')).toContainText('QR-DG-008');
 });

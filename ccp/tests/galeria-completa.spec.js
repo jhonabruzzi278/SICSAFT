@@ -10,7 +10,7 @@ import { seedAuth } from './helpers.js';
 //  - Módulo de Ingesta Excel Drag & Drop con Diff Visual en tiempo real (Mejora 6 / RF-B)
 //  - Catálogo, Estructura y Auditoría BPI
 
-const OUT = 'test-results/galeria';
+const OUT = 'docs/screenshots';
 test.use({ viewport: { width: 1440, height: 900 } });
 
 // ==========================================
@@ -53,7 +53,6 @@ test('05 - Login del Portal SICSAFT', async ({ page }) => {
 });
 
 test('06 - Hub Multi-organización y Sedes', async ({ page }) => {
-  await seedAuth(page);
   await page.route('**/auth/session', (route) =>
     route.fulfill({
       status: 200,
@@ -62,26 +61,27 @@ test('06 - Hub Multi-organización y Sedes', async ({ page }) => {
         organizaciones: [
           {
             id: 'duoc-uc',
-            nombre: 'DUOC UC',
+            nombre: 'EMPRESA SUCHEL TROPICAL - DIRECCIÓN GENERAL',
             sedes: [
-              { id: 's1', nombre: 'Sede Melipilla' },
-              { id: 's2', nombre: 'Casa Central Santiago' },
+              { id: 's1', nombre: 'Oficina Director General & Secretaría' },
+              { id: 's2', nombre: 'Salón de Reuniones' },
             ],
           },
           {
             id: 'muni-melipilla',
-            nombre: 'Municipalidad de Melipilla',
+            nombre: 'EMPRESA SUCHEL TROPICAL - DIRECCIÓN COMERCIAL',
             sedes: [
-              { id: 's3', nombre: 'Edificio Consistorial' },
-              { id: 's4', nombre: 'Anexo DIDECO' },
+              { id: 's3', nombre: 'Edificio Consistorial Comercial' },
+              { id: 's4', nombre: 'Anexo Logística & Distribución' },
             ],
           },
         ],
       }),
     }),
   );
+  await seedAuth(page);
   await page.goto('/');
-  await page.waitForSelector('text=Organizaciones');
+  await page.waitForTimeout(600);
   await page.screenshot({ path: `${OUT}/06-hub-organizaciones-sedes.png`, fullPage: true });
 });
 

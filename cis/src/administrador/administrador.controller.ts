@@ -94,7 +94,7 @@ import type {
 // del mismo mecanismo de auth (ARQUITECTURA-WAF.md 8), la autorizacion de ROL la re-verifica CORE
 // (WAF 3, cero confianza entre niveles) — este controller no decide "puede escribir", solo
 // transporta.
-//
+// --
 // Alcance: activos (alta/baja/responsable/descripcion), catalogo de tipos, documentos, ingesta
 // contable supervisada (RF-B), auditoria, y estructura (areas/ubicaciones/responsables). Las
 // rutas de Organizacion/Contrato/Sede/usuarios/indicadores se retiraron al eliminar el portal

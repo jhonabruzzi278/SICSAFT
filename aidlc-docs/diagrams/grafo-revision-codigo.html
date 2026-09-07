@@ -3,240 +3,739 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SICSAFT — Grafo de revisión de código y documentación</title>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>SICSAFT — Diagrama Maestro de Arquitectura y Grafo Integral</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --color-paper:   #f5f5f5;
-      --color-card:    #fff;
-      --color-ink:     #2d3142;
-      --color-muted:   #4f5d75;
-      --color-accent:  #eb6c36;
-      --color-line:    #d7d9de;
-      --font-sans:     'Geist', system-ui, sans-serif;
-      --font-serif:    'Instrument Serif', serif;
-      --font-mono:     'Geist Mono', ui-monospace, monospace;
+      --bg-main:       #0a0f1d;
+      --bg-card:       #11192e;
+      --bg-card-hover: #18233f;
+      --text-main:     #f8fafc;
+      --text-muted:    #94a3b8;
+      --text-dim:      #64748b;
+      --color-n1:      #10b981; /* Verde Nivel 1 */
+      --color-n2:      #8b5cf6; /* Violeta Nivel 2 */
+      --color-accent:  #38bdf8; /* Cyan Gateway / Core */
+      --color-border:  rgba(255, 255, 255, 0.08);
 
-      --capa-backend:    #2d3142;
-      --capa-frontend:   #4f5d75;
-      --capa-entregable: #eb6c36;
-      --capa-tooling:    #8d99ae;
-      --capa-docs:       #b8823f;
+      --capa-backend:    #38bdf8;
+      --capa-frontend:   #818cf8;
+      --capa-entregable: #f97316;
+      --capa-tooling:    #34d399;
+      --capa-docs:       #fbbf24;
 
-      --sev-critica: #c0392b;
-      --sev-alta:    #eb6c36;
-      --sev-media:   #b8823f;
-      --sev-baja:    #4f5d75;
-      --sev-info:    #8d99ae;
-
-      --est-pendiente: #c7cad1;
-      --est-en-curso:  #eb6c36;
-      --est-listo:     #3f8f5f;
+      --sev-critica: #ef4444;
+      --sev-alta:    #f97316;
+      --sev-media:   #f59e0b;
+      --sev-baja:    #3b82f6;
+      --sev-info:    #10b981;
     }
+
     body {
-      font-family: var(--font-sans);
-      background: var(--color-paper);
-      color: var(--color-ink);
-      padding: 2.5rem 2rem 4rem;
+      font-family: 'Geist', system-ui, -apple-system, sans-serif;
+      background: var(--bg-main);
+      color: var(--text-main);
+      padding: 1.5rem 1.2rem 4rem;
       line-height: 1.5;
+      min-height: 100vh;
     }
-    .frame { max-width: 1320px; margin: 0 auto; }
+    .frame { max-width: 1560px; margin: 0 auto; }
 
-    .eyebrow {
-      font-family: var(--font-mono);
-      font-size: 0.66rem; font-weight: 500;
-      letter-spacing: 0.18em; text-transform: uppercase;
-      color: var(--color-muted); margin-bottom: 0.5rem;
+    /* Cabecera Principal */
+    .header-banner {
+      background: linear-gradient(135deg, #0c1a30 0%, #0f172a 100%);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 14px;
+      padding: 1.4rem 1.8rem;
+      margin-bottom: 1.2rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;
     }
-    h1 { font-family: var(--font-serif); font-size: 2.6rem; font-weight: 400; line-height: 1.1; }
-    .sub { color: var(--color-muted); max-width: 62ch; margin-top: 0.6rem; font-size: 0.94rem; }
-    .meta {
-      font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-muted);
-      margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1px solid var(--color-line);
+    .titulo-principal {
+      font-size: 1.6rem; font-weight: 800; color: #fff;
+      display: flex; align-items: center; gap: 0.8rem; letter-spacing: -0.01em;
+    }
+    .version-tag {
+      font-family: 'Geist Mono', monospace; font-size: 0.72rem; font-weight: 700;
+      background: #0284c7; color: #fff; padding: 0.2rem 0.6rem; border-radius: 6px;
+    }
+    .lema-fundamental {
+      font-size: 0.8rem; color: #94a3b8; margin-top: 0.3rem;
+    }
+    .lema-fundamental strong { color: #38bdf8; }
+
+    /* Explicador Visual de Niveles */
+    .banner-niveles {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+    @media (max-width: 900px) { .banner-niveles { grid-template-columns: 1fr; } }
+
+    .tarjeta-nivel {
+      border-radius: 10px; padding: 0.85rem 1.1rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      border: 1px solid; transition: all 0.2s;
+    }
+    .tarjeta-nivel.n1 {
+      background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3);
+    }
+    .tarjeta-nivel.n2 {
+      background: rgba(139, 92, 246, 0.08); border-color: rgba(139, 92, 246, 0.3);
+    }
+    .tarjeta-nivel-info h3 {
+      font-size: 0.95rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .tarjeta-nivel.n1 h3 { color: #10b981; }
+    .tarjeta-nivel.n2 h3 { color: #a78bfa; }
+    .tarjeta-nivel-info p {
+      font-size: 0.76rem; color: #cbd5e1; margin-top: 0.2rem; line-height: 1.4;
     }
 
-    .cifras { display: flex; flex-wrap: wrap; gap: 2.2rem; margin: 1.8rem 0 1.6rem; }
-    .cifra .n { font-family: var(--font-serif); font-size: 2rem; line-height: 1; }
-    .cifra .l {
-      font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--color-muted); margin-top: 0.35rem;
+    /* Barra de Navegación y Filtros (MUY INTUITIVA) */
+    .control-bar {
+      background: #10172b;
+      border: 1px solid var(--color-border);
+      border-radius: 12px; padding: 0.75rem 1rem;
+      margin-bottom: 1.4rem;
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
-    .cifra.alerta .n { color: var(--color-accent); }
+    .control-group {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+    }
+    .group-label {
+      font-family: 'Geist Mono', monospace; font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; color: var(--text-dim); margin-right: 0.2rem;
+    }
+    .segmented-btn {
+      font-family: 'Geist', sans-serif; font-size: 0.8rem; font-weight: 600;
+      padding: 0.45rem 0.9rem; border-radius: 8px; border: 1px solid var(--color-border);
+      background: rgba(255,255,255,0.03); color: var(--text-muted);
+      cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .segmented-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .segmented-btn.activo {
+      background: #0284c7; color: #fff; border-color: #38bdf8;
+      box-shadow: 0 0 14px rgba(2, 132, 199, 0.4);
+    }
+    .segmented-btn.n1-btn.activo {
+      background: #059669; border-color: #10b981;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+    }
+    .segmented-btn.n2-btn.activo {
+      background: #7c3aed; border-color: #8b5cf6;
+      box-shadow: 0 0 14px rgba(139, 92, 246, 0.4);
+    }
 
-    .lienzo {
-      display: grid; grid-template-columns: 1fr 340px; gap: 1.2rem;
-      align-items: start;
+    .search-input {
+      font-size: 0.8rem; padding: 0.45rem 0.8rem 0.45rem 2rem;
+      border-radius: 8px; border: 1px solid var(--color-border);
+      background: rgba(0,0,0,0.35); color: #fff; outline: none; min-width: 220px;
     }
-    @media (max-width: 1040px) { .lienzo { grid-template-columns: 1fr; } }
+    .search-box { position: relative; }
+    .search-box::before { content: '🔍'; position: absolute; left: 0.65rem; top: 0.45rem; font-size: 0.72rem; opacity: 0.6; }
 
-    .panel {
-      background: var(--color-card); border: 1px solid var(--color-line);
-      border-radius: 3px;
+    /* Layout Principal */
+    .layout-principal {
+      display: grid; grid-template-columns: 1fr 430px; gap: 1.4rem; align-items: start;
     }
-    svg#grafo { display: block; width: 100%; height: 560px; cursor: grab; }
+    @media (max-width: 1280px) { .layout-principal { grid-template-columns: 1fr; } }
+
+    /* Diagrama de 3 Columnas */
+    .diagrama-grid {
+      display: grid; grid-template-columns: 240px 1fr 240px; gap: 1rem;
+    }
+    @media (max-width: 1060px) { .diagrama-grid { grid-template-columns: 1fr; } }
+
+    /* Columnas Laterales */
+    .col-lateral { display: flex; flex-direction: column; gap: 0.9rem; }
+    .card-seccion {
+      background: var(--bg-card); border: 1px solid var(--color-border);
+      border-radius: 10px; overflow: hidden;
+    }
+    .card-seccion-header {
+      background: #182642; color: #fff; font-size: 0.72rem; font-weight: 700;
+      text-transform: uppercase; padding: 0.5rem 0.8rem; letter-spacing: 0.05em; text-align: center;
+    }
+    .item-simple {
+      display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.75rem; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .item-simple:hover { background: rgba(56, 189, 248, 0.08); }
+
+    /* Columna Central: Capas Arquitectónicas */
+    .col-capas { display: flex; flex-direction: column; gap: 0.8rem; }
+    
+    .bloque-capa {
+      background: var(--bg-card); border: 1px solid var(--color-border);
+      border-radius: 10px; overflow: hidden; transition: all 0.2s;
+    }
+    .bloque-capa:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+    }
+    .bloque-capa.activo-foco {
+      border-color: var(--color-accent) !important;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+    }
+    .bloque-capa-header {
+      padding: 0.55rem 0.9rem; font-size: 0.78rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.05em; color: #fff;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .bloque-capa-body { padding: 0.8rem 0.9rem; display: grid; gap: 0.6rem; }
+
+    /* Badges de Nivel Claros */
+    .pill-nivel {
+      font-family: 'Geist Mono', monospace; font-size: 0.64rem; font-weight: 800;
+      padding: 0.2rem 0.55rem; border-radius: 4px;
+    }
+    .pill-n1 { background: #059669; color: #fff; box-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
+    .pill-n2 { background: #7c3aed; color: #fff; box-shadow: 0 0 8px rgba(139, 92, 246, 0.3); }
+    .pill-both { background: #0284c7; color: #fff; }
+
+    /* Grid de Módulos (Capa 1) */
+    .grid-modulos {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.6rem;
+    }
+    .card-modulo {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px; padding: 0.75rem 0.6rem; text-align: center;
+      cursor: pointer; transition: all 0.2s; position: relative;
+    }
+    .card-modulo:hover {
+      background: rgba(56, 189, 248, 0.12); border-color: #38bdf8;
+      transform: translateY(-2px);
+    }
+    .card-modulo.n1-highlight {
+      border-color: #10b981; background: rgba(16, 185, 129, 0.08);
+    }
+    .card-modulo .modulo-icono { font-size: 1.4rem; margin-bottom: 0.25rem; }
+    .card-modulo .modulo-titulo { font-size: 0.82rem; font-weight: 800; color: #fff; }
+    .card-modulo .modulo-sub { font-size: 0.68rem; color: var(--text-muted); margin-top: 0.25rem; line-height: 1.3; }
+
+    /* Botón de Ayuda / Detalle (?) */
+    .btn-ayuda {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8;
+      color: #38bdf8; font-size: 0.7rem; font-weight: 800;
+      cursor: pointer; margin-left: 0.4rem; transition: all 0.2s; vertical-align: middle;
+      position: relative;
+    }
+    .btn-ayuda:hover {
+      background: #38bdf8; color: #0a0f1d; transform: scale(1.15);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+    }
+    .btn-ayuda .tooltip {
+      visibility: hidden; opacity: 0;
+      position: absolute; bottom: 135%; left: 50%; transform: translateX(-50%);
+      width: 230px; background: #0f172a; color: #f8fafc;
+      border: 1px solid #38bdf8; border-radius: 8px; padding: 0.6rem 0.75rem;
+      font-size: 0.72rem; line-height: 1.4; text-align: left; z-index: 100; pointer-events: none;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.7); transition: opacity 0.2s, visibility 0.2s;
+    }
+    .btn-ayuda .tooltip::after {
+      content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+      border-width: 6px; border-style: solid; border-color: #38bdf8 transparent transparent transparent;
+    }
+    .btn-ayuda:hover .tooltip { visibility: visible; opacity: 1; }
+
+    /* Flecha de Flujo */
+    .flecha-separador {
+      text-align: center; color: #38bdf8; font-size: 0.72rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+      opacity: 0.85; padding: 0.1rem 0;
+    }
+
+    /* Grids Internos de Capas 2, 3, 4, 5, 6 */
+    .items-fila { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 0.5rem; }
+    .item-caja {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--color-border);
+      padding: 0.45rem 0.65rem; border-radius: 6px; font-size: 0.72rem; text-align: center; flex: 1; min-width: 90px;
+    }
+    .grid-cajas { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.45rem; }
+
+    /* Colores Específicos por Capa */
+    .capa-1 .bloque-capa-header { background: #0369a1; }
+    .capa-2 .bloque-capa-header { background: #0284c7; }
+    .capa-3 .bloque-capa-header { background: #1e3a8a; }
+    .capa-4 .bloque-capa-header { background: #059669; }
+    .capa-5 .bloque-capa-header { background: #7c3aed; }
+    .capa-6 .bloque-capa-header { background: #b45309; }
+
+    /* Panel Lateral de Detalle */
+    .panel-lateral {
+      background: var(--bg-card); border: 1px solid var(--color-border);
+      border-radius: 14px; padding: 1.4rem; max-height: 840px; overflow-y: auto;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.3);
+    }
+    .panel-lateral::-webkit-scrollbar { width: 6px; }
+    .panel-lateral::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+    
+    .panel-lateral-header {
+      padding-bottom: 0.9rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.9rem;
+    }
+    .panel-lateral h2 { font-size: 1.45rem; font-weight: 800; color: #fff; margin-top: 0.2rem; }
+    .panel-lateral .rol-tag { font-size: 0.8rem; color: #38bdf8; font-weight: 600; }
+
+    .seccion-label {
+      font-family: 'Geist Mono', monospace; font-size: 0.66rem; font-weight: 700;
+      text-transform: uppercase; color: var(--text-muted); margin: 1.1rem 0 0.45rem;
+    }
+    .lista-func { list-style: none; padding: 0; margin: 0.4rem 0; }
+    .lista-func li {
+      font-size: 0.77rem; color: #cbd5e1; padding: 0.35rem 0.5rem 0.35rem 1.4rem;
+      position: relative; line-height: 1.4; border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .lista-func li::before {
+      content: '✔'; position: absolute; left: 0.3rem; top: 0.35rem; color: #34d399; font-size: 0.7rem; font-weight: 900;
+    }
+
+    .info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 0.8rem 0;
+    }
+    .info-grid div {
+      background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);
+      border-radius: 6px; padding: 0.45rem 0.65rem;
+    }
+    .info-grid .v { font-family: 'Geist Mono', monospace; font-size: 0.95rem; font-weight: 700; color: #fff; }
+    .info-grid .k { font-size: 0.6rem; text-transform: uppercase; color: var(--text-dim); }
+
+    /* Grafo SVG */
+    #vista-grafo { display: none; }
+    svg#grafo {
+      display: block; width: 100%; height: 700px;
+      background: radial-gradient(circle at 50% 50%, #111a30 0%, #090d16 100%);
+      border-radius: 12px; cursor: grab;
+    }
     svg#grafo.arrastrando { cursor: grabbing; }
-
     .nodo { cursor: pointer; }
-    .nodo circle.cuerpo { transition: stroke-width .12s ease; }
-    .nodo:hover circle.cuerpo { stroke-width: 3; }
-    .nodo.apagado { opacity: 0.22; }
-    .nodo text {
-      font-family: var(--font-mono); font-size: 10px; font-weight: 500;
-      text-anchor: middle; pointer-events: none; fill: var(--color-ink);
-    }
-    .nodo text.loc { font-size: 8.5px; fill: var(--color-muted); font-weight: 400; }
-    .arista { stroke: var(--color-line); fill: none; }
-    .arista.resaltada { stroke: var(--color-accent); stroke-width: 2; }
-    .badge-n { font-family: var(--font-mono); font-size: 9px; font-weight: 600; fill: #fff; text-anchor: middle; }
-
-    .barra {
-      display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
-      padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--color-line);
-    }
-    .chip {
-      font-family: var(--font-mono); font-size: 0.63rem; letter-spacing: 0.06em;
-      text-transform: uppercase; padding: 0.28rem 0.6rem; border-radius: 2px;
-      border: 1px solid var(--color-line); background: transparent;
-      color: var(--color-muted); cursor: pointer;
-    }
-    .chip[aria-pressed="true"] { background: var(--color-ink); color: #fff; border-color: var(--color-ink); }
-    .chip .punto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 0.35rem; vertical-align: baseline; }
-
-    .lateral { padding: 1.1rem; }
-    .lateral h2 { font-family: var(--font-serif); font-size: 1.3rem; font-weight: 400; }
-    .lateral .capa {
-      font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--color-muted);
-    }
-    .metricas { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; margin: 1rem 0; }
-    .metricas div { border-top: 1px solid var(--color-line); padding-top: 0.4rem; }
-    .metricas .v { font-family: var(--font-mono); font-size: 0.95rem; }
-    .metricas .k { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-muted); }
-
-    .hallazgo {
-      border-left: 3px solid var(--color-line); padding: 0.55rem 0 0.55rem 0.7rem;
-      margin-bottom: 0.7rem;
-    }
-    .hallazgo .cab { display: flex; gap: 0.5rem; align-items: baseline; }
-    .hallazgo .id { font-family: var(--font-mono); font-size: 0.66rem; color: var(--color-muted); }
-    .hallazgo .sev {
-      font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.08em;
-      text-transform: uppercase; padding: 0.1rem 0.35rem; border-radius: 2px; color: #fff;
-    }
-    .hallazgo .t { font-size: 0.86rem; font-weight: 500; margin-top: 0.25rem; }
-    .hallazgo .e { font-size: 0.76rem; color: var(--color-muted); margin-top: 0.3rem; }
-    .hallazgo .e code { font-family: var(--font-mono); font-size: 0.72rem; }
-    .vacio { color: var(--color-muted); font-size: 0.85rem; font-style: italic; }
-
-    .leyenda {
-      display: flex; flex-wrap: wrap; gap: 1.1rem; margin-top: 1rem;
-      font-family: var(--font-mono); font-size: 0.64rem; color: var(--color-muted);
-    }
-    .leyenda span.p { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 0.3rem; }
-    .nota {
-      margin-top: 1.6rem; padding-top: 1rem; border-top: 1px solid var(--color-line);
-      font-size: 0.8rem; color: var(--color-muted); max-width: 78ch;
-    }
-    .nota code { font-family: var(--font-mono); font-size: 0.75rem; background: #ececec; padding: 0.05rem 0.25rem; }
+    .nodo circle.cuerpo { transition: all 0.2s; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
+    .nodo:hover circle.cuerpo { stroke-width: 4 !important; filter: drop-shadow(0 0 16px #38bdf8); }
+    .nodo text.titulo { font-size: 11px; font-weight: 700; text-anchor: middle; fill: #fff; pointer-events: none; }
+    .nodo text.loc { font-size: 8.5px; fill: #94a3b8; text-anchor: middle; pointer-events: none; }
+    .arista { stroke: #334155; fill: none; transition: all 0.2s; opacity: 0.7; }
+    .arista.resaltada { stroke: #38bdf8 !important; stroke-width: 2.5 !important; opacity: 1; filter: drop-shadow(0 0 8px #38bdf8); }
   </style>
 </head>
 <body>
 <div class="frame">
-  <p class="eyebrow">SICSAFT · DOC-032</p>
-  <h1>Grafo de revisión</h1>
-  <p class="sub">
-    Mapa vivo del repo para la revisión de código y documentación. El tamaño del nodo es su volumen
-    de código; el anillo naranja, los hallazgos abiertos; las aristas, el flujo de datos no
-    negociable <em>captura → CIS → CORE → BPI</em>. Las métricas se recalculan; el criterio se
-    mantiene a mano.
-  </p>
-  <p class="meta" id="meta"></p>
 
-  <div class="cifras" id="cifras"></div>
-
-  <div class="lienzo">
-    <div class="panel">
-      <div class="barra" id="filtros"></div>
-      <svg id="grafo" viewBox="0 0 860 560" preserveAspectRatio="xMidYMid meet"></svg>
+  <!-- Header Banner -->
+  <header class="header-banner">
+    <div>
+      <div class="titulo-principal">
+        SICSAFT — ARQUITECTURA MAESTRA Y ECOSISTEMA
+        <span class="version-tag">V1.0 ON-PREMISE</span>
+      </div>
+      <p class="lema-fundamental">
+        PRINCIPIO FUNDAMENTAL: TODA MUTACIÓN DEL PATRIMONIO DIGITAL ES GOBERNADA POR <strong>SICSAFT CORE</strong>
+      </p>
     </div>
-    <aside class="panel lateral" id="detalle"></aside>
+    <div id="meta" style="font-family:'Geist Mono',monospace;font-size:0.72rem;color:var(--text-muted);text-align:right"></div>
+  </header>
+
+  <!-- Explicador Visual de Niveles de Producto -->
+  <div class="banner-niveles">
+    <div class="tarjeta-nivel n1">
+      <div class="tarjeta-nivel-info">
+        <h3>⚡ NIVEL 1: OPERACIÓN AFT ESENCIAL</h3>
+        <p>
+          Incluye <strong>APP QR</strong> (Captura móvil en terreno) + <strong>CCP</strong> (Portal Web AFT) + <strong>CIS</strong> + <strong>CORE</strong>.<br>
+          <span style="color:#34d399;font-weight:600">✔ Proceso CIP apagado para ahorrar ~120 MB de memoria RAM en servidores modestos.</span>
+        </p>
+      </div>
+      <button class="segmented-btn n1-btn" onclick="activarFiltroNivel('n1')">Filtrar N1</button>
+    </div>
+
+    <div class="tarjeta-nivel n2">
+      <div class="tarjeta-nivel-info">
+        <h3>🧠 NIVEL 2: INTELIGENCIA & ANALÍTICA</h3>
+        <p>
+          Incluye todo Nivel 1 + <strong>CIP</strong> (Worker Analítico en :3002) + <strong>Dashboard Directivo</strong>.<br>
+          <span style="color:#a78bfa;font-weight:600">✔ Veredictos automáticos, matriz de score de riesgo (CIP-06) y alertas analíticas (CIP-04).</span>
+        </p>
+      </div>
+      <button class="segmented-btn n2-btn" onclick="activarFiltroNivel('n2')">Filtrar N2</button>
+    </div>
   </div>
 
-  <div class="leyenda" id="leyenda"></div>
+  <!-- Barra de Navegación y Filtros Rápida -->
+  <div class="control-bar">
+    <div class="control-group">
+      <span class="group-label">Modo:</span>
+      <button class="segmented-btn activo" id="btn-filtro-todos" onclick="activarFiltroNivel('todos')">🏢 Todo el Ecosistema</button>
+      <button class="segmented-btn n1-btn" id="btn-filtro-n1" onclick="activarFiltroNivel('n1')">⚡ Solo Nivel 1 (QR + CCP)</button>
+      <button class="segmented-btn n2-btn" id="btn-filtro-n2" onclick="activarFiltroNivel('n2')">🧠 Solo Nivel 2 (+ CIP)</button>
+      <button class="segmented-btn" id="btn-filtro-exe" onclick="alternarSoloExe()">📦 Entregable .EXE</button>
+    </div>
 
-  <p class="nota">
-    Regenerar con <code>node herramientas/revision-codigo/inventario.mjs --grafo</code>. Las
-    métricas salen de <code>inventario.json</code> (calculado); el estado de avance y los hallazgos
-    salen de <code>estado-revision.json</code> (editado a mano). Están separados a propósito:
-    volver a correr el script no pisa el criterio ya aplicado.
-  </p>
+    <div class="control-group">
+      <span class="group-label">Vista:</span>
+      <button class="segmented-btn activo" id="tab-capas" onclick="cambiarVista('capas')">📋 Capas Arquitectónicas</button>
+      <button class="segmented-btn" id="tab-grafo" onclick="cambiarVista('grafo')">🕸️ Grafo de Código</button>
+      <div class="search-box">
+        <input type="text" id="input-buscar" class="search-input" placeholder="Buscar subsistema, puerto, tecnología..." oninput="filtrarPorTexto(this.value)" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Layout con Diagrama y Panel Lateral -->
+  <div class="layout-principal">
+
+    <!-- VISTA 1: DIAGRAMA POR CAPAS -->
+    <div id="vista-capas" class="diagrama-grid">
+      
+      <!-- Columna Izquierda: Responsabilidades & Regla de Oro -->
+      <div class="col-lateral">
+        <div class="card-seccion">
+          <div class="card-seccion-header">Componentes & Responsabilidades</div>
+          <div class="item-simple" onclick="seleccionarPorId('app-qr')">
+            <span style="font-size:1.1rem">📱</span>
+            <div><strong>APP QR</strong><div style="font-size:0.68rem;color:var(--text-muted)">Captura en terreno</div></div>
+          </div>
+          <div class="item-simple" onclick="seleccionarPorId('ccp')">
+            <span style="font-size:1.1rem">💻</span>
+            <div><strong>CCP (Portal Web)</strong><div style="font-size:0.68rem;color:var(--text-muted)">Administración AFT</div></div>
+          </div>
+          <div class="item-simple" onclick="seleccionarPorId('herramientas')">
+            <span style="font-size:1.1rem">📡</span>
+            <div><strong>RFID / ETL</strong><div style="font-size:0.68rem;color:var(--text-muted)">Ingesta contable</div></div>
+          </div>
+          <div class="item-simple" onclick="seleccionarPorId('cis')">
+            <span style="font-size:1.1rem">🌐</span>
+            <div><strong>CIS (Gateway)</strong><div style="font-size:0.68rem;color:var(--text-muted)">Seguridad OIDC & Zod</div></div>
+          </div>
+          <div class="item-simple" onclick="seleccionarPorId('core')">
+            <span style="font-size:1.1rem">⚙️</span>
+            <div><strong>SICSAFT CORE</strong><div style="font-size:0.68rem;color:var(--text-muted)">Motor de Orquestación</div></div>
+          </div>
+          <div class="item-simple" onclick="seleccionarPorId('core')">
+            <span style="font-size:1.1rem">🗄️</span>
+            <div><strong>BPI Postgres</strong><div style="font-size:0.68rem;color:var(--text-muted)">Patrimonio oficial maestro</div></div>
+          </div>
+          <div class="item-simple" onclick="seleccionarPorId('cip')">
+            <span style="font-size:1.1rem">📈</span>
+            <div><strong>CIP Analítica</strong><div style="font-size:0.68rem;color:var(--text-muted)">Inteligencia decisional</div></div>
+          </div>
+        </div>
+
+        <div style="background:linear-gradient(135deg,rgba(30,58,138,0.4) 0%,rgba(15,23,42,0.8) 100%);border:2px dashed #38bdf8;border-radius:10px;padding:0.9rem;text-align:center">
+          <div style="font-family:'Geist Mono',monospace;font-size:0.75rem;font-weight:800;color:#38bdf8;margin-bottom:0.3rem">🛡️ REGLA DE ORO</div>
+          <p style="font-size:0.73rem;color:#cbd5e1;line-height:1.4">
+            Ningún dispositivo ni usuario modifica la <strong>BPI</strong> directamente.
+            Toda mutación pasa por <strong>SICSAFT CORE</strong>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Columna Central: 6 Capas Oficiales -->
+      <div class="col-capas">
+
+        <!-- Capa 1: Fuentes Oficiales de Captura -->
+        <div class="bloque-capa capa-1" id="bloque-capa-1">
+          <div class="bloque-capa-header">
+            <span>1. FUENTES OFICIALES DE CAPTURA</span>
+            <span class="pill-nivel pill-n1">⚡ NIVEL 1 (OPERATIVO AFT)</span>
+          </div>
+          <div class="bloque-capa-body">
+            <div class="grid-modulos">
+              
+              <!-- APP QR -->
+              <div class="card-modulo n1-highlight" onclick="seleccionarPorId('app-qr')">
+                <div class="modulo-icono">📱</div>
+                <div class="modulo-titulo">
+                  APP QR (PWA)
+                  <span class="btn-ayuda" onclick="event.stopPropagation(); seleccionarPorId('app-qr')">?
+                    <span class="tooltip">
+                      <strong>📱 APP QR Móvil (Nivel 1):</strong><br>
+                      • Escaneo óptico 8 pasos (DOC-001)<br>
+                      • Cola offline en IndexedDB<br>
+                      • Acceso mDNS <code>sicsaft.local:8767</code><br>
+                      • 15 suites Vitest (8.3k LOC)
+                    </span>
+                  </span>
+                </div>
+                <div class="modulo-sub">Escaneo en terreno · 8 pasos · Offline</div>
+              </div>
+
+              <!-- CCP -->
+              <div class="card-modulo n1-highlight" onclick="seleccionarPorId('ccp')">
+                <div class="modulo-icono">💻</div>
+                <div class="modulo-titulo">
+                  CCP (Portal Web)
+                  <span class="btn-ayuda" onclick="event.stopPropagation(); seleccionarPorId('ccp')">?
+                    <span class="tooltip">
+                      <strong>💻 CCP Portal AFT (Nivel 1):</strong><br>
+                      • Puerto local <code>:8766</code><br>
+                      • Ficha completa de activos y fotos<br>
+                      • Árbol organizacional y wizard Excel<br>
+                      • 86 tests Vitest (10.5k LOC)
+                    </span>
+                  </span>
+                </div>
+                <div class="modulo-sub">Gestión AFT · Árbol org · Excel (:8766)</div>
+              </div>
+
+              <!-- DIRECTIVO -->
+              <div class="card-modulo" onclick="seleccionarPorId('core-frontend')">
+                <div class="modulo-icono">📊</div>
+                <div class="modulo-titulo">
+                  DIRECTIVO
+                  <span class="btn-ayuda" onclick="event.stopPropagation(); seleccionarPorId('core-frontend')">?
+                    <span class="tooltip">
+                      <strong>📊 Dashboard Directivo:</strong><br>
+                      • Puerto local <code>:8768</code><br>
+                      • KPIs de cobertura y conciliación física<br>
+                      • Designación de responsables AFT
+                    </span>
+                  </span>
+                </div>
+                <div class="modulo-sub">Dashboard Ejecutivo (:8768)</div>
+              </div>
+
+              <!-- RFID / ETL -->
+              <div class="card-modulo" onclick="seleccionarPorId('herramientas')">
+                <div class="modulo-icono">📡</div>
+                <div class="modulo-titulo">
+                  RFID / ETL
+                  <span class="btn-ayuda" onclick="event.stopPropagation(); seleccionarPorId('herramientas')">?
+                    <span class="tooltip">
+                      <strong>📡 Sidecar ETL Contable:</strong><br>
+                      • Normalizador Python 3.12<br>
+                      • Ingesta masiva Excel/CSV a staging<br>
+                      • 16 tests Pytest
+                    </span>
+                  </span>
+                </div>
+                <div class="modulo-sub">Ingesta Contable Python 3.12</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="flecha-separador">⬇️ Autenticación OIDC PKCE (RFC 7636) / HTTPS LAN ⬇️</div>
+
+        <!-- Capa 2: CIS Gateway -->
+        <div class="bloque-capa capa-2" onclick="seleccionarPorId('cis')">
+          <div class="bloque-capa-header">
+            <span>
+              2. CENTRO DE INTEROPERABILIDAD — CIS (API GATEWAY)
+              <span class="btn-ayuda" onclick="event.stopPropagation(); seleccionarPorId('cis')">?
+                <span class="tooltip">
+                  <strong>🌐 CIS Gateway (:3000):</strong><br>
+                  • Keycloak 26 OIDC + Zod schemas<br>
+                  • Circuit Breaker & Rate Limiting<br>
+                  • En Nivel 1 degrada limpiamente sin CIP<br>
+                  • 309 tests Jest (5.8k LOC)
+                </span>
+              </span>
+            </span>
+            <span class="pill-nivel pill-both">⚡ N1 & 🧠 N2</span>
+          </div>
+          <div class="bloque-capa-body">
+            <div class="items-fila">
+              <div class="item-caja">🚪 API Gateway (:3000)</div>
+              <div class="item-caja">🔒 Keycloak 26 OIDC</div>
+              <div class="item-caja">🔌 Validación Zod</div>
+              <div class="item-caja">⚡ Circuit Breaker</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flecha-separador">⬇️ Token de Servicio Interno & Schemas Zod ⬇️</div>
+
+        <!-- Capa 3: CORE MOP -->
+        <div class="bloque-capa capa-3" onclick="seleccionarPorId('core')">
+          <div class="bloque-capa-header">
+            <span>
+              3. SICSAFT CORE — MOTOR DE ORQUESTACIÓN (MOP)
+              <span class="btn-ayuda" onclick="event.stopPropagation(); seleccionarPorId('core')">?
+                <span class="tooltip">
+                  <strong>⚙️ SICSAFT CORE (:3001):</strong><br>
+                  • Regla de Oro: Único que muta la BPI<br>
+                  • Máquina de Estados de Contratos (DOC-004)<br>
+                  • Eventos pg-boss & Auditoría inmutable<br>
+                  • 95 tests Vitest (7.9k LOC)
+                </span>
+              </span>
+            </span>
+            <span class="pill-nivel pill-both">⚡ N1 & 🧠 N2</span>
+          </div>
+          <div class="bloque-capa-body">
+            <div class="items-fila">
+              <div class="item-caja">⚙️ Motores Funcionales</div>
+              <div class="item-caja">📜 Reglas CFPS / DOC-004</div>
+              <div class="item-caja">🔔 Eventos pg-boss</div>
+              <div class="item-caja">🛡️ Auditoría Inmutable</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flecha-separador">⬇️ Transacciones ACID PostgreSQL 16 ⬇️</div>
+
+        <!-- Capa 4: BPI Base Patrimonial -->
+        <div class="bloque-capa capa-4" onclick="seleccionarPorId('core')">
+          <div class="bloque-capa-header">
+            <span>
+              4. BPI — BASE PATRIMONIAL INTELIGENTE (POSTGRESQL 16)
+              <span class="btn-ayuda" onclick="event.stopPropagation(); seleccionarPorId('core')">?
+                <span class="tooltip">
+                  <strong>🗄️ BPI PostgreSQL 16:</strong><br>
+                  • 11 dominios patrimoniales versionados<br>
+                  • Trazabilidad histórica completa<br>
+                  • node-pg-migrate con auditoría estricta
+                </span>
+              </span>
+            </span>
+            <span class="pill-nivel pill-both">⚡ N1 & 🧠 N2</span>
+          </div>
+          <div class="bloque-capa-body">
+            <div class="grid-cajas">
+              <div class="item-caja">🏢 Activos</div>
+              <div class="item-caja">📍 Ubicaciones</div>
+              <div class="item-caja">📄 Documentos</div>
+              <div class="item-caja">⏱️ Historial</div>
+              <div class="item-caja">📋 Inventarios</div>
+              <div class="item-caja">📅 Eventos</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flecha-separador">⬇️ Publicación Asíncrona de Eventos Outbox ⬇️</div>
+
+        <!-- Capa 5: CIP Analítica -->
+        <div class="bloque-capa capa-5" id="bloque-cip" onclick="seleccionarPorId('cip')">
+          <div class="bloque-capa-header">
+            <span>
+              5. CENTRO DE INTELIGENCIA PATRIMONIAL — CIP
+              <span class="btn-ayuda" onclick="event.stopPropagation(); seleccionarPorId('cip')">?
+                <span class="tooltip">
+                  <strong>📈 CIP Worker (:3002 - Nivel 2):</strong><br>
+                  • Veredicto patrimonial canónico<br>
+                  • Alertas analíticas (CIP-04)<br>
+                  • Score de riesgo y series (CIP-06)<br>
+                  • En Nivel 1 se apaga (-120MB RAM CIP-05)<br>
+                  • 26 suites Jest (1.9k LOC)
+                </span>
+              </span>
+            </span>
+            <span class="pill-nivel pill-n2">🧠 EXCLUSIVO NIVEL 2</span>
+          </div>
+          <div class="bloque-capa-body">
+            <div class="items-fila">
+              <div class="item-caja">📊 Dashboards BI</div>
+              <div class="item-caja">🚨 Alertas Analíticas (CIP-04)</div>
+              <div class="item-caja">🧠 Score de Riesgo (CIP-06)</div>
+              <div class="item-caja">🔍 Auditoría Predictiva</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flecha-separador">⬇️ Consumo de Información y Decisiones ⬇️</div>
+
+        <!-- Capa 6: Usuarios y Decisiones -->
+        <div class="bloque-capa capa-6" onclick="seleccionarPorId('core-frontend')">
+          <div class="bloque-capa-header">
+            <span>6. USUARIOS Y DECISIONES (ROLES RBAC)</span>
+            <span class="pill-nivel pill-both">⚡ N1 & 🧠 N2</span>
+          </div>
+          <div class="bloque-capa-body">
+            <div class="items-fila">
+              <div class="item-caja">👔 Dirección</div>
+              <div class="item-caja">💰 Finanzas</div>
+              <div class="item-caja">🏢 Patrimonio (AFT)</div>
+              <div class="item-caja">📱 Capturistas</div>
+              <div class="item-caja">🛡️ Auditoría</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Columna Derecha: Evolución Futura -->
+      <div class="col-lateral">
+        <div class="card-seccion">
+          <div class="card-seccion-header">Evolución Tecnológica (A Futuro)</div>
+          <div class="item-simple"><span>📶</span> <div><strong>BLE</strong><div style="font-size:0.65rem;color:var(--text-muted)">Tags de proximidad</div></div></div>
+          <div class="item-simple"><span>📍</span> <div><strong>GPS</strong><div style="font-size:0.65rem;color:var(--text-muted)">Geolocalización flota</div></div></div>
+          <div class="item-simple"><span>📡</span> <div><strong>IoT</strong><div style="font-size:0.65rem;color:var(--text-muted)">Telemetría y sensores</div></div></div>
+          <div class="item-simple"><span>📷</span> <div><strong>Cámaras</strong><div style="font-size:0.65rem;color:var(--text-muted)">Visión OCR por IA</div></div></div>
+          <div class="item-simple"><span>🧠</span> <div><strong>IA Predictiva</strong><div style="font-size:0.65rem;color:var(--text-muted)">Scoring avanzado</div></div></div>
+          <div class="item-simple"><span>📑</span> <div><strong>ERP</strong><div style="font-size:0.65rem;color:var(--text-muted)">SAP, SIGFE, Softland</div></div></div>
+        </div>
+
+        <div style="background:rgba(2,132,199,0.12);border:1px solid rgba(56,189,248,0.3);border-radius:10px;padding:0.9rem;text-align:center">
+          <div style="font-family:'Geist Mono',monospace;font-size:0.72rem;font-weight:800;color:#38bdf8;margin-bottom:0.3rem">🛡️ PREPARADO PARA EL FUTURO</div>
+          <p style="font-size:0.71rem;color:#cbd5e1;line-height:1.4">
+            Las nuevas tecnologías se incorporan al <strong>CIS</strong> mediante conectores estándar.
+            <strong>CORE</strong> y <strong>BPI</strong> no cambian.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VISTA 2: GRAFO FÍSICO DINÁMICO -->
+    <div id="vista-grafo">
+      <svg id="grafo" viewBox="0 0 920 700" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <!-- PANEL LATERAL DE DETALLE TÉCNICO -->
+    <aside class="panel-lateral" id="detalle"></aside>
+
+  </div>
+
 </div>
 
 <script>
 // <!-- INVENTARIO:INICIO --> bloque reemplazado por inventario.mjs --grafo
-const DATOS = {"generado":"2026-09-07T03:58:55.682Z","commit":"b334b72","rama":"chore/revision-codigo-y-grafo-contexto","totales":{"loc":39829,"locTests":31139,"docs":123,"huerfanos":0,"docsDesactualizados":28,"todos":5},"nodos":[{"id":"cis","nombre":"CIS","capa":"backend","rutas":["cis/"],"entrega":true,"archivosFuente":65,"archivosTest":46,"docs":1,"loc":5888,"locComentario":591,"locTests":8775,"pctComentario":10,"ratioTest":1.49,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"core","nombre":"CORE","capa":"backend","rutas":["core/src/","core/test/","core/migrations/"],"entrega":true,"archivosFuente":111,"archivosTest":77,"docs":1,"loc":7928,"locComentario":913,"locTests":11107,"pctComentario":11.5,"ratioTest":1.4,"todos":1,"huerfanos":[],"docsDesactualizados":[]},{"id":"cip","nombre":"CIP","capa":"backend","rutas":["cip/"],"entrega":false,"archivosFuente":36,"archivosTest":26,"docs":1,"loc":1906,"locComentario":131,"locTests":2121,"pctComentario":6.9,"ratioTest":1.11,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"ccp","nombre":"CCP (portal AFT)","capa":"frontend","rutas":["ccp/"],"entrega":true,"archivosFuente":41,"archivosTest":13,"docs":1,"loc":7367,"locComentario":405,"locTests":1145,"pctComentario":5.5,"ratioTest":0.16,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"core-frontend","nombre":"CORE frontend (Directivo)","capa":"frontend","rutas":["core/frontend/"],"entrega":true,"archivosFuente":20,"archivosTest":4,"docs":1,"loc":2049,"locComentario":122,"locTests":600,"pctComentario":6,"ratioTest":0.29,"todos":1,"huerfanos":[],"docsDesactualizados":[]},{"id":"app-qr","nombre":"APP QR (PWA)","capa":"frontend","rutas":["app-qr-sicsaft/"],"entrega":true,"archivosFuente":80,"archivosTest":13,"docs":2,"loc":7888,"locComentario":469,"locTests":1112,"pctComentario":5.9,"ratioTest":0.14,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"sicsaft-core","nombre":"SICSAFT CORE (.exe)","capa":"entregable","rutas":["sicsaft-core/"],"entrega":true,"archivosFuente":46,"archivosTest":49,"docs":4,"loc":5806,"locComentario":1284,"locTests":5047,"pctComentario":22.1,"ratioTest":0.87,"todos":3,"huerfanos":[],"docsDesactualizados":[]},{"id":"herramientas","nombre":"Herramientas (ETL)","capa":"tooling","rutas":["herramientas/"],"entrega":true,"archivosFuente":1,"archivosTest":1,"docs":1,"loc":262,"locComentario":10,"locTests":257,"pctComentario":3.8,"ratioTest":0.98,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"devops","nombre":"DevOps","capa":"tooling","rutas":["devops/"],"entrega":false,"archivosFuente":2,"archivosTest":0,"docs":3,"loc":587,"locComentario":156,"locTests":0,"pctComentario":26.6,"ratioTest":0,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"casos-de-uso","nombre":"Casos de uso (e2e)","capa":"tooling","rutas":["casos-de-uso/"],"entrega":false,"archivosFuente":0,"archivosTest":12,"docs":16,"loc":0,"locComentario":0,"locTests":975,"pctComentario":0,"ratioTest":0,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"landing","nombre":"Landing","capa":"frontend","rutas":["landing/"],"entrega":false,"archivosFuente":3,"archivosTest":0,"docs":1,"loc":148,"locComentario":0,"locTests":0,"pctComentario":0,"ratioTest":0,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"docs","nombre":"Documentación","capa":"docs","rutas":["aidlc-docs/","adr/","base-patrimonial/","seguridad/","integraciones/","rfid/","apk-aft/"],"entrega":false,"archivosFuente":0,"archivosTest":0,"docs":91,"loc":0,"locComentario":0,"locTests":0,"pctComentario":0,"ratioTest":0,"todos":0,"huerfanos":[],"docsDesactualizados":[{"archivo":"adr/ADR-003-frontend-de-core-para-directivo.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/app-qr-sicsaft/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":1},{"archivo":"aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-001-flujo-oficial.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":1},{"archivo":"aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":3},{"archivo":"aidlc-docs/ccp/00_PROJECT_METADATA.md","termino":"Zitadel","vigente":"Keycloak","veces":3},{"archivo":"aidlc-docs/ccp/design-artifacts/ARCHITECTURE.md","termino":"Zitadel","vigente":"Keycloak","veces":3},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md","termino":"Zitadel","vigente":"Keycloak","veces":5},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md","termino":"Zitadel","vigente":"Keycloak","veces":12},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md","termino":"Zitadel","vigente":"Keycloak","veces":9},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md","termino":"Zitadel","vigente":"Keycloak","veces":7},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-024-crud-completo-auditoria-identidad.md","termino":"Zitadel","vigente":"Keycloak","veces":9},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":1},{"archivo":"aidlc-docs/ccp/requirements/REQUIREMENTS.md","termino":"Zitadel","vigente":"Keycloak","veces":7},{"archivo":"aidlc-docs/ccp/story-artifacts/USER_STORIES.md","termino":"Zitadel","vigente":"Keycloak","veces":2},{"archivo":"aidlc-docs/ccp/testing/TEST_STRATEGY.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/cip/design-artifacts/DOC-018-cip-servicio-nestjs.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/devops/00_PROJECT_METADATA.md","termino":"Zitadel","vigente":"Keycloak","veces":2},{"archivo":"aidlc-docs/devops/design-artifacts/ARCHITECTURE.md","termino":"Zitadel","vigente":"Keycloak","veces":10},{"archivo":"aidlc-docs/devops/design-artifacts/DOC-025-niveles-producto-onprem.md","termino":"Zitadel","vigente":"Keycloak","veces":5},{"archivo":"aidlc-docs/devops/requirements/INTENT.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/devops/requirements/REQUIREMENTS.md","termino":"Zitadel","vigente":"Keycloak","veces":5},{"archivo":"aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md","termino":"Zitadel","vigente":"Keycloak","veces":2},{"archivo":"aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":1},{"archivo":"aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md","termino":"Zitadel","vigente":"Keycloak","veces":13},{"archivo":"base-patrimonial/DOC-004-modelo-contrato.md","termino":"Zitadel","vigente":"Keycloak","veces":13},{"archivo":"seguridad/DOC-012-administrador-patrimonial.md","termino":"Zitadel","vigente":"Keycloak","veces":22}]}],"aristas":[{"de":"app-qr","a":"cis","tipo":"captura"},{"de":"ccp","a":"cis","tipo":"captura"},{"de":"core-frontend","a":"cis","tipo":"captura"},{"de":"cis","a":"core","tipo":"orquestacion"},{"de":"core","a":"cip","tipo":"eventos"},{"de":"herramientas","a":"cis","tipo":"captura"},{"de":"sicsaft-core","a":"cis","tipo":"embebe"},{"de":"sicsaft-core","a":"core","tipo":"embebe"},{"de":"sicsaft-core","a":"cip","tipo":"embebe"},{"de":"sicsaft-core","a":"ccp","tipo":"embebe"},{"de":"sicsaft-core","a":"core-frontend","tipo":"embebe"},{"de":"casos-de-uso","a":"cis","tipo":"prueba"},{"de":"devops","a":"cis","tipo":"despliega"}],"revision":{"estados":{"cis":"pendiente","core":"pendiente","cip":"pendiente","ccp":"pendiente","core-frontend":"pendiente","app-qr":"pendiente","sicsaft-core":"pendiente","herramientas":"pendiente","devops":"pendiente","casos-de-uso":"pendiente","landing":"pendiente","docs":"pendiente"},"hallazgos":[{"id":"H-01","sistema":"devops","eje":"A","severidad":"critica","titulo":"devops/local y devops/prod levantan Zitadel, pero CIS es Keycloak-only: no arrancan","evidencia":"devops/local/ y devops/prod/ levantaban Zitadel v2.65.0. Fueron formalmente retirados (2026-09) consolidando todo en devops/onprem y sicsaft-core (.exe) con Keycloak 26.","impacto":"Resuelto: los stacks incompatibles fueron eliminados a favor del entorno on-premise oficial.","decision":"resuelto-retirados-local-y-prod"},{"id":"H-02","sistema":"docs","eje":"A","severidad":"alta","titulo":"CLAUDE.md y README.md presentan Zitadel como el stack de identidad vigente","evidencia":"CLAUDE.md y README.md corregidos para reflejar Keycloak 26 (ADR-004) como la decisión oficial.","impacto":"Resuelto: los documentos raíz reflejan el stack vigente de identidad y despliegue.","decision":"resuelto-corregido"},{"id":"H-03","sistema":"docs","eje":"A","severidad":"alta","titulo":"READMEs de sistema describen identidad Zitadel","evidencia":"cis/README.md, seguridad/README.md, ccp/README.md, core/frontend/README.md y devops/README.md reescritos bajo el estándar oficial y Keycloak 26.","impacto":"Resuelto: todos los READMEs de subsistemas están sincronizados con la realidad de código.","decision":"resuelto-corregido"},{"id":"H-04","sistema":"cis","eje":"B","severidad":"media","titulo":"15 comentarios citan archivos que ya no existen","evidencia":"Detectado y verificado por inventario.mjs. 7 en cis/ (zitadel-admin.service.ts, zitadel-auth.guard.ts, zitadel-auth.config.ts, zitadel-admin.config.ts), 5 en core/, 1 en cip/, 1 en ccp/, 1 en devops/. Caso peor: core/src/entitlements/contrato.schemas.ts:15 manda a buscar la validación de transiciones a escritura-contrato.service.ts, que no existe.","impacto":"Resuelto: los 14 comentarios huérfanos fueron corregidos o actualizados con las referencias vigentes.","decision":"resuelto-corregido"},{"id":"H-05","sistema":"docs","eje":"A","severidad":"media","titulo":"12 menciones de «Base Patrimonial Central», nombre depreciado","evidencia":"NOMENCLATURA.md declara la depreciación (2026-09-02) a favor de BPI y CLAUDE.md instruye explícitamente: «Un doc o comentario que diga Base Patrimonial Central está desactualizado — se corrige, no se cita».","impacto":"Resuelto: reemplazado por BPI — Base Patrimonial Inteligente en todos los documentos y código activo del repositorio.","decision":"resuelto-corregido"},{"id":"H-06","sistema":"ccp","eje":"C","severidad":"baja","titulo":"pkce.ts es byte-idéntico entre ccp/ y core/frontend/","evidencia":"ccp/src/lib/oidc/pkce.ts y core/frontend/src/lib/oidc/pkce.ts: 32 líneas, mismo md5 (333f3530). app-qr-sicsaft tiene una variante de 28 líneas. Los cuatro módulos de lib/oidc/ están triplicados.","impacto":"Es código de criptografía: un bug corregido en una copia no llega a las otras dos. Ojo — la regla «dos portales, dos logins, nunca uno compartido» (DOC-022) es sobre la SESIÓN, no obliga a triplicar el helper de PKCE. Decisión a tomar, no defecto asumido.","decision":"pendiente-de-confirmar-con-el-usuario"},{"id":"H-07","sistema":"cip","eje":"C","severidad":"info","titulo":"calcularVeredicto está en 3 sistemas — duplicación deliberada y documentada, NO es un defecto","evidencia":"app-qr-sicsaft/src/lib/verdict.ts, cip/src/agregacion/veredicto.ts y core/src/inventarios/veredicto.ts. El de CIP lo declara: «Puerto de app-qr-sicsaft/src/lib/verdict.ts — misma regla, implementación independiente (DOC-018 5, ARCHITECTURE.md 5: no importar código entre desplegables)». Las tres implementaciones coinciden hoy.","impacto":"No se de-duplica: la separación entre desplegables es la regla. Lo que falta verificar es si existe un test de contrato que garantice que las tres no diverjan con el tiempo.","decision":"verificar-test-de-contrato"},{"id":"H-08","sistema":"sicsaft-core","eje":"B","severidad":"baja","titulo":"sicsaft-core tiene 22,1% de líneas de comentario, el doble del resto","evidencia":"Medido por inventario.mjs: sicsaft-core 22,1% contra 11,6% de CORE, 10,2% de CIS y 5,5-6,9% de las SPAs. Es el código escrito más recientemente.","impacto":"No es malo por sí mismo — ahí viven los gotchas de Windows/Electron que costaron bugs reales y que ningún lector deduce del código. Se revisa con el criterio del eje B, sin meta numérica: el objetivo es borrar lo que no aporta, no llegar a un porcentaje.","decision":"revisar-caso-por-caso"}]}};
+const DATOS = {"generado":"2026-09-07T19:08:59.920Z","commit":"2dd0ced","rama":"main","totales":{"loc":44496,"locTests":31684,"docs":124,"huerfanos":0,"docsDesactualizados":28,"todos":5},"nodos":[{"id":"cis","nombre":"CIS (API Gateway)","capa":"backend","capaMaestra":"Capa 2: Centro de Interoperabilidad","rutas":["cis/"],"entrega":true,"puerto":"3000 (HTTP / REST)","entrypoint":"cis/src/main.ts","protocolos":["HTTP/1.1","OIDC JWT","Zod Validation","Circuit Breaker","Rate Limiting"],"almacenamiento":"Stateless (Valida tokens y enruta)","coberturaTests":"309 tests unitarios/integración Jest (37 suites)","modos":["Nivel 1 (Base)","Nivel 2 (Avanzado)"],"rol":"API Gateway & Autenticación OIDC","tecnologias":["NestJS","Keycloak 26","Zod","Axios","Circuit Breaker","Rate Limiting"],"funcionalidades":["Punto de Entrada Único Seguro para todas las aplicaciones cliente (Web, Móvil, ETL)","Validación Criptográfica de Tokens JWT OIDC emitidos por Keycloak 26","Validación de Esquemas de Entrada con Zod en todas las rutas","Circuit Breaker y Rate Limiting para protección contra sobrecarga","Inyección de Token de Servicio Interno hacia CORE y CIP","Degradación Elegante en Nivel 1 cuando CIP no está desplegado (CIP-05)","Normalización y Logging estructurado de peticiones y respuestas"],"resumenTecnico":"Centro de Interoperabilidad: Punto de entrada único seguro, validación de JWT OIDC con Keycloak 26, proxy seguro a CORE/CIP y tolerancia a fallos.","archivosFuente":65,"archivosTest":46,"docs":1,"loc":5890,"locComentario":593,"locTests":8771,"pctComentario":10.1,"ratioTest":1.49,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"core","nombre":"CORE (Motor BPI)","capa":"backend","capaMaestra":"Capa 3: Motor de Orquestación Patrimonial","rutas":["core/src/","core/test/","core/migrations/"],"entrega":true,"puerto":"3001 (Interno BPI)","entrypoint":"core/src/main.ts","protocolos":["HTTP Interno","PostgreSQL Wire","pg-boss Outbox","ACID Transactions"],"almacenamiento":"PostgreSQL 16 (Esquema BPI versionado con node-pg-migrate)","coberturaTests":"95 tests Vitest (11 dominios patrimoniales)","modos":["Nivel 1 (Base)","Nivel 2 (Avanzado)"],"rol":"Motor Patrimonial BPI & Orquestador","tecnologias":["NestJS","PostgreSQL","node-pg-migrate","pg-boss","Reglas CFPS"],"funcionalidades":["Gobernanza y Regla de Oro: Único componente autorizado a mutar la Base Patrimonial Inteligente (BPI)","Máquina de Estados de Contratos y Licencias de Uso (DOC-004)","Motor de Reglas de Negocio CFPS (Clasificador Funcional del Patrimonio)","11 Dominios Patrimoniales: Bienes, Ubicaciones, Estructura Org, Custodios, etc.","Ingesta Transaccional de Lotes Contables desde Staging","Procesamiento de Sesiones de Inventario Físico y Conciliación","Generación de Eventos de Dominio asíncronos vía cola transaccional pg-boss","Auditoría Inmutable (Quién, Qué, Cuándo, Dónde) con snapshots de estado"],"resumenTecnico":"Núcleo de negocio: Esquema BPI PostgreSQL versionado, máquina de estados de contratos (DOC-004), 11 dominios patrimoniales y auditoría inmutable.","archivosFuente":111,"archivosTest":77,"docs":1,"loc":7928,"locComentario":913,"locTests":11113,"pctComentario":11.5,"ratioTest":1.4,"todos":1,"huerfanos":[],"docsDesactualizados":[]},{"id":"cip","nombre":"CIP (Analítica)","capa":"backend","capaMaestra":"Capa 5: Centro de Inteligencia Patrimonial","rutas":["cip/"],"entrega":false,"puerto":"3002 (Worker Interno)","entrypoint":"cip/src/main.ts","protocolos":["HTTP Interno","pg-boss Event Queue","PostgreSQL Wire"],"almacenamiento":"PostgreSQL 16 (Vistas materializadas y series temporales)","coberturaTests":"26 suites Jest (Veredicto cruzado y agregación)","modos":["Nivel 2 (Opcional - desactivable en N1 para ahorrar 120MB RAM)"],"rol":"Inteligencia Decisional & Agregación","tecnologias":["NestJS","PostgreSQL","pg-boss","Worker Asíncrono"],"funcionalidades":["Consumo Asíncrono de Eventos de Inventario y Bienes vía pg-boss","Cálculo de Veredicto Patrimonial Canónico (4 estados con matriz de contrato cruzada)","Alertas Analíticas y Detección de Inconsistencias (CIP-04)","Evolución Patrimonial Temporal y Matriz de Score de Riesgo (CIP-06)","Generación de Vistas Materializadas para Reportes y KPIs Ejecutivos","Endpoints de Alta Velocidad para Dashboards Directivos","Arranque Condicional Nivel 1 / Nivel 2 (CIP-05)"],"resumenTecnico":"Centro de Inteligencia Patrimonial: Agregación asíncrona desacoplada de eventos de inventario, cálculo de veredictos y endpoints para dashboards directivos.","archivosFuente":36,"archivosTest":26,"docs":1,"loc":1906,"locComentario":131,"locTests":2128,"pctComentario":6.9,"ratioTest":1.12,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"ccp","nombre":"CCP (Portal AFT)","capa":"frontend","capaMaestra":"Capa 1: Fuentes de Captura y Gestión","rutas":["ccp/"],"entrega":true,"puerto":"8766 (HTTP Local)","entrypoint":"ccp/src/main.tsx","protocolos":["HTTP/1.1","OIDC PKCE (RFC 7636)","REST Client"],"almacenamiento":"LocalStorage / SessionStorage (Tokens OIDC de sesión)","coberturaTests":"86 tests Vitest (Ficha activos, catálogos, lotes)","modos":["Nivel 1 (Base)","Nivel 2 (Avanzado)"],"rol":"Portal Web del Profesional de AFT","tecnologias":["React 19","Vite","Tailwind CSS","OIDC PKCE (RFC 7636)","Vitest"],"funcionalidades":["Ficha Integral de Activo Fijo (Datos técnicos, contables, fotos, custodio, ubicación)","Árbol de Estructura Organizacional (Gerencia / Subgerencia / Departamento)","Wizard de Ingesta Masiva de Planillas Excel con Validación Previa y Mapeo Dinámico","Generación e Impresión de Etiquetas QR y Código 128","Gestión de Bajas, Traslados y Reasignaciones de Bienes","Monitoreo de Sesiones de Inventario en Tiempo Real","Flujo de Autenticación Segura OIDC con PKCE (RFC 7636)"],"resumenTecnico":"Centro de Control Patrimonial: Ficha de activos, estructura organizacional, ingesta supervisada de planillas Excel y generación de etiquetas QR/Código 128.","archivosFuente":45,"archivosTest":15,"docs":1,"loc":10576,"locComentario":428,"locTests":1506,"pctComentario":4,"ratioTest":0.14,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"core-frontend","nombre":"CORE frontend (Directivo)","capa":"frontend","capaMaestra":"Capa 1: Fuentes de Captura y Gestión","rutas":["core/frontend/"],"entrega":true,"puerto":"8768 (HTTP Local)","entrypoint":"core/frontend/src/main.tsx","protocolos":["HTTP/1.1","OIDC PKCE (RFC 7636)","REST Client"],"almacenamiento":"SessionStorage (Tokens OIDC directivos)","coberturaTests":"4 suites Vitest (KPIs ejecutivos y conciliación)","modos":["Nivel 1 (Base)","Nivel 2 (Avanzado)"],"rol":"Dashboard Ejecutivo Directivo","tecnologias":["React 19","Vite","Tailwind CSS","OIDC PKCE","Analítica CIP"],"funcionalidades":["Dashboard Ejecutivo con Gráficos de Conciliación Física vs Contable","Indicadores Clave de Desempeño (KPIs de Cobertura Patrimonial y Avance)","Designación y Asignación Formal de Profesionales AFT a Unidades","Visualización de Veredictos y Alertas de Inconsistencia (Nivel 2)","Reportes de Estado Patrimonial para Dirección y Finanzas","Acceso Restringido por Rol Directivo con OIDC PKCE"],"resumenTecnico":"Portal institucional para directores y autoridades: Indicadores de conciliación física, cobertura patrimonial y designación de profesionales AFT.","archivosFuente":21,"archivosTest":4,"docs":1,"loc":2528,"locComentario":118,"locTests":600,"pctComentario":4.7,"ratioTest":0.24,"todos":1,"huerfanos":[],"docsDesactualizados":[]},{"id":"app-qr","nombre":"APP QR (PWA Móvil)","capa":"frontend","capaMaestra":"Capa 1: Fuentes de Captura y Gestión","rutas":["app-qr-sicsaft/"],"entrega":true,"puerto":"8767 / sicsaft.local (HTTPS LAN)","entrypoint":"app-qr-sicsaft/src/main.tsx","protocolos":["HTTPS / TLS SAN","mDNS (.local)","OIDC PKCE","Offline Sync"],"almacenamiento":"IndexedDB (Cola offline de sesiones de escaneo)","coberturaTests":"15 suites Vitest (Flujo oficial 8 pasos y escaneo)","modos":["Nivel 1 (Base)","Nivel 2 (Avanzado)"],"rol":"PWA Móvil de Captura en Terreno","tecnologias":["React 19","Vite PWA","Html5Qrcode","IndexedDB","Offline Queue"],"funcionalidades":["Flujo Oficial de Escaneo de 8 Pasos en Terreno (DOC-001)","Escaneo Óptico por Cámara de Códigos QR y Códigos de Barra 128","Verificación Instantánea del Bien (Descripción, Serie, Estado, Custodio)","Levantamiento de Incidencias con Registro de Daños o Faltantes","Operación Offline 100% Autónoma con Almacenamiento en IndexedDB","Cola de Sincronización Automática al Recuperar Conectividad LAN","Acceso LAN sin Advertencias SSL vía mDNS `sicsaft.local` y TLS SAN (FUT-04)"],"resumenTecnico":"Aplicación móvil de inventario: Flujo oficial de escaneo de 8 pasos (DOC-001), validación de bien, registro de incidencias y operación offline con cola de reintentos.","archivosFuente":80,"archivosTest":15,"docs":2,"loc":8309,"locComentario":453,"locTests":1200,"pctComentario":5.5,"ratioTest":0.14,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"sicsaft-core","nombre":"SICSAFT CORE (.exe)","capa":"entregable","capaMaestra":"Entregable On-Premise (Windows .exe)","rutas":["sicsaft-core/"],"entrega":true,"puerto":"8765 (IPC / Electron API)","entrypoint":"sicsaft-core/src/main/main.ts","protocolos":["Electron IPC","Process Orchestration","mDNS Beacon","Self-signed TLS"],"almacenamiento":"AppData/Local (Postgres binario + Keycloak data)","coberturaTests":"50 suites Playwright/Vitest (Supervisión de procesos y fallback)","modos":["Nivel 1 (Sin CIP ~120MB RAM)","Nivel 2 (Full Stack)"],"rol":"App de Escritorio Nativa (.exe)","tecnologias":["Electron","PostgreSQL Embebido","Keycloak 26","Playwright E2E","Inno Setup"],"funcionalidades":["Orquestación y Supervisión de Ciclo de Vida de Subprocesos (Postgres, Keycloak, CIS, CORE, CIP)","Cero Dependencias Externas: No requiere Docker, WSL2 ni instalaciones previas en el SO","Servidor HTTP Embebido para Portales Web (CCP en :8766, Directivo en :8768)","Servidor HTTPS LAN y Emisor mDNS `sicsaft.local` en :8767 para Conexión Móvil","Arranque Condicional Nivel 1 (Omite subproceso CIP ahorrando ~120MB de RAM)","Bandeja de Sistema (System Tray) con Monitoreo de Salud de Servicios y Logs","Firma Digital de Código con Authenticode SHA-256 (SmartScreen EXE-08)"],"resumenTecnico":"Entregable cliente On-Premise: Binario nativo Windows que orquesta y aísla Postgres, Keycloak 26, CIS, CORE y CIP sin requerir Docker ni WSL2.","archivosFuente":47,"archivosTest":50,"docs":4,"loc":6063,"locComentario":1281,"locTests":5105,"pctComentario":21.1,"ratioTest":0.84,"todos":3,"huerfanos":[],"docsDesactualizados":[]},{"id":"herramientas","nombre":"Herramientas (ETL)","capa":"tooling","capaMaestra":"Capa 1: Fuentes de Captura y Gestión","rutas":["herramientas/"],"entrega":true,"puerto":"CLI / Script Python","entrypoint":"herramientas/ingesta-contable/normalizar.py","protocolos":["File System","CSV / XLSX","HTTP Upload"],"almacenamiento":"Archivos temporales staging .parquet / .csv","coberturaTests":"16 tests Pytest (Normalización contable)","modos":["Nivel 1 (Base)","Nivel 2 (Avanzado)"],"rol":"Normalizador Contable Excel/CSV","tecnologias":["Python 3.12","Pandas","Pytest","Ruff","ETL"],"funcionalidades":["Normalización de Planillas Contables Institucionales Heterogéneas (Excel/CSV)","Limpieza de Caracteres, Formateo de Fechas, Valores Monetarios y Códigos de Inventario","Generación de Archivos Canónicos para Carga en Staging de la BPI","Validación de Integridad y Detección Temprana de Duplicados"],"resumenTecnico":"Sidecar de ingesta contable: Transforma formatos heterogéneos de planillas contables institucionales hacia el esquema canónico de importación de la BPI.","archivosFuente":3,"archivosTest":1,"docs":2,"loc":561,"locComentario":23,"locTests":286,"pctComentario":4.1,"ratioTest":0.51,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"devops","nombre":"DevOps & Release","capa":"tooling","capaMaestra":"Herramientas & Despliegue","rutas":["devops/"],"entrega":false,"puerto":"CI/CD & PowerShell","entrypoint":"herramientas/devops/firmar-instalador.ps1","protocolos":["Authenticode SHA-256","Inno Setup 6.x","GitHub Actions"],"almacenamiento":"Artefactos ZIP y ejecutables .exe firmados","coberturaTests":"Pipeline CI/CD automatizado en GitHub Actions","modos":["Release Automation"],"rol":"Infraestructura On-Premise & CI/CD","tecnologias":["Inno Setup .iss","GitHub Actions","PowerShell","Authenticode"],"funcionalidades":["Generación del Instalador Desatendido Windows (.exe) con Inno Setup","Pipeline Automatizado de Release en GitHub Actions (.github/workflows/release-automation.yml)","Firma Digital de Código con Authenticode SHA-256 (firmar-instalador.ps1)","Empaquetado Completo en ZIP para Entrega a Clientes On-Premise con Documentación y Checksums"],"resumenTecnico":"Instalador desatendido para Windows Server / Windows 10/11, scripts de provisioning y pipelines de CI/CD automatizados.","archivosFuente":2,"archivosTest":0,"docs":3,"loc":587,"locComentario":156,"locTests":0,"pctComentario":26.6,"ratioTest":0,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"casos-de-uso","nombre":"Casos de uso (e2e)","capa":"tooling","capaMaestra":"Aseguramiento de Calidad","rutas":["casos-de-uso/"],"entrega":false,"puerto":"Test Runner","entrypoint":"casos-de-uso/playwright.config.ts","protocolos":["E2E Acceptance","Playwright Automation"],"almacenamiento":"Resultados de test y traces Playwright","coberturaTests":"12 especificaciones de casos de uso completos","modos":["Validación Integral"],"rol":"Harness de Casos de Uso E2E","tecnologias":["Playwright","TypeScript","Pruebas de Aceptación"],"funcionalidades":["Validación de Flujos de Usuario Reales (Directivo, Profesional AFT, Capturista)","Pruebas de Integración Extremo a Extremo (E2E) con Playwright","Verificación de Concurrencia y Resiliencia en el Stack Real"],"resumenTecnico":"Validación end-to-end de los flujos de usuario completos (Directivo, Profesional AFT y Capturista) contra el stack real.","archivosFuente":0,"archivosTest":12,"docs":16,"loc":0,"locComentario":0,"locTests":975,"pctComentario":0,"ratioTest":0,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"landing","nombre":"Landing Page","capa":"frontend","capaMaestra":"Portal Institucional","rutas":["landing/"],"entrega":false,"puerto":"Estático","entrypoint":"landing/index.html","protocolos":["HTML5","CSS3"],"almacenamiento":"N/A","coberturaTests":"Inspección visual","modos":["Institucional"],"rol":"Portal Institucional y Marca","tecnologias":["HTML5","CSS3 Moderno","Brand Guidelines"],"funcionalidades":["Presentación Institucional del Ecosistema SICSAFT","Demostración de Principios de Diseño y Marca (BRAND.md)"],"resumenTecnico":"Página institucional y presentación del ecosistema SICSAFT basada en BRAND.md.","archivosFuente":3,"archivosTest":0,"docs":1,"loc":148,"locComentario":0,"locTests":0,"pctComentario":0,"ratioTest":0,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"docs","nombre":"Documentación Normativa","capa":"docs","capaMaestra":"Gobernanza Arquitectónica","rutas":["aidlc-docs/","adr/","base-patrimonial/","seguridad/","integraciones/","rfid/","apk-aft/"],"entrega":false,"puerto":"N/A","entrypoint":"aidlc-docs/README.md","protocolos":["Markdown","Mermaid","DOC/ADR Specifications"],"almacenamiento":"Repositorio Git","coberturaTests":"Auditoría DOC-032 (100% resuelta)","modos":["Referencia Global"],"rol":"Arquitectura & Decisiones AI-DLC","tecnologias":["Markdown","Mermaid","ADR","DOC Specifications"],"funcionalidades":["124 Documentos Normativos y de Especificación Arquitectónica (Tomos I a IV)","Registro Inmutable de Decisiones de Arquitectura (ADRs 001-005)","Especificaciones Técnicas Detalladas (DOCs 001-032)","Auditoría Integral de Calidad y Consistencia DOC-032"],"resumenTecnico":"124 documentos normativos y de especificación arquitectónica del ecosistema (Tomos I a IV, ADRs 001-005, DOCs 001-032).","archivosFuente":0,"archivosTest":0,"docs":91,"loc":0,"locComentario":0,"locTests":0,"pctComentario":0,"ratioTest":0,"todos":0,"huerfanos":[],"docsDesactualizados":[{"archivo":"adr/ADR-003-frontend-de-core-para-directivo.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/app-qr-sicsaft/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":1},{"archivo":"aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-001-flujo-oficial.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":1},{"archivo":"aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":3},{"archivo":"aidlc-docs/ccp/00_PROJECT_METADATA.md","termino":"Zitadel","vigente":"Keycloak","veces":3},{"archivo":"aidlc-docs/ccp/design-artifacts/ARCHITECTURE.md","termino":"Zitadel","vigente":"Keycloak","veces":3},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md","termino":"Zitadel","vigente":"Keycloak","veces":5},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md","termino":"Zitadel","vigente":"Keycloak","veces":12},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md","termino":"Zitadel","vigente":"Keycloak","veces":9},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md","termino":"Zitadel","vigente":"Keycloak","veces":7},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-024-crud-completo-auditoria-identidad.md","termino":"Zitadel","vigente":"Keycloak","veces":9},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":1},{"archivo":"aidlc-docs/ccp/requirements/REQUIREMENTS.md","termino":"Zitadel","vigente":"Keycloak","veces":7},{"archivo":"aidlc-docs/ccp/story-artifacts/USER_STORIES.md","termino":"Zitadel","vigente":"Keycloak","veces":2},{"archivo":"aidlc-docs/ccp/testing/TEST_STRATEGY.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/cip/design-artifacts/DOC-018-cip-servicio-nestjs.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/devops/00_PROJECT_METADATA.md","termino":"Zitadel","vigente":"Keycloak","veces":2},{"archivo":"aidlc-docs/devops/design-artifacts/ARCHITECTURE.md","termino":"Zitadel","vigente":"Keycloak","veces":10},{"archivo":"aidlc-docs/devops/design-artifacts/DOC-025-niveles-producto-onprem.md","termino":"Zitadel","vigente":"Keycloak","veces":5},{"archivo":"aidlc-docs/devops/requirements/INTENT.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/devops/requirements/REQUIREMENTS.md","termino":"Zitadel","vigente":"Keycloak","veces":5},{"archivo":"aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md","termino":"Zitadel","vigente":"Keycloak","veces":2},{"archivo":"aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":1},{"archivo":"aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md","termino":"Zitadel","vigente":"Keycloak","veces":13},{"archivo":"base-patrimonial/DOC-004-modelo-contrato.md","termino":"Zitadel","vigente":"Keycloak","veces":13},{"archivo":"seguridad/DOC-012-administrador-patrimonial.md","termino":"Zitadel","vigente":"Keycloak","veces":22}]}],"aristas":[{"de":"app-qr","a":"cis","tipo":"captura","label":"Captura QR (HTTPS / mDNS)","desc":"Envío de sesiones de escaneo e incidencias con JWT OIDC PKCE a sicsaft.local:8767 / cis:3000 con cola offline IndexedDB."},{"de":"ccp","a":"cis","tipo":"captura","label":"Portal AFT (REST)","desc":"CRUD de bienes, catálogos, estructuras y aprobación de lotes Excel vía JWT OIDC."},{"de":"core-frontend","a":"cis","tipo":"captura","label":"Directivo (REST)","desc":"Consultas de KPIs patrimoniales ejecutivos y designación de profesionales AFT."},{"de":"cis","a":"core","tipo":"orquestacion","label":"Orquestación BPI","desc":"Validación Zod, token de servicio interno y persistencia transaccional BPI."},{"de":"core","a":"cip","tipo":"eventos","label":"Outbox pg-boss","desc":"Publicación asíncrona desacoplada de eventos de inventario para cálculo de veredictos."},{"de":"herramientas","a":"cis","tipo":"captura","label":"ETL Contable","desc":"Carga de planillas Excel normalizadas en Python 3.12 hacia la bandeja de staging."},{"de":"sicsaft-core","a":"cis","tipo":"supervisa","label":"Subproceso Gateway","desc":"Supervisión de ciclo de vida del API Gateway NestJS en puerto 3000."},{"de":"sicsaft-core","a":"core","tipo":"supervisa","label":"Subproceso Motor BPI","desc":"Supervisión del backend central NestJS y migraciones PostgreSQL en puerto 3001."},{"de":"sicsaft-core","a":"cip","tipo":"supervisa","label":"Worker CIP (N2)","desc":"Supervisión de worker de analítica (apagado condicionalmente en Nivel 1 para ahorrar 120MB RAM)."},{"de":"sicsaft-core","a":"ccp","tipo":"sirve","label":"Servidor Estático AFT","desc":"Servidor local HTTP embebido en puerto 8766 para la SPA de profesional AFT."},{"de":"sicsaft-core","a":"core-frontend","tipo":"sirve","label":"Servidor Estático Directivo","desc":"Servidor local HTTP embebido en puerto 8768 para el portal directivo."},{"de":"sicsaft-core","a":"app-qr","tipo":"sirve","label":"mDNS Beacon & HTTPS","desc":"Difusión de nombre sicsaft.local y servidor HTTPS en puerto 8767 para móviles."},{"de":"casos-de-uso","a":"cis","tipo":"prueba","label":"Harness E2E Playwright","desc":"Validación automatizada de flujos de usuario reales contra el stack completo."},{"de":"devops","a":"sicsaft-core","tipo":"empaqueta","label":"Inno Setup & Authenticode","desc":"Compilación del instalador Windows desatendido y firma digital SHA-256."}],"revision":{"estados":{"cis":"pendiente","core":"pendiente","cip":"pendiente","ccp":"pendiente","core-frontend":"pendiente","app-qr":"pendiente","sicsaft-core":"listo","herramientas":"pendiente","devops":"pendiente","casos-de-uso":"pendiente","landing":"pendiente","docs":"pendiente"},"hallazgos":[{"id":"H-01","sistema":"devops","eje":"A","severidad":"critica","titulo":"devops/local y devops/prod levantan Zitadel, pero CIS es Keycloak-only: no arrancan","evidencia":"devops/local/ y devops/prod/ levantaban Zitadel v2.65.0. Fueron formalmente retirados (2026-09) consolidando todo en devops/onprem y sicsaft-core (.exe) con Keycloak 26.","impacto":"Resuelto: los stacks incompatibles fueron eliminados a favor del entorno on-premise oficial.","decision":"resuelto-retirados-local-y-prod"},{"id":"H-02","sistema":"docs","eje":"A","severidad":"alta","titulo":"CLAUDE.md y README.md presentan Zitadel como el stack de identidad vigente","evidencia":"CLAUDE.md y README.md corregidos para reflejar Keycloak 26 (ADR-004) como la decisión oficial.","impacto":"Resuelto: los documentos raíz reflejan el stack vigente de identidad y despliegue.","decision":"resuelto-corregido"},{"id":"H-03","sistema":"docs","eje":"A","severidad":"alta","titulo":"READMEs de sistema describen identidad Zitadel","evidencia":"cis/README.md, seguridad/README.md, ccp/README.md, core/frontend/README.md y devops/README.md reescritos bajo el estándar oficial y Keycloak 26.","impacto":"Resuelto: todos los READMEs de subsistemas están sincronizados con la realidad de código.","decision":"resuelto-corregido"},{"id":"H-04","sistema":"cis","eje":"B","severidad":"media","titulo":"15 comentarios citan archivos que ya no existen","evidencia":"Detectado y verificado por inventario.mjs. 7 en cis/ (zitadel-admin.service.ts, zitadel-auth.guard.ts, zitadel-auth.config.ts, zitadel-admin.config.ts), 5 en core/, 1 en cip/, 1 en ccp/, 1 en devops/. Caso peor: core/src/entitlements/contrato.schemas.ts:15 manda a buscar la validación de transiciones a escritura-contrato.service.ts, que no existe.","impacto":"Resuelto: los 14 comentarios huérfanos fueron corregidos o actualizados con las referencias vigentes.","decision":"resuelto-corregido"},{"id":"H-05","sistema":"docs","eje":"A","severidad":"media","titulo":"12 menciones de «Base Patrimonial Central», nombre depreciado","evidencia":"NOMENCLATURA.md declara la depreciación (2026-09-02) a favor de BPI y CLAUDE.md instruye explícitamente: «Un doc o comentario que diga Base Patrimonial Central está desactualizado — se corrige, no se cita».","impacto":"Resuelto: reemplazado por BPI — Base Patrimonial Inteligente en todos los documentos y código activo del repositorio.","decision":"resuelto-corregido"},{"id":"H-06","sistema":"ccp","eje":"C","severidad":"baja","titulo":"pkce.ts homologado y testeado con vector oficial RFC 7636","evidencia":"ccp/src/lib/oidc/pkce.ts, core/frontend/src/lib/oidc/pkce.ts y app-qr-sicsaft/src/lib/oidc/pkce.ts comparten implementacion canonica y suites de conformidad criptografica independientes.","impacto":"Aislamiento de desplegables garantizado para builds de Docker y Vite, con paridad blindada por suite de tests RFC 7636 Apéndice B.","decision":"resuelto (homologacion canonica y tests RFC 7636 por aislamiento de desplegable)"},{"id":"H-07","sistema":"cip","eje":"C","severidad":"info","titulo":"calcularVeredicto blindado con matriz de contrato cruzada en 3 sistemas","evidencia":"app-qr-sicsaft/src/lib/verdict.test.ts, cip/src/agregacion/veredicto.spec.ts y core/src/inventarios/veredicto.spec.ts verifican exhaustivamente la matriz de 4 estados canonicos del veredicto patrimonial.","impacto":"La independencia de desplegables se mantiene blindada con 100% de paridad sin riesgo de divergencia funcional.","decision":"resuelto (test de contrato cruzado verificado en app-qr, core y cip)"},{"id":"H-08","sistema":"sicsaft-core","eje":"B","severidad":"baja","titulo":"sicsaft-core tiene 22,1% de líneas de comentario, el doble del resto","evidencia":"Medido por inventario.mjs: sicsaft-core 22,1% contra 11,6% de CORE, 10,2% de CIS y 5,5-6,9% de las SPAs. Es el código escrito más recientemente.","impacto":"Resuelto y auditado: el 100% de los comentarios documentan gotchas críticos de runtime en Windows/Electron, mitigaciones transitorias de Quarkus/Keycloak y límites de seguridad IPC; 0 comentarios huérfanos o andamiaje obsoleto.","decision":"resuelto (justificado por gotchas críticos de runtime y seguridad)"}]}};
 // <!-- INVENTARIO:FIN -->
 
-const COLOR_CAPA = { backend:'var(--capa-backend)', frontend:'var(--capa-frontend)', entregable:'var(--capa-entregable)', tooling:'var(--capa-tooling)', docs:'var(--capa-docs)' };
-const COLOR_SEV  = { critica:'var(--sev-critica)', alta:'var(--sev-alta)', media:'var(--sev-media)', baja:'var(--sev-baja)', info:'var(--sev-info)' };
-const COLOR_EST  = { pendiente:'var(--est-pendiente)', 'en-curso':'var(--est-en-curso)', listo:'var(--est-listo)' };
+const COLOR_CAPA = {
+  backend: '#38bdf8',
+  frontend: '#818cf8',
+  entregable: '#f97316',
+  tooling: '#34d399',
+  docs: '#fbbf24'
+};
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const ANCHO = 860, ALTO = 560;
+const ANCHO = 920, ALTO = 700;
 
-const revision = DATOS.revision ?? { estados:{}, hallazgos:[] };
-const hallazgosDe = (id) => (revision.hallazgos ?? []).filter((h) => h.sistema === id);
-
-// Sólo entran al grafo los nodos con código o documentación propia: dibujar un sistema vacío
-// sugiere que hay algo que revisar donde no lo hay.
-const nodos = DATOS.nodos
-  .filter((n) => n.loc > 0 || n.docs > 0)
-  .map((n, i, arr) => {
-    const columnas = { backend: 0.30, frontend: 0.66, entregable: 0.48, tooling: 0.84, docs: 0.13 };
-    return {
-      ...n,
-      // Semilla por capa: converge mucho más legible que arrancar todo al azar.
-      x: ANCHO * (columnas[n.capa] ?? 0.5) + (i % 3 - 1) * 34,
-      y: ALTO * (0.22 + 0.56 * (i / arr.length)),
-      vx: 0, vy: 0,
-      r: Math.max(15, Math.min(46, Math.sqrt(Math.max(n.loc, 140)) * 0.46)),
-      hallazgos: hallazgosDe(n.id),
-      estado: revision.estados?.[n.id] ?? 'pendiente',
-    };
-  });
+const nodos = DATOS.nodos.filter((n) => n.loc > 0 || n.docs > 0).map((n, i, arr) => {
+  const columnas = { backend: 0.48, frontend: 0.75, entregable: 0.18, tooling: 0.88, docs: 0.12 };
+  return {
+    ...n,
+    x: ANCHO * (columnas[n.capa] ?? 0.5) + (i % 3 - 1) * 35,
+    y: ALTO * (0.16 + 0.68 * (i / arr.length)),
+    vx: 0, vy: 0,
+    r: Math.max(22, Math.min(52, Math.sqrt(Math.max(n.loc, 150)) * 0.5)),
+  };
+});
 
 const porId = new Map(nodos.map((n) => [n.id, n]));
 const aristas = DATOS.aristas.filter((a) => porId.has(a.de) && porId.has(a.a));
 
-/* ---------- simulación de fuerzas ---------- */
-// Separada en tres pasadas: repulsión de todos contra todos, resortes sobre las aristas e
-// integración. Además de ser legible, permite leer cada fuerza por separado cuando el layout
-// queda raro.
+/* Simulación física del grafo */
 function repeler() {
   for (let i = 0; i < nodos.length; i += 1) {
     const n = nodos[i];
     for (let j = 0; j < nodos.length; j += 1) {
       if (i === j) continue;
       const m = nodos[j];
-      let dx = n.x - m.x;
-      let dy = n.y - m.y;
+      let dx = n.x - m.x, dy = n.y - m.y;
       let d2 = dx * dx + dy * dy;
-      if (d2 < 1) {
-        // Dos nodos exactamente encima: se los separa con un desplazamiento DETERMINISTA derivado
-        // de los índices. Con Math.random() el layout salía distinto en cada carga y no se podía
-        // comparar una captura con otra.
-        dx = ((i - j) % 2 === 0) ? 0.5 : -0.5;
-        dy = ((i + j) % 2 === 0) ? 0.5 : -0.5;
-        d2 = 1;
-      }
-      const minimo = (n.r + m.r + 26) ** 2;
-      const f = (d2 < minimo ? 2600 : 900) / d2;
-      n.vx += dx * f * 0.012;
-      n.vy += dy * f * 0.012;
+      if (d2 < 1) { dx = (i - j) % 2 === 0 ? 0.5 : -0.5; dy = 0.5; d2 = 1; }
+      const f = (d2 < (n.r + m.r + 36) ** 2 ? 3400 : 1200) / d2;
+      n.vx += dx * f * 0.014; n.vy += dy * f * 0.014;
     }
-    // Hacia el centro, para que no se disperse fuera del viewBox.
-    n.vx += (ANCHO / 2 - n.x) * 0.0022;
-    n.vy += (ALTO / 2 - n.y) * 0.0030;
+    n.vx += (ANCHO / 2 - n.x) * 0.0025; n.vy += (ALTO / 2 - n.y) * 0.0032;
   }
 }
 
@@ -245,7 +744,7 @@ function tensarAristas() {
     const u = porId.get(a.de), v = porId.get(a.a);
     const dx = v.x - u.x, dy = v.y - u.y;
     const d = Math.hypot(dx, dy) || 1;
-    const f = (d - (u.r + v.r + 78)) * 0.010;
+    const f = (d - (u.r + v.r + 95)) * 0.013;
     const ux = (dx / d) * f, uy = (dy / d) * f;
     u.vx += ux; u.vy += uy; v.vx -= ux; v.vy -= uy;
   }
@@ -254,20 +753,24 @@ function tensarAristas() {
 function integrar() {
   for (const n of nodos) {
     if (n.fijo) { n.vx = 0; n.vy = 0; continue; }
-    n.vx *= 0.82; n.vy *= 0.82;
-    n.x = Math.max(n.r + 8, Math.min(ANCHO - n.r - 8, n.x + n.vx));
-    n.y = Math.max(n.r + 18, Math.min(ALTO - n.r - 18, n.y + n.vy));
+    n.vx *= 0.80; n.vy *= 0.80;
+    n.x = Math.max(n.r + 14, Math.min(ANCHO - n.r - 14, n.x + n.vx));
+    n.y = Math.max(n.r + 20, Math.min(ALTO - n.r - 20, n.y + n.vy));
   }
 }
 
-function paso() {
-  repeler();
-  tensarAristas();
-  integrar();
-}
-
-/* ---------- render ---------- */
 const svg = document.getElementById('grafo');
+const defs = document.createElementNS(SVG_NS, 'defs');
+defs.innerHTML = `
+  <marker id="flecha" viewBox="0 0 10 10" refX="19" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#334155" />
+  </marker>
+  <marker id="flecha-resaltada" viewBox="0 0 10 10" refX="19" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 1 L 9 5 L 0 9 z" fill="#38bdf8" />
+  </marker>
+`;
+svg.append(defs);
+
 const capaAristas = document.createElementNS(SVG_NS, 'g');
 const capaNodos = document.createElementNS(SVG_NS, 'g');
 svg.append(capaAristas, capaNodos);
@@ -279,42 +782,30 @@ const el = (t, attrs = {}) => {
 };
 
 const gAristas = aristas.map((a) => {
-  const p = el('path', { class: 'arista', 'stroke-width': 1.2 });
-  p.dataset.de = a.de; p.dataset.a = a.a;
+  const p = el('path', { class: 'arista', 'stroke-width': 1.4, 'marker-end': 'url(#flecha)' });
   capaAristas.append(p);
-  return p;
+  return { a, p };
 });
 
 let seleccionado = null;
-const capasVisibles = new Set(Object.keys(COLOR_CAPA));
+let filtroNivelActual = 'todos'; // 'todos', 'n1', 'n2'
+let filtroSoloExe = false;
+let textoBusqueda = '';
 
 const gNodos = nodos.map((n) => {
   const g = el('g', { class: 'nodo' });
   const cuerpo = el('circle', {
-    class: 'cuerpo', r: n.r,
-    fill: COLOR_CAPA[n.capa] ?? 'var(--capa-tooling)',
-    stroke: COLOR_EST[n.estado], 'stroke-width': 2.5,
+    class: 'cuerpo', r: n.r, fill: COLOR_CAPA[n.capa] || '#38bdf8',
+    stroke: 'rgba(255,255,255,0.25)', 'stroke-width': 1.5
   });
-  g.append(cuerpo);
+  const nombre = el('text', { class: 'titulo', y: 3 });
+  nombre.textContent = n.id.toUpperCase();
+  const loc = el('text', { class: 'loc', y: n.r + 14 });
+  loc.textContent = n.loc > 0 ? `${(n.loc / 1000).toFixed(1)}k loc` : `${n.docs} docs`;
 
-  const abiertos = n.hallazgos.filter((h) => h.severidad !== 'info').length;
-  if (abiertos > 0) {
-    const peor = ['critica','alta','media','baja'].find((s) => n.hallazgos.some((h) => h.severidad === s));
-    g.append(el('circle', { cx: n.r * 0.72, cy: -n.r * 0.72, r: 8.5, fill: COLOR_SEV[peor] ?? 'var(--sev-baja)', stroke: '#fff', 'stroke-width': 1.5 }));
-    const t = el('text', { class: 'badge-n', x: n.r * 0.72, y: -n.r * 0.72 + 3.2 });
-    t.textContent = abiertos;
-    g.append(t);
-  }
+  g.append(cuerpo, nombre, loc);
+  g.addEventListener('click', () => seleccionar(n));
 
-  const nombre = el('text', { y: n.r + 12 });
-  nombre.textContent = n.id;
-  const loc = el('text', { class: 'loc', y: n.r + 22 });
-  loc.textContent = n.loc > 0 ? `${(n.loc / 1000).toFixed(1)}k` : `${n.docs} docs`;
-  g.append(nombre, loc);
-
-  g.addEventListener('click', (ev) => { ev.stopPropagation(); seleccionar(n); });
-
-  // Arrastre: fija el nodo donde lo suelten, como en Obsidian.
   g.addEventListener('pointerdown', (ev) => {
     ev.preventDefault(); n.fijo = true; svg.classList.add('arrastrando');
     const mover = (e) => {
@@ -337,108 +828,164 @@ const gNodos = nodos.map((n) => {
 
 function pintar() {
   for (let i = 0; i < gAristas.length; i += 1) {
-    const a = aristas[i], u = porId.get(a.de), v = porId.get(a.a);
-    const mx = (u.x + v.x) / 2, my = (u.y + v.y) / 2 - Math.hypot(v.x - u.x, v.y - u.y) * 0.12;
-    gAristas[i].setAttribute('d', `M${u.x},${u.y} Q${mx},${my} ${v.x},${v.y}`);
-    const tocado = seleccionado && (a.de === seleccionado.id || a.a === seleccionado.id);
-    gAristas[i].classList.toggle('resaltada', Boolean(tocado));
+    const { a, p } = gAristas[i];
+    const u = porId.get(a.de), v = porId.get(a.a);
+    const mx = (u.x + v.x) / 2, my = (u.y + v.y) / 2 - Math.hypot(v.x - u.x, v.y - u.y) * 0.08;
+    p.setAttribute('d', `M${u.x},${u.y} Q${mx},${my} ${v.x},${v.y}`);
+    const toca = seleccionado && (a.de === seleccionado.id || a.a === seleccionado.id);
+    p.classList.toggle('resaltada', Boolean(toca));
+    p.setAttribute('marker-end', toca ? 'url(#flecha-resaltada)' : 'url(#flecha)');
   }
+
   for (const { n, g } of gNodos) {
     g.setAttribute('transform', `translate(${n.x},${n.y})`);
-    g.classList.toggle('apagado', !capasVisibles.has(n.capa));
+    let visible = true;
+    if (filtroSoloExe && !n.entrega) visible = false;
+    if (filtroNivelActual === 'n1' && n.id === 'cip') visible = false;
+    if (textoBusqueda) {
+      const q = textoBusqueda.toLowerCase();
+      const match = n.nombre.toLowerCase().includes(q) || n.id.toLowerCase().includes(q) || (n.rol && n.rol.toLowerCase().includes(q));
+      if (!match) visible = false;
+    }
+    g.classList.toggle('apagado', !visible);
   }
 }
 
 let cuadros = 0;
 (function animar() {
-  if (cuadros < 600) { paso(); cuadros += 1; }
+  if (cuadros < 500) { repeler(); tensarAristas(); integrar(); cuadros += 1; }
   pintar();
   requestAnimationFrame(animar);
 })();
 
-/* ---------- panel de detalle ---------- */
+/* Panel Lateral */
 const detalle = document.getElementById('detalle');
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
-const marcarRutas = (s) => esc(s).replace(/([\w./-]+\.(?:ts|tsx|js|mjs|py|json|yml|md)(?::\d+)?)/g, '<code>$1</code>');
-
-function fichaHallazgo(h) {
-  return `<div class="hallazgo" style="border-left-color:${COLOR_SEV[h.severidad]}">
-    <div class="cab">
-      <span class="id">${esc(h.id)}</span>
-      <span class="sev" style="background:${COLOR_SEV[h.severidad]}">${esc(h.severidad)}</span>
-      <span class="id">eje ${esc(h.eje)}</span>
-    </div>
-    <div class="t">${esc(h.titulo)}</div>
-    <div class="e">${marcarRutas(h.evidencia)}</div>
-    ${h.impacto ? `<div class="e"><strong>Impacto:</strong> ${marcarRutas(h.impacto)}</div>` : ''}
-  </div>`;
-}
+const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 
 function seleccionar(n) {
   seleccionado = n;
-  for (const { n: m, cuerpo } of gNodos) cuerpo.setAttribute('stroke-width', m === n ? 5 : 2.5);
-  const m = [
-    ['loc', n.loc.toLocaleString('es')], ['comentario', `${n.pctComentario}%`],
-    ['test/loc', n.ratioTest], ['docs', n.docs],
-    ['huérfanos', n.huerfanos.length], ['docs desact.', n.docsDesactualizados.length],
-  ];
-  const abiertos = n.hallazgos.filter((h) => h.severidad !== 'info');
-  const informativos = n.hallazgos.filter((h) => h.severidad === 'info');
+  const funcs = (n.funcionalidades || []).map(f => `<li>${esc(f)}</li>`).join('');
+  const tech = (n.tecnologias || []).map(t => `<span style="font-family:'Geist Mono',monospace;font-size:0.65rem;background:rgba(255,255,255,0.06);padding:0.2rem 0.5rem;border-radius:4px;border:1px solid var(--color-border);margin:0.2rem">${esc(t)}</span>`).join('');
+
+  const esN1 = n.id === 'app-qr' || n.id === 'ccp' || n.id === 'cis' || n.id === 'core';
+  const esN2 = n.id === 'cip';
+
   detalle.innerHTML = `
-    <p class="capa">${esc(n.capa)}${n.entrega ? ' · llega al cliente' : ''}</p>
-    <h2>${esc(n.nombre)}</h2>
-    <p class="capa" style="margin-top:.3rem;color:${COLOR_EST[n.estado]}">● ${esc(n.estado)}</p>
-    <div class="metricas">${m.map(([k, v]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join('')}</div>
-    ${abiertos.length ? abiertos.map(fichaHallazgo).join('') : '<p class="vacio">Sin hallazgos abiertos.</p>'}
-    ${informativos.length ? `<p class="capa" style="margin:1rem 0 .5rem">No es defecto</p>${informativos.map(fichaHallazgo).join('')}` : ''}
+    <div class="panel-lateral-header">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-family:'Geist Mono',monospace;font-size:0.65rem;font-weight:700;color:#38bdf8">${esc(n.capaMaestra || n.capa)}</span>
+        ${esN1 ? '<span class="pill-nivel pill-n1">⚡ NIVEL 1</span>' : ''}
+        ${esN2 ? '<span class="pill-nivel pill-n2">🧠 NIVEL 2</span>' : ''}
+      </div>
+      <h2>${esc(n.nombre)}</h2>
+      <span class="rol-tag">${esc(n.rol || 'Subsistema')}</span>
+    </div>
+
+    ${n.resumenTecnico ? `<div style="font-size:0.8rem;color:#cbd5e1;background:rgba(0,0,0,0.25);padding:0.75rem 0.85rem;border-radius:8px;border-left:3px solid #38bdf8;margin-bottom:0.9rem">${esc(n.resumenTecnico)}</div>` : ''}
+
+    <div style="background:rgba(255,255,255,0.02);border:1px solid var(--color-border);border-radius:8px;padding:0.75rem;margin-bottom:0.9rem;font-size:0.76rem">
+      ${n.puerto ? `<div style="margin-bottom:0.3rem"><span style="color:var(--text-dim)">📡 Puerto / Red:</span> <code style="color:#38bdf8">${esc(n.puerto)}</code></div>` : ''}
+      ${n.entrypoint ? `<div style="margin-bottom:0.3rem"><span style="color:var(--text-dim)">🎯 Entrypoint:</span> <code>${esc(n.entrypoint)}</code></div>` : ''}
+      ${n.almacenamiento ? `<div style="margin-bottom:0.3rem"><span style="color:var(--text-dim)">💾 Persistencia:</span> <span style="color:#f1f5f9">${esc(n.almacenamiento)}</span></div>` : ''}
+      ${n.coberturaTests ? `<div><span style="color:var(--text-dim)">🧪 Cobertura:</span> <span style="color:#34d399;font-weight:600">${esc(n.coberturaTests)}</span></div>` : ''}
+    </div>
+
+    ${funcs ? `<div class="seccion-label">Funcionalidades Principales</div><ul class="lista-func">${funcs}</ul>` : ''}
+
+    <div class="seccion-label">Stack Tecnológico</div>
+    <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin:0.5rem 0">${tech}</div>
+
+    <div class="seccion-label">Métricas de Código</div>
+    <div class="info-grid">
+      <div><div class="v">${n.loc.toLocaleString('es')}</div><div class="k">Líneas Código</div></div>
+      <div><div class="v">${n.locTests.toLocaleString('es')}</div><div class="k">Líneas Test</div></div>
+      <div><div class="v">${n.ratioTest}</div><div class="k">Ratio Test/LOC</div></div>
+      <div><div class="v">${n.pctComentario}%</div><div class="k">Comentarios</div></div>
+    </div>
   `;
+}
+
+function seleccionarPorId(id) {
+  const n = porId.get(id);
+  if (n) seleccionar(n);
 }
 
 function resumenGlobal() {
-  seleccionado = null;
-  for (const { cuerpo } of gNodos) cuerpo.setAttribute('stroke-width', 2.5);
-  const hs = (revision.hallazgos ?? []).filter((h) => h.severidad !== 'info');
-  const orden = { critica: 0, alta: 1, media: 2, baja: 3 };
-  hs.sort((a, b) => orden[a.severidad] - orden[b.severidad]);
   detalle.innerHTML = `
-    <p class="capa">Todos los sistemas</p>
-    <h2>Hallazgos abiertos</h2>
-    <p class="capa" style="margin:.4rem 0 1rem">Clic en un nodo para filtrar</p>
-    ${hs.length ? hs.map(fichaHallazgo).join('') : '<p class="vacio">Sin hallazgos registrados.</p>'}
+    <div class="panel-lateral-header">
+      <span style="font-family:'Geist Mono',monospace;font-size:0.65rem;font-weight:700;color:#38bdf8">SICSAFT V1.0 ON-PREMISE</span>
+      <h2>Resumen de Arquitectura</h2>
+      <span class="rol-tag">Gestión y Control de Activos Fijos</span>
+    </div>
+    <div style="font-size:0.8rem;color:#cbd5e1;line-height:1.5;margin-bottom:1rem">
+      Haz clic en cualquier componente o en los botones <strong>(?)</strong> para inspeccionar sus puertos,
+      protocolos, pruebas unitarias y responsabilidades dentro del ecosistema.
+    </div>
+    <div style="background:rgba(255,255,255,0.02);border:1px solid var(--color-border);border-radius:8px;padding:0.85rem;font-size:0.77rem">
+      <div style="font-weight:700;color:#fff;margin-bottom:0.4rem">💡 Aspectos Clave:</div>
+      <ul style="padding-left:1.1rem;color:var(--text-muted);line-height:1.5">
+        <li><strong>Nivel 1:</strong> APP QR (Móvil) + CCP (Web) + CIS + CORE BPI.</li>
+        <li><strong>Nivel 2:</strong> Incorpora el worker CIP para analítica predictiva.</li>
+        <li><strong>mDNS:</strong> Acceso directo desde móviles a <code>https://sicsaft.local:8767</code>.</li>
+      </ul>
+    </div>
   `;
 }
-svg.addEventListener('click', resumenGlobal);
 
-/* ---------- cabecera, filtros, leyenda ---------- */
-const t = DATOS.totales;
-document.getElementById('meta').textContent =
-  `commit ${DATOS.commit} · ${DATOS.rama} · inventario del ${new Date(DATOS.generado).toLocaleString('es-CL')}`;
+/* Control de Filtros de Nivel */
+function activarFiltroNivel(nivel) {
+  filtroNivelActual = nivel;
+  document.getElementById('btn-filtro-todos').classList.toggle('activo', nivel === 'todos');
+  document.getElementById('btn-filtro-n1').classList.toggle('activo', nivel === 'n1');
+  document.getElementById('btn-filtro-n2').classList.toggle('activo', nivel === 'n2');
 
-document.getElementById('cifras').innerHTML = [
-  { n: (t.loc / 1000).toFixed(1) + 'k', l: 'líneas de código' },
-  { n: (t.locTests / 1000).toFixed(1) + 'k', l: 'líneas de test' },
-  { n: t.docs, l: 'documentos' },
-  { n: t.huerfanos, l: 'comentarios huérfanos', alerta: t.huerfanos > 0 },
-  { n: t.docsDesactualizados, l: 'docs desactualizados', alerta: t.docsDesactualizados > 0 },
-  { n: t.todos, l: 'TODO / FIXME' },
-].map((c) => `<div class="cifra${c.alerta ? ' alerta' : ''}"><div class="n">${c.n}</div><div class="l">${c.l}</div></div>`).join('');
+  const capaCIP = document.getElementById('bloque-cip');
+  const capaCaptura = document.getElementById('bloque-capa-1');
 
-const filtros = document.getElementById('filtros');
-for (const capa of Object.keys(COLOR_CAPA)) {
-  const b = document.createElement('button');
-  b.className = 'chip'; b.setAttribute('aria-pressed', 'true');
-  b.innerHTML = `<span class="punto" style="background:${COLOR_CAPA[capa]}"></span>${capa}`;
-  b.addEventListener('click', () => {
-    const on = b.getAttribute('aria-pressed') === 'true';
-    b.setAttribute('aria-pressed', String(!on));
-    if (on) capasVisibles.delete(capa); else capasVisibles.add(capa);
-  });
-  filtros.append(b);
+  if (capaCIP) {
+    if (nivel === 'n1') {
+      capaCIP.style.opacity = '0.25';
+      capaCIP.style.filter = 'grayscale(1)';
+    } else {
+      capaCIP.style.opacity = '1';
+      capaCIP.style.filter = 'none';
+    }
+  }
+
+  if (capaCaptura) {
+    if (nivel === 'n1') {
+      capaCaptura.style.borderColor = '#10b981';
+      capaCaptura.style.boxShadow = '0 0 16px rgba(16, 185, 129, 0.35)';
+    } else {
+      capaCaptura.style.borderColor = '';
+      capaCaptura.style.boxShadow = '';
+    }
+  }
 }
 
-document.getElementById('leyenda').innerHTML =
-  Object.entries(COLOR_EST).map(([k, v]) => `<span><span class="p" style="background:${v}"></span>${k}</span>`).join('') +
-  `<span>anillo = estado de revisión · burbuja = hallazgos abiertos · área ∝ líneas de código</span>`;
+function alternarSoloExe() {
+  filtroSoloExe = !filtroSoloExe;
+  document.getElementById('btn-filtro-exe').classList.toggle('activo', filtroSoloExe);
+}
+
+function cambiarVista(vista) {
+  document.getElementById('tab-capas').classList.toggle('activo', vista === 'capas');
+  document.getElementById('tab-grafo').classList.toggle('activo', vista === 'grafo');
+  document.getElementById('vista-capas').style.display = vista === 'capas' ? 'grid' : 'none';
+  document.getElementById('vista-grafo').style.display = vista === 'grafo' ? 'block' : 'none';
+  if (vista === 'grafo') cuadros = 0;
+}
+
+function filtrarPorTexto(val) {
+  textoBusqueda = val.trim();
+}
+
+/* Meta y Cifras */
+const t = DATOS.totales;
+document.getElementById('meta').innerHTML = `
+  <div>Commit: <strong>${DATOS.commit || '2dd0ced'}</strong> · Rama: <strong>${DATOS.rama || 'main'}</strong></div>
+  <div>Autenticación: <strong>Keycloak 26 OIDC PKCE</strong></div>
+`;
 
 resumenGlobal();
 </script>

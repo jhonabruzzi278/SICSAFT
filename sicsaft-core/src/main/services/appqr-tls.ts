@@ -64,6 +64,7 @@ export async function obtenerCertificadoAppQr(): Promise<CertificadoTls> {
         altNames: [
           { type: 7, ip }, // IP SAN -- el host real por el que llega el teléfono
           { type: 2, value: "localhost" }, // por si se prueba desde la misma PC
+          { type: 2, value: "sicsaft.local" }, // mDNS SAN (FUT-04) -- resolución local amigable
         ],
       },
     ],

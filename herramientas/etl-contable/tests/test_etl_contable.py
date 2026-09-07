@@ -254,3 +254,32 @@ def test_enviar_a_cis_error(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(requests, "post", lambda *a, **k: RespFake())
     with pytest.raises(SystemExit, match="403"):
         etl.enviar_a_cis({}, "http://cis", "jwt")
+
+
+def test_aprobar_lote_en_cis_ok(monkeypatch: pytest.MonkeyPatch):
+    llamadas: dict[str, object] = {}
+
+    class RespFake:
+        status_code = 200
+
+        @staticmethod
+        def json() -> dict[str, object]:
+            return {"insertados": 60, "actualizados": 0, "conflictos": 0}
+
+    def post_fake(url: str, json: dict, headers: dict, timeout: int):
+        llamadas.update(url=url, json=json, headers=headers)
+        return RespFake()
+
+    import requests
+
+    monkeypatch.setattr(requests, "post", post_fake)
+    resultado = etl.aprobar_lote_en_cis("lote-123", "http://cis:56000/", "jwt-123")
+
+    assert resultado == {"insertados": 60, "actualizados": 0, "conflictos": 0}
+    assert llamadas["url"] == "http://cis:56000/admin/importaciones/contable/lote/lote-123/aprobar"
+    assert llamadas["headers"]["Authorization"] == "Bearer jwt-123"
+
+
+def test_acunar_qr_con_prefijo():
+    assert etl.acunar_qr("DG-001", "QR-") == "QR-DG-001"
+    assert etl.acunar_qr("dg-001") == "DG-001"

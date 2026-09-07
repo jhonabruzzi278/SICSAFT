@@ -436,7 +436,8 @@ const ESTRUCTURA_PROYECTOS = [
       { id: 'CORE-04', titulo: 'Motor de Orquestación Patrimonial (MOP) y Reglas CFPS', desc: 'Validación estricta de reglas de negocio antes de modificar BPI.', estado: 'done', prio: 1, sistema: 'core', milestone: 'v1.0.0 — Motor Patrimonial BPI' },
       { id: 'CORE-05', titulo: 'Ingesta y Veredicto de Inventarios ("Pantalla 8")', desc: 'Procesamiento de sesiones de escaneo y cálculo de veredicto (DOC-029 RF-I).', estado: 'done', prio: 2, sistema: 'core', milestone: 'v1.0.0 — Motor Patrimonial BPI' },
       { id: 'CORE-06', titulo: 'Altas, Bajas, Reincorporaciones e Importación Staging', desc: 'Escritura oficial patrimonial y bandeja de revisión Excel.', estado: 'done', prio: 2, sistema: 'core', milestone: 'v1.0.0 — Motor Patrimonial BPI' },
-      { id: 'CORE-07', titulo: 'Motor de Auditoría Inmutable y Trazabilidad Transversal', desc: 'Registro permanente de eventos de seguridad y operaciones.', estado: 'done', prio: 2, sistema: 'core', milestone: 'v1.0.0 — Motor Patrimonial BPI' },
+      { id: 'CORE-07', titulo: 'Motor de Auditoría Inmutable y Trazabilidad Transversal', desc: 'Registro permanente de eventos de seguridad y operaciones.', estado: 'done', prio: 1, sistema: 'core', milestone: 'v1.0.0 — Motor Patrimonial BPI' },
+      { id: 'CORE-08', titulo: 'Separación de Roles Keycloak: Supervisor Patrimonial y Auditor', desc: 'Roles diferenciados de auditoría solo-lectura y supervisión patrimonial (DOC-029).', estado: 'todo', prio: 3, sistema: 'core', milestone: 'v1.0.0 — Motor Patrimonial BPI' },
     ],
   },
   {
@@ -460,11 +461,12 @@ const ESTRUCTURA_PROYECTOS = [
       { id: 'CCP-04', titulo: 'Módulo de Etiquetas y Generación de Códigos QR (RF-F)', desc: 'Impresión y acuñación de identificadores patrimoniales.', estado: 'done', prio: 3, sistema: 'ccp', milestone: 'v1.0.0 — Portales Web y Móvil Operativos' },
       { id: 'CCP-05', titulo: 'Visor de Sesiones de Control y Auditoría Operativa (RF-E)', desc: 'Monitoreo de inventarios ejecutados en terreno.', estado: 'done', prio: 3, sistema: 'ccp', milestone: 'v1.0.0 — Portales Web y Móvil Operativos' },
       { id: 'CCP-06', titulo: 'Segmentación por Rol Directivo y Profesional AFT', desc: 'Control de acceso basado en roles Keycloak 26 (DOC-022).', estado: 'done', prio: 2, sistema: 'core-frontend', milestone: 'v1.0.0 — Portales Web y Móvil Operativos' },
+      { id: 'CCP-07', titulo: 'Veredicto de Sesión Accionable y Auto-Auditoría', desc: 'Deep links del resumen a auditoría/inventario y registro automático de incidencias.', estado: 'todo', prio: 2, sistema: 'ccp', milestone: 'v1.0.0 — Portales Web y Móvil Operativos' },
       { id: 'QR-01', titulo: 'Flujo Oficial de Captura de 8 Pasos (DOC-001)', desc: 'Identificación, escaneo QR, validación y registro de incidencias.', estado: 'done', prio: 2, sistema: 'app-qr', milestone: 'v1.0.0 — Portales Web y Móvil Operativos' },
       { id: 'QR-02', titulo: 'Conector QR y Sincronización HTTP con CIS (DOC-002)', desc: 'Cliente HTTP contra API oficial con autenticación OIDC.', estado: 'done', prio: 2, sistema: 'app-qr', milestone: 'v1.0.0 — Portales Web y Móvil Operativos' },
       { id: 'QR-03', titulo: 'Modo Offline con IndexedDB y Cola de Reintentos', desc: 'Resiliencia para operación en terreno sin cobertura de red.', estado: 'done', prio: 2, sistema: 'app-qr', milestone: 'v1.0.0 — Portales Web y Móvil Operativos' },
       { id: 'QR-04', titulo: 'Auditoría Local Inmutable con correlationId', desc: 'Registro inmutable en el dispositivo móvil.', estado: 'done', prio: 3, sistema: 'app-qr', milestone: 'v1.0.0 — Portales Web y Móvil Operativos' },
-      { id: 'QR-05', titulo: 'Prueba en Dispositivo Físico Android y Validación de Cámara', desc: 'Validación en terreno de cámara, escáner y PWA instalada.', estado: 'todo', prio: 2, sistema: 'app-qr', milestone: 'v1.1.0 — Validación en Terreno Físico' },
+      { id: 'QR-05', titulo: 'Prueba en Dispositivo Físico Android y Validación de Cámara', desc: 'Validación en terreno de cámara, escáner y PWA instalada en teléfonos reales (P0 Demo).', estado: 'todo', prio: 1, sistema: 'app-qr', milestone: 'v1.1.0 — Validación en Terreno Físico' },
     ],
   },
   {
@@ -484,7 +486,9 @@ const ESTRUCTURA_PROYECTOS = [
       { id: 'CIP-01', titulo: 'Worker de Agregación Asíncrona con PostgreSQL pg-boss', desc: 'Procesamiento desacoplado de eventos patrimoniales vía colas.', estado: 'done', prio: 2, sistema: 'cip', milestone: 'v1.0.0 — Worker y Dashboards Básicos' },
       { id: 'CIP-02', titulo: 'Métricas de Rendimiento, Veredictos y Estados', desc: 'Cálculo analítico de cobertura de inventario y estado de bienes.', estado: 'done', prio: 2, sistema: 'cip', milestone: 'v1.0.0 — Worker y Dashboards Básicos' },
       { id: 'CIP-03', titulo: 'API de Dashboards e Indicadores para Rol Directivo', desc: 'Servicio de analítica consumido por el portal directivo.', estado: 'done', prio: 2, sistema: 'cip', milestone: 'v1.0.0 — Worker y Dashboards Básicos' },
-      { id: 'CIP-04', titulo: 'Alertas Analíticas y Detección de Inconsistencias', desc: 'Motor predictivo y avisos de desvíos patrimoniales.', estado: 'todo', prio: 3, sistema: 'cip', milestone: 'v2.0.0 — Analítica Predictiva y Riesgo' },
+      { id: 'CIP-04', titulo: 'Alertas Analíticas y Detección de Inconsistencias', desc: 'Motor predictivo y avisos de desvíos patrimoniales (Fase 9 / DOC-026).', estado: 'todo', prio: 3, sistema: 'cip', milestone: 'v2.0.0 — Analítica Predictiva y Riesgo' },
+      { id: 'CIP-05', titulo: 'Arranque Condicional y Degradación Elegante Nivel 1 sin CIP', desc: 'CIS degrada limpiamente si CIP no está desplegado en Nivel 1, optimizando recursos del .exe cliente.', estado: 'done', prio: 2, sistema: 'cis', milestone: 'v1.0.0 — Worker y Dashboards Básicos' },
+      { id: 'CIP-06', titulo: 'Evolución Patrimonial Temporal y Score de Riesgo (RF-15/RF-16)', desc: 'Serie temporal de patrimonio y matriz explicable de riesgo por activo (DOC-026).', estado: 'todo', prio: 3, sistema: 'cip', milestone: 'v2.0.0 — Analítica Predictiva y Riesgo' },
     ],
   },
   {
@@ -508,7 +512,8 @@ const ESTRUCTURA_PROYECTOS = [
       { id: 'EXE-04', titulo: 'Servidor de Portales Embebidos y Servido PWA QR por LAN', desc: 'Acceso a terminales móviles desde la red local.', estado: 'done', prio: 2, sistema: 'sicsaft-core', milestone: 'v1.0.0 — Instalador .EXE y Runbook' },
       { id: 'EXE-05', titulo: 'Watcher de Ingesta Automática de Carpetas de Red', desc: 'Vigilancia de archivos Excel contables y ejecución de ETL.', estado: 'done', prio: 2, sistema: 'sicsaft-core', milestone: 'v1.0.0 — Instalador .EXE y Runbook' },
       { id: 'EXE-06', titulo: 'Empaquetado de Instalador Windows Inno Setup (.iss)', desc: 'Instalador desatendido para infraestructura on-premise.', estado: 'done', prio: 2, sistema: 'devops', milestone: 'v1.0.0 — Instalador .EXE y Runbook' },
-      { id: 'EXE-07', titulo: 'Verificación E2E de Instalador .EXE en VM Windows Limpia', desc: 'Prueba de instalación completa desde cero en máquina limpia.', estado: 'todo', prio: 2, sistema: 'sicsaft-core', milestone: 'v1.1.0 — Certificación en VM Limpia' },
+      { id: 'EXE-07', titulo: 'Verificación E2E de Instalador .EXE en VM Windows Limpia', desc: 'Prueba de instalación completa desde cero en máquina limpia sin herramientas de desarrollo (INST-1 / P0 Demo).', estado: 'todo', prio: 1, sistema: 'sicsaft-core', milestone: 'v1.1.0 — Certificación en VM Limpia' },
+      { id: 'EXE-08', titulo: 'Firma de Código del Instalador Windows (SmartScreen OV/EV)', desc: 'Certificado digital de firma de ejecutables para eliminar alertas de Windows Defender en clientes finales (INST-2).', estado: 'done', prio: 2, sistema: 'devops', milestone: 'v1.1.0 — Certificación en VM Limpia' },
     ],
   },
   {
@@ -527,7 +532,7 @@ const ESTRUCTURA_PROYECTOS = [
       { id: 'FUT-01', titulo: 'APK Nativa Android con WebView Kotlin (apk-aft/)', desc: 'Compilación, robustecimiento de red y servido del binario .apk con selector de QR.', estado: 'done', prio: 3, sistema: 'sicsaft-core', milestone: 'v2.0.0 — Ecosistema Extendido' },
       { id: 'FUT-02', titulo: 'Subsistema y Conector RFID Nivel 3 (rfid/)', desc: 'Lectura masiva de tags y zonificación en tiempo real.', estado: 'todo', prio: 3, sistema: 'docs', milestone: 'v2.0.0 — Ecosistema Extendido' },
       { id: 'FUT-03', titulo: 'Conector ERP / Contabilidad Bidireccional (DOC-016)', desc: 'Intercambio automático con sistemas contables institucionales.', estado: 'todo', prio: 4, sistema: 'herramientas', milestone: 'v2.0.0 — Ecosistema Extendido' },
-      { id: 'FUT-04', titulo: 'Soporte de Red mDNS / Hostname .local para APP QR', desc: 'Resolución de nombres local sin depender de IP fija.', estado: 'todo', prio: 3, sistema: 'sicsaft-core', milestone: 'v2.0.0 — Ecosistema Extendido' },
+      { id: 'FUT-04', titulo: 'Soporte de Red mDNS / Hostname .local para APP QR', desc: 'Resolución de nombres local y certificado HTTPS sin alertas de navegador en smartphones (DOC-028 C.3).', estado: 'done', prio: 2, sistema: 'sicsaft-core', milestone: 'v2.0.0 — Ecosistema Extendido' },
     ],
   },
 ];

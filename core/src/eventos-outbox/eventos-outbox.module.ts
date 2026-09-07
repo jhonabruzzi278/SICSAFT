@@ -13,7 +13,7 @@ import { EventosOutboxRepository } from './eventos-outbox.repository';
 // Fase 6 — único consumidor de @nestjs/schedule en CORE hoy, ScheduleModule.forRoot() se importa
 // acá en vez de en AppModule (mismo criterio de localidad que el resto de módulos de CORE: cada
 // feature module trae lo que necesita).
-//
+// --
 // ADR-005 — `boss.start()` aplica la migración del esquema propio de pg-boss (`pgboss` por
 // defecto) y `createQueue` es idempotente (no falla si la cola ya existe) — ambos se llaman acá,
 // una sola vez al armar el módulo, en vez de en cada `send()`.
