@@ -82,9 +82,8 @@ function buildarSistemas() {
   for (const { nombre, carpeta } of SISTEMAS_A_BUILDEAR) {
     const cwd = path.join(RAIZ_MONOREPO, carpeta);
     if (!existsSync(path.join(cwd, "node_modules"))) {
-      throw new Error(
-        `[prepack] Falta ${carpeta}/node_modules — correr "bun install" en ${carpeta}/ antes de empaquetar.`,
-      );
+      log(`instalando dependencias en ${carpeta} con ${runner.exe} …`);
+      correr(runner.exe, ["install", "--frozen-lockfile"], { cwd });
     }
     log(`build ${nombre} con ${runner.exe} …`);
     correr(runner.exe, runner.args, { cwd });

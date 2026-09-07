@@ -85,7 +85,9 @@ export function construirEjecucionEtl(datos: DatosEjecucionEtl): EjecucionEtl {
   return {
     ejecutable: datos.ejecutablePython,
     args,
-    rutaAbsoluta: isAbsolute(datos.ejecutablePython),
+    rutaAbsoluta:
+      isAbsolute(datos.ejecutablePython) ||
+      /^[a-zA-Z]:[\\/]/.test(datos.ejecutablePython),
     env: {
       ETL_TOKEN: datos.token,
     },
