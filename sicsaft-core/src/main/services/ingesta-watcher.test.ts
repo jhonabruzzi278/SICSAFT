@@ -29,7 +29,7 @@ describe("construirEjecucionEtl", () => {
     rutaScript: "C:\\repo\\herramientas\\etl-contable\\etl_contable.py",
   };
 
-  test("arma los args en el orden del contrato de DOC-029 B.6.2, sin --mapeo si no se pasa", () => {
+  test("arma los args sin exponer el token en argv y pasa ETL_TOKEN en env", () => {
     const ej = construirEjecucionEtl(base);
     expect(ej.args).toEqual([
       base.rutaScript,
@@ -39,10 +39,10 @@ describe("construirEjecucionEtl", () => {
       "muni-x",
       "--cis-url",
       "http://127.0.0.1:56000",
-      "--token",
-      "jwt-abc",
     ]);
+    expect(ej.args).not.toContain("--token");
     expect(ej.args).not.toContain("--mapeo");
+    expect(ej.env).toEqual({ ETL_TOKEN: "jwt-abc" });
     expect(ej.rutaAbsoluta).toBe(false);
   });
 
@@ -53,13 +53,12 @@ describe("construirEjecucionEtl", () => {
       cisUrl: "http://127.0.0.1:9999",
       rutaMapeo: "C:\\cfg\\mapeo-muni-x.json",
     });
-    expect(ej.args.slice(-4)).toEqual([
-      "--token",
-      "jwt-abc",
+    expect(ej.args.slice(-2)).toEqual([
       "--mapeo",
       "C:\\cfg\\mapeo-muni-x.json",
     ]);
     expect(ej.args).toContain("http://127.0.0.1:9999");
+    expect(ej.env).toEqual({ ETL_TOKEN: "jwt-abc" });
     expect(ej.rutaAbsoluta).toBe(true);
   });
 });
@@ -186,8 +185,8 @@ describe("IngestaWatcher", () => {
 
     expect(obtenerToken).toHaveBeenCalledTimes(1);
     const [ejecucion] = ejecutar.mock.calls[0] as [EjecucionEtl];
-    expect(ejecucion.args).toContain("--token");
-    expect(ejecucion.args).toContain("jwt-1");
+    expect(ejecucion.args).not.toContain("--token");
+    expect(ejecucion.env?.ETL_TOKEN).toBe("jwt-1");
     expect(ejecucion.args).toContain("muni-x");
 
     await watcher.detener();

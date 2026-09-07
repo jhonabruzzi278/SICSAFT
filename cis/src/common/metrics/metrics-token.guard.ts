@@ -24,14 +24,14 @@ export class MetricsTokenGuard implements CanActivate {
     const { token } = this.config;
 
     if (!token) {
-      // Sin METRICS_TOKEN, GET /metrics queda sin autenticar -- el default esperado en
-      // devops/local/ (CIS ahi no tiene exposicion real que proteger). Advertencia, no error,
-      // para no romper el arranque local -- pero si aparece en logs de devops/prod/ es una
-      // brecha real, ver devops/prod/README.md "Hallazgo real".
+      if (process.env.NODE_ENV === 'production') {
+        throw new UnauthorizedException(
+          'METRICS_TOKEN es obligatorio en producción para acceder a /metrics',
+        );
+      }
       if (!MetricsTokenGuard.warnedMissingToken) {
         MetricsTokenGuard.logger.warn(
-          'METRICS_TOKEN no configurado -- GET /metrics queda sin autenticar (default ' +
-            'esperado en devops/local/; revisar devops/prod/.env si aparece este warning ahi).',
+          'METRICS_TOKEN no configurado -- GET /metrics queda sin autenticar (permitido solo en dev/local; configurar METRICS_TOKEN en producción).',
         );
         MetricsTokenGuard.warnedMissingToken = true;
       }

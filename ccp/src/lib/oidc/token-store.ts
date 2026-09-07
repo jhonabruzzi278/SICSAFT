@@ -13,25 +13,11 @@ export interface StoredTokens {
 }
 
 export function saveTokens(tokens: StoredTokens): void {
-  const json = JSON.stringify(tokens);
-  sessionStorage.setItem(TOKENS_KEY, json);
-  try {
-    localStorage.setItem(TOKENS_KEY, json);
-  } catch {
-    // Si localStorage está bloqueado o lleno, no romper la sesión
-  }
+  sessionStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
 }
 
 export function loadTokens(): StoredTokens | null {
-  const raw =
-    sessionStorage.getItem(TOKENS_KEY) ??
-    (() => {
-      try {
-        return localStorage.getItem(TOKENS_KEY);
-      } catch {
-        return null;
-      }
-    })();
+  const raw = sessionStorage.getItem(TOKENS_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as StoredTokens;
@@ -42,11 +28,6 @@ export function loadTokens(): StoredTokens | null {
 
 export function clearTokens(): void {
   sessionStorage.removeItem(TOKENS_KEY);
-  try {
-    localStorage.removeItem(TOKENS_KEY);
-  } catch {
-    // ignorar
-  }
 }
 
 export interface PendingPkce {

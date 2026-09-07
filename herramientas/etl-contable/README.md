@@ -39,6 +39,35 @@ directamente; todo pasa por CIS → CORE") se cumple: este ETL es un cliente má
    `catalogoId` o `categoriaNombre` en cada fila. El Profesional de AFT las reclasifica en la
    revisión antes de aprobar. Poné `"categoria_por_defecto": null` en el `mapeo-<org>.json` para
    volver al rechazo estricto.
+8. **Detecta duplicados y rechaza el lote** si un activo no es único (ver abajo).
+
+## Duplicados: un activo no puede ser 100% igual a otro
+
+`detectar_duplicados()` corre sobre el lote ya armado y **rechaza** (`ValueError`, no se manda
+nada a CIS) cuando encuentra:
+
+| Qué se repite | Por qué no puede pasar |
+|---|---|
+| `codigoPatrimonial` | Rompe *1 activo = 1 código = 1 QR*: dos activos con la misma etiqueta y el escaneo no puede decidir cuál es. |
+| `codigoQr` | Se acuña del código, así que arrastra el mismo choque — incluso si los códigos difieren sólo en mayúsculas o espacios (`DG-001` y ` dg-001 ` son el mismo activo). |
+| `serie` | El número de serie es físicamente único: repetido significa el mismo equipo cargado dos veces con códigos distintos. |
+| La fila entera | Misma línea pegada dos veces (todos los campos de identidad iguales). |
+
+A diferencia de la categoría en blanco, esto **no lo puede resolver el revisor después**: si el
+lote entra, quedan dos activos en la BPI compitiendo por la misma etiqueta. Por eso corta acá.
+
+**Un campo vacío no cuenta como repetido.** Doce sillas idénticas sin serie son doce activos
+distintos, no un duplicado — lo que las distingue es el `codigoPatrimonial`.
+
+El mensaje dice qué valor se repite y **en qué líneas del Excel** mirarlo:
+
+```
+activos.xlsx: hay activos duplicados. 1 × codigoPatrimonial repetido: A-001 (líneas 1, 3) ·
+1 × codigoQr repetido: A-001 (líneas 1, 3). Corregir el Excel antes de cargar: ...
+```
+
+Para cargar igual y resolverlo en la revisión del CCP, poné `"rechazar_duplicados": false` en el
+`mapeo-<org>.json`: pasa a ser un aviso por stderr y el lote se manda.
 
 ## Uso
 

@@ -2,7 +2,7 @@ import { app, shell } from "electron";
 import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { log } from "./logger";
+import { registrar } from "./logger";
 
 export interface RespaldoInfo {
   nombre: string;
@@ -33,7 +33,7 @@ export async function crearRespaldoBpi(): Promise<RespaldoInfo> {
   const nombreArchivo = `sicsaft-bpi-backup-${timestamp}.sql`;
   const rutaDestino = join(carpetaRespaldos, nombreArchivo);
 
-  log(`[backup-service] Iniciando respaldo de emergencia en ${rutaDestino}`);
+  registrar("backup", `Iniciando respaldo de emergencia en ${rutaDestino}`);
 
   const recursos = rutaRecursosPostgres();
   const pgDumpall = join(recursos, "bin", "pg_dumpall.exe");
@@ -48,7 +48,7 @@ export async function crearRespaldoBpi(): Promise<RespaldoInfo> {
         { windowsHide: true, timeout: 60000 }
       );
       if (res.status === 0 && existsSync(rutaDestino) && statSync(rutaDestino).size > 0) {
-        log(`[backup-service] pg_dumpall completado con éxito: ${statSync(rutaDestino).size} bytes`);
+        registrar("backup", `pg_dumpall completado con éxito: ${statSync(rutaDestino).size} bytes`);
         // Respaldar también instalacion.json junto al dump
         respaldarInstalacionJson(carpetaRespaldos, timestamp);
         return {
@@ -58,9 +58,9 @@ export async function crearRespaldoBpi(): Promise<RespaldoInfo> {
           fechaCreacion: ahora.toISOString(),
         };
       }
-      log(`[backup-service] pg_dumpall retornó status ${res.status}: ${res.stderr?.toString()}`);
+      registrar("backup", `pg_dumpall retornó status ${res.status}: ${res.stderr?.toString()}`);
     } catch (err) {
-      log(`[backup-service] Error ejecutando pg_dumpall: ${err}`);
+      registrar("backup", `Error ejecutando pg_dumpall: ${err}`);
     }
   }
 
@@ -73,7 +73,7 @@ export async function crearRespaldoBpi(): Promise<RespaldoInfo> {
         { windowsHide: true, timeout: 60000 }
       );
       if (res.status === 0 && existsSync(rutaDestino) && statSync(rutaDestino).size > 0) {
-        log(`[backup-service] pg_dump sicsaft_core completado: ${statSync(rutaDestino).size} bytes`);
+        registrar("backup", `pg_dump sicsaft_core completado: ${statSync(rutaDestino).size} bytes`);
         respaldarInstalacionJson(carpetaRespaldos, timestamp);
         return {
           nombre: nombreArchivo,
@@ -83,7 +83,7 @@ export async function crearRespaldoBpi(): Promise<RespaldoInfo> {
         };
       }
     } catch (err) {
-      log(`[backup-service] Error ejecutando pg_dump fallback: ${err}`);
+      registrar("backup", `Error ejecutando pg_dump fallback: ${err}`);
     }
   }
 

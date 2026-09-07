@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -50,6 +51,11 @@ MAPEO_POR_DEFECTO: dict[str, Any] = {
     # en el dry-run y las reclasifica antes de aprobar (DOC-029 RF-B, "el revisor decide").
     # Poné `null` en un `mapeo-<org>.json` para volver al rechazo estricto.
     "categoria_por_defecto": "SIN CATEGORIA",
+    # Un activo no puede ser 100% igual a otro: dos filas que comparten `codigoPatrimonial`
+    # (o el `codigoQr` que se acuña de él) producen dos activos con la misma etiqueta, y el
+    # escaneo deja de poder decidir cuál es. Eso no lo puede resolver el revisor después, así
+    # que el lote se rechaza acá. Poné `false` en un `mapeo-<org>.json` para degradarlo a aviso.
+    "rechazar_duplicados": True,
 }
 
 CAMPOS_OPCIONALES_TEXTO = (
@@ -60,6 +66,21 @@ CAMPOS_OPCIONALES_TEXTO = (
     "nombreAft",
     "serie",
 )
+
+# Campos que identifican al activo: dos filas iguales en todos ellos son la misma línea cargada
+# dos veces, no dos bienes distintos.
+CAMPOS_IDENTIDAD = ("codigoPatrimonial", "codigoQr", *CAMPOS_OPCIONALES_TEXTO, "valorPatrimonial")
+
+# Valores que no se pueden repetir entre activos. `serie` entra porque el número de serie es
+# físicamente único: si se repite, el mismo equipo se cargó dos veces con códigos distintos.
+CLAVES_UNICAS = ("codigoPatrimonial", "codigoQr", "serie")
+
+ETIQUETA_DUPLICADO = {
+    "codigoPatrimonial": "codigoPatrimonial repetido",
+    "codigoQr": "codigoQr repetido",
+    "serie": "serie repetida",
+    "filaCompleta": "fila idéntica en todos los campos",
+}
 
 
 def cargar_mapeo(ruta: Path | None) -> dict[str, Any]:
@@ -192,6 +213,59 @@ def construir_filas(
     return filas
 
 
+def _comparable(valor: Any) -> str:
+    """Normaliza un valor para comparar: espacios colapsados, sin distinguir mayúsculas."""
+    return re.sub(r"\s+", " ", str(valor)).strip().upper()
+
+
+def detectar_duplicados(filas: list[dict[str, Any]]) -> dict[str, list[tuple[str, list[int]]]]:
+    """Agrupa las filas que repiten un valor que tiene que ser único.
+
+    Devuelve `{tipo: [(valor, [líneas...]), ...]}` con las líneas del Excel implicadas. Un campo
+    vacío no cuenta como repetido: doce sillas sin serie son doce activos distintos, no un
+    duplicado. `filaCompleta` marca las filas iguales en todos los campos de identidad, que es el
+    caso de la misma línea pegada dos veces.
+    """
+    hallazgos: dict[str, list[tuple[str, list[int]]]] = {}
+
+    for clave in CLAVES_UNICAS:
+        grupos: dict[str, list[int]] = {}
+        for fila in filas:
+            valor = _o_none(fila.get(clave))
+            if valor is not None:
+                grupos.setdefault(_comparable(valor), []).append(fila["linea"])
+        repetidos = sorted((v, ls) for v, ls in grupos.items() if len(ls) > 1)
+        if repetidos:
+            hallazgos[clave] = repetidos
+
+    huellas: dict[tuple[str, ...], list[int]] = {}
+    for fila in filas:
+        huella = tuple(_comparable(fila.get(campo, "")) for campo in CAMPOS_IDENTIDAD)
+        huellas.setdefault(huella, []).append(fila["linea"])
+    iguales = sorted(
+        (" | ".join(p for p in huella if p), lineas)
+        for huella, lineas in huellas.items()
+        if len(lineas) > 1
+    )
+    if iguales:
+        hallazgos["filaCompleta"] = iguales
+
+    return hallazgos
+
+
+def describir_duplicados(hallazgos: dict[str, list[tuple[str, list[int]]]], archivo: str) -> str:
+    """Mensaje accionable: qué se repite y en qué líneas del Excel hay que ir a mirar."""
+    partes = []
+    for clave, repetidos in hallazgos.items():
+        muestra = "; ".join(
+            f"{valor} (líneas {', '.join(str(x) for x in lineas)})"
+            for valor, lineas in repetidos[:5]
+        )
+        resto = f" y {len(repetidos) - 5} más" if len(repetidos) > 5 else ""
+        partes.append(f"{len(repetidos)} × {ETIQUETA_DUPLICADO[clave]}: {muestra}{resto}")
+    return f"{archivo}: hay activos duplicados. " + " · ".join(partes)
+
+
 def procesar(entrada: Path, organizacion: str, mapeo: dict[str, Any]) -> dict[str, Any]:
     crudo = leer_excel(entrada, mapeo.get("hoja"))
     fila_enc = _buscar_fila_encabezado(crudo, mapeo["marcador_encabezado"])
@@ -211,6 +285,17 @@ def procesar(entrada: Path, organizacion: str, mapeo: dict[str, Any]) -> dict[st
     )
     if not filas:
         raise ValueError(f"{entrada.name}: 0 filas con codigoPatrimonial.")
+    duplicados = detectar_duplicados(filas)
+    if duplicados:
+        detalle = describir_duplicados(duplicados, entrada.name)
+        if mapeo.get("rechazar_duplicados", True):
+            raise ValueError(
+                f"{detalle}. Corregir el Excel antes de cargar: dos activos con el mismo código "
+                f"comparten etiqueta y el escaneo no puede distinguirlos. Poné "
+                f'"rechazar_duplicados": false en el mapeo-<org>.json para cargarlos igual y '
+                f"resolverlos en la revisión del CCP."
+            )
+        print(f"AVISO: {detalle}", file=sys.stderr)
     qr_invalidos = [f["codigoQr"] for f in filas if not PATRON_QR.match(f["codigoQr"])]
     if qr_invalidos:
         print(
@@ -274,20 +359,31 @@ def main(argv: list[str] | None = None) -> int:
 
     cuerpo = procesar(args.entrada, args.organizacion, cargar_mapeo(args.mapeo))
 
-    if args.salida == "-":
-        json.dump(cuerpo, sys.stdout, ensure_ascii=False, indent=2)
-        sys.stdout.write("\n")
+    if args.salida:
+        if args.salida == "-":
+            json.dump(cuerpo, sys.stdout, ensure_ascii=False, indent=2)
+            sys.stdout.write("\n")
+        else:
+            Path(args.salida).write_text(
+                json.dumps(cuerpo, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            print(
+                f"Salida guardada en {args.salida} "
+                f"({len(cuerpo.get('filas', []))} filas procesadas)",
+                file=sys.stderr,
+            )
         return 0
 
-    if not args.cis_url or not args.token:
-        parser.error("se necesita --cis-url y --token (o usar --salida -)")
-    
-    creacion = enviar_a_cis(cuerpo, args.cis_url, args.token)
+    token = args.token or os.environ.get("ETL_TOKEN") or os.environ.get("SICSAFT_TOKEN")
+    if not args.cis_url or not token:
+        parser.error("se necesita --cis-url y --token (o variable de entorno ETL_TOKEN)")
+
+    creacion = enviar_a_cis(cuerpo, args.cis_url, token)
     lote_id = creacion.get("loteId")
 
     if args.auto_aprobar and lote_id:
         print(f"Lote creado ({lote_id}). Ejecutando auto-aprobación hacia BPI...", file=sys.stderr)
-        aprobacion = aprobar_lote_en_cis(lote_id, args.cis_url, args.token)
+        aprobacion = aprobar_lote_en_cis(lote_id, args.cis_url, token)
         print(json.dumps({"lote": creacion, "bpi": aprobacion}, ensure_ascii=False))
         return 0
 

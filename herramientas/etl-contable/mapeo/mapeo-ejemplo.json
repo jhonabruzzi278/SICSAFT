@@ -12,5 +12,7 @@
     "SERIE": "serie",
     "VALOR.CLP.": "valorPatrimonial"
   },
-  "rellenar_hacia_abajo": ["direccionNombre", "areaNombre", "responsableNombre"]
+  "rellenar_hacia_abajo": ["direccionNombre", "areaNombre", "responsableNombre"],
+  "_comentario_duplicados": "true (default) rechaza el lote si dos activos comparten codigoPatrimonial, codigoQr o serie: comparten etiqueta y el escaneo no puede distinguirlos. false lo degrada a aviso por stderr y manda el lote igual, para resolverlo en la revisión del CCP.",
+  "rechazar_duplicados": true
 }

@@ -8,16 +8,22 @@ http:
       rule: "Host(`id.__DOMINIO_BASE__`)"
       entryPoints:
         - web
+      middlewares:
+        - security-headers
       service: keycloak
     cis:
       rule: "Host(`api.__DOMINIO_BASE__`)"
       entryPoints:
         - web
+      middlewares:
+        - security-headers
       service: cis
     app-qr-sicsaft:
       rule: "Host(`qr.__DOMINIO_BASE__`)"
       entryPoints:
         - web
+      middlewares:
+        - security-headers
       service: app-qr-sicsaft
     # Los 3 routers de abajo solo resuelven a algo si el perfil "nivel2" levantó esos servicios —
     # Traefik no falla si el servicio no está corriendo, solo devuelve 502 hasta que se levante.
@@ -25,12 +31,24 @@ http:
       rule: "Host(`ccp.__DOMINIO_BASE__`)"
       entryPoints:
         - web
+      middlewares:
+        - security-headers
       service: ccp
     core-frontend:
       rule: "Host(`directivo.__DOMINIO_BASE__`)"
       entryPoints:
         - web
+      middlewares:
+        - security-headers
       service: core-frontend
+
+  middlewares:
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
 
   services:
     keycloak:

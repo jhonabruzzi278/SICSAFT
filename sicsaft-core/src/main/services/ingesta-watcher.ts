@@ -48,6 +48,7 @@ export interface EjecucionEtl {
   args: readonly string[];
   /** `true` cuando `ejecutable` es una ruta absoluta (python vendorizado en el `.exe`). */
   rutaAbsoluta: boolean;
+  env?: Record<string, string>;
 }
 
 export interface DatosEjecucionEtl {
@@ -77,8 +78,6 @@ export function construirEjecucionEtl(datos: DatosEjecucionEtl): EjecucionEtl {
     datos.organizacionId,
     "--cis-url",
     datos.cisUrl ?? CIS_URL_LOCAL,
-    "--token",
-    datos.token,
   ];
   if (datos.rutaMapeo) {
     args.push("--mapeo", datos.rutaMapeo);
@@ -87,6 +86,9 @@ export function construirEjecucionEtl(datos: DatosEjecucionEtl): EjecucionEtl {
     ejecutable: datos.ejecutablePython,
     args,
     rutaAbsoluta: isAbsolute(datos.ejecutablePython),
+    env: {
+      ETL_TOKEN: datos.token,
+    },
   };
 }
 
@@ -225,7 +227,7 @@ async function ejecutarEtlReal(
     ej.ejecutable,
     [...ej.args],
     {
-      env: { ...process.env, PATH: path },
+      env: { ...process.env, ...(ej.env || {}), PATH: path },
       timeout: TIMEOUT_ETL_MS,
       windowsHide: true,
       maxBuffer: MAX_BUFFER_ETL,

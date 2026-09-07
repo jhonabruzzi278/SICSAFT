@@ -52,12 +52,25 @@ describe('MetricsTokenGuard', () => {
   describe('sin METRICS_TOKEN configurado', () => {
     const config: MetricsConfig = { token: undefined };
 
-    it('permite la request sin exigir ningun header (default de devops/local/)', () => {
+    it('permite la request sin exigir ningun header en dev (default de devops/local/)', () => {
       const guard = new MetricsTokenGuard(config);
       expect(guard.canActivate(buildContext(undefined))).toBe(true);
     });
 
-    it('solo emite el warning una vez aunque se llame varias veces', () => {
+    it('lanza 401 si falta METRICS_TOKEN en producción', () => {
+      const prevEnv = process.env.NODE_ENV;
+      try {
+        process.env.NODE_ENV = 'production';
+        const guard = new MetricsTokenGuard(config);
+        expect(() => guard.canActivate(buildContext(undefined))).toThrow(
+          UnauthorizedException,
+        );
+      } finally {
+        process.env.NODE_ENV = prevEnv;
+      }
+    });
+
+    it('solo emite el warning una vez en dev aunque se llame varias veces', () => {
       const guard = new MetricsTokenGuard(config);
       expect(guard.canActivate(buildContext(undefined))).toBe(true);
       expect(guard.canActivate(buildContext(undefined))).toBe(true);

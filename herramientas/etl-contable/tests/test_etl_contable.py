@@ -194,6 +194,11 @@ def test_procesar_excel_real_del_cliente_adapta_todo_a_la_bpi():
 
     assert all(etl.PATRON_QR.match(f["codigoQr"]) for f in filas)
 
+    # OJO: son 4 y no 5 porque el .xls NO trae la celda "DIRECCION LOGISTICA" (la columna viene
+    # vacia en las 27 filas DL-01..DL-27, aunque la hoja "EMPRESA SUCHEL TROPICAL" del mismo
+    # archivo si lista esa direccion). El fill-down arrastra DIRECCION ECONOMIA a esos 27 activos,
+    # que quedan en la direccion equivocada. Esto documenta el comportamiento actual, no lo
+    # correcto: si se corrige el origen o el ETL, este assert tiene que pasar a 5 direcciones.
     direcciones = {f["direccionNombre"] for f in filas}
     assert direcciones == {
         "DIRECCION COMERCIAL",
@@ -201,6 +206,15 @@ def test_procesar_excel_real_del_cliente_adapta_todo_a_la_bpi():
         "DIRECCION GENERAL",
         "DIRECCION TECNICO-PRODUCTIVA",
     }
+    arrastrados = [
+        f["codigoPatrimonial"] for f in filas if f["codigoPatrimonial"].startswith("DL-")
+    ]
+    assert len(arrastrados) == 27
+    assert all(
+        f["direccionNombre"] == "DIRECCION ECONOMIA"
+        for f in filas
+        if f["codigoPatrimonial"].startswith("DL-")
+    )
 
     # el bloque que llegó sin CATEGORIA entró con la categoría de reserva, no perdido
     reserva = [f["codigoPatrimonial"] for f in filas if f["categoriaNombre"] == "SIN CATEGORIA"]
@@ -283,3 +297,113 @@ def test_aprobar_lote_en_cis_ok(monkeypatch: pytest.MonkeyPatch):
 def test_acunar_qr_con_prefijo():
     assert etl.acunar_qr("DG-001", "QR-") == "QR-DG-001"
     assert etl.acunar_qr("dg-001") == "DG-001"
+
+
+# --- duplicidad: un activo no puede ser 100% igual a otro (1 activo = 1 codigo = 1 QR) ---------
+
+
+def _fila(linea: int, codigo: str, **extra: object) -> dict[str, object]:
+    return {
+        "linea": linea,
+        "codigoPatrimonial": codigo,
+        "codigoQr": etl.acunar_qr(codigo),
+        **extra,
+    }
+
+
+def test_detectar_duplicados_sin_repetidos_devuelve_vacio():
+    filas = [_fila(1, "DG-001"), _fila(2, "DG-002"), _fila(3, "DG-003")]
+    assert etl.detectar_duplicados(filas) == {}
+
+
+def test_detectar_duplicados_por_codigo_patrimonial():
+    filas = [_fila(1, "DG-001"), _fila(2, "DG-002"), _fila(3, "DG-001")]
+    hallazgos = etl.detectar_duplicados(filas)
+    assert hallazgos["codigoPatrimonial"] == [("DG-001", [1, 3])]
+    # el codigoQr se acuña del codigo, asi que arrastra el mismo choque
+    assert hallazgos["codigoQr"] == [("DG-001", [1, 3])]
+
+
+def test_detectar_duplicados_normaliza_mayusculas_y_espacios():
+    """'DG-001' y ' dg-001 ' son el mismo activo escrito de dos formas, no dos activos."""
+    filas = [_fila(1, "DG-001"), _fila(2, " dg-001 ")]
+    assert etl.detectar_duplicados(filas)["codigoPatrimonial"] == [("DG-001", [1, 2])]
+
+
+def test_detectar_duplicados_por_serie():
+    """El numero de serie es fisicamente unico: repetido = el mismo equipo cargado dos veces."""
+    filas = [
+        _fila(1, "DG-001", serie="SN-ABC-1234"),
+        _fila(2, "DG-002", serie="SN-ABC-1234"),
+    ]
+    hallazgos = etl.detectar_duplicados(filas)
+    assert hallazgos["serie"] == [("SN-ABC-1234", [1, 2])]
+    assert "codigoPatrimonial" not in hallazgos  # los codigos si son distintos
+
+
+def test_detectar_duplicados_no_marca_bienes_iguales_con_codigo_distinto():
+    """Doce sillas identicas sin serie son doce activos distintos, no un duplicado."""
+    filas = [
+        _fila(
+            i,
+            f"DG-{i:03d}",
+            nombreAft="SILLA",
+            categoriaNombre="MOBILIARIO",
+            areaNombre="SALON REUNIONES",
+        )
+        for i in range(1, 13)
+    ]
+    assert etl.detectar_duplicados(filas) == {}
+
+
+def test_detectar_duplicados_fila_completa():
+    filas = [
+        _fila(1, "DG-001", nombreAft="SILLA", serie="SN-1"),
+        _fila(2, "DG-001", nombreAft="SILLA", serie="SN-1"),
+    ]
+    hallazgos = etl.detectar_duplicados(filas)
+    assert [lineas for _, lineas in hallazgos["filaCompleta"]] == [[1, 2]]
+
+
+def test_describir_duplicados_dice_que_lineas_mirar():
+    hallazgos = {"codigoPatrimonial": [("DG-001", [1, 3])]}
+    mensaje = etl.describir_duplicados(hallazgos, "activos.xlsx")
+    assert "activos.xlsx" in mensaje
+    assert "codigoPatrimonial repetido" in mensaje
+    assert "DG-001" in mensaje
+    assert "líneas 1, 3" in mensaje
+
+
+def _excel_con_codigo_repetido(ruta: Path) -> Path:
+    filas = [
+        ["No.", "DIRECCION", "CODIGO", "NOMBRE AFT", "CATEGORIA"],
+        [1, "DIR A", "A-001", "1 SILLA", "MOBILIARIO"],
+        [2, None, "A-002", "1 MESA", "MOBILIARIO"],
+        [3, None, "A-001", "1 IMPRESORA", "INFORMATICA"],
+    ]
+    pd.DataFrame(filas).to_excel(ruta, header=False, index=False, engine="openpyxl")
+    return ruta
+
+
+def test_procesar_rechaza_el_lote_si_hay_codigo_duplicado(tmp_path: Path):
+    ruta = _excel_con_codigo_repetido(tmp_path / "repetido.xlsx")
+    with pytest.raises(ValueError, match="codigoPatrimonial repetido"):
+        etl.procesar(ruta, "muni", etl.MAPEO_POR_DEFECTO)
+
+
+def test_rechazar_duplicados_false_avisa_pero_carga(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    ruta = _excel_con_codigo_repetido(tmp_path / "repetido.xlsx")
+    mapeo_ruta = tmp_path / "mapeo-x.json"
+    mapeo_ruta.write_text('{"rechazar_duplicados": false}', encoding="utf-8")
+
+    cuerpo = etl.procesar(ruta, "muni", etl.cargar_mapeo(mapeo_ruta))
+
+    assert len(cuerpo["filas"]) == 3  # el lote no se pierde: lo resuelve el revisor en el CCP
+    assert "codigoPatrimonial repetido" in capsys.readouterr().err
+
+
+def test_procesar_fixture_normal_no_tiene_duplicados(excel_cliente: Path):
+    cuerpo = etl.procesar(excel_cliente, "muni", etl.MAPEO_POR_DEFECTO)
+    assert etl.detectar_duplicados(cuerpo["filas"]) == {}
