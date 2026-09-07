@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -17,7 +17,12 @@ import {
 const FECHA_FIJA = new Date("2026-09-02T15:04:05.000Z");
 
 async function carpetaTemporal(): Promise<string> {
-  return mkdtemp(join(tmpdir(), "ingesta-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "ingesta-test-"));
+  try {
+    return await realpath(dir);
+  } catch {
+    return dir;
+  }
 }
 
 describe("construirEjecucionEtl", () => {

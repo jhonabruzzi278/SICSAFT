@@ -276,6 +276,7 @@ export class IngestaWatcher {
     this.watcher = chokidarWatch(this.config.carpeta, {
       ignoreInitial: true,
       depth: 0,
+      usePolling: true,
       ignored: (ruta: string) => basename(ruta).startsWith("."),
       awaitWriteFinish: {
         stabilityThreshold: estabilidadMs,
