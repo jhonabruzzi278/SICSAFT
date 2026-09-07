@@ -13,7 +13,13 @@ export interface ExeResuelto {
   exe: string;
   /** Carpeta de recursos empaquetados (extraResources) contigua al `.exe`. */
   resources: string;
-  /** true si la ruta del `.exe` tiene un espacio -- condición del bug de PR #108 (kc.bat). */
+  /**
+   * true si el DIRECTORIO de instalación tiene un espacio -- la condición real del bug de PR #108.
+   * Se mide sobre `dirname(exe)`, no sobre la ruta completa: el nombre del ejecutable
+   * (`SICSAFT CORE.exe`) SIEMPRE trae un espacio, así que mirar la ruta entera daba `true` incluso
+   * en `release/win-unpacked/` y la spec 01 corría cuando debía saltarse. Lo que #108 rompe es el
+   * `kc.bat` que vive bajo ese directorio y se spawnea por `cmd`.
+   */
   empaquetadoConEspacio: boolean;
 }
 
@@ -43,7 +49,7 @@ export function resolverExe(): ExeResuelto {
       return {
         exe,
         resources: join(dirname(exe), "resources"),
-        empaquetadoConEspacio: / /.test(exe),
+        empaquetadoConEspacio: / /.test(dirname(exe)),
       };
     }
   }
