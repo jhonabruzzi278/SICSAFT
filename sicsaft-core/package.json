@@ -15,8 +15,8 @@
     "test:watch": "vitest",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "prepack:artefactos": "node scripts/prepack.cjs",
-    "pack": "npm run prepack:artefactos && electron-vite build && electron-builder --dir",
-    "dist:win": "npm run prepack:artefactos && electron-vite build && electron-builder --win",
+    "pack": "bun run prepack:artefactos && electron-vite build && electron-builder --dir",
+    "dist:win": "bun run prepack:artefactos && electron-vite build && electron-builder --win",
     "e2e": "playwright test --config e2e/playwright.config.ts",
     "e2e:headed": "playwright test --config e2e/playwright.config.ts --headed",
     "e2e:report": "playwright show-report e2e/playwright-report"
