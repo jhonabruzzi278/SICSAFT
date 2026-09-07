@@ -90,10 +90,11 @@ jobs:
           }
           
           # Copiar manuales y guías de instalación
-          Copy-Item "sicsaft-core\RUNBOOK-INSTALACION.md" -Destination "$distDir\"
-          Copy-Item "devops\onprem\MANUAL-DESPLIEGUE.md" -Destination "$distDir\"
-          Copy-Item "CHANGELOG.md" -Destination "$distDir\"
-          Copy-Item "VERSION" -Destination "$distDir\"
+          if (Test-Path "sicsaft-core\RUNBOOK-INSTALACION.md") { Copy-Item "sicsaft-core\RUNBOOK-INSTALACION.md" -Destination "$distDir\" }
+          if (Test-Path "devops\onprem\README.md") { Copy-Item "devops\onprem\README.md" -Destination "$distDir\MANUAL-DESPLIEGUE.md" }
+          if (Test-Path "CHANGELOG.md") { Copy-Item "CHANGELOG.md" -Destination "$distDir\" }
+          if (Test-Path "VERSION") { Copy-Item "VERSION" -Destination "$distDir\" }
+          if (Test-Path "README.md") { Copy-Item "README.md" -Destination "$distDir\" }
           
           # Generar checksums SHA256
           Get-ChildItem -Path $distDir -File | ForEach-Object {
