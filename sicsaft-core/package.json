@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "App de escritorio SICSAFT CORE — Nivel 1 completo (Postgres/Keycloak/CIS/CORE/CIP) embebido en un instalador .exe, sin Podman/Docker/WSL2. Ver aidlc-docs/sicsaft-core/.",
+  "author": "SICSAFT",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -113,11 +114,7 @@
     ],
     "afterPack": "./scripts/electron-builder-after-pack.cjs",
     "win": {
-      "target": "nsis",
-      "signingHashAlgorithms": [
-        "sha256"
-      ],
-      "signAndEditExecutable": true
+      "target": "nsis"
     },
     "nsis": {
       "oneClick": false,
