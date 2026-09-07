@@ -1,0 +1,64 @@
+name: Release & Version Automation
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-release:
+    name: Validar y Publicar Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del Repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Instalar Dependencias en CIS y CORE
+        run: |
+          npm ci --prefix cis
+          npm ci --prefix core
+
+      - name: Ejecutar Tests Automatizados
+        run: |
+          npm test --prefix cis
+          npm test --prefix core
+
+      - name: Extraer Versión del Tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "tag_name=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
+
+      - name: Sincronizar con Linear
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          if [ -n "$LINEAR_API_KEY" ]; then
+            node herramientas/revision-codigo/linear-sync.mjs --team-key JON --apply
+          else
+            echo "LINEAR_API_KEY no configurada en GitHub Secrets, omitiendo sync."
+          fi
+
+      - name: Crear GitHub Release Oficial
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag_name }}
+          name: Release ${{ steps.get_version.outputs.tag_name }}
+          body: |
+            ## SICSAFT Release ${{ steps.get_version.outputs.tag_name }}
+            
+            Consulta el detalle completo en [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md).
+          draft: false
+          prerelease: false

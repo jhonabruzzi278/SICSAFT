@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white">
+
+    <!-- WebView Principal que carga la PWA de escaneo -->
+    <WebView
+        android:id="@+id/web_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Pantalla de Error de Conexión Nativa (visible solo si falla la red/servidor) -->
+    <LinearLayout
+        android:id="@+id/vista_error"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        android:background="#FAFAFA"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚠️"
+            android:textSize="48sp"
+            android:paddingBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/error_conexion_titulo"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#1F2937"
+            android:gravity="center"
+            android:paddingBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/error_conexion_mensaje"
+            android:textSize="14sp"
+            android:textColor="#4B5563"
+            android:gravity="center"
+            android:lineSpacingMultiplier="1.2"
+            android:paddingBottom="28dp" />
+
+        <Button
+            android:id="@+id/boton_reintentar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/error_conexion_boton_reintentar"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/boton_cambiar_servidor"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/error_conexion_boton_cambiar" />
+
+    </LinearLayout>
+
+</FrameLayout>

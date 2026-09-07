@@ -45,23 +45,19 @@ Fuentes de captura (APP SICSAFT/QR, CCP/WEB, RFID, ERP, ...)
 ```
 
 - **`cis/`** — backend NestJS, único punto de entrada para fuentes de captura (proxy delgado hacia
-  CORE, auth Zitadel, circuit breaker/reintentos/rate limiting). Nunca escribe directo a la BPI.
+  CORE, auth Keycloak 26 vía OIDC/PKCE, circuit breaker/reintentos/rate limiting). Nunca escribe directo a la BPI.
 - **`core/`** — backend NestJS, orquestador + motores (Patrimonial, Reglas, Eventos, Auditoría).
   Único sistema con dos deployables: el backend (`core/`) y su SPA (`core/frontend/`, portal del
   Directivo). El frontend habla con CIS, nunca directo al backend de CORE ([ADR-003](adr/ADR-003-frontend-de-core-para-directivo.md)).
 - **`ccp/`, `core/frontend/`** — dos SPAs Vite/React independientes, un portal por rol (Profesional
-  de AFT / Directivo), cada una con su propio login OIDC/PKCE contra Zitadel. No comparten sesión
+  de AFT / Directivo), cada una con su propio login OIDC/PKCE contra Keycloak. No comparten sesión
   ni código entre sí.
 - **`base-patrimonial/`** — modelo de dominio de la BPI (Base Patrimonial Inteligente), documentado
   y versionado en `core/migrations/` (Postgres real).
-- **`devops/`** — tres stacks Docker Compose independientes, uno por entorno: `local/` (desarrollo
-  — Traefik + Postgres + Zitadel + los 6 sistemas desplegables `cis`/`core`/`cip`/`ccp`/
-  `core-frontend` + observabilidad self-hosted Prometheus/Loki-Promtail/Grafana,
-  equivalente a CloudWatch/CloudTrail administrado por el operador del VPS — `app-qr-sicsaft/` es
-  un PWA cliente sin contenedor propio en ningún stack), `prod/` (mismo VPS propio, orquestado por
-  **Coolify** en vez de un Traefik propio) y `onprem/` (instalación aislada por cliente sobre
-  **Podman**, no Docker Desktop, empaquetada como instalador `.exe` con Inno Setup en
-  `devops/onprem/installer/`). Detalle de cada uno en [devops/README.md](devops/README.md).
+- **`devops/`** — infraestructura de despliegue on-premise por cliente ([`devops/onprem/`](devops/onprem/))
+  sobre **Podman** / Docker Compose (Keycloak 26 + Postgres + Traefik + backends y frontends),
+  empaquetada como instalador `.exe` con Inno Setup en `devops/onprem/installer/` y orquestada por
+  `sicsaft-core`. Los stacks multi-tenant en VPS (`local/` y `prod/`) fueron retirados a favor del `.exe`. Detalle en [devops/README.md](devops/README.md).
 
 Estado real y detalle de cada sistema (qué está mockeado vs. real, endpoints, dependencias): tabla
 completa en [README.md](README.md) y el `README.md` propio de cada carpeta.
@@ -110,27 +106,14 @@ npm run test:e2e              # playwright test
 npx playwright test archivo.spec.ts   # un solo archivo e2e
 ```
 
-**Stack local completo** (Traefik + Postgres + Zitadel + los 6 sistemas desplegables +
-observabilidad self-hosted — Prometheus/Loki/Grafana):
-```bash
-cd devops/local && docker compose up -d
-```
-Ver [`devops/local/README.md`](devops/local/README.md) para variables de entorno, dominios
-locales, y la sección "Observabilidad" (URLs de Grafana, qué mide cada componente, limitación
-conocida de cAdvisor en Docker Desktop).
-
-**Instalación on-premise por cliente** (Nivel 1/Nivel 2, Podman — no Docker Desktop):
+**Despliegue On-Premise / .EXE** (Nivel 1/Nivel 2, Podman / Docker Compose con Keycloak 26):
 ```powershell
 cd devops/onprem
 ./instalar-cliente.ps1 -ClienteNombre "Nombre Cliente" -OrganizacionId "id-cliente" -Nivel 2
 ```
-Automatiza WSL2/Podman, genera `.env`, bootstrap de Zitadel (PAT auto-provisionado, sin Console) y
+Automatiza WSL2/Podman, genera `.env`, bootstrap de Keycloak (clientes OIDC provisionados automáticamente) y
 levanta el stack con smoke check al final. Empaquetado como instalador `.exe` (Inno Setup) en
-[`devops/onprem/installer/`](devops/onprem/installer). Ver
-[`devops/onprem/README.md`](devops/onprem/README.md).
-
-**Producción** (`devops/prod/docker-compose.yml`) no se corre a mano — la redespliega **Coolify**
-vía webhook sobre el VPS propio. Ver [`devops/prod/README.md`](devops/prod/README.md).
+[`devops/onprem/installer/`](devops/onprem/installer). Ver [`devops/onprem/README.md`](devops/onprem/README.md).
 
 **Herramienta ETL contable** (`herramientas/etl-contable/`, Python — DOC-029 RF-B):
 ```bash
@@ -181,8 +164,8 @@ primero que la entidad no sea un registro oficial cubierto por este invariante.
 - **Identidad visual / paleta de colores**: [BRAND.md](BRAND.md), origen canónico en
   `landing/src/style.css` — no reinventar colores por sistema en trabajo de frontend (`ccp/`,
   `core/frontend/`, `app-qr-sicsaft/`, `cip/`).
-- **Decisiones de stack ya tomadas**: [`adr/`](adr) (NestJS, Postgres, `pg-boss`, Zitadel
-  self-hosted). No reabrir estas decisiones sin un ADR nuevo que las reemplace explícitamente.
+- **Decisiones de stack ya tomadas**: [`adr/`](adr) (NestJS, Postgres, `pg-boss`, Keycloak 26
+  self-hosted — ADR-004). No reabrir estas decisiones sin un ADR nuevo que las reemplace explícitamente.
 - **Qué puede hacer cada rol (RBAC), endpoint por endpoint**:
   [`ccp/DOC-023`](aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md) — matriz
   Rol × Módulo × Acción extraída de los guards reales de CIS/CORE, no de lo que la UI muestra

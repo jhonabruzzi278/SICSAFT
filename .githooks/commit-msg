@@ -1,0 +1,12 @@
+#!/bin/sh
+msg=$(cat "$1")
+echo "🔍 [Git Hook] Validando formato de commit..."
+pattern="^(feat|fix|docs|refactor|test|perf|chore)(\([a-zA-Z0-9_-]+\))?: .+"
+if ! echo "$msg" | grep -qE "$pattern"; then
+    echo "❌ Commit rechazado: El mensaje no sigue Conventional Commits."
+    echo "💡 Formato requerido: tipo(alcance): descripción [JON-XX]"
+    echo "   Ejemplos: feat(core): nuevo motor [JON-16] | fix(ccp): fix pkce [JON-10]"
+    exit 1
+fi
+echo "✔ Formato de commit válido."
+exit 0

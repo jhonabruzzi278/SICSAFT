@@ -16,6 +16,9 @@ on:
       - "!core/frontend/**"
       - ".github/workflows/core-ci.yml"
 
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: core

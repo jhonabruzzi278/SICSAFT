@@ -12,8 +12,7 @@ separada de `core` — RNF-01/RNF-05) → `GET /dashboard/...`. Diseño completo
 [`aidlc-docs/`](../aidlc-docs/cip/00_PROJECT_METADATA.md) ([DOC-014](../aidlc-docs/cip/design-artifacts/DOC-014-cip-dashboard.md),
 [DOC-018](../aidlc-docs/cip/design-artifacts/DOC-018-cip-servicio-nestjs.md)).
 
-**Esqueleto NestJS** (`src/`, mismo patrón que `core/`/`cis/`, sin Zitadel — CIP no valida
-identidad de operador): `DatabaseModule` (base `cip`), `ServiceTokenModule`
+**Esqueleto NestJS** (`src/`, mismo patrón que `core/`/`cis/`): `DatabaseModule` (base `cip`), `ServiceTokenModule`
 (`CIP_SERVICE_TOKEN`, protege la API propia), `CoreClientModule` (cliente HTTP hacia CORE con
 `CORE_SERVICE_TOKEN`, deliberadamente sin circuit breaker/retry — pg-boss ya reintenta el job si
 falla, ver DOC-018 3), `AgregacionModule` (worker + watcher), `DashboardModule` (API de lectura).
@@ -34,11 +33,9 @@ falla, ver DOC-018 3), `AgregacionModule` (worker + watcher), `DashboardModule` 
 `/areas`, `/sesiones`, `/fuera-de-area`, `/no-localizados`, `/incidencias`, `/estado-activos`,
 `/categorias`), paginados donde corresponde (RNF-02), todos devuelven `actualizadoEn`/`alDia`.
 
-**Verificado real** (no solo mocks/unit): `docker build` + contenedor `cip` real levantado
-(`devops/local/docker-compose.yml`, servicios `cip-migrate`/`cip`), un `POST /inventarios` real
-contra `core` dentro de la red Docker, confirmado en el dashboard de CIP (`GET
-/dashboard/cobertura` y `/dashboard/sesiones` devolviendo los datos reales calculados). Unit
-100% stmts/lines/funcs + e2e reales contra Postgres (`test/dashboard.e2e-spec.ts`).
+**Verificado real** (no solo mocks/unit): Servicios de migración y arranque de `cip` verificados
+con Postgres real, procesamiento de `POST /inventarios` confirmado en el dashboard de CIP (`GET /dashboard/cobertura`
+y `/dashboard/sesiones` devolviendo los datos reales calculados). Unit 100% stmts/lines/funcs + e2e reales contra Postgres (`test/dashboard.e2e-spec.ts`).
 
 **Corrección sobre CORE necesaria para este incremento** (migración nueva, no se edita la ya
 mergeada del PR #8): `eventos_outbox` gana `organizacion_id` (resuelto por el propio trigger vía

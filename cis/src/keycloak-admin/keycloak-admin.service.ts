@@ -61,22 +61,19 @@ function nombreGrupo(organizacionId: string, rol: string): string {
 // necesita distinguir ESTE caso puntual (idempotente, ignorable) de cualquier otra falla real
 // (Keycloak caído, request malformado, etc.), que sí debe propagarse. Sin esta distinción, atrapar
 // el 502 genérico de `call()` para "ya es miembro" también se tragaría silenciosamente un Keycloak
-// caído de verdad — mismo tipo de hallazgo que ZitadelGrantConflictError ya resolvía en
-// zitadel-admin.service.ts.
+// caído de verdad.
 class KeycloakConflictError extends Error {}
 
-// ADR-004 — cliente de la Admin REST API de Keycloak (`/admin/realms/{realm}/...`), reemplaza a
-// ZitadelAdminService. Autenticación: client_credentials contra un client confidencial con
-// serviceAccountsEnabled (a diferencia del PAT estático de Zitadel, este token expira — se cachea
-// y renueva acá, ver obtenerTokenDeServicio). Nunca lo usa CIP/CORE — exclusivo de CIS, mismo
-// criterio que ya tenía ZitadelAdminService.
+// ADR-004 — cliente de la Admin REST API de Keycloak (`/admin/realms/{realm}/...`).
+// Autenticación: client_credentials contra un client confidencial con serviceAccountsEnabled
+// (este token expira — se cachea y renueva acá, ver obtenerTokenDeServicio).
+// Exclusivo de CIS para gestión de identidades y membresías.
 //
 // Diseño de roles por organización: verificado real contra un Keycloak 26.6 de prueba (2026-08-26)
 // que los realm roles son globales por usuario (`realm_access.roles` del JWT no distingue por
 // organización) — no existe una forma nativa de Keycloak de anidar "este rol aplica solo en esta
 // organización". Se resuelve con un grupo por combinación organización+rol
-// (`{organizacionId}::{rol}`, ver nombreGrupo) con el realm role asignado al grupo — la
-// pertenencia del usuario a ese grupo ES el UserGrant equivalente al de Zitadel. keycloak-auth.guard.ts
+// (`{organizacionId}::{rol}`, ver nombreGrupo) con el realm role asignado al grupo. keycloak-auth.guard.ts
 // resuelve rolesPorOrganizacion leyendo los grupos del usuario, no el JWT directo.
 @Injectable()
 export class KeycloakAdminService {
@@ -89,15 +86,12 @@ export class KeycloakAdminService {
     private readonly httpService: HttpService,
   ) {}
 
-  // Gap 1 (equivalente al de zitadel-admin.service.ts) — a diferencia de Zitadel (que devuelve un
-  // id numérico propio), Keycloak ignora cualquier `id` provisto al crear una Organization y
+  // A diferencia de otros proveedores, Keycloak ignora cualquier `id` provisto al crear una Organization y
   // siempre genera su propio UUID interno (verificado real) — lo único que sí honra es `alias`.
   // Por eso acá el `organizacionId` que usa el resto del ecosistema (CORE, el claim `organization`
-  // del JWT) se decide ACÁ, antes de llamar a Keycloak, slugificando el nombre — Zitadel en cambio
-  // decidía el id y CIS solo lo propagaba. `domains` es obligatorio para crear una Organization;
-  // como SICSAFT no ata organizaciones a un dominio de email real, se usa un dominio sintético bajo
-  // `.invalid` (RFC 2606, nunca resuelve — mismo criterio que ya usan los placeholders de CI de
-  // ccp-ci.yml) solo para satisfacer el requisito de la API.
+  // del JWT) se decide ACÁ, antes de llamar a Keycloak, slugificando el nombre.
+  // `domains` es obligatorio para crear una Organization; como SICSAFT no ata organizaciones a un dominio
+  // de email real, se usa un dominio sintético bajo `.invalid` (RFC 2606, nunca resuelve).
   async crearOrganizacion(
     nombre: string,
     correlationId: string,
@@ -140,8 +134,7 @@ export class KeycloakAdminService {
     return this.parse(organizacionesResponseSchema, data, 'organizations');
   }
 
-  // No hay forma de filtrar por alias en la request (mismo tipo de gap que listarGrants tenía en
-  // zitadel-admin.service.ts para orgId) — se filtra en memoria sobre el listado completo.
+  // No hay forma de filtrar por alias en la request — se filtra en memoria sobre el listado completo.
   private async resolverOrganizacionPorAlias(
     organizacionId: string,
     correlationId: string,
@@ -204,12 +197,10 @@ export class KeycloakAdminService {
     };
   }
 
-  // Gap 3 (equivalente al de zitadel-admin.service.ts) — `firstName`/`lastName` son obligatorios
-  // acá: sin ellos Keycloak deja crear el usuario, pero después rechaza cualquier login con
-  // "Account is not fully set up" (hallazgo real, verificado contra un Keycloak 26.6 de prueba —
-  // no documentado). `temporary: true` en la credencial es el equivalente de `changeRequired` de
-  // Zitadel. Keycloak no devuelve el usuario creado en el body — el id va en el header `Location`
-  // de la respuesta 201 (`.../users/{id}`), se extrae acá.
+  // `firstName`/`lastName` son obligatorios acá: sin ellos Keycloak deja crear el usuario, pero después
+  // rechaza cualquier login con "Account is not fully set up" (hallazgo real, verificado contra Keycloak 26).
+  // `temporary: true` en la credencial obliga al usuario a cambiarla en su primer login. Keycloak no
+  // devuelve el usuario creado en el body — el id va en el header `Location` de la respuesta 201 (`.../users/{id}`).
   async crearUsuarioHuman(
     email: string,
     correlationId: string,

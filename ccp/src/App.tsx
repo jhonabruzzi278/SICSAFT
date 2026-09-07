@@ -12,6 +12,7 @@ import { InventariosPage } from '@/pages/InventariosPage';
 import { AuditoriaPage } from '@/pages/AuditoriaPage';
 import { EstructuraPage } from '@/pages/EstructuraPage';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { CipPage } from '@/pages/CipPage';
 import { ImportacionesPage } from '@/pages/ImportacionesPage';
 import { EtiquetasPage } from '@/pages/EtiquetasPage';
 
@@ -38,11 +39,14 @@ function RequireModulo({
   return <>{children}</>;
 }
 
+import { WizardPreviewPage } from '@/pages/WizardPreviewPage';
+
 export default function App() {
   return (
     <AppShell>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/wizard-preview" element={<WizardPreviewPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route
           path="/"
@@ -103,6 +107,16 @@ export default function App() {
           element={
             <RequireAuth>
               <DashboardPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/cip"
+          element={
+            <RequireAuth>
+              <RequireModulo path="cip">
+                <CipPage />
+              </RequireModulo>
             </RequireAuth>
           }
         />

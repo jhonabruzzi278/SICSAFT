@@ -3,7 +3,7 @@
 Dominio §12.7–§12.11. Plantilla §12.5. Reglas CFPS citadas del tomo (capítulo previo, no en git).
 
 Componentes del repo que participan en este dominio: `ccp/` (interfaz), `cis/` (PSD, guard de rol),
-`core/` (MOP + Motor Patrimonial + Reglas + Auditoría), Base Patrimonial Central (Postgres,
+`core/` (MOP + Motor Patrimonial + Reglas + Auditoría), BPI (Base Patrimonial Inteligente en Postgres,
 `core/migrations/`). Endpoints CIS bajo `/admin/*`, ver `ccp/src/lib/cis-client.ts` y
 `aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md`.
 

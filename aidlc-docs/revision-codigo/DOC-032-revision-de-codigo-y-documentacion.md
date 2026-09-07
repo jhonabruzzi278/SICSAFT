@@ -199,13 +199,11 @@ tamaño.
 
 `inventario.mjs`, `estado-revision.json`, el grafo y este documento.
 
-### Fase 1 — Resolver la contradicción Zitadel/Keycloak (H-01)
+### Fase 1 — Resolver la contradicción Zitadel/Keycloak (H-01) ✅
 
-**Bloqueada por una decisión del usuario**: migrar `devops/local` y `devops/prod` a Keycloak 26
-(alineándolos con `onprem`), o retirarlos formalmente.
-Verificación según el camino: si se migra, `docker compose up -d` con CIS respondiendo
-`/health` y un login OIDC real completo. Si se retiran, que ningún documento los siga presentando
-como vigentes.
+**Resuelto (2026-09)**: Decisión tomada de retirar formalmente `devops/local` y `devops/prod`, consolidando
+el 100% de la infraestructura en el modelo on-premise / `.exe` (`devops/onprem` con Keycloak 26 y `sicsaft-core`).
+Directorios eliminados y documentación sincronizada en `CLAUDE.md`, `README.md`, `ROADMAP.md` y `devops/README.md`.
 
 ### Fase 2 — La verdad del repo (H-02, H-03, H-05)
 

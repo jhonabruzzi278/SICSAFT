@@ -11,6 +11,9 @@ on:
       - "cip/**"
       - ".github/workflows/cip-ci.yml"
 
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: cip

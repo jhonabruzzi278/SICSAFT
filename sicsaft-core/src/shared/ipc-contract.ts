@@ -121,6 +121,12 @@ export interface RectanguloPantalla {
   height: number;
 }
 
+export interface InfoAppQr {
+  urlPwa: string;
+  urlApk: string;
+  apkDisponible: boolean;
+}
+
 // API expuesta al renderer vía contextBridge (ver src/preload/index.ts). Cada método es
 // ipcRenderer.invoke(...) por debajo — async siempre, nunca acceso directo a Node/Electron desde
 // el renderer (contextIsolation: true, nodeIntegration: false, ver src/main/index.ts).
@@ -136,10 +142,11 @@ export interface SicsaftCoreApi {
   // evaluado -- reconfigurarIpLan lo devuelve post-reconfiguración (cambio === false).
   getEstadoIpLan(): Promise<EstadoIpLan>;
   reconfigurarIpLan(): Promise<EstadoIpLan>;
-  // DOC-028 Fase D -- URL (https://<ip-lan>:8765) de la PWA de la APP QR que sirve el propio .exe.
-  // La pantalla "listo" del wizard la muestra como un QR para que el Profesional de AFT abra la
-  // app desde su teléfono sin tipear nada ni correr comandos. Arranca el servidor si hace falta.
+  // DOC-028 Fase D / DOC-029 RF-H -- URL de la PWA y URL de descarga directa de la APK Android que
+  // sirve el propio .exe (static-portal-server.ts). La pantalla "listo" del wizard muestra los QR
+  // correspondientes.
   getUrlAppQr(): Promise<string>;
+  getInfoAppQr(): Promise<InfoAppQr>;
   // DOC-029 RF-B.6 -- carpeta vigilada de ingesta de Excel. `elegir...` abre el diálogo nativo de
   // carpeta, persiste la elección en instalacion.json y (re)arranca el watcher; devuelve la ruta
   // elegida o null si el usuario canceló. `leer...` devuelve la ruta persistida (o null).

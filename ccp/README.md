@@ -1,347 +1,68 @@
 # CCP — Centro de Control Patrimonial (Portal WEB SICSAFT, SYS-05)
 
 ## Objetivo
-Aplicación web privada de administración y operación patrimonial (no confundir con APP QR, que
-es la app móvil de captura). Consume datos vía CIS/CORE — nunca le habla a CORE directo (regla no
-negociable de `CLAUDE.md`).
+Aplicación web privada de administración y operación patrimonial para el **Profesional de AFT** (`administrador-patrimonial`).
+Permite el control integral del inventario físico, altas/bajas de activos, gestión de la estructura organizacional (Áreas, Ubicaciones, Responsables), generación e impresión de etiquetas QR / Code 128, revisión de lotes de ingesta contable y consulta de auditorías.
+
+Consume servicios exclusivamente a través de **CIS**, respetando la regla no negociable de cero acceso directo a la BPI.
 
 ## Estado
-🟢 Los 6 módulos del MVP de Fase 5 implementados, RF-05/RF-06 cerrados por completo — login
-OIDC/PKCE real contra Keycloak ([ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md),
-verificado en su momento contra Zitadel bajo ADR-002, ver "Desarrollo local" abajo para el estado
-real de `devops/local/`) + **Activos** (consulta + alta), **Contratos** (consulta + alta +
-cambio de estado), **Inventarios** (consulta de sesiones + detalle de escaneos), **Auditoría**
-(consulta, filtrable por usuario/operación/rango de fecha, sin filtro por organización — gap
-distinto, conocido, ver "Gaps" abajo) y **Áreas/Ubicaciones/Responsables** (alta/edición/consulta
-de Área y Ubicación, incluida la asignación de responsable/ubicación principal a un Área, más
-alta/consulta/baja de Responsable). Activos/Contratos/Inventarios verificados de punta a punta
-contra Postgres real (login real de navegador incluido); Auditoría y
-Áreas/Ubicaciones/Responsables verificados con unit + e2e reales contra Postgres (CORE y CIS), sin
-login real de navegador todavía — ver `cis/README.md` Fase 5 y `devops/local/README.md`
-"Cliente OIDC real (WEB)". Diseño AI-DLC completo en
-[`aidlc-docs/`](../aidlc-docs/ccp/00_PROJECT_METADATA.md) (requirements, historias, arquitectura,
-[DOC-013](../aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md)).
+🟢 **Completamente funcional y verificado**:
+- **Autenticación OIDC + PKCE con Keycloak 26** ([ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)).
+- **Módulos Operativos (Modo Básico / Profesional / Enterprise)**:
+  - **Activos**: Catálogo interactivo con alta manual, bajas, reincorporaciones, cambio de responsable y asignación de documentos.
+  - **Estructura**: Administración completa de Áreas, Ubicaciones y Responsables con estados bidireccionales.
+  - **Importaciones Contables** (DOC-029 RF-B): Bandeja de staging de lotes de Excel (revisión, aprobación y rechazo supervisado).
+  - **Etiquetas y Códigos QR** (DOC-029 RF-F): Generación masiva y maquetación de impresión (`@media print`) de etiquetas con QR y Code 128 por área/dirección.
+  - **Auditoría** (DOC-029 RF-E): Registro histórico con filtro por área operativa (`?area=`) y panel de revisión de trazabilidad.
+  - **Dashboard / CIP** (Nivel 2): Indicadores clave de cobertura, estado patrimonial y resumen de sesiones de inventario (Pantalla 8).
+- **Despliegue y Empaquetado**: Corre como SPA local y va embebida en el ejecutable [`sicsaft-core`](../sicsaft-core/).
 
-**Qué existe hoy** (`src/`):
-- `lib/oidc/` — cliente OIDC authorization code + PKCE, puerto por puerto idéntico al patrón ya
-  probado en `app-qr-sicsaft/src/lib/oidc/` (mismo realm `sicsaft` en Keycloak, client OIDC
-  propio `web-sicsaft`, ver `devops/local/README.md`). `sessionStorage`, no `localStorage` — el
-  Administrador Patrimonial re-autentica cada sesión de navegador (mayor blast radius que APP QR,
-  ver `../aidlc-docs/ccp/design-artifacts/ARCHITECTURE.md` "Decisión abierta"). La segmentación por rol
-  Directivo de DOC-020 (`esDirectivo()`/`esAdministradorPatrimonial()`, bifurcación en
-  `HubPage.tsx`) quedó superada por DOC-022 (2026-08-19): el Directivo ya no entra a CCP, tiene su
-  propio portal (`../core/frontend/`) — ambas funciones y la bifurcación se eliminaron de acá.
-- `lib/cis-client.ts` — cliente hacia CIS: `POST /auth/session` (entitlements), `GET /catalogo`
-  (ambos ya existían, reusados tal cual — WAF 8, "WEB y APP QR son clientes intercambiables del
-  mismo contrato"), `GET /inventarios` + `GET /inventarios/:id` (ya existían para APP QR salvo el
-  listado, que es nuevo) y `POST /admin/activos`, `GET/POST /admin/contratos`,
-  `PATCH /admin/contratos/:id` (nuevos, `cis/src/administrador/`, DOC-012 5/7).
-- `pages/LoginPage.tsx`, `AuthCallbackPage.tsx` — flujo de login.
-- `lib/nivel.ts` — nivel de producto contratado (`1` | `2`, [DOC-025](../aidlc-docs/devops/design-artifacts/DOC-025-niveles-producto-onprem.md)
-  / [DOC-029](../aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md) RF-A).
-  No es un dato de dominio: lo inyecta el `.exe` embebido (`VITE_SICSAFT_NIVEL`, mismo canal que
-  la config OIDC — DOC-028 Fase C.0) o una env var en `devops/onprem`; sin eso se asume `2`
-  (portal completo, caso de `npm run dev` suelto). **Contratos e Inventarios** están retirados del
-  CCP en cualquier nivel (usuario 2026-08-31: el contrato no se gestiona desde el portal del AFT;
-  el escaneo se hace en la APP QR y los resultados se ven en el Resumen). **Corrección 2026-09-02**:
-  el CCP va **completo en todos los niveles** (activos con alta manual, Estructura, importaciones,
-  etiquetas, auditoría); lo único gateado a **Nivel 2** es el módulo `dashboard`, que es **CIP**
-  (`MODULOS_CIP`). Las páginas y los métodos de cliente de lo retirado siguen en el repo, solo sin
-  exponer; el gate real igual está en CIS/CORE (DOC-023).
-- `pages/HubPage.tsx` — lista las organizaciones con contrato vigente del operador (RF-02) y, por
-  cada una, los módulos ya implementados (incluido `dashboard`, RF-09/DOC-019 — sigue siendo un
-  módulo del Profesional de AFT), filtrados por `nivelActual()`. Sin segmentación por rol (DOC-020
-  quedó superado por DOC-022, ver arriba).
-- `pages/ActivosPage.tsx` — RF-03: tabla de `GET /catalogo` + formulario de alta (react-hook-form
-  + zod, RNF-04) contra `POST /admin/activos`. RF-08 verificado: un alta desde acá aparece de
-  inmediato en el mismo catálogo que consumiría APP QR.
-- `pages/ContratosPage.tsx` — RF-07: tabla de `GET /admin/contratos` + formulario de alta +
-  botones de transición de estado por fila (solo se ofrecen las transiciones válidas de DOC-004
-  3, `TRANSICIONES_VALIDAS_CONTRATO` en `lib/cis-client.ts` — la validación real siempre vuelve a
-  correr en CORE). Primer cliente que escribe la tabla `contratos` (antes solo se leía).
-- `pages/InventariosPage.tsx` — RF-04: solo lectura (las sesiones se crean desde APP QR, WEB solo
-  las consulta). Tabla de sesiones + panel de detalle (escaneos con su resultado) al hacer click
-  en una fila. Requirió agregar `GET /inventarios` (listado) tanto en CORE como en CIS — antes
-  solo existía `GET /inventarios/:id/estado`, que exige conocer el `id` de antemano.
-- `pages/AuditoriaPage.tsx` — RF-06: solo lectura, tabla de las entradas más recientes (tope 200,
-  `GET /admin/auditoria`) filtrables por usuario/operación (búsqueda parcial — `operacion` incluye
-  el id del recurso en varias operaciones, ej. `POST /activos/{id}/baja`, un filtro exacto casi
-  nunca matchearía) y por rango de fecha (`<input type="datetime-local">`, convertido a ISO antes
-  de mandarlo — CORE compara directo contra la columna `timestamptz`). Sin selector de
-  organización — a diferencia de Activos/Contratos/Inventarios, no vive dentro del flujo
-  por-organización del hub, sino como link directo en el header (`AppShell`), porque la tabla
-  `auditoria` de CORE no tiene `organizacionId` (ver "Gaps" abajo). **DOC-029 RF-E la reescribe**
-  (columnas Área / Operación / Revisar + filtro por área) — ver el bloque DOC-029 abajo.
-- `pages/EstructuraPage.tsx` — RF-05: ABM de Área/Ubicación/Responsable, tres secciones en una
-  pantalla (tabla + alta + edición cada una donde aplica: `GET/POST/PATCH /admin/areas`,
-  `GET/POST/PATCH /admin/ubicaciones`, `GET/POST /admin/responsables` +
-  `PATCH /admin/responsables/:id/estado`, todos nuevos en CIS/CORE). El orden de las secciones
-  sigue la dependencia real: Ubicaciones necesita elegir una sede (tomada de
-  `organizacion.sedes` del mismo `POST /auth/session` que ya usa el hub) y Responsables necesita
-  elegir un Área ya creada (`areaId` es obligatorio, no hay responsable sin área) — por eso Áreas
-  va primero y alimenta el selector de las otras dos secciones. Cada tabla tiene un botón "Editar"
-  por fila que reemplaza el formulario de alta por uno de edición (mismo panel, alterna entre los
-  dos modos) — Área incluye la asignación de `responsableId`/`ubicacionPrincipalId` (ids en texto
-  libre, DOC-005 2 dejaba ese ciclo abierto a propósito al alta; ahora se cierra vía edición) y
-  Ubicación no permite cambiar `sedeId` (mover de sede es un traslado, operación distinta, fuera de
-  alcance). La "baja" de un Responsable es cambiar su `estado` a `inactivo` (nunca un DELETE,
-  mismo criterio que Activo/Contrato) — el botón alterna activo/inactivo en la tabla.
+## Módulos y Arquitectura
 
-**Decisiones de esta primera versión, distintas del diseño original de `ARCHITECTURE.md`**:
-- Sin `shadcn/ui`/`radix-ui` — primitivos propios en `components/ui.tsx` (Tailwind v4 + los
-  tokens de `BRAND.md` directo, sin capa de componentes de terceros) para minimizar dependencias
-  del primer incremento. Migrar a shadcn/ui es straightforward si se necesita más adelante
-  (mismos tokens de color).
-- Sin `next-themes`/toggle de tema — solo modo oscuro (mismo criterio que la landing oficial, ver
-  `BRAND.md`). RNF-05 (foco visible, contraste AA) verificado con contraste real calculado
-  (compositing de opacidad incluido, fórmula WCAG 2.1) el 2026-08-14 — encontró y corrigió un
-  hallazgo real: el badge de estado `vencido`/fallback (`components/ui.tsx`) usaba
-  `text-text-faint` sobre `bg-text-faint/15`, con 3.50:1 de contraste efectivo, bajo el mínimo AA
-  (4.5:1); corregido a `text-text-dim`/`bg-text-dim/15` (6.64:1). El resto del sistema de color
-  (texto principal/atenuado, badges `success`/`warning`/`destructive`, foco visible) ya pasaba AA
-  cómodamente.
-- Sin lectura de `catalogo_activos` — el campo "Catálogo (id)" del formulario de alta de Activos
-  es texto libre (ids del seed de desarrollo: `catalogo-notebook`, `catalogo-proyector`) porque
-  no existe todavía un endpoint que liste el catálogo de tipos de activo (gap ya anotado en
-  DOC-013 3).
+```
+src/
+├── components/         # Primitivos UI (Tailwind v4, tokens BRAND.md), AppShell, PantallaControlArea
+├── lib/                # Clientes HTTP (cis-client.ts), OIDC PKCE (oidc/), helpers de nivel, etiquetas y lotes
+├── pages/              # ActivosPage, EstructuraPage, EtiquetasPage, AuditoriaPage, HubPage, LoginPage
+│   └── importaciones/  # LotesRevision, CargaManualCsv
+└── tests/              # Suites Playwright e2e (login, alta de activos)
+```
 
-**Gaps de arquitectura real encontrados y resueltos en este incremento**:
-- El claim de rol que Zitadel firma (`rolesPorOrganizacion`) usa el id de organización **de
-  Zitadel**, no el `organizacionId` de texto que CORE entiende (`duoc-uc`) — sin traducirlo,
-  ningún token real podría autorizar una escritura oficial aunque el rol estuviera bien asignado.
-  Se resolvió con un mapeo explícito en CIS (`ZITADEL_ORG_ID_MAP`, ver
-  `cis/src/administrador/organizacion-mapping.config.ts`) — mismo gap que `DOC-004 7` ya
-  documentaba para lectura, ahora también cerrado para el camino de escritura.
-- `GET /contratos` y `GET /inventarios` (listado) no existían en CORE — `Contrato` solo se leía
-  indirecto vía `GET /entitlements` (sin `id`/`estado`) y las sesiones de inventario solo se
-  podían consultar una por una si ya se conocía su `id`. Se agregaron
-  `core/src/entitlements/contrato.controller.ts` e
-  `InventariosController.getInventarios`/`getInventarioDetalle` — lectura abierta
-  (`ServiceTokenGuard` a secas, sin exigir ningún rol, DOC-012 4).
-- CORS de CIS solo permitía `GET`/`POST` — `PATCH /admin/contratos/:id` fallaba en el navegador
-  (bloqueado en el preflight) hasta agregar `PATCH` a `CIS_CORS_ORIGIN`/`methods` en `src/main.ts`.
-- `@UsePipes()` a nivel de método en `AdministradorController.actualizarEstadoContrato` validaba
-  **todos** los parámetros del handler, incluido `@Param('id')` (un string) contra un schema que
-  esperaba un objeto — rompía con "Payload inválido" en cualquier request real, invisible en los
-  specs unitarios porque ahí se llama al método directo sin pasar por el pipeline HTTP de Nest.
-  Encontrado probando el flujo real desde el navegador; corregido a un pipe por parámetro (mismo
-  patrón que ya usaban los endpoints de escritura de Activo en CORE, y aplicado preventivamente a
-  los nuevos endpoints de Inventarios) y cubierto con un e2e nuevo
-  (`cis/test/administrador.e2e-spec.ts`) para que no vuelva a pasar desapercibido.
-- **`GET /auditoria` no filtra por organización** (gap conocido, sin resolver — distinto del
-  filtro por usuario/operación/fecha, ya cerrado, ver abajo): la tabla `auditoria` de CORE
-  (DOC-005 7) no tiene columna `organizacionId` — audita cualquier operación del ecosistema, no
-  solo las de una organización. `AuditoriaPage` en WEB muestra entradas de **todo** el ecosistema a
-  cualquier operador autenticado con contrato vigente en alguna organización, sin importar cuál.
-  Aceptado para este incremento porque el volumen real es bajo (mismo criterio ya aplicado a
-  `GET /contratos`, que tampoco filtra) — agregar el filtro requiere una migración nueva (columna +
-  índice) y threading de `organizacionId` a través de cada llamada a
-  `AuditoriaRepository.registrar` en `OrquestadorService`, deliberadamente fuera de alcance de este
-  incremento (ver DOC-011).
-- **RF-06 (Auditoría) cerrado (2026-08-14)**: `AuditoriaRepository.listar` ganó filtros opcionales
-  por `usuario`/`operacion` (`ILIKE '%valor%'`, no igualdad exacta — `operacion` incluye el id del
-  recurso en varias operaciones, ej. `POST /activos/{id}/baja`, `PATCH /responsables/{id}/estado`;
-  un filtro exacto casi nunca matchearía más de una fila) y por rango `fechaDesde`/`fechaHasta`
-  (inclusive en ambos extremos). `AuditoriaPage` agrega el formulario correspondiente. Verificado
-  con unit + e2e reales contra Postgres, incluido el caso de rango de fecha que excluye entradas
-  fuera del rango.
-- **RF-05 (Área/Ubicación/Responsable)** no existía ni en CORE ni en CIS — módulo nuevo
-  `core/src/estructura/` (repositories + `EscrituraEstructuraService`, invocado desde
-  `OrquestadorService` con el mismo patrón de autorización+auditoría que Activo/Contrato) y puente
-  nuevo en `AdministradorController`/`AdministradorService` de CIS. `Ubicacion`/`Responsable` no
-  tienen columna `organizacionId` propia (`sede_id`/`area_id` respectivamente) — la escritura
-  cruza esas referencias contra `organizacionId` antes de insertar (defensa en profundidad, mismo
-  criterio que `ActivoRepository` con activos de otra organización, DOC-012 3) en vez de confiar
-  solo en la FK de Postgres, que no distinguiría una sede/área real pero de otra organización.
-- **RF-05 cerrado por completo (2026-08-14)**: `AreaRepository.actualizar`/`UbicacionRepository.actualizar`
-  nuevos en CORE (`PATCH /areas/:id`, `PATCH /ubicaciones/:id`), mismo patrón de defensa en
-  profundidad que el alta (cross-organización antes de escribir) y mismo criterio "404 sin
-  confirmar existencia en otra organización" que `ActivoRepository.cambiarEstado`. La edición de
-  Área incluye `responsableId`/`ubicacionPrincipalId` — cierra el ciclo que DOC-005 2 dejaba
-  abierto a propósito al alta ("sin ciclo estricto de creación" explicaba por qué el alta no los
-  exige, no por qué la asignación posterior no se podía hacer nunca). Sin `sedeId` editable en
-  Ubicación — mover de sede es un traslado, operación distinta y más grande, fuera de alcance
-  (mismo criterio que dejó el traslado de Activo sin controller HTTP, DOC-008). Puente nuevo en
-  CIS (`PATCH /admin/areas/:id`, `PATCH /admin/ubicaciones/:id`) y formularios de edición en
-  `EstructuraPage` (botón "Editar" por fila, reemplaza el panel de alta). Verificado con unit +
-  e2e reales contra Postgres.
-- **RNF-01 (CORE) cerrado (2026-08-14)**: `GET /contratos`, `/auditoria`, `/areas`, `/ubicaciones`,
-  `/responsables` de CORE devuelven ahora `{ <entidad>, total }` en vez de array plano (ver
-  `../core/README.md`). `cis-client.ts` desempaqueta el envelope y sigue devolviendo un array
-  plano a los componentes (`ContratosPage`, `AuditoriaPage`, `EstructuraPage`) — sin cambios ahí.
-  WEB no tiene UI de paginación (ningún RF la pide todavía) — pide el tope de página (`limit=100`)
-  en vez de el default (20) para no perder filas silenciosamente mientras el volumen se mantenga
-  bajo esa cota; si crece más allá, hace falta una UI de paginación real (nuevo RF, no este).
-- **5 gaps de cobertura del CCP frente al alcance del Profesional de AFT (auditados 2026-08-18)
-  — cerrados el mismo día ([DOC-021](../aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md),
-  detalle completo con archivo/línea en
-  [DOC-012 "Cobertura real desde el CCP hoy"](../seguridad/DOC-012-administrador-patrimonial.md))**:
-  - **Estados/ciclo de vida de Activo** — `ActivosPage.tsx` ofrece baja/reincorporación/cambio de
-    responsable por fila según `estado`, puente completo en CIS.
-  - **Familias/categorías** — `GET/POST /catalogo-tipos` sobre `catalogo_activos` (ya existía la
-    tabla, sin repository propio) — selector real en el alta de Activo, reemplaza el texto libre.
-  - **Descripciones** — columna nueva `activos.descripcion` + `PATCH /activos/:id/descripcion`,
-    editable desde el panel de edición.
-  - **Documentación y fotografías** (versión mínima) — tabla nueva `documentos_activo`, `url` es
-    un enlace externo que el operador ya subió a algún lado, sin bucket/OCR propio todavía (ver
-    `ROADMAP.md` Fase 7 "Idea futura sin diseñar").
-  - **Importaciones controladas desde archivos** — `ImportacionesPage.tsx` nueva (CSV
-    cliente-side, sin dependencia nueva) → `POST /admin/importaciones/contable` (ya funcionaba en
-    CORE, solo faltaba el puente).
-- **Rol Administrador del Sistema** (`administrador-sistema`, DOC-021) — se extrajo de
-  `AdminPage.tsx` a su propio portal `web_admin/` (DOC-022) y ese portal, el rol y las rutas
-  `/admin/organizaciones|contratos|sedes|indicadores` de CIS se **eliminaron (2026-09)**: crear/
-  editar Organización/Contrato/Sede y asignar usuarios pasó a ser intervención directa del
-  proveedor externo (BD / script con service-token) + el bootstrap del wizard de `sicsaft-core`;
-  el diagnóstico de errores se hace por la consola de logs de `sicsaft-core`. `cis/src/keycloak-admin/`
-  sigue vivo: lo usa el alta de usuarios del wizard y el "designar Profesional de AFT" del Directivo.
+## Desarrollo y Ejecución Local
 
-**DOC-029 — endurecimiento para cliente real (mergeado a `main`, PRs #90/#92/#94/#96)**
-([DOC-029](../aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md)) — la
-fase nace en este portal (cliente real ya sobre `sicsaft-core.exe`). Lo hecho en `ccp/`:
-
-- **RF-A — flag de nivel 1/2** (`feat/ccp-nivel-flag`; **corrección** `feat/ccp-completo-en-nivel-1`):
-  `lib/nivel.ts` (`nivelActual()` / `moduloHabilitado()`), gate de módulos en `HubPage`/`AppShell`.
-  **Contratos e Inventarios retirados del portal del AFT en cualquier nivel.** El resto del CCP va
-  **completo en todos los niveles** (2026-09-02, revierte el "CCP acotado en Nivel 1"); lo único
-  gateado a **Nivel 2** es el módulo `dashboard` (CIP). Solo oculta en la UI — el guard real sigue
-  en CIS/CORE (DOC-023).
-- **RF-B — revisión de lotes de ingesta de Excel** (`feat/ccp-ingesta-revision`, `cecb0b7`):
-  `ImportacionesPage.tsx` se parte en `pages/importaciones/` (`LotesRevision` + `CargaManualCsv`).
-  `LotesRevision`: lista de lotes (`pendiente_revision` arriba), detalle con dry-run por fila
-  (`crear`/`ya_importado`/`conflicto`), **Aprobar** / **Rechazar** (motivo inline). Muestra la
-  carpeta de ingesta (`VITE_SICSAFT_CARPETA_INGESTA`, solo lectura, la fija el `.exe`). Helpers
-  puros `lib/lotes-importacion.ts` + `lib/importacion-csv.ts` con tests.
-- **RF-F — módulo QR / Etiquetas** (`feat/ccp-etiquetas-qr`, `20a82e5`): ruta `/etiquetas`,
-  agrupa el catálogo por **dirección → área** (`lib/etiquetas.ts`), cada activo = una etiqueta con
-  `codigoQr` como QR (`qrcode`, única dependencia nueva) **y** como Code 128 (encoder propio
-  `lib/code128.ts`, sin dependencia) + `@media print` (una dirección por página). Sin backend nuevo.
-- **RF-I — Pantalla 8 en el Resumen** (`feat/ccp-pantalla8`, `c932766`): en "Sesiones de
-  inventario" del `DashboardPage`, cada fila despliega inline el informe de control de área de esa
-  sesión (`components/PantallaControlArea.tsx` — 6 bloques + franja de veredicto con fondo de
-  color). `cis-client` gana `getInventarioResumenControl`; `lib/pantalla-8.ts` los helpers puros.
-  Consume `GET /inventarios/:id/control` de CIS (rama `feat/cis-inventario-control`).
-- **RF-E — Auditoría por área operativa** (`feat/ccp-auditoria-area`, `3d91204`):
-  `AuditoriaPage.tsx` reescrita — columna `Usuario` → **`Área`** (`areaOperativa`), nueva columna
-  **`Revisar`** que despliega una fila de detalle con usuario/equipo/ip/observaciones (el usuario
-  no se pierde), filtro `Área` primero + `useSearchParams` para el deep-link `?area=` (lo usará
-  RF-D). Consume `?area=` de CIS (rama `feat/cis-auditoria-area`).
-- **Pendiente en `ccp/`**: RF-D (`feat/ccp-veredicto-accionable` — links profundos del veredicto +
-  auto-auditoría al cerrar `defectuoso`); RF-C (3 pestañas del Dashboard — bloqueado, spec de Guido).
-
-## Módulos previstos
-6 en el MVP de Fase 5 (ver [DOC-013](../aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md)), los 6
-con código funcionando y sus requisitos cerrados: Activos (🟢), Contratos (🟢), Inventarios (🟢),
-hub (🟢), Auditoría (🟢, filtrable por usuario/operación/fecha — RF-06 cerrado, ver "Gaps"
-arriba), Áreas/Ubicaciones/Responsables (🟢, ABM completo incluida la edición de Área/Ubicación —
-RF-05 cerrado, ver "Gaps" arriba). Un séptimo módulo, Dashboard (🟢 implementado — RF-09,
-[DOC-019](../aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md)), expone el primer
-dashboard de CIP (SYS-06, Fase 6) vía un proxy nuevo en CIS (`src/dashboard-connector/`) — WEB
-nunca le habla a CIP directo. Un módulo más (2026-08-18, DOC-021): **Importaciones** (🟢, CSV
-cliente-side → `POST /admin/importaciones/contable`). El módulo **Administración** que se diseñó
-el mismo día (exclusivo de `administrador-sistema` — Organizaciones/Contratos/Usuarios/Indicadores)
-se extrajo a `web_admin/` (DOC-022) y se **eliminó (2026-09)** junto con el portal y el rol. Un
-módulo más, **QR / Etiquetas**
-(🟢 DOC-029 RF-F, mergeado — ver el bloque DOC-029 arriba). El resto — Incidencias,
-Movimientos, RFID, Reportes, Roles, Configuración, Integraciones — sigue sin diseñar (sin
-consumidor real).
-
-## Roles previstos
-**Profesional de AFT** (nombre funcional del realm role `administrador-patrimonial` de Keycloak, ver
-[DOC-012 "Nomenclatura"](../seguridad/DOC-012-administrador-patrimonial.md)) es el usuario
-principal de Nivel 1 responsable de cargar y mantener la información patrimonial desde el CCP —
-activos, códigos patrimoniales, descripciones, familias/categorías, áreas, ubicaciones,
-responsables, estados, documentación/fotografías, preparación de inventarios e importaciones
-controladas. **Directivo** (DOC-020, reestructurado por DOC-022 el 2026-08-19) ya no entra a CCP —
-tiene su propio portal en `../core/frontend/`, ver ese README para su vista ejecutiva de solo
-Dashboard + gestión de roles acotada a su organización.
-El **Administrador del Sistema** (`administrador-sistema`, DOC-021) tuvo su propio portal
-`web_admin/` para administrar la plataforma (organizaciones, contratos, sedes, usuarios); ese
-portal y ese rol se **eliminaron (2026-09)** — el CRUD de Organización/Contrato/Sede y la
-asignación de usuarios pasó a intervención directa del proveedor externo (BD / script con
-service-token) + el bootstrap del wizard de `sicsaft-core`. Perfiles futuros anticipados, sin
-diseño ni realm role de Keycloak todavía: Supervisor, Auditor — sin que ninguno reemplace la
-responsabilidad de Nivel 1 del Profesional de AFT.
-
-## Desarrollo local
-Requiere un Keycloak con el realm `sicsaft` y el client OIDC `web-sicsaft` ya creado (ver
-`../devops/local/README.md` "Cliente OIDC real (WEB)") + CIS + CORE + Postgres.
 ```bash
 cd ccp
 npm install
-cp .env.example .env   # completar VITE_KEYCLOAK_CLIENT_ID con el Client ID real
-npm run dev            # http://localhost:5174
+cp .env.example .env
+npm run dev             # Servidor Vite en http://localhost:5174
+npm run build           # Build de producción (dist/)
+npm run test:e2e        # Tests e2e con Playwright
 ```
 
-**Dentro del stack de Docker** (en vez de `npm run dev` suelto): completar
-`WEB_VITE_KEYCLOAK_CLIENT_ID` en `devops/local/.env` y correr `docker compose up -d --build ccp`
-desde `devops/local/` — sirve el build de producción vía nginx en
-`http://ccp.sicsaft.localhost` (Traefik, `devops/local/traefik/dynamic.yml`). Como Vite incrusta
-las `VITE_*` en build time, cambiar `WEB_VITE_KEYCLOAK_CLIENT_ID` exige reconstruir la imagen
-(`docker compose build ccp`), no solo reiniciar el contenedor.
-
-**Nota (2026-08-26)**: `devops/local/docker-compose.yml` todavía no migró a Keycloak
-([ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) Fase 1 solo cubrió `cis/`) —
-hoy el stack de Docker Compose sigue levantando Zitadel, no Keycloak, así que el flujo "Dentro del
-stack de Docker" de arriba queda temporalmente inconsistente (`cis/` y `ccp/` ya esperan Keycloak,
-`devops/local/` todavía no lo sirve) hasta que esa fase se complete.
+### Variables de Entorno (`.env`)
+```env
+VITE_KEYCLOAK_URL=http://localhost:8080
+VITE_KEYCLOAK_REALM=sicsaft
+VITE_KEYCLOAK_CLIENT_ID=web-sicsaft
+VITE_CIS_URL=http://localhost:3000
+VITE_SICSAFT_NIVEL=2
+```
 
 ## Depende de
-CORE (escritura oficial de `Activo`/`Contrato`/`Area`/`Ubicacion`/`Responsable`, Fases 4/5 — ✅) y
-CIS (autenticación real + puente de escritura, `src/administrador/` — ✅). Sin dependencias
-pendientes para el MVP de Fase 5.
+- **CIS (`cis/`)**: Gateway de interoperabilidad para todas las operaciones de lectura y escritura oficial.
+- **Keycloak 26**: Servidor OIDC para emisión y validación de tokens del Profesional de AFT.
 
 ## Bloquea
-Nada crítico.
+- Ningún subsistema de backend depende de `ccp/` (es una interfaz de usuario final).
 
-## Documentos relacionados
-[DOC-013](../aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md) — módulos MVP y contra qué endpoint
-de CIS/CORE pega cada uno.
-[DOC-023](../aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md) — matriz de permisos por
-rol (Rol × Módulo × Acción), extraída de los guards reales de CIS/CORE; confirma que el sidebar de
-este portal solo linkea a módulos donde `administrador-patrimonial` tiene una acción real.
-[`seguridad/DOC-012-administrador-patrimonial.md`](../seguridad/DOC-012-administrador-patrimonial.md)
-— contrato de escritura oficial que `POST /admin/activos` y `POST/PATCH /admin/contratos` exponen.
-[DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) — bitácora
-de bugs reales. Los que tocaron `ccp/`: `new URL('/protocol/...', issuer)` descartando
-`/realms/sicsaft` (BUG-09), y `getCurrentOperatorDisplayName` mostrando el correo duplicado por
-usar `claims.name` en vez de `preferred_username` (BUG-43). Ambos salieron cuando `sicsaft-core`
-embebió este portal por primera vez.
-Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 8 (WEB y APP QR son clientes intercambiables
-del mismo contrato de CIS/CORE).
+## Documentos Relacionados
+- [DOC-013](../aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md) — Requisitos y diseño de módulos del CCP.
+- [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md) — Separación de portales por rol.
+- [DOC-023](../aidlc-docs/ccp/design-artifacts/DOC-023-matriz-permisos-rbac.md) — Matriz de permisos RBAC.
+- [DOC-029](../aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md) — Endurecimiento para cliente real (Lotes, Etiquetas, Pantalla 8).
+- [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) — Marco arquitectónico general.
 
-## Próximo paso sugerido
-Los 6 módulos del MVP de Fase 5 tienen código funcionando, y RF-05/RF-06 ya cerraron su requisito
-por completo (ver `../REQUISITOS.md`, sin filas pendientes en "RF/RNF con estado parcial" para
-WEB). Lo que queda:
-1. Verificación real de punta a punta de Auditoría y Áreas/Ubicaciones/Responsables desde el
-   navegador (login real, como ya se hizo con Activos/Contratos/Inventarios) — hoy solo están
-   probados con e2e de CORE/CIS.
-2. ✅ Módulo Dashboard (RF-09, [DOC-019](../aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md))
-   implementado: `src/dashboard-connector/` nuevo en CIS (proxy hacia CIP con `CipClientService`
-   propio — mismo patrón de retry+circuit breaker que `CoreClientService`, mismo criterio de
-   autorización que `qr-connector.controller.ts`, sin rol adicional) + `DashboardPage.tsx` en WEB
-   (KPIs de cobertura, áreas controladas con drill-down por área, sesiones con veredicto, activos
-   fuera de área/no localizados, incidencias filtrables por código QR, estado de AFT, y un gráfico
-   circular por categoría — SVG propio, sin librería nueva). Verificado de punta a punta contra
-   Docker real: login OIDC real vía `ccp.sicsaft.localhost`, un `POST /inventarios` y un
-   `POST /activos` reales disparados dentro de la red Docker confirmados en pantalla (cobertura,
-   veredicto de sesión, estado de AFT y categorías, todos con datos reales).
-3. ⚠️ RF-10 (segmentación por rol Directivo, [DOC-020](../aidlc-docs/ccp/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md))
-   — implementado y verificado real en su momento (ver el propio DOC-020 para ese historial), pero
-   **superado por [DOC-022](../aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md)
-   el 2026-08-19**: `esDirectivo()`/`esAdministradorPatrimonial()` y la bifurcación de
-   `HubPage.tsx` se eliminaron de CCP — el Directivo tiene su propio portal ahora
-   (`../core/frontend/`, ver ese README). El profesional de AFT (`administrador-patrimonial`,
-   único rol que sigue entrando a CCP) no tiene cambios de comportamiento.
+## Próximo Paso Sugerido
+- Avanzar con el enlace bidireccional del veredicto accionable de sesiones de inventario hacia auditoría (RF-D).
 
-✅ `Dockerfile`/`ccp-ci.yml`/servicio en el compose local — WEB ya tiene imagen de producción
-(nginx sirviendo el build de Vite, usuario sin privilegios) y corre dentro del stack en
-`http://ccp.sicsaft.localhost` además de `npm run dev` suelto (ver "Desarrollo local" arriba).
-
-✅ e2e Playwright del flujo de login + alta (`tests/login-alta.spec.js`) — mismo patrón que
-`app-qr-sicsaft/tests/` (MSW mockea CIS en modo `VITE_MOCK_API=true`, `.env.e2e`; el redirect real
-a Keycloak se salta sembrando `sessionStorage` con un JWT sin firmar, `tests/helpers.js`
-`seedAuth()` — CIS es quien valida de verdad server-side, el cliente solo mira si hay tokens
-guardados). Cubre: operador sin sesión redirigido a `/login`, y login + alta de Activo visible de
-inmediato en el mismo catálogo (RF-08). Corre en CI (`ccp-ci.yml`) y local con `npm run test:e2e`.

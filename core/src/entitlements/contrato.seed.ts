@@ -1,10 +1,7 @@
 import type { Contrato } from './contrato.types';
 
-// Ya no es la fuente de datos de produccion (eso es Postgres real, ver
-// devops/local/postgres/init/schema/core.sql y ContratoRepository) — queda como fixture de tests
-// y como referencia textual del mismo caso de negocio que cis/src/qr-connector/qr-connector.seed.ts
-// (DUOC UC, contrato vigente solo para la sede Melipilla). Si este seed cambia, el SQL de
-// core.sql debe actualizarse a mano para seguir representando el mismo caso.
+// Fixture de tests y migración de desarrollo (1755000000001_seed-dev-fixture.ts) para el caso
+// DUOC UC (contrato vigente para la sede Melipilla) contra ContratoRepository.
 export const SEED_CONTRATOS: readonly Contrato[] = [
   {
     id: 'contrato-duoc-uc-melipilla',

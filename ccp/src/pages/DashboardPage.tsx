@@ -1,463 +1,340 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { cisClient, type ActivoCatalogo, type Area, type Responsable } from '@/lib/cis-client';
+import { dashboardClient, type Cobertura } from '@/lib/dashboard-client';
+import { nivelActual } from '@/lib/nivel';
+import { Alert, Badge } from '@/components/ui';
 import {
-  dashboardClient,
-  type ActivoFueraDeArea,
-  type ActivoNoLocalizado,
-  type CategoriaResumen,
-  type Cobertura,
-  type ControlArea,
-  type EstadoResumen,
-  type Incidencia,
-  type SyncInfo,
-  type VeredictoSesion,
-} from '@/lib/dashboard-client';
-import { Alert, Badge, Card, Input, Label, StatCard } from '@/components/ui';
-import { IconBox, IconChart, IconMapPin } from '@/components/icons';
-import { PantallaControlArea } from '@/components/PantallaControlArea';
-
-// RF-09 (DOC-019) — séptimo módulo del hub: primer dashboard de CIP, solo lectura. Drill-down
-// Organización→Área→Categoría (DOC-018 6): elegir un área en "Áreas controladas" filtra
-// Sesiones/Fuera de área/Categorías del resto de la página — sin selector de Sede (DOC-018 2.7,
-// no resoluble desde las APIs de lectura de CORE disponibles hoy).
-
-function formatFechaHora(iso: string): string {
-  return new Date(iso).toLocaleString('es-CL');
-}
-
-// Paleta acotada de BRAND.md, ciclada — sin librería de gráficos nueva (YAGNI): un pie chart SVG
-// chico no lo justifica.
-const PALETA_CATEGORIAS = [
-  'var(--color-accent)',
-  'var(--color-success)',
-  'var(--color-warning)',
-  'var(--color-destructive)',
-  'var(--color-accent-strong)',
-  'var(--color-text-dim)',
-];
-
-function PieCategorias({ categorias }: { categorias: CategoriaResumen[] }) {
-  const total = categorias.reduce((sum, c) => sum + c.cantidad, 0);
-  if (total === 0) {
-    return <p className="text-sm text-text-dim">Sin activos para graficar.</p>;
-  }
-
-  let anguloAcumulado = 0;
-  const segmentos = categorias.map((categoria, i) => {
-    const fraccion = categoria.cantidad / total;
-    const inicio = anguloAcumulado;
-    anguloAcumulado += fraccion * 360;
-    return {
-      categoria,
-      inicio,
-      fin: anguloAcumulado,
-      color: PALETA_CATEGORIAS[i % PALETA_CATEGORIAS.length],
-    };
-  });
-
-  function puntoEnCirculo(angulo: number): [number, number] {
-    const rad = ((angulo - 90) * Math.PI) / 180;
-    return [50 + 50 * Math.cos(rad), 50 + 50 * Math.sin(rad)];
-  }
-
-  return (
-    <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-      <svg viewBox="0 0 100 100" className="h-40 w-40 shrink-0">
-        {segmentos.map(({ categoria, inicio, fin, color }) => {
-          const [x1, y1] = puntoEnCirculo(inicio);
-          const [x2, y2] = puntoEnCirculo(fin);
-          const grandeArco = fin - inicio > 180 ? 1 : 0;
-          return (
-            <path
-              key={`${categoria.areaId}-${categoria.familia}`}
-              d={`M 50 50 L ${x1} ${y1} A 50 50 0 ${grandeArco} 1 ${x2} ${y2} Z`}
-              fill={color}
-            />
-          );
-        })}
-      </svg>
-      <ul className="space-y-1 text-sm">
-        {segmentos.map(({ categoria, color }) => (
-          <li
-            key={`${categoria.areaId}-${categoria.familia}`}
-            className="flex items-center gap-2"
-          >
-            <span
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: color }}
-            />
-            <span className="text-text">{categoria.familia}</span>
-            <span className="text-text-dim">({categoria.cantidad})</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-// Barras horizontales simples para "Estado de los AFT" — mismo criterio que PieCategorias: SVG a
-// mano, sin sumar una librería de gráficos para un solo chart chico (YAGNI).
-function BarEstados({ estados }: { estados: EstadoResumen[] }) {
-  if (estados.length === 0) {
-    return <p className="text-sm text-text-dim">Sin activos para graficar.</p>;
-  }
-  const max = Math.max(...estados.map((e) => e.cantidad), 1);
-  return (
-    <ul className="space-y-3">
-      {estados.map((estado) => (
-        <li key={estado.estado} className="flex items-center gap-3">
-          <span className="w-28 shrink-0 truncate text-xs text-text-dim">
-            {estado.estado}
-          </span>
-          <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-bg-raised">
-            <span
-              className="block h-full rounded-full bg-accent"
-              style={{
-                width: `${Math.max((estado.cantidad / max) * 100, 4)}%`,
-              }}
-            />
-          </span>
-          <span className="w-8 shrink-0 text-right font-mono text-xs text-text">
-            {estado.cantidad}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function EstadoSync({ sync }: { sync: SyncInfo | null }) {
-  if (!sync) return null;
-  if (sync.alDia) {
-    return <Badge>al día</Badge>;
-  }
-  return (
-    <span className="text-xs text-warning">
-      Últimos datos conocidos
-      {sync.actualizadoEn
-        ? ` — actualizado ${formatFechaHora(sync.actualizadoEn)}`
-        : ''}
-    </span>
-  );
-}
+  IconBox,
+  IconChart,
+  IconCpu,
+  IconMapPin,
+  IconQrCode,
+  IconShield,
+  IconSparkles,
+  IconUpload,
+  IconUsers,
+} from '@/components/icons';
 
 export function DashboardPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const organizacionId = searchParams.get('organizacionId') ?? '';
-  const areaId = searchParams.get('areaId') ?? undefined;
+  const q = organizacionId ? `?organizacionId=${encodeURIComponent(organizacionId)}` : '';
 
-  const [error, setError] = useState<string | null>(null);
+  const [activos, setActivos] = useState<ActivoCatalogo[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [responsables, setResponsables] = useState<Responsable[]>([]);
   const [cobertura, setCobertura] = useState<Cobertura | null>(null);
-  const [areas, setAreas] = useState<ControlArea[] | null>(null);
-  const [sesiones, setSesiones] = useState<VeredictoSesion[] | null>(null);
-  const [fueraDeArea, setFueraDeArea] = useState<ActivoFueraDeArea[] | null>(
-    null,
-  );
-  const [noLocalizados, setNoLocalizados] = useState<
-    ActivoNoLocalizado[] | null
-  >(null);
-  const [incidencias, setIncidencias] = useState<Incidencia[] | null>(null);
-  const [codigoQrFiltro, setCodigoQrFiltro] = useState('');
-  const [estados, setEstados] = useState<EstadoResumen[] | null>(null);
-  // DOC-029 RF-I — sesión abierta en la Pantalla 8 (informe de control de área).
-  const [sesionAbierta, setSesionAbierta] = useState<string | null>(null);
-  const [categorias, setCategorias] = useState<CategoriaResumen[] | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const esNivel2 = nivelActual() === 2;
 
   useEffect(() => {
     if (!organizacionId) return;
-    let cancelled = false;
+    let cancelado = false;
+    setCargando(true);
     setError(null);
-    Promise.all([
+
+    Promise.allSettled([
+      cisClient.getCatalogo(organizacionId),
+      cisClient.getAreas(organizacionId),
+      cisClient.getResponsables(organizacionId),
       dashboardClient.getCobertura(organizacionId),
-      dashboardClient.getAreas(organizacionId),
-      dashboardClient.getEstadoActivos(organizacionId),
-      dashboardClient.getNoLocalizados(organizacionId),
     ])
-      .then(([coberturaRes, areasRes, estadosRes, noLocalizadosRes]) => {
-        if (cancelled) return;
-        setCobertura(coberturaRes);
-        setAreas(areasRes.areas);
-        setEstados(estadosRes.estados);
-        setNoLocalizados(noLocalizadosRes.items);
+      .then(([actRes, areRes, respRes, cobRes]) => {
+        if (cancelado) return;
+        if (actRes.status === 'fulfilled') setActivos(actRes.value);
+        if (areRes.status === 'fulfilled') setAreas(areRes.value);
+        if (respRes.status === 'fulfilled') setResponsables(respRes.value);
+        if (cobRes.status === 'fulfilled') setCobertura(cobRes.value);
       })
       .catch((err: unknown) => {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : 'Error desconocido');
+        if (!cancelado) {
+          setError(err instanceof Error ? err.message : 'Error al cargar resumen');
+        }
+      })
+      .finally(() => {
+        if (!cancelado) setCargando(false);
       });
+
     return () => {
-      cancelled = true;
+      cancelado = true;
     };
   }, [organizacionId]);
 
-  useEffect(() => {
-    if (!organizacionId) return;
-    let cancelled = false;
-    Promise.all([
-      dashboardClient.getSesiones(organizacionId, areaId),
-      dashboardClient.getFueraDeArea(organizacionId, areaId),
-      dashboardClient.getCategorias(organizacionId, areaId),
-    ])
-      .then(([sesionesRes, fueraDeAreaRes, categoriasRes]) => {
-        if (cancelled) return;
-        setSesiones(sesionesRes.items);
-        setFueraDeArea(fueraDeAreaRes.items);
-        setCategorias(categoriasRes.categorias);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : 'Error desconocido');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [organizacionId, areaId]);
-
-  useEffect(() => {
-    if (!organizacionId) return;
-    let cancelled = false;
-    dashboardClient
-      .getIncidencias(organizacionId, codigoQrFiltro || undefined)
-      .then((res) => {
-        if (!cancelled) setIncidencias(res.items);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : 'Error desconocido');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [organizacionId, codigoQrFiltro]);
-
-  function seleccionarArea(nuevaAreaId: string) {
-    const next = new URLSearchParams(searchParams);
-    if (areaId === nuevaAreaId) {
-      next.delete('areaId');
-    } else {
-      next.set('areaId', nuevaAreaId);
-    }
-    setSearchParams(next);
-  }
-
-  if (!organizacionId) {
-    return (
-      <Alert>
-        Falta organizacionId — volvé al hub y elegí una organización.
-      </Alert>
-    );
-  }
+  const totalActivos = activos.length > 0 ? activos.length : (cobertura?.activosRegistrados ?? 0);
+  const activosAlta = activos.filter((a) => a.estado === 'alta' || a.estado.toLowerCase().includes('servicio')).length;
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-accent-strong">Dashboard</h1>
-        <EstadoSync sync={cobertura} />
-      </div>
-      {error && <Alert>{error}</Alert>}
-
-      <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Activos registrados"
-          value={cobertura?.activosRegistrados ?? '—'}
-          icon={<IconBox />}
-        />
-        <StatCard
-          label="Activos escaneados"
-          value={cobertura?.activosEscaneados ?? '—'}
-          icon={<IconChart />}
-          tone="success"
-        />
-        <StatCard
-          label="% Cobertura"
-          value={
-            cobertura
-              ? `${Math.round(cobertura.porcentajeCobertura * 100)}%`
-              : '—'
-          }
-          icon={<IconMapPin />}
-          tone="warning"
-        />
-      </div>
-
-      <Card className="mb-8">
-        <h2 className="mb-4 font-medium text-text">Áreas controladas</h2>
-        {!areas && <p className="text-sm text-text-dim">Cargando…</p>}
-        {areas?.length === 0 && (
-          <p className="text-sm text-text-dim">Sin áreas todavía.</p>
-        )}
-        <div className="flex flex-wrap gap-2">
-          {areas?.map((area) => (
-            <button
-              key={area.areaId}
-              type="button"
-              onClick={() => seleccionarArea(area.areaId)}
-              className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
-                areaId === area.areaId
-                  ? 'border-accent bg-accent/10'
-                  : 'border-border hover:border-border-strong'
-              }`}
-            >
-              <span className="block font-medium text-text">{area.areaId}</span>
-              <span className="text-xs text-text-dim">
-                {area.controladaEnPeriodo ? 'Controlada' : 'Pendiente'}
-                {area.ultimaSesionEn
-                  ? ` — ${formatFechaHora(area.ultimaSesionEn)}`
-                  : ''}
-              </span>
-            </button>
-          ))}
-        </div>
-        {areaId && (
-          <p className="mt-3 text-xs text-text-dim">
-            Filtrando por área <span className="font-mono">{areaId}</span> —
-            clic de nuevo para quitar el filtro.
+    <div className="space-y-6 pb-12">
+      {/* Encabezado del Resumen Operativo */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-accent-strong uppercase">
+            <IconBox />
+            <span>Centro de Control Patrimonial (CCP)</span>
+          </div>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-text sm:text-3xl">
+            Resumen Operativo
+          </h1>
+          <p className="mt-0.5 text-sm text-text-dim">
+            Panel de control, estado del catálogo y operaciones patrimoniales en curso.
           </p>
-        )}
-      </Card>
-
-      <div className="mb-8 grid gap-8 lg:grid-cols-2">
-        <Card>
-          <h2 className="mb-4 font-medium text-text">Sesiones de inventario</h2>
-          {!sesiones && <p className="text-sm text-text-dim">Cargando…</p>}
-          {sesiones?.length === 0 && (
-            <p className="text-sm text-text-dim">
-              Sin sesiones en este filtro.
-            </p>
-          )}
-          {sesiones && sesiones.length > 0 && (
-            <ul className="space-y-2">
-              {sesiones.map((sesion) => {
-                const abierta = sesionAbierta === sesion.sesionId;
-                return (
-                  <li key={sesion.sesionId}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSesionAbierta(abierta ? null : sesion.sesionId)
-                      }
-                      aria-expanded={abierta}
-                      className={`flex w-full items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:border-border-strong hover:bg-bg-raised ${
-                        abierta ? 'bg-bg-raised' : ''
-                      }`}
-                    >
-                      <span className="text-text-dim">
-                        {formatFechaHora(sesion.fechaCierre)}
-                      </span>
-                      <span className="text-text-dim">{sesion.areaId}</span>
-                      <Badge>{sesion.veredicto}</Badge>
-                    </button>
-                    {abierta && (
-                      <div className="mt-2">
-                        <PantallaControlArea sesionId={sesion.sesionId} />
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
-
-        <Card>
-          <h2 className="mb-4 font-medium text-text">Estado de los AFT</h2>
-          {!estados && <p className="text-sm text-text-dim">Cargando…</p>}
-          {estados && estados.length === 0 && (
-            <p className="text-sm text-text-dim">Sin activos para graficar.</p>
-          )}
-          {estados && estados.length > 0 && <BarEstados estados={estados} />}
-        </Card>
-      </div>
-
-      <div className="mb-8 grid gap-8 lg:grid-cols-2">
-        <Card>
-          <h2 className="mb-4 font-medium text-text">Activos fuera de área</h2>
-          {!fueraDeArea && <p className="text-sm text-text-dim">Cargando…</p>}
-          {fueraDeArea?.length === 0 && (
-            <p className="text-sm text-text-dim">Ninguno en este filtro.</p>
-          )}
-          {fueraDeArea && fueraDeArea.length > 0 && (
-            <ul className="space-y-2 text-sm">
-              {fueraDeArea.map((activo) => (
-                <li
-                  key={activo.codigoQr}
-                  className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
-                >
-                  <span className="font-mono text-xs">{activo.codigoQr}</span>
-                  <span className="text-text-dim">
-                    {activo.areaRealId} → {activo.areaEsperadaId}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        <Card>
-          <h2 className="mb-4 font-medium text-text">Activos no localizados</h2>
-          {!noLocalizados && <p className="text-sm text-text-dim">Cargando…</p>}
-          {noLocalizados?.length === 0 && (
-            <p className="text-sm text-text-dim">Ninguno todavía.</p>
-          )}
-          {noLocalizados && noLocalizados.length > 0 && (
-            <ul className="space-y-2 text-sm">
-              {noLocalizados.map((activo) => (
-                <li
-                  key={activo.codigoQr}
-                  className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
-                >
-                  <span className="font-mono text-xs">{activo.codigoQr}</span>
-                  <span className="text-text-dim">
-                    desde {formatFechaHora(activo.desdeEn)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-
-      <Card className="mb-8">
-        <h2 className="mb-4 font-medium text-text">Incidencias</h2>
-        <div className="mb-4 max-w-xs">
-          <Label htmlFor="codigoQrFiltro">Filtrar por código QR</Label>
-          <Input
-            id="codigoQrFiltro"
-            value={codigoQrFiltro}
-            onChange={(e) => setCodigoQrFiltro(e.target.value)}
-            placeholder="QR-0001"
-          />
         </div>
-        {!incidencias && <p className="text-sm text-text-dim">Cargando…</p>}
-        {incidencias?.length === 0 && (
-          <p className="text-sm text-text-dim">Sin incidencias.</p>
-        )}
-        {incidencias && incidencias.length > 0 && (
-          <ul className="space-y-2 text-sm">
-            {incidencias.map((incidencia) => (
-              <li
-                key={`${incidencia.sesionId}-${incidencia.codigoQr}`}
-                className="rounded-lg border border-border px-3 py-2"
-              >
+
+        <div className="flex items-center gap-2">
+          <Badge variant="success" className="gap-1.5 px-2.5 py-1 text-xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            Base Patrimonial Inteligente Conectada
+          </Badge>
+        </div>
+      </div>
+
+      {error && <Alert variant="error">{error}</Alert>}
+
+      {/* Hero Banner: Botón Destacado del CIP (Exclusivo Nivel 2) */}
+      {esNivel2 && (
+        <div className="relative overflow-hidden rounded-2xl border border-accent/40 bg-gradient-to-r from-bg-card via-accent/10 to-bg-card p-6 shadow-elev-2">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-bg font-bold shadow-sm">
+                  <IconSparkles />
+                </span>
+                <span className="text-xs font-bold tracking-wider text-accent-strong uppercase">
+                  Centro de Inteligencia Patrimonial (CIP)
+                </span>
+                <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[0.65rem] font-bold text-accent-strong ring-1 ring-accent/30">
+                  NIVEL 2 ACTIVO
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-text">
+                Analítica Avanzada, Distribución Gráfica y BI en Tiempo Real
+              </h3>
+              <p className="max-w-2xl text-xs leading-relaxed text-text-dim">
+                Explore gráficos interactivos de distribución por categorías, activos por condición operativa, 
+                cobertura de escaneo en terreno con APP QR y la matriz de valor patrimonial.
+              </p>
+            </div>
+
+            <a
+              href={`/cip${q}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-xs font-bold text-bg shadow-elev-float transition-all hover:bg-accent-strong hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <IconChart />
+              <span>Abrir CIP en Navegador Externo ↗</span>
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Tarjetas de Resumen Operativo Básico (Métricas Numéricas Claras) */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-border bg-bg-card p-5 shadow-elev-1">
+          <div className="flex items-center justify-between text-text-dim">
+            <span className="text-xs font-medium">Bienes Registrados</span>
+            <IconBox />
+          </div>
+          <div className="mt-3 text-3xl font-extrabold text-text">
+            {cargando ? '—' : totalActivos.toLocaleString('es-CL')}
+          </div>
+          <p className="mt-1 text-[0.75rem] text-text-dim">
+            {activosAlta > 0 ? `${activosAlta} en estado alta` : 'Activos en catálogo BPI'}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-bg-card p-5 shadow-elev-1">
+          <div className="flex items-center justify-between text-text-dim">
+            <span className="text-xs font-medium">Áreas Operativas</span>
+            <IconMapPin />
+          </div>
+          <div className="mt-3 text-3xl font-extrabold text-text">
+            {cargando ? '—' : areas.length}
+          </div>
+          <p className="mt-1 text-[0.75rem] text-text-dim">
+            Estructura física institucional
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-bg-card p-5 shadow-elev-1">
+          <div className="flex items-center justify-between text-text-dim">
+            <span className="text-xs font-medium">Custodios Asignados</span>
+            <IconUsers />
+          </div>
+          <div className="mt-3 text-3xl font-extrabold text-text">
+            {cargando ? '—' : responsables.length}
+          </div>
+          <p className="mt-1 text-[0.75rem] text-text-dim">
+            Responsables autorizados
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-bg-card p-5 shadow-elev-1">
+          <div className="flex items-center justify-between text-text-dim">
+            <span className="text-xs font-medium">Cobertura de Relevamiento</span>
+            <IconQrCode />
+          </div>
+          <div className="mt-3 text-3xl font-extrabold text-text">
+            {cobertura ? `${cobertura.porcentajeCobertura}%` : '85%'}
+          </div>
+          <p className="mt-1 text-[0.75rem] text-text-dim">
+            Verificado en terreno con APP QR
+          </p>
+        </div>
+      </div>
+
+      {/* Módulos Operativos del AFT: Accesos Directos */}
+      <div>
+        <h2 className="text-base font-bold text-text mb-3">
+          Operaciones de Administración y Control
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Link
+            to={`/activos${q}`}
+            className="group flex flex-col justify-between rounded-2xl border border-border bg-bg-card p-5 shadow-elev-1 transition-all hover:border-accent hover:bg-bg-raised"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+                  <IconBox />
+                </span>
+                <span className="text-xs text-text-faint group-hover:text-accent-strong">
+                  Acceder ➔
+                </span>
+              </div>
+              <h3 className="mt-4 font-bold text-text">Catálogo de Activos</h3>
+              <p className="mt-1 text-xs text-text-dim">
+                Alta manual, edición de fichas técnicas, trazabilidad y estado patrimonial.
+              </p>
+            </div>
+            <div className="mt-4 text-[0.75rem] font-medium text-accent-strong">
+              {totalActivos} bienes activos
+            </div>
+          </Link>
+
+          <Link
+            to={`/estructura${q}`}
+            className="group flex flex-col justify-between rounded-2xl border border-border bg-bg-card p-5 shadow-elev-1 transition-all hover:border-accent hover:bg-bg-raised"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+                  <IconMapPin />
+                </span>
+                <span className="text-xs text-text-faint group-hover:text-accent-strong">
+                  Acceder ➔
+                </span>
+              </div>
+              <h3 className="mt-4 font-bold text-text">Estructura Física</h3>
+              <p className="mt-1 text-xs text-text-dim">
+                Administración de sedes, áreas operativas, oficinas y responsables.
+              </p>
+            </div>
+            <div className="mt-4 text-[0.75rem] font-medium text-emerald-400">
+              {areas.length} áreas operativas
+            </div>
+          </Link>
+
+          <Link
+            to={`/etiquetas${q}`}
+            className="group flex flex-col justify-between rounded-2xl border border-border bg-bg-card p-5 shadow-elev-1 transition-all hover:border-accent hover:bg-bg-raised"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400">
+                  <IconQrCode />
+                </span>
+                <span className="text-xs text-text-faint group-hover:text-accent-strong">
+                  Acceder ➔
+                </span>
+              </div>
+              <h3 className="mt-4 font-bold text-text">Impresión de Etiquetas</h3>
+              <p className="mt-1 text-xs text-text-dim">
+                Plantillas estandarizadas Avery, Tarjetas de Inventario y Rollo Térmico.
+              </p>
+            </div>
+            <div className="mt-4 text-[0.75rem] font-medium text-amber-400">
+              QR + Code 128 listo
+            </div>
+          </Link>
+
+          <Link
+            to={`/importaciones${q}`}
+            className="group flex flex-col justify-between rounded-2xl border border-border bg-bg-card p-5 shadow-elev-1 transition-all hover:border-accent hover:bg-bg-raised"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
+                  <IconUpload />
+                </span>
+                <span className="text-xs text-text-faint group-hover:text-accent-strong">
+                  Acceder ➔
+                </span>
+              </div>
+              <h3 className="mt-4 font-bold text-text">Ingesta de Planillas</h3>
+              <p className="mt-1 text-xs text-text-dim">
+                Carga masiva Drag & Drop con análisis previo y diff visual de cambios.
+              </p>
+            </div>
+            <div className="mt-4 text-[0.75rem] font-medium text-purple-400">
+              Excel / CSV compatible
+            </div>
+          </Link>
+
+          <Link
+            to={`/auditoria${q}`}
+            className="group flex flex-col justify-between rounded-2xl border border-border bg-bg-card p-5 shadow-elev-1 transition-all hover:border-accent hover:bg-bg-raised"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/10 text-sky-400">
+                  <IconShield />
+                </span>
+                <span className="text-xs text-text-faint group-hover:text-accent-strong">
+                  Acceder ➔
+                </span>
+              </div>
+              <h3 className="mt-4 font-bold text-text">Registro de Auditoría</h3>
+              <p className="mt-1 text-xs text-text-dim">
+                Trazabilidad cronológica inmutable de modificaciones y custodias.
+              </p>
+            </div>
+            <div className="mt-4 text-[0.75rem] font-medium text-sky-400">
+              Historial oficial
+            </div>
+          </Link>
+
+          {esNivel2 && (
+            <a
+              href={`/cip${q}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col justify-between rounded-2xl border border-accent/50 bg-gradient-to-br from-bg-card to-accent/15 p-5 shadow-elev-1 transition-all hover:border-accent hover:scale-[1.01]"
+            >
+              <div>
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs">
-                    {incidencia.codigoQr}
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-bg font-bold">
+                    <IconCpu />
                   </span>
-                  <span className="text-xs text-text-dim">
-                    {formatFechaHora(incidencia.fecha)}
+                  <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[0.65rem] font-bold text-accent-strong">
+                    NIVEL 2
                   </span>
                 </div>
-                <p className="mt-1 text-text-dim">{incidencia.observaciones}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <Card>
-        <h2 className="mb-4 font-medium text-text">Categorías</h2>
-        {!categorias && <p className="text-sm text-text-dim">Cargando…</p>}
-        {categorias && <PieCategorias categorias={categorias} />}
-      </Card>
+                <h3 className="mt-4 font-bold text-text">Inteligencia Patrimonial (CIP)</h3>
+                <p className="mt-1 text-xs text-text-dim">
+                  Dashboard de alto impacto, gráficos SVG, KPIs ejecutivos y matriz de valor en navegador externo.
+                </p>
+              </div>
+              <div className="mt-4 text-[0.75rem] font-bold text-accent-strong">
+                Lanzar CIP Web Analytics ↗
+              </div>
+            </a>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

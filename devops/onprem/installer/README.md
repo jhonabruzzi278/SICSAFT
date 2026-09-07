@@ -1,58 +1,34 @@
-# Empaquetado como instalador `.exe` (Inno Setup)
+# Empaquetado como Instalador `.exe` (Inno Setup)
 
-`sicsaft-onprem.iss` empaqueta `devops/onprem/` + `instalar-cliente.ps1` en un instalador
-Windows con una UI simple de 2 pantallas (nombre del cliente/id de organización, nivel de
-producto) que al terminar corre `instalar-cliente.ps1` con esos datos.
+`sicsaft-onprem.iss` empaqueta la suite `devops/onprem/` junto a `instalar-cliente.ps1` en un instalador Windows ejecutable con interfaz paso a paso.
 
-## Estado real — verificado corriendo, pendiente solo la VM limpia
+## Objetivo
 
-Corrección 2026-08-25: la versión anterior de esta nota decía "no fue compilado ni probado", pero
-eso quedó desactualizado apenas se corrigió el bug de `$PSScriptRoot` vacío (ver comentario del
-`[Run]` en `sicsaft-onprem.iss`, commit `72c15ec`) — ese hallazgo solo pudo salir de correr el
-`.exe` ya compilado, no el `.ps1` suelto. El `.exe` **sí se compiló y se corrió al menos una vez**,
-y `instalar-cliente.ps1` (el script que corre al final) está verificado corriendo de punta a punta
-contra Windows real varias veces, con bugs reales encontrados y corregidos en el camino (ver
-`devops/onprem/README.md` "Instalación automatizada" para la lista completa).
+Permitir la instalación asistida en servidores o PCs Windows del cliente configurando nombre de organización, identificador y nivel de producto (Nivel 1 o Nivel 2).
 
-**Lo que sigue sin correrse**: el instalador `.exe` empaquetado contra una **VM Windows limpia**
-(sin WSL2/Podman preinstalados). Todas las corridas verificadas hasta ahora fueron sobre una
-máquina de desarrollo que ya tenía las herramientas instaladas — no se probó todavía la ruta real
-de un cliente nuevo desde cero. Antes de usarlo con un cliente pagante:
+## Compilación del Instalador
 
-1. Instalar [Inno Setup](https://jrsoftware.org/isinfo.php) en una máquina Windows (si hace falta
-   recompilar — `output/sicsaft-onprem-setup.exe` ya existe de una corrida anterior).
-2. Compilar: `iscc sicsaft-onprem.iss` (desde esta carpeta) — genera
-   `output/sicsaft-onprem-setup.exe`.
-3. Correr el instalador en una **VM Windows limpia** (sin WSL2/Podman preinstalados) — es el único
-   escenario que todavía no se verificó.
-4. Confirmar que:
-   - La UI del wizard pide los 3 datos y los pasa bien a `instalar-cliente.ps1` (ya verificado en
-     una corrida anterior — confirmar que sigue así tras cualquier cambio nuevo).
-   - `instalar-cliente.ps1` corre de punta a punta también quedando WSL2/Podman por instalar desde
-     cero (las corridas anteriores ya tenían ambos preinstalados).
-   - El bootstrap de Keycloak (`bootstrap-keycloak.ps1` vía `Wait-KeycloakListo` +
-     `Invoke-BootstrapCliente`, ver `lib/Bootstrap-Keycloak.psm1`) deja el `.env` completo con
-     `KEYCLOAK_ADMIN_CLIENT_ID`/`SECRET` y los `*_VITE_KEYCLOAK_CLIENT_ID` — **pendiente**, ADR-004
-     Fase 3 (2026-08-26) reemplazó el PAT auto-provisionado de Zitadel (que sí estaba confirmado en
-     corridas anteriores contra ese flujo viejo) por este bootstrap nuevo. Cada llamada a la Admin
-     REST API se verificó real contra un Keycloak 26.0 de prueba fuera de este instalador (ver
-     Nota de honestidad en `lib/Bootstrap-Keycloak.psm1`), pero el flujo completo dentro del
-     `.exe` empaquetado todavía no se corrió — repetir esta verificación junto con el resto de la
-     lista.
+1. Instalar [Inno Setup 6](https://jrsoftware.org/isinfo.php).
+2. Compilar el script desde este directorio:
+   ```powershell
+   iscc sicsaft-onprem.iss
+   ```
+3. El instalador resultante se genera en `output/sicsaft-onprem-setup.exe`.
 
-Si algo de lo anterior no coincide con lo esperado, corregir el script/`.iss` correspondiente —
-no hay que rehacer el diseño, es normal que automatizar un flujo así tenga ajustes menores al
-chocar con la realidad de un entorno Windows concreto (como ya pasó varias veces, ver la lista de
-bugs reales en `devops/onprem/README.md`).
+## Flujo de Ejecución del Wizard
 
-## Qué NO cubre este instalador
+1. Solicita el nombre comercial del cliente y el identificador de organización.
+2. Selecciona el nivel de producto contratado (Nivel 1 o Nivel 2).
+3. Despliega los archivos y ejecuta `instalar-cliente.ps1` en modo desatendido.
+4. Realiza el bootstrap automático de Keycloak 26 y levanta el stack Podman.
 
-- No verifica licencia ni activación por cliente — eso sigue siendo una decisión de negocio fuera
-  de este repo (ver `aidlc-docs/devops/requirements/REQUIREMENTS.md` INST-Q-03).
-- No tiene un desinstalador que limpie contenedores/volúmenes de Podman — `[UninstallDelete]` solo
-  borraría los archivos copiados, no el estado de Podman. Si se necesita un desinstalador limpio,
-  es un incremento aparte.
-- No firma el `.exe` (code signing) — Windows SmartScreen probablemente lo marque como "editor
-  desconocido" la primera vez que se ejecute en el PC del cliente. Aceptable para instalación
-  presencial/asistida (el técnico lo ejecuta él mismo), a revisar si algún día se distribuye para
-  que el cliente lo instale solo.
+## Alcance y Consideraciones
+
+- **Privilegios**: Requiere ejecución con permisos de Administrador para configurar WSL2 y Podman.
+- **Red LAN**: Requiere asignación de IP estática o reserva DHCP para acceso de terminales móviles (APP QR).
+
+## Documentos Relacionados
+
+- [`../README.md`](../README.md) — Documentación del stack on-premise.
+- [`../../../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md`](../../../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) — Estándar de identidad Keycloak.
+

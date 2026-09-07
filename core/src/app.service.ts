@@ -7,7 +7,7 @@ export class AppService {
     return {
       service: 'SICSAFT CORE — orquestador + motores',
       description:
-        'Unico componente autorizado a modificar la Base Patrimonial Central. Solo habla con el CIS, nunca directo con fuentes de captura. Ver /health para estado del servicio.',
+        'Único componente autorizado a modificar la BPI (Base Patrimonial Inteligente). Solo habla con el CIS, nunca directo con fuentes de captura. Ver /health para estado del servicio.',
     };
   }
 }

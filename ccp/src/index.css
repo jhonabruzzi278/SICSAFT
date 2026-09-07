@@ -69,36 +69,88 @@
   }
 }
 
-/* DOC-029 RF-F — impresión del módulo QR / Etiquetas. Fuera del chrome de la app (header,
-   sidebar, barra de acciones marcada .no-print); una dirección por página. */
+/* DOC-029 RF-F / Mejora 2 — Impresión profesional del módulo QR / Etiquetas.
+   Fuera del chrome de la app (header, sidebar, toolbar marcados con .no-print).
+   Configuración dinámica por plantilla y saltos de página. */
 @media print {
+  @page {
+    size: letter;
+    margin: 8mm;
+  }
+
   header,
   aside,
   .no-print {
     display: none !important;
   }
+
   body {
-    background: #fff;
-    color: #000;
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
+
   main {
     max-width: none !important;
     padding: 0 !important;
     margin: 0 !important;
   }
-  .lista-etiquetas {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 4mm;
+
+  /* Plantilla Avery 5160: 3 columnas, 10 filas */
+  .plantilla-avery .lista-etiquetas {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 3mm !important;
   }
-  .direccion {
-    break-before: page;
+
+  /* Plantilla Tarjetas: 2 columnas, 5 filas */
+  .plantilla-tarjeta .lista-etiquetas {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 4.5mm !important;
   }
-  .direccion:first-of-type {
-    break-before: auto;
+
+  /* Plantilla Térmica: 1 columna continua */
+  .plantilla-termica .lista-etiquetas {
+    display: block !important;
   }
+  .plantilla-termica .etiqueta {
+    page-break-after: always !important;
+    break-after: page !important;
+    margin-bottom: 2mm !important;
+  }
+
+  /* Saltos de página configurables */
+  .salto-direccion .grupo-direccion {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+  .salto-direccion .grupo-direccion:first-of-type {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+
+  .salto-area .grupo-area {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+  .salto-area .grupo-area:first-of-type {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+
+  .salto-ninguno .grupo-direccion,
+  .salto-ninguno .grupo-area {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+
   .etiqueta {
-    break-inside: avoid;
-    border-color: #999 !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    border-color: #777 !important;
+    box-shadow: none !important;
   }
 }
+

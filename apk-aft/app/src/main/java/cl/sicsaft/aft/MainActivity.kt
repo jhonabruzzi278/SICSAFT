@@ -4,16 +4,22 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.net.http.SslError
 import android.os.Bundle
+import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.webkit.PermissionRequest
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Button
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,21 +30,34 @@ import androidx.core.content.ContextCompat
  * WebView a pantalla completa que carga la PWA de la APP QR servida por `sicsaft-core.exe`
  * (DOC-029 apéndice H). Sin barra de direcciones, sin pestañas: es "la app", no un navegador.
  *
- * Dos concesiones de seguridad, ambas acotadas al host configurado y documentadas:
- *  - `onReceivedSslError` → `proceed()` SOLO si el error es del host guardado (cert autofirmado
+ * Concesiones de seguridad y robustez:
+ *  - `onReceivedSslError` -> `proceed()` SOLO si el error es del host guardado (cert autofirmado
  *    del `.exe` en la IP de LAN — no hay CA que lo firme; el riesgo es un MITM en la LAN del
  *    cliente, aceptado y documentado en DOC-029 apéndice H.2).
- *  - `onPermissionRequest` → concede cámara SOLO si la request viene de ese mismo origen (la PWA
+ *  - `onPermissionRequest` -> concede cámara SOLO si la request viene del origen configurado (la PWA
  *    la necesita para `getUserMedia` / escaneo de QR de activos).
+ *  - `onReceivedError` -> muestra pantalla nativa de error amigable con botón de reintento y reconexión.
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    private lateinit var vistaError: View
+    private lateinit var botonReintentar: Button
+    private lateinit var botonCambiarServidor: Button
+
     private var baseUrl: String = ""
+    private var solicitudPermisoWebPendiente: PermissionRequest? = null
 
     private val pedirCamara =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { concedida ->
-            if (!concedida) {
+            if (concedida) {
+                solicitudPermisoWebPendiente?.let {
+                    it.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+                    solicitudPermisoWebPendiente = null
+                }
+            } else {
+                solicitudPermisoWebPendiente?.deny()
+                solicitudPermisoWebPendiente = null
                 Toast.makeText(this, R.string.camara_denegada, Toast.LENGTH_LONG).show()
             }
         }
@@ -48,6 +67,7 @@ class MainActivity : AppCompatActivity() {
             val nueva = res.data?.getStringExtra(ConexionActivity.EXTRA_URL)
             if (res.resultCode == RESULT_OK && nueva != null) {
                 baseUrl = nueva
+                ocultarError()
                 webView.loadUrl(baseUrl)
             }
         }
@@ -65,8 +85,21 @@ class MainActivity : AppCompatActivity() {
         }
         baseUrl = guardada
 
-        webView = WebView(this)
-        setContentView(webView)
+        setContentView(R.layout.activity_main)
+
+        webView = findViewById(R.id.web_view)
+        vistaError = findViewById(R.id.vista_error)
+        botonReintentar = findViewById(R.id.boton_reintentar)
+        botonCambiarServidor = findViewById(R.id.boton_cambiar_servidor)
+
+        botonReintentar.setOnClickListener {
+            ocultarError()
+            webView.reload()
+        }
+
+        botonCambiarServidor.setOnClickListener {
+            reconectar.launch(Intent(this, ConexionActivity::class.java))
+        }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
             != PackageManager.PERMISSION_GRANTED
@@ -77,6 +110,10 @@ class MainActivity : AppCompatActivity() {
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
+            databaseEnabled = true
+            useWideViewPort = true
+            loadWithOverviewMode = true
+            cacheMode = WebSettings.LOAD_DEFAULT
             mediaPlaybackRequiresUserGesture = false
         }
         webView.webViewClient = ClienteWeb()
@@ -84,7 +121,13 @@ class MainActivity : AppCompatActivity() {
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (webView.canGoBack()) webView.goBack() else finish()
+                if (vistaError.visibility == View.VISIBLE) {
+                    finish()
+                } else if (webView.canGoBack()) {
+                    webView.goBack()
+                } else {
+                    finish()
+                }
             }
         })
 
@@ -113,10 +156,21 @@ class MainActivity : AppCompatActivity() {
             true
         }
         MENU_RECARGAR -> {
+            ocultarError()
             webView.loadUrl(baseUrl)
             true
         }
         else -> super.onOptionsItemSelected(item)
+    }
+
+    private fun mostrarError() {
+        webView.visibility = View.GONE
+        vistaError.visibility = View.VISIBLE
+    }
+
+    private fun ocultarError() {
+        vistaError.visibility = View.GONE
+        webView.visibility = View.VISIBLE
     }
 
     private inner class ClienteWeb : WebViewClient() {
@@ -125,13 +179,25 @@ class MainActivity : AppCompatActivity() {
             handler: SslErrorHandler,
             error: SslError,
         ) {
-            val hostError = runCatching { android.net.Uri.parse(error.url).host }.getOrNull()
+            val hostError = runCatching { Uri.parse(error.url).host }.getOrNull()
             val hostBase = Conexion.hostDe(baseUrl)
             if (hostError != null && hostError == hostBase) {
                 // Cert autofirmado del .exe en la IP de LAN — esperado (DOC-029 apéndice H.2).
                 handler.proceed()
             } else {
                 handler.cancel()
+            }
+        }
+
+        override fun onReceivedError(
+            view: WebView,
+            request: WebResourceRequest,
+            error: WebResourceError,
+        ) {
+            super.onReceivedError(view, request, error)
+            // Solo capturamos fallos del marco principal (navegación a la app)
+            if (request.isForMainFrame) {
+                mostrarError()
             }
         }
 
@@ -154,13 +220,20 @@ class MainActivity : AppCompatActivity() {
             val soloCamara = request.resources.all {
                 it == PermissionRequest.RESOURCE_VIDEO_CAPTURE
             }
-            if (origenOk && soloCamara &&
-                ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA)
+
+            if (!origenOk || !soloCamara) {
+                request.deny()
+                return
+            }
+
+            if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED
             ) {
                 request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
             } else {
-                request.deny()
+                // Si el permiso del sistema está pendiente, guardamos la petición y lanzamos el diálogo
+                solicitudPermisoWebPendiente = request
+                pedirCamara.launch(Manifest.permission.CAMERA)
             }
         }
     }

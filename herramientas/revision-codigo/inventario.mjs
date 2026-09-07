@@ -57,15 +57,33 @@ const TERMINOS_DEPRECADOS = [
   },
 ];
 
+// Los artefactos de la propia revisión hablan DE los hallazgos: este script nombra
+// `*.schemas.ts` y `zitadel-admin.service.ts` para explicar qué detecta, y DOC-032 cita "Zitadel"
+// y "Base Patrimonial Central" para documentarlos. Sin excluirlos, la herramienta se cuenta a sí
+// misma como deuda y el número deja de significar algo.
+const ES_ARTEFACTO_DE_REVISION = /^(herramientas\/revision-codigo|aidlc-docs\/revision-codigo)\//;
+
 const EXT_CODIGO = /\.(ts|tsx|js|jsx|mjs|py|ps1)$/;
 const ES_TEST = /(\.spec\.|\.test\.|[/\\](tests?|e2e)[/\\])/;
 const ES_COMENTARIO = /^\s*(\/\/|\/\*|\*|#(?!!)|<!--)/;
 
+// `git` se invoca por nombre y no por ruta absoluta (a diferencia del `taskkill` de
+// managed-process.ts): System32 es una ubicación fija de Windows, pero git se instala en rutas
+// distintas por plataforma y por gestor de paquetes, así que resolverlo "a mano" sería adivinar.
+// Es una herramienta de operador que corre en el repo del propio desarrollador, no código
+// embarcado en el .exe ni en CI.
 function git(...args) {
   return execFileSync("git", args, { cwd: RAIZ, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 }
 
-const archivos = git("ls-files").split("\n").filter(Boolean).filter((f) => !f.includes("node_modules/"));
+const archivos = git("ls-files")
+  .split("\n")
+  .filter(Boolean)
+  .filter((f) => !f.includes("node_modules/"));
+
+// Los que efectivamente se miden (ver ES_ARTEFACTO_DE_REVISION). El índice de nombres existentes
+// se arma con TODOS: un comentario puede citar legítimamente un archivo de esta carpeta.
+const medibles = archivos.filter((f) => !ES_ARTEFACTO_DE_REVISION.test(f));
 
 // Índice de nombres de archivo existentes — la base del detector de comentarios huérfanos.
 const nombresExistentes = new Set(archivos.map((f) => basename(f).toLowerCase()));
@@ -74,7 +92,7 @@ const nombresExistentes = new Set(archivos.map((f) => basename(f).toLowerCase())
 // de fin de línea (el guión de corte de un comentario envuelto, por ejemplo) falla en silencio.
 const leer = (f) => {
   try {
-    return readFileSync(join(RAIZ, f), "utf8").replace(/\r\n/g, "\n");
+    return readFileSync(join(RAIZ, f), "utf8").replaceAll("\r\n", "\n");
   } catch {
     return null; // archivo trackeado pero borrado en el working tree
   }
@@ -86,6 +104,16 @@ const CITA_NO_ES_HUERFANA = /^(main|index|renderer|preload|bundle|vendor)\.(js|m
 const DIRECTORIO_DE_BUILD = /\b(dist|out|build|release|coverage|node_modules)\//;
 // `.d.ts` casi siempre nombra tipos de una dependencia (`electron.d.ts`), no un módulo del repo.
 const ES_DECLARACION_DE_TIPOS = /\.d\.ts$/i;
+
+// Nombres de módulo citados dentro de un comentario, con su ruta si la traen.
+//
+// Cada segmento (`[\w*-]+`) termina obligatoriamente en `.` o `/`, caracteres que la clase no
+// admite: el corte de cada repetición queda forzado y el motor no tiene nada que reintentar. Un
+// `[\w./-]+\.(ts|js)` — la forma "natural" — sí es ambiguo (el `.` está en la clase Y se exige
+// literal después), y ahí el backtracking se vuelve super-lineal: es ReDoS sobre una entrada que,
+// además, viene de archivos del repo. El `*` entra en la clase a propósito, para poder reconocer
+// un glob (`*.schemas.ts`) y descartarlo después.
+const CITA_DE_ARCHIVO = /(?:[\w*-]+[./])+(?:ts|tsx|js|jsx|mjs|py)\b/g;
 
 /**
  * Comentarios que citan un archivo fuente que ya no existe en el repo.
@@ -109,9 +137,7 @@ function comentariosHuerfanos(rutaArchivo, contenido) {
   let bloque = null; // { texto, lineaInicio }
   const cerrarBloque = () => {
     if (!bloque) return;
-    // Sólo nombres de módulo del proyecto: extensión de código, nombre en kebab/camel.
-    // El prefijo captura `*` o `/` pegados para poder distinguir un glob de un nombre suelto.
-    const citados = bloque.texto.match(/[*/\w.-]*[a-zA-Z0-9][\w.-]*\.(ts|tsx|js|jsx|mjs|py)\b/g) ?? [];
+    const citados = bloque.texto.match(CITA_DE_ARCHIVO) ?? [];
     for (const cita of citados) {
       if (cita.includes("*")) continue; // glob, no un archivo concreto
       if (DIRECTORIO_DE_BUILD.test(cita)) continue;
@@ -148,47 +174,64 @@ function comentariosHuerfanos(rutaArchivo, contenido) {
   return hallazgos;
 }
 
-function metricasDe(sistema) {
-  const suyos = archivos.filter((f) => sistema.rutas.some((r) => f.startsWith(r)));
+/** Archivos versionados que pertenecen a un sistema, separados por rol. */
+function archivosDe(sistema) {
+  const suyos = medibles.filter((f) => sistema.rutas.some((r) => f.startsWith(r)));
   // core/ contiene a core/frontend/: sin esto las líneas del frontend se contarían dos veces.
   const propios = sistema.id === "core" ? suyos.filter((f) => !f.startsWith("core/frontend/")) : suyos;
-
   const codigo = propios.filter((f) => EXT_CODIGO.test(f));
-  const fuente = codigo.filter((f) => !ES_TEST.test(f));
-  const tests = codigo.filter((f) => ES_TEST.test(f));
-  const docs = propios.filter((f) => f.endsWith(".md"));
+  return {
+    fuente: codigo.filter((f) => !ES_TEST.test(f)),
+    tests: codigo.filter((f) => ES_TEST.test(f)),
+    docs: propios.filter((f) => f.endsWith(".md")),
+  };
+}
 
-  let loc = 0;
-  let locComentario = 0;
-  let locTests = 0;
-  let todos = 0;
-  const huerfanos = [];
-
+function medirFuente(fuente) {
+  const m = { loc: 0, locComentario: 0, todos: 0, huerfanos: [] };
   for (const f of fuente) {
     const c = leer(f);
     if (c === null) continue;
     const lineas = c.split("\n");
-    loc += lineas.length;
-    locComentario += lineas.filter((l) => ES_COMENTARIO.test(l)).length;
-    todos += (c.match(/\b(TODO|FIXME|XXX|HACK)\b/g) ?? []).length;
-    huerfanos.push(...comentariosHuerfanos(f, c));
+    m.loc += lineas.length;
+    m.locComentario += lineas.filter((l) => ES_COMENTARIO.test(l)).length;
+    m.todos += (c.match(/\b(TODO|FIXME|XXX|HACK)\b/g) ?? []).length;
+    m.huerfanos.push(...comentariosHuerfanos(f, c));
   }
-  for (const f of tests) {
-    const c = leer(f);
-    if (c !== null) locTests += c.split("\n").length;
-  }
+  return m;
+}
 
-  // Documentos del sistema que afirman algo superado.
-  const docsDesactualizados = [];
+function contarLineas(rutas) {
+  let total = 0;
+  for (const f of rutas) {
+    const c = leer(f);
+    if (c !== null) total += c.split("\n").length;
+  }
+  return total;
+}
+
+/** Documentos del sistema que nombran algo que el repo ya reemplazó. */
+function medirDocsDesactualizados(docs) {
+  const hallazgos = [];
   for (const f of docs) {
     const c = leer(f);
     if (c === null) continue;
+    // Citar el archivo ADR-004 oficial (que lleva zitadel en su nombre) es una cita normativa válida, no una deuda.
+    const textoEvaluado = c.replaceAll(/ADR-004-identidad-keycloak-reemplaza-zitadel\.md/gi, "");
     for (const t of TERMINOS_DEPRECADOS) {
       if (t.salvoEn.some((re) => re.test(f))) continue;
-      const n = (c.match(new RegExp(t.termino, "gi")) ?? []).length;
-      if (n > 0) docsDesactualizados.push({ archivo: f, termino: t.termino, vigente: t.vigente, veces: n });
+      const veces = (textoEvaluado.match(new RegExp(t.termino, "gi")) ?? []).length;
+      if (veces > 0) hallazgos.push({ archivo: f, termino: t.termino, vigente: t.vigente, veces });
     }
   }
+  return hallazgos;
+}
+
+function metricasDe(sistema) {
+  const { fuente, tests, docs } = archivosDe(sistema);
+  const { loc, locComentario, todos, huerfanos } = medirFuente(fuente);
+  const locTests = contarLineas(tests);
+  const docsDesactualizados = medirDocsDesactualizados(docs);
 
   return {
     archivosFuente: fuente.length,

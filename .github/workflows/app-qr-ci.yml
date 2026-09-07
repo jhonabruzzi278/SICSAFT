@@ -1,0 +1,58 @@
+name: APP QR CI
+
+on:
+  pull_request:
+    paths:
+      - "app-qr-sicsaft/**"
+      - ".github/workflows/app-qr-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app-qr-sicsaft/**"
+      - ".github/workflows/app-qr-ci.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: app-qr-sicsaft
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: app-qr-sicsaft/package-lock.json
+
+      - run: npm ci --ignore-scripts
+
+      - name: Type-check + build
+        run: npm run build
+
+      - name: Instalar Chromium (Playwright)
+        # Usa el binario local fijado por package-lock.json (S6505/S8543)
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Tests e2e (Playwright + MSW mock)
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-app-qr
+          path: app-qr-sicsaft/playwright-report/
+          retention-days: 7
+
+      - name: Build de imagen Docker
+        run: |
+          docker build \
+            --build-arg VITE_KEYCLOAK_ISSUER=https://id.sicsaft.invalid \
+            --build-arg VITE_KEYCLOAK_CLIENT_ID=ci-placeholder \
+            --build-arg VITE_CIS_URL=https://api.sicsaft.invalid \
+            -t sicsaft-app-qr:ci .

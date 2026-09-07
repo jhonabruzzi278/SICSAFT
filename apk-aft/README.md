@@ -22,15 +22,14 @@ archivo, servido por `sicsaft-core.exe`.
 
 **Qué hace** (`app/src/main/`):
 
-- `MainActivity` — `WebView` a pantalla completa. `onReceivedSslError` → `proceed()` **solo** si el
-  error es del host guardado (cert autofirmado del `.exe`, riesgo MITM en LAN aceptado y
-  documentado). `WebChromeClient.onPermissionRequest` → concede cámara **solo** para ese origen (la
-  PWA la usa para escanear QR de activos). Links a otros hosts → navegador del sistema. Menú
-  "Reconectar" / "Recargar".
-- `ConexionActivity` — primer arranque / "Reconectar": escanear el QR del `.exe` (ZXing embebido)
-  o escribir `https://<ip>:8765` a mano. `Conexion.normalizar()` valida que sea una URL http(s)
-  con host y la reduce a `esquema://host:puerto`.
-- `Conexion` — persistencia en `SharedPreferences` + validación.
+- `MainActivity` — `WebView` a pantalla completa enriquecida con soporte nativo de resiliencia:
+  - `onReceivedSslError` → `proceed()` **solo** si el error es del host guardado (cert autofirmado del `.exe`, riesgo MITM en LAN aceptado y documentado).
+  - `onReceivedError` → intercepta caídas de red o servidor apagado y muestra una **pantalla nativa estilizada de reconexión** con botones "Reintentar conexión" y "Cambiar servidor / Reconectar" (adiós pantalla genérica de Chromium).
+  - `WebChromeClient.onPermissionRequest` → concede cámara **solo** para ese origen. Si el permiso del sistema está pendiente, encola la petición y la resuelve tras la respuesta del usuario.
+  - `WebSettings` optimizados para PWA (`useWideViewPort`, `loadWithOverviewMode`, `cacheMode = LOAD_DEFAULT`, `domStorageEnabled` y `databaseEnabled`).
+  - Links a otros hosts → navegador del sistema. Menú nativo "Reconectar" / "Recargar".
+- `ConexionActivity` — primer arranque / "Reconectar": escanear el QR del `.exe` (ZXing embebido) o escribir `https://<ip>:8765` a mano. `Conexion.normalizar()` valida que sea una URL http(s) con host y la reduce a `esquema://host:puerto`.
+- `Conexion` — persistencia en `SharedPreferences` + validación de `origenDe()` y `hostDe()`.
 
 ## Cómo se construye y firma
 

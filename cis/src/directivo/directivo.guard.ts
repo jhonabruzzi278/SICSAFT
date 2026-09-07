@@ -12,7 +12,7 @@ export interface DirectivoRequest extends AuthenticatedRequest {
 }
 
 // El guard siempre setea `request.directivoOrganizacionId` antes de dejar pasar la request (o
-// lanza 403) — mismo patrón que requireAuthContext en zitadel-auth.guard.ts.
+// lanza 403) — mismo patrón que requireAuthContext en keycloak-auth.guard.ts.
 export function requireDirectivoOrganizacionId(
   request: DirectivoRequest,
 ): string {
@@ -26,7 +26,7 @@ export function requireDirectivoOrganizacionId(
 
 // DOC-022 3 — el Directivo solo puede operar sobre SU organización: este controller nunca acepta
 // un organizacionId de ruta o body, siempre se deriva del propio JWT ya validado por
-// ZitadelAuthGuard (cero confianza en lo que manda el cliente, mismo criterio que el resto de CIS).
+// KeycloakAuthGuard (cero confianza en lo que manda el cliente, mismo criterio que el resto de CIS).
 //
 // Si el rol `directivo` aparece en más de una organización del token se rechaza en vez de
 // adivinar cuál usar: hoy ningún flujo asigna `directivo` a la misma persona en más de una

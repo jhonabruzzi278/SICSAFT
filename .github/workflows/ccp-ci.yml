@@ -11,6 +11,9 @@ on:
       - "ccp/**"
       - ".github/workflows/ccp-ci.yml"
 
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: ccp

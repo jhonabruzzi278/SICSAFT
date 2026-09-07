@@ -1,6 +1,5 @@
-// Datos fijos para los handlers de MSW (solo e2e, ver src/main.tsx VITE_MOCK_API) — mismo
-// criterio que app-qr-sicsaft/src/mocks/fixtures.ts (misma org de referencia, DUOC UC/Melipilla,
-// que el seed de desarrollo real de core/migrations/..._seed-dev-fixture-patrimonial.ts).
+// Datos fijos para los handlers de MSW (solo e2e, ver src/main.tsx VITE_MOCK_API) —
+// misma organización de referencia (DUOC UC/Melipilla) que el seed de desarrollo de la BPI.
 import type { Area, ActivoCatalogo, Organizacion } from '@/lib/cis-client';
 
 export const MOCK_ORGANIZACIONES: Organizacion[] = [

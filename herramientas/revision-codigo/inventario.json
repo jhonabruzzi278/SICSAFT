@@ -1,13 +1,13 @@
 {
-  "generado": "2026-09-07T02:51:05.646Z",
-  "commit": "01c839a",
+  "generado": "2026-09-07T06:38:14.767Z",
+  "commit": "b334b72",
   "rama": "chore/revision-codigo-y-grafo-contexto",
   "totales": {
-    "loc": 39987,
-    "locTests": 31139,
-    "docs": 126,
-    "huerfanos": 15,
-    "docsDesactualizados": 51,
+    "loc": 40819,
+    "locTests": 31154,
+    "docs": 123,
+    "huerfanos": 0,
+    "docsDesactualizados": 28,
     "todos": 5
   },
   "nodos": [
@@ -22,70 +22,14 @@
       "archivosFuente": 65,
       "archivosTest": 46,
       "docs": 1,
-      "loc": 5898,
-      "locComentario": 601,
+      "loc": 5888,
+      "locComentario": 591,
       "locTests": 8775,
-      "pctComentario": 10.2,
+      "pctComentario": 10,
       "ratioTest": 1.49,
       "todos": 0,
-      "huerfanos": [
-        {
-          "archivo": "cis/src/common/load-env-config.ts",
-          "linea": 3,
-          "cita": "zitadel-auth.config.ts",
-          "texto": "Boilerplate compartido por todos los config loaders de env vars (zitadel-auth.config.ts, core-client.config.ts): parsear con Zod, formatear el error con el campo que falló, fallar rápido al arrancar e"
-        },
-        {
-          "archivo": "cis/src/directivo/directivo.guard.ts",
-          "linea": 14,
-          "cita": "zitadel-auth.guard.ts",
-          "texto": "El guard siempre setea `request.directivoOrganizacionId` antes de dejar pasar la request (o lanza 403) — mismo patrón que requireAuthContext en zitadel-auth.guard.ts."
-        },
-        {
-          "archivo": "cis/src/keycloak-admin/keycloak-admin.config.ts",
-          "linea": 4,
-          "cita": "zitadel-admin.config.ts",
-          "texto": "ADR-004 — a diferencia del PAT estático de Zitadel (ZITADEL_ADMIN_TOKEN, Bearer fijo sin refresh), Keycloak autentica automatizaciones server-to-server con el flujo `client_credentials` contra un clie"
-        },
-        {
-          "archivo": "cis/src/keycloak-admin/keycloak-admin.service.ts",
-          "linea": 60,
-          "cita": "zitadel-admin.service.ts",
-          "texto": "Keycloak responde 409 si el usuario ya es miembro de la Organization — agregarMiembroSiHaceFalta necesita distinguir ESTE caso puntual (idempotente, ignorable) de cualquier otra falla real (Keycloak c"
-        },
-        {
-          "archivo": "cis/src/keycloak-admin/keycloak-admin.service.ts",
-          "linea": 92,
-          "cita": "zitadel-admin.service.ts",
-          "texto": "Gap 1 (equivalente al de zitadel-admin.service.ts) — a diferencia de Zitadel (que devuelve un id numérico propio), Keycloak ignora cualquier `id` provisto al crear una Organization y siempre genera su"
-        },
-        {
-          "archivo": "cis/src/keycloak-admin/keycloak-admin.service.ts",
-          "linea": 143,
-          "cita": "zitadel-admin.service.ts",
-          "texto": "No hay forma de filtrar por alias en la request (mismo tipo de gap que listarGrants tenía en zitadel-admin.service.ts para orgId) — se filtra en memoria sobre el listado completo."
-        },
-        {
-          "archivo": "cis/src/keycloak-admin/keycloak-admin.service.ts",
-          "linea": 207,
-          "cita": "zitadel-admin.service.ts",
-          "texto": "Gap 3 (equivalente al de zitadel-admin.service.ts) — `firstName`/`lastName` son obligatorios acá: sin ellos Keycloak deja crear el usuario, pero después rechaza cualquier login con \"Account is not ful"
-        }
-      ],
-      "docsDesactualizados": [
-        {
-          "archivo": "cis/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 46
-        },
-        {
-          "archivo": "cis/README.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
-        }
-      ]
+      "huerfanos": [],
+      "docsDesactualizados": []
     },
     {
       "id": "core",
@@ -100,44 +44,13 @@
       "archivosFuente": 111,
       "archivosTest": 77,
       "docs": 1,
-      "loc": 7934,
-      "locComentario": 919,
-      "locTests": 11107,
-      "pctComentario": 11.6,
+      "loc": 7928,
+      "locComentario": 913,
+      "locTests": 11113,
+      "pctComentario": 11.5,
       "ratioTest": 1.4,
       "todos": 1,
-      "huerfanos": [
-        {
-          "archivo": "core/migrations/1755000000001_seed-dev-fixture.ts",
-          "linea": 4,
-          "cita": "cis/src/qr-connector/qr-connector.seed.ts",
-          "texto": "Datos de desarrollo/CI — NO es el mecanismo de carga de datos de produccion (eso llega en la Fase 4 del roadmap: importacion real via el rol Administrador Patrimonial, Tomo III 1.4). Generados a parti"
-        },
-        {
-          "archivo": "core/src/entitlements/contrato.schemas.ts",
-          "linea": 15,
-          "cita": "escritura-contrato.service.ts",
-          "texto": "DOC-012 7 — PATCH /contratos/:id. Solo transiciones validas de la maquina de estados de DOC-004 3 (vigente ⇄ suspendido, vigente → vencido|cancelado) — la validacion de CUALES transiciones son validas"
-        },
-        {
-          "archivo": "core/src/entitlements/contrato.seed.ts",
-          "linea": 3,
-          "cita": "cis/src/qr-connector/qr-connector.seed.ts",
-          "texto": "Ya no es la fuente de datos de produccion (eso es Postgres real, ver devops/local/postgres/init/schema/core.sql y ContratoRepository) — queda como fixture de tests y como referencia textual del mismo "
-        },
-        {
-          "archivo": "core/src/eventos-outbox/create-pgboss-client.ts",
-          "linea": 13,
-          "cita": "create-redis-connection.ts",
-          "texto": "Sin este listener, un error de conexión (Postgres caído) es un 'error' no manejado sobre el EventEmitter y tumba el proceso — mismo criterio que ya aplicaba `create-redis-connection.ts`."
-        },
-        {
-          "archivo": "core/src/patrimonial/catalogo.controller.ts",
-          "linea": 9,
-          "cita": "cis/src/qr-connector/qr-connector.seed.ts",
-          "texto": "GET /catalogo — DOC-006 2. Reemplaza SEED_CATALOGO de CIS (cis/src/qr-connector/qr-connector.seed.ts) cuando CIS deje de ser mock (ROADMAP.md Fase 3)."
-        }
-      ],
+      "huerfanos": [],
       "docsDesactualizados": []
     },
     {
@@ -153,26 +66,12 @@
       "docs": 1,
       "loc": 1906,
       "locComentario": 131,
-      "locTests": 2121,
+      "locTests": 2128,
       "pctComentario": 6.9,
-      "ratioTest": 1.11,
+      "ratioTest": 1.12,
       "todos": 0,
-      "huerfanos": [
-        {
-          "archivo": "cip/src/agregacion/create-pgboss-client.ts",
-          "linea": 13,
-          "cita": "create-redis-connection.ts",
-          "texto": "Sin este listener, un error de conexión (Postgres caído) es un 'error' no manejado sobre el EventEmitter y tumba el proceso — mismo criterio que ya aplicaba `create-redis-connection.ts`."
-        }
-      ],
-      "docsDesactualizados": [
-        {
-          "archivo": "cip/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 1
-        }
-      ]
+      "huerfanos": [],
+      "docsDesactualizados": []
     },
     {
       "id": "ccp",
@@ -185,28 +84,14 @@
       "archivosFuente": 41,
       "archivosTest": 13,
       "docs": 1,
-      "loc": 7368,
-      "locComentario": 406,
-      "locTests": 1145,
-      "pctComentario": 5.5,
-      "ratioTest": 0.16,
+      "loc": 7759,
+      "locComentario": 398,
+      "locTests": 1147,
+      "pctComentario": 5.1,
+      "ratioTest": 0.15,
       "todos": 0,
-      "huerfanos": [
-        {
-          "archivo": "ccp/src/mocks/fixtures.ts",
-          "linea": 1,
-          "cita": "core/migrations/..._seed-dev-fixture-patrimonial.ts",
-          "texto": "Datos fijos para los handlers de MSW (solo e2e, ver src/main.tsx VITE_MOCK_API) — mismo criterio que app-qr-sicsaft/src/mocks/fixtures.ts (misma org de referencia, DUOC UC/Melipilla, que el seed de de"
-        }
-      ],
-      "docsDesactualizados": [
-        {
-          "archivo": "ccp/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 7
-        }
-      ]
+      "huerfanos": [],
+      "docsDesactualizados": []
     },
     {
       "id": "core-frontend",
@@ -219,21 +104,14 @@
       "archivosFuente": 20,
       "archivosTest": 4,
       "docs": 1,
-      "loc": 2049,
-      "locComentario": 122,
+      "loc": 2507,
+      "locComentario": 116,
       "locTests": 600,
-      "pctComentario": 6,
-      "ratioTest": 0.29,
+      "pctComentario": 4.6,
+      "ratioTest": 0.24,
       "todos": 1,
       "huerfanos": [],
-      "docsDesactualizados": [
-        {
-          "archivo": "core/frontend/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 5
-        }
-      ]
+      "docsDesactualizados": []
     },
     {
       "id": "app-qr",
@@ -246,39 +124,14 @@
       "archivosFuente": 80,
       "archivosTest": 13,
       "docs": 2,
-      "loc": 7888,
-      "locComentario": 469,
+      "loc": 7893,
+      "locComentario": 467,
       "locTests": 1112,
       "pctComentario": 5.9,
       "ratioTest": 0.14,
       "todos": 0,
       "huerfanos": [],
-      "docsDesactualizados": [
-        {
-          "archivo": "app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 11
-        },
-        {
-          "archivo": "app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 3
-        },
-        {
-          "archivo": "app-qr-sicsaft/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 1
-        },
-        {
-          "archivo": "app-qr-sicsaft/README.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
-        }
-      ]
+      "docsDesactualizados": []
     },
     {
       "id": "sicsaft-core",
@@ -291,21 +144,14 @@
       "archivosFuente": 46,
       "archivosTest": 49,
       "docs": 4,
-      "loc": 5806,
-      "locComentario": 1284,
+      "loc": 5941,
+      "locComentario": 1276,
       "locTests": 5047,
-      "pctComentario": 22.1,
-      "ratioTest": 0.87,
+      "pctComentario": 21.5,
+      "ratioTest": 0.85,
       "todos": 3,
       "huerfanos": [],
-      "docsDesactualizados": [
-        {
-          "archivo": "sicsaft-core/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 1
-        }
-      ]
+      "docsDesactualizados": []
     },
     {
       "id": "herramientas",
@@ -335,61 +181,17 @@
         "devops/"
       ],
       "entrega": false,
-      "archivosFuente": 7,
+      "archivosFuente": 2,
       "archivosTest": 0,
-      "docs": 6,
-      "loc": 728,
-      "locComentario": 178,
+      "docs": 3,
+      "loc": 587,
+      "locComentario": 156,
       "locTests": 0,
-      "pctComentario": 24.5,
+      "pctComentario": 26.6,
       "ratioTest": 0,
       "todos": 0,
-      "huerfanos": [
-        {
-          "archivo": "devops/local/k6/load/core-catalogo.js",
-          "linea": 5,
-          "cita": "stress/ramp.js",
-          "texto": "Carga esperada normal contra CORE — GET /catalogo es el endpoint más consultado en operación real (toda pantalla de Activos y todo escaneo de APP QR pasa por acá, ver DOC-006). 20 VUs sostenidos simul"
-        }
-      ],
-      "docsDesactualizados": [
-        {
-          "archivo": "devops/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 8
-        },
-        {
-          "archivo": "devops/local/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 61
-        },
-        {
-          "archivo": "devops/local/k6/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 1
-        },
-        {
-          "archivo": "devops/onprem/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 2
-        },
-        {
-          "archivo": "devops/onprem/installer/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 1
-        },
-        {
-          "archivo": "devops/prod/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 4
-        }
-      ]
+      "huerfanos": [],
+      "docsDesactualizados": []
     },
     {
       "id": "casos-de-uso",
@@ -409,26 +211,7 @@
       "ratioTest": 0,
       "todos": 0,
       "huerfanos": [],
-      "docsDesactualizados": [
-        {
-          "archivo": "casos-de-uso/README.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
-        },
-        {
-          "archivo": "casos-de-uso/dominios/CU-PAT-gestion-patrimonial.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
-        },
-        {
-          "archivo": "casos-de-uso/dominios/CU-SEG-seguridad.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 1
-        }
-      ]
+      "docsDesactualizados": []
     },
     {
       "id": "landing",
@@ -555,12 +338,6 @@
         },
         {
           "archivo": "aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 1
-        },
-        {
-          "archivo": "aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md",
           "termino": "Base Patrimonial Central",
           "vigente": "BPI — Base Patrimonial Inteligente",
           "veces": 1
@@ -635,7 +412,7 @@
           "archivo": "aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md",
           "termino": "Zitadel",
           "vigente": "Keycloak",
-          "veces": 15
+          "veces": 13
         },
         {
           "archivo": "base-patrimonial/DOC-004-modelo-contrato.md",
@@ -644,28 +421,10 @@
           "veces": 13
         },
         {
-          "archivo": "base-patrimonial/DOC-005-modelo-patrimonial.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
-        },
-        {
-          "archivo": "base-patrimonial/README.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 5
-        },
-        {
           "archivo": "seguridad/DOC-012-administrador-patrimonial.md",
           "termino": "Zitadel",
           "vigente": "Keycloak",
-          "veces": 23
-        },
-        {
-          "archivo": "seguridad/README.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 12
+          "veces": 22
         }
       ]
     }

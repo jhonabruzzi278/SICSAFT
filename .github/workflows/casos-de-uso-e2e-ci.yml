@@ -9,6 +9,9 @@ on:
   schedule:
     - cron: "0 5 * * *" # 05:00 UTC diario
 
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: casos-de-uso/e2e

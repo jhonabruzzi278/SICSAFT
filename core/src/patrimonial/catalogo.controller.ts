@@ -6,8 +6,7 @@ import { catalogoQuerySchema } from './catalogo.schemas';
 import type { CatalogoQuery } from './catalogo.schemas';
 import type { CatalogoPagina } from './activo.types';
 
-// GET /catalogo — DOC-006 2. Reemplaza SEED_CATALOGO de CIS
-// (cis/src/qr-connector/qr-connector.seed.ts) cuando CIS deje de ser mock (ROADMAP.md Fase 3).
+// GET /catalogo — DOC-006 2. Consulta paginada del catálogo oficial de activos de la BPI.
 @Controller()
 @UseGuards(ServiceTokenGuard)
 export class CatalogoController {

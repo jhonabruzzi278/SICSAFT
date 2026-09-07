@@ -137,11 +137,26 @@ const BADGE_STYLES: Record<string, string> = {
   conflicto: 'bg-destructive/15 text-destructive',
 };
 
-export function Badge({ children }: { children: string }) {
-  const style = BADGE_STYLES[children] ?? 'bg-text-dim/15 text-text-dim';
+export function Badge({
+  children,
+  className = '',
+  variant,
+}: {
+  children: ReactNode;
+  className?: string;
+  variant?: 'success' | 'warning' | 'error';
+}) {
+  let style = 'bg-text-dim/15 text-text-dim';
+  if (variant === 'success') style = 'bg-success/15 text-success';
+  else if (variant === 'warning') style = 'bg-warning/15 text-warning';
+  else if (variant === 'error') style = 'bg-destructive/15 text-destructive';
+  else if (typeof children === 'string' && BADGE_STYLES[children]) {
+    style = BADGE_STYLES[children];
+  }
+
   return (
     <span
-      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${style}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${style} ${className}`}
     >
       {children}
     </span>

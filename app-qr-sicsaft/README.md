@@ -3,7 +3,7 @@
 Aplicación Web Progresiva (PWA) instalable en Android/desktop, app de **captura** del ecosistema
 patrimonial SICSAFT: identifica al operador, organización/área/ubicación, escanea activos QR,
 clasifica cada escaneo contra el catálogo esperado, registra incidencias y encola el envío a
-SICSAFT CORE (sin conexión inclusive). No escribe directo a la Base Patrimonial Central — todo pasa
+SICSAFT CORE (sin conexión inclusive). No escribe directo a la BPI (Base Patrimonial Inteligente) — todo pasa
 por el Conector QR, que ya habla HTTP real contra CIS→CORE (TASK-007, verificado de punta a punta
 el 2026-08-13, ver `HANDOFF-APP-QR-SICSAFT.md` sección 7), con autenticación real de operador vía
 Keycloak (OIDC + PKCE, [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md), ver

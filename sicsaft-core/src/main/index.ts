@@ -10,6 +10,10 @@ import {
   iniciarLogger,
   registrar,
 } from "./services/logger";
+import {
+  iniciarDiscoveryService,
+  type ServicioDiscovery,
+} from "./services/discovery-service";
 
 // Punto de entrada del proceso principal -- ver
 // aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md "Primer arranque" para el flujo
@@ -41,6 +45,7 @@ if (!obtuvoLockUnicaInstancia) {
 let appCerrandose = false;
 // Se sueltan en 'before-quit' para dejar de escuchar durante el apagado.
 let desuscribirLog: (() => void) | null = null;
+let servicioDiscovery: ServicioDiscovery | null = null;
 
 // Empuja al renderer solo si la ventana y su webContents siguen vivos. `ventanaPrincipal?.` tapa
 // la ventana en null pero NO un webContents ya destruido: al cerrar la app, esos listeners
@@ -169,12 +174,13 @@ app.whenReady().then(async () => {
   try {
     await orquestador.iniciarTodo();
   } catch (err: unknown) {
-    // No se cierra la app -- el wizard (renderer) recibe el estado de error vía
-    // 'estado-cambio' y lo muestra (ver CORE-RNF-02: nunca una ventana en blanco sin feedback).
-    // El error real (hoy: cis/core/cip sin integrar al orquestador, ver service-orchestrator.ts)
-    // queda en el log de la app, no oculto.
-
     console.error("[sicsaft-core] Fallo iniciando servicios embebidos:", err);
+  }
+
+  try {
+    servicioDiscovery = await iniciarDiscoveryService();
+  } catch (err: unknown) {
+    registrar("discovery", `No se pudo iniciar auto-descubrimiento UDP: ${err}`);
   }
 
   app.on("activate", () => {
@@ -188,18 +194,12 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", async (event) => {
-  // Da tiempo a que Postgres/Keycloak/cis/core/cip se apaguen limpio (ManagedProcess.detener usa
-  // SIGTERM antes que SIGKILL, ver managed-process.ts) -- sin esto, cerrar la ventana de golpe
-  // podría cortar Postgres a mitad de un write.
   event.preventDefault();
-  // Dejar de empujar al renderer: la ventana se está por destruir y los servicios embebidos
-  // siguen emitiendo líneas de log / cambios de estado mientras se apagan.
   appCerrandose = true;
   desuscribirLog?.();
   desuscribirLog = null;
   orquestador.removeAllListeners("estado-cambio");
-  // DOC-029 RF-B.6.2 -- cerrar el watcher de ingesta antes que los servicios: deja de encolar
-  // archivos y libera los handles de la carpeta vigilada.
+  await servicioDiscovery?.detener();
   await detenerWatcherIngesta();
   await orquestador.detenerTodo();
   registrar("app", "--- sesión finalizada ---");

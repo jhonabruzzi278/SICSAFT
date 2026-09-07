@@ -1,6 +1,6 @@
 {
   "name": "core-frontend-sicsaft",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Portal WEB SICSAFT del Directivo — dashboard ejecutivo + designación del Profesional de AFT (DOC-022).",

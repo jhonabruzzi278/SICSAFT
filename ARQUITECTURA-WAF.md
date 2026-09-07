@@ -56,9 +56,9 @@ NIVEL 6  Usuarios y decisión    Dirección · Finanzas · Patrimonio · Auditor
 ```
 
 **Regla de modularidad no negociable** (Tomo IV 1.7): *"Nunca existirán comunicaciones directas
-entre las fuentes de captura y la Base Patrimonial Central."* Todo cruce de nivel pasa por el
+entre las fuentes de captura y la BPI (Base Patrimonial Inteligente)."* Todo cruce de nivel pasa por el
 nivel inmediatamente inferior. Esto es lo que permite que RFID, WEB o un futuro ERP se agreguen
-sin tocar el CORE ni la Base Patrimonial: solo agregan un conector nuevo en el CIS.
+sin tocar el CORE ni la BPI: solo agregan un conector nuevo en el CIS.
 
 **Cómo se traduce en código:**
 - Cada nivel = un repositorio o paquete desplegable propio, con su propio ciclo de release.
@@ -74,10 +74,8 @@ sin tocar el CORE ni la Base Patrimonial: solo agregan un conector nuevo en el C
 ### 1.1. Diagrama maestro de arquitectura funcional
 
 Mismos 6 niveles de arriba, con los módulos internos de cada uno y el ciclo de vida completo
-captura → orquestación → base de la verdad → inteligencia → decisión. "Base Patrimonial Central"
-es el nombre oficial usado en todo el repo (README.md, `base-patrimonial/`) — un diagrama externo
-puede referirse al mismo concepto como "BPI (Base Patrimonial Inteligente)", es el mismo Nivel 4,
-no una pieza distinta.
+captura → orquestación → base de la verdad → inteligencia → decisión. **BPI (Base Patrimonial Inteligente)**
+es la denominación oficial vigente en todo el repo (README.md, `base-patrimonial/`, `NOMENCLATURA.md`).
 
 ```mermaid
 flowchart TD
@@ -106,7 +104,7 @@ flowchart TD
         USR["Gestión de<br/>usuarios"]
     end
 
-    subgraph N4["Nivel 4 — Base Patrimonial Central (fuente única de la verdad)"]
+    subgraph N4["Nivel 4 — BPI · Base Patrimonial Inteligente (fuente única de la verdad)"]
         direction LR
         ACT["Activos"]
         UBI["Ubicaciones"]
@@ -143,10 +141,10 @@ flowchart TD
 ```
 
 **Regla de oro** (Tomo IV 1.7, ya citada arriba): ningún sistema, usuario o dispositivo modifica
-la Base Patrimonial Central directamente — toda operación pasa por SICSAFT CORE. Los nuevos
+la BPI directamente — toda operación pasa por SICSAFT CORE. Los nuevos
 sensores/protocolos de la hoja de ruta tecnológica (BLE, GPS, IoT, cámaras, IA, ERP — ver 12 y
 `ROADMAP.md` YAGNI) se incorporan como conectores nuevos en el CIS (flecha punteada de vuelta al
-Nivel 2), sin tocar CORE ni Base Patrimonial — la arquitectura no cambia, solo se agregan
+Nivel 2), sin tocar CORE ni BPI — la arquitectura no cambia, solo se agregan
 conectores.
 
 ## 2. Pilar: Excelencia Operacional
