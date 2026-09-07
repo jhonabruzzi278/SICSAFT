@@ -1,6 +1,6 @@
 {
   "name": "@sicsaft/cip",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "SICSAFT CIP — Centro de Inteligencia Patrimonial (Nivel 5). Ver cip/aidlc-docs/design-artifacts/DOC-014-cip-dashboard.md y DOC-018-cip-servicio-nestjs.md.",
   "author": "",
   "private": true,

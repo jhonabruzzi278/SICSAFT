@@ -2,7 +2,7 @@
 
 > **Alcance de este documento**: los dominios de `base-patrimonial/README.md` "Los 11 dominios
 > oficiales" que el flujo de captura QR necesita para dejar de ser un mock — `Área`, `Ubicación`,
-> `Responsable`, `Catálogo de Activos`, `Base Patrimonial Central` (el activo), `Inventarios`,
+> `Responsable`, `Catálogo de Activos`, `BPI — Base Patrimonial Inteligente` (el activo), `Inventarios`,
 > `Eventos` y `Auditoría`. `Historial` no es una tabla propia: es la lectura cronológica de
 > `Eventos` por activo (Tomo III 4.10, "todos los eventos desde alta hasta baja"). **No**
 > modela `Configuración` ni `Integraciones` — sin consumidor todavía, modelarlas sería

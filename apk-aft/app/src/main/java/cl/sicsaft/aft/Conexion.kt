@@ -44,4 +44,13 @@ object Conexion {
 
     /** Host (sin puerto) de una URL ya normalizada — para acotar el `onReceivedSslError`. */
     fun hostDe(url: String): String? = runCatching { Uri.parse(url).host }.getOrNull()
+
+    /** Origen completo (esquema://host:puerto) para acotar permisos WebRTC. */
+    fun origenDe(url: String): String? {
+        val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return null
+        val host = uri.host ?: return null
+        val puerto = if (uri.port != -1) ":${uri.port}" else ""
+        val esquema = uri.scheme ?: "https"
+        return "$esquema://$host$puerto"
+    }
 }

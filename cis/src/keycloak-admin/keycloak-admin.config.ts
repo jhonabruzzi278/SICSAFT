@@ -7,8 +7,7 @@ import { loadEnvConfig } from '../common/load-env-config';
 // corta (minutos, no indefinida), así que KeycloakAdminService lo cachea y renueva en vez de
 // leerlo una sola vez al arrancar (ver keycloak-admin.service.ts, `obtenerTokenDeServicio`).
 // KEYCLOAK_REALM se repite acá (no se importa de keycloak-auth.config.ts) para no invertir la
-// dependencia entre common/auth/ y keycloak-admin/ — mismo criterio que ya usaba
-// zitadel-admin.config.ts con ZITADEL_ISSUER.
+// dependencia entre common/auth/ y keycloak-admin/ — desacoplamiento explícito de configuración.
 const keycloakAdminEnvSchema = z.object({
   KEYCLOAK_URL: z.string().min(1, 'es requerido'),
   KEYCLOAK_REALM: z.string().min(1, 'es requerido'),

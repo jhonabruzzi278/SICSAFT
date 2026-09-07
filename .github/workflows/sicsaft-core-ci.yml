@@ -1,0 +1,45 @@
+name: SICSAFT CORE CI
+
+on:
+  pull_request:
+    paths:
+      - "sicsaft-core/**"
+      - ".github/workflows/sicsaft-core-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "sicsaft-core/**"
+      - ".github/workflows/sicsaft-core-ci.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: sicsaft-core
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: sicsaft-core/package-lock.json
+
+      - run: npm ci --ignore-scripts
+
+      - name: Lint
+        run: npm run lint:ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Tests unitarios (Vitest)
+        run: npm test
+
+      - name: Build de bundles Electron
+        run: npm run build

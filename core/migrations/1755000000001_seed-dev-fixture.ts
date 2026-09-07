@@ -4,9 +4,7 @@ import { SEED_CONTRATOS } from '../src/entitlements/contrato.seed';
 // Datos de desarrollo/CI — NO es el mecanismo de carga de datos de produccion (eso llega en la
 // Fase 4 del roadmap: importacion real via el rol Administrador Patrimonial, Tomo III 1.4).
 // Generados a partir de SEED_CONTRATOS (core/src/entitlements/contrato.seed.ts) para que exista
-// una unica fuente de verdad del caso DUOC UC/Melipilla — antes estaba retipeado a mano acá y en
-// cis/src/qr-connector/qr-connector.seed.ts (esa segunda copia sigue pendiente hasta que CIS deje
-// de ser mock en la Fase 3 del roadmap, ver ROADMAP.md).
+// una única fuente de verdad del caso DUOC UC/Melipilla.
 //
 // DOC-028 Fase B.1 — SOLO corre con SICSAFT_SEED_DEV=1. node-pg-migrate igual la registra como
 // aplicada (no rompe el orden), asi que la migracion existe en `pgmigrations` en todos los

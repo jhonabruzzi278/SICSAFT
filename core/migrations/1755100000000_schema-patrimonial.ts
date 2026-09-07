@@ -1,7 +1,7 @@
 import type { MigrationBuilder } from 'node-pg-migrate';
 
 // DOC-005 (base-patrimonial/DOC-005-modelo-patrimonial.md): Area, Ubicacion, Responsable,
-// Catalogo de Activos, Activo (Base Patrimonial Central), Inventario, Evento, Auditoria. Mismo
+// Catalogo de Activos, Activo (BPI — Base Patrimonial Inteligente), Inventario, Evento, Auditoria. Mismo
 // mecanismo que la migracion 1755000000000 (DOC-004/Contrato) — node-pg-migrate, up/down reales.
 
 export async function up(pgm: MigrationBuilder): Promise<void> {

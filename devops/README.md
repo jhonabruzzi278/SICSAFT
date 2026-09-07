@@ -1,187 +1,57 @@
-# Infraestructura / DevOps / Observabilidad SICSAFT (capacidad transversal — OPS)
+# Infraestructura / DevOps / Operaciones SICSAFT (capacidad transversal — OPS)
 
 ## Objetivo
-Capacidad transversal de infraestructura, CI/CD, seguridad operacional y observabilidad para
-todos los sistemas del ecosistema (APP QR, CIS, CORE, WEB, CIP, RFID, Integraciones).
+Capacidad transversal de infraestructura, empaquetado, instalación y despliegue on-premise para
+los sistemas del ecosistema SICSAFT (APP QR, CIS, CORE, CCP, CIP, RFID, Integraciones).
 
 ## Estado
-🟡 Stack local funcionando (`devops/local/`: Traefik + Postgres + Zitadel + los 5 sistemas
-+ observabilidad self-hosted en Docker Compose, ver su README para cómo levantarlo). Observabilidad
-(2026-08-19): Prometheus (métricas de host y contenedores) + Loki/Promtail (logs de todos los
-contenedores) + Grafana (dashboards provisionados solos) — equivalente self-hosted a
-CloudWatch/CloudTrail, administrado por el operador del VPS, ver `devops/local/README.md`
-"Observabilidad". [`devops/prod/docker-compose.yml`](prod/docker-compose.yml) (2026-08-20) — stack
-de producción listo para desplegarse como recurso "Docker Compose" en **Coolify** sobre el VPS
-propio (sin `traefik` propio, Coolify trae el suyo; ver `devops/prod/README.md` "Despliegue con
-Coolify"). Gestión de secretos de producción **revisada** (2026-08-20): variables nativas del
-panel de Coolify en vez de SOPS + age (ver `devops/prod/README.md` "Decisión revisada" para el
-porqué) — herramientas SOPS+age quedan documentadas como histórico, no como flujo activo. Falta el
-VPS real (dominios `sicsaft.cl` sin comprar/apuntar todavía, ni instancia de Coolify corriendo) —
-ver [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) y
-[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) para el stack ya decidido.
-**Instalación on-premise por cliente** (2026-08-25, ver
-[`aidlc-docs/devops/`](../aidlc-docs/devops)): además del VPS compartido de arriba, SICSAFT
-también se vende como instalación aislada por cliente (Nivel 1/Nivel 2, portal de precios propio
-del negocio) — [`devops/onprem/docker-compose.yml`](onprem/docker-compose.yml) levanta un tenant
-completo en el PC/servidor del cliente sobre **Podman** (no Docker Desktop, decisión de recursos),
-más [`devops/onprem/bootstrap-keycloak.ps1`](onprem/bootstrap-keycloak.ps1) para automatizar el
-alta de cada cliente contra Keycloak sin pasos manuales en su Console (ADR-004 Fase 3, 2026-08-26 —
-`devops/onprem/` reemplazó a Zitadel por Keycloak; `local/`/`prod/`, abajo, todavía no migraron).
-Nivel 3 (RFID) documentado como gancho, sin implementación (`rfid/` no tiene código todavía).
-Empaquetado como instalador `.exe` real: pendiente, ver `devops/onprem/README.md` "Qué falta para
-el instalador `.exe` empaquetado".
+🟢 **Entorno On-Premise / .EXE consolidado** ([`devops/onprem/`](onprem/)):
+A partir de septiembre 2026 y de acuerdo a la resolución de arquitectura (DOC-032 / ADR-004),
+el despliegue y distribución del sistema se consolida de forma exclusiva en el modelo
+**On-Premise / Instalador .EXE** ([`sicsaft-core`](../sicsaft-core/)).
 
-## Modelo de despliegue: VPS propio, Docker Compose orquestado por Coolify
-El usuario administra su propio VPS (no una plataforma gestionada tipo Vercel/Render para
-backend). Cada nivel del ecosistema es su propio contenedor con su propio `Dockerfile`
-multi-stage, orquestados por Docker Compose — consistente con "cada nivel = un repositorio o
-paquete desplegable propio" de [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 1. **Coolify**
-(self-hosted, en el mismo VPS) es el panel que orquesta ese Docker Compose y provee el proxy
-reverso/TLS — no es un PaaS gestionado de terceros, sigue siendo el mismo VPS propio (decisión
-2026-08-20, ver `devops/prod/README.md` "Decisión revisada").
+Los entornos experimentales multi-tenant en VPS (`devops/local` y `devops/prod`) fueron
+formalmente retirados para enfocar el 100% del mantenimiento en el entregable del cliente.
 
-Árbol real (ya existe, ya no es solo el plan):
+- **Stack On-Premise** ([`devops/onprem/docker-compose.yml`](onprem/docker-compose.yml)):
+  Levanta un tenant completo y aislado en el PC/servidor del cliente sobre **Podman** / Docker Compose,
+  con **Keycloak 26** como proveedor de identidad OIDC, Postgres para la Base Patrimonial Inteligente (BPI)
+  y Traefik como proxy local.
+- **Automatización de Alta** ([`devops/onprem/bootstrap-keycloak.ps1`](onprem/bootstrap-keycloak.ps1)):
+  Script de automatización para provisionar clientes OIDC, roles y usuarios en Keycloak sin pasos manuales.
+- **Empaquetado**: Integrado con el instalador de Inno Setup bajo [`devops/onprem/installer/`](onprem/installer/)
+  y orquestado por la aplicación de escritorio [`sicsaft-core`](../sicsaft-core/).
+
+## Estructura
 
 ```
 devops/
-├── local/                          # stack de desarrollo — ver devops/local/README.md
-│   ├── docker-compose.yml
-│   ├── traefik/                    # Traefik propio, solo para local (Coolify trae el suyo)
-│   ├── observability/              # config compartida de Prometheus/Loki/Promtail/Grafana
-│   └── postgres/init/              # scripts de bootstrap de roles/bases, compartidos con prod
-├── prod/                           # stack de producción — ver devops/prod/README.md
-│   ├── docker-compose.yml          # recurso "Docker Compose" en Coolify, sin traefik propio
-│   ├── .env.example                # variables a cargar en el panel de Coolify (sin valores reales)
-│   └── README.md                   # despliegue + histórico de la decisión SOPS+age
 └── onprem/                         # instalación aislada por cliente — ver devops/onprem/README.md
-    ├── docker-compose.yml          # subconjunto de local/, Compose profile nivel2, sin
-    │                                # observabilidad/k6, pensado para podman-compose (CIP SÍ entra,
-    │                                # a diferencia de la nota vieja de esta misma línea)
-    ├── bootstrap-keycloak.ps1      # automatiza el alta de un cliente contra Keycloak (ADR-004 F3)
-    ├── traefik/, postgres/         # copias propias, autocontenidas (mismo criterio que prod/)
-    └── .env.example
+    ├── docker-compose.yml          # Compose profile on-premise (Keycloak 26, Postgres, Traefik, CIS, CORE, CIP, CCP)
+    ├── bootstrap-keycloak.ps1      # automatiza el alta del realm/clientes en Keycloak (ADR-004)
+    ├── instalar-cliente.ps1        # script de instalación desatendida del cliente
+    ├── traefik/, postgres/         # configs autocontenidas de proxy y base de datos
+    ├── installer/                  # scripts y assets de empaquetado Inno Setup (.exe)
+    └── .env.example                # variables de entorno para el despliegue on-prem
 ```
 
-Cada sistema (`cis/Dockerfile`, `core/Dockerfile`, `ccp/Dockerfile`, ...) vive en su propia
-carpeta de nivel raíz, no dentro de `devops/` — `devops/prod/docker-compose.yml` los referencia
-por `build.context` relativo (ver ese archivo).
-
-- **Coolify** (proxy Traefik propio) como único punto de entrada (80/443) en producción, enruta
-  por dominio asignado desde su panel ("Domains" por servicio) y renueva TLS solo (Let's
-  Encrypt) — en local sigue siendo un Traefik propio con config estática (ver
-  `devops/local/traefik/dynamic.yml`), porque ahí no hay Coolify.
-- Red Docker interna aislada por ambiente (`sicsaft` en ambos compose, redes Docker distintas por
-  ser stacks/proyectos distintos); solo el proxy expone puertos al host.
-- Backups automatizados con destino externo al VPS (si el VPS se cae o se compromete, el backup
-  no puede vivir en el mismo disco) — pendiente, ver "Próximo paso sugerido".
-
-## Dominios (bajo `sicsaft.cl`, `sicsaft.com` solo como redirect de protección de marca)
-
-| Subdominio | Sistema |
-|---|---|
-| `sicsaft.cl` | Landing comercial (público, sin login) |
-| `id.sicsaft.cl` | Identidad/SSO — Zitadel (ver ADR-002) |
-| `api.sicsaft.cl` | CIS (API Gateway) |
-| `app.sicsaft.cl` | CCP — Centro de Control Patrimonial (hub post-login del Profesional de AFT) |
-| `directivo.sicsaft.cl` | core/frontend — Portal WEB del Directivo (DOC-022, ADR-003) |
-| `grafana.sicsaft.cl` | Grafana — dashboards de observabilidad (acceso solo con login, ver "Observabilidad self-hosted" abajo) |
-| `qr.sicsaft.cl` | APP QR SICSAFT (PWA instalable, subdominio propio por `scope` del manifest) |
-| `cip.sicsaft.cl` | CIP (dashboards/BI), separable de `app.` si el tráfico lo justifica |
-
-Las filas `directivo.`/`grafana.` se agregaron acá (2026-08-20) siguiendo el mismo patrón de
-nombre corto por rol/propósito que ya usa esta tabla — mismo criterio que el hostname local
-`directivo.sicsaft.localhost` de `devops/local/docker-compose.yml`, no una decisión nueva de
-naming.
-
-## Rama `main` — regla no negociable
-**Nunca push directo a `main`**, configurado como branch protection en GitHub desde ya, aunque el
-deploy automático al VPS todavía no exista:
-- Push directo a `main` bloqueado.
-- PR obligatorio, CI en verde obligatorio, al menos 1 review (self-review con checklist mientras
-  el equipo es de una persona, pero el gate de PR igual bloquea un push directo por accidente).
-- `main` es siempre lo único desplegable. Ramas de trabajo cortas (`feat/…`, `fix/…`).
+## Identidad y Seguridad (Keycloak 26)
+Conforme a [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md), el proveedor de identidad
+único y oficial es **Keycloak 26**, operando con flujo OIDC + PKCE. Todos los portales y backends
+se autentican contra este servidor centralizado.
 
 ## Pipeline CI/CD (GitHub Actions)
-
 ```
 lint + type-check
-  → unit tests
-    → integration tests (Testcontainers: Postgres real en contenedor, no mocks)
-      → SAST (Semgrep) + secret scan (gitleaks) + dependency scan (npm audit / Trivy)
-        → build de imagen Docker (multi-stage)
-          → scan de imagen (Trivy)
-            → push a registry (GHCR)
-              → deploy automático a staging (webhook de Coolify sobre push a la rama de staging)
-                → smoke tests contra staging
-                  → aprobación manual → deploy a producción (Coolify, mismo mecanismo)
+  → unit tests (100% cobertura en backends)
+    → integration tests
+      → SAST + secret scan
+        → build del ejecutable / paquetes de distribución (.exe)
 ```
 
-El paso de deploy cambió de "SSH + `docker compose pull && up -d`" (plan original) a **Coolify
-redesplegando su recurso Docker Compose** vía webhook — ver `devops/prod/README.md` "Despliegue
-con Coolify". Las etapas anteriores (lint → tests → scans → build/push de imagen) no cambian,
-Coolify solo reemplaza el último tramo (SSH manual) por su propio mecanismo de redeploy.
-
-Carga/estrés (k6) corre en cron contra staging (ej. nocturno), no en cada PR — es lento y caro
-para el ciclo de feedback normal.
-
-## Estrategia de testing
-- Pirámide: unit → **integración con Testcontainers** (servicios reales, no mocks) → contract
-  tests CIS↔CORE (evita que un cambio en un nivel rompa al otro sin que el CI se entere) → e2e
-  (Playwright, ya en uso en APP QR) → carga/estrés (k6, en cron).
-- Cobertura de líneas alta (90–100%) como piso, complementada con **mutation testing (Stryker)**
-  como gate real de calidad — cobertura de líneas sola es gameable (mide si el test tocó la línea,
-  no si detectaría un bug ahí). Empezar con umbral de mutation score bajo (~60%) y subirlo con el
-  tiempo es más realista que exigir 100% en ambos ejes desde el primer commit.
-- Ningún PR mergea si baja del umbral de cobertura o de mutation score configurado en CI.
-
-## Cyberseguridad del VPS
-- Solo 80/443 públicos; SSH por clave únicamente, IP allowlist o VPN (Tailscale/WireGuard) para
-  administración.
-- `ufw` + `fail2ban`, actualizaciones de SO automáticas (`unattended-upgrades`).
-- Secretos fuera de git en texto plano: **SOPS + age** (decisión cerrada, ver
-  [`devops/prod/README.md`](prod/README.md) para el flujo completo y por qué no un gestor
-  dedicado) — el archivo cifrado sí se commitea, la clave privada nunca. Nunca hardcodeados (ya
-  reforzado en el `.gitignore` raíz).
-- Observabilidad self-hosted: Prometheus + Grafana + Loki + Alertmanager — mismas "tres señales"
-  de [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 2 (métricas, logs estructurados con
-  `correlationId`, trazas).
-- Rate limiting y WAF a nivel de Traefik (Coraza/ModSecurity), o Cloudflare delante del VPS.
-
-## Cumplimiento legal (diferenciador de venta)
-- Chile: Ley 19.628 vigente hoy + **Ley 21.719** (nueva ley de protección de datos personales,
-  entra en vigencia ~diciembre 2026) — diseñar el modelo de datos de usuarios/operadores ya
-  contemplando derechos ARCO, registro de tratamiento y notificación de brechas, antes de que la
-  ley entre en vigencia.
-- El Motor de Auditoría del Tomo IV (usuario/fecha/hora/operación/resultado/IP) ya cubre buena
-  parte de la trazabilidad que exige cumplimiento normativo típico — no perderlo de vista al
-  implementar.
-- Alinear controles internos a ISO 27001/NIST CSF como checklist (sin certificar aún) es un
-  argumento de venta B2B sin el costo de la certificación completa.
-
-## Depende de
-Ninguna dependencia dura restante — [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) y
-[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) ya destraban el diseño de pipelines
-concretos.
-
-## Bloquea
-Nada de forma dura, pero sin esto no hay entorno productivo real para ningún sistema más allá de
-APP QR (hoy en Vercel).
-
 ## Documentos relacionados
-[ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) — pilar de Excelencia Operacional (2) y de
-Seguridad (3). [ADR-001](../adr/ADR-001-stack-backend-nestjs.md) (stack).
-[ADR-002](../adr/ADR-002-identidad-zitadel-multi-tenant.md) (modelo Organización→Contrato→Sede,
-flujo de login — **reemplazada en el proveedor por [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)**:
-`devops/onprem/` ya está en Keycloak, `devops/local/` y `devops/prod/` siguen en Zitadel).
-[DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) — bitácora
-de bugs reales de la migración a Keycloak. Los que tocaron `devops/onprem/`: dominios `.test` que
-no son secure context y rompían PKCE (BUG-08, el hallazgo que disparó `sicsaft-core.exe`),
-`Invoke-WebRequest` sin `-UseBasicParsing` en modo no interactivo (BUG-06), y un `.psm1` que no
-hereda `$ErrorActionPreference` del script que lo importa (BUG-07).
-[`devops/prod/README.md`](prod/README.md) (gestión de secretos, SOPS + age).
+- [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) — marco de arquitectura general.
+- [ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) — adopción de Keycloak 26.
+- [DOC-027](../aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) — bitácora de gotchas de plataforma Windows/Keycloak.
+- [DOC-032](../aidlc-docs/revision-codigo/DOC-032-revision-de-codigo-y-documentacion.md) — revisión de código e instrumentación.
 
-## Próximo paso sugerido
-Comprar el VPS, instalar Coolify, y desplegar `devops/prod/docker-compose.yml` como primer
-entregable (ver `devops/prod/README.md` "Despliegue con Coolify") — permite validar
-dominios/TLS/SSO de punta a punta contra el stack real antes de preocuparse por backups o el resto
-del pipeline de CI/CD. Tarjeta Trello: `OPS-ADR-002`.

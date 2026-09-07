@@ -11,7 +11,7 @@ export async function createPgBossClient(
   const { PgBoss } = await import('pg-boss');
   const boss = new PgBoss(connectionString);
   // Sin este listener, un error de conexión (Postgres caído) es un 'error' no manejado sobre el
-  // EventEmitter y tumba el proceso — mismo criterio que ya aplicaba `create-redis-connection.ts`.
+  // EventEmitter y tumba el proceso — se registra y silencia para permitir reintentos.
   boss.on('error', () => undefined);
   return boss;
 }

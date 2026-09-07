@@ -11,6 +11,9 @@ on:
       - "cis/**"
       - ".github/workflows/cis-ci.yml"
 
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: cis

@@ -12,6 +12,7 @@ import {
   IconLayers,
   IconMapPin,
   IconQrCode,
+  IconSparkles,
   IconUpload,
 } from '@/components/icons';
 
@@ -77,9 +78,15 @@ const MODULOS: Modulo[] = [
   },
   {
     path: 'dashboard',
-    nombre: 'Dashboard',
-    descripcion: 'Indicadores de cobertura y estado',
+    nombre: 'Resumen Operativo',
+    descripcion: 'Estado general del catálogo y accesos directos',
     icon: IconChart,
+  },
+  {
+    path: 'cip',
+    nombre: 'Inteligencia Patrimonial (CIP)',
+    descripcion: 'Analítica avanzada, KPIs ejecutivos y gráficos en tiempo real',
+    icon: IconSparkles,
   },
 ];
 

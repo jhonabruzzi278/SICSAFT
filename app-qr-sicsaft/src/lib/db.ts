@@ -35,7 +35,7 @@ export interface Product {
 // Clasificación de un escaneo (DOC-001 sección 3). 'duplicate' se reserva pero
 // no es alcanzable client-side: IndexedDB usa `code` como clave única, así que
 // dos registros con el mismo código físico no pueden coexistir en el cliente —
-// esa categoría la detectará el futuro Base Patrimonial Central (backend).
+// esa categoría la detectará el backend BPI (CORE).
 export type ScanCategory =
   | 'correct'
   | 'wrong-area'

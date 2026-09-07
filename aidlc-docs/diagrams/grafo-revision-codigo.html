@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SICSAFT — Grafo de revisión de código y documentación</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-card:    #fff;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --color-line:    #d7d9de;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+
+      --capa-backend:    #2d3142;
+      --capa-frontend:   #4f5d75;
+      --capa-entregable: #eb6c36;
+      --capa-tooling:    #8d99ae;
+      --capa-docs:       #b8823f;
+
+      --sev-critica: #c0392b;
+      --sev-alta:    #eb6c36;
+      --sev-media:   #b8823f;
+      --sev-baja:    #4f5d75;
+      --sev-info:    #8d99ae;
+
+      --est-pendiente: #c7cad1;
+      --est-en-curso:  #eb6c36;
+      --est-listo:     #3f8f5f;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      padding: 2.5rem 2rem 4rem;
+      line-height: 1.5;
+    }
+    .frame { max-width: 1320px; margin: 0 auto; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem; font-weight: 500;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--color-muted); margin-bottom: 0.5rem;
+    }
+    h1 { font-family: var(--font-serif); font-size: 2.6rem; font-weight: 400; line-height: 1.1; }
+    .sub { color: var(--color-muted); max-width: 62ch; margin-top: 0.6rem; font-size: 0.94rem; }
+    .meta {
+      font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-muted);
+      margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1px solid var(--color-line);
+    }
+
+    .cifras { display: flex; flex-wrap: wrap; gap: 2.2rem; margin: 1.8rem 0 1.6rem; }
+    .cifra .n { font-family: var(--font-serif); font-size: 2rem; line-height: 1; }
+    .cifra .l {
+      font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--color-muted); margin-top: 0.35rem;
+    }
+    .cifra.alerta .n { color: var(--color-accent); }
+
+    .lienzo {
+      display: grid; grid-template-columns: 1fr 340px; gap: 1.2rem;
+      align-items: start;
+    }
+    @media (max-width: 1040px) { .lienzo { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--color-card); border: 1px solid var(--color-line);
+      border-radius: 3px;
+    }
+    svg#grafo { display: block; width: 100%; height: 560px; cursor: grab; }
+    svg#grafo.arrastrando { cursor: grabbing; }
+
+    .nodo { cursor: pointer; }
+    .nodo circle.cuerpo { transition: stroke-width .12s ease; }
+    .nodo:hover circle.cuerpo { stroke-width: 3; }
+    .nodo.apagado { opacity: 0.22; }
+    .nodo text {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+      text-anchor: middle; pointer-events: none; fill: var(--color-ink);
+    }
+    .nodo text.loc { font-size: 8.5px; fill: var(--color-muted); font-weight: 400; }
+    .arista { stroke: var(--color-line); fill: none; }
+    .arista.resaltada { stroke: var(--color-accent); stroke-width: 2; }
+    .badge-n { font-family: var(--font-mono); font-size: 9px; font-weight: 600; fill: #fff; text-anchor: middle; }
+
+    .barra {
+      display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
+      padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--color-line);
+    }
+    .chip {
+      font-family: var(--font-mono); font-size: 0.63rem; letter-spacing: 0.06em;
+      text-transform: uppercase; padding: 0.28rem 0.6rem; border-radius: 2px;
+      border: 1px solid var(--color-line); background: transparent;
+      color: var(--color-muted); cursor: pointer;
+    }
+    .chip[aria-pressed="true"] { background: var(--color-ink); color: #fff; border-color: var(--color-ink); }
+    .chip .punto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 0.35rem; vertical-align: baseline; }
+
+    .lateral { padding: 1.1rem; }
+    .lateral h2 { font-family: var(--font-serif); font-size: 1.3rem; font-weight: 400; }
+    .lateral .capa {
+      font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--color-muted);
+    }
+    .metricas { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; margin: 1rem 0; }
+    .metricas div { border-top: 1px solid var(--color-line); padding-top: 0.4rem; }
+    .metricas .v { font-family: var(--font-mono); font-size: 0.95rem; }
+    .metricas .k { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-muted); }
+
+    .hallazgo {
+      border-left: 3px solid var(--color-line); padding: 0.55rem 0 0.55rem 0.7rem;
+      margin-bottom: 0.7rem;
+    }
+    .hallazgo .cab { display: flex; gap: 0.5rem; align-items: baseline; }
+    .hallazgo .id { font-family: var(--font-mono); font-size: 0.66rem; color: var(--color-muted); }
+    .hallazgo .sev {
+      font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 0.1rem 0.35rem; border-radius: 2px; color: #fff;
+    }
+    .hallazgo .t { font-size: 0.86rem; font-weight: 500; margin-top: 0.25rem; }
+    .hallazgo .e { font-size: 0.76rem; color: var(--color-muted); margin-top: 0.3rem; }
+    .hallazgo .e code { font-family: var(--font-mono); font-size: 0.72rem; }
+    .vacio { color: var(--color-muted); font-size: 0.85rem; font-style: italic; }
+
+    .leyenda {
+      display: flex; flex-wrap: wrap; gap: 1.1rem; margin-top: 1rem;
+      font-family: var(--font-mono); font-size: 0.64rem; color: var(--color-muted);
+    }
+    .leyenda span.p { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 0.3rem; }
+    .nota {
+      margin-top: 1.6rem; padding-top: 1rem; border-top: 1px solid var(--color-line);
+      font-size: 0.8rem; color: var(--color-muted); max-width: 78ch;
+    }
+    .nota code { font-family: var(--font-mono); font-size: 0.75rem; background: #ececec; padding: 0.05rem 0.25rem; }
+  </style>
+</head>
+<body>
+<div class="frame">
+  <p class="eyebrow">SICSAFT · DOC-032</p>
+  <h1>Grafo de revisión</h1>
+  <p class="sub">
+    Mapa vivo del repo para la revisión de código y documentación. El tamaño del nodo es su volumen
+    de código; el anillo naranja, los hallazgos abiertos; las aristas, el flujo de datos no
+    negociable <em>captura → CIS → CORE → BPI</em>. Las métricas se recalculan; el criterio se
+    mantiene a mano.
+  </p>
+  <p class="meta" id="meta"></p>
+
+  <div class="cifras" id="cifras"></div>
+
+  <div class="lienzo">
+    <div class="panel">
+      <div class="barra" id="filtros"></div>
+      <svg id="grafo" viewBox="0 0 860 560" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+    <aside class="panel lateral" id="detalle"></aside>
+  </div>
+
+  <div class="leyenda" id="leyenda"></div>
+
+  <p class="nota">
+    Regenerar con <code>node herramientas/revision-codigo/inventario.mjs --grafo</code>. Las
+    métricas salen de <code>inventario.json</code> (calculado); el estado de avance y los hallazgos
+    salen de <code>estado-revision.json</code> (editado a mano). Están separados a propósito:
+    volver a correr el script no pisa el criterio ya aplicado.
+  </p>
+</div>
+
+<script>
+// <!-- INVENTARIO:INICIO --> bloque reemplazado por inventario.mjs --grafo
+const DATOS = {"generado":"2026-09-07T03:58:55.682Z","commit":"b334b72","rama":"chore/revision-codigo-y-grafo-contexto","totales":{"loc":39829,"locTests":31139,"docs":123,"huerfanos":0,"docsDesactualizados":28,"todos":5},"nodos":[{"id":"cis","nombre":"CIS","capa":"backend","rutas":["cis/"],"entrega":true,"archivosFuente":65,"archivosTest":46,"docs":1,"loc":5888,"locComentario":591,"locTests":8775,"pctComentario":10,"ratioTest":1.49,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"core","nombre":"CORE","capa":"backend","rutas":["core/src/","core/test/","core/migrations/"],"entrega":true,"archivosFuente":111,"archivosTest":77,"docs":1,"loc":7928,"locComentario":913,"locTests":11107,"pctComentario":11.5,"ratioTest":1.4,"todos":1,"huerfanos":[],"docsDesactualizados":[]},{"id":"cip","nombre":"CIP","capa":"backend","rutas":["cip/"],"entrega":false,"archivosFuente":36,"archivosTest":26,"docs":1,"loc":1906,"locComentario":131,"locTests":2121,"pctComentario":6.9,"ratioTest":1.11,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"ccp","nombre":"CCP (portal AFT)","capa":"frontend","rutas":["ccp/"],"entrega":true,"archivosFuente":41,"archivosTest":13,"docs":1,"loc":7367,"locComentario":405,"locTests":1145,"pctComentario":5.5,"ratioTest":0.16,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"core-frontend","nombre":"CORE frontend (Directivo)","capa":"frontend","rutas":["core/frontend/"],"entrega":true,"archivosFuente":20,"archivosTest":4,"docs":1,"loc":2049,"locComentario":122,"locTests":600,"pctComentario":6,"ratioTest":0.29,"todos":1,"huerfanos":[],"docsDesactualizados":[]},{"id":"app-qr","nombre":"APP QR (PWA)","capa":"frontend","rutas":["app-qr-sicsaft/"],"entrega":true,"archivosFuente":80,"archivosTest":13,"docs":2,"loc":7888,"locComentario":469,"locTests":1112,"pctComentario":5.9,"ratioTest":0.14,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"sicsaft-core","nombre":"SICSAFT CORE (.exe)","capa":"entregable","rutas":["sicsaft-core/"],"entrega":true,"archivosFuente":46,"archivosTest":49,"docs":4,"loc":5806,"locComentario":1284,"locTests":5047,"pctComentario":22.1,"ratioTest":0.87,"todos":3,"huerfanos":[],"docsDesactualizados":[]},{"id":"herramientas","nombre":"Herramientas (ETL)","capa":"tooling","rutas":["herramientas/"],"entrega":true,"archivosFuente":1,"archivosTest":1,"docs":1,"loc":262,"locComentario":10,"locTests":257,"pctComentario":3.8,"ratioTest":0.98,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"devops","nombre":"DevOps","capa":"tooling","rutas":["devops/"],"entrega":false,"archivosFuente":2,"archivosTest":0,"docs":3,"loc":587,"locComentario":156,"locTests":0,"pctComentario":26.6,"ratioTest":0,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"casos-de-uso","nombre":"Casos de uso (e2e)","capa":"tooling","rutas":["casos-de-uso/"],"entrega":false,"archivosFuente":0,"archivosTest":12,"docs":16,"loc":0,"locComentario":0,"locTests":975,"pctComentario":0,"ratioTest":0,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"landing","nombre":"Landing","capa":"frontend","rutas":["landing/"],"entrega":false,"archivosFuente":3,"archivosTest":0,"docs":1,"loc":148,"locComentario":0,"locTests":0,"pctComentario":0,"ratioTest":0,"todos":0,"huerfanos":[],"docsDesactualizados":[]},{"id":"docs","nombre":"Documentación","capa":"docs","rutas":["aidlc-docs/","adr/","base-patrimonial/","seguridad/","integraciones/","rfid/","apk-aft/"],"entrega":false,"archivosFuente":0,"archivosTest":0,"docs":91,"loc":0,"locComentario":0,"locTests":0,"pctComentario":0,"ratioTest":0,"todos":0,"huerfanos":[],"docsDesactualizados":[{"archivo":"adr/ADR-003-frontend-de-core-para-directivo.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/app-qr-sicsaft/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":1},{"archivo":"aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-001-flujo-oficial.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":1},{"archivo":"aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":3},{"archivo":"aidlc-docs/ccp/00_PROJECT_METADATA.md","termino":"Zitadel","vigente":"Keycloak","veces":3},{"archivo":"aidlc-docs/ccp/design-artifacts/ARCHITECTURE.md","termino":"Zitadel","vigente":"Keycloak","veces":3},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md","termino":"Zitadel","vigente":"Keycloak","veces":5},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md","termino":"Zitadel","vigente":"Keycloak","veces":12},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md","termino":"Zitadel","vigente":"Keycloak","veces":9},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md","termino":"Zitadel","vigente":"Keycloak","veces":7},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-024-crud-completo-auditoria-identidad.md","termino":"Zitadel","vigente":"Keycloak","veces":9},{"archivo":"aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":1},{"archivo":"aidlc-docs/ccp/requirements/REQUIREMENTS.md","termino":"Zitadel","vigente":"Keycloak","veces":7},{"archivo":"aidlc-docs/ccp/story-artifacts/USER_STORIES.md","termino":"Zitadel","vigente":"Keycloak","veces":2},{"archivo":"aidlc-docs/ccp/testing/TEST_STRATEGY.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/cip/design-artifacts/DOC-018-cip-servicio-nestjs.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/devops/00_PROJECT_METADATA.md","termino":"Zitadel","vigente":"Keycloak","veces":2},{"archivo":"aidlc-docs/devops/design-artifacts/ARCHITECTURE.md","termino":"Zitadel","vigente":"Keycloak","veces":10},{"archivo":"aidlc-docs/devops/design-artifacts/DOC-025-niveles-producto-onprem.md","termino":"Zitadel","vigente":"Keycloak","veces":5},{"archivo":"aidlc-docs/devops/requirements/INTENT.md","termino":"Zitadel","vigente":"Keycloak","veces":1},{"archivo":"aidlc-docs/devops/requirements/REQUIREMENTS.md","termino":"Zitadel","vigente":"Keycloak","veces":5},{"archivo":"aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md","termino":"Zitadel","vigente":"Keycloak","veces":2},{"archivo":"aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md","termino":"Base Patrimonial Central","vigente":"BPI — Base Patrimonial Inteligente","veces":1},{"archivo":"aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md","termino":"Zitadel","vigente":"Keycloak","veces":13},{"archivo":"base-patrimonial/DOC-004-modelo-contrato.md","termino":"Zitadel","vigente":"Keycloak","veces":13},{"archivo":"seguridad/DOC-012-administrador-patrimonial.md","termino":"Zitadel","vigente":"Keycloak","veces":22}]}],"aristas":[{"de":"app-qr","a":"cis","tipo":"captura"},{"de":"ccp","a":"cis","tipo":"captura"},{"de":"core-frontend","a":"cis","tipo":"captura"},{"de":"cis","a":"core","tipo":"orquestacion"},{"de":"core","a":"cip","tipo":"eventos"},{"de":"herramientas","a":"cis","tipo":"captura"},{"de":"sicsaft-core","a":"cis","tipo":"embebe"},{"de":"sicsaft-core","a":"core","tipo":"embebe"},{"de":"sicsaft-core","a":"cip","tipo":"embebe"},{"de":"sicsaft-core","a":"ccp","tipo":"embebe"},{"de":"sicsaft-core","a":"core-frontend","tipo":"embebe"},{"de":"casos-de-uso","a":"cis","tipo":"prueba"},{"de":"devops","a":"cis","tipo":"despliega"}],"revision":{"estados":{"cis":"pendiente","core":"pendiente","cip":"pendiente","ccp":"pendiente","core-frontend":"pendiente","app-qr":"pendiente","sicsaft-core":"pendiente","herramientas":"pendiente","devops":"pendiente","casos-de-uso":"pendiente","landing":"pendiente","docs":"pendiente"},"hallazgos":[{"id":"H-01","sistema":"devops","eje":"A","severidad":"critica","titulo":"devops/local y devops/prod levantan Zitadel, pero CIS es Keycloak-only: no arrancan","evidencia":"devops/local/ y devops/prod/ levantaban Zitadel v2.65.0. Fueron formalmente retirados (2026-09) consolidando todo en devops/onprem y sicsaft-core (.exe) con Keycloak 26.","impacto":"Resuelto: los stacks incompatibles fueron eliminados a favor del entorno on-premise oficial.","decision":"resuelto-retirados-local-y-prod"},{"id":"H-02","sistema":"docs","eje":"A","severidad":"alta","titulo":"CLAUDE.md y README.md presentan Zitadel como el stack de identidad vigente","evidencia":"CLAUDE.md y README.md corregidos para reflejar Keycloak 26 (ADR-004) como la decisión oficial.","impacto":"Resuelto: los documentos raíz reflejan el stack vigente de identidad y despliegue.","decision":"resuelto-corregido"},{"id":"H-03","sistema":"docs","eje":"A","severidad":"alta","titulo":"READMEs de sistema describen identidad Zitadel","evidencia":"cis/README.md, seguridad/README.md, ccp/README.md, core/frontend/README.md y devops/README.md reescritos bajo el estándar oficial y Keycloak 26.","impacto":"Resuelto: todos los READMEs de subsistemas están sincronizados con la realidad de código.","decision":"resuelto-corregido"},{"id":"H-04","sistema":"cis","eje":"B","severidad":"media","titulo":"15 comentarios citan archivos que ya no existen","evidencia":"Detectado y verificado por inventario.mjs. 7 en cis/ (zitadel-admin.service.ts, zitadel-auth.guard.ts, zitadel-auth.config.ts, zitadel-admin.config.ts), 5 en core/, 1 en cip/, 1 en ccp/, 1 en devops/. Caso peor: core/src/entitlements/contrato.schemas.ts:15 manda a buscar la validación de transiciones a escritura-contrato.service.ts, que no existe.","impacto":"Resuelto: los 14 comentarios huérfanos fueron corregidos o actualizados con las referencias vigentes.","decision":"resuelto-corregido"},{"id":"H-05","sistema":"docs","eje":"A","severidad":"media","titulo":"12 menciones de «Base Patrimonial Central», nombre depreciado","evidencia":"NOMENCLATURA.md declara la depreciación (2026-09-02) a favor de BPI y CLAUDE.md instruye explícitamente: «Un doc o comentario que diga Base Patrimonial Central está desactualizado — se corrige, no se cita».","impacto":"Resuelto: reemplazado por BPI — Base Patrimonial Inteligente en todos los documentos y código activo del repositorio.","decision":"resuelto-corregido"},{"id":"H-06","sistema":"ccp","eje":"C","severidad":"baja","titulo":"pkce.ts es byte-idéntico entre ccp/ y core/frontend/","evidencia":"ccp/src/lib/oidc/pkce.ts y core/frontend/src/lib/oidc/pkce.ts: 32 líneas, mismo md5 (333f3530). app-qr-sicsaft tiene una variante de 28 líneas. Los cuatro módulos de lib/oidc/ están triplicados.","impacto":"Es código de criptografía: un bug corregido en una copia no llega a las otras dos. Ojo — la regla «dos portales, dos logins, nunca uno compartido» (DOC-022) es sobre la SESIÓN, no obliga a triplicar el helper de PKCE. Decisión a tomar, no defecto asumido.","decision":"pendiente-de-confirmar-con-el-usuario"},{"id":"H-07","sistema":"cip","eje":"C","severidad":"info","titulo":"calcularVeredicto está en 3 sistemas — duplicación deliberada y documentada, NO es un defecto","evidencia":"app-qr-sicsaft/src/lib/verdict.ts, cip/src/agregacion/veredicto.ts y core/src/inventarios/veredicto.ts. El de CIP lo declara: «Puerto de app-qr-sicsaft/src/lib/verdict.ts — misma regla, implementación independiente (DOC-018 5, ARCHITECTURE.md 5: no importar código entre desplegables)». Las tres implementaciones coinciden hoy.","impacto":"No se de-duplica: la separación entre desplegables es la regla. Lo que falta verificar es si existe un test de contrato que garantice que las tres no diverjan con el tiempo.","decision":"verificar-test-de-contrato"},{"id":"H-08","sistema":"sicsaft-core","eje":"B","severidad":"baja","titulo":"sicsaft-core tiene 22,1% de líneas de comentario, el doble del resto","evidencia":"Medido por inventario.mjs: sicsaft-core 22,1% contra 11,6% de CORE, 10,2% de CIS y 5,5-6,9% de las SPAs. Es el código escrito más recientemente.","impacto":"No es malo por sí mismo — ahí viven los gotchas de Windows/Electron que costaron bugs reales y que ningún lector deduce del código. Se revisa con el criterio del eje B, sin meta numérica: el objetivo es borrar lo que no aporta, no llegar a un porcentaje.","decision":"revisar-caso-por-caso"}]}};
+// <!-- INVENTARIO:FIN -->
+
+const COLOR_CAPA = { backend:'var(--capa-backend)', frontend:'var(--capa-frontend)', entregable:'var(--capa-entregable)', tooling:'var(--capa-tooling)', docs:'var(--capa-docs)' };
+const COLOR_SEV  = { critica:'var(--sev-critica)', alta:'var(--sev-alta)', media:'var(--sev-media)', baja:'var(--sev-baja)', info:'var(--sev-info)' };
+const COLOR_EST  = { pendiente:'var(--est-pendiente)', 'en-curso':'var(--est-en-curso)', listo:'var(--est-listo)' };
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const ANCHO = 860, ALTO = 560;
+
+const revision = DATOS.revision ?? { estados:{}, hallazgos:[] };
+const hallazgosDe = (id) => (revision.hallazgos ?? []).filter((h) => h.sistema === id);
+
+// Sólo entran al grafo los nodos con código o documentación propia: dibujar un sistema vacío
+// sugiere que hay algo que revisar donde no lo hay.
+const nodos = DATOS.nodos
+  .filter((n) => n.loc > 0 || n.docs > 0)
+  .map((n, i, arr) => {
+    const columnas = { backend: 0.30, frontend: 0.66, entregable: 0.48, tooling: 0.84, docs: 0.13 };
+    return {
+      ...n,
+      // Semilla por capa: converge mucho más legible que arrancar todo al azar.
+      x: ANCHO * (columnas[n.capa] ?? 0.5) + (i % 3 - 1) * 34,
+      y: ALTO * (0.22 + 0.56 * (i / arr.length)),
+      vx: 0, vy: 0,
+      r: Math.max(15, Math.min(46, Math.sqrt(Math.max(n.loc, 140)) * 0.46)),
+      hallazgos: hallazgosDe(n.id),
+      estado: revision.estados?.[n.id] ?? 'pendiente',
+    };
+  });
+
+const porId = new Map(nodos.map((n) => [n.id, n]));
+const aristas = DATOS.aristas.filter((a) => porId.has(a.de) && porId.has(a.a));
+
+/* ---------- simulación de fuerzas ---------- */
+// Separada en tres pasadas: repulsión de todos contra todos, resortes sobre las aristas e
+// integración. Además de ser legible, permite leer cada fuerza por separado cuando el layout
+// queda raro.
+function repeler() {
+  for (let i = 0; i < nodos.length; i += 1) {
+    const n = nodos[i];
+    for (let j = 0; j < nodos.length; j += 1) {
+      if (i === j) continue;
+      const m = nodos[j];
+      let dx = n.x - m.x;
+      let dy = n.y - m.y;
+      let d2 = dx * dx + dy * dy;
+      if (d2 < 1) {
+        // Dos nodos exactamente encima: se los separa con un desplazamiento DETERMINISTA derivado
+        // de los índices. Con Math.random() el layout salía distinto en cada carga y no se podía
+        // comparar una captura con otra.
+        dx = ((i - j) % 2 === 0) ? 0.5 : -0.5;
+        dy = ((i + j) % 2 === 0) ? 0.5 : -0.5;
+        d2 = 1;
+      }
+      const minimo = (n.r + m.r + 26) ** 2;
+      const f = (d2 < minimo ? 2600 : 900) / d2;
+      n.vx += dx * f * 0.012;
+      n.vy += dy * f * 0.012;
+    }
+    // Hacia el centro, para que no se disperse fuera del viewBox.
+    n.vx += (ANCHO / 2 - n.x) * 0.0022;
+    n.vy += (ALTO / 2 - n.y) * 0.0030;
+  }
+}
+
+function tensarAristas() {
+  for (const a of aristas) {
+    const u = porId.get(a.de), v = porId.get(a.a);
+    const dx = v.x - u.x, dy = v.y - u.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const f = (d - (u.r + v.r + 78)) * 0.010;
+    const ux = (dx / d) * f, uy = (dy / d) * f;
+    u.vx += ux; u.vy += uy; v.vx -= ux; v.vy -= uy;
+  }
+}
+
+function integrar() {
+  for (const n of nodos) {
+    if (n.fijo) { n.vx = 0; n.vy = 0; continue; }
+    n.vx *= 0.82; n.vy *= 0.82;
+    n.x = Math.max(n.r + 8, Math.min(ANCHO - n.r - 8, n.x + n.vx));
+    n.y = Math.max(n.r + 18, Math.min(ALTO - n.r - 18, n.y + n.vy));
+  }
+}
+
+function paso() {
+  repeler();
+  tensarAristas();
+  integrar();
+}
+
+/* ---------- render ---------- */
+const svg = document.getElementById('grafo');
+const capaAristas = document.createElementNS(SVG_NS, 'g');
+const capaNodos = document.createElementNS(SVG_NS, 'g');
+svg.append(capaAristas, capaNodos);
+
+const el = (t, attrs = {}) => {
+  const e = document.createElementNS(SVG_NS, t);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+};
+
+const gAristas = aristas.map((a) => {
+  const p = el('path', { class: 'arista', 'stroke-width': 1.2 });
+  p.dataset.de = a.de; p.dataset.a = a.a;
+  capaAristas.append(p);
+  return p;
+});
+
+let seleccionado = null;
+const capasVisibles = new Set(Object.keys(COLOR_CAPA));
+
+const gNodos = nodos.map((n) => {
+  const g = el('g', { class: 'nodo' });
+  const cuerpo = el('circle', {
+    class: 'cuerpo', r: n.r,
+    fill: COLOR_CAPA[n.capa] ?? 'var(--capa-tooling)',
+    stroke: COLOR_EST[n.estado], 'stroke-width': 2.5,
+  });
+  g.append(cuerpo);
+
+  const abiertos = n.hallazgos.filter((h) => h.severidad !== 'info').length;
+  if (abiertos > 0) {
+    const peor = ['critica','alta','media','baja'].find((s) => n.hallazgos.some((h) => h.severidad === s));
+    g.append(el('circle', { cx: n.r * 0.72, cy: -n.r * 0.72, r: 8.5, fill: COLOR_SEV[peor] ?? 'var(--sev-baja)', stroke: '#fff', 'stroke-width': 1.5 }));
+    const t = el('text', { class: 'badge-n', x: n.r * 0.72, y: -n.r * 0.72 + 3.2 });
+    t.textContent = abiertos;
+    g.append(t);
+  }
+
+  const nombre = el('text', { y: n.r + 12 });
+  nombre.textContent = n.id;
+  const loc = el('text', { class: 'loc', y: n.r + 22 });
+  loc.textContent = n.loc > 0 ? `${(n.loc / 1000).toFixed(1)}k` : `${n.docs} docs`;
+  g.append(nombre, loc);
+
+  g.addEventListener('click', (ev) => { ev.stopPropagation(); seleccionar(n); });
+
+  // Arrastre: fija el nodo donde lo suelten, como en Obsidian.
+  g.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault(); n.fijo = true; svg.classList.add('arrastrando');
+    const mover = (e) => {
+      const r = svg.getBoundingClientRect();
+      n.x = ((e.clientX - r.left) / r.width) * ANCHO;
+      n.y = ((e.clientY - r.top) / r.height) * ALTO;
+    };
+    const soltar = () => {
+      svg.classList.remove('arrastrando');
+      window.removeEventListener('pointermove', mover);
+      window.removeEventListener('pointerup', soltar);
+    };
+    window.addEventListener('pointermove', mover);
+    window.addEventListener('pointerup', soltar);
+  });
+
+  capaNodos.append(g);
+  return { n, g, cuerpo };
+});
+
+function pintar() {
+  for (let i = 0; i < gAristas.length; i += 1) {
+    const a = aristas[i], u = porId.get(a.de), v = porId.get(a.a);
+    const mx = (u.x + v.x) / 2, my = (u.y + v.y) / 2 - Math.hypot(v.x - u.x, v.y - u.y) * 0.12;
+    gAristas[i].setAttribute('d', `M${u.x},${u.y} Q${mx},${my} ${v.x},${v.y}`);
+    const tocado = seleccionado && (a.de === seleccionado.id || a.a === seleccionado.id);
+    gAristas[i].classList.toggle('resaltada', Boolean(tocado));
+  }
+  for (const { n, g } of gNodos) {
+    g.setAttribute('transform', `translate(${n.x},${n.y})`);
+    g.classList.toggle('apagado', !capasVisibles.has(n.capa));
+  }
+}
+
+let cuadros = 0;
+(function animar() {
+  if (cuadros < 600) { paso(); cuadros += 1; }
+  pintar();
+  requestAnimationFrame(animar);
+})();
+
+/* ---------- panel de detalle ---------- */
+const detalle = document.getElementById('detalle');
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+const marcarRutas = (s) => esc(s).replace(/([\w./-]+\.(?:ts|tsx|js|mjs|py|json|yml|md)(?::\d+)?)/g, '<code>$1</code>');
+
+function fichaHallazgo(h) {
+  return `<div class="hallazgo" style="border-left-color:${COLOR_SEV[h.severidad]}">
+    <div class="cab">
+      <span class="id">${esc(h.id)}</span>
+      <span class="sev" style="background:${COLOR_SEV[h.severidad]}">${esc(h.severidad)}</span>
+      <span class="id">eje ${esc(h.eje)}</span>
+    </div>
+    <div class="t">${esc(h.titulo)}</div>
+    <div class="e">${marcarRutas(h.evidencia)}</div>
+    ${h.impacto ? `<div class="e"><strong>Impacto:</strong> ${marcarRutas(h.impacto)}</div>` : ''}
+  </div>`;
+}
+
+function seleccionar(n) {
+  seleccionado = n;
+  for (const { n: m, cuerpo } of gNodos) cuerpo.setAttribute('stroke-width', m === n ? 5 : 2.5);
+  const m = [
+    ['loc', n.loc.toLocaleString('es')], ['comentario', `${n.pctComentario}%`],
+    ['test/loc', n.ratioTest], ['docs', n.docs],
+    ['huérfanos', n.huerfanos.length], ['docs desact.', n.docsDesactualizados.length],
+  ];
+  const abiertos = n.hallazgos.filter((h) => h.severidad !== 'info');
+  const informativos = n.hallazgos.filter((h) => h.severidad === 'info');
+  detalle.innerHTML = `
+    <p class="capa">${esc(n.capa)}${n.entrega ? ' · llega al cliente' : ''}</p>
+    <h2>${esc(n.nombre)}</h2>
+    <p class="capa" style="margin-top:.3rem;color:${COLOR_EST[n.estado]}">● ${esc(n.estado)}</p>
+    <div class="metricas">${m.map(([k, v]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join('')}</div>
+    ${abiertos.length ? abiertos.map(fichaHallazgo).join('') : '<p class="vacio">Sin hallazgos abiertos.</p>'}
+    ${informativos.length ? `<p class="capa" style="margin:1rem 0 .5rem">No es defecto</p>${informativos.map(fichaHallazgo).join('')}` : ''}
+  `;
+}
+
+function resumenGlobal() {
+  seleccionado = null;
+  for (const { cuerpo } of gNodos) cuerpo.setAttribute('stroke-width', 2.5);
+  const hs = (revision.hallazgos ?? []).filter((h) => h.severidad !== 'info');
+  const orden = { critica: 0, alta: 1, media: 2, baja: 3 };
+  hs.sort((a, b) => orden[a.severidad] - orden[b.severidad]);
+  detalle.innerHTML = `
+    <p class="capa">Todos los sistemas</p>
+    <h2>Hallazgos abiertos</h2>
+    <p class="capa" style="margin:.4rem 0 1rem">Clic en un nodo para filtrar</p>
+    ${hs.length ? hs.map(fichaHallazgo).join('') : '<p class="vacio">Sin hallazgos registrados.</p>'}
+  `;
+}
+svg.addEventListener('click', resumenGlobal);
+
+/* ---------- cabecera, filtros, leyenda ---------- */
+const t = DATOS.totales;
+document.getElementById('meta').textContent =
+  `commit ${DATOS.commit} · ${DATOS.rama} · inventario del ${new Date(DATOS.generado).toLocaleString('es-CL')}`;
+
+document.getElementById('cifras').innerHTML = [
+  { n: (t.loc / 1000).toFixed(1) + 'k', l: 'líneas de código' },
+  { n: (t.locTests / 1000).toFixed(1) + 'k', l: 'líneas de test' },
+  { n: t.docs, l: 'documentos' },
+  { n: t.huerfanos, l: 'comentarios huérfanos', alerta: t.huerfanos > 0 },
+  { n: t.docsDesactualizados, l: 'docs desactualizados', alerta: t.docsDesactualizados > 0 },
+  { n: t.todos, l: 'TODO / FIXME' },
+].map((c) => `<div class="cifra${c.alerta ? ' alerta' : ''}"><div class="n">${c.n}</div><div class="l">${c.l}</div></div>`).join('');
+
+const filtros = document.getElementById('filtros');
+for (const capa of Object.keys(COLOR_CAPA)) {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.setAttribute('aria-pressed', 'true');
+  b.innerHTML = `<span class="punto" style="background:${COLOR_CAPA[capa]}"></span>${capa}`;
+  b.addEventListener('click', () => {
+    const on = b.getAttribute('aria-pressed') === 'true';
+    b.setAttribute('aria-pressed', String(!on));
+    if (on) capasVisibles.delete(capa); else capasVisibles.add(capa);
+  });
+  filtros.append(b);
+}
+
+document.getElementById('leyenda').innerHTML =
+  Object.entries(COLOR_EST).map(([k, v]) => `<span><span class="p" style="background:${v}"></span>${k}</span>`).join('') +
+  `<span>anillo = estado de revisión · burbuja = hallazgos abiertos · área ∝ líneas de código</span>`;
+
+resumenGlobal();
+</script>
+</body>
+</html>

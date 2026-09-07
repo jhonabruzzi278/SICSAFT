@@ -14,7 +14,7 @@ export type AltaContratoBody = z.infer<typeof altaContratoSchema>;
 
 // DOC-012 7 — PATCH /contratos/:id. Solo transiciones validas de la maquina de estados de
 // DOC-004 3 (vigente ⇄ suspendido, vigente → vencido|cancelado) — la validacion de CUALES
-// transiciones son validas vive en escritura-contrato.service.ts, no acá (este schema solo
+// transiciones son validas vive en contrato.repository.ts, no acá (este schema solo
 // valida la forma, igual que escrituraOficialSchema).
 export const actualizarContratoSchema = escrituraOficialSchema.extend({
   estado: z.enum(['vigente', 'suspendido', 'vencido', 'cancelado']),

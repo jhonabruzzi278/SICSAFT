@@ -113,7 +113,7 @@ REGLAS DE NEGOCIO            (core/src/reglas/ — CFPS)
   ↓
 SICSAFT CORE                (core/ — Motor Patrimonial)
   ↓
-BPI                         (Base Patrimonial Central — Postgres, core/migrations/)
+BPI                         (Base Patrimonial Inteligente — Postgres, core/migrations/)
   ↓
 EVENTO + HISTORIAL + AUDITORÍA  (core/src/auditoria/ + cola pg-boss → cip/)
   ↓

@@ -1,0 +1,499 @@
+{
+  "generado": "2026-09-07T06:38:14.767Z",
+  "commit": "b334b72",
+  "rama": "chore/revision-codigo-y-grafo-contexto",
+  "totales": {
+    "loc": 40819,
+    "locTests": 31154,
+    "docs": 123,
+    "huerfanos": 0,
+    "docsDesactualizados": 28,
+    "todos": 5
+  },
+  "nodos": [
+    {
+      "id": "cis",
+      "nombre": "CIS",
+      "capa": "backend",
+      "rutas": [
+        "cis/"
+      ],
+      "entrega": true,
+      "archivosFuente": 65,
+      "archivosTest": 46,
+      "docs": 1,
+      "loc": 5888,
+      "locComentario": 591,
+      "locTests": 8775,
+      "pctComentario": 10,
+      "ratioTest": 1.49,
+      "todos": 0,
+      "huerfanos": [],
+      "docsDesactualizados": []
+    },
+    {
+      "id": "core",
+      "nombre": "CORE",
+      "capa": "backend",
+      "rutas": [
+        "core/src/",
+        "core/test/",
+        "core/migrations/"
+      ],
+      "entrega": true,
+      "archivosFuente": 111,
+      "archivosTest": 77,
+      "docs": 1,
+      "loc": 7928,
+      "locComentario": 913,
+      "locTests": 11113,
+      "pctComentario": 11.5,
+      "ratioTest": 1.4,
+      "todos": 1,
+      "huerfanos": [],
+      "docsDesactualizados": []
+    },
+    {
+      "id": "cip",
+      "nombre": "CIP",
+      "capa": "backend",
+      "rutas": [
+        "cip/"
+      ],
+      "entrega": false,
+      "archivosFuente": 36,
+      "archivosTest": 26,
+      "docs": 1,
+      "loc": 1906,
+      "locComentario": 131,
+      "locTests": 2128,
+      "pctComentario": 6.9,
+      "ratioTest": 1.12,
+      "todos": 0,
+      "huerfanos": [],
+      "docsDesactualizados": []
+    },
+    {
+      "id": "ccp",
+      "nombre": "CCP (portal AFT)",
+      "capa": "frontend",
+      "rutas": [
+        "ccp/"
+      ],
+      "entrega": true,
+      "archivosFuente": 41,
+      "archivosTest": 13,
+      "docs": 1,
+      "loc": 7759,
+      "locComentario": 398,
+      "locTests": 1147,
+      "pctComentario": 5.1,
+      "ratioTest": 0.15,
+      "todos": 0,
+      "huerfanos": [],
+      "docsDesactualizados": []
+    },
+    {
+      "id": "core-frontend",
+      "nombre": "CORE frontend (Directivo)",
+      "capa": "frontend",
+      "rutas": [
+        "core/frontend/"
+      ],
+      "entrega": true,
+      "archivosFuente": 20,
+      "archivosTest": 4,
+      "docs": 1,
+      "loc": 2507,
+      "locComentario": 116,
+      "locTests": 600,
+      "pctComentario": 4.6,
+      "ratioTest": 0.24,
+      "todos": 1,
+      "huerfanos": [],
+      "docsDesactualizados": []
+    },
+    {
+      "id": "app-qr",
+      "nombre": "APP QR (PWA)",
+      "capa": "frontend",
+      "rutas": [
+        "app-qr-sicsaft/"
+      ],
+      "entrega": true,
+      "archivosFuente": 80,
+      "archivosTest": 13,
+      "docs": 2,
+      "loc": 7893,
+      "locComentario": 467,
+      "locTests": 1112,
+      "pctComentario": 5.9,
+      "ratioTest": 0.14,
+      "todos": 0,
+      "huerfanos": [],
+      "docsDesactualizados": []
+    },
+    {
+      "id": "sicsaft-core",
+      "nombre": "SICSAFT CORE (.exe)",
+      "capa": "entregable",
+      "rutas": [
+        "sicsaft-core/"
+      ],
+      "entrega": true,
+      "archivosFuente": 46,
+      "archivosTest": 49,
+      "docs": 4,
+      "loc": 5941,
+      "locComentario": 1276,
+      "locTests": 5047,
+      "pctComentario": 21.5,
+      "ratioTest": 0.85,
+      "todos": 3,
+      "huerfanos": [],
+      "docsDesactualizados": []
+    },
+    {
+      "id": "herramientas",
+      "nombre": "Herramientas (ETL)",
+      "capa": "tooling",
+      "rutas": [
+        "herramientas/"
+      ],
+      "entrega": true,
+      "archivosFuente": 1,
+      "archivosTest": 1,
+      "docs": 1,
+      "loc": 262,
+      "locComentario": 10,
+      "locTests": 257,
+      "pctComentario": 3.8,
+      "ratioTest": 0.98,
+      "todos": 0,
+      "huerfanos": [],
+      "docsDesactualizados": []
+    },
+    {
+      "id": "devops",
+      "nombre": "DevOps",
+      "capa": "tooling",
+      "rutas": [
+        "devops/"
+      ],
+      "entrega": false,
+      "archivosFuente": 2,
+      "archivosTest": 0,
+      "docs": 3,
+      "loc": 587,
+      "locComentario": 156,
+      "locTests": 0,
+      "pctComentario": 26.6,
+      "ratioTest": 0,
+      "todos": 0,
+      "huerfanos": [],
+      "docsDesactualizados": []
+    },
+    {
+      "id": "casos-de-uso",
+      "nombre": "Casos de uso (e2e)",
+      "capa": "tooling",
+      "rutas": [
+        "casos-de-uso/"
+      ],
+      "entrega": false,
+      "archivosFuente": 0,
+      "archivosTest": 12,
+      "docs": 16,
+      "loc": 0,
+      "locComentario": 0,
+      "locTests": 975,
+      "pctComentario": 0,
+      "ratioTest": 0,
+      "todos": 0,
+      "huerfanos": [],
+      "docsDesactualizados": []
+    },
+    {
+      "id": "landing",
+      "nombre": "Landing",
+      "capa": "frontend",
+      "rutas": [
+        "landing/"
+      ],
+      "entrega": false,
+      "archivosFuente": 3,
+      "archivosTest": 0,
+      "docs": 1,
+      "loc": 148,
+      "locComentario": 0,
+      "locTests": 0,
+      "pctComentario": 0,
+      "ratioTest": 0,
+      "todos": 0,
+      "huerfanos": [],
+      "docsDesactualizados": []
+    },
+    {
+      "id": "docs",
+      "nombre": "Documentación",
+      "capa": "docs",
+      "rutas": [
+        "aidlc-docs/",
+        "adr/",
+        "base-patrimonial/",
+        "seguridad/",
+        "integraciones/",
+        "rfid/",
+        "apk-aft/"
+      ],
+      "entrega": false,
+      "archivosFuente": 0,
+      "archivosTest": 0,
+      "docs": 91,
+      "loc": 0,
+      "locComentario": 0,
+      "locTests": 0,
+      "pctComentario": 0,
+      "ratioTest": 0,
+      "todos": 0,
+      "huerfanos": [],
+      "docsDesactualizados": [
+        {
+          "archivo": "adr/ADR-003-frontend-de-core-para-directivo.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 1
+        },
+        {
+          "archivo": "aidlc-docs/app-qr-sicsaft/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md",
+          "termino": "Base Patrimonial Central",
+          "vigente": "BPI — Base Patrimonial Inteligente",
+          "veces": 1
+        },
+        {
+          "archivo": "aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-001-flujo-oficial.md",
+          "termino": "Base Patrimonial Central",
+          "vigente": "BPI — Base Patrimonial Inteligente",
+          "veces": 1
+        },
+        {
+          "archivo": "aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 1
+        },
+        {
+          "archivo": "aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md",
+          "termino": "Base Patrimonial Central",
+          "vigente": "BPI — Base Patrimonial Inteligente",
+          "veces": 3
+        },
+        {
+          "archivo": "aidlc-docs/ccp/00_PROJECT_METADATA.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 3
+        },
+        {
+          "archivo": "aidlc-docs/ccp/design-artifacts/ARCHITECTURE.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 3
+        },
+        {
+          "archivo": "aidlc-docs/ccp/design-artifacts/DOC-013-portal-web.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 1
+        },
+        {
+          "archivo": "aidlc-docs/ccp/design-artifacts/DOC-019-dashboard-cip-frontend.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 5
+        },
+        {
+          "archivo": "aidlc-docs/ccp/design-artifacts/DOC-020-segmentacion-por-rol-directivo.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 12
+        },
+        {
+          "archivo": "aidlc-docs/ccp/design-artifacts/DOC-021-cobertura-ccp-y-administrador-sistema.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 9
+        },
+        {
+          "archivo": "aidlc-docs/ccp/design-artifacts/DOC-022-reestructuracion-portales-ccp-webadmin-directivo.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 7
+        },
+        {
+          "archivo": "aidlc-docs/ccp/design-artifacts/DOC-024-crud-completo-auditoria-identidad.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 9
+        },
+        {
+          "archivo": "aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md",
+          "termino": "Base Patrimonial Central",
+          "vigente": "BPI — Base Patrimonial Inteligente",
+          "veces": 1
+        },
+        {
+          "archivo": "aidlc-docs/ccp/requirements/REQUIREMENTS.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 7
+        },
+        {
+          "archivo": "aidlc-docs/ccp/story-artifacts/USER_STORIES.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 2
+        },
+        {
+          "archivo": "aidlc-docs/ccp/testing/TEST_STRATEGY.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 1
+        },
+        {
+          "archivo": "aidlc-docs/cip/design-artifacts/DOC-018-cip-servicio-nestjs.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 1
+        },
+        {
+          "archivo": "aidlc-docs/devops/00_PROJECT_METADATA.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 2
+        },
+        {
+          "archivo": "aidlc-docs/devops/design-artifacts/ARCHITECTURE.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 10
+        },
+        {
+          "archivo": "aidlc-docs/devops/design-artifacts/DOC-025-niveles-producto-onprem.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 5
+        },
+        {
+          "archivo": "aidlc-docs/devops/requirements/INTENT.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 1
+        },
+        {
+          "archivo": "aidlc-docs/devops/requirements/REQUIREMENTS.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 5
+        },
+        {
+          "archivo": "aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 2
+        },
+        {
+          "archivo": "aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md",
+          "termino": "Base Patrimonial Central",
+          "vigente": "BPI — Base Patrimonial Inteligente",
+          "veces": 1
+        },
+        {
+          "archivo": "aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 13
+        },
+        {
+          "archivo": "base-patrimonial/DOC-004-modelo-contrato.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 13
+        },
+        {
+          "archivo": "seguridad/DOC-012-administrador-patrimonial.md",
+          "termino": "Zitadel",
+          "vigente": "Keycloak",
+          "veces": 22
+        }
+      ]
+    }
+  ],
+  "aristas": [
+    {
+      "de": "app-qr",
+      "a": "cis",
+      "tipo": "captura"
+    },
+    {
+      "de": "ccp",
+      "a": "cis",
+      "tipo": "captura"
+    },
+    {
+      "de": "core-frontend",
+      "a": "cis",
+      "tipo": "captura"
+    },
+    {
+      "de": "cis",
+      "a": "core",
+      "tipo": "orquestacion"
+    },
+    {
+      "de": "core",
+      "a": "cip",
+      "tipo": "eventos"
+    },
+    {
+      "de": "herramientas",
+      "a": "cis",
+      "tipo": "captura"
+    },
+    {
+      "de": "sicsaft-core",
+      "a": "cis",
+      "tipo": "embebe"
+    },
+    {
+      "de": "sicsaft-core",
+      "a": "core",
+      "tipo": "embebe"
+    },
+    {
+      "de": "sicsaft-core",
+      "a": "cip",
+      "tipo": "embebe"
+    },
+    {
+      "de": "sicsaft-core",
+      "a": "ccp",
+      "tipo": "embebe"
+    },
+    {
+      "de": "sicsaft-core",
+      "a": "core-frontend",
+      "tipo": "embebe"
+    },
+    {
+      "de": "casos-de-uso",
+      "a": "cis",
+      "tipo": "prueba"
+    },
+    {
+      "de": "devops",
+      "a": "cis",
+      "tipo": "despliega"
+    }
+  ]
+}

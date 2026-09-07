@@ -1,5 +1,6 @@
 import {
   WebContentsView,
+  shell,
   type BrowserWindow,
   type Rectangle,
   type WebContents,
@@ -308,6 +309,10 @@ export class PortalEmbebidoManager {
     await esperarRealmListo();
     const view = new WebContentsView({
       webPreferences: { sandbox: true, contextIsolation: true },
+    });
+    view.webContents.setWindowOpenHandler(({ url }) => {
+      shell.openExternal(url);
+      return { action: "deny" };
     });
     this.view = view;
     this.ventana.contentView.addChildView(view);

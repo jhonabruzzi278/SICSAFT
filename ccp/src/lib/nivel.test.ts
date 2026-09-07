@@ -33,9 +33,10 @@ describe('nivelActual', () => {
 });
 
 describe('moduloHabilitado', () => {
-  it('en Nivel 1 el CCP esta completo: activos, estructura, importaciones, etiquetas, auditoria', () => {
+  it('en Nivel 1 el CCP esta completo: dashboard operativo, activos, estructura, importaciones, etiquetas, auditoria', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '1' };
     for (const path of [
+      'dashboard',
       'activos',
       'estructura',
       'importaciones',
@@ -46,13 +47,14 @@ describe('moduloHabilitado', () => {
     }
   });
 
-  it('en Nivel 1 oculta solo el Dashboard — CIP entra en Nivel 2', () => {
+  it('en Nivel 1 oculta el CIP — la suite analitica avanzada entra en Nivel 2', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '1' };
-    expect(moduloHabilitado('dashboard')).toBe(false);
+    expect(moduloHabilitado('cip')).toBe(false);
   });
 
-  it('en Nivel 2 habilita tambien el Dashboard (CIP)', () => {
+  it('en Nivel 2 habilita tambien el CIP', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '2' };
+    expect(moduloHabilitado('cip')).toBe(true);
     expect(moduloHabilitado('dashboard')).toBe(true);
     expect(moduloHabilitado('estructura')).toBe(true);
   });

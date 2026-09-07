@@ -1,6 +1,6 @@
 {
   "name": "sicsaft-casos-de-uso-e2e",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Harness Playwright de casos de uso SICSAFT contra el stack real (docker compose: Postgres + Keycloak + cis + core + cip + ccp + core-frontend).",

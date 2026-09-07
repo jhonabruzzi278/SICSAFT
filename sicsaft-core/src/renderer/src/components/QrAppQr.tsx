@@ -1,24 +1,32 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
+import type { InfoAppQr } from "@shared/ipc-contract";
 
-// DOC-028 Fase D -- QR con la URL https://<ip-lan>:8765 de la PWA de la APP QR que sirve el propio
-// .exe. El Profesional de AFT lo escanea con la cámara del teléfono y abre la app sin tipear una
-// IP ni correr comandos. La URL y el arranque del servidor los resuelve el proceso principal
-// (getUrlAppQr).
+// DOC-028 Fase D / DOC-029 RF-H -- selector dual de acceso para el teléfono del Profesional de AFT:
+//  - PWA: abre directo en el navegador del teléfono escaneando https://<ip-lan>:8765.
+//  - APK Nativa: descarga el instalador sicsaft-aft.apk para una experiencia sin avisos de cert.
 export function QrAppQr() {
-  const [url, setUrl] = useState<string | null>(null);
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [info, setInfo] = useState<InfoAppQr | null>(null);
+  const [tipo, setTipo] = useState<"pwa" | "apk">("pwa");
+  const [dataUrlPwa, setDataUrlPwa] = useState<string | null>(null);
+  const [dataUrlApk, setDataUrlApk] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelado = false;
     window.sicsaftCore
-      .getUrlAppQr()
-      .then(async (u) => {
+      .getInfoAppQr()
+      .then(async (inf) => {
         if (cancelado) return;
-        setUrl(u);
-        const d = await QRCode.toDataURL(u, { width: 190, margin: 1 });
-        if (!cancelado) setDataUrl(d);
+        setInfo(inf);
+        const [qrPwa, qrApk] = await Promise.all([
+          QRCode.toDataURL(inf.urlPwa, { width: 175, margin: 1 }),
+          QRCode.toDataURL(inf.urlApk, { width: 175, margin: 1 }),
+        ]);
+        if (!cancelado) {
+          setDataUrlPwa(qrPwa);
+          setDataUrlApk(qrApk);
+        }
       })
       .catch((err: unknown) => {
         if (!cancelado) {
@@ -38,35 +46,80 @@ export function QrAppQr() {
     );
   }
 
+  const qrActual = tipo === "pwa" ? dataUrlPwa : dataUrlApk;
+  const urlActual = tipo === "pwa" ? info?.urlPwa : info?.urlApk;
+
   return (
-    <div className="mx-auto mt-4 flex w-full max-w-xs flex-col items-center gap-2 rounded-[var(--radius-xl)] border border-[var(--border)] bg-card p-4">
+    <div className="mx-auto mt-4 flex w-full max-w-sm flex-col items-center gap-2 rounded-[var(--radius-xl)] border border-[var(--border)] bg-card p-4 shadow-sm">
       <p className="text-sm font-semibold text-foreground">
-        App del Profesional de AFT
+        Acceso Móvil — Profesional de AFT
       </p>
+
+      {/* Selector de pestañas PWA vs APK */}
+      <div className="flex w-full rounded-lg bg-[var(--input)]/50 p-1 text-xs">
+        <button
+          type="button"
+          onClick={() => setTipo("pwa")}
+          className={`flex-1 rounded-md py-1.5 font-medium transition-all ${
+            tipo === "pwa"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-[var(--muted-foreground)] hover:text-foreground"
+          }`}
+        >
+          📱 PWA (Navegador)
+        </button>
+        <button
+          type="button"
+          onClick={() => setTipo("apk")}
+          className={`flex-1 rounded-md py-1.5 font-medium transition-all ${
+            tipo === "apk"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-[var(--muted-foreground)] hover:text-foreground"
+          }`}
+        >
+          📦 APK Android
+        </button>
+      </div>
+
       <p className="text-xs text-[var(--muted-foreground)]">
-        Escaneá con la cámara del teléfono.
+        {tipo === "pwa"
+          ? "Escaneá con la cámara para abrir en el navegador."
+          : "Escaneá con la cámara para descargar la APK nativa."}
       </p>
-      {dataUrl ? (
+
+      {qrActual ? (
         <img
-          src={dataUrl}
-          alt="Código QR para abrir la APP QR en el teléfono"
-          width={190}
-          height={190}
-          className="rounded-[var(--radius-lg)]"
+          src={qrActual}
+          alt={
+            tipo === "pwa"
+              ? "Código QR para abrir la PWA en el teléfono"
+              : "Código QR para descargar la APK Android"
+          }
+          width={175}
+          height={175}
+          className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-white p-1"
         />
       ) : (
-        <div className="size-[190px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--input)]" />
+        <div className="size-[175px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--input)]" />
       )}
-      {url && (
+
+      {urlActual && (
         <p className="break-all text-center font-mono text-[11px] text-[var(--faint-foreground)]">
-          {url}
+          {urlActual}
         </p>
       )}
-      <p className="text-center text-[11px] leading-snug text-[var(--faint-foreground)]">
-        El teléfono tiene que estar en la misma red Wi-Fi que esta PC. La
-        primera vez el navegador muestra un aviso de seguridad (certificado
-        propio) — es esperado, tocá &quot;Continuar&quot;.
-      </p>
+
+      {tipo === "pwa" ? (
+        <p className="text-center text-[11px] leading-snug text-[var(--faint-foreground)]">
+          El teléfono debe estar en la misma red Wi-Fi. La primera vez tocá
+          &quot;Continuar&quot; ante el aviso de certificado propio.
+        </p>
+      ) : (
+        <p className="text-center text-[11px] leading-snug text-[var(--faint-foreground)]">
+          Descargá e instalá la APK para una experiencia de escaneo fluida sin
+          avisos de certificado en el navegador.
+        </p>
+      )}
     </div>
   );
 }

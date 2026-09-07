@@ -1,6 +1,6 @@
 import { createServer, type Server, type ServerResponse } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
-import { createReadStream, readFile } from "node:fs";
+import { createReadStream, existsSync, readFile } from "node:fs";
 import { extname, isAbsolute, join, relative, resolve } from "node:path";
 import { app } from "electron";
 
@@ -29,6 +29,7 @@ const TIPOS_MIME: Record<string, string> = {
   ".ico": "image/x-icon",
   ".woff2": "font/woff2",
   ".webmanifest": "application/manifest+json",
+  ".apk": "application/vnd.android.package-archive",
 };
 
 export interface ConfigPortalEstatico {
@@ -126,6 +127,23 @@ export function iniciarServidorEstatico(
   }
 
   function manejar(req: { url?: string }, res: ServerResponse): void {
+    if (
+      req.url === "/sicsaft-aft.apk" ||
+      req.url?.startsWith("/sicsaft-aft.apk?")
+    ) {
+      const rutaApk = rutaArchivoApk();
+      if (existsSync(rutaApk)) {
+        res.setHeader("Content-Type", TIPOS_MIME[".apk"]);
+        res.setHeader(
+          "Content-Disposition",
+          'attachment; filename="sicsaft-aft.apk"',
+        );
+        const streamApk = createReadStream(rutaApk);
+        streamApk.pipe(res);
+        return;
+      }
+    }
+
     const archivo =
       resolverArchivoDentroDe(raizDist, req.url ?? "/") ?? indexHtml;
 
@@ -181,4 +199,34 @@ export function rutaDistDePortal(
     return join(process.resourcesPath, portal, "dist");
   }
   return join(__dirname, "..", "..", "..", carpeta, "dist");
+}
+
+// DOC-029 RF-H -- ruta del binario APK Android firmado. En producción: resources/apk/sicsaft-aft.apk
+// (copiado por prepack.cjs/extraResources). En dev: busca en resources/apk/ o en el build de apk-aft/.
+export function rutaArchivoApk(): string {
+  if (app.isPackaged) {
+    return join(process.resourcesPath, "apk", "sicsaft-aft.apk");
+  }
+  const recursoDev = join(
+    __dirname,
+    "..",
+    "..",
+    "resources",
+    "apk",
+    "sicsaft-aft.apk",
+  );
+  if (existsSync(recursoDev)) return recursoDev;
+  return join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "apk-aft",
+    "app",
+    "build",
+    "outputs",
+    "apk",
+    "release",
+    "app-release.apk",
+  );
 }

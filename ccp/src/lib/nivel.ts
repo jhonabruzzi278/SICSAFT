@@ -24,18 +24,14 @@ const MODULOS_RETIRADOS: ReadonlySet<string> = new Set([
 
 // El CCP — Centro de Control Patrimonial (operacion, administracion y control) — esta COMPLETO en
 // todos los niveles: activos (con alta manual), estructura (ABM de areas/ubicaciones/
-// responsables), importaciones, etiquetas, auditoria. Lo unico gateado a Nivel 2 es lo que
-// consume el CIP — Centro de Inteligencia Patrimonial (indicadores, analisis, dashboards
-// ejecutivos): el modulo `dashboard`.
-//
-// Correccion 2026-09-02 (revierte DOC-029 RF-A A.3 / DOC-030): NOMENCLATURA.md dice "el CCP esta
-// en todos los niveles, CIP entra en Nivel 2". El "Nivel 1 = CCP acotado" del diseño previo
-// queda sin efecto — la diferencia Nivel 1<->2 es CIP, no CCP. (CCP ≠ CIP, Tomo IV: modificar un
-// responsable = CCP; observar un indicador = CIP.)
-const MODULOS_CIP: ReadonlySet<string> = new Set(['dashboard']);
+// responsables), importaciones, etiquetas, auditoria, y el Resumen Operativo basico (`dashboard`).
+// Lo gateado a Nivel 2 es la suite analitica avanzada de Business Intelligence: el modulo `cip`
+// (Centro de Inteligencia Patrimonial con graficos interactivos, metricas predictivas y analisis).
+const MODULOS_CIP: ReadonlySet<string> = new Set(['cip']);
 
 export function moduloHabilitado(path: string): boolean {
   if (MODULOS_RETIRADOS.has(path)) return false;
   if (MODULOS_CIP.has(path)) return nivelActual() === 2;
   return true;
 }
+

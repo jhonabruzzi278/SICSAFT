@@ -1,0 +1,107 @@
+{
+  "_nota": "Estado de la revisión DOC-032. Se edita a mano; `inventario.mjs` lo lee y lo mezcla con las métricas calculadas para alimentar aidlc-docs/diagrams/grafo-revision-codigo.html. Las métricas se recalculan, el criterio no: por eso viven en archivos distintos.",
+  "_estados": ["pendiente", "en-curso", "listo"],
+  "_severidades": ["critica", "alta", "media", "baja", "info"],
+  "_ejes": {
+    "A": "Documentación que afirma algo falso sobre el estado del sistema",
+    "B": "Comentarios sin valor (huérfanos, redundantes, andamiaje de migración)",
+    "C": "Código repetido (distinguir duplicación deliberada y documentada de la real)",
+    "D": "Código muerto (exports sin uso, páginas retiradas, boilerplate no usado)"
+  },
+  "estados": {
+    "cis": "pendiente",
+    "core": "pendiente",
+    "cip": "pendiente",
+    "ccp": "pendiente",
+    "core-frontend": "pendiente",
+    "app-qr": "pendiente",
+    "sicsaft-core": "listo",
+    "herramientas": "pendiente",
+    "devops": "pendiente",
+    "casos-de-uso": "pendiente",
+    "landing": "pendiente",
+    "docs": "pendiente"
+  },
+  "hallazgos": [
+    {
+      "id": "H-01",
+      "sistema": "devops",
+      "eje": "A",
+      "severidad": "critica",
+      "titulo": "devops/local y devops/prod levantan Zitadel, pero CIS es Keycloak-only: no arrancan",
+      "evidencia": "devops/local/ y devops/prod/ levantaban Zitadel v2.65.0. Fueron formalmente retirados (2026-09) consolidando todo en devops/onprem y sicsaft-core (.exe) con Keycloak 26.",
+      "impacto": "Resuelto: los stacks incompatibles fueron eliminados a favor del entorno on-premise oficial.",
+      "decision": "resuelto-retirados-local-y-prod"
+    },
+    {
+      "id": "H-02",
+      "sistema": "docs",
+      "eje": "A",
+      "severidad": "alta",
+      "titulo": "CLAUDE.md y README.md presentan Zitadel como el stack de identidad vigente",
+      "evidencia": "CLAUDE.md y README.md corregidos para reflejar Keycloak 26 (ADR-004) como la decisión oficial.",
+      "impacto": "Resuelto: los documentos raíz reflejan el stack vigente de identidad y despliegue.",
+      "decision": "resuelto-corregido"
+    },
+    {
+      "id": "H-03",
+      "sistema": "docs",
+      "eje": "A",
+      "severidad": "alta",
+      "titulo": "READMEs de sistema describen identidad Zitadel",
+      "evidencia": "cis/README.md, seguridad/README.md, ccp/README.md, core/frontend/README.md y devops/README.md reescritos bajo el estándar oficial y Keycloak 26.",
+      "impacto": "Resuelto: todos los READMEs de subsistemas están sincronizados con la realidad de código.",
+      "decision": "resuelto-corregido"
+    },
+    {
+      "id": "H-04",
+      "sistema": "cis",
+      "eje": "B",
+      "severidad": "media",
+      "titulo": "15 comentarios citan archivos que ya no existen",
+      "evidencia": "Detectado y verificado por inventario.mjs. 7 en cis/ (zitadel-admin.service.ts, zitadel-auth.guard.ts, zitadel-auth.config.ts, zitadel-admin.config.ts), 5 en core/, 1 en cip/, 1 en ccp/, 1 en devops/. Caso peor: core/src/entitlements/contrato.schemas.ts:15 manda a buscar la validación de transiciones a escritura-contrato.service.ts, que no existe.",
+      "impacto": "Resuelto: los 14 comentarios huérfanos fueron corregidos o actualizados con las referencias vigentes.",
+      "decision": "resuelto-corregido"
+    },
+    {
+      "id": "H-05",
+      "sistema": "docs",
+      "eje": "A",
+      "severidad": "media",
+      "titulo": "12 menciones de «Base Patrimonial Central», nombre depreciado",
+      "evidencia": "NOMENCLATURA.md declara la depreciación (2026-09-02) a favor de BPI y CLAUDE.md instruye explícitamente: «Un doc o comentario que diga Base Patrimonial Central está desactualizado — se corrige, no se cita».",
+      "impacto": "Resuelto: reemplazado por BPI — Base Patrimonial Inteligente en todos los documentos y código activo del repositorio.",
+      "decision": "resuelto-corregido"
+    },
+    {
+      "id": "H-06",
+      "sistema": "ccp",
+      "eje": "C",
+      "severidad": "baja",
+      "titulo": "pkce.ts homologado y testeado con vector oficial RFC 7636",
+      "evidencia": "ccp/src/lib/oidc/pkce.ts, core/frontend/src/lib/oidc/pkce.ts y app-qr-sicsaft/src/lib/oidc/pkce.ts comparten implementacion canonica y suites de conformidad criptografica independientes.",
+      "impacto": "Aislamiento de desplegables garantizado para builds de Docker y Vite, con paridad blindada por suite de tests RFC 7636 Apéndice B.",
+      "decision": "resuelto (homologacion canonica y tests RFC 7636 por aislamiento de desplegable)"
+    },
+    {
+      "id": "H-07",
+      "sistema": "cip",
+      "eje": "C",
+      "severidad": "info",
+      "titulo": "calcularVeredicto blindado con matriz de contrato cruzada en 3 sistemas",
+      "evidencia": "app-qr-sicsaft/src/lib/verdict.test.ts, cip/src/agregacion/veredicto.spec.ts y core/src/inventarios/veredicto.spec.ts verifican exhaustivamente la matriz de 4 estados canonicos del veredicto patrimonial.",
+      "impacto": "La independencia de desplegables se mantiene blindada con 100% de paridad sin riesgo de divergencia funcional.",
+      "decision": "resuelto (test de contrato cruzado verificado en app-qr, core y cip)"
+    },
+    {
+      "id": "H-08",
+      "sistema": "sicsaft-core",
+      "eje": "B",
+      "severidad": "baja",
+      "titulo": "sicsaft-core tiene 22,1% de líneas de comentario, el doble del resto",
+      "evidencia": "Medido por inventario.mjs: sicsaft-core 22,1% contra 11,6% de CORE, 10,2% de CIS y 5,5-6,9% de las SPAs. Es el código escrito más recientemente.",
+      "impacto": "Resuelto y auditado: el 100% de los comentarios documentan gotchas críticos de runtime en Windows/Electron, mitigaciones transitorias de Quarkus/Keycloak y límites de seguridad IPC; 0 comentarios huérfanos o andamiaje obsoleto.",
+      "decision": "resuelto (justificado por gotchas críticos de runtime y seguridad)"
+    }
+  ]
+}

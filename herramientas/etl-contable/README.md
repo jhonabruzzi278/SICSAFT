@@ -17,10 +17,10 @@ POST /importaciones/contable/lote          →  CORE  (lote en `pendiente_revisi
    ↓
 Profesional de AFT revisa y APRUEBA en el CCP
    ↓
-CORE resuelve-o-crea área/responsable/catálogo por nombre e inserta los activos → Base Patrimonial
+CORE resuelve-o-crea área/responsable/catálogo por nombre e inserta los activos → BPI (Base Patrimonial Inteligente)
 ```
 
-El invariante de CLAUDE.md ("ninguna fuente de captura modifica la Base Patrimonial
+El invariante de CLAUDE.md ("ninguna fuente de captura modifica la BPI
 directamente; todo pasa por CIS → CORE") se cumple: este ETL es un cliente más de
 `POST /importaciones/contable/lote`.
 

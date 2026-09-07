@@ -5,6 +5,7 @@ import {
   shell,
   type BrowserWindow,
 } from "electron";
+import { existsSync } from "node:fs";
 import type {
   AltaDirectorInput,
   AltaDirectorResultado,
@@ -13,6 +14,7 @@ import type {
   BootstrapClienteResultado,
   DatosClienteInput,
   EstadoIpLan,
+  InfoAppQr,
   RectanguloPantalla,
 } from "@shared/ipc-contract";
 import type { ServiceOrchestrator } from "../services/service-orchestrator";
@@ -34,6 +36,7 @@ import { PUERTO_RENDERER } from "../renderer-config";
 import { PortalEmbebidoManager } from "../services/portal-login-service";
 import {
   iniciarServidorEstatico,
+  rutaArchivoApk,
   rutaDistDePortal,
 } from "../services/static-portal-server";
 import {
@@ -169,6 +172,7 @@ function asegurarServidoresPortales(): Promise<void> {
         VITE_KEYCLOAK_ISSUER: issuer,
         VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_CORE_FRONTEND,
         VITE_CIS_URL: cisUrl,
+        VITE_SICSAFT_NIVEL: nivel,
       },
     });
     await asegurarServidorAppQr();
@@ -267,6 +271,23 @@ export function registrarIpcHandlers(
     await asegurarServidorAppQr();
     return obtenerOrigenAppQr();
   });
+
+  // DOC-029 RF-H -- información consolidada de acceso para el teléfono: URL de la PWA, URL del APK
+  // y disponibilidad del binario APK para descargar.
+  ipcMain.handle(
+    "sicsaft-core:getInfoAppQr",
+    async (): Promise<InfoAppQr> => {
+      await asegurarServidorAppQr();
+      const origen = obtenerOrigenAppQr();
+      const rutaApk = rutaArchivoApk();
+      const apkDisponible = existsSync(rutaApk);
+      return {
+        urlPwa: origen,
+        urlApk: `${origen}/sicsaft-aft.apk`,
+        apkDisponible,
+      };
+    },
+  );
 
   // DOC-029 RF-B.6 -- carpeta vigilada de ingesta de Excel. El diálogo nativo es modal a la
   // ventana del wizard; si el usuario elige una carpeta, se persiste en instalacion.json y el

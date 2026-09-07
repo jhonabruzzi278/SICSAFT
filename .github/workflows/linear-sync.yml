@@ -1,0 +1,41 @@
+name: Linear Sync — Arquitectura y Auditoría
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'herramientas/revision-codigo/**'
+      - 'aidlc-docs/revision-codigo/**'
+      - 'ROADMAP.md'
+      - 'NOMENCLATURA.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync-linear:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Recalcular inventario y grafo
+        run: |
+          node herramientas/revision-codigo/inventario.mjs --grafo
+
+      - name: Sincronizar con Linear
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          if [ -n "$LINEAR_API_KEY" ]; then
+            node herramientas/revision-codigo/linear-sync.mjs --team-key JON --apply
+          else
+            echo "LINEAR_API_KEY no configurada en GitHub Secrets, omitiendo sincronizacion."
+          fi
