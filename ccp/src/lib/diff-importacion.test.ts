@@ -40,9 +40,9 @@ describe('parsearPlanillaFlexible', () => {
 
   it('arroja error si faltan columnas requeridas o si el archivo está vacío', () => {
     expect(() => parsearPlanillaFlexible('')).toThrow();
-    expect(() => parsearPlanillaFlexible('codigoPatrimonial,otro\n1,2')).toThrow(
-      /Falta la columna obligatoria/,
-    );
+    expect(() =>
+      parsearPlanillaFlexible('codigoPatrimonial,otro\n1,2'),
+    ).toThrow(/Falta la columna obligatoria/);
   });
 });
 
@@ -71,7 +71,11 @@ describe('calcularDiffImportacion', () => {
   it('clasifica altas nuevas, actualizaciones, identicos y conflictos', () => {
     const filas = [
       // Nueva
-      { codigoPatrimonial: 'ACT-NUEVO-1', codigoQr: 'QR-NUEVO-1', catalogoId: 'cat-1' },
+      {
+        codigoPatrimonial: 'ACT-NUEVO-1',
+        codigoQr: 'QR-NUEVO-1',
+        catalogoId: 'cat-1',
+      },
       // Idéntico
       {
         codigoPatrimonial: 'ACT-EXISTENTE-1',

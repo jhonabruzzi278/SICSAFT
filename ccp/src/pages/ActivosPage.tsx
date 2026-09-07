@@ -322,7 +322,9 @@ export function ActivosPage() {
                       <td className="px-4 py-2 font-mono text-xs text-text">
                         {activo.codigoAft || activo.codigoQr}
                       </td>
-                      <td className="px-4 py-2 font-medium text-text">{activo.nombre}</td>
+                      <td className="px-4 py-2 font-medium text-text">
+                        {activo.nombre}
+                      </td>
                       <td className="px-4 py-2 font-medium text-text">
                         {activo.areaNombre || activo.areaId}
                       </td>

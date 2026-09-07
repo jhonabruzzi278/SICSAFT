@@ -32,8 +32,12 @@ export function DropzoneImportacionExcel({
   const [nombreArchivo, setNombreArchivo] = useState<string | null>(null);
   const [catalogoActual, setCatalogoActual] = useState<ActivoCatalogo[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
-  const [itemsDiff, setItemsDiff] = useState<ItemDiffImportacion[] | null>(null);
-  const [resumenDiff, setResumenDiff] = useState<ResumenDiffImportacion | null>(null);
+  const [itemsDiff, setItemsDiff] = useState<ItemDiffImportacion[] | null>(
+    null,
+  );
+  const [resumenDiff, setResumenDiff] = useState<ResumenDiffImportacion | null>(
+    null,
+  );
 
   const [filtroTipo, setFiltroTipo] = useState<TipoDiff | 'todos'>('todos');
   const [busqueda, setBusqueda] = useState('');
@@ -41,7 +45,8 @@ export function DropzoneImportacionExcel({
   const [errorLectura, setErrorLectura] = useState<string | null>(null);
   const [errorSubmit, setErrorSubmit] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const [resultado, setResultado] = useState<ResultadoImportacionContable | null>(null);
+  const [resultado, setResultado] =
+    useState<ResultadoImportacionContable | null>(null);
 
   // Cargar catálogo y áreas para el cálculo del Diff
   useEffect(() => {
@@ -74,7 +79,11 @@ export function DropzoneImportacionExcel({
     try {
       const texto = await file.text();
       const filas = parsearPlanillaFlexible(texto);
-      const { items, resumen } = calcularDiffImportacion(filas, catalogoActual, areas);
+      const { items, resumen } = calcularDiffImportacion(
+        filas,
+        catalogoActual,
+        areas,
+      );
       setItemsDiff(items);
       setResumenDiff(resumen);
     } catch (err: unknown) {
@@ -119,14 +128,19 @@ export function DropzoneImportacionExcel({
       .map((i) => i.fila);
 
     if (filasValidas.length === 0) {
-      setErrorSubmit('No hay filas válidas para importar (todas tienen conflictos).');
+      setErrorSubmit(
+        'No hay filas válidas para importar (todas tienen conflictos).',
+      );
       return;
     }
 
     setErrorSubmit(null);
     setEnviando(true);
     try {
-      const res = await cisClient.importarContable(organizacionId, filasValidas);
+      const res = await cisClient.importarContable(
+        organizacionId,
+        filasValidas,
+      );
       setResultado(res);
       setItemsDiff(null);
       setResumenDiff(null);
@@ -138,9 +152,13 @@ export function DropzoneImportacionExcel({
       setCatalogoActual(nuevoCatalogo);
     } catch (err: unknown) {
       if (err instanceof CisApiError && err.status === 403) {
-        setErrorSubmit('No tienes el rol administrador-patrimonial en esta organización.');
+        setErrorSubmit(
+          'No tienes el rol administrador-patrimonial en esta organización.',
+        );
       } else {
-        setErrorSubmit(err instanceof Error ? err.message : 'Error al importar.');
+        setErrorSubmit(
+          err instanceof Error ? err.message : 'Error al importar.',
+        );
       }
     } finally {
       setEnviando(false);
@@ -168,15 +186,21 @@ export function DropzoneImportacionExcel({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-text flex items-center gap-2">
-            <IconUpload className="text-accent-strong" /> Ingesta Directa con Diff Visual
+            <IconUpload className="text-accent-strong" /> Ingesta Directa con
+            Diff Visual
           </h2>
           <p className="mt-0.5 text-xs text-text-dim">
             Arrastra tu planilla (Excel, CSV o TSV) para previsualizar altas,
-            reasignaciones y posibles inconsistencias antes de impactar la Base Patrimonial.
+            reasignaciones y posibles inconsistencias antes de impactar la Base
+            Patrimonial.
           </p>
         </div>
 
-        <Button variant="secondary" onClick={descargarEjemplo} className="text-xs">
+        <Button
+          variant="secondary"
+          onClick={descargarEjemplo}
+          className="text-xs"
+        >
           <IconFileText /> Descargar Plantilla Modelo
         </Button>
       </div>
@@ -210,14 +234,17 @@ export function DropzoneImportacionExcel({
 
         <p className="mt-3 text-sm font-medium text-text">
           {nombreArchivo ? (
-            <span className="text-accent-strong">Archivo seleccionado: {nombreArchivo}</span>
+            <span className="text-accent-strong">
+              Archivo seleccionado: {nombreArchivo}
+            </span>
           ) : (
             'Arrastra tu archivo aquí o haz clic para seleccionarlo'
           )}
         </p>
 
         <p className="mt-1 text-xs text-text-dim">
-          Formatos compatibles: .CSV (coma o punto y coma), .TSV, .TXT o planillas exportadas de Excel
+          Formatos compatibles: .CSV (coma o punto y coma), .TSV, .TXT o
+          planillas exportadas de Excel
         </p>
       </div>
 
@@ -233,20 +260,36 @@ export function DropzoneImportacionExcel({
               <p className="text-xl font-bold text-text">{resumenDiff.total}</p>
             </div>
             <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-center">
-              <span className="text-xs text-success font-medium">Altas Nuevas</span>
-              <p className="text-xl font-bold text-success">{resumenDiff.nuevos}</p>
+              <span className="text-xs text-success font-medium">
+                Altas Nuevas
+              </span>
+              <p className="text-xl font-bold text-success">
+                {resumenDiff.nuevos}
+              </p>
             </div>
             <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-center">
-              <span className="text-xs text-warning font-medium">Actualizaciones</span>
-              <p className="text-xl font-bold text-warning">{resumenDiff.actualizaciones}</p>
+              <span className="text-xs text-warning font-medium">
+                Actualizaciones
+              </span>
+              <p className="text-xl font-bold text-warning">
+                {resumenDiff.actualizaciones}
+              </p>
             </div>
             <div className="rounded-lg border border-accent/30 bg-accent/10 p-3 text-center">
-              <span className="text-xs text-accent-strong font-medium">Sin Cambios</span>
-              <p className="text-xl font-bold text-accent-strong">{resumenDiff.identicos}</p>
+              <span className="text-xs text-accent-strong font-medium">
+                Sin Cambios
+              </span>
+              <p className="text-xl font-bold text-accent-strong">
+                {resumenDiff.identicos}
+              </p>
             </div>
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-center">
-              <span className="text-xs text-destructive font-medium">Conflictos</span>
-              <p className="text-xl font-bold text-destructive">{resumenDiff.conflictos}</p>
+              <span className="text-xs text-destructive font-medium">
+                Conflictos
+              </span>
+              <p className="text-xl font-bold text-destructive">
+                {resumenDiff.conflictos}
+              </p>
             </div>
           </div>
 
@@ -257,7 +300,10 @@ export function DropzoneImportacionExcel({
                 [
                   ['todos', `Todas (${resumenDiff.total})`],
                   ['nuevo', `Nuevas (${resumenDiff.nuevos})`],
-                  ['actualizacion', `Actualizaciones (${resumenDiff.actualizaciones})`],
+                  [
+                    'actualizacion',
+                    `Actualizaciones (${resumenDiff.actualizaciones})`,
+                  ],
                   ['identico', `Sin Cambios (${resumenDiff.identicos})`],
                   ['conflicto', `Conflictos (${resumenDiff.conflictos})`],
                 ] as const
@@ -371,7 +417,8 @@ export function DropzoneImportacionExcel({
             <div className="text-xs text-text-dim">
               {resumenDiff.conflictos > 0 && (
                 <span className="text-destructive font-medium">
-                  Atención: {resumenDiff.conflictos} fila(s) con conflicto serán ignoradas al confirmar.
+                  Atención: {resumenDiff.conflictos} fila(s) con conflicto serán
+                  ignoradas al confirmar.
                 </span>
               )}
             </div>
@@ -388,7 +435,10 @@ export function DropzoneImportacionExcel({
                 Cancelar
               </Button>
               <Button
-                disabled={enviando || resumenDiff.nuevos + resumenDiff.actualizaciones === 0}
+                disabled={
+                  enviando ||
+                  resumenDiff.nuevos + resumenDiff.actualizaciones === 0
+                }
                 onClick={() => void confirmarImportacion()}
                 className="shadow-elev-float"
               >
@@ -412,10 +462,14 @@ export function DropzoneImportacionExcel({
           </div>
           <p className="text-sm text-text">
             Se procesaron correctamente las filas en la Base Patrimonial:{' '}
-            <strong className="text-success">{resultado.creados} creados</strong>,{' '}
-            <strong>{resultado.yaImportados} ya registrados</strong>
+            <strong className="text-success">
+              {resultado.creados} creados
+            </strong>
+            , <strong>{resultado.yaImportados} ya registrados</strong>
             {resultado.conflictos > 0 && (
-              <span className="text-destructive">, {resultado.conflictos} conflictos</span>
+              <span className="text-destructive">
+                , {resultado.conflictos} conflictos
+              </span>
             )}
             .
           </p>

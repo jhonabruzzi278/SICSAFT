@@ -52,4 +52,6 @@ export const actualizarResponsableSchema = z.object({
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   telefono: z.string().optional(),
 });
-export type ActualizarResponsableForm = z.infer<typeof actualizarResponsableSchema>;
+export type ActualizarResponsableForm = z.infer<
+  typeof actualizarResponsableSchema
+>;

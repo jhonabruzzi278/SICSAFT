@@ -114,7 +114,10 @@ export function EtiquetaActivo({
             className="h-20 w-20 shrink-0 rounded border border-neutral-200 p-0.5"
           />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <p className="truncate text-sm font-bold text-black" title={etiqueta.nombre}>
+            <p
+              className="truncate text-sm font-bold text-black"
+              title={etiqueta.nombre}
+            >
               {etiqueta.nombre}
             </p>
             <p className="truncate text-xs text-neutral-600">
@@ -126,7 +129,8 @@ export function EtiquetaActivo({
               </div>
             )}
             <p className="font-mono text-sm font-bold tracking-wider text-black">
-              AFT: {etiqueta.codigoAft || etiqueta.codigoQr} | QR: {etiqueta.codigoQr}
+              AFT: {etiqueta.codigoAft || etiqueta.codigoQr} | QR:{' '}
+              {etiqueta.codigoQr}
             </p>
           </div>
         </div>
@@ -150,7 +154,10 @@ export function EtiquetaActivo({
             {nombreOrganizacion}
           </p>
         )}
-        <p className="truncate text-xs font-semibold text-neutral-900" title={etiqueta.nombre}>
+        <p
+          className="truncate text-xs font-semibold text-neutral-900"
+          title={etiqueta.nombre}
+        >
           {etiqueta.nombre}
         </p>
         <p className="truncate text-[10px] text-neutral-600">
@@ -162,7 +169,8 @@ export function EtiquetaActivo({
           </div>
         )}
         <p className="font-mono text-[11px] font-bold tracking-wide text-neutral-950">
-          AFT: {etiqueta.codigoAft || etiqueta.codigoQr} | QR: {etiqueta.codigoQr}
+          AFT: {etiqueta.codigoAft || etiqueta.codigoQr} | QR:{' '}
+          {etiqueta.codigoQr}
         </p>
       </div>
     </div>

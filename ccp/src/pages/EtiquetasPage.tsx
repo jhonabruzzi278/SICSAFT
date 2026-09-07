@@ -103,7 +103,8 @@ export function EtiquetasPage() {
   // Estimación de hojas de papel según plantilla
   const estimacionHojas = useMemo(() => {
     if (totalVisible === 0) return 0;
-    const porHoja = plantilla === 'avery' ? 30 : plantilla === 'tarjeta' ? 10 : 1;
+    const porHoja =
+      plantilla === 'avery' ? 30 : plantilla === 'tarjeta' ? 10 : 1;
     if (modoSalto === 'ninguno') {
       return Math.ceil(totalVisible / porHoja);
     }

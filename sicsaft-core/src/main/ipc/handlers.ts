@@ -236,9 +236,12 @@ export function registrarIpcHandlers(
   ipcMain.handle("sicsaft-core:abrirCarpetaLog", async (): Promise<void> => {
     await shell.openPath(rutaCarpetaLog());
   });
-  ipcMain.handle("sicsaft-core:copiarAlPortapapeles", (_event, texto: string): void => {
-    clipboard.writeText(String(texto));
-  });
+  ipcMain.handle(
+    "sicsaft-core:copiarAlPortapapeles",
+    (_event, texto: string): void => {
+      clipboard.writeText(String(texto));
+    },
+  );
 
   // Respaldo de emergencia y gestión de copias de seguridad de la Base Patrimonial (BPI)
   ipcMain.handle("sicsaft-core:crearRespaldoBpi", async () => {
@@ -247,10 +250,12 @@ export function registrarIpcHandlers(
   ipcMain.handle("sicsaft-core:listarRespaldos", () => {
     return listarRespaldos();
   });
-  ipcMain.handle("sicsaft-core:abrirCarpetaRespaldos", async (): Promise<void> => {
-    await abrirCarpetaRespaldos();
-  });
-
+  ipcMain.handle(
+    "sicsaft-core:abrirCarpetaRespaldos",
+    async (): Promise<void> => {
+      await abrirCarpetaRespaldos();
+    },
+  );
 
   // DOC-028 Fase C.1 -- el wizard llama esto al relanzar, después de getInstalacionExistente(). Si
   // la IP de LAN de la PC cambió desde la instalación, devuelve cambio: true y el wizard muestra
@@ -288,20 +293,17 @@ export function registrarIpcHandlers(
 
   // DOC-029 RF-H -- información consolidada de acceso para el teléfono: URL de la PWA, URL del APK
   // y disponibilidad del binario APK para descargar.
-  ipcMain.handle(
-    "sicsaft-core:getInfoAppQr",
-    async (): Promise<InfoAppQr> => {
-      await asegurarServidorAppQr();
-      const origen = obtenerOrigenAppQr();
-      const rutaApk = rutaArchivoApk();
-      const apkDisponible = existsSync(rutaApk);
-      return {
-        urlPwa: origen,
-        urlApk: `${origen}/sicsaft-aft.apk`,
-        apkDisponible,
-      };
-    },
-  );
+  ipcMain.handle("sicsaft-core:getInfoAppQr", async (): Promise<InfoAppQr> => {
+    await asegurarServidorAppQr();
+    const origen = obtenerOrigenAppQr();
+    const rutaApk = rutaArchivoApk();
+    const apkDisponible = existsSync(rutaApk);
+    return {
+      urlPwa: origen,
+      urlApk: `${origen}/sicsaft-aft.apk`,
+      apkDisponible,
+    };
+  });
 
   // DOC-029 RF-B.6 -- carpeta vigilada de ingesta de Excel. El diálogo nativo es modal a la
   // ventana del wizard; si el usuario elige una carpeta, se persiste en instalacion.json y el

@@ -1,4 +1,8 @@
-import type { ActivoCatalogo, Area, FilaImportacionContable } from './cis-client';
+import type {
+  ActivoCatalogo,
+  Area,
+  FilaImportacionContable,
+} from './cis-client';
 
 // Mejora 6 — Ingesta de planillas Excel/CSV/TSV con Diff Visual interactivo previo a la importación.
 // Normaliza delimitadores (coma, punto y coma, tabulación) y cabeceras en español / inglés.
@@ -88,18 +92,24 @@ function normalizarClave(clave: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
-export function parsearPlanillaFlexible(texto: string): FilaImportacionContable[] {
+export function parsearPlanillaFlexible(
+  texto: string,
+): FilaImportacionContable[] {
   const lineas = texto
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
   if (lineas.length < 2) {
-    throw new Error('El archivo debe contener una fila de encabezados y al menos una fila de datos.');
+    throw new Error(
+      'El archivo debe contener una fila de encabezados y al menos una fila de datos.',
+    );
   }
 
   const delimitador = detectarDelimitador(lineas[0]);
-  const cabecerasOriginales = lineas[0].split(delimitador).map((c) => c.trim().replace(/^["']|["']$/g, ''));
+  const cabecerasOriginales = lineas[0]
+    .split(delimitador)
+    .map((c) => c.trim().replace(/^["']|["']$/g, ''));
 
   const mapeoIndices = new Map<number, keyof FilaImportacionContable>();
   for (let i = 0; i < cabecerasOriginales.length; i++) {
@@ -113,17 +123,25 @@ export function parsearPlanillaFlexible(texto: string): FilaImportacionContable[
 
   // Verificar campos obligatorios
   const camposEncontrados = new Set(mapeoIndices.values());
-  const requeridos: Array<keyof FilaImportacionContable> = ['codigoPatrimonial', 'codigoQr', 'catalogoId'];
+  const requeridos: Array<keyof FilaImportacionContable> = [
+    'codigoPatrimonial',
+    'codigoQr',
+    'catalogoId',
+  ];
   for (const req of requeridos) {
     if (!camposEncontrados.has(req)) {
-      throw new Error(`Falta la columna obligatoria '${req}' (o sus variantes: código, QR, catálogo).`);
+      throw new Error(
+        `Falta la columna obligatoria '${req}' (o sus variantes: código, QR, catálogo).`,
+      );
     }
   }
 
   const filas: FilaImportacionContable[] = [];
 
   for (let l = 1; l < lineas.length; l++) {
-    const valores = lineas[l].split(delimitador).map((v) => v.trim().replace(/^["']|["']$/g, ''));
+    const valores = lineas[l]
+      .split(delimitador)
+      .map((v) => v.trim().replace(/^["']|["']$/g, ''));
     if (valores.every((v) => v.length === 0)) continue;
 
     const fila: Partial<FilaImportacionContable> = {};
@@ -142,7 +160,9 @@ export function parsearPlanillaFlexible(texto: string): FilaImportacionContable[
     }
 
     if (!fila.codigoPatrimonial || !fila.codigoQr || !fila.catalogoId) {
-      throw new Error(`Fila ${l + 1}: faltan datos obligatorios (código, QR o catálogo).`);
+      throw new Error(
+        `Fila ${l + 1}: faltan datos obligatorios (código, QR o catálogo).`,
+      );
     }
 
     filas.push(fila as FilaImportacionContable);
@@ -239,13 +259,16 @@ export function calcularDiffImportacion(
     const cambios: string[] = [];
 
     if (fila.areaId && fila.areaId !== previoPorCodigo.areaId) {
-      const nomAnt = areaPorId.get(previoPorCodigo.areaId) ?? previoPorCodigo.areaId;
+      const nomAnt =
+        areaPorId.get(previoPorCodigo.areaId) ?? previoPorCodigo.areaId;
       const nomNuevo = areaPorId.get(fila.areaId) ?? fila.areaId;
       cambios.push(`Reubicación de Área: '${nomAnt}' ➔ '${nomNuevo}'`);
     }
 
     if (fila.ubicacionId && fila.ubicacionId !== previoPorCodigo.ubicacionId) {
-      cambios.push(`Cambio de Ubicación: '${previoPorCodigo.ubicacionId}' ➔ '${fila.ubicacionId}'`);
+      cambios.push(
+        `Cambio de Ubicación: '${previoPorCodigo.ubicacionId}' ➔ '${fila.ubicacionId}'`,
+      );
     }
 
     if (cambios.length > 0) {

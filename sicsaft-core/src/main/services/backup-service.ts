@@ -1,5 +1,11 @@
 import { app, shell } from "electron";
-import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  statSync,
+  copyFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { registrar } from "./logger";
@@ -44,11 +50,27 @@ export async function crearRespaldoBpi(): Promise<RespaldoInfo> {
     try {
       const res = spawnSync(
         pgDumpall,
-        ["-p", "55432", "-h", "127.0.0.1", "-U", "sicsaft_admin", "-f", rutaDestino],
-        { windowsHide: true, timeout: 60000 }
+        [
+          "-p",
+          "55432",
+          "-h",
+          "127.0.0.1",
+          "-U",
+          "sicsaft_admin",
+          "-f",
+          rutaDestino,
+        ],
+        { windowsHide: true, timeout: 60000 },
       );
-      if (res.status === 0 && existsSync(rutaDestino) && statSync(rutaDestino).size > 0) {
-        registrar("backup", `pg_dumpall completado con éxito: ${statSync(rutaDestino).size} bytes`);
+      if (
+        res.status === 0 &&
+        existsSync(rutaDestino) &&
+        statSync(rutaDestino).size > 0
+      ) {
+        registrar(
+          "backup",
+          `pg_dumpall completado con éxito: ${statSync(rutaDestino).size} bytes`,
+        );
         // Respaldar también instalacion.json junto al dump
         respaldarInstalacionJson(carpetaRespaldos, timestamp);
         return {
@@ -58,7 +80,10 @@ export async function crearRespaldoBpi(): Promise<RespaldoInfo> {
           fechaCreacion: ahora.toISOString(),
         };
       }
-      registrar("backup", `pg_dumpall retornó status ${res.status}: ${res.stderr?.toString()}`);
+      registrar(
+        "backup",
+        `pg_dumpall retornó status ${res.status}: ${res.stderr?.toString()}`,
+      );
     } catch (err) {
       registrar("backup", `Error ejecutando pg_dumpall: ${err}`);
     }
@@ -69,11 +94,29 @@ export async function crearRespaldoBpi(): Promise<RespaldoInfo> {
     try {
       const res = spawnSync(
         pgDump,
-        ["-p", "55432", "-h", "127.0.0.1", "-U", "sicsaft_admin", "-d", "sicsaft_core", "-f", rutaDestino],
-        { windowsHide: true, timeout: 60000 }
+        [
+          "-p",
+          "55432",
+          "-h",
+          "127.0.0.1",
+          "-U",
+          "sicsaft_admin",
+          "-d",
+          "sicsaft_core",
+          "-f",
+          rutaDestino,
+        ],
+        { windowsHide: true, timeout: 60000 },
       );
-      if (res.status === 0 && existsSync(rutaDestino) && statSync(rutaDestino).size > 0) {
-        registrar("backup", `pg_dump sicsaft_core completado: ${statSync(rutaDestino).size} bytes`);
+      if (
+        res.status === 0 &&
+        existsSync(rutaDestino) &&
+        statSync(rutaDestino).size > 0
+      ) {
+        registrar(
+          "backup",
+          `pg_dump sicsaft_core completado: ${statSync(rutaDestino).size} bytes`,
+        );
         respaldarInstalacionJson(carpetaRespaldos, timestamp);
         return {
           nombre: nombreArchivo,
@@ -90,14 +133,20 @@ export async function crearRespaldoBpi(): Promise<RespaldoInfo> {
   // Si postgres no está en ejecución o falló el dump lógico, respaldar archivo de instalacion
   respaldarInstalacionJson(carpetaRespaldos, timestamp);
   throw new Error(
-    "No se pudo generar el volcado SQL de Postgres. Verifique que el servicio de Postgres esté iniciado."
+    "No se pudo generar el volcado SQL de Postgres. Verifique que el servicio de Postgres esté iniciado.",
   );
 }
 
-function respaldarInstalacionJson(carpetaRespaldos: string, timestamp: string): void {
+function respaldarInstalacionJson(
+  carpetaRespaldos: string,
+  timestamp: string,
+): void {
   const rutaInstalacion = join(app.getPath("userData"), "instalacion.json");
   if (existsSync(rutaInstalacion)) {
-    const destinoConfig = join(carpetaRespaldos, `instalacion-${timestamp}.json`);
+    const destinoConfig = join(
+      carpetaRespaldos,
+      `instalacion-${timestamp}.json`,
+    );
     try {
       copyFileSync(rutaInstalacion, destinoConfig);
     } catch {
@@ -131,7 +180,9 @@ export function listarRespaldos(): RespaldoInfo[] {
   }
 
   // Ordenar los más recientes primero
-  return respaldos.sort((a, b) => b.fechaCreacion.localeCompare(a.fechaCreacion));
+  return respaldos.sort((a, b) =>
+    b.fechaCreacion.localeCompare(a.fechaCreacion),
+  );
 }
 
 export async function abrirCarpetaRespaldos(): Promise<void> {

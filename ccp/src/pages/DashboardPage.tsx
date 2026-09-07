@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { cisClient, type ActivoCatalogo, type Area, type Responsable } from '@/lib/cis-client';
+import {
+  cisClient,
+  type ActivoCatalogo,
+  type Area,
+  type Responsable,
+} from '@/lib/cis-client';
 import { dashboardClient, type Cobertura } from '@/lib/dashboard-client';
 import { nivelActual } from '@/lib/nivel';
 import { Alert, Badge } from '@/components/ui';
@@ -19,7 +24,9 @@ import {
 export function DashboardPage() {
   const [searchParams] = useSearchParams();
   const organizacionId = searchParams.get('organizacionId') ?? '';
-  const q = organizacionId ? `?organizacionId=${encodeURIComponent(organizacionId)}` : '';
+  const q = organizacionId
+    ? `?organizacionId=${encodeURIComponent(organizacionId)}`
+    : '';
 
   const [activos, setActivos] = useState<ActivoCatalogo[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
@@ -51,7 +58,9 @@ export function DashboardPage() {
       })
       .catch((err: unknown) => {
         if (!cancelado) {
-          setError(err instanceof Error ? err.message : 'Error al cargar resumen');
+          setError(
+            err instanceof Error ? err.message : 'Error al cargar resumen',
+          );
         }
       })
       .finally(() => {
@@ -63,8 +72,11 @@ export function DashboardPage() {
     };
   }, [organizacionId]);
 
-  const totalActivos = activos.length > 0 ? activos.length : (cobertura?.activosRegistrados ?? 0);
-  const activosAlta = activos.filter((a) => a.estado === 'alta' || a.estado.toLowerCase().includes('servicio')).length;
+  const totalActivos =
+    activos.length > 0 ? activos.length : (cobertura?.activosRegistrados ?? 0);
+  const activosAlta = activos.filter(
+    (a) => a.estado === 'alta' || a.estado.toLowerCase().includes('servicio'),
+  ).length;
 
   return (
     <div className="space-y-6 pb-12">
@@ -79,7 +91,8 @@ export function DashboardPage() {
             Resumen Operativo
           </h1>
           <p className="mt-0.5 text-sm text-text-dim">
-            Panel de control, estado del catálogo y operaciones patrimoniales en curso.
+            Panel de control, estado del catálogo y operaciones patrimoniales en
+            curso.
           </p>
         </div>
 
@@ -113,8 +126,9 @@ export function DashboardPage() {
                 Analítica Avanzada, Distribución Gráfica y BI en Tiempo Real
               </h3>
               <p className="max-w-2xl text-xs leading-relaxed text-text-dim">
-                Explore gráficos interactivos de distribución por categorías, activos por condición operativa, 
-                cobertura de escaneo en terreno con APP QR y la matriz de valor patrimonial.
+                Explore gráficos interactivos de distribución por categorías,
+                activos por condición operativa, cobertura de escaneo en terreno
+                con APP QR y la matriz de valor patrimonial.
               </p>
             </div>
 
@@ -142,7 +156,9 @@ export function DashboardPage() {
             {cargando ? '—' : totalActivos.toLocaleString('es-CL')}
           </div>
           <p className="mt-1 text-[0.75rem] text-text-dim">
-            {activosAlta > 0 ? `${activosAlta} en estado alta` : 'Activos en catálogo BPI'}
+            {activosAlta > 0
+              ? `${activosAlta} en estado alta`
+              : 'Activos en catálogo BPI'}
           </p>
         </div>
 
@@ -174,7 +190,9 @@ export function DashboardPage() {
 
         <div className="rounded-2xl border border-border bg-bg-card p-5 shadow-elev-1">
           <div className="flex items-center justify-between text-text-dim">
-            <span className="text-xs font-medium">Cobertura de Relevamiento</span>
+            <span className="text-xs font-medium">
+              Cobertura de Relevamiento
+            </span>
             <IconQrCode />
           </div>
           <div className="mt-3 text-3xl font-extrabold text-text">
@@ -207,7 +225,8 @@ export function DashboardPage() {
               </div>
               <h3 className="mt-4 font-bold text-text">Catálogo de Activos</h3>
               <p className="mt-1 text-xs text-text-dim">
-                Alta manual, edición de fichas técnicas, trazabilidad y estado patrimonial.
+                Alta manual, edición de fichas técnicas, trazabilidad y estado
+                patrimonial.
               </p>
             </div>
             <div className="mt-4 text-[0.75rem] font-medium text-accent-strong">
@@ -230,7 +249,8 @@ export function DashboardPage() {
               </div>
               <h3 className="mt-4 font-bold text-text">Estructura Física</h3>
               <p className="mt-1 text-xs text-text-dim">
-                Administración de sedes, áreas operativas, oficinas y responsables.
+                Administración de sedes, áreas operativas, oficinas y
+                responsables.
               </p>
             </div>
             <div className="mt-4 text-[0.75rem] font-medium text-emerald-400">
@@ -251,9 +271,12 @@ export function DashboardPage() {
                   Acceder ➔
                 </span>
               </div>
-              <h3 className="mt-4 font-bold text-text">Impresión de Etiquetas</h3>
+              <h3 className="mt-4 font-bold text-text">
+                Impresión de Etiquetas
+              </h3>
               <p className="mt-1 text-xs text-text-dim">
-                Plantillas estandarizadas Avery, Tarjetas de Inventario y Rollo Térmico.
+                Plantillas estandarizadas Avery, Tarjetas de Inventario y Rollo
+                Térmico.
               </p>
             </div>
             <div className="mt-4 text-[0.75rem] font-medium text-amber-400">
@@ -276,7 +299,8 @@ export function DashboardPage() {
               </div>
               <h3 className="mt-4 font-bold text-text">Ingesta de Planillas</h3>
               <p className="mt-1 text-xs text-text-dim">
-                Carga masiva Drag & Drop con análisis previo y diff visual de cambios.
+                Carga masiva Drag & Drop con análisis previo y diff visual de
+                cambios.
               </p>
             </div>
             <div className="mt-4 text-[0.75rem] font-medium text-purple-400">
@@ -297,9 +321,12 @@ export function DashboardPage() {
                   Acceder ➔
                 </span>
               </div>
-              <h3 className="mt-4 font-bold text-text">Registro de Auditoría</h3>
+              <h3 className="mt-4 font-bold text-text">
+                Registro de Auditoría
+              </h3>
               <p className="mt-1 text-xs text-text-dim">
-                Trazabilidad cronológica inmutable de modificaciones y custodias.
+                Trazabilidad cronológica inmutable de modificaciones y
+                custodias.
               </p>
             </div>
             <div className="mt-4 text-[0.75rem] font-medium text-sky-400">
@@ -323,9 +350,12 @@ export function DashboardPage() {
                     NIVEL 2
                   </span>
                 </div>
-                <h3 className="mt-4 font-bold text-text">Inteligencia Patrimonial (CIP)</h3>
+                <h3 className="mt-4 font-bold text-text">
+                  Inteligencia Patrimonial (CIP)
+                </h3>
                 <p className="mt-1 text-xs text-text-dim">
-                  Dashboard de alto impacto, gráficos SVG, KPIs ejecutivos y matriz de valor en navegador externo.
+                  Dashboard de alto impacto, gráficos SVG, KPIs ejecutivos y
+                  matriz de valor en navegador externo.
                 </p>
               </div>
               <div className="mt-4 text-[0.75rem] font-bold text-accent-strong">

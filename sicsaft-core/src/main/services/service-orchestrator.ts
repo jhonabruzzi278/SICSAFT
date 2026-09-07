@@ -93,7 +93,8 @@ export class ServiceOrchestrator extends EventEmitter {
       Promise.resolve(crearNodeBackendService(configCore)),
     );
 
-    const nivel = process.env.VITE_SICSAFT_NIVEL || process.env.SICSAFT_NIVEL || "2";
+    const nivel =
+      process.env.VITE_SICSAFT_NIVEL || process.env.SICSAFT_NIVEL || "2";
     if (nivel !== "1") {
       const configCip = crearConfigCip(this.eventosOutboxUrl, this.tokens);
       correrMigraciones({
@@ -111,7 +112,10 @@ export class ServiceOrchestrator extends EventEmitter {
         Promise.resolve(crearNodeBackendService(configCip)),
       );
     } else {
-      registrar("orquestador", "Nivel 1 configurado: arranque de subproceso CIP omitido para optimizar recursos (CIP-05)");
+      registrar(
+        "orquestador",
+        "Nivel 1 configurado: arranque de subproceso CIP omitido para optimizar recursos (CIP-05)",
+      );
     }
   }
 

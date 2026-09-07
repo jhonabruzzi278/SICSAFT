@@ -31,19 +31,24 @@ const RECURSOS = path.join(RAIZ_SICSAFT_CORE, "resources");
 // cada hermano suma `node_modules/.bin` por su cuenta, no depende de este PATH para resolver
 // tsc/vite/nest.
 const SYSTEM32 = path.join(process.env.SystemRoot || "C:\\Windows", "System32");
-const NODE_DIR = path.dirname(process.execPath);
-const PATH_BUILD = [SYSTEM32, NODE_DIR].join(path.delimiter);
 
 function obtenerRunner() {
+  const bunCmd = process.platform === "win32" ? "bun.exe" : "bun";
   try {
-    execSync("bun --version", { stdio: "ignore" });
-    return { exe: "bun", args: ["run", "build"] };
+    execSync(`${bunCmd} --version`, { stdio: "ignore" });
+    return { exe: bunCmd, args: ["run", "build"] };
   } catch {
-    const NPM = path.join(
-      NODE_DIR,
-      process.platform === "win32" ? "npm.cmd" : "npm",
-    );
-    return { exe: NPM, args: ["run", "build"] };
+    try {
+      execSync("bun --version", { stdio: "ignore" });
+      return { exe: "bun", args: ["run", "build"] };
+    } catch {
+      const nodeDir = path.dirname(process.execPath);
+      const NPM = path.join(
+        nodeDir,
+        process.platform === "win32" ? "npm.cmd" : "npm",
+      );
+      return { exe: NPM, args: ["run", "build"] };
+    }
   }
 }
 
@@ -51,12 +56,13 @@ function log(msg) {
   process.stdout.write(`[prepack] ${msg}\n`);
 }
 
-// `execSync` con el ejecutable entre comillas y PATH.
+// `execSync` respetando espacios solo si es ruta absoluta
 function correr(exe, args, opts) {
-  execSync(`"${exe}" ${args.join(" ")}`, {
+  const cmd = exe.includes(" ") ? `"${exe}"` : exe;
+  execSync(`${cmd} ${args.join(" ")}`, {
     stdio: "inherit",
     ...opts,
-    env: { ...process.env, ...(opts.env || {}) },
+    env: { ...process.env, ...(opts?.env || {}) },
   });
 }
 
@@ -81,7 +87,7 @@ function buildarSistemas() {
       );
     }
     log(`build ${nombre} con ${runner.exe} …`);
-    correr(runner.exe, runner.args, { cwd, env: { PATH: PATH_BUILD } });
+    correr(runner.exe, runner.args, { cwd });
     if (!existsSync(path.join(cwd, "dist"))) {
       throw new Error(
         `[prepack] "bun run build" en ${carpeta}/ no generó dist/.`,

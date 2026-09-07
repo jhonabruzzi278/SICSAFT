@@ -8,7 +8,11 @@ import {
 
 describe("discovery-service", () => {
   it("arma respuesta de descubrimiento con URL https y datos correctos", () => {
-    const res = armarRespuestaDiscovery("192.168.1.50", 8765, "DUOC UC Melipilla");
+    const res = armarRespuestaDiscovery(
+      "192.168.1.50",
+      8765,
+      "DUOC UC Melipilla",
+    );
     expect(res).toMatchObject({
       app: "SICSAFT",
       tipo: "DISCOVERY_PONG",

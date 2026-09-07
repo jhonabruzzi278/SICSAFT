@@ -85,7 +85,8 @@ const MODULOS: Modulo[] = [
   {
     path: 'cip',
     nombre: 'Inteligencia Patrimonial (CIP)',
-    descripcion: 'Analítica avanzada, KPIs ejecutivos y gráficos en tiempo real',
+    descripcion:
+      'Analítica avanzada, KPIs ejecutivos y gráficos en tiempo real',
     icon: IconSparkles,
   },
 ];

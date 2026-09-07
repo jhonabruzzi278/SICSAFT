@@ -193,4 +193,3 @@ export interface RespaldoInfo {
   tamanoBytes: number;
   fechaCreacion: string;
 }
-

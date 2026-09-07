@@ -34,4 +34,3 @@ export function moduloHabilitado(path: string): boolean {
   if (MODULOS_CIP.has(path)) return nivelActual() === 2;
   return true;
 }
-

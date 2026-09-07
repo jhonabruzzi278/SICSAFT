@@ -235,6 +235,3 @@ export function IconWrench(props: IconProps) {
     </svg>
   );
 }
-
-
-

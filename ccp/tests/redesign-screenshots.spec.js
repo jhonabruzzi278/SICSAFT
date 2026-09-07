@@ -24,7 +24,9 @@ test('hub (multi-organización)', async ({ page }) => {
           {
             id: 'duoc-uc',
             nombre: 'EMPRESA SUCHEL TROPICAL - DIRECCIÓN TÉCNICO-PRODUCTIVA',
-            sedes: [{ id: 's1', nombre: 'Planta Técnico-Productiva Principal' }],
+            sedes: [
+              { id: 's1', nombre: 'Planta Técnico-Productiva Principal' },
+            ],
           },
           {
             id: 'muni-melipilla',
@@ -46,7 +48,9 @@ test('hub (multi-organización)', async ({ page }) => {
 test('dashboard', async ({ page }) => {
   await seedAuth(page);
   await page.goto('/dashboard?organizacionId=duoc-uc');
-  await page.waitForSelector('h1:has-text("Resumen Operativo"), h1:has-text("Dashboard")');
+  await page.waitForSelector(
+    'h1:has-text("Resumen Operativo"), h1:has-text("Dashboard")',
+  );
   await page.waitForTimeout(600);
   await page.screenshot({ path: `${OUT}/03-dashboard.png`, fullPage: true });
 });

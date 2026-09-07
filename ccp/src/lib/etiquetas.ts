@@ -12,6 +12,7 @@ export interface EtiquetaActivo {
   codigoQr: string;
   nombre: string;
   areaNombre: string;
+  codigoAft?: string;
 }
 
 export interface GrupoArea {
@@ -58,6 +59,7 @@ export function agruparParaEtiquetas(
       codigoQr: activo.codigoQr,
       nombre: activo.nombre,
       areaNombre,
+      codigoAft: activo.codigoAft || activo.codigoQr,
     });
   }
 

@@ -31,12 +31,13 @@ export const FiltrosCip: React.FC<FiltrosCipProps> = ({
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold text-slate-500 mr-1">Rango Temporal:</span>
+        <span className="text-xs font-semibold text-slate-500 mr-1">
+          Rango Temporal:
+        </span>
         {(['semana', 'mes', 'año', 'todo'] as const).map((r) => (
           <Button
             key={r}
             variant={rango === r ? 'default' : 'outline'}
-            size="sm"
             onClick={() => setRango(r)}
             className="capitalize text-xs h-8"
           >

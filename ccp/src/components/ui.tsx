@@ -8,7 +8,7 @@ import type {
 // Primitivos minimos de UI (sin radix/shadcn — ver ccp/README.md "Decisiones de esta primera
 // version" para por que). Foco visible via :focus-visible en index.css (RNF-05).
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'default' | 'outline';
 
 export function Button({
   variant = 'primary',
@@ -19,8 +19,11 @@ export function Button({
     'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50';
   const variants: Record<ButtonVariant, string> = {
     primary: 'bg-accent text-bg shadow-elev-float hover:bg-accent-strong',
+    default: 'bg-accent text-bg shadow-elev-float hover:bg-accent-strong',
     secondary:
       'border border-border bg-bg-raised text-text hover:border-border-strong hover:bg-bg-card',
+    outline:
+      'border border-border bg-transparent text-text hover:border-border-strong hover:bg-bg-card',
     ghost: 'text-text-dim hover:bg-bg-card hover:text-text',
   };
   return (
@@ -144,12 +147,15 @@ export function Badge({
 }: {
   children: ReactNode;
   className?: string;
-  variant?: 'success' | 'warning' | 'error';
+  variant?: 'success' | 'warning' | 'error' | 'outline' | 'default';
 }) {
   let style = 'bg-text-dim/15 text-text-dim';
   if (variant === 'success') style = 'bg-success/15 text-success';
   else if (variant === 'warning') style = 'bg-warning/15 text-warning';
   else if (variant === 'error') style = 'bg-destructive/15 text-destructive';
+  else if (variant === 'outline')
+    style = 'border border-border text-text-dim bg-transparent';
+  else if (variant === 'default') style = 'bg-accent/15 text-accent-strong';
   else if (typeof children === 'string' && BADGE_STYLES[children]) {
     style = BADGE_STYLES[children];
   }

@@ -8,7 +8,10 @@ export const MOCK_ORGANIZACIONES: Organizacion[] = [
     nombre: 'EMPRESA SUCHEL TROPICAL - DIRECCIÓN GENERAL',
     sedes: [
       { id: 'sede-melipilla', nombre: 'Oficina Director General & Secretaría' },
-      { id: 'anexo-comercial', nombre: 'Salón de Reuniones, Jurídico & Pantry' },
+      {
+        id: 'anexo-comercial',
+        nombre: 'Salón de Reuniones, Jurídico & Pantry',
+      },
     ],
   },
 ];

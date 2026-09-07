@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge, Button } from '@/components/ui';
-import { IconCheck, IconRepeat, IconShield, IconSparkles } from '@/components/icons';
+import { IconRepeat, IconShield, IconSparkles } from '@/components/icons';
 
 export interface VeredictoProps {
   veredictoGlobal: {
@@ -12,7 +12,7 @@ export interface VeredictoProps {
   totalBienes: number;
   bienesControlados: number;
   totalFueraDeArea: number;
-  totalNoLocalizados: number;
+  totalNoLocalizados?: number;
   tasaDiferenciaPct: number;
   cargando: boolean;
   onActualizar: () => void;
@@ -23,7 +23,6 @@ export const VeredictoCard: React.FC<VeredictoProps> = ({
   totalBienes,
   bienesControlados,
   totalFueraDeArea,
-  totalNoLocalizados,
   tasaDiferenciaPct,
   cargando,
   onActualizar,
@@ -59,21 +58,22 @@ export const VeredictoCard: React.FC<VeredictoProps> = ({
             </span>
           </h1>
           <p className="text-sm text-slate-300 leading-relaxed">
-            Consolidación analítica de {totalBienes.toLocaleString()} bienes patrimoniales
-            registrados, tasas de conciliación física por escaneo QR e indicadores de custodia
-            institucional.
+            Consolidación analítica de {totalBienes.toLocaleString()} bienes
+            patrimoniales registrados, tasas de conciliación física por escaneo
+            QR e indicadores de custodia institucional.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
             variant="secondary"
-            size="sm"
             onClick={onActualizar}
             disabled={cargando}
-            className="bg-white/10 hover:bg-white/20 text-white border-white/20 transition-all"
+            className="bg-white/10 hover:bg-white/20 text-white border-white/20 transition-all text-xs px-3 py-1.5"
           >
-            <IconRepeat className={`h-4 w-4 mr-2 ${cargando ? 'animate-spin' : ''}`} />
+            <IconRepeat
+              className={`h-4 w-4 mr-2 ${cargando ? 'animate-spin' : ''}`}
+            />
             {cargando ? 'Actualizando...' : 'Recalcular Métricas'}
           </Button>
         </div>
@@ -81,24 +81,37 @@ export const VeredictoCard: React.FC<VeredictoProps> = ({
 
       <div className="relative z-10 mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-white/10 pt-5 text-xs">
         <div>
-          <span className="text-slate-400 block font-medium">Bienes Conciliados</span>
+          <span className="text-slate-400 block font-medium">
+            Bienes Conciliados
+          </span>
           <span className="text-lg font-bold text-white">
-            {bienesControlados.toLocaleString()} / {totalBienes.toLocaleString()}
+            {bienesControlados.toLocaleString()} /{' '}
+            {totalBienes.toLocaleString()}
           </span>
         </div>
         <div>
-          <span className="text-slate-400 block font-medium">Tasa de Efectividad</span>
-          <span className="text-lg font-bold text-emerald-400">{veredictoGlobal.porcentaje}%</span>
+          <span className="text-slate-400 block font-medium">
+            Tasa de Efectividad
+          </span>
+          <span className="text-lg font-bold text-emerald-400">
+            {veredictoGlobal.porcentaje}%
+          </span>
         </div>
         <div>
-          <span className="text-slate-400 block font-medium">Fuera de Ubicación</span>
+          <span className="text-slate-400 block font-medium">
+            Fuera de Ubicación
+          </span>
           <span className="text-lg font-bold text-amber-400">
             {totalFueraDeArea.toLocaleString()} activos
           </span>
         </div>
         <div>
-          <span className="text-slate-400 block font-medium">Índice de Discrepancia</span>
-          <span className="text-lg font-bold text-rose-400">{tasaDiferenciaPct}%</span>
+          <span className="text-slate-400 block font-medium">
+            Índice de Discrepancia
+          </span>
+          <span className="text-lg font-bold text-rose-400">
+            {tasaDiferenciaPct}%
+          </span>
         </div>
       </div>
     </div>

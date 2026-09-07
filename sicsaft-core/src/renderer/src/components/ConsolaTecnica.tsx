@@ -92,8 +92,9 @@ export function ConsolaTecnica({ defaultAbierta = false }: Props) {
       const res = await window.sicsaftCore.crearRespaldoBpi();
       setRespaldoMensaje(`Respaldo OK: ${res.nombre}`);
       setTimeout(() => setRespaldoMensaje(null), 5000);
-    } catch (err: any) {
-      setRespaldoMensaje(`Error: ${err?.message || err}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setRespaldoMensaje(`Error: ${msg}`);
     } finally {
       setRespaldando(false);
     }

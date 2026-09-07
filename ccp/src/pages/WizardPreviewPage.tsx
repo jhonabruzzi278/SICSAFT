@@ -17,7 +17,10 @@ export function WizardPreviewPage() {
   useEffect(() => {
     void Promise.all([
       QRCode.toDataURL('https://192.168.1.42:8765', { width: 175, margin: 1 }),
-      QRCode.toDataURL('https://192.168.1.42:8765/sicsaft-aft.apk', { width: 175, margin: 1 }),
+      QRCode.toDataURL('https://192.168.1.42:8765/sicsaft-aft.apk', {
+        width: 175,
+        margin: 1,
+      }),
     ]).then(([pwa, apk]) => {
       setQrPwa(pwa);
       setQrApk(apk);
@@ -41,7 +44,9 @@ export function WizardPreviewPage() {
             </span>
           </div>
         </div>
-        <span className="text-xs text-text-dim">Instalador de Primer Arranque</span>
+        <span className="text-xs text-text-dim">
+          Instalador de Primer Arranque
+        </span>
       </header>
 
       {/* Main Card Content */}
@@ -78,7 +83,8 @@ export function WizardPreviewPage() {
                   Datos de esta instalación
                 </h1>
                 <p className="mt-1 text-sm text-text-dim">
-                  Configuración inicial de la organización, sede principal y nivel contratado.
+                  Configuración inicial de la organización, sede principal y
+                  nivel contratado.
                 </p>
               </div>
 
@@ -125,16 +131,23 @@ export function WizardPreviewPage() {
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-xl border border-border bg-bg-raised/50 p-3 opacity-60">
-                      <div className="font-semibold text-xs text-text">Nivel 1</div>
-                      <p className="text-[11px] text-text-dim mt-0.5">Operación y control patrimonial</p>
+                      <div className="font-semibold text-xs text-text">
+                        Nivel 1
+                      </div>
+                      <p className="text-[11px] text-text-dim mt-0.5">
+                        Operación y control patrimonial
+                      </p>
                     </div>
                     <div className="rounded-xl border-2 border-accent bg-accent/10 p-3 shadow-xs">
                       <div className="font-semibold text-xs text-accent-strong flex items-center justify-between">
                         Nivel 2 (Completo)
-                        <span className="rounded bg-accent px-1.5 py-0.2 text-[9px] text-bg font-bold">ACTIVO</span>
+                        <span className="rounded bg-accent px-1.5 py-0.2 text-[9px] text-bg font-bold">
+                          ACTIVO
+                        </span>
                       </div>
                       <p className="text-[11px] text-text mt-0.5">
-                        Incluye <strong>CIP</strong> (Centro de Inteligencia Patrimonial)
+                        Incluye <strong>CIP</strong> (Centro de Inteligencia
+                        Patrimonial)
                       </p>
                     </div>
                   </div>
@@ -160,7 +173,8 @@ export function WizardPreviewPage() {
                   Director dado de alta
                 </h1>
                 <p className="mt-1 text-sm text-text-dim">
-                  Credencial de acceso generada con rol <strong>Directivo</strong> en EMPRESA SUCHEL TROPICAL.
+                  Credencial de acceso generada con rol{' '}
+                  <strong>Directivo</strong> en EMPRESA SUCHEL TROPICAL.
                 </p>
               </div>
 
@@ -192,7 +206,9 @@ export function WizardPreviewPage() {
                 </div>
 
                 <p className="text-xs text-text-dim">
-                  El Director utilizará esta contraseña provisional para acceder al Portal Ejecutivo y será obligado a definir una nueva clave segura.
+                  El Director utilizará esta contraseña provisional para acceder
+                  al Portal Ejecutivo y será obligado a definir una nueva clave
+                  segura.
                 </p>
 
                 <div className="pt-2">
@@ -215,7 +231,9 @@ export function WizardPreviewPage() {
                   Profesional de AFT dado de alta
                 </h1>
                 <p className="mt-1 text-sm text-text-dim">
-                  Credencial generada con rol <strong>Administrador Patrimonial</strong> en EMPRESA SUCHEL TROPICAL.
+                  Credencial generada con rol{' '}
+                  <strong>Administrador Patrimonial</strong> en EMPRESA SUCHEL
+                  TROPICAL.
                 </p>
               </div>
 
@@ -247,7 +265,8 @@ export function WizardPreviewPage() {
                 </div>
 
                 <p className="text-xs text-text-dim">
-                  Con este rol, el operador administrará el Centro de Control Patrimonial (CCP) y sincronizará la APP QR en terreno.
+                  Con este rol, el operador administrará el Centro de Control
+                  Patrimonial (CCP) y sincronizará la APP QR en terreno.
                 </p>
 
                 <div className="pt-2">
@@ -273,7 +292,8 @@ export function WizardPreviewPage() {
                   Instalación completa
                 </h1>
                 <p className="mt-1 text-sm text-text-dim">
-                  Todos los microservicios, bases de datos y portales están en línea.
+                  Todos los microservicios, bases de datos y portales están en
+                  línea.
                 </p>
               </div>
 
@@ -330,7 +350,9 @@ export function WizardPreviewPage() {
               {/* Carpeta Ingesta */}
               <div className="flex items-center justify-between rounded-lg border border-border bg-bg-raised/60 px-3 py-2 text-xs">
                 <span className="text-text-dim">Carpeta vigilada:</span>
-                <span className="font-mono text-text">C:\SICSAFT\IngestaExcel</span>
+                <span className="font-mono text-text">
+                  C:\SICSAFT\IngestaExcel
+                </span>
               </div>
 
               <button
@@ -346,7 +368,8 @@ export function WizardPreviewPage() {
 
       {/* Footer */}
       <footer className="text-center text-xs text-text-faint">
-        SICSAFT Enterprise Asset Intelligence • Protocolo OIDC / PKCE • Base Patrimonial Inmutable
+        SICSAFT Enterprise Asset Intelligence • Protocolo OIDC / PKCE • Base
+        Patrimonial Inmutable
       </footer>
     </div>
   );

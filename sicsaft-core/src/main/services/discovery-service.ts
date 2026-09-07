@@ -68,24 +68,34 @@ export function iniciarDiscoveryService(
         );
         const buffer = Buffer.from(respuesta, "utf8");
 
-        socket.send(buffer, 0, buffer.length, rinfo.port, rinfo.address, (err) => {
-          if (err) {
-            registrar(
-              "discovery",
-              `Error al responder descubrimiento a ${rinfo.address}: ${err.message}`,
-            );
-          } else {
-            registrar(
-              "discovery",
-              `Respuesta de descubrimiento enviada exitosamente a ${rinfo.address}:${rinfo.port}`,
-            );
-          }
-        });
+        socket.send(
+          buffer,
+          0,
+          buffer.length,
+          rinfo.port,
+          rinfo.address,
+          (err) => {
+            if (err) {
+              registrar(
+                "discovery",
+                `Error al responder descubrimiento a ${rinfo.address}: ${err.message}`,
+              );
+            } else {
+              registrar(
+                "discovery",
+                `Respuesta de descubrimiento enviada exitosamente a ${rinfo.address}:${rinfo.port}`,
+              );
+            }
+          },
+        );
       }
     });
 
     socket.on("error", (err) => {
-      registrar("discovery", `Error en socket UDP de descubrimiento: ${err.message}`);
+      registrar(
+        "discovery",
+        `Error en socket UDP de descubrimiento: ${err.message}`,
+      );
       // No re-lanzamos para evitar que un fallo en UDP tire el .exe completo
     });
 
@@ -105,7 +115,10 @@ export function iniciarDiscoveryService(
         detener: () =>
           new Promise<void>((res) => {
             socket.close(() => {
-              registrar("discovery", "Servicio de auto-descubrimiento UDP detenido");
+              registrar(
+                "discovery",
+                "Servicio de auto-descubrimiento UDP detenido",
+              );
               res();
             });
           }),

@@ -180,7 +180,10 @@ app.whenReady().then(async () => {
   try {
     servicioDiscovery = await iniciarDiscoveryService();
   } catch (err: unknown) {
-    registrar("discovery", `No se pudo iniciar auto-descubrimiento UDP: ${err}`);
+    registrar(
+      "discovery",
+      `No se pudo iniciar auto-descubrimiento UDP: ${err}`,
+    );
   }
 
   app.on("activate", () => {

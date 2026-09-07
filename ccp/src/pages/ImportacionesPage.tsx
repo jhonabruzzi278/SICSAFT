@@ -79,13 +79,9 @@ export function ImportacionesPage() {
         <DropzoneImportacionExcel organizacionId={organizacionId} />
       )}
 
-      {pestana === 'lotes' && (
-        <LotesRevision organizacionId={organizacionId} />
-      )}
+      {pestana === 'lotes' && <LotesRevision organizacionId={organizacionId} />}
 
-      {pestana === 'csv' && (
-        <CargaManualCsv organizacionId={organizacionId} />
-      )}
+      {pestana === 'csv' && <CargaManualCsv organizacionId={organizacionId} />}
     </div>
   );
 }

@@ -3,7 +3,10 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-const mockUserData = join(tmpdir(), "sicsaft-backup-test-" + Math.random().toString(36).slice(2));
+const mockUserData = join(
+  tmpdir(),
+  "sicsaft-backup-test-" + Math.random().toString(36).slice(2),
+);
 
 vi.mock("electron", () => ({
   app: {
@@ -55,8 +58,12 @@ describe("backup-service", () => {
 
     const lista = listarRespaldos();
     expect(lista.length).toBe(2);
-    expect(lista.map((r) => r.nombre)).toContain("sicsaft-bpi-backup-2026-09-01.sql");
-    expect(lista.map((r) => r.nombre)).toContain("sicsaft-bpi-backup-2026-09-02.sql");
+    expect(lista.map((r) => r.nombre)).toContain(
+      "sicsaft-bpi-backup-2026-09-01.sql",
+    );
+    expect(lista.map((r) => r.nombre)).toContain(
+      "sicsaft-bpi-backup-2026-09-02.sql",
+    );
   });
 
   it("abre la carpeta de respaldos a través de shell.openPath", async () => {
