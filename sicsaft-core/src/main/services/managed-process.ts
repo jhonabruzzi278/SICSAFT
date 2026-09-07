@@ -1,5 +1,6 @@
 import { execFile, spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
+import { join } from "node:path";
 
 // Wrapper reusado por los 5 servicios embebidos (Postgres, Keycloak, cis, core, cip — ADR-005
 // sacó a Redis del ecosistema) — evita repetir la misma lógica de spawn/log/espera de 5 formas
@@ -34,10 +35,19 @@ export interface ManagedProcessOptions {
 // `/F` (forzado) no es una regresión de seguridad para Postgres: en Windows el `kill('SIGTERM')`
 // que ya había era un TerminateProcess, igual de duro, pero además dejaba backends sueltos. Un
 // apagado realmente ordenado necesitaría `pg_ctl stop -m fast` (fuera de alcance de este fix).
+// Ruta absoluta y no `"taskkill"` a secas: resolverlo por PATH deja que un directorio escribible
+// que esté antes en el PATH lo suplante (sonar javascript:S4036). Mismo criterio que
+// ingesta-watcher.ts con el Python vendorizado.
+const TASKKILL = join(
+  process.env.SystemRoot ?? String.raw`C:\Windows`,
+  "System32",
+  "taskkill.exe",
+);
+
 async function matarArbolWindows(pid: number): Promise<void> {
   await new Promise<void>((resolver) => {
     execFile(
-      "taskkill",
+      TASKKILL,
       ["/pid", String(pid), "/T", "/F"],
       { windowsHide: true },
       // Se ignora el resultado a propósito: taskkill sale != 0 si el proceso ya no existe, y para

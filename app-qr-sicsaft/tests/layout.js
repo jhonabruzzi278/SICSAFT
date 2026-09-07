@@ -55,7 +55,7 @@ export async function inspeccionarOclusion(page, selector) {
     if (el.contains(encima) || encima.contains(el)) return { tapado: false };
 
     const quien =
-      encima.getAttribute('data-testid') ||
+      encima.dataset.testid ||
       (typeof encima.className === 'string' ? encima.className : '') ||
       encima.tagName;
     return { tapado: true, por: String(quien).slice(0, 90) };
@@ -82,7 +82,7 @@ export async function contarZonasScrolleables(page) {
       const s = getComputedStyle(el);
       const puede = /auto|scroll/.test(s.overflowY);
       if (puede && el.scrollHeight > el.clientHeight + 2) {
-        zonas.push(el.getAttribute('data-testid') || el.tagName.toLowerCase());
+        zonas.push(el.dataset.testid || el.tagName.toLowerCase());
       }
     }
     return zonas;
