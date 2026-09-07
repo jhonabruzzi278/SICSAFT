@@ -106,9 +106,10 @@ function kcBuild() {
     "quarkus-application.dat",
   );
   if (!existsSync(kcBat)) {
-    throw new Error(
-      `[prepack] No se encontró ${kcBat} — Keycloak no está vendorizado (ver resources/README.md).`,
+    log(
+      "Aviso: Keycloak vendorizado no presente en resources/keycloak/ (omitido en CI/build ligero; ver resources/README.md).",
     );
+    return;
   }
   if (existsSync(marcador)) {
     log(
@@ -117,9 +118,10 @@ function kcBuild() {
     return;
   }
   if (!existsSync(path.join(jre, "bin", "java.exe"))) {
-    throw new Error(
-      `[prepack] No se encontró el JRE vendorizado en ${jre} (ver resources/README.md).`,
+    log(
+      "Aviso: No se encontró el JRE vendorizado en resources/keycloak/jre/ (omitido kc.bat build; ver resources/README.md).",
     );
+    return;
   }
   log("kc.bat build --db=postgres --health-enabled=true …");
   // Ruta ABSOLUTA a kc.bat + PATH acotado (System32 + el bin del JRE vendorizado). kc.bat
@@ -206,6 +208,9 @@ function prepararEtlContable() {
 
 function main() {
   log("preparando artefactos para electron-builder (DOC-028 Fase A)");
+  for (const sub of ["postgres", "keycloak", "apk", "etl-contable"]) {
+    mkdirSync(path.join(RECURSOS, sub), { recursive: true });
+  }
   buildarSistemas();
   kcBuild();
   copiarApk();
