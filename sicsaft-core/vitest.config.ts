@@ -12,6 +12,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    pool: "threads",
     // Bug real encontrado empaquetando (Fase 8, electron-builder): release/ ahora contiene una
     // copia completa de cis/core/cip (incluye core/src/**/*.spec.ts, necesarios en runtime para
     // la migración de seed -- ver package.json "build" extraResources) -- sin excluirlo acá,
