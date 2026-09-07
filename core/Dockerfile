@@ -1,15 +1,15 @@
 # Build multi-stage — ver devops/README.md para la topologia completa (Traefik + CIS + CORE
 # + los demas niveles) y ADR-001 para el porque de NestJS.
 
-FROM node:24-alpine AS build
+FROM oven/bun:1-alpine AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --ignore-scripts
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
-RUN npm run build
+RUN bun run build
 # Reinstala solo dependencias de produccion en un directorio aparte, sin devDependencies,
 # para copiar al stage final (mas liviano que "npm prune").
-RUN npm ci --omit=dev --ignore-scripts
+RUN bun install --production --frozen-lockfile
 
 FROM node:24-alpine AS runtime
 ENV NODE_ENV=production

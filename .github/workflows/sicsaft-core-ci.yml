@@ -24,22 +24,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: "24"
-          cache: "npm"
-          cache-dependency-path: sicsaft-core/package-lock.json
+          bun-version: latest
 
-      - run: npm ci --ignore-scripts
+      - run: bun install --frozen-lockfile
 
       - name: Lint
-        run: npm run lint:ci
+        run: bun run lint:ci
 
       - name: Type-check
-        run: npm run typecheck
+        run: bun run typecheck
 
       - name: Tests unitarios (Vitest)
-        run: npm test
+        run: bun run test
 
       - name: Build de bundles Electron
-        run: npm run build
+        run: bun run build

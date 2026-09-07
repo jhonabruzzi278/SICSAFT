@@ -72,38 +72,38 @@ comando corre desde la carpeta del sistema.
 
 **Backends (`cis/`, `core/`, `cip/`):**
 ```bash
-npm run start:dev          # dev server con watch
-npm run lint:ci             # eslint --max-warnings=0 (lo que corre CI; usar "lint" a secas para autofix local)
-npm test                    # jest (unit)
-npx jest ruta/al.spec.ts    # un solo archivo de test
-npx jest -t "nombre del test"  # un solo test por nombre
-npm run test:cov            # cobertura — umbral en package.json > jest.coverageThreshold (100% líneas/funciones en los tres)
-npm run test:e2e            # jest contra ./test/jest-e2e.json (Postgres real en CI, no mocks)
-npm run build                # nest build
+bun run start:dev          # dev server con watch
+bun run lint:ci             # eslint --max-warnings=0 (lo que corre CI; usar "bun run lint" a secas para autofix local)
+bun run test                # jest (unit)
+bun x jest ruta/al.spec.ts  # un solo archivo de test
+bun x jest -t "nombre del test"  # un solo test por nombre
+bun run test:cov            # cobertura — umbral en package.json > jest.coverageThreshold (100% líneas/funciones en los tres)
+bun run test:e2e            # jest contra ./test/jest-e2e.json (Postgres real en CI, no mocks)
+bun run build               # nest build
 ```
-`core/` y `cip/` además tienen `npm run migrate:up` / `migrate:down` (`node-pg-migrate` sobre
+`core/` y `cip/` además tienen `bun run migrate:up` / `bun run migrate:down` (`node-pg-migrate` sobre
 `core/migrations/` y `cip/migrations/` respectivamente — bases Postgres separadas, RNF-01/RNF-05).
 `cip/` además corre un worker `pg-boss` (`AgregacionModule`, ADR-005) contra la cola `cip-eventos`
 que puebla consumiendo eventos reales de `core/`, no expone frontend propio — ver `cip/README.md`.
 
 **Frontends, todas (`ccp/`, `app-qr-sicsaft/`, `core/frontend/`):**
 ```bash
-npm run dev                  # vite
-npm run build                 # tsc -b && vite build
+bun run dev                 # vite
+bun run build               # tsc -b && vite build
 ```
 
 **`ccp/` y `core/frontend/` además tienen:**
 ```bash
-npm run lint:ci               # eslint --max-warnings=0 (mismo criterio que cis/core)
-npm test                      # vitest run — hoy solo cubre src/lib/oidc/ (PKCE/tokens/refresh, DOC-023)
-npx vitest run src/lib/oidc/pkce.test.ts   # un solo archivo de test
-npm run test:cov              # vitest run --coverage
+bun run lint:ci             # eslint --max-warnings=0 (mismo criterio que cis/core)
+bun run test                # vitest run — cubre src/lib/oidc/ (PKCE/tokens/refresh, DOC-023)
+bun x vitest run src/lib/oidc/pkce.test.ts   # un solo archivo de test
+bun run test:cov            # vitest run --coverage
 ```
 
 **`ccp/` y `app-qr-sicsaft/` además tienen e2e real** (`core/frontend/` no tiene e2e):
 ```bash
-npm run test:e2e              # playwright test
-npx playwright test archivo.spec.ts   # un solo archivo e2e
+bun run test:e2e            # playwright test
+bun x playwright test archivo.spec.ts   # un solo archivo e2e
 ```
 
 **Despliegue On-Premise / .EXE** (Nivel 1/Nivel 2, Podman / Docker Compose con Keycloak 26):

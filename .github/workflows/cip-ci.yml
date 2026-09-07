@@ -55,28 +55,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: "24"
-          cache: "npm"
-          cache-dependency-path: cip/package-lock.json
+          bun-version: latest
 
-      - run: npm ci --ignore-scripts
+      - run: bun install --frozen-lockfile
 
       - name: Lint
-        run: npm run lint:ci
+        run: bun run lint:ci
 
       - name: Unit tests + cobertura
-        run: npm run test:cov
+        run: bun run test:cov
 
       - name: Aplicar migraciones (mismo runner que docker-compose local)
-        run: npm run migrate:up
+        run: bun run migrate:up
 
       - name: Tests e2e
-        run: npm run test:e2e
+        run: bun run test:e2e
 
       - name: Build
-        run: npm run build
+        run: bun run build
 
       - name: Build de imagen Docker
         run: docker build -t sicsaft-cip:ci .

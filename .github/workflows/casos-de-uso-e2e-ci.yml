@@ -23,16 +23,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: "24"
-          cache: "npm"
-          cache-dependency-path: casos-de-uso/e2e/package-lock.json
+          bun-version: latest
 
-      - run: npm ci --ignore-scripts
+      - run: bun install --frozen-lockfile
 
       - name: Instalar Chromium (Playwright)
-        # Binario local, no `npx playwright` (S6505) — usa la versión ya fijada en package-lock.json.
+        # Binario local, no `npx playwright` (S6505) — usa la versión ya fijada en bun.lock.
         run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Resolver dominios locales
@@ -49,7 +47,7 @@ jobs:
           EOF
 
       - name: Correr casos de uso
-        run: npm test
+        run: bun test
 
       - name: Logs del stack (si falló)
         if: failure()

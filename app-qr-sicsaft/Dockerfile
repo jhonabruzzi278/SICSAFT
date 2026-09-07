@@ -4,10 +4,10 @@
 # Vercel (ver README.md raiz "Dónde está el trabajo activo hoy"), este Dockerfile no reemplaza ese
 # despliegue, es una via adicional para devops/onprem/.
 
-FROM node:24-alpine AS build
+FROM oven/bun:1-alpine AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --ignore-scripts
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
 
 # Variables VITE_* publicas (SPA sin secreto de cliente, PKCE) — Vite las incrusta en el bundle en
@@ -19,7 +19,7 @@ ARG VITE_CIS_URL
 ENV VITE_KEYCLOAK_ISSUER=${VITE_KEYCLOAK_ISSUER} \
     VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID} \
     VITE_CIS_URL=${VITE_CIS_URL}
-RUN npm run build
+RUN bun run build
 
 # Imagen "unprivileged" — corre como usuario sin privilegios y escucha en 8080 por default, mismo
 # criterio que ccp/Dockerfile y cis/Dockerfile ("nunca root en el contenedor final").

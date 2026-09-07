@@ -3,10 +3,10 @@
 # corriendo. Le habla a CIS, nunca al backend de CORE directo (ADR-003) — por eso este Dockerfile
 # vive junto al de CORE pero no comparte ninguna capa con el.
 
-FROM node:24-alpine AS build
+FROM oven/bun:1-alpine AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --ignore-scripts
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
 
 # Variables VITE_* publicas (SPA sin secreto de cliente, ver src/lib/oidc/pkce.ts) — Vite las
@@ -19,7 +19,7 @@ ARG VITE_CIS_URL
 ENV VITE_KEYCLOAK_ISSUER=${VITE_KEYCLOAK_ISSUER} \
     VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID} \
     VITE_CIS_URL=${VITE_CIS_URL}
-RUN npm run build
+RUN bun run build
 
 # Imagen "unprivileged" — corre como usuario sin privilegios y escucha en 8080 por default (no
 # 80, que requeriria root), mismo criterio que ccp/Dockerfile.

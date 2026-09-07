@@ -1,12 +1,12 @@
 # Build multi-stage — mismo patron que core/Dockerfile (ver devops/README.md y ADR-001).
 
-FROM node:24-alpine AS build
+FROM oven/bun:1-alpine AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --ignore-scripts
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
-RUN npm run build
-RUN npm ci --omit=dev --ignore-scripts
+RUN bun run build
+RUN bun install --production --frozen-lockfile
 
 FROM node:24-alpine AS runtime
 ENV NODE_ENV=production

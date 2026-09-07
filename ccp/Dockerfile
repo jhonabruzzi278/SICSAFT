@@ -2,10 +2,10 @@
 # duracion): el runtime final es nginx sirviendo archivos, sin proceso Node corriendo. Ver
 # devops/README.md para la topologia completa (Traefik + este contenedor + los demas niveles).
 
-FROM node:24-alpine AS build
+FROM oven/bun:1-alpine AS build
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --ignore-scripts
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
 
 # Variables VITE_* publicas (SPA sin secreto de cliente, ver src/lib/oidc/pkce.ts) — Vite las
@@ -16,13 +16,13 @@ ARG VITE_KEYCLOAK_CLIENT_ID
 ARG VITE_CIS_URL
 # Nivel de producto contratado (DOC-029 RF-A): en `1` oculta el modulo Dashboard/indicadores
 # (CIP); en `2` lo muestra. Unica diferencia CCP entre Nivel 1 y Nivel 2 (el resto va completo en
-# ambos). Sin este arg, nivel.ts se cae a `2` (deploy standalone / `npm run dev`).
+# ambos). Sin este arg, nivel.ts se cae a `2` (deploy standalone / `bun run dev`).
 ARG VITE_SICSAFT_NIVEL=2
 ENV VITE_KEYCLOAK_ISSUER=${VITE_KEYCLOAK_ISSUER} \
     VITE_KEYCLOAK_CLIENT_ID=${VITE_KEYCLOAK_CLIENT_ID} \
     VITE_CIS_URL=${VITE_CIS_URL} \
     VITE_SICSAFT_NIVEL=${VITE_SICSAFT_NIVEL}
-RUN npm run build
+RUN bun run build
 
 # Imagen "unprivileged" — corre como usuario sin privilegios y escucha en 8080 por default (no
 # 80, que requeriria root), mismo criterio de cis/Dockerfile ("nunca root en el contenedor

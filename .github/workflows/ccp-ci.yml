@@ -24,32 +24,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: "24"
-          cache: "npm"
-          cache-dependency-path: ccp/package-lock.json
+          bun-version: latest
 
-      - run: npm ci --ignore-scripts
+      - run: bun install --frozen-lockfile
 
       - name: Lint
-        run: npm run lint:ci
+        run: bun run lint:ci
 
       - name: Tests unitarios (OIDC/PKCE)
-        run: npm run test:cov
+        run: bun run test:cov
 
       - name: Type-check + build
-        run: npm run build
+        run: bun run build
 
       - name: Instalar Chromium (Playwright)
-        # Binario local (node_modules/.bin), no `npx playwright` — npx puede resolver y ejecutar
-        # un paquete remoto si no lo encuentra local (S6505); esta forma usa exactamente la
-        # version de @playwright/test ya fijada en package-lock.json (S8543), instalada por
-        # `npm ci` en el paso anterior.
         run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Tests e2e
-        run: npm run test:e2e
+        run: bun run test:e2e
 
       - uses: actions/upload-artifact@v4
         if: failure()

@@ -34,18 +34,24 @@ const SYSTEM32 = path.join(process.env.SystemRoot || "C:\\Windows", "System32");
 const NODE_DIR = path.dirname(process.execPath);
 const PATH_BUILD = [SYSTEM32, NODE_DIR].join(path.delimiter);
 
-// Ruta ABSOLUTA a npm (no vía búsqueda en PATH): `npm.cmd` en Windows, `npm` en Linux/CI.
-const NPM = path.join(
-  NODE_DIR,
-  process.platform === "win32" ? "npm.cmd" : "npm",
-);
+function obtenerRunner() {
+  try {
+    execSync("bun --version", { stdio: "ignore" });
+    return { exe: "bun", args: ["run", "build"] };
+  } catch {
+    const NPM = path.join(
+      NODE_DIR,
+      process.platform === "win32" ? "npm.cmd" : "npm",
+    );
+    return { exe: NPM, args: ["run", "build"] };
+  }
+}
 
 function log(msg) {
   process.stdout.write(`[prepack] ${msg}\n`);
 }
 
-// `execSync` con el ejecutable entre comillas (ruta absoluta, puede tener espacios —
-// "C:\Program Files\nodejs\") y el PATH acotado. Args fijos, ninguno viene de fuera.
+// `execSync` con el ejecutable entre comillas y PATH.
 function correr(exe, args, opts) {
   execSync(`"${exe}" ${args.join(" ")}`, {
     stdio: "inherit",
@@ -66,18 +72,19 @@ const SISTEMAS_A_BUILDEAR = [
 ];
 
 function buildarSistemas() {
+  const runner = obtenerRunner();
   for (const { nombre, carpeta } of SISTEMAS_A_BUILDEAR) {
     const cwd = path.join(RAIZ_MONOREPO, carpeta);
     if (!existsSync(path.join(cwd, "node_modules"))) {
       throw new Error(
-        `[prepack] Falta ${carpeta}/node_modules — correr "npm ci" en ${carpeta}/ antes de empaquetar.`,
+        `[prepack] Falta ${carpeta}/node_modules — correr "bun install" en ${carpeta}/ antes de empaquetar.`,
       );
     }
-    log(`build ${nombre} …`);
-    correr(NPM, ["run", "build"], { cwd, env: { PATH: PATH_BUILD } });
+    log(`build ${nombre} con ${runner.exe} …`);
+    correr(runner.exe, runner.args, { cwd, env: { PATH: PATH_BUILD } });
     if (!existsSync(path.join(cwd, "dist"))) {
       throw new Error(
-        `[prepack] "npm run build" en ${carpeta}/ no generó dist/.`,
+        `[prepack] "bun run build" en ${carpeta}/ no generó dist/.`,
       );
     }
   }

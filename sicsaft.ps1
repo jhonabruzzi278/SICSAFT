@@ -36,16 +36,22 @@ function Ejecutar-Check {
     Write-Host "  OK: $($inv.totales.loc) LoC totales | $($inv.totales.locTests) LoC de tests | $($inv.totales.docs) documentos." -ForegroundColor Green
 
     Write-Host "`n-> [3/4] Ejecutando suite de tests en CIS..." -ForegroundColor Yellow
-    npm test --prefix "$RootDir\cis" -- --silent
-    if ($LASTEXITCODE -ne 0) {
+    Push-Location "$RootDir\cis"
+    bun run test --silent
+    $cisExit = $LASTEXITCODE
+    Pop-Location
+    if ($cisExit -ne 0) {
         Write-Host "ERROR: Fallaron los tests de CIS." -ForegroundColor Red
         exit 1
     }
     Write-Host "  OK: 100% tests de CIS pasando." -ForegroundColor Green
 
     Write-Host "`n-> [4/4] Ejecutando suite de tests en CORE..." -ForegroundColor Yellow
-    npm test --prefix "$RootDir\core" -- --silent
-    if ($LASTEXITCODE -ne 0) {
+    Push-Location "$RootDir\core"
+    bun run test --silent
+    $coreExit = $LASTEXITCODE
+    Pop-Location
+    if ($coreExit -ne 0) {
         Write-Host "ERROR: Fallaron los tests de CORE." -ForegroundColor Red
         exit 1
     }
@@ -83,8 +89,12 @@ function Ejecutar-Release {
     node "$RootDir\herramientas\revision-codigo\linear-sync.mjs" --team-key JON --apply
 
     Write-Host "`n[3/3] Verificando tests post-release..." -ForegroundColor Cyan
-    npm test --prefix "$RootDir\cis" -- --silent
-    npm test --prefix "$RootDir\core" -- --silent
+    Push-Location "$RootDir\cis"
+    bun run test --silent
+    Pop-Location
+    Push-Location "$RootDir\core"
+    bun run test --silent
+    Pop-Location
 
     $nuevaVer = (Get-Content "$RootDir\VERSION").Trim()
     Write-Host "`nOK: Release v$nuevaVer completado y sincronizado con exito!" -ForegroundColor Green
