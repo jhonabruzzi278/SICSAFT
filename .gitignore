@@ -78,4 +78,7 @@ sicsaft-core/release/
 ~$*.xlsx
 ~$*.xls
 .pytest_tmp/
+dist-paquete/
+*.zip
+
 
