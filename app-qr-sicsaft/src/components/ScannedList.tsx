@@ -208,7 +208,10 @@ export function ScannedList({
   }
 
   return (
-    <ul data-testid="scanned-list" className="max-h-[40vh] space-y-2 overflow-y-auto">
+    // `h-full` y no `max-h-[40vh]`: el alto lo define el contenedor de la pantalla (ScanPage lo
+    // pone en el `flex-1` de la columna). Con el tope en vh scrolleaban DOS zonas a la vez -- la
+    // lista y el documento -- y en un teléfono el dedo no sabe cuál va a mover (DOC-031 Fase 1.bis).
+    <ul data-testid="scanned-list" className="h-full space-y-2 overflow-y-auto">
       {items
         .slice()
         .reverse()

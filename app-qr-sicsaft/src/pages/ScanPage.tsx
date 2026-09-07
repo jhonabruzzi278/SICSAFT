@@ -10,7 +10,6 @@ import {
   PencilIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { QrScanner } from '@/components/QrScanner';
@@ -43,6 +42,13 @@ import type { Organization, OrgArea, OrgLocation } from '@/lib/organizations-dat
 
 type View = 'operator' | 'organization' | 'area-location' | 'home' | 'scanning' | 'report';
 
+// Alto exacto que le queda a una pantalla dentro del shell (DOC-031 §4 Fase 1.bis). AppShell ya
+// reserva la app bar arriba y la bottom nav abajo con padding (1rem arriba, 1.5rem abajo), así que
+// acá se descuenta lo mismo. `svh` y no `vh`: en móvil la barra del navegador cambia el alto
+// visible y con `vh` siempre queda contenido bajo el pliegue.
+const ALTO_DISPONIBLE =
+  'calc(100svh - var(--appbar-h) - var(--bottomnav-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2.5rem)';
+
 export function ScanPage() {
   const catalogRef = useRef<ConnectorAsset[]>([]);
   const scannedCodesRef = useRef<Set<string>>(new Set());
@@ -65,6 +71,13 @@ export function ScanPage() {
   const [bajaTarget, setBajaTarget] = useState<string | null>(null);
   const [scanMode, setScanModeState] = useState<ScanMode>(() => getScanMode());
   const [sending, setSending] = useState(false);
+
+  // Al cambiar de vista el navegador conserva la posición de scroll. Medido: tras una sesión con
+  // 20 escaneos, al pulsar "Finalizar" el veredicto del reporte quedaba en y = -71 px -- fuera de
+  // pantalla hacia ARRIBA. El AFT aterrizaba en el resultado del control ya pasado de largo.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [view]);
   const [sent, setSent] = useState(false);
   const { canInstall, showIosHint, promptInstall } = useInstallPrompt();
 
@@ -523,53 +536,52 @@ export function ScanPage() {
 
   if (view === 'scanning') {
     return (
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Cámara</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <QrScanner active={cameraActive} onDecode={handleDecode} />
-          </CardContent>
-        </Card>
+      // DOC-031 §4 Fase 1.bis -- layout de app, no de documento. Antes esto era un grid en flujo
+      // normal: con UN solo ítem escaneado la página ya medía 930px contra 812 de pantalla, el
+      // botón de finalizar quedaba 170px bajo el pliegue y scrolleaban DOS zonas a la vez (el
+      // documento y la lista, que tenía su propio max-h-[40vh]). El operador escanea parado, con
+      // el teléfono en una mano: tiene que poder seguir escaneando y cerrar la sesión sin
+      // scrollear. Ahora la columna ocupa exactamente el alto disponible y la única zona que
+      // scrollea es la lista.
+      <div className="flex flex-col gap-3" style={{ height: ALTO_DISPONIBLE }}>
+        {/* La cámara es la tarea; el visor se explica solo, no necesita un encabezado "Cámara". */}
+        <div className="shrink-0 overflow-hidden rounded-xl border border-border bg-card shadow-elev-1">
+          <QrScanner active={cameraActive} onDecode={handleDecode} />
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">¿El QR no escanea?</CardTitle>
-            <CardDescription>Ingresá el código manualmente</CardDescription>
-          </CardHeader>
-          <CardContent className="flex gap-2">
-            <Label htmlFor="manual-code-input" className="sr-only">
-              Código manual
-            </Label>
-            <Input
-              id="manual-code-input"
-              data-testid="manual-code-input"
-              placeholder="Ej. P001"
-              value={manualCode}
-              onChange={(e) => setManualCode(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleManualEntry();
-              }}
-              autoComplete="off"
-              className="uppercase"
-            />
-            <Button type="button" variant="secondary" onClick={handleManualEntry} data-testid="manual-code-btn">
-              Agregar
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Fallback manual: una fila, no una tarjeta con título y subtítulo (costaba ~250px de
+            pantalla para el camino de excepción). */}
+        <div className="flex shrink-0 gap-2">
+          <Label htmlFor="manual-code-input" className="sr-only">
+            Código manual
+          </Label>
+          <Input
+            id="manual-code-input"
+            data-testid="manual-code-input"
+            placeholder="Código manual (ej. P001)"
+            value={manualCode}
+            onChange={(e) => setManualCode(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleManualEntry();
+            }}
+            autoComplete="off"
+            className="uppercase"
+          />
+          <Button type="button" variant="secondary" onClick={handleManualEntry} data-testid="manual-code-btn">
+            Agregar
+          </Button>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-sm">
-              <span>Productos escaneados</span>
-              <span className="text-2xl font-bold text-brand" data-testid="scanned-count">
-                {scanned.size}
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        {/* Lo que el operador mira cien veces: ocupa todo el alto que sobra y es la ÚNICA zona
+            scrolleable de la pantalla. */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-elev-1">
+          <div className="flex shrink-0 items-center justify-between px-4 pt-3 pb-2">
+            <span className="text-sm font-semibold">Productos escaneados</span>
+            <span className="text-2xl font-bold text-brand" data-testid="scanned-count">
+              {scanned.size}
+            </span>
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden px-4 pb-3">
             <ScannedList
               items={items}
               onMarkOutOfPlace={handleMarkOutOfPlace}
@@ -579,10 +591,11 @@ export function ScanPage() {
               onDeclareEstado={handleDeclareEstado}
               onSuggestBaja={setBajaTarget}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <div className="flex flex-wrap gap-2 md:col-span-2">
+        {/* Cerrar la sesión no puede depender de scrollear: la acción vive fija abajo. */}
+        <div className="flex shrink-0 gap-2">
           <Button
             type="button"
             variant="outline"
@@ -590,11 +603,19 @@ export function ScanPage() {
             data-testid="toggle-camera-btn"
           >
             <PauseIcon />
-            {cameraActive ? 'Pausar cámara' : 'Reanudar cámara'}
+            {cameraActive ? 'Pausar' : 'Reanudar'}
           </Button>
-          <Button type="button" variant="default" className="flex-1" onClick={finishScanning} data-testid="finish-btn">
+          {/* `min-w-0` para que el `flex-1` pueda encogerse por debajo del ancho del texto: sin eso
+              la etiqueta desbordaba a lo ancho y la pantalla scrolleaba de costado. */}
+          <Button
+            type="button"
+            variant="default"
+            className="min-w-0 flex-1"
+            onClick={finishScanning}
+            data-testid="finish-btn"
+          >
             <CheckCircle2Icon />
-            Finalizar y ver reporte
+            <span className="truncate">Finalizar</span>
           </Button>
         </div>
 

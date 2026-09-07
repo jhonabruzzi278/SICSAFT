@@ -18,7 +18,11 @@ export default defineConfig({
     // Vitest los recogía como tests propios y explotaba con "describe is not defined" (son specs
     // de Jest, no de Vitest, un test runner distinto). Default de Vitest ya excluye node_modules/
     // dist/.git, pero no algo tan específico de este proyecto como release/.
-    exclude: ["**/node_modules/**", "**/release/**", "**/out/**"],
+    //
+    // e2e/ es el harness de Playwright (PR #112/#113) -- mismo caso, otro runner: sus specs usan
+    // `test.describe.configure()` y la fixture `_electron`, que bajo Vitest explotan al colectar.
+    // Se corren con `npm run e2e`, nunca con `npm test`.
+    exclude: ["**/node_modules/**", "**/release/**", "**/out/**", "**/e2e/**"],
     coverage: {
       provider: "v8",
       exclude: ["out/**", "resources/**", "release/**", "src/renderer/**"],
