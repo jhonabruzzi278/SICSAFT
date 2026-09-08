@@ -15,22 +15,28 @@ async function shot(page, name) {
 }
 
 async function toDark(page) {
-  // Arranca en dark (defaultTheme). Este helper asegura dark tras un posible toggle previo.
   await page.evaluate(() => {
-    if (!document.documentElement.classList.contains('dark')) {
-      document.querySelector('[data-testid="theme-toggle"]')?.click();
-    }
+    document.documentElement.classList.add('dark');
+    localStorage.setItem('qrvault_theme', 'dark');
   });
   await page.waitForTimeout(200);
 }
 async function toLight(page) {
   await page.evaluate(() => {
-    if (document.documentElement.classList.contains('dark')) {
-      document.querySelector('[data-testid="theme-toggle"]')?.click();
-    }
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('qrvault_theme', 'light');
   });
   await page.waitForTimeout(200);
 }
+
+test('login in-app', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForTimeout(400);
+  await toLight(page);
+  await shot(page, '00-login-light');
+  await toDark(page);
+  await shot(page, '00-login-dark');
+});
 
 test('home', async ({ page }) => {
   await resetApp(page);
@@ -45,9 +51,9 @@ test('reporte de control', async ({ page }) => {
   await resetApp(page);
   await toDark(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'p001');
-  await scanCode(page, 'p002');
-  await scanCode(page, 'p016');
+  await scanCode(page, 'DC-01');
+  await scanCode(page, 'DC-02');
+  await scanCode(page, 'DC-33');
   await shot(page, '03-scanning');
   await page.click('[data-testid="finish-btn"]');
   await page.waitForSelector('[data-testid="report-verdict"]');
@@ -61,8 +67,8 @@ test('historial', async ({ page }) => {
   await resetApp(page);
   await toDark(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'p001');
-  await scanCode(page, 'p777');
+  await scanCode(page, 'DC-01');
+  await scanCode(page, 'DC-999');
   await page.click('[data-testid="finish-btn"]');
   await page.click('[data-testid="confirm-send-btn"]');
   await page.click('[data-testid="nav-history"]');

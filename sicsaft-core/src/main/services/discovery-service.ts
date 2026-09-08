@@ -1,6 +1,7 @@
 import { createSocket, type RemoteInfo, type Socket } from "node:dgram";
 import { registrar } from "./logger";
 import { obtenerIpLan, PUERTO_APP_QR } from "./lan-ip";
+import pkg from "../../../package.json";
 
 // Mejora 1 / RF-01 — Servicio de auto-descubrimiento en red local Wi-Fi / LAN vía broadcast UDP.
 // Permite que la app móvil Android (apk-aft) detecte automáticamente la URL del servidor
@@ -39,7 +40,7 @@ export function armarRespuestaDiscovery(
     hostname: "sicsaft.local",
     puerto: puertoApp,
     nombre: nombreOrg,
-    version: "1.0.0",
+    version: pkg.version,
   };
 }
 

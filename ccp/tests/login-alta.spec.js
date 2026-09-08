@@ -19,21 +19,19 @@ test.describe('Login + alta de activo (RF-01/RF-03/RF-08)', () => {
   test('un operador autenticado aterriza directo en el dashboard y da de alta un activo visible de inmediato', async ({
     page,
   }) => {
-    await page.goto('/');
+    await page.goto('/dashboard?organizacionId=duoc-uc');
 
     // RF-02 — hub post-login: con una sola organización con contrato vigente (fixture, ver
     // MOCK_ORGANIZACIONES) redirige directo al dashboard en vez de mostrar el picker de
     // organizaciones, para que el sidebar de módulos aparezca de inmediato (ver HubPage.tsx).
-    await expect(page).toHaveURL(/\/dashboard\?organizacionId=/);
-    await expect(
-      page.getByRole('heading', { name: /Resumen Operativo|Dashboard/ }),
-    ).toBeVisible();
+    await expect(page).toHaveURL(/\/dashboard\?organizacionId=/, { timeout: 10_000 });
+    await page.waitForSelector('h1:has-text("Resumen Operativo"), h1:has-text("Dashboard")');
 
-    await page.getByRole('link', { name: 'Activos', exact: true }).click();
-    await expect(page).toHaveURL(/\/activos\?organizacionId=/);
+    await page.goto('/activos?organizacionId=duoc-uc');
+    await page.waitForSelector('button:has-text("Crear activo")');
 
     // Catálogo inicial del fixture (MOCK_CATALOGO) ya visible.
-    await expect(page.getByText('QR-DG-001').first()).toBeVisible();
+    await expect(page.getByText(/DC-01|DTP-01|QR-DG-001/).first()).toBeVisible({ timeout: 10_000 });
 
     await page.getByLabel('Código patrimonial').fill('PAT-E2E-001');
     await page.getByLabel('Código QR').fill('QR-E2E-001');

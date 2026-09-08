@@ -46,8 +46,10 @@ export default function App() {
     <AppShell>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/wizard" element={<WizardPreviewPage />} />
         <Route path="/wizard-preview" element={<WizardPreviewPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
         <Route
           path="/"
           element={

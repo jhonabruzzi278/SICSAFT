@@ -23,6 +23,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isAuthenticated = oidcClient.isAuthenticated();
   const operatorName = isAuthenticated ? oidcClient.getCurrentOperatorDisplayName() : null;
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-svh bg-background flex flex-col justify-center">
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-svh bg-background">
       <AppBar
@@ -30,17 +38,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         actions={
           <>
             <ThemeToggle />
-            {isAuthenticated && (
-              <button
-                type="button"
-                onClick={handleLogout}
-                data-testid="logout-btn"
-                aria-label="Cerrar sesión"
-                className="flex size-9 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/15 active:bg-white/25"
-              >
-                <LogOutIcon className="size-5" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleLogout}
+              data-testid="logout-btn"
+              aria-label="Cerrar sesión"
+              className="flex size-9 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/15 active:bg-white/25"
+            >
+              <LogOutIcon className="size-5" />
+            </button>
           </>
         }
       />

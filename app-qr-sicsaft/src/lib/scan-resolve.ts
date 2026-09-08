@@ -30,7 +30,15 @@ export function resolveScannedProduct(
   session: SessionLocation,
   alreadyScanned: Set<string>,
 ): ScanResolution {
-  const code = rawCode.trim().toUpperCase();
+  let code = rawCode.trim().toUpperCase();
+
+  // Si viene como URL o URI (ej. https://.../DTP-01 o sicsaft://activo/DTP-01), extraer el identificador
+  if (code.includes('/')) {
+    const segments = code.split('/').filter(Boolean);
+    if (segments.length > 0) {
+      code = segments[segments.length - 1];
+    }
+  }
 
   if (!ASSET_CODE_PATTERN.test(code)) {
     return { category: 'invalid', name: code };
@@ -41,6 +49,17 @@ export function resolveScannedProduct(
   }
 
   let asset = catalog.find((a) => a.codigoQr === code);
+
+  // Tolerancia inteligente: si no matchea directo, intentar quitando prefijos como QR- o AFT-
+  if (!asset && /^(QR-|AFT-)/.test(code)) {
+    const stripped = code.replace(/^(QR-|AFT-)/, '');
+    const found = catalog.find((a) => a.codigoQr === stripped);
+    if (found) {
+      asset = found;
+      code = found.codigoQr;
+    }
+  }
+
   let matchedName: string | undefined = asset?.nombre;
 
   if (!asset) {

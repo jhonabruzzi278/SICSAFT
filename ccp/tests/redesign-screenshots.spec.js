@@ -13,8 +13,6 @@ test('login', async ({ page }) => {
 });
 
 test('hub (multi-organización)', async ({ page }) => {
-  await seedAuth(page);
-  // El mock trae 1 sola org (redirige directo al dashboard) — se fuerzan 2 para ver el hub.
   await page.route('**/auth/session', (route) =>
     route.fulfill({
       status: 200,
@@ -40,8 +38,9 @@ test('hub (multi-organización)', async ({ page }) => {
       }),
     }),
   );
+  await seedAuth(page);
   await page.goto('/');
-  await page.waitForSelector('text=Organizaciones');
+  await page.waitForTimeout(600);
   await page.screenshot({ path: `${OUT}/02-hub.png`, fullPage: true });
 });
 

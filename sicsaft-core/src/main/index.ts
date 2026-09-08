@@ -34,6 +34,7 @@ if (!obtuvoLockUnicaInstancia) {
 } else {
   app.on("second-instance", () => {
     if (!ventanaPrincipal) return;
+    if (!ventanaPrincipal.isVisible()) ventanaPrincipal.show();
     if (ventanaPrincipal.isMinimized()) ventanaPrincipal.restore();
     ventanaPrincipal.focus();
   });
@@ -112,7 +113,39 @@ function crearVentana(): BrowserWindow {
     },
   });
 
-  ventana.once("ready-to-show", () => ventana.show());
+  const mostrarVentana = (): void => {
+    if (!ventana.isDestroyed() && !ventana.isVisible()) {
+      ventana.show();
+      ventana.focus();
+    }
+  };
+
+  ventana.once("ready-to-show", mostrarVentana);
+
+  // Fallback de seguridad: si ready-to-show tarda por carga de recursos o primer render, mostrarla
+  setTimeout(mostrarVentana, 2500);
+
+  ventana.webContents.on(
+    "did-fail-load",
+    (_event, errorCode, errorDescription, validatedURL) => {
+      registrar(
+        "renderer",
+        `Fallo de carga (${errorCode}): ${errorDescription} - URL: ${validatedURL}`,
+      );
+    },
+  );
+
+  ventana.webContents.on(
+    "console-message",
+    (_event, level, message, line, sourceId) => {
+      if (level >= 2) {
+        registrar(
+          "renderer",
+          `[Nivel ${level}] ${message} (${sourceId}:${line})`,
+        );
+      }
+    },
+  );
 
   // electron-vite expone estas dos constantes global -- en dev apunta al servidor de Vite (HMR
   // real), en producción carga el HTML ya buildeado desde disco. Ninguna de las dos rutas usa

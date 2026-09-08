@@ -37,14 +37,14 @@ test('la pantalla de inicio muestra el resumen de operador/organización/área/u
   await expect(page.locator('[data-testid="session-summary"]')).toContainText('Operador Test');
   await expect(page.locator('[data-testid="session-summary"]')).toContainText('EMPRESA SUCHEL TROPICAL');
   // Muestra el nombre del área real (buildOrganizationTree, qr-connector.ts)
-  await expect(page.locator('[data-testid="session-summary"]')).toContainText('OFICINA DIRECTOR GENERAL');
-  await expect(page.locator('[data-testid="session-summary"]')).toContainText('Oficina Director General');
+  await expect(page.locator('[data-testid="session-summary"]')).toContainText('OFICINA DIRECTOR TECN.// PRODUCT.');
+  await expect(page.locator('[data-testid="session-summary"]')).toContainText('Oficinas Dirección & Deptos Técnicos');
 });
 
 test('el historial muestra los metadatos de la sesión y el estado de sincronización', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'QR-DG-001');
+  await scanCode(page, 'DTP-01');
   await page.click('[data-testid="finish-btn"]');
   await page.click('[data-testid="confirm-send-btn"]');
   await page.click('[data-testid="reset-btn"]');

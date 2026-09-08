@@ -1,5 +1,5 @@
 import { app } from "electron";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { ManagedProcess } from "./managed-process";
 
@@ -39,6 +39,27 @@ function rutaDatosPostgres(): string {
   return join(app.getPath("userData"), "postgres-data");
 }
 
+function limpiarStalePidSiExiste(dataDir: string): void {
+  const pidFile = join(dataDir, "postmaster.pid");
+  if (!existsSync(pidFile)) return;
+  try {
+    const raw = readFileSync(pidFile, "utf8");
+    const firstLine = raw.split(/\r?\n/)[0]?.trim();
+    const pid = Number.parseInt(firstLine ?? "", 10);
+    if (!Number.isNaN(pid)) {
+      try {
+        process.kill(pid, 0);
+      } catch {
+        unlinkSync(pidFile);
+      }
+    } else {
+      unlinkSync(pidFile);
+    }
+  } catch {
+    // Si falla la lectura o borrado, continuar para que Postgres intente su propio recovery
+  }
+}
+
 async function inicializarSiHaceFalta(binDir: string): Promise<void> {
   const dataDir = rutaDatosPostgres();
   if (existsSync(join(dataDir, "PG_VERSION"))) return; // ya inicializado en una corrida anterior
@@ -68,13 +89,15 @@ async function inicializarSiHaceFalta(binDir: string): Promise<void> {
 export async function crearPostgresService(): Promise<ManagedProcess> {
   const recursos = rutaRecursosPostgres();
   const binDir = join(recursos, "bin");
+  const dataDir = rutaDatosPostgres();
+  limpiarStalePidSiExiste(dataDir);
   await inicializarSiHaceFalta(binDir);
 
   return new ManagedProcess({
     command: join(binDir, "postgres.exe"),
     args: [
       "-D",
-      rutaDatosPostgres(),
+      dataDir,
       "-p",
       String(PUERTO_POSTGRES),
       "-c",

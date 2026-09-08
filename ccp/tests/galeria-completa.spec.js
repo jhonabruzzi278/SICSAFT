@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { seedAuth } from './helpers.js';
 
 // Suite de Capturas Visuales Completas de Alta Resolución (1440x900)
@@ -20,6 +20,7 @@ test.use({ viewport: { width: 1440, height: 900 } });
 test('01 - Wizard: Datos de Instalación y Organización', async ({ page }) => {
   await page.goto('/wizard-preview?paso=1');
   await page.waitForSelector('h1:has-text("Datos de esta instalación")');
+  await expect(page.getByRole('heading', { name: /datos de esta instalación/i })).toBeVisible();
   await page.screenshot({
     path: `${OUT}/01-wizard-paso-1-datos-organizacion.png`,
     fullPage: true,
@@ -31,6 +32,7 @@ test('02 - Wizard: Alta del Director y Contraseña Temporal', async ({
 }) => {
   await page.goto('/wizard-preview?paso=2');
   await page.waitForSelector('h1:has-text("Director dado de alta")');
+  await expect(page.getByRole('heading', { name: /director dado de alta/i })).toBeVisible();
   await page.screenshot({
     path: `${OUT}/02-wizard-paso-2-alta-director.png`,
     fullPage: true,
@@ -40,6 +42,7 @@ test('02 - Wizard: Alta del Director y Contraseña Temporal', async ({
 test('03 - Wizard: Alta del Profesional AFT', async ({ page }) => {
   await page.goto('/wizard-preview?paso=3');
   await page.waitForSelector('h1:has-text("Profesional de AFT dado de alta")');
+  await expect(page.getByRole('heading', { name: /profesional de aft dado de alta/i })).toBeVisible();
   await page.screenshot({
     path: `${OUT}/03-wizard-paso-3-alta-aft.png`,
     fullPage: true,
@@ -51,6 +54,7 @@ test('04 - Wizard: Instalación Completa con Acceso Móvil QR Dual', async ({
 }) => {
   await page.goto('/wizard-preview?paso=4');
   await page.waitForSelector('h1:has-text("Instalación completa")');
+  await expect(page.getByRole('heading', { name: /instalación completa/i })).toBeVisible();
   await page.waitForTimeout(400);
   await page.screenshot({
     path: `${OUT}/04-wizard-paso-4-instalacion-completa-qr.png`,
@@ -65,6 +69,7 @@ test('04 - Wizard: Instalación Completa con Acceso Móvil QR Dual', async ({
 test('05 - Login del Portal SICSAFT', async ({ page }) => {
   await page.goto('/login');
   await page.waitForSelector('button:has-text("Iniciar sesión")');
+  await expect(page.getByRole('button', { name: /iniciar sesión/i })).toBeVisible();
   await page.screenshot({
     path: `${OUT}/05-login-portal-sicsaft.png`,
     fullPage: true,
@@ -117,6 +122,7 @@ test('07 - CCP Resumen Operativo con Botón Destacado al CIP', async ({
   await seedAuth(page);
   await page.goto('/dashboard?organizacionId=duoc-uc');
   await page.waitForSelector('h1:has-text("Resumen Operativo")');
+  await expect(page.getByRole('heading', { name: /resumen operativo/i })).toBeVisible();
   await page.waitForTimeout(600);
   await page.screenshot({
     path: `${OUT}/07-ccp-resumen-operativo-boton-cip.png`,
@@ -129,11 +135,11 @@ test('08 - CIP Web Interactiva: 4 Stat Cards, Donut Chart y Bar Chart SVG', asyn
 }) => {
   await seedAuth(page);
   await page.goto('/cip?organizacionId=duoc-uc');
-  await page.waitForSelector('h1:has-text("Resumen Ejecutivo")');
+  await page.waitForSelector('text=CIP Analytics');
   await page.waitForTimeout(600);
   await page.screenshot({
     path: `${OUT}/08-cip-dashboard-categorias-svg.png`,
-    fullPage: false,
+    fullPage: true,
   });
 });
 
@@ -142,12 +148,7 @@ test('09 - CIP Web Interactiva: Activos Recientes y Matriz de Valor', async ({
 }) => {
   await seedAuth(page);
   await page.goto('/cip?organizacionId=duoc-uc');
-  await page.waitForSelector('text=Activos Recientes');
-  // Abrir la Matriz de Valor
-  const btnMatriz = page.locator('button:has-text("Matriz de Valor")');
-  if (await btnMatriz.isVisible()) {
-    await btnMatriz.click();
-  }
+  await page.waitForSelector('text=CIP Analytics');
   await page.waitForTimeout(600);
   await page.screenshot({
     path: `${OUT}/09-cip-activos-recientes-y-matriz-valor.png`,
@@ -163,6 +164,7 @@ test('10 - CCP: Catálogo de Activos Fijos', async ({ page }) => {
   await seedAuth(page);
   await page.goto('/activos?organizacionId=duoc-uc');
   await page.waitForSelector('button:has-text("Crear activo")');
+  await expect(page.getByText('DC-01').first()).toBeVisible();
   await page.waitForTimeout(500);
   await page.screenshot({
     path: `${OUT}/10-ccp-catalogo-activos.png`,
@@ -175,7 +177,7 @@ test('11 - CCP: Estructura Patrimonial (Áreas y Dependencias)', async ({
 }) => {
   await seedAuth(page);
   await page.goto('/estructura?organizacionId=duoc-uc');
-  await page.waitForSelector('text=Áreas');
+  await page.waitForSelector('button:has-text("Crear área"), button:has-text("Guardar"), h1');
   await page.waitForTimeout(500);
   await page.screenshot({
     path: `${OUT}/11-ccp-estructura-patrimonial.png`,
@@ -193,6 +195,9 @@ test('12 - Mejora 2: Etiquetas Masivas - Plantilla Avery 5160 (3x10)', async ({
   await seedAuth(page);
   await page.goto('/etiquetas?organizacionId=duoc-uc');
   await page.waitForSelector('text=Impresión Masiva de Etiquetas');
+  await expect(page.getByText('DC-01').first()).toBeVisible({ timeout: 10_000 });
+  const totalEtiquetas = await page.locator('img[alt*="QR"], .etiqueta-industrial, [data-testid="etiqueta-activo"]').count();
+  expect(totalEtiquetas).toBeGreaterThan(0);
   await page.waitForTimeout(600);
   await page.screenshot({
     path: `${OUT}/12-ccp-etiquetas-plantilla-avery.png`,
@@ -207,7 +212,10 @@ test('13 - Mejora 2: Etiquetas Masivas - Plantilla Tarjetas de Inventario (2x5)'
   await page.goto('/etiquetas?organizacionId=duoc-uc');
   await page.waitForSelector('button:has-text("Tarjetas 2×5")');
   await page.getByRole('button', { name: 'Tarjetas 2×5' }).click();
-  await page.waitForTimeout(400);
+  await expect(page.getByText('DC-01').first()).toBeVisible({ timeout: 10_000 });
+  const totalEtiquetas = await page.locator('img[alt*="QR"], .etiqueta-industrial, [data-testid="etiqueta-activo"]').count();
+  expect(totalEtiquetas).toBeGreaterThan(0);
+  await page.waitForTimeout(600);
   await page.screenshot({
     path: `${OUT}/13-ccp-etiquetas-plantilla-tarjetas.png`,
     fullPage: true,
@@ -221,7 +229,10 @@ test('14 - Mejora 2: Etiquetas Masivas - Plantilla Rollo Térmico (1x1)', async 
   await page.goto('/etiquetas?organizacionId=duoc-uc');
   await page.waitForSelector('button:has-text("Térmica 1×1")');
   await page.getByRole('button', { name: 'Térmica 1×1' }).click();
-  await page.waitForTimeout(400);
+  await expect(page.getByText('DC-01').first()).toBeVisible({ timeout: 10_000 });
+  const totalEtiquetas = await page.locator('img[alt*="QR"], .etiqueta-industrial, [data-testid="etiqueta-activo"]').count();
+  expect(totalEtiquetas).toBeGreaterThan(0);
+  await page.waitForTimeout(600);
   await page.screenshot({
     path: `${OUT}/14-ccp-etiquetas-plantilla-termica.png`,
     fullPage: true,
@@ -235,7 +246,10 @@ test('15 - Mejora 2: Etiquetas Masivas - Simulación de Hoja de Papel Troquelada
   await page.goto('/etiquetas?organizacionId=duoc-uc');
   await page.waitForSelector('button:has-text("Simular Papel")');
   await page.getByRole('button', { name: 'Simular Papel' }).click();
-  await page.waitForTimeout(400);
+  await expect(page.getByText('DC-01').first()).toBeVisible({ timeout: 10_000 });
+  const totalEtiquetas = await page.locator('img[alt*="QR"], .etiqueta-industrial, [data-testid="etiqueta-activo"]').count();
+  expect(totalEtiquetas).toBeGreaterThan(0);
+  await page.waitForTimeout(600);
   await page.screenshot({
     path: `${OUT}/15-ccp-etiquetas-simulacion-papel.png`,
     fullPage: true,

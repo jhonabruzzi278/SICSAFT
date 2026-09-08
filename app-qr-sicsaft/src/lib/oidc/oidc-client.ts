@@ -65,15 +65,51 @@ function tokensFromResponse(
 
 async function postTokenEndpoint(body: URLSearchParams): Promise<TokenResponse> {
   const config = loadOidcConfig();
-  const res = await fetch(endpointUrl(config.issuer, 'protocol/openid-connect/token'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  });
+  let res: Response;
+  try {
+    res = await fetch(endpointUrl(config.issuer, 'protocol/openid-connect/token'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+  } catch {
+    throw new Error('No se pudo conectar con el servidor de autenticación (Keycloak). Verifica que la app esté en la misma red Wi-Fi/LAN.');
+  }
+
   if (!res.ok) {
-    throw new Error(`Keycloak devolvió ${res.status} en /protocol/openid-connect/token`);
+    const errorBody = (await res.json().catch(() => null)) as {
+      error_description?: string;
+      error?: string;
+    } | null;
+    if (res.status === 400 || res.status === 401) {
+      if (
+        errorBody?.error_description === 'Invalid user credentials' ||
+        errorBody?.error === 'invalid_grant'
+      ) {
+        throw new Error('Usuario o contraseña incorrectos.');
+      }
+    }
+    throw new Error(errorBody?.error_description || `Error de autenticación (${res.status})`);
   }
   return (await res.json()) as TokenResponse;
+}
+
+// Login directo dentro de la app (ROPC / Direct Grant) — evita redirecciones externas al navegador
+async function loginDirect(username: string, password: string): Promise<StoredTokens> {
+  const config = loadOidcConfig();
+  const tokens = tokensFromResponse(
+    await postTokenEndpoint(
+      new URLSearchParams({
+        grant_type: 'password',
+        client_id: config.clientId,
+        username,
+        password,
+        scope: OIDC_SCOPE,
+      }),
+    ),
+  );
+  saveTokens(tokens);
+  return tokens;
 }
 
 // Redirige a Keycloak — se llama desde un gesto explícito del operador (botón), no automático,
@@ -186,6 +222,7 @@ function logout(): void {
 }
 
 export const oidcClient = {
+  loginDirect,
   startLogin,
   handleCallback,
   getValidAccessToken,

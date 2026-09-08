@@ -317,7 +317,7 @@ async function crearClientPublico(
     publicClient: true,
     standardFlowEnabled: true,
     implicitFlowEnabled: false,
-    directAccessGrantsEnabled: false,
+    directAccessGrantsEnabled: true,
     serviceAccountsEnabled: false,
     redirectUris: [`${origen}/auth/callback`],
     webOrigins: [origen],
@@ -421,6 +421,7 @@ export async function reconfigurarClientAppQr(
     (cliente.attributes as Record<string, unknown> | undefined) ?? {};
   await adminApi(token, "PUT", `/clients/${cliente.id}`, {
     ...cliente,
+    directAccessGrantsEnabled: true,
     redirectUris: [`${nuevoOrigenAppQr}/auth/callback`],
     webOrigins: [nuevoOrigenAppQr],
     attributes: {

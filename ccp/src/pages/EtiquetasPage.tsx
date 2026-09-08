@@ -86,7 +86,7 @@ export function EtiquetasPage() {
   const gruposCompletos = useMemo(() => {
     if (!catalogo) return [];
     const filtrados = soloActivos
-      ? catalogo.filter((a) => a.estado === 'activo')
+      ? catalogo.filter((a) => a.estado?.toLowerCase() === 'activo')
       : catalogo;
     return agruparParaEtiquetas(filtrados, areas);
   }, [catalogo, areas, soloActivos]);

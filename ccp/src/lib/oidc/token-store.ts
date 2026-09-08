@@ -13,11 +13,24 @@ export interface StoredTokens {
 }
 
 export function saveTokens(tokens: StoredTokens): void {
+  try {
+    localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
+  } catch {
+    // fallback si localStorage no está disponible
+  }
   sessionStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
 }
 
 export function loadTokens(): StoredTokens | null {
-  const raw = sessionStorage.getItem(TOKENS_KEY);
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(TOKENS_KEY);
+  } catch {
+    // fallback
+  }
+  if (!raw) {
+    raw = sessionStorage.getItem(TOKENS_KEY);
+  }
   if (!raw) return null;
   try {
     return JSON.parse(raw) as StoredTokens;
@@ -27,6 +40,11 @@ export function loadTokens(): StoredTokens | null {
 }
 
 export function clearTokens(): void {
+  try {
+    localStorage.removeItem(TOKENS_KEY);
+  } catch {
+    // fallback
+  }
   sessionStorage.removeItem(TOKENS_KEY);
 }
 

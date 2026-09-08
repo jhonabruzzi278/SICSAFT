@@ -199,11 +199,35 @@ export function DropzoneImportacionExcel({
         <Button
           variant="secondary"
           onClick={descargarEjemplo}
-          className="text-xs"
+          className="flex items-center gap-2 !py-1.5 text-xs font-medium"
         >
           <IconFileText /> Descargar Plantilla Modelo
         </Button>
       </div>
+
+      {/* Banner de arquitectura: Motor ETL Python (DOC-029 RF-B.6.2) */}
+      <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 text-xs text-text shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 font-bold text-accent-strong">
+              <span>🐍 Motor de Ingesta Contable (Sidecar Python ETL)</span>
+              <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-mono text-accent-strong border border-accent/40">
+                etl_contable.py
+              </span>
+            </div>
+            <p className="text-text-dim text-[11px] leading-relaxed">
+              La ingesta oficial de planillas Excel (.xlsx) se procesa mediante el sidecar Python con <code className="font-mono text-accent">pandas</code> y <code className="font-mono text-accent">openpyxl</code>, garantizando la normalización automática de áreas, valores contables en CLP y códigos patrimoniales.
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-accent/20 pt-2 text-[11px]">
+          <span className="text-text-dim font-medium">Ejecución directa por CLI:</span>
+          <code className="rounded bg-bg-card px-2 py-0.5 font-mono text-accent border border-border">
+            .\sicsaft.ps1 cargar-excel CU-PAT-DIRECCION-COMERCIAL-completo.xlsx
+          </code>
+        </div>
+      </div>
+
 
       {/* Zona Drag & Drop */}
       <div

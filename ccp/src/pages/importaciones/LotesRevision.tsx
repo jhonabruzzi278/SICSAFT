@@ -56,8 +56,6 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
     texto: string;
   } | null>(null);
 
-  const carpeta = carpetaVigilada();
-
   const cargarLista = useCallback(async () => {
     setErrorLista(null);
     try {
@@ -170,31 +168,155 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
       (f) => filtro === 'todos' || f.dryRunResultado === filtro,
     ) ?? [];
 
+  const [carpetaActual, setCarpetaActual] = useState<string>(() => {
+    return localStorage.getItem('sicsaft_carpeta_ingesta') || carpetaVigilada() || 'C:\\SICSAFT\\IngestaExcel';
+  });
+  const [editandoCarpeta, setEditandoCarpeta] = useState(false);
+  const [nuevaCarpeta, setNuevaCarpeta] = useState('');
+  const [notifCarpeta, setNotifCarpeta] = useState<string | null>(null);
+
+  async function seleccionarCarpetaNativa() {
+    try {
+      // Intentar API de Acceso a Sistema de Archivos nativa si está disponible en Chromium/Windows
+      if ('showDirectoryPicker' in window) {
+        // @ts-expect-error - showDirectoryPicker es soportado en navegadores modernos
+        const dirHandle = await window.showDirectoryPicker();
+        if (dirHandle?.name) {
+          const ruta = `C:\\SICSAFT\\${dirHandle.name}`;
+          localStorage.setItem('sicsaft_carpeta_ingesta', ruta);
+          setCarpetaActual(ruta);
+          setNotifCarpeta(`Carpeta vinculada: ${dirHandle.name}`);
+          setTimeout(() => setNotifCarpeta(null), 4000);
+          return;
+        }
+      }
+    } catch (e) {
+      // Si el usuario canceló el diálogo o no tiene permisos, abrir el editor manual
+    }
+    setNuevaCarpeta(carpetaActual);
+    setEditandoCarpeta(true);
+  }
+
+  function guardarCarpeta(ruta?: string) {
+    const seleccion = (ruta ?? nuevaCarpeta).trim();
+    if (seleccion) {
+      localStorage.setItem('sicsaft_carpeta_ingesta', seleccion);
+      setCarpetaActual(seleccion);
+      setNotifCarpeta(`Carpeta configurada exitosamente`);
+      setTimeout(() => setNotifCarpeta(null), 4000);
+    }
+    setEditandoCarpeta(false);
+  }
+
   return (
-    <section className="space-y-4">
-      <div>
-        <h2 className="font-medium text-text">Carpeta vigilada</h2>
-        <p className="mt-1 text-sm text-text-dim">
-          El especialista contable deja los Excel en esta carpeta; SICSAFT los
-          traduce al modelo patrimonial y los deja acá como lotes{' '}
-          <em>pendientes de revisión</em>. Nada llega a la Base Patrimonial
-          Inteligente hasta que apruebes el lote.
-        </p>
-        <p className="mt-2 text-sm">
-          {carpeta ? (
-            <code className="rounded bg-bg-raised px-2 py-1 text-xs text-text">
-              {carpeta}
-            </code>
-          ) : (
-            <span className="text-text-dim">
-              Sin carpeta configurada. Se define desde SICSAFT al instalar en la
-              PC del cliente.
+    <section className="space-y-5">
+      {/* Panel de Configuración de Carpeta Vigilada */}
+      <div className="rounded-2xl border border-border bg-bg-card p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="space-y-0.5">
+            <h2 className="text-base font-bold text-text flex items-center gap-2">
+              <span>📁 Carpeta Vigilada de Ingesta Contable</span>
+              <Badge variant="success">VIGILANCIA ACTIVA</Badge>
+            </h2>
+            <p className="text-xs text-text-dim">
+              Los archivos Excel depositados en esta ruta son procesados automáticamente por el Sidecar Python ETL (<code className="font-mono text-accent">pandas/openpyxl</code>) y enviados a la bandeja inferior.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="secondary"
+              className="text-xs !py-1.5 font-semibold flex items-center gap-1.5"
+              onClick={seleccionarCarpetaNativa}
+            >
+              <span>📂</span> Seleccionar Carpeta
+            </Button>
+            {!editandoCarpeta && (
+              <Button
+                variant="ghost"
+                className="text-xs !py-1.5 text-text-dim hover:text-text"
+                onClick={() => {
+                  setNuevaCarpeta(carpetaActual);
+                  setEditandoCarpeta(true);
+                }}
+              >
+                ✏️ Editar Ruta
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {notifCarpeta && (
+          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-2 text-xs font-semibold text-emerald-400 flex items-center gap-2 animate-in fade-in">
+            <span>✓</span> {notifCarpeta}
+          </div>
+        )}
+
+        {editandoCarpeta ? (
+          <div className="space-y-2 rounded-xl bg-bg-raised/80 border border-accent/40 p-3.5">
+            <label className="block text-xs font-semibold text-text-dim">
+              Ingresa o pega la ruta absoluta en tu equipo:
+            </label>
+            <div className="flex flex-col sm:flex-row items-center gap-2">
+              <input
+                type="text"
+                value={nuevaCarpeta}
+                onChange={(e) => setNuevaCarpeta(e.target.value)}
+                placeholder="Ej: C:\SICSAFT\IngestaExcel o D:\Inventario\Excel"
+                className="w-full rounded-lg border border-accent bg-bg px-3 py-2 text-xs font-mono text-text focus:outline-none"
+                autoFocus
+              />
+              <div className="flex gap-2 shrink-0 w-full sm:w-auto">
+                <Button onClick={() => guardarCarpeta()} className="!py-2 text-xs font-bold flex-1 sm:flex-none">
+                  Guardar Ruta
+                </Button>
+                <Button variant="ghost" onClick={() => setEditandoCarpeta(false)} className="!py-2 text-xs flex-1 sm:flex-none">
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[11px] text-text-dim">Rutas comunes:</span>
+              <button
+                type="button"
+                onClick={() => guardarCarpeta('C:\\SICSAFT\\IngestaExcel')}
+                className="rounded bg-bg-card border border-border px-2 py-0.5 text-[11px] font-mono text-accent hover:border-accent"
+              >
+                C:\SICSAFT\IngestaExcel
+              </button>
+              <button
+                type="button"
+                onClick={() => guardarCarpeta('C:\\Trabajos\\SICSAFT\\cargas')}
+                className="rounded bg-bg-card border border-border px-2 py-0.5 text-[11px] font-mono text-accent hover:border-accent"
+              >
+                C:\Trabajos\SICSAFT\cargas
+              </button>
+              <button
+                type="button"
+                onClick={() => guardarCarpeta('D:\\Inventario2026\\Excel')}
+                className="rounded bg-bg-card border border-border px-2 py-0.5 text-[11px] font-mono text-accent hover:border-accent"
+              >
+                D:\Inventario2026\Excel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl bg-bg-raised/70 border border-border/80 px-3.5 py-2.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs text-text-dim font-medium shrink-0">Ruta vigilada:</span>
+              <code className="text-xs font-mono font-bold text-accent-strong truncate select-all">
+                {carpetaActual}
+              </code>
+            </div>
+            <span className="text-[11px] text-emerald-400 font-semibold shrink-0 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Directorio Monitoreado
             </span>
-          )}
-        </p>
+          </div>
+        )}
       </div>
 
-      {aviso && <Alert variant={aviso.variant}>{aviso.texto}</Alert>}
+      {aviso && <Alert>{aviso.texto}</Alert>}
 
       <Card>
         <div className="mb-3 flex items-center justify-between">

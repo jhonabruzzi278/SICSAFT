@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createSocket } from "node:dgram";
+import pkg from "../../../package.json";
 import {
   armarRespuestaDiscovery,
   COMANDO_PING,
@@ -20,7 +21,7 @@ describe("discovery-service", () => {
       ip: "192.168.1.50",
       puerto: 8765,
       nombre: "DUOC UC Melipilla",
-      version: "1.0.0",
+      version: pkg.version,
     });
   });
 

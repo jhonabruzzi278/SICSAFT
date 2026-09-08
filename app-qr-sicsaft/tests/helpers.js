@@ -20,10 +20,11 @@ export async function seedAuth(page, { operator = 'Operador Test' } = {}) {
 
   await page.addInitScript(
     ([token, exp]) => {
-      sessionStorage.setItem(
-        'qrvault-oidc-tokens',
-        JSON.stringify({ accessToken: token, refreshToken: 'mock-refresh-token', expiresAt: exp }),
-      );
+      const data = JSON.stringify({ accessToken: token, refreshToken: 'mock-refresh-token', expiresAt: exp });
+      try {
+        localStorage.setItem('qrvault-oidc-tokens', data);
+      } catch {}
+      sessionStorage.setItem('qrvault-oidc-tokens', data);
     },
     [fakeJwt, expiresAt],
   );

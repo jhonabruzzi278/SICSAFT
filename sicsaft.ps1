@@ -1,6 +1,6 @@
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("check", "sync", "release", "version", "linear", "install-hooks", "help")]
+    [ValidateSet("check", "sync", "release", "version", "linear", "install-hooks", "cargar-excel", "reset-cero", "help")]
     [string]$Comando = "help",
 
     [Parameter(Position = 1)]
@@ -18,6 +18,21 @@ function Mostrar-Banner {
     Write-Host "============================================================" -ForegroundColor Cyan
     Write-Host ""
 }
+
+function Limpiar-Todo-Cero {
+    Mostrar-Banner
+    node "$RootDir\herramientas\limpiar-datos-cero.mjs"
+}
+
+function Cargar-Excel-Demo {
+    param([string]$Archivo)
+    Mostrar-Banner
+    if (-not $Archivo) {
+        $Archivo = "CU-PAT-DIRECCION-COMERCIAL-completo.xlsx"
+    }
+    node "$RootDir\herramientas\sincronizar-demo-excel.mjs" $Archivo
+}
+
 
 function Ejecutar-Check {
     Mostrar-Banner
@@ -134,6 +149,10 @@ if ($Comando -eq "check") {
     node "$RootDir\herramientas\revision-codigo\linear-sync.mjs" --team-key JON --apply
 } elseif ($Comando -eq "install-hooks") {
     Instalar-GitHooks
+} elseif ($Comando -eq "cargar-excel") {
+    Cargar-Excel-Demo $Param1
+} elseif ($Comando -eq "reset-cero") {
+    Limpiar-Todo-Cero
 } else {
     Mostrar-Banner
     Write-Host "Comandos disponibles:" -ForegroundColor Cyan
@@ -143,5 +162,8 @@ if ($Comando -eq "check") {
     Write-Host "  .\sicsaft.ps1 release minor  - Sube version minor, actualiza changelog, crea tag y sincroniza Linear"
     Write-Host "  .\sicsaft.ps1 install-hooks  - Instala Git Hooks automaticos para pre-commit y commit-msg"
     Write-Host "  .\sicsaft.ps1 linear         - Sincronizacion directa con Linear"
+    Write-Host "  .\sicsaft.ps1 cargar-excel   - Sincroniza los portales y app QR con un Excel (ej. CU-PAT-DIRECCION-COMERCIAL-completo.xlsx)"
+    Write-Host "  .\sicsaft.ps1 reset-cero     - Vacia todos los datos y deja el sistema 100% limpio desde cero"
     Write-Host ""
 }
+

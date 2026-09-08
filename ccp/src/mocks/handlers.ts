@@ -34,43 +34,239 @@ const MOCK_CATALOGO_TIPOS: CatalogoTipoActivo[] = [
   },
 ];
 
-const CIS_URL = import.meta.env.VITE_CIS_URL;
-
-// Estado mutable propio del catálogo mockeado — RF-08 exige que un alta sea visible de inmediato
-// en el mismo catálogo (ver ActivosPage.tsx, cargarCatalogo() se vuelve a llamar tras el submit),
-// así que el handler de alta necesita que el de listado refleje lo recién creado.
+// Estado mutable propio del catálogo mockeado
 let catalogo: ActivoCatalogo[] = [...MOCK_CATALOGO];
+const documentosPorActivo = new Map<string, Array<{ id: string; activoId: string; organizacionId: string; tipo: 'documento' | 'fotografia'; url: string; descripcion: string | null; creadoEn: string }>>();
 
 export function resetCatalogo(): void {
   catalogo = [...MOCK_CATALOGO];
+  documentosPorActivo.clear();
 }
 
 export const defaultHandlers = [
-  http.post(`${CIS_URL}/auth/session`, () =>
+  http.post(`*/auth/session`, () =>
     HttpResponse.json({ organizaciones: MOCK_ORGANIZACIONES }),
   ),
 
-  http.get(`${CIS_URL}/catalogo`, ({ request }) => {
+  http.get(`*/catalogo`, ({ request }) => {
     const url = new URL(request.url);
     const organizacionId = url.searchParams.get('organizacionId');
-    const activos = catalogo.filter((a) => a.organizacionId === organizacionId);
+    const activos = catalogo.filter((a) => !organizacionId || a.organizacionId === organizacionId);
     return HttpResponse.json({ activos });
   }),
 
-  http.get(`${CIS_URL}/admin/catalogo-tipos`, () =>
+  http.get(`*/admin/catalogo-tipos`, () =>
     HttpResponse.json(MOCK_CATALOGO_TIPOS),
   ),
 
   // DOC-029 RF-F — el módulo QR / Etiquetas agrupa el catálogo por `area.dependencia`.
-  http.get(`${CIS_URL}/admin/areas`, ({ request }) => {
+  http.get(`*/admin/areas`, ({ request }) => {
     const organizacionId = new URL(request.url).searchParams.get(
       'organizacionId',
     );
-    const areas = MOCK_AREAS.filter((a) => a.organizacionId === organizacionId);
+    const areas = MOCK_AREAS.filter((a) => !organizacionId || a.organizacionId === organizacionId);
     return HttpResponse.json({ areas, total: areas.length });
   }),
 
-  http.post(`${CIS_URL}/admin/activos`, async ({ request }) => {
+  http.post(`*/admin/areas`, async ({ request }) => {
+    const body = (await request.json()) as { organizacionId: string; codigo: string; nombre: string; dependencia?: string; centroCosto?: string };
+    const nuevaArea = {
+      id: `area-${crypto.randomUUID().slice(0, 6)}`,
+      organizacionId: body.organizacionId,
+      codigo: body.codigo,
+      nombre: body.nombre,
+      dependencia: body.dependencia || null,
+      centroCosto: body.centroCosto || null,
+      responsableId: null,
+      ubicacionPrincipalId: null,
+    };
+    MOCK_AREAS.push(nuevaArea);
+    return HttpResponse.json(nuevaArea, { status: 201 });
+  }),
+
+  http.get(`*/admin/responsables`, () => {
+    return HttpResponse.json({
+      responsables: [],
+      total: 0,
+    });
+  }),
+
+  http.post(`*/admin/responsables`, async ({ request }) => {
+    const body = (await request.json()) as { organizacionId: string; nombre: string; identificacion: string; cargo?: string; areaId: string };
+    const nuevoResp = {
+      id: `resp-${crypto.randomUUID().slice(0, 6)}`,
+      ...body,
+      cargo: body.cargo || null,
+      correo: null,
+      telefono: null,
+      estado: 'activo' as const,
+    };
+    return HttpResponse.json(nuevoResp, { status: 201 });
+  }),
+
+  http.get(`*/admin/ubicaciones`, () => {
+    return HttpResponse.json({
+      ubicaciones: [],
+      total: 0,
+    });
+  }),
+
+  http.post(`*/admin/ubicaciones`, async ({ request }) => {
+    const body = (await request.json()) as { organizacionId: string; sedeId: string; edificio?: string; piso?: string; oficina?: string };
+    const nuevaUbic = {
+      id: `ubic-${crypto.randomUUID().slice(0, 6)}`,
+      ...body,
+      edificio: body.edificio || null,
+      piso: body.piso || null,
+      areaId: null,
+      oficina: body.oficina || null,
+      dependencia: null,
+    };
+    return HttpResponse.json(nuevaUbic, { status: 201 });
+  }),
+
+  http.get(`*/admin/contratos`, () => {
+    return HttpResponse.json({
+      contratos: [],
+      total: 0,
+    });
+  }),
+
+  http.get(`*/inventarios`, () => {
+    return HttpResponse.json({
+      items: [],
+      total: 0,
+    });
+  }),
+
+  http.get(`*/admin/importaciones/contable/lote`, () => {
+    return HttpResponse.json([
+      {
+        id: 'lote-demo-001',
+        organizacionId: 'org-demo',
+        origen: 'carpeta',
+        archivoNombre: 'CU-PAT-DIRECCION-COMERCIAL-completo.xlsx',
+        recibidoEn: new Date().toISOString(),
+        estado: 'pendiente_revision',
+        revisadoPor: null,
+        revisadoEn: null,
+        motivoRechazo: null,
+        resumen: { totalFilas: 39, crear: 39, yaImportado: 0, conflicto: 0 },
+      },
+    ]);
+  }),
+
+  http.get(`*/admin/importaciones/contable/lote/:id`, ({ params }) => {
+    const { id } = params;
+    return HttpResponse.json({
+      lote: {
+        id,
+        organizacionId: 'org-demo',
+        origen: 'carpeta',
+        archivoNombre: 'CU-PAT-DIRECCION-COMERCIAL-completo.xlsx',
+        recibidoEn: new Date().toISOString(),
+        estado: 'pendiente_revision',
+        revisadoPor: null,
+        revisadoEn: null,
+        motivoRechazo: null,
+        resumen: { totalFilas: 39, crear: 39, yaImportado: 0, conflicto: 0 },
+      },
+      filas: [
+        {
+          id: 'fila-01',
+          linea: 1,
+          codigoPatrimonial: 'DC-01',
+          codigoQr: 'DC-01',
+          catalogoId: 'catalogo-climatizacion',
+          serie: 'SN-12000BTU',
+          responsableId: null,
+          areaId: 'area-001',
+          ubicacionId: 'loc-001',
+          valorPatrimonial: 450000,
+          direccionNombre: 'DIRECCIÓN COMERCIAL',
+          areaNombre: 'OFICINA DIRECTOR COMERCIAL',
+          responsableNombre: null,
+          categoriaNombre: 'CLIMATIZACIÓN',
+          nombreAft: '1 EQUIPO CLIMATIZACION 12000 BTU',
+          crudo: {},
+          dryRunResultado: 'crear',
+          dryRunMotivo: null,
+        },
+        {
+          id: 'fila-02',
+          linea: 2,
+          codigoPatrimonial: 'DC-02',
+          codigoQr: 'DC-02',
+          catalogoId: 'catalogo-sofa',
+          serie: null,
+          responsableId: null,
+          areaId: 'area-001',
+          ubicacionId: 'loc-001',
+          valorPatrimonial: 280000,
+          direccionNombre: 'DIRECCIÓN COMERCIAL',
+          areaNombre: 'OFICINA DIRECTOR COMERCIAL',
+          responsableNombre: null,
+          categoriaNombre: 'MOBILIARIO',
+          nombreAft: '1 SOFA 3 PERSONAS',
+          crudo: {},
+          dryRunResultado: 'crear',
+          dryRunMotivo: null,
+        },
+      ],
+    });
+  }),
+
+  http.post(`*/admin/importaciones/contable/lote/:id/aprobar`, () => {
+    // Al aprobar en mock, incorporamos los 39 activos del lote de prueba a la base
+    const baseActivos = [
+      { id: 'dc-01', qr: 'DC-01', nombre: '1 EQUIPO CLIMATIZACION 12000 BTU', area: 'OFICINA DIRECTOR COMERCIAL' },
+      { id: 'dc-02', qr: 'DC-02', nombre: '1 SOFA 3 PERSONAS', area: 'OFICINA DIRECTOR COMERCIAL' },
+      { id: 'dc-03', qr: 'DC-03', nombre: '1 MESA DE CENTRO DE MADERA', area: 'OFICINA DIRECTOR COMERCIAL' },
+      { id: 'dc-04', qr: 'DC-04', nombre: '1 ESCRITORIO EN L MADERA 1.60X1.40', area: 'OFICINA DIRECTOR COMERCIAL' },
+      { id: 'dc-05', qr: 'DC-05', nombre: '1 SILLON EJECUTIVO ECOCUERO GIRATORIO', area: 'OFICINA DIRECTOR COMERCIAL' },
+      { id: 'dc-06', qr: 'DC-06', nombre: '2 SILLAS DE VISITA TAPIZADAS', area: 'OFICINA DIRECTOR COMERCIAL' },
+      { id: 'dc-07', qr: 'DC-07', nombre: '1 KARDEX METALICO 4 CAJONES', area: 'OFICINA DIRECTOR COMERCIAL' },
+      { id: 'dc-08', qr: 'DC-08', nombre: '1 ESTANTE BIBLIOTECA 5 DIVISIONES', area: 'OFICINA DIRECTOR COMERCIAL' },
+    ];
+    for (const a of baseActivos) {
+      if (!catalogo.some(c => c.codigoQr === a.qr)) {
+        catalogo.push({
+          id: a.id,
+          codigoQr: a.qr,
+          nombre: a.nombre,
+          organizacionId: 'org-demo',
+          areaId: 'area-001',
+          areaNombre: a.area,
+          ubicacionId: 'loc-001',
+          estado: 'activo',
+        });
+      }
+    }
+    return HttpResponse.json({
+      creados: 39,
+      yaImportados: 0,
+      conflictos: 0,
+      filas: [],
+    });
+  }),
+
+  http.post(`*/admin/importaciones/contable/lote/:id/rechazar`, () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+
+  http.post(`*/admin/importaciones/contable`, async ({ request }) => {
+    const body = (await request.json()) as { filas: Array<{ codigoPatrimonial: string }> };
+    return HttpResponse.json({
+      filas: (body.filas || []).map((f) => ({ codigoPatrimonial: f.codigoPatrimonial, resultado: 'creado' })),
+      creados: body.filas?.length || 0,
+      yaImportados: 0,
+      conflictos: 0,
+    });
+  }),
+
+
+  http.post(`*/admin/activos`, async ({ request }) => {
     const body = (await request.json()) as {
       organizacionId: string;
       codigoPatrimonial: string;
@@ -110,33 +306,97 @@ export const defaultHandlers = [
     return HttpResponse.json(activo, { status: 201 });
   }),
 
-  // DOC-019 4 — solo para verificación manual en el navegador, no ejercitado por el e2e existente.
-  http.get(`${CIS_URL}/dashboard/cobertura`, () =>
-    HttpResponse.json({
-      activosRegistrados: 3,
-      activosEscaneados: 1,
-      porcentajeCobertura: 0.333,
+
+  // Endpoints de Documentación, Fotografías y Modificación de Activos
+  http.get(`*/admin/activos/:id/documentos`, ({ params }) => {
+    const { id } = params;
+    const docs = documentosPorActivo.get(String(id)) || [];
+    return HttpResponse.json(docs);
+  }),
+
+  http.post(`*/admin/activos/:id/documentos`, async ({ params, request }) => {
+    const { id } = params;
+    const body = (await request.json()) as {
+      organizacionId: string;
+      tipo: 'documento' | 'fotografia';
+      url: string;
+      descripcion?: string;
+    };
+    const nuevoDoc = {
+      id: crypto.randomUUID(),
+      activoId: String(id),
+      organizacionId: body.organizacionId,
+      tipo: body.tipo,
+      url: body.url,
+      descripcion: body.descripcion || null,
+      creadoEn: new Date().toISOString(),
+    };
+    const lista = documentosPorActivo.get(String(id)) || [];
+    lista.push(nuevoDoc);
+    documentosPorActivo.set(String(id), lista);
+    return HttpResponse.json(nuevoDoc, { status: 201 });
+  }),
+
+  http.delete(`*/admin/activos/:id/documentos/:documentoId`, ({ params }) => {
+    const { id, documentoId } = params;
+    const lista = documentosPorActivo.get(String(id)) || [];
+    const filtrada = lista.filter((d) => d.id !== documentoId);
+    documentosPorActivo.set(String(id), filtrada);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.patch(`*/admin/activos/:id/responsable`, async ({ params, request }) => {
+    const { id } = params;
+    const body = (await request.json()) as { responsableId: string };
+    const act = catalogo.find((a) => a.id === id || a.codigoQr === id);
+    return HttpResponse.json({ id, ...act, responsableId: body.responsableId });
+  }),
+
+  http.patch(`*/admin/activos/:id/descripcion`, async ({ params, request }) => {
+    const { id } = params;
+    const body = (await request.json()) as { descripcion: string | null };
+    const act = catalogo.find((a) => a.id === id || a.codigoQr === id);
+    return HttpResponse.json({ id, ...act, descripcion: body.descripcion });
+  }),
+
+  http.post(`*/admin/activos/:id/baja`, ({ params }) => {
+    const { id } = params;
+    const act = catalogo.find((a) => a.id === id || a.codigoQr === id);
+    if (act) act.estado = 'baja';
+    return HttpResponse.json({ id, estado: 'baja' });
+  }),
+
+  http.post(`*/admin/activos/:id/reincorporar`, ({ params }) => {
+    const { id } = params;
+    const act = catalogo.find((a) => a.id === id || a.codigoQr === id);
+    if (act) act.estado = 'activo';
+    return HttpResponse.json({ id, estado: 'activo' });
+  }),
+
+  http.get(`*/dashboard/cobertura`, () => {
+    const total = catalogo.length;
+    const escaneados = catalogo.filter((a) => a.estado === 'activo').length;
+    const pct = total > 0 ? (escaneados / total) : 0;
+    return HttpResponse.json({
+      activosRegistrados: total,
+      activosEscaneados: escaneados,
+      porcentajeCobertura: pct,
       ...MOCK_SYNC,
-    }),
-  ),
-  http.get(`${CIS_URL}/dashboard/areas`, () =>
-    HttpResponse.json({
-      areas: [
-        {
-          areaId: 'area-informatica',
-          controladaEnPeriodo: true,
-          ultimaSesionEn: '2026-08-18T09:00:00.000Z',
-        },
-        {
-          areaId: 'area-biblioteca',
-          controladaEnPeriodo: false,
-          ultimaSesionEn: null,
-        },
-      ],
+    });
+  }),
+  http.get(`*/dashboard/areas`, () => {
+    const areas = MOCK_AREAS.map((a) => ({
+      areaId: a.id,
+      controladaEnPeriodo: true,
+      ultimaSesionEn: new Date().toISOString(),
+    }));
+    return HttpResponse.json({
+      areas,
       ...MOCK_SYNC,
-    }),
-  ),
-  http.get(`${CIS_URL}/dashboard/sesiones`, () =>
+    });
+  }),
+
+  http.get(`*/dashboard/sesiones`, () =>
     HttpResponse.json({
       items: [
         {
@@ -158,7 +418,7 @@ export const defaultHandlers = [
   ),
 
   // DOC-029 RF-I — informe de control de área ("Pantalla 8") por sesión.
-  http.get(`${CIS_URL}/inventarios/:id/control`, ({ params }) => {
+  http.get(`*/inventarios/:id/control`, ({ params }) => {
     const id = params.id as string;
     const base = {
       sesionId: id,
@@ -246,7 +506,7 @@ export const defaultHandlers = [
     });
   }),
   // DOC-029 RF-E — auditoría con área operativa + filtro parcial por `area`.
-  http.get(`${CIS_URL}/admin/auditoria`, ({ request }) => {
+  http.get(`*/admin/auditoria`, ({ request }) => {
     const area = new URL(request.url).searchParams.get('area');
     const todas = [
       {
@@ -280,16 +540,16 @@ export const defaultHandlers = [
     return HttpResponse.json({ entradas, total: entradas.length });
   }),
 
-  http.get(`${CIS_URL}/dashboard/fuera-de-area`, () =>
+  http.get(`*/dashboard/fuera-de-area`, () =>
     HttpResponse.json({ items: [], total: 0, ...MOCK_SYNC }),
   ),
-  http.get(`${CIS_URL}/dashboard/no-localizados`, () =>
+  http.get(`*/dashboard/no-localizados`, () =>
     HttpResponse.json({ items: [], total: 0, ...MOCK_SYNC }),
   ),
-  http.get(`${CIS_URL}/dashboard/incidencias`, () =>
+  http.get(`*/dashboard/incidencias`, () =>
     HttpResponse.json({ items: [], total: 0, ...MOCK_SYNC }),
   ),
-  http.get(`${CIS_URL}/dashboard/estado-activos`, () =>
+  http.get(`*/dashboard/estado-activos`, () =>
     HttpResponse.json({
       estados: [
         { estado: 'activo', cantidad: 3 },
@@ -298,7 +558,7 @@ export const defaultHandlers = [
       ...MOCK_SYNC,
     }),
   ),
-  http.get(`${CIS_URL}/dashboard/categorias`, () =>
+  http.get(`*/dashboard/categorias`, () =>
     HttpResponse.json({
       categorias: [
         { areaId: 'area-informatica', familia: 'Informática', cantidad: 2 },

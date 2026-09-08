@@ -9,13 +9,14 @@ if (!rootEl) throw new Error('#root element not found');
 
 // Modo mock (e2e con MSW, ver src/mocks/) — arranca el Service Worker antes de renderizar para
 // que ningun fetch salga sin ser interceptado, mismo criterio que
-// app-qr-sicsaft/src/main.tsx.
-const isMockMode = import.meta.env.VITE_MOCK_API === 'true';
+const isMockMode =
+  import.meta.env.VITE_MOCK_API === 'true' ||
+  (import.meta.env.DEV && import.meta.env.VITE_MOCK_API !== 'false');
 
 async function bootstrap() {
   if (isMockMode) {
     const { worker } = await import('./mocks/browser');
-    await worker.start({ onUnhandledRequest: 'error' });
+    await worker.start({ onUnhandledRequest: 'bypass' });
   }
 
   createRoot(rootEl!).render(

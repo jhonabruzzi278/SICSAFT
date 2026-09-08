@@ -247,8 +247,15 @@ async function getResponse(event, client, requestId, requestInterceptedAt) {
       }
     }
 
-    return fetch(requestClone, { headers })
+    return fetch(requestClone, { headers }).catch((err) => {
+      return new Response(JSON.stringify({ error: 'Backend offline' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    })
   }
+
+
 
   // Bypass mocking when the client is not active.
   if (!client) {

@@ -81,33 +81,25 @@ export function ScanPage() {
   const [sent, setSent] = useState(false);
   const { canInstall, showIosHint, promptInstall } = useInstallPrompt();
 
-  useEffect(() => {
-    let cancelled = false;
-    // Se completa la sesión OIDC en AuthCallbackPage (o ya venía de una sesión previa dentro de
-    // la misma pestaña — sessionStorage, ver oidc/token-store.ts) — acá solo se resuelve
-    // auth/session contra CIS con el token ya vigente.
+  function resolverSesion() {
     if (!oidcClient.isAuthenticated()) return;
 
     qrConnector
       .authSession()
       .then((result) => {
-        if (cancelled) return;
         setOperatorName(oidcClient.getCurrentOperatorDisplayName());
         setOrganizations(result.organizaciones);
         setView('organization');
       })
       .catch((err: unknown) => {
-        if (cancelled) return;
-        // Token vencido sin refresh posible u otra falla real — oidcClient.getValidAccessToken()
-        // ya limpió la sesión, se queda en la pantalla de login (view ya arranca en 'operator').
         if (!(err instanceof AuthenticationRequiredError)) {
           toast.error('No se pudo iniciar sesión. Intentá de nuevo.');
         }
       });
+  }
 
-    return () => {
-      cancelled = true;
-    };
+  useEffect(() => {
+    resolverSesion();
   }, []);
 
   async function handleOrganizationSelect(summary: OrganizacionSummary) {
@@ -442,7 +434,7 @@ export function ScanPage() {
   const bajaItem = bajaTarget ? scanned.get(bajaTarget) : undefined;
 
   if (view === 'operator') {
-    return <OperatorGate />;
+    return <OperatorGate onSuccess={resolverSesion} />;
   }
 
   if (view === 'organization') {
