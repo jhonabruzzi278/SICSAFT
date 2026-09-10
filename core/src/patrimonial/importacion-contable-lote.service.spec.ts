@@ -22,6 +22,7 @@ function build() {
     resolverArea: jest.fn(),
     resolverResponsable: jest.fn(),
     resolverUbicacion: jest.fn(),
+    resolverUbicacionExistente: jest.fn().mockResolvedValue(undefined),
     resolverSoloExistentes: jest.fn().mockResolvedValue({}),
   } as unknown as jest.Mocked<ResolvedorImportacionService>;
   const service = new ImportacionContableLoteService(
@@ -136,6 +137,83 @@ describe('ImportacionContableLoteService', () => {
       // La fila 3 se persiste con los nombres, sin catalogoId.
       expect(filasPersistidas[2].catalogoId).toBeUndefined();
       expect(filasPersistidas[2].categoriaNombre).toBe('MOBILIARIO');
+    });
+
+    it('resuelve la ubicación del área SOLO-LECTURA y la pasa al dry-run (reimportación => ya_importado, no conflicto)', async () => {
+      const {
+        service,
+        loteRepository,
+        importacionContableService,
+        resolvedor,
+      } = build();
+      resolvedor.resolverSoloExistentes.mockResolvedValue({ areaId: 'area-7' });
+      resolvedor.resolverUbicacionExistente.mockResolvedValue('ubic-7');
+      importacionContableService.evaluarFila.mockResolvedValue('ya_importado');
+      loteRepository.crear.mockResolvedValue({
+        loteId: 'lote-1',
+        resumen: { totalFilas: 1, crear: 0, yaImportado: 1, conflicto: 0 },
+      });
+
+      await service.crearLote({
+        organizacionId: 'muni',
+        origen: 'carpeta',
+        filas: [
+          {
+            linea: 1,
+            codigoPatrimonial: 'A-9',
+            codigoQr: 'A-9',
+            areaNombre: 'PAÑOL',
+            categoriaNombre: 'MOBILIARIO',
+            crudo: {},
+          },
+        ],
+      });
+
+      expect(resolvedor.resolverUbicacionExistente).toHaveBeenCalledWith(
+        'muni',
+        'area-7',
+      );
+      expect(importacionContableService.evaluarFila).toHaveBeenCalledWith(
+        'muni',
+        expect.objectContaining({ areaId: 'area-7', ubicacionId: 'ubic-7' }),
+      );
+    });
+
+    it('no resuelve ubicación si la fila ya trae una', async () => {
+      const {
+        service,
+        loteRepository,
+        importacionContableService,
+        resolvedor,
+      } = build();
+      resolvedor.resolverSoloExistentes.mockResolvedValue({ areaId: 'area-7' });
+      importacionContableService.evaluarFila.mockResolvedValue('ya_importado');
+      loteRepository.crear.mockResolvedValue({
+        loteId: 'lote-1',
+        resumen: { totalFilas: 1, crear: 0, yaImportado: 1, conflicto: 0 },
+      });
+
+      await service.crearLote({
+        organizacionId: 'muni',
+        origen: 'carpeta',
+        filas: [
+          {
+            linea: 1,
+            codigoPatrimonial: 'A-9',
+            codigoQr: 'A-9',
+            areaId: 'area-7',
+            ubicacionId: 'ubic-fija',
+            catalogoId: 'cat',
+            crudo: {},
+          },
+        ],
+      });
+
+      expect(resolvedor.resolverUbicacionExistente).not.toHaveBeenCalled();
+      expect(importacionContableService.evaluarFila).toHaveBeenCalledWith(
+        'muni',
+        expect.objectContaining({ ubicacionId: 'ubic-fija' }),
+      );
     });
   });
 

@@ -36,6 +36,39 @@ describe('UbicacionRepository', () => {
     });
   });
 
+  describe('ubicacionPrincipalDeArea (solo lectura, para el dry-run)', () => {
+    it('devuelve la principal del area con una sola consulta, sin escribir', async () => {
+      const pool = {
+        query: jest.fn().mockResolvedValueOnce({
+          rows: [{ ubicacionPrincipalId: 'ubic-ppal' }],
+        }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new UbicacionRepository(pool);
+
+      await expect(
+        repository.ubicacionPrincipalDeArea('org-1', 'area-1'),
+      ).resolves.toBe('ubic-ppal');
+      expect(pool.query).toHaveBeenCalledTimes(1);
+      expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
+        'area-1',
+        'org-1',
+      ]);
+    });
+
+    it('devuelve null si el area no tiene principal o no existe en la organizacion', async () => {
+      const pool = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [{ ubicacionPrincipalId: null }] }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new UbicacionRepository(pool);
+
+      await expect(
+        repository.ubicacionPrincipalDeArea('org-1', 'area-1'),
+      ).resolves.toBeNull();
+    });
+  });
+
   // DOC-029 RF-B — el Excel contable ubica los bienes por area y nunca trae ubicacion fisica,
   // pero el catalogo operativo exige ubicacion_id (DOC-006 2). Sin esto los activos importados
   // quedaban en la BPI pero invisibles en catalogo, etiquetas y CIP.

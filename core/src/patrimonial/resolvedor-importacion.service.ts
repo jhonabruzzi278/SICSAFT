@@ -48,6 +48,22 @@ export class ResolvedorImportacionService {
     return id ?? undefined;
   }
 
+  // Solo lectura, para el dry-run de la bandeja de staging: la ubicación que el activo tomaría al
+  // aprobarse, sin crearla. Tras una aprobación previa el área ya tiene principal, así que el
+  // dry-run de una reimportación ve el mismo id que el activo existente y `evaluarFila` da
+  // `ya_importado` en vez de `conflicto` (mismo motivo que `resolverSoloExistentes` para
+  // área/responsable/catálogo). `undefined` (no null) para la fila canónica.
+  async resolverUbicacionExistente(
+    organizacionId: string,
+    areaId: string,
+  ): Promise<string | undefined> {
+    const id = await this.ubicacionRepository.ubicacionPrincipalDeArea(
+      organizacionId,
+      areaId,
+    );
+    return id ?? undefined;
+  }
+
   // catalogo_activos es compartido entre organizaciones (sin organizacion_id) — se busca por
   // familia o tipo == categoría, sin distinguir mayúsculas ni espacios sobrantes.
   private async buscarCatalogoExistente(

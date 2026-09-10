@@ -183,6 +183,22 @@ export class UbicacionRepository {
     return result.rows[0];
   }
 
+  // Solo lectura: la ubicación que el área ya tiene marcada como principal, o null. La usa el
+  // dry-run de la ingesta contable (ImportacionContableLoteService.crearLote) para comparar
+  // contra el activo existente sin efectos de borde — `resolverPorArea` sí adopta/crea y
+  // reasigna la principal, y eso solo debe pasar al aprobar el lote.
+  async ubicacionPrincipalDeArea(
+    organizacionId: string,
+    areaId: string,
+  ): Promise<string | null> {
+    const area = await this.pool.query<{ ubicacionPrincipalId: string | null }>(
+      `SELECT ubicacion_principal_id AS "ubicacionPrincipalId"
+       FROM areas WHERE id = $1 AND organizacion_id = $2`,
+      [areaId, organizacionId],
+    );
+    return area.rows[0]?.ubicacionPrincipalId ?? null;
+  }
+
   // DOC-029 RF-B — ubicación por defecto del área para las altas de la ingesta contable. El
   // Excel del especialista trae el área pero nunca una ubicación física, y el catálogo
   // operativo exige `ubicacion_id` no nulo (ActivoRepository.findCatalogo, DOC-006 2): sin
@@ -197,12 +213,10 @@ export class UbicacionRepository {
     organizacionId: string,
     areaId: string,
   ): Promise<string | null> {
-    const area = await this.pool.query<{ ubicacionPrincipalId: string | null }>(
-      `SELECT ubicacion_principal_id AS "ubicacionPrincipalId"
-       FROM areas WHERE id = $1 AND organizacion_id = $2`,
-      [areaId, organizacionId],
+    const principal = await this.ubicacionPrincipalDeArea(
+      organizacionId,
+      areaId,
     );
-    const principal = area.rows[0]?.ubicacionPrincipalId;
     if (principal) return principal;
 
     const asociada = await this.pool.query<{ id: string }>(

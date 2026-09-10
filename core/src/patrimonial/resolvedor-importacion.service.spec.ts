@@ -20,6 +20,7 @@ function build() {
   } as unknown as jest.Mocked<CatalogoTipoActivoRepository>;
   const ubicacionRepository = {
     resolverPorArea: jest.fn(),
+    ubicacionPrincipalDeArea: jest.fn(),
   } as unknown as jest.Mocked<UbicacionRepository>;
   const service = new ResolvedorImportacionService(
     areaRepository,
@@ -240,6 +241,31 @@ describe('resolverUbicacion', () => {
 
     await expect(
       service.resolverUbicacion('org-1', 'area-1'),
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe('resolverUbicacionExistente (dry-run, solo lectura)', () => {
+  it('devuelve la principal del area sin llamar al resolve-o-crea', async () => {
+    const { service, ubicacionRepository } = build();
+    ubicacionRepository.ubicacionPrincipalDeArea.mockResolvedValue('ubic-ppal');
+
+    await expect(
+      service.resolverUbicacionExistente('org-1', 'area-1'),
+    ).resolves.toBe('ubic-ppal');
+    expect(ubicacionRepository.ubicacionPrincipalDeArea).toHaveBeenCalledWith(
+      'org-1',
+      'area-1',
+    );
+    expect(ubicacionRepository.resolverPorArea).not.toHaveBeenCalled();
+  });
+
+  it('traduce null a undefined', async () => {
+    const { service, ubicacionRepository } = build();
+    ubicacionRepository.ubicacionPrincipalDeArea.mockResolvedValue(null);
+
+    await expect(
+      service.resolverUbicacionExistente('org-1', 'area-1'),
     ).resolves.toBeUndefined();
   });
 });
