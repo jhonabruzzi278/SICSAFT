@@ -19,6 +19,29 @@ desde el `.exe` con un 2º QR de descarga.
 
 ## Estado
 
+**Versión**: `1.0.1` (tag `v1.0.1`, 2026-09-07). Historial completo en
+[`CHANGELOG.md`](../CHANGELOG.md) de la raíz; cambios sin publicar bajo "Sin publicar". El bump se
+hace con `herramientas/versionado/` ([`GUIA-CONTROL-VERSIONES.md`](../herramientas/versionado/GUIA-CONTROL-VERSIONES.md)),
+nunca a mano.
+
+**Listo para versionar como hito interno / RC, NO como release a cliente.** Lo que falta para
+"listo para el primer cliente" está en
+[DOC-031 §7](../aidlc-docs/sicsaft-core/design-artifacts/DOC-031-ambiente-real-y-endurecimiento.md#7-criterio-de-listo-para-el-primer-cliente):
+
+| # | Falta | Fase |
+|---|---|---|
+| 1 | Una sesión de inventario real desde la PWA que entre a la BPI y mueva el CIP — **nunca se probó de punta a punta** (el hueco principal). | DOC-031 Fase 1 |
+| 2 | Restaurar la BPI desde un respaldo, verificado por prueba (el respaldo ya existe, el restore guiado no). | DOC-031 Fase 2 |
+| 3 | La suite `e2e` completa en verde **en CI** — hoy el CI corre lint/typecheck/unit/build, no `pack`+`e2e`. | DOC-031 Fase 4 |
+| 4 | Instalador firmado (hoy dispara SmartScreen). | DOC-031 Fase 5 |
+| 5 | `dist:win` verificado contra una PC Windows genuinamente limpia. | DOC-028 §4 |
+
+**En curso**: [DOC-028](../aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md)
+**Fase G** — puesto del Profesional de AFT en su propia PC (`CORE-RF-06`): código + unit tests en
+verde; falta la corrida `e2e` (spec 20). Rama `feat/sicsaft-core-puesto-aft-lan`.
+
+---
+
 🟢 Los 5 servicios embebidos (Postgres, Keycloak, `cis`, `core`, `cip`) arrancan de verdad,
 verificado real (2026-08-27) — no solo compilado. El `.exe` cubre Nivel 1 y Nivel 2 con el mismo
 binario (Nivel 2 = Nivel 1 + Dashboard/indicadores del CIP; el CCP va completo en ambos —
@@ -106,6 +129,33 @@ por HTTPS + muestra un QR en la pantalla "listo" (D). Verificado E2E el 2026-08-
 **Fase E** (APK Android) la des-difirió DOC-029 RF-H con alcance acotado: WebView Kotlin propia en
 `apk-aft/`, `.apk` firmado empaquetado por `prepack.cjs`. La PWA por QR sigue siendo el camino sin
 instalar nada.
+
+**DOC-028 Fase G — puesto del Profesional de AFT en su propia PC (2026-09-10, CORE-RF-06)**: la PC
+del Director es la "PC madre" (una sola instalación, una sola BPI). En la PC del AFT **no se instala
+el `.exe`**: eso correría el wizard de cero y crearía una segunda BPI. El AFT abre en el navegador
+`https://<ip-lan>:8767`, que el `.exe` sirve además del CCP embebido de `127.0.0.1:8766`.
+
+- **Mismo origen**: un proxy reenvía `/cis/*` → CIS y `/kc/token` → token endpoint (`resolverDestinoProxy`,
+  `static-portal-server.ts`). Así no se depende de que el navegador tolere contenido mixto
+  (Firefox y los Chromium sin Local Network Access lo bloquean) ni hace falta tocar el CORS de
+  CIS.
+- **Certificado**: el mismo autofirmado de la APP QR.
+- **Keycloak**: el client `ccp` acepta los dos orígenes y se re-sincroniza en cada relanzamiento
+  y al reconfigurar la IP.
+- **Acceso directo**: la pantalla "listo" muestra la dirección (`AccesoPuestoAft.tsx`) y guarda un
+  `SICSAFT CCP.url` para llevar a esa PC.
+- **Firewall**: el instalador NSIS (`scripts/installer.nsh`) crea las reglas de entrada (TCP
+  8765/8767/56000/58080, UDP 58765) solo para los perfiles Privado y Dominio. Para eso hay que
+  instalar **para todos los usuarios**, como administrador.
+
+**Requisitos de la PC madre**:
+
+- UPS;
+- reserva DHCP;
+- red en perfil Privado;
+- sin suspensión en horario de trabajo.
+
+Detalle y limitaciones: DOC-028 Fase G.
 
 **Lo que NO está resuelto todavía** (ver
 [`aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md`](../aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md)

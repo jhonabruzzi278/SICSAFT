@@ -43,7 +43,7 @@ lanzan su propia instancia con `_electron.launch`).
   o `release\win-unpacked\SICSAFT CORE.exe` (tras `npm run pack`), o `SICSAFT_CORE_EXE=<ruta>`.
 - Chromium de Playwright que coincida con la versión de `@playwright/test`
   (`npx playwright install chromium` desde `sicsaft-core/`).
-- Puertos libres: 55432, 58080/58081, 56000-56002, 8765/8766/8768.
+- Puertos libres: 55432, 58080/58081, 56000-56002, 8765/8766/8767/8768.
 - Windows (el harness usa `taskkill /T` para bajar el árbol de procesos del `.exe`).
 
 ## Correr
@@ -77,3 +77,4 @@ más).
 | 11  | Auditoría: `GET /admin/auditoria` y la tabla `auditoria` de la BPI registran las altas patrimoniales y la designación (categoría `identidad`).                                                                                 |
 | 12  | Relanzamiento (instancia propia, con `%APPDATA%` ya poblado por la 02): `instalacion.json` presente → wizard salteado; los 5 servicios (con CIS) quedan `listo`; `getEstadoIpLan` bien formado (flujo de reconfiguración de IP). |
 | 13  | **#4** — cerrar la ventana con los 5 servicios arriba: el log cierra con `--- sesión finalizada ---` y sin `Object has been destroyed` / `A JavaScript error occurred` / excepción no capturada.                               |
+| 20  | **DOC-028 Fase G** — puesto del AFT en otra PC: `getInfoPuestoAft` → `https://<ip-lan>:8767`; un Chromium aparte entra por la IP de LAN, el AFT inicia sesión y el CCP lee la BPI por el proxy `/cis` (sin pedidos directos a `:56000` ni contenido mixto). |

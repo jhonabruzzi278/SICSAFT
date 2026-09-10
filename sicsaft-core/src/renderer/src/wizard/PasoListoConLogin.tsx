@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { QrAppQr } from "../components/QrAppQr";
 import { CarpetaIngesta } from "../components/CarpetaIngesta";
+import { AccesoPuestoAft } from "../components/AccesoPuestoAft";
 
 // CORE-RF-04 (alcance corregido 2026-08-28) -- el "cuadrado" acá es un placeholder vacío en el
 // DOM: la WebContentsView real vive fuera del DOM, el proceso principal la dibuja encima de este
@@ -167,7 +168,8 @@ export function PasoListoConLogin({
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted-foreground)]">
           Iniciá sesión acá abajo (Director / Profesional de AFT). El QR para el
-          teléfono y la carpeta de ingesta quedan al pie.
+          teléfono, el acceso para la PC del Profesional de AFT y la carpeta de
+          ingesta quedan al pie.
         </p>
       </div>
       {error && !portalCargado && (
@@ -212,6 +214,7 @@ export function PasoListoConLogin({
           fuera del rectángulo del WebContentsView, que tapa cualquier HTML bajo sus bounds. */}
       <div className={portalCargado ? "hidden" : "w-full"}>
         <QrAppQr />
+        <AccesoPuestoAft />
         <CarpetaIngesta />
       </div>
     </div>

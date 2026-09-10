@@ -15,10 +15,11 @@ Nomenclatura: [NOMENCLATURA.md](../NOMENCLATURA.md). Diseño del `.exe`:
 
 | Qué | Por qué |
 |---|---|
-| Una PC **Windows 10/11 x64** que quede prendida (será el "servidor"). Idealmente la del Directivo. | Corre los 6 servicios embebidos. |
-| **Permisos de administrador** en esa PC. | El instalador NSIS escribe en Archivos de Programa. |
-| Esa PC y el/los teléfono(s) del Profesional de AFT en la **misma red Wi‑Fi/LAN**. | El teléfono llega a CIS y Keycloak por la IP de LAN. |
-| Una **reserva DHCP** para esa PC en el router (IP fija). | Si la IP cambia hay que reconfigurar (hay flujo guiado, pero mejor evitarlo). |
+| Una PC **Windows 10/11 x64** que quede prendida (será el "servidor", la **PC madre**). Idealmente la del Directivo. | Corre los 6 servicios embebidos y guarda la **única** BPI. |
+| Una **UPS** para la PC madre, y la PC sin suspensión ni hibernación en horario de trabajo. | Si la PC madre se apaga, ni el puesto del AFT ni los teléfonos pueden trabajar (DOC-028 Fase G). |
+| **Permisos de administrador** en esa PC. | El instalador NSIS escribe en Archivos de Programa y crea las reglas del firewall (§4). |
+| Esa PC, la PC del Profesional de AFT y sus teléfonos en la **misma red Wi‑Fi/LAN**, con la red de la PC madre en perfil **Privado** de Windows (no Público). | La PC del AFT y el teléfono llegan a la PC madre por la IP de LAN; las reglas del firewall solo abren los perfiles Privado y Dominio. |
+| Una **reserva DHCP** para esa PC en el router (IP fija). | Si la IP cambia hay que reconfigurar (hay flujo guiado, pero mejor evitarlo) y regenerar el acceso directo del AFT (§5.1). |
 | Nombre de la organización, un identificador corto, el nombre de la sede principal, y el correo del Director (y opcionalmente del Profesional de AFT). | Los pide el wizard en el primer arranque. |
 
 ## 1. Construir el instalador (desde `main`)
@@ -53,7 +54,13 @@ npm run dist:win
 1. Copiar el `.exe` a la PC del cliente (USB o red).
 2. Ejecutarlo. Windows SmartScreen va a mostrar **"Windows protegió tu PC"** (el instalador no
    está firmado). → **Más información → Ejecutar de todos modos**.
-3. Aceptar el UAC. Elegir carpeta de instalación (o dejar la default). Termina y abre la app.
+3. Elegir **"Instalar para todos los usuarios"** y aceptar el UAC. Así el instalador corre como
+   administrador y deja creadas las reglas del firewall (§4). Elegir la carpeta de instalación (o
+   dejar la default). Termina y abre la app.
+
+> **Solo en la PC madre.** En la PC del Profesional de AFT **no se instala el `.exe`**: correría el
+> wizard de cero y crearía una segunda BPI separada. El AFT entra desde su PC con el navegador
+> (§5.1).
 
 ## 3. Primer arranque — wizard
 
@@ -87,16 +94,40 @@ de ~1 clic.
 
 ## 4. Firewall de Windows y Configuración de Red Local (LAN / WiFi)
 
-Tanto la PC donde corre `sicsaft-core.exe` como los teléfonos móviles deben estar conectados a la **misma red Wi-Fi / LAN**.
+La PC madre, la PC del Profesional de AFT y los teléfonos deben estar en la **misma red Wi-Fi / LAN**.
 
-Para habilitar los puertos necesarios sin depender de las ventanas emergentes de Windows, ejecutar en PowerShell como Administrador:
+El instalador (instalado "para todos los usuarios", §2) crea solo estas reglas de entrada
+(`scripts/installer.nsh`, DOC-028 Fase G.5), únicamente para los perfiles **Privado** y **Dominio**:
+
+| Regla | Puerto | Para qué |
+|---|---|---|
+| `SICSAFT CORE - red local (TCP)` | **8765 TCP** | PWA de la APP QR y descarga de la APK (HTTPS). |
+| | **8767 TCP** | CCP del puesto del Profesional de AFT en otra PC (HTTPS, §5.1). |
+| | **58080 TCP** | Keycloak (login OIDC). |
+| | **56000 TCP** | CIS (APP QR del teléfono). |
+| `SICSAFT CORE - descubrimiento (UDP)` | **58765 UDP** | Descubrimiento automático de la PC madre desde la APK. |
+
+El desinstalador las quita. Para verificarlas, en PowerShell:
+
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\herramientas\devops\configurar-firewall-sicsaft.ps1
+Get-NetFirewallRule -DisplayName "SICSAFT CORE*" | Format-Table DisplayName, Enabled, Profile
 ```
-Este script abre de manera segura las reglas de entrada para:
-- **8765 TCP**: Servidor PWA Móvil y descarga de APK (HTTPS).
-- **58080 TCP**: Keycloak Auth Server (OIDC / JWT).
-- **56000 TCP**: CIS API Gateway (Catálogo y Sincronización de Inventarios).
+
+Si se instaló solo para el usuario actual, las reglas no existen. Dos opciones:
+
+- Dejar que Windows pida permiso la primera vez que la app escucha en la red, y aceptar con
+  **Redes privadas** marcado; **o**
+- Correr el script manual, en PowerShell **como Administrador**:
+
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File .\herramientas\devops\configurar-firewall-sicsaft.ps1
+  ```
+
+  Crea las mismas reglas (TCP 8765/8767/56000/58080 + UDP 58765), solo Privado y Dominio.
+
+Si la red de la PC madre figura como **Pública**, cambiarla a **Privada** en *Configuración → Red e
+Internet → propiedades de la conexión*. Con la red en Pública, las reglas no aplican y nadie llega
+a la PC madre.
 
 ## 5. Teléfono — APP QR
 
@@ -110,6 +141,25 @@ Este script abre de manera segura las reglas de entrada para:
 **Opción B — APK Android (`sicsaft-aft.apk`):**
 
 El instalador `.exe` sirve automáticamente la APK en `https://<ip-lan>:8765/sicsaft-aft.apk` y muestra el QR de descarga en la pantalla "listo". Al abrir la app nativa, esta valida el certificado autofirmado internamente sin mostrar advertencias del navegador.
+
+### 5.1 PC del Profesional de AFT — CCP desde su propio escritorio (DOC-028 Fase G)
+
+El Profesional de AFT puede trabajar en el CCP desde **su propia PC**, al mismo tiempo que el
+Director usa su portal en la PC madre. **En su PC no se instala nada.**
+
+1. En la PC madre, en la pantalla "listo", la tarjeta **"Puesto del Profesional de AFT — otra PC"**
+   muestra la dirección `https://<ip-lan>:8767`.
+   - **Guardar acceso directo…** genera un `SICSAFT CCP.url`. Llevarlo a la PC del AFT (pendrive o
+     carpeta compartida) y dejarlo en su escritorio.
+   - O **Copiar dirección** y crear un favorito en su navegador.
+2. En la PC del AFT, doble clic en el acceso directo. El navegador avisa **"La conexión no es
+   privada / certificado no confiable"** porque el certificado es autofirmado, igual que en el
+   teléfono. → **Configuración avanzada → Continuar**. Se acepta una sola vez por navegador.
+3. **Iniciar sesión** → formulario de Keycloak → correo y clave del Profesional de AFT → entra al
+   CCP. Trabaja sobre la misma BPI de la PC madre.
+
+Si la IP de la PC madre cambia (sin reserva DHCP), el acceso directo deja de funcionar: relanzar
+la app en la PC madre, reconfigurar (§3) y generar un acceso directo nuevo.
 
 ## 6. Qué mostrarle al cliente (checklist de demo)
 
@@ -135,7 +185,9 @@ El instalador `.exe` sirve automáticamente la APK en `https://<ip-lan>:8765/sic
 | Límite | Detalle |
 |---|---|
 | Instalador sin firmar | SmartScreen pide "Ejecutar de todos modos". Firma de código = pendiente. |
-| Cert autofirmado en el teléfono | Aviso de seguridad la primera vez. Un cert sin aviso necesita hostname `.local` + mDNS (DOC-028 C.3, futuro). |
+| Cert autofirmado en el teléfono y en la PC del AFT | Aviso de seguridad la primera vez en cada navegador. Un cert sin aviso necesita hostname `.local` + mDNS (DOC-028 C.3, futuro) o el "modo puesto" del `.exe` (DOC-028 G.6, futuro). |
+| Cerrar sesión en el CCP del puesto | Limpia la sesión del navegador pero no la de Keycloak: en esa misma PC, *Iniciar sesión* vuelve a entrar sin pedir clave. Aceptable en la PC personal del AFT; el logout OIDC completo está pendiente. |
+| Carpeta de ingesta desde otra PC | La carpeta vigilada vive en la PC madre. Para soltar Excel ahí desde la PC del AFT, compartirla por red de Windows. La carga manual desde el CCP del puesto sí funciona. |
 | Más sedes / cambios de contrato | No hay portal de administración en la PC del cliente (decisión: instalación autocontenida, sin `web_admin` ni acceso remoto — DOC-030). Es una operación asistida del proveedor. |
 | Sin auto-update | Actualizar = correr el instalador nuevo encima (§9). No hay "buscar actualizaciones". |
 | Sin backup automático | El respaldo de `%APPDATA%\sicsaft-core\` es manual / tarea programada (§10). |
@@ -156,6 +208,15 @@ El instalador `.exe` sirve automáticamente la APK en `https://<ip-lan>:8765/sic
 - **El teléfono no conecta**: verificar que están en la misma LAN, el firewall permitió, y la IP
   del QR es la de LAN (no `127.0.0.1`). Si la IP de la PC cambió, relanzar la app → pantalla de
   reconfiguración.
+- **La PC del AFT no abre `https://<ip-lan>:8767`**:
+  1. Probar desde la PC madre la misma dirección: si ahí abre, es red o firewall.
+  2. Verificar las reglas con `Get-NetFirewallRule -DisplayName "SICSAFT CORE*"` y que la red sea
+     Privada (§4).
+  3. Si ni la PC madre la abre, revisar en la Consola técnica la línea `No se pudo servir el CCP en
+     la red local`: el puerto 8767 puede estar ocupado por otro programa.
+- **El AFT llega al login pero Keycloak dice `Invalid parameter: redirect_uri`**: el client `ccp`
+  no tiene la IP actual. Relanzar la app en la PC madre, que lo re-sincroniza sola en cada
+  arranque; si la IP cambió, además reconfigurar.
 - **Los Excel no se procesan**: (1) ¿está vendorizado `resources/etl-contable/python/python.exe`?
   (§1.1). (2) revisar `<carpeta-de-ingesta>/ingesta.log` y los `.log` en `<carpeta>/.error/`.
   (3) un `403` del ETL contra CIS = el token de servicio no trae el claim `organization` (ver

@@ -117,4 +117,32 @@ describe('loadOidcConfig', () => {
 
     expect(loadOidcConfig().issuer).toBe('http://id.sicsaft.localhost');
   });
+
+  // DOC-028 Fase G — el CCP servido por el .exe en la LAN (HTTPS) canjea tokens por el proxy de
+  // mismo origen del propio servidor, no directo contra Keycloak por HTTP (contenido mixto).
+  it('tokenUrl es opcional: sin VITE_KEYCLOAK_TOKEN_URL no aparece (se usa el del issuer)', () => {
+    setEnv({
+      VITE_KEYCLOAK_ISSUER: 'http://id.sicsaft.localhost',
+      VITE_KEYCLOAK_CLIENT_ID: 'client-1',
+      VITE_CIS_URL: 'http://api.sicsaft.localhost',
+    });
+
+    expect(loadOidcConfig().tokenUrl).toBeUndefined();
+  });
+
+  it('toma VITE_KEYCLOAK_TOKEN_URL de la config runtime del CCP servido en la LAN', () => {
+    window.__SICSAFT_PORTAL_CONFIG__ = {
+      VITE_KEYCLOAK_ISSUER: 'http://192.168.1.20:58080/realms/sicsaft',
+      VITE_KEYCLOAK_CLIENT_ID: 'ccp',
+      VITE_CIS_URL: 'https://192.168.1.20:8767/cis',
+      VITE_KEYCLOAK_TOKEN_URL: 'https://192.168.1.20:8767/kc/token',
+    };
+
+    const config = loadOidcConfig();
+
+    expect(config.tokenUrl).toBe('https://192.168.1.20:8767/kc/token');
+    expect(config.cisUrl).toBe('https://192.168.1.20:8767/cis');
+    // el login sigue yendo directo a Keycloak (navegación de página, no fetch)
+    expect(config.issuer).toBe('http://192.168.1.20:58080/realms/sicsaft');
+  });
 });

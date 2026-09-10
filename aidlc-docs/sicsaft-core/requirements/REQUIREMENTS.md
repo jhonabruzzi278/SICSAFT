@@ -42,6 +42,12 @@ prefijo; este prefijo es solo para requisitos de ESTE incremento (la app de escr
   debe poder alcanzar `cis`/Keycloak corriendo en la PC del Director por la red local (no solo
   `127.0.0.1`). Mecanismo exacto (IP fija vs. mDNS/descubrimiento, ver CORE-RNF-03) sin definir —
   bloqueado hasta que exista la APK y se confirme su `capacitor.config.ts` real.
+- **CORE-RF-06** ([DOC-028](../design-artifacts/DOC-028-camino-a-cliente-final.md) Fase G,
+  2026-09-10): el Profesional de AFT debe poder trabajar en el CCP desde **su propia PC** contra la
+  instalación de la PC del Director (la "PC madre"), en simultáneo con el Director y **sin instalar
+  el `.exe`** en su PC. Instalarlo crearía una segunda BPI independiente. La PC madre sirve el CCP
+  también en `https://<ip-lan>:8767`, con un proxy de mismo origen hacia CIS y el token endpoint de
+  Keycloak, y el client OIDC `ccp` acepta ese origen además del de loopback.
 
 ## No funcionales
 
@@ -56,7 +62,9 @@ prefijo; este prefijo es solo para requisitos de ESTE incremento (la app de escr
 - **CORE-RNF-03**: Ningún puerto de los servicios embebidos debe quedar expuesto más allá de lo
   estrictamente necesario — Postgres solo en `127.0.0.1` (nunca en la IP de LAN); solo `cis`
   (y Keycloak, para que la APK pueda loguearse) escuchan en la IP de LAN, cuando CORE-RF-05 quede
-  resuelto.
+  resuelto. CORE-RF-06 suma en la LAN solo el CCP del puesto (`:8767`, HTTPS). Su proxy reenvía
+  únicamente `/cis/*` y el token endpoint del realm, con destinos fijos. Las reglas de firewall
+  del instalador abren estos puertos solo en los perfiles Privado y Dominio de Windows.
 - **CORE-RNF-04**: Los datos de cada instalación (Postgres, config de Keycloak) deben vivir en
   `%APPDATA%/sicsaft-core/` o equivalente — nunca dentro de la carpeta de instalación
   (`Program Files`), que un usuario sin privilegios de administrador no puede escribir.

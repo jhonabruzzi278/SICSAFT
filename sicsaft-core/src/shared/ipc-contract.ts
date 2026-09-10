@@ -128,6 +128,14 @@ export interface InfoAppQr {
   apkDisponible: boolean;
 }
 
+// DOC-028 Fase G -- acceso del Profesional de AFT desde su propia PC: el CCP que esta PC (la "PC
+// madre") sirve en la LAN. `enRed` = false cuando esta PC no tiene IP de LAN (cayó a 127.0.0.1) y
+// ningún otro equipo la puede alcanzar.
+export interface InfoPuestoAft {
+  url: string;
+  enRed: boolean;
+}
+
 // API expuesta al renderer vía contextBridge (ver src/preload/index.ts). Cada método es
 // ipcRenderer.invoke(...) por debajo — async siempre, nunca acceso directo a Node/Electron desde
 // el renderer (contextIsolation: true, nodeIntegration: false, ver src/main/index.ts).
@@ -148,6 +156,11 @@ export interface SicsaftCoreApi {
   // correspondientes.
   getUrlAppQr(): Promise<string>;
   getInfoAppQr(): Promise<InfoAppQr>;
+  // DOC-028 Fase G -- dirección del CCP en la LAN para el puesto del Profesional de AFT (arranca
+  // su servidor si hace falta) y un acceso directo .url a esa dirección, guardado donde elija el
+  // usuario con el diálogo nativo (devuelve la ruta, o null si canceló).
+  getInfoPuestoAft(): Promise<InfoPuestoAft>;
+  guardarAccesoDirectoPuestoAft(): Promise<string | null>;
   // DOC-029 RF-B.6 -- carpeta vigilada de ingesta de Excel. `elegir...` abre el diálogo nativo de
   // carpeta, persiste la elección en instalacion.json y (re)arranca el watcher; devuelve la ruta
   // elegida o null si el usuario canceló. `leer...` devuelve la ruta persistida (o null).

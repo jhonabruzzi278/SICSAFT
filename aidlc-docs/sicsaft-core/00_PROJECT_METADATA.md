@@ -23,6 +23,18 @@ pantalla para diagnóstico de arranque (0.1.1, PR #97).
 embebidos, verificado real (binarios reales, no solo compilado): typecheck/lint/build/test en
 verde. Ver `sicsaft-core/README.md` para el detalle completo.
 
+**Versión actual**: `1.0.1` (tag `v1.0.1`, 2026-09-07). Cambios sin publicar en
+[`CHANGELOG.md`](../../CHANGELOG.md) "Sin publicar" → Fase G (puesto del AFT en su propia PC).
+El bump de versión se hace con `herramientas/versionado/` (ver `GUIA-CONTROL-VERSIONES.md`), no a mano.
+
+**Qué falta para "listo para el primer cliente"** — checklist vivo en
+[`DOC-031` §7](design-artifacts/DOC-031-ambiente-real-y-endurecimiento.md#7-criterio-de-listo-para-el-primer-cliente).
+Resumen: (1) una sesión de inventario real desde la PWA que entre a la BPI y mueva el CIP
+—**nunca se probó de punta a punta**, es el hueco principal—; (2) restaurar la BPI desde un
+respaldo, verificado por prueba; (3) la suite `e2e` completa en verde **en CI**, no solo en una
+máquina (hoy el CI de `sicsaft-core` corre lint/typecheck/test/build, no `pack`+`e2e`);
+(4) instalador firmado (sin SmartScreen); (5) `dist:win` verificado contra una PC Windows limpia.
+
 **Corrección real sobre `CORE-Q-01` (mismo día, después de haberla dado por resuelta)**: no existe
 ninguna APK Android ya construida — la afirmación "wrap Capacitor de `app-qr-sicsaft/` ya
 compilado fuera del repo" era incorrecta, el usuario la corrigió. `CORE-Q-01` queda **reabierta**
@@ -118,3 +130,12 @@ Nada de forma dura — `devops/onprem/` (Podman) sigue existiendo en paralelo de
    `web_admin/` se **eliminó por completo (2026-09)** — instalación autocontenida, sin conexión al
    cliente (descarta DOC-028 Fase F); el CRUD de Organización/Contrato/Sede es intervención directa
    del proveedor. **Nivel 3 (RFID)** sigue sin resolverse (sin código `rfid/`).
+5. **DOC-028 Fase G — puesto del Profesional de AFT en su propia PC (2026-09-10, `CORE-RF-06`)**:
+   el `.exe` sirve el CCP también en `https://<ip-lan>:8767` con proxy de mismo origen hacia CIS y
+   el token endpoint; en la PC del AFT no se instala nada. **Código + unit tests en verde**; falta
+   la corrida `e2e` (spec 20) contra el `.exe` empaquetado. Rama `feat/sicsaft-core-puesto-aft-lan`
+   (PR pendiente).
+6. **DOC-031 — ambiente real y endurecimiento**: propuesta de fase, pendiente de aprobación. Es el
+   bloque de trabajo que sigue (captura real + CIP con datos, respaldo/restore de la BPI, CI del
+   `.exe` con `pack`+`e2e`, `electron-updater`, firma de código). Ver su §7 para el criterio de
+   "listo para el primer cliente".

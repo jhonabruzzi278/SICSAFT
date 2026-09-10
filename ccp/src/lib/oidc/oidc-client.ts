@@ -68,8 +68,10 @@ async function postTokenEndpoint(
   body: URLSearchParams,
 ): Promise<TokenResponse> {
   const config = loadOidcConfig();
+  // tokenUrl: proxy de mismo origen del CCP servido en la LAN (DOC-028 Fase G, ver oidc-config.ts).
   const res = await fetch(
-    endpointUrl(config.issuer, 'protocol/openid-connect/token'),
+    config.tokenUrl ??
+      endpointUrl(config.issuer, 'protocol/openid-connect/token'),
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

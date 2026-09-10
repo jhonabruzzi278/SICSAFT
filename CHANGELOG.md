@@ -3,6 +3,23 @@
 Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/) y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [Sin publicar]
+
+### Added
+- **`sicsaft-core` — Fase G: puesto del Profesional de AFT en su propia PC ([DOC-028](aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md) Fase G, `CORE-RF-06`)**:
+  - La PC del Director (la "PC madre", instalación única = BPI única) sirve el CCP también en `https://<ip-lan>:8767` por HTTPS con el certificado autofirmado de la APP QR. En la PC del AFT **no se instala nada**.
+  - Proxy de mismo origen en `static-portal-server.ts` para `/cis/*` y el token endpoint del realm (`/kc/token`), porque una página HTTPS no puede hacer `fetch` a CIS/Keycloak por HTTP (contenido mixto) y CIS no tiene ese origen en su CORS. Rutas fijas, sin proxy abierto; verificación explícita del origen de destino (saneador S5144).
+  - El client OIDC `ccp` de Keycloak acepta loopback + el origen de LAN, re-sincronizado en cada relanzamiento y al reconfigurar la IP (`sincronizarOrigenesClientCcp`).
+  - Pantalla "listo" del wizard: tarjeta **"Puesto del Profesional de AFT — otra PC"** con *Copiar dirección* y *Guardar acceso directo* (`SICSAFT CCP.url`).
+  - `ccp/`: override opcional `VITE_KEYCLOAK_TOKEN_URL` en `oidc-config.ts` / `oidc-client.ts` (sin él, comportamiento idéntico en dev/Docker/portal embebido).
+  - Firewall: `scripts/installer.nsh` (NSIS, al instalar "para todos los usuarios") y `herramientas/devops/configurar-firewall-sicsaft.ps1` (manual) crean las reglas de entrada TCP 8765/8767/56000/58080 + UDP 58765, **solo perfiles Privado y Dominio**.
+  - e2e: `sicsaft-core/e2e/specs/20-puesto-aft-lan.spec.ts` (login real del AFT por la IP de LAN + lectura de CIS por el proxy, sin contenido mixto).
+  - Doc: DOC-028 Fase G, `REQUIREMENTS.md` `CORE-RF-06`, `ARCHITECTURE.md` (mapa de puertos de LAN), `sicsaft-core/README.md`, `RUNBOOK-INSTALACION.md` §5.1.
+
+### Verificación
+- `sicsaft-core`: `typecheck` / `lint:ci` / `build` / `vitest` (unit) en verde. `ccp`: `lint:ci` / `vitest` / `build` en verde.
+- **Pendiente**: correr `sicsaft-core/e2e` (specs 01/02/20) contra el `.exe` empaquetado — el fixture del `.exe` falló al lanzar en el último intento, en revisión.
+
 ## [1.0.1] - 2026-09-07
 
 ### Added

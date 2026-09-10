@@ -1,4 +1,5 @@
 import {
+  app,
   clipboard,
   dialog,
   ipcMain,
@@ -6,6 +7,8 @@ import {
   type BrowserWindow,
 } from "electron";
 import { existsSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import type {
   AltaDirectorInput,
   AltaDirectorResultado,
@@ -15,6 +18,7 @@ import type {
   DatosClienteInput,
   EstadoIpLan,
   InfoAppQr,
+  InfoPuestoAft,
   RectanguloPantalla,
 } from "@shared/ipc-contract";
 import type { ServiceOrchestrator } from "../services/service-orchestrator";
@@ -30,6 +34,7 @@ import {
   reconfigurarClientAppQr,
   resolverCredencialesClienteAdminCis,
   resolverCredencialesClienteIngesta,
+  sincronizarOrigenesClientCcp,
 } from "../keycloak-bootstrap";
 import { reconfigurarWatcherIngesta } from "../services/ingesta-watcher";
 import { PUERTO_RENDERER } from "../renderer-config";
@@ -48,9 +53,15 @@ import { KEYCLOAK_CONFIG } from "../services/keycloak-service";
 import {
   obtenerIpLan,
   obtenerOrigenAppQr,
+  obtenerOrigenCcpLan,
   PUERTO_APP_QR,
+  PUERTO_CCP_LAN,
 } from "../services/lan-ip";
 import { obtenerCertificadoAppQr } from "../services/appqr-tls";
+import {
+  contenidoAccesoDirecto,
+  NOMBRE_ACCESO_DIRECTO,
+} from "../services/acceso-directo";
 import {
   actualizarCarpetaIngestaInstalacion,
   actualizarIpLanInstalacion,
@@ -84,6 +95,29 @@ import { vaciarBpiDev } from "../services/reset-bpi-dev";
 // memoizada todos esperan el mismo arranque.
 let promesaServidoresPortales: Promise<void> | null = null;
 let promesaServidorAppQr: Promise<void> | null = null;
+let promesaServidorCcpLan: Promise<void> | null = null;
+
+// DOC-028 Fase G -- rutas del proxy de mismo origen del CCP servido en la LAN (ver
+// asegurarServidorCcpLan). El portal las recibe ya armadas en su config runtime.
+const RUTA_PROXY_CIS = "/cis";
+const RUTA_PROXY_TOKEN = "/kc/token";
+
+function issuerDelRealm(): string {
+  return `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}`;
+}
+
+// DOC-029 RF-A / RF-B.6 -- lo que el CCP lee de instalacion.json, igual en sus dos servidores
+// (loopback y, desde DOC-028 Fase G, LAN). Nivel de producto (DOC-025): se persiste en el
+// bootstrap; una instalación anterior a RF-A no lo tiene -> Nivel 1. Carpeta vigilada de ingesta:
+// string vacío si no se configuró todavía; el módulo Importaciones del CCP la muestra (solo
+// lectura), el watcher que la vigila vive en el proceso principal, no en el portal.
+function configCcpDeInstalacion(): Record<string, string> {
+  const instalacion = leerInstalacionExistente();
+  return {
+    VITE_SICSAFT_NIVEL: String(instalacion?.nivel ?? 1),
+    VITE_SICSAFT_CARPETA_INGESTA: instalacion?.carpetaIngesta ?? "",
+  };
+}
 
 // DOC-029 RF-B.6.2 -- credenciales del service account `sicsaft-ingesta` para el watcher de
 // ingesta. El secret no se persiste (mismo criterio que cis-admin, ver
@@ -148,17 +182,9 @@ function asegurarServidoresPortales(): Promise<void> {
     // se inyecta en el index.html servido (static-portal-server.ts). El issuer lleva la IP de LAN
     // de ESTE arranque (KEYCLOAK_CONFIG.url ya la recalculó); si la IP cambió desde la
     // instalación, el portal igual apunta bien sin recompilar. cisUrl es 127.0.0.1 (loopback).
-    const issuer = `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}`;
+    const issuer = issuerDelRealm();
     const cisUrl = `http://127.0.0.1:${PUERTO_CIS}`;
-    // DOC-029 RF-A -- nivel de producto contratado (DOC-025). Se persiste en instalacion.json al
-    // hacer el bootstrap; una instalacion anterior a RF-A no lo tiene -> Nivel 1. Solo `ccp` lo
-    // necesita: el portal del Directivo (core-frontend) es el mismo en todos los niveles.
-    const instalacion = leerInstalacionExistente();
-    const nivel = String(instalacion?.nivel ?? 1);
-    // DOC-029 RF-B.6 -- carpeta vigilada de ingesta; string vacío si no se configuró todavía. El
-    // módulo Importaciones del CCP la muestra (solo lectura); el watcher que la vigila vive en el
-    // proceso principal, no en el portal.
-    const carpetaIngesta = instalacion?.carpetaIngesta ?? "";
+    const configCcp = configCcpDeInstalacion();
     await iniciarServidorEstatico({
       nombre: "ccp",
       distPath: rutaDistDePortal("ccp"),
@@ -167,8 +193,7 @@ function asegurarServidoresPortales(): Promise<void> {
         VITE_KEYCLOAK_ISSUER: issuer,
         VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_CCP,
         VITE_CIS_URL: cisUrl,
-        VITE_SICSAFT_NIVEL: nivel,
-        VITE_SICSAFT_CARPETA_INGESTA: carpetaIngesta,
+        ...configCcp,
       },
     });
     await iniciarServidorEstatico({
@@ -179,10 +204,19 @@ function asegurarServidoresPortales(): Promise<void> {
         VITE_KEYCLOAK_ISSUER: issuer,
         VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_CORE_FRONTEND,
         VITE_CIS_URL: cisUrl,
-        VITE_SICSAFT_NIVEL: nivel,
+        VITE_SICSAFT_NIVEL: configCcp.VITE_SICSAFT_NIVEL,
       },
     });
     await asegurarServidorAppQr();
+    // DOC-028 Fase G -- no se espera ni puede tumbar este arranque: el puesto del AFT en otra PC
+    // es secundario, el login del Director en esta PC no depende de él. Si falla (puerto ocupado),
+    // queda en el log y getInfoPuestoAft lo reintenta al abrir la pantalla "listo".
+    asegurarServidorCcpLan().catch((err: unknown) => {
+      console.error(
+        "[sicsaft-core] No se pudo servir el CCP en la red local (puesto del Profesional de AFT):",
+        err,
+      );
+    });
   })().catch((err: unknown) => {
     // Si el arranque falló de verdad, no dejar la promesa rechazada cacheada -- permitir que un
     // reintento (otro mostrarPortalEmbebido) lo vuelva a intentar.
@@ -218,6 +252,66 @@ function asegurarServidorAppQr(): Promise<void> {
     throw err;
   });
   return promesaServidorAppQr;
+}
+
+// DOC-028 Fase G (CORE-RF-06) -- el CCP servido también en la IP de LAN, por HTTPS (mismo cert que
+// la APP QR, appqr-tls.ts), para el Profesional de AFT que trabaja desde su propia PC contra esta.
+// Es un servidor aparte del de loopback, que sigue sirviendo el portal embebido de esta PC. La
+// página es HTTPS y CIS/Keycloak van por HTTP: esos fetch serían contenido mixto (Firefox y los
+// Chromium sin Local Network Access los bloquean) y CIS no tiene este origen en su CORS. Por eso
+// este servidor hace de proxy de mismo origen, solo para `/cis/*` y el token endpoint del realm.
+// El login (authorize) es una navegación de página completa y va directo a Keycloak, sin proxy.
+function asegurarServidorCcpLan(): Promise<void> {
+  promesaServidorCcpLan ??= (async () => {
+    const origen = obtenerOrigenCcpLan();
+    const issuer = issuerDelRealm();
+    await iniciarServidorEstatico({
+      nombre: "ccp-lan",
+      distPath: rutaDistDePortal("ccp"),
+      puerto: PUERTO_CCP_LAN,
+      host: obtenerIpLan(),
+      tls: await obtenerCertificadoAppQr(),
+      configRuntime: {
+        VITE_KEYCLOAK_ISSUER: issuer,
+        VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_CCP,
+        VITE_CIS_URL: `${origen}${RUTA_PROXY_CIS}`,
+        VITE_KEYCLOAK_TOKEN_URL: `${origen}${RUTA_PROXY_TOKEN}`,
+        ...configCcpDeInstalacion(),
+      },
+      proxies: [
+        {
+          prefijo: RUTA_PROXY_CIS,
+          destino: `http://127.0.0.1:${PUERTO_CIS}`,
+        },
+        {
+          prefijo: RUTA_PROXY_TOKEN,
+          destino: `${issuer}/protocol/openid-connect/token`,
+          exacto: true,
+        },
+      ],
+    });
+  })().catch((err: unknown) => {
+    promesaServidorCcpLan = null;
+    throw err;
+  });
+  return promesaServidorCcpLan;
+}
+
+// DOC-028 Fase G -- el client OIDC `ccp` tiene que aceptar volver al origen de LAN actual. Se
+// corre en cada relanzamiento (cubre instalaciones anteriores a la Fase G, cuyo client solo tenía
+// loopback) y al reconfigurar la IP. No fatal: si falla, el Director y el CCP embebido de esta PC
+// siguen andando; lo único que no entra es el puesto del AFT en otra PC, y queda en el log.
+async function sincronizarClientCcpSinFallar(
+  admin: AdminBootstrapKeycloak,
+): Promise<void> {
+  try {
+    await sincronizarOrigenesClientCcp(admin, obtenerOrigenCcpLan());
+  } catch (err: unknown) {
+    console.error(
+      "[sicsaft-core] No se pudo registrar en Keycloak el origen de LAN del CCP (puesto del Profesional de AFT):",
+      err,
+    );
+  }
 }
 
 export function registrarIpcHandlers(
@@ -287,6 +381,7 @@ export function registrarIpcHandlers(
     async (): Promise<EstadoIpLan> => {
       const admin = orquestador.getKeycloakAdmin();
       await reconfigurarClientAppQr(admin, obtenerOrigenAppQr());
+      await sincronizarClientCcpSinFallar(admin);
       actualizarIpLanInstalacion(obtenerIpLan());
       return evaluarCambioIpLan();
     },
@@ -313,6 +408,42 @@ export function registrarIpcHandlers(
       apkDisponible,
     };
   });
+
+  // DOC-028 Fase G -- la pantalla "listo" muestra la dirección del puesto del Profesional de AFT
+  // (su propia PC). De paso arranca el servidor del CCP de LAN si todavía no lo hizo (o si falló
+  // antes), para que el primer intento desde la otra PC ya encuentre algo. `enRed` = false cuando
+  // esta PC no tiene IP de LAN (obtenerIpLan cayó a loopback).
+  ipcMain.handle(
+    "sicsaft-core:getInfoPuestoAft",
+    async (): Promise<InfoPuestoAft> => {
+      await asegurarServidorCcpLan();
+      return {
+        url: obtenerOrigenCcpLan(),
+        enRed: !obtenerIpLan().startsWith("127."),
+      };
+    },
+  );
+
+  // DOC-028 Fase G -- guarda un acceso directo de Windows (.url) a esa dirección, para llevarlo a
+  // la PC del AFT (pendrive o carpeta compartida). El diálogo nativo decide la ruta, no el
+  // renderer. Devuelve la ruta elegida, o null si el usuario canceló.
+  ipcMain.handle(
+    "sicsaft-core:guardarAccesoDirectoPuestoAft",
+    async (): Promise<string | null> => {
+      const resultado = await dialog.showSaveDialog(ventana, {
+        title: "Guardar el acceso directo para la PC del Profesional de AFT",
+        defaultPath: join(app.getPath("desktop"), NOMBRE_ACCESO_DIRECTO),
+        filters: [{ name: "Acceso directo de Internet", extensions: ["url"] }],
+      });
+      if (resultado.canceled || !resultado.filePath) return null;
+      await writeFile(
+        resultado.filePath,
+        contenidoAccesoDirecto(obtenerOrigenCcpLan()),
+        "utf-8",
+      );
+      return resultado.filePath;
+    },
+  );
 
   // DOC-029 RF-B.6 -- carpeta vigilada de ingesta de Excel. El diálogo nativo es modal a la
   // ventana del wizard; si el usuario elige una carpeta, se persiste en instalacion.json y el

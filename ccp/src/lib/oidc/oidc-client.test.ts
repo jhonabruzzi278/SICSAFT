@@ -172,6 +172,33 @@ describe('handleCallback', () => {
     expect(stored?.refreshToken).toBe('new-refresh');
   });
 
+  // DOC-028 Fase G — CCP servido en la LAN por HTTPS: el canje va por el proxy de mismo origen.
+  it('canjea contra VITE_KEYCLOAK_TOKEN_URL cuando está configurada, no contra el issuer', async () => {
+    window.__SICSAFT_PORTAL_CONFIG__ = {
+      VITE_KEYCLOAK_TOKEN_URL: 'https://192.168.1.20:8767/kc/token',
+    };
+    try {
+      savePendingPkce({ codeVerifier: 'verifier-real', state: 'state-real' });
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({
+          access_token: 'new-access',
+          refresh_token: 'new-refresh',
+          expires_in: 3600,
+        }),
+      );
+
+      await oidcClient.handleCallback(
+        new URLSearchParams({ code: 'auth-code', state: 'state-real' }),
+      );
+
+      const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(String(url)).toBe('https://192.168.1.20:8767/kc/token');
+      expect(loadTokens()?.accessToken).toBe('new-access');
+    } finally {
+      delete window.__SICSAFT_PORTAL_CONFIG__;
+    }
+  });
+
   it('lanza error cuando la respuesta de Keycloak no es ok', async () => {
     savePendingPkce({ codeVerifier: 'v', state: 's' });
     fetchMock.mockResolvedValueOnce(
