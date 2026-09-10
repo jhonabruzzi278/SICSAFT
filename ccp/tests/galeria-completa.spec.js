@@ -280,13 +280,16 @@ test('15 - Mejora 2: Etiquetas Masivas - Simulación de Hoja de Papel Troquelada
 });
 
 // ==========================================
-// 6. MEJORA 6: INGESTA EXCEL CON DIFF VISUAL
+// 6. INGESTA CONTABLE: BANDEJA Y REVISIÓN DE LOTES
 // ==========================================
 
-test('16 - Mejora 6: Ingesta Excel - Zona Drag & Drop', async ({ page }) => {
+test('16 - Ingesta contable: bandeja directa a BPI', async ({ page }) => {
   await seedAuth(page);
   await page.goto('/importaciones?organizacionId=duoc-uc');
-  await page.waitForSelector('text=Ingesta Directa con Diff Visual');
+  await page.waitForSelector(
+    'h1:has-text("Bandeja de Ingesta Contable Directa a BPI")',
+  );
+  await page.waitForSelector('text=Carpeta Vigilada de Ingesta Contable');
   await page.waitForTimeout(500);
   await page.screenshot({
     path: `${OUT}/16-ccp-importaciones-dropzone.png`,
@@ -294,30 +297,15 @@ test('16 - Mejora 6: Ingesta Excel - Zona Drag & Drop', async ({ page }) => {
   });
 });
 
-test('17 - Mejora 6: Ingesta Excel - Diff Visual Interactivo con Diagnóstico', async ({
+test('17 - Ingesta contable: lotes recibidos y su detalle', async ({
   page,
 }) => {
   await seedAuth(page);
   await page.goto('/importaciones?organizacionId=duoc-uc');
-  await page.waitForSelector('text=Ingesta Directa con Diff Visual');
-
-  // Cargar una planilla de prueba simulada directamente por el input file
-  const csvPrueba = [
-    'codigoPatrimonial,codigoQr,catalogoId,serie,areaId,ubicacionId,valorPatrimonial',
-    'NOTE-NUEVO-01,QR-NOTE-NUEVO-01,catalogo-notebook,SN-N1,area-informatica,ubi-1,950000',
-    'NOTE-NUEVO-02,QR-NOTE-NUEVO-02,catalogo-notebook,SN-N2,area-informatica,ubi-1,950000',
-    'activo-notebook-001,QR-NOTEBOOK-001,catalogo-notebook,SN-EX1,area-biblioteca,ubi-bib-1,800000',
-    'activo-proyector-002,QR-PROYECTOR-002,catalogo-notebook,SN-EX2,area-informatica,ubicacion-lab-1,450000',
-    'CONFLICTO-01,QR-ESCANER-003,catalogo-notebook,SN-C1,area-informatica,ubi-1,300000',
-  ].join('\n');
-
-  await page.setInputFiles('input[type="file"]', {
-    name: 'inventario-activos-2026.csv',
-    mimeType: 'text/csv',
-    buffer: Buffer.from(csvPrueba),
-  });
-
-  await page.waitForSelector('text=Total Filas');
+  await page.waitForSelector(
+    'h1:has-text("Bandeja de Ingesta Contable Directa a BPI")',
+  );
+  await page.waitForSelector('text=Lotes recibidos');
   await page.waitForTimeout(600);
   await page.screenshot({
     path: `${OUT}/17-ccp-importaciones-diff-visual.png`,
