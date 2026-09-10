@@ -188,7 +188,6 @@ export class UbicacionRepository {
   // operativo exige `ubicacion_id` no nulo (ActivoRepository.findCatalogo, DOC-006 2): sin
   // esto un activo importado quedaba registrado en la BPI pero invisible en el catálogo, en
   // las etiquetas y en el CIP, sin ningún error que lo delatara.
-  //
   // Prioridad: la ubicación principal que el área ya tenga -> cualquier ubicación ya asociada
   // a esa área -> una nueva en la sede de la organización. La nueva queda además como
   // principal del área, así el resto del sistema la reusa en vez de acumular una ubicación

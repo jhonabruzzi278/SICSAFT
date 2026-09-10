@@ -6,7 +6,6 @@ import { Alert, Button } from '@/components/ui';
 // La identidad la resuelve Keycloak (ADR-004) por OIDC/PKCE: esta pantalla solo dispara el
 // redirect y el token vuelve por /auth/callback. Nunca pide usuario ni contraseña -- el portal no
 // debe ver credenciales, las tipea el usuario en la pantalla de Keycloak.
-//
 // Hasta 2026-09-08 esto era un formulario de email + contraseña + un desplegable de rol que
 // aceptaba cualquier valor y se fabricaba localmente un JWT `alg: "none"` firmado con la cadena
 // literal "signature", con 24h de vigencia y el rol elegido en el desplegable. Consecuencias
