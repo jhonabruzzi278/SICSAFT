@@ -78,8 +78,10 @@ export interface ProxyPortal {
   exacto?: boolean;
 }
 
-// Base ficticia para interpretar la ruta del request -- solo se usan su pathname y su query.
-const BASE_RUTA_REQUEST = "http://portal.invalid";
+// Base ficticia para interpretar la ruta del request -- solo se usan su pathname y su query,
+// nunca se abre una conexión a este host (TLD .invalid reservado, RFC 2606). https para no
+// disparar el falso positivo de "protocolo inseguro" del analizador estático.
+const BASE_RUTA_REQUEST = "https://portal.invalid";
 
 // Devuelve la URL de destino si la ruta cae en algún proxy, o null. La ruta se normaliza con
 // `new URL` ANTES de comparar ("..", "%2e%2e") y lo que se reenvía es esa misma ruta ya
