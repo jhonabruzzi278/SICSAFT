@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   Inject,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -56,6 +57,7 @@ interface CacheEntry {
 // validación es el CIS, no el token"), ahora también para roles, no solo para sedes/contrato.
 @Injectable()
 export class KeycloakAuthGuard implements CanActivate {
+  private readonly logger = new Logger(KeycloakAuthGuard.name);
   private readonly cache = new Map<string, CacheEntry>();
 
   constructor(
@@ -148,7 +150,14 @@ export class KeycloakAuthGuard implements CanActivate {
         issuer: this.config.issuer,
         audience: this.config.audience,
       });
-    } catch {
+    } catch (error) {
+      // El motivo concreto (firma, issuer, audience o exp) se queda del lado del servidor y
+      // nunca viaja al cliente: al operador no le sirve y a un atacante le diría exactamente
+      // qué ajustar. Este catch era pelado y los cuatro casos eran indistinguibles desde
+      // afuera, así que cualquier problema de auth se volvía adivinanza (real 2026-09-08).
+      // `String(error)` y no error.message: jose tipa el error como unknown y su toString ya
+      // trae el nombre de la clase (JWTExpired, JWSSignatureVerificationFailed, ...).
+      this.logger.warn(`Token rechazado por jwtVerify: ${String(error)}`);
       throw new UnauthorizedException('Token inválido o vencido');
     }
   }

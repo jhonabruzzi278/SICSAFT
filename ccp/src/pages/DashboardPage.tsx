@@ -7,16 +7,12 @@ import {
   type Responsable,
 } from '@/lib/cis-client';
 import { dashboardClient, type Cobertura } from '@/lib/dashboard-client';
-import { nivelActual } from '@/lib/nivel';
 import { Alert, Badge } from '@/components/ui';
 import {
   IconBox,
-  IconChart,
-  IconCpu,
   IconMapPin,
   IconQrCode,
   IconShield,
-  IconSparkles,
   IconUpload,
   IconUsers,
 } from '@/components/icons';
@@ -34,8 +30,6 @@ export function DashboardPage() {
   const [cobertura, setCobertura] = useState<Cobertura | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const esNivel2 = nivelActual() === 2;
 
   useEffect(() => {
     if (!organizacionId) return;
@@ -105,45 +99,6 @@ export function DashboardPage() {
       </div>
 
       {error && <Alert variant="error">{error}</Alert>}
-
-      {/* Hero Banner: Botón Destacado del CIP (Exclusivo Nivel 2) */}
-      {esNivel2 && (
-        <div className="relative overflow-hidden rounded-2xl border border-accent/40 bg-gradient-to-r from-bg-card via-accent/10 to-bg-card p-6 shadow-elev-2">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-bg font-bold shadow-sm">
-                  <IconSparkles />
-                </span>
-                <span className="text-xs font-bold tracking-wider text-accent-strong uppercase">
-                  Centro de Inteligencia Patrimonial (CIP)
-                </span>
-                <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[0.65rem] font-bold text-accent-strong ring-1 ring-accent/30">
-                  NIVEL 2 ACTIVO
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-text">
-                Analítica Avanzada, Distribución Gráfica y BI en Tiempo Real
-              </h3>
-              <p className="max-w-2xl text-xs leading-relaxed text-text-dim">
-                Explore gráficos interactivos de distribución por categorías,
-                activos por condición operativa, cobertura de escaneo en terreno
-                con APP QR y la matriz de valor patrimonial.
-              </p>
-            </div>
-
-            <a
-              href={`/cip${q}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-xs font-bold text-bg shadow-elev-float transition-all hover:bg-accent-strong hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <IconChart />
-              <span>Abrir CIP en Navegador Externo ↗</span>
-            </a>
-          </div>
-        </div>
-      )}
 
       {/* Tarjetas de Resumen Operativo Básico (Métricas Numéricas Claras) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -333,36 +288,6 @@ export function DashboardPage() {
               Historial oficial
             </div>
           </Link>
-
-          {esNivel2 && (
-            <a
-              href={`/cip${q}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex flex-col justify-between rounded-2xl border border-accent/50 bg-gradient-to-br from-bg-card to-accent/15 p-5 shadow-elev-1 transition-all hover:border-accent hover:scale-[1.01]"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-bg font-bold">
-                    <IconCpu />
-                  </span>
-                  <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[0.65rem] font-bold text-accent-strong">
-                    NIVEL 2
-                  </span>
-                </div>
-                <h3 className="mt-4 font-bold text-text">
-                  Inteligencia Patrimonial (CIP)
-                </h3>
-                <p className="mt-1 text-xs text-text-dim">
-                  Dashboard de alto impacto, gráficos SVG, KPIs ejecutivos y
-                  matriz de valor en navegador externo.
-                </p>
-              </div>
-              <div className="mt-4 text-[0.75rem] font-bold text-accent-strong">
-                Lanzar CIP Web Analytics ↗
-              </div>
-            </a>
-          )}
         </div>
       </div>
     </div>

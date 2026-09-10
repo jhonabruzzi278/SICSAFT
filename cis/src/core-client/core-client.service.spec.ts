@@ -169,6 +169,10 @@ describe('CoreClientService', () => {
           organizacionId: 'duoc-uc',
           areaId: 'area-biblioteca',
           ubicacionId: 'ubicacion-biblioteca-101',
+          areaNombre: 'BIBLIOTECA',
+          ubicacionNombre: 'Edificio A · Piso 1 · 101',
+          familia: 'Informática',
+          incorporadoEn: '2026-09-09T12:00:00.000Z',
           estado: 'activo',
         },
       ];

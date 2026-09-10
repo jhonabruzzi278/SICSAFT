@@ -16,11 +16,19 @@ import { CarpetaIngesta } from "../components/CarpetaIngesta";
 // ventana, como cualquier app real. `portalCargado` distingue los dos momentos: pasa a true recién
 // cuando mostrarPortalEmbebido() resuelve (login + portal ya cargado del todo, ver
 // portal-login-service.ts mostrarLoginYPortal), no antes.
+// `onPortalCargadoChange` avisa en las DOS direcciones a propósito. Con el callback anterior
+// (`onPortalCargado`, sin argumento, solo al cargar) WizardApp ponía su propio portalCargado en
+// true y no había forma de volverlo a false: al tocar "Cambiar de usuario" este componente
+// volvía a su layout chico pero el wizard seguía con el chrome de portal cargado -- sin
+// BrandBar, sin padding, sin centrado y con `overflow-hidden`, que además aplastaba el cuadro
+// de login de 420px a una línea. Bug real reportado 2026-09-08 ("no se ve bien").
 interface PasoListoConLoginProps {
-  onPortalCargado?: () => void;
+  onPortalCargadoChange?: (cargado: boolean) => void;
 }
 
-export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
+export function PasoListoConLogin({
+  onPortalCargadoChange,
+}: PasoListoConLoginProps) {
   const placeholderRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [portalCargado, setPortalCargado] = useState(false);
@@ -45,8 +53,16 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
   // instancia nueva por render) dispararía el efecto de nuevo y volvería a llamar
   // mostrarPortalEmbebido -- el mismo bug de doble-invocación de arriba, por otra vía. El ref
   // siempre apunta a la versión más reciente sin necesidad de re-ejecutar el efecto.
-  const onPortalCargadoRef = useRef(onPortalCargado);
-  onPortalCargadoRef.current = onPortalCargado;
+  const onPortalCargadoRef = useRef(onPortalCargadoChange);
+  onPortalCargadoRef.current = onPortalCargadoChange;
+
+  // Único camino para cambiar `portalCargado`: mantiene el estado local y el del wizard en el
+  // mismo valor por construcción, en vez de depender de que cada punto de cambio se acuerde de
+  // avisar hacia arriba.
+  function actualizarPortalCargado(cargado: boolean): void {
+    setPortalCargado(cargado);
+    onPortalCargadoRef.current?.(cargado);
+  }
 
   useEffect(() => {
     const elemento = placeholderRef.current;
@@ -76,8 +92,7 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
       window.sicsaftCore
         .mostrarPortalEmbebido(bounds, intentoLogin > 0)
         .then(() => {
-          setPortalCargado(true);
-          onPortalCargadoRef.current?.();
+          actualizarPortalCargado(true);
         })
         .catch((err: unknown) => {
           setError(err instanceof Error ? err.message : "Error desconocido");
@@ -111,7 +126,7 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
   // propósito: portalCargado tiene que volver a false ANTES de leer el bounds nuevo, así que no
   // alcanza con solo incrementar intentoLogin -- el efecto necesita ver el layout ya actualizado.
   function cambiarUsuario(): void {
-    setPortalCargado(false);
+    actualizarPortalCargado(false);
     setIntentoLogin((n) => n + 1);
   }
 
@@ -151,11 +166,9 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
           Instalación completa
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted-foreground)]">
-          Iniciá sesión abajo (Director / Profesional de AFT), o escaneá el QR
-          desde el teléfono del Profesional de AFT.
+          Iniciá sesión acá abajo (Director / Profesional de AFT). El QR para el
+          teléfono y la carpeta de ingesta quedan al pie.
         </p>
-        <QrAppQr />
-        <CarpetaIngesta />
       </div>
       {error && !portalCargado && (
         <p className="text-sm text-[var(--destructive)]">
@@ -187,9 +200,20 @@ export function PasoListoConLogin({ onPortalCargado }: PasoListoConLoginProps) {
         className={
           portalCargado
             ? "w-full flex-1"
-            : "h-[420px] w-full overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-card shadow-elev-2"
+            : "h-[420px] w-full shrink-0 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-card shadow-elev-2"
         }
       />
+      {/* QR de la APP y carpeta de ingesta van DEBAJO del login, no arriba: con el QR (175px)
+          y la tarjeta de carpeta por encima, el cuadro de 420px del login caía fuera de la
+          vista en una ventana normal y no se llegaba ni al formulario ni a "Cambiar de
+          usuario" sin scrollear (reporte real 2026-09-08). Va después del placeholder y no
+          antes por dos razones: el nodo con el ref tiene que conservar su posición entre las
+          dos variantes de layout (ver el comentario de arriba), y este bloque tiene que caer
+          fuera del rectángulo del WebContentsView, que tapa cualquier HTML bajo sus bounds. */}
+      <div className={portalCargado ? "hidden" : "w-full"}>
+        <QrAppQr />
+        <CarpetaIngesta />
+      </div>
     </div>
   );
 }

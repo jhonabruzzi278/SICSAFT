@@ -196,4 +196,3 @@ export function IconRefresh(props: IconProps) {
     </svg>
   );
 }
-

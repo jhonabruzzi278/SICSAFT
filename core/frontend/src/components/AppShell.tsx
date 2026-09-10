@@ -9,6 +9,14 @@ import { IconChart, IconLogOut, IconSparkles, IconUsers } from './icons';
 // (InicioPage resuelve la única organización del Directivo y redirige a /dashboard, ver
 // InicioPage.tsx) y la gestión del Profesional de AFT — a diferencia de ccp/ no hay
 // selector de organización (DirectivoGuard en CIS siempre deriva la organización del JWT).
+//
+// DOC-025 / pedido del usuario (2026-09-09): el CIP es exclusivo del Directivo y NO se enlaza
+// desde el CCP. Acá no hace falta una entrada aparte para él porque /dashboard **es** el CIP
+// cuando la instalación es Nivel 2 — la misma página se titula "Centro de Inteligencia
+// Patrimonial" (ver DashboardPage.tsx). Antes había además un link "Centro de Inteligencia (CIP)"
+// en la sidebar y un botón "CIP Analytics" en el header, los dos apuntando a /dashboard: llevaban
+// a la pantalla donde el Directivo ya estaba parado. Se reemplazan por el nombre correcto de la
+// única entrada que ya existía.
 const NAV_ITEMS = [
   {
     path: '/',
@@ -24,8 +32,11 @@ const NAV_ITEMS = [
   },
 ] as const;
 
+const RUTA_TABLERO = '/';
+
 function Sidebar() {
   const location = useLocation();
+  const nivel2 = esNivel2();
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-bg-raised shadow-elev-2 lg:flex">
@@ -49,6 +60,7 @@ function Sidebar() {
           const active = (matches as readonly string[]).includes(
             location.pathname,
           );
+          const esCip = path === RUTA_TABLERO && nivel2;
           return (
             <Link
               key={path}
@@ -60,34 +72,21 @@ function Sidebar() {
                   : 'text-text-dim hover:bg-bg-card hover:text-text'
               }`}
             >
-              <Icon />
-              {nombre}
+              {esCip ? <IconSparkles /> : <Icon />}
+              {/* La sigla va primero: con el badge "Nivel 2" al lado el ancho alcanza justo, y
+                  truncar "Centro de Inteligencia (CIP)" se comía justamente el "(CIP)" que el
+                  Directivo busca en el menú. */}
+              <span className="min-w-0 flex-1 truncate">
+                {esCip ? 'CIP — Inteligencia' : nombre}
+              </span>
+              {esCip && (
+                <span className="shrink-0 rounded bg-accent/20 px-1 py-0.5 text-[0.6rem] font-bold text-accent-strong ring-1 ring-accent/30">
+                  Nivel 2
+                </span>
+              )}
             </Link>
           );
         })}
-
-        {esNivel2() && (
-          <>
-            <div className="my-3 border-t border-border" />
-            <div className="px-3 pb-1 flex items-center justify-between text-[0.65rem] font-bold tracking-wider text-accent-strong uppercase">
-              <span>Inteligencia</span>
-              <span className="rounded bg-accent/20 px-1 py-0.5 text-[0.6rem] font-bold text-accent-strong ring-1 ring-accent/30">
-                Nivel 2
-              </span>
-            </div>
-            <Link
-              to="/dashboard"
-              className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition-colors ${
-                location.pathname === '/dashboard'
-                  ? 'bg-accent/20 text-accent-strong before:absolute before:top-1.5 before:bottom-1.5 before:-left-3 before:w-1 before:rounded-r-full before:bg-accent ring-1 ring-accent/30'
-                  : 'text-text-dim hover:bg-bg-card hover:text-text'
-              }`}
-            >
-              <IconSparkles />
-              Centro de Inteligencia (CIP)
-            </Link>
-          </>
-        )}
       </nav>
     </aside>
   );
@@ -131,15 +130,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
           {authenticated && (
             <div className="flex items-center gap-3 text-sm">
-              {esNivel2() && (
-                <Link
-                  to="/dashboard"
-                  className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-bold text-accent-strong hover:bg-accent/25 transition-all shadow-sm ring-1 ring-accent/30"
-                >
-                  <IconSparkles />
-                  <span>CIP Analytics</span>
-                </Link>
-              )}
               {nombre && (
                 <span className="flex items-center gap-2.5 text-text-dim">
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-dim text-xs font-semibold text-accent-strong ring-1 ring-border-strong">

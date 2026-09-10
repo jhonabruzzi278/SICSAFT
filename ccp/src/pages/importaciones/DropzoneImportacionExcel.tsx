@@ -216,18 +216,24 @@ export function DropzoneImportacionExcel({
               </span>
             </div>
             <p className="text-text-dim text-[11px] leading-relaxed">
-              La ingesta oficial de planillas Excel (.xlsx) se procesa mediante el sidecar Python con <code className="font-mono text-accent">pandas</code> y <code className="font-mono text-accent">openpyxl</code>, garantizando la normalización automática de áreas, valores contables en CLP y códigos patrimoniales.
+              La ingesta oficial de planillas Excel (.xlsx) se procesa mediante
+              el sidecar Python con{' '}
+              <code className="font-mono text-accent">pandas</code> y{' '}
+              <code className="font-mono text-accent">openpyxl</code>,
+              garantizando la normalización automática de áreas, valores
+              contables en CLP y códigos patrimoniales.
             </p>
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-accent/20 pt-2 text-[11px]">
-          <span className="text-text-dim font-medium">Ejecución directa por CLI:</span>
+          <span className="text-text-dim font-medium">
+            Ejecución directa por CLI:
+          </span>
           <code className="rounded bg-bg-card px-2 py-0.5 font-mono text-accent border border-border">
             .\sicsaft.ps1 cargar-excel CU-PAT-DIRECCION-COMERCIAL-completo.xlsx
           </code>
         </div>
       </div>
-
 
       {/* Zona Drag & Drop */}
       <div

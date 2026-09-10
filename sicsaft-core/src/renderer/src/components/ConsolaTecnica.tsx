@@ -85,6 +85,35 @@ export function ConsolaTecnica({ defaultAbierta = false }: Props) {
   const [respaldando, setRespaldando] = useState(false);
   const [respaldoMensaje, setRespaldoMensaje] = useState<string | null>(null);
 
+  // TEMPORAL — banco de pruebas (ver src/main/services/reset-bpi-dev.ts). `import.meta.env.DEV`
+  // es false en el build empaquetado, así que este bloque entero desaparece del .exe por
+  // tree-shaking; el proceso principal además se niega a vaciar si está empaquetado.
+  const [vaciando, setVaciando] = useState(false);
+  const [confirmandoVaciado, setConfirmandoVaciado] = useState(false);
+
+  async function vaciarBpi(): Promise<void> {
+    // Dos clics a propósito: el primero arma, el segundo ejecuta, y a los 6s se desarma solo.
+    if (!confirmandoVaciado) {
+      setConfirmandoVaciado(true);
+      setTimeout(() => setConfirmandoVaciado(false), 6000);
+      return;
+    }
+    setConfirmandoVaciado(false);
+    setVaciando(true);
+    setRespaldoMensaje(null);
+    try {
+      const res = await window.sicsaftCore.vaciarBpiDev();
+      setRespaldoMensaje(
+        `BPI vaciada: ${res.filasBorradas} filas. Respaldo previo: ${res.respaldo}`,
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setRespaldoMensaje(`Error al vaciar: ${msg}`);
+    } finally {
+      setVaciando(false);
+    }
+  }
+
   async function ejecutarRespaldo(): Promise<void> {
     setRespaldando(true);
     setRespaldoMensaje(null);
@@ -141,6 +170,22 @@ export function ConsolaTecnica({ defaultAbierta = false }: Props) {
             >
               {respaldando ? "Respaldando…" : "Respaldar BPI"}
             </button>
+            {/* TEMPORAL — banco de pruebas. Ver reset-bpi-dev.ts para sacarlo. */}
+            {import.meta.env.DEV && (
+              <button
+                type="button"
+                disabled={vaciando}
+                onClick={() => void vaciarBpi()}
+                title="Solo en desarrollo: borra activos, estructura, lotes e inventarios. Respalda antes."
+                className="rounded-[var(--radius)] border border-[var(--destructive)] bg-[var(--destructive)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--destructive)] transition-colors hover:bg-[var(--destructive)]/20 disabled:opacity-50"
+              >
+                {vaciando
+                  ? "Vaciando…"
+                  : confirmandoVaciado
+                    ? "¿Seguro? Vaciar BPI"
+                    : "Vaciar BPI (dev)"}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => void window.sicsaftCore.abrirCarpetaRespaldos()}

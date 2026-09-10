@@ -12,7 +12,6 @@ import { InventariosPage } from '@/pages/InventariosPage';
 import { AuditoriaPage } from '@/pages/AuditoriaPage';
 import { EstructuraPage } from '@/pages/EstructuraPage';
 import { DashboardPage } from '@/pages/DashboardPage';
-import { CipPage } from '@/pages/CipPage';
 import { ImportacionesPage } from '@/pages/ImportacionesPage';
 import { EtiquetasPage } from '@/pages/EtiquetasPage';
 
@@ -23,9 +22,8 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// DOC-029 RF-A -- un modulo no habilitado (retirado del CCP, o el `dashboard`/CIP en una
-// instalacion Nivel 1) abierto por URL directa redirige al hub. El gate real igual esta en
-// CIS/CORE (DOC-023) -- esto solo evita mostrar una pantalla sin salida.
+// DOC-029 RF-A -- un modulo retirado del CCP abierto por URL directa redirige al hub. El gate
+// real igual esta en CIS/CORE (DOC-023) -- esto solo evita mostrar una pantalla sin salida.
 function RequireModulo({
   path,
   children,
@@ -109,16 +107,6 @@ export default function App() {
           element={
             <RequireAuth>
               <DashboardPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/cip"
-          element={
-            <RequireAuth>
-              <RequireModulo path="cip">
-                <CipPage />
-              </RequireModulo>
             </RequireAuth>
           }
         />

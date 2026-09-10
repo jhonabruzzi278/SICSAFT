@@ -17,6 +17,10 @@ import { verificarPerteneceOrganizacion } from './verificar-pertenece';
 
 const FOREIGN_KEY_VIOLATION = '23503';
 
+// Queda visible en la ficha de la ubicación: deja claro que nadie la relevó en terreno, se
+// creó para poder dar de alta activos que el Excel contable ubica solo por área.
+const DEPENDENCIA_POR_INGESTA = 'Sin relevar — creada por ingesta contable';
+
 function esErrorPg(error: unknown): error is { code: string } {
   return typeof error === 'object' && error !== null && 'code' in error;
 }
@@ -177,6 +181,70 @@ export class UbicacionRepository {
       [id],
     );
     return result.rows[0];
+  }
+
+  // DOC-029 RF-B — ubicación por defecto del área para las altas de la ingesta contable. El
+  // Excel del especialista trae el área pero nunca una ubicación física, y el catálogo
+  // operativo exige `ubicacion_id` no nulo (ActivoRepository.findCatalogo, DOC-006 2): sin
+  // esto un activo importado quedaba registrado en la BPI pero invisible en el catálogo, en
+  // las etiquetas y en el CIP, sin ningún error que lo delatara.
+  //
+  // Prioridad: la ubicación principal que el área ya tenga -> cualquier ubicación ya asociada
+  // a esa área -> una nueva en la sede de la organización. La nueva queda además como
+  // principal del área, así el resto del sistema la reusa en vez de acumular una ubicación
+  // suelta por cada importación. Devuelve null si la organización todavía no tiene sede: el
+  // activo se da de alta igual, sin ubicación, en vez de bloquear la aprobación del lote.
+  async resolverPorArea(
+    organizacionId: string,
+    areaId: string,
+  ): Promise<string | null> {
+    const area = await this.pool.query<{ ubicacionPrincipalId: string | null }>(
+      `SELECT ubicacion_principal_id AS "ubicacionPrincipalId"
+       FROM areas WHERE id = $1 AND organizacion_id = $2`,
+      [areaId, organizacionId],
+    );
+    const principal = area.rows[0]?.ubicacionPrincipalId;
+    if (principal) return principal;
+
+    const asociada = await this.pool.query<{ id: string }>(
+      `SELECT u.id FROM ubicaciones u
+       JOIN sedes s ON s.id = u.sede_id
+       WHERE u.area_id = $1 AND s.organizacion_id = $2
+       ORDER BY u.id
+       LIMIT 1`,
+      [areaId, organizacionId],
+    );
+    const yaAsociada = asociada.rows[0]?.id;
+    if (yaAsociada) {
+      await this.marcarPrincipalDelArea(areaId, yaAsociada);
+      return yaAsociada;
+    }
+
+    const sede = await this.pool.query<{ id: string }>(
+      'SELECT id FROM sedes WHERE organizacion_id = $1 ORDER BY id LIMIT 1',
+      [organizacionId],
+    );
+    const sedeId = sede.rows[0]?.id;
+    if (!sedeId) return null;
+
+    const id = randomUUID();
+    await this.pool.query(
+      `INSERT INTO ubicaciones (id, sede_id, area_id, dependencia)
+       VALUES ($1, $2, $3, $4)`,
+      [id, sedeId, areaId, DEPENDENCIA_POR_INGESTA],
+    );
+    await this.marcarPrincipalDelArea(areaId, id);
+    return id;
+  }
+
+  private async marcarPrincipalDelArea(
+    areaId: string,
+    ubicacionId: string,
+  ): Promise<void> {
+    await this.pool.query(
+      'UPDATE areas SET ubicacion_principal_id = $2 WHERE id = $1',
+      [areaId, ubicacionId],
+    );
   }
 
   private verificarPertenece(

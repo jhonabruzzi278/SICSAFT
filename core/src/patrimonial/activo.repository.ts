@@ -38,17 +38,36 @@ const SELECT_ACTIVO_SQL = `
     a.responsable_id AS "responsableId",
     a.estado,
     a.descripcion,
+    -- Cuando el bien entro a la BPI (no la fecha contable de alta): es lo que necesita el
+    -- tablero para 'ultimas incorporaciones', que hasta ahora mostraba fechas de una tabla
+    -- de demo.
+    a.creado_en AS "incorporadoEn",
     (SELECT MAX(i.fecha) FROM inventarios i WHERE i.activo_id = a.id) AS "ultimoInventario",
     c.tipo,
     c.familia,
     c.subfamilia,
     c.marca,
-    c.modelo
+    c.modelo,
+    ar.nombre AS "areaNombre",
+    -- DOC-006 2: la ubicacion no tiene un campo nombre propio, se compone de sus partes
+    -- físicas. Las que crea la ingesta contable no tienen ninguna (el Excel del contador no
+    -- trae ubicación), así que caen al nombre del área: es lo único cierto que se sabe de
+    -- dónde está el bien, y es infinitamente más útil que mostrarle un UUID al operador que
+    -- está parado en el pasillo con el teléfono (reporte real 2026-09-09).
+    COALESCE(
+      NULLIF(TRIM(CONCAT_WS(' · ', u.edificio, u.piso, u.oficina)), ''),
+      ar.nombre
+    ) AS "ubicacionNombre"
   FROM activos a
   JOIN catalogo_activos c ON c.id = a.catalogo_id
+  LEFT JOIN areas ar ON ar.id = a.area_id
+  LEFT JOIN ubicaciones u ON u.id = a.ubicacion_id
 `;
 
 interface ActivoRow {
+  incorporadoEn: Date | string | null;
+  areaNombre: string | null;
+  ubicacionNombre: string | null;
   id: string;
   codigoPatrimonial: string;
   codigoQr: string;
@@ -332,6 +351,15 @@ export class ActivoRepository {
       // Seguro: findCatalogo ya filtra area_id/ubicacion_id IS NOT NULL.
       areaId: row.areaId as string,
       ubicacionId: row.ubicacionId as string,
+      // Etiquetas para quien opera: sin esto la APP QR mostraba UUIDs crudos en el selector
+      // de área/ubicación y el operador no podía saber qué estaba por relevar.
+      areaNombre: row.areaNombre ?? row.areaId ?? '',
+      ubicacionNombre: row.ubicacionNombre ?? row.ubicacionId ?? '',
+      // `pg` devuelve timestamptz como Date; el contrato viaja como ISO.
+      incorporadoEn:
+        row.incorporadoEn instanceof Date
+          ? row.incorporadoEn.toISOString()
+          : (row.incorporadoEn ?? ''),
       estado: row.estado,
     };
   }

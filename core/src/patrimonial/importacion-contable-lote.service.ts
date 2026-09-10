@@ -198,7 +198,11 @@ export class ImportacionContableLoteService {
       serie: fila.serie ?? undefined,
       responsableId,
       areaId,
-      ubicacionId: fila.ubicacionId ?? undefined,
+      ubicacionId:
+        fila.ubicacionId ??
+        (areaId
+          ? await this.resolvedor.resolverUbicacion(organizacionId, areaId)
+          : undefined),
       valorPatrimonial: fila.valorPatrimonial ?? undefined,
     };
   }

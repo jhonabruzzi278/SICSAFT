@@ -78,6 +78,7 @@ export function construirEjecucionEtl(datos: DatosEjecucionEtl): EjecucionEtl {
     datos.organizacionId,
     "--cis-url",
     datos.cisUrl ?? CIS_URL_LOCAL,
+    "--auto-aprobar",
   ];
   if (datos.rutaMapeo) {
     args.push("--mapeo", datos.rutaMapeo);

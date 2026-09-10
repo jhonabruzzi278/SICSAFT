@@ -12,7 +12,6 @@ import {
   IconLayers,
   IconMapPin,
   IconQrCode,
-  IconSparkles,
   IconUpload,
 } from '@/components/icons';
 
@@ -33,8 +32,9 @@ type Modulo = {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 };
 
-// DOC-029 RF-A (corregido 2026-09-02) -- el CCP va completo en todos los niveles; lo unico que
-// `moduloHabilitado` oculta en Nivel 1 es `dashboard` (CIP). Contratos/Inventarios estan
+// DOC-029 RF-A (corregido 2026-09-09) -- el CCP va completo en todos los niveles y ya no depende
+// del nivel para nada: el CIP se movio al portal del Directivo (core/frontend), que es donde vive
+// la analitica de Nivel 2. Lo unico que `moduloHabilitado` oculta aca son Contratos/Inventarios,
 // retirados en cualquier nivel. Decide por `path` (ver lib/nivel.ts).
 const MODULOS: Modulo[] = [
   {
@@ -81,13 +81,6 @@ const MODULOS: Modulo[] = [
     nombre: 'Resumen Operativo',
     descripcion: 'Estado general del catálogo y accesos directos',
     icon: IconChart,
-  },
-  {
-    path: 'cip',
-    nombre: 'Inteligencia Patrimonial (CIP)',
-    descripcion:
-      'Analítica avanzada, KPIs ejecutivos y gráficos en tiempo real',
-    icon: IconSparkles,
   },
 ];
 

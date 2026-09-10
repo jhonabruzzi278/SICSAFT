@@ -21,6 +21,7 @@ function build() {
     resolverCatalogo: jest.fn(),
     resolverArea: jest.fn(),
     resolverResponsable: jest.fn(),
+    resolverUbicacion: jest.fn(),
     resolverSoloExistentes: jest.fn().mockResolvedValue({}),
   } as unknown as jest.Mocked<ResolvedorImportacionService>;
   const service = new ImportacionContableLoteService(
@@ -261,6 +262,7 @@ describe('ImportacionContableLoteService', () => {
       resolvedor.resolverCatalogo.mockResolvedValue('cat-mob');
       resolvedor.resolverArea.mockResolvedValue('area-dg');
       resolvedor.resolverResponsable.mockResolvedValue('resp-dg');
+      resolvedor.resolverUbicacion.mockResolvedValue('ubic-dg');
       importacionContableService.procesar.mockResolvedValue({
         filas: [],
         creados: 1,

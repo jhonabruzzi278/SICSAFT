@@ -88,6 +88,12 @@ export interface ActivoCatalogo {
   organizacionId: string;
   areaId: string;
   ubicacionId: string;
+  // Nombres legibles de la estructura, para que los consumidores (APP QR, CCP) no tengan que
+  // mostrar ids. Se derivan en la consulta, no son columnas de `activos`.
+  areaNombre: string;
+  ubicacionNombre: string;
+  /** ISO 8601. Cuando el activo entro a la BPI. */
+  incorporadoEn: string;
   estado: EstadoActivo;
 }
 

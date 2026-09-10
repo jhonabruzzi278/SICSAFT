@@ -5,11 +5,11 @@
 // con el header transversal `X-Correlation-Id` que CIS agrega solo, y la idempotencia es
 // idéntica a la propuesta acá (misma key + mismo payload = mismo resultado, distinto payload =
 // 409).
-import type { ProductVariant, ScanCategory, ScanSession } from './db';
-import { oidcClient, AuthenticationRequiredError } from './oidc/oidc-client';
-import { loadOidcConfig } from './oidc/oidc-config';
-import { getOrCreateDeviceId } from './device-id';
-import type { OrgArea, OrgLocation, Organization } from './organizations-data';
+import type { ProductVariant, ScanCategory, ScanSession } from "./db";
+import { oidcClient, AuthenticationRequiredError } from "./oidc/oidc-client";
+import { loadOidcConfig } from "./oidc/oidc-config";
+import { getOrCreateDeviceId } from "./device-id";
+import type { OrgArea, OrgLocation, Organization } from "./organizations-data";
 
 export { AuthenticationRequiredError };
 
@@ -37,6 +37,7 @@ export interface ConnectorAsset {
   areaId: string;
   areaNombre?: string;
   ubicacionId: string;
+  ubicacionNombre?: string;
   // Extensión no cubierta por DOC-002 todavía: el contrato documentado no
   // modela variantes/talles. Se mantiene para que el escaneo de códigos
   // "BASE-VARIANTE" (ver labels.ts) siga funcionando — CIS no la conoce, se
@@ -53,23 +54,27 @@ export interface AuthSessionResult {
 
 export interface InventarioResult {
   inventarioId: string;
-  estado: 'recibido' | 'rechazado';
+  estado: "recibido" | "rechazado";
   errores?: string[];
 }
 
 export interface InventarioEstado {
-  estado: 'pendiente' | 'recibido' | 'rechazado';
+  estado: "pendiente" | "recibido" | "rechazado";
   ultimoIntento: string;
 }
 
 export type InventarioPayload = Omit<
   ScanSession,
-  'id' | 'syncStatus' | 'syncAttempts' | 'lastAttemptAt' | 'nextRetryAt'
+  "id" | "syncStatus" | "syncAttempts" | "lastAttemptAt" | "nextRetryAt"
 >;
 
 export interface QrConnectorClient {
   authSession(): Promise<AuthSessionResult>;
-  getCatalogo(organizacionId: string, areaId?: string, ubicacionId?: string): Promise<ConnectorAsset[]>;
+  getCatalogo(
+    organizacionId: string,
+    areaId?: string,
+    ubicacionId?: string,
+  ): Promise<ConnectorAsset[]>;
   postInventario(session: InventarioPayload): Promise<InventarioResult>;
   getInventarioEstado(inventarioId: string): Promise<InventarioEstado>;
 }
@@ -85,7 +90,7 @@ export class RejectedInventarioError extends Error {
     readonly errores?: string[],
   ) {
     super(message);
-    this.name = 'RejectedInventarioError';
+    this.name = "RejectedInventarioError";
   }
 }
 
@@ -98,30 +103,32 @@ interface ErrorBody {
 // de `ScanCategory` (nombres/idioma internos de la app, ver db.ts). `postInventario` traduce una
 // a la otra; nunca se manda `ScanCategory` tal cual por la red.
 type ScanResultado =
-  | 'correcto'
-  | 'otra_area'
-  | 'otra_ubicacion'
-  | 'no_registrado'
-  | 'invalido'
-  | 'duplicado'
-  | 'ya_escaneado'
-  | 'con_incidencia';
+  | "correcto"
+  | "otra_area"
+  | "otra_ubicacion"
+  | "no_registrado"
+  | "invalido"
+  | "duplicado"
+  | "ya_escaneado"
+  | "con_incidencia";
 
 const CATEGORY_TO_RESULTADO: Record<ScanCategory, ScanResultado> = {
-  correct: 'correcto',
-  'wrong-area': 'otra_area',
-  'wrong-location': 'otra_ubicacion',
-  unregistered: 'no_registrado',
-  invalid: 'invalido',
-  'already-scanned': 'ya_escaneado',
-  duplicate: 'duplicado',
+  correct: "correcto",
+  "wrong-area": "otra_area",
+  "wrong-location": "otra_ubicacion",
+  unregistered: "no_registrado",
+  invalid: "invalido",
+  "already-scanned": "ya_escaneado",
+  duplicate: "duplicado",
 };
 
 // DOC-006 3 (`InventarioRequest`) — nombres de campo en español, distintos de `InventarioPayload`
 // (forma interna de la app, `ScanSession` en db.ts). `correlationId` ya es estable por sesión
 // (generado al iniciar el inventario, ver db.ts) y sirve también como `idempotencyKey`: nunca
 // cambia entre reintentos de la misma sesión, que es exactamente lo que DOC-002 4 exige.
-function toInventarioRequest(session: InventarioPayload): Record<string, unknown> {
+function toInventarioRequest(
+  session: InventarioPayload,
+): Record<string, unknown> {
   return {
     correlationId: session.correlationId,
     idempotencyKey: session.correlationId,
@@ -137,19 +144,31 @@ function toInventarioRequest(session: InventarioPayload): Record<string, unknown
     escaneos: session.items.map((item) => ({
       codigoQr: item.code,
       resultado: CATEGORY_TO_RESULTADO[item.category],
-      ...(item.estadoDeclarado ? { estadoDeclarado: item.estadoDeclarado } : {}),
-      ...(item.bajaSugerida ? { bajaSugerida: { motivo: item.bajaSugerida } } : {}),
+      ...(item.estadoDeclarado
+        ? { estadoDeclarado: item.estadoDeclarado }
+        : {}),
+      ...(item.bajaSugerida
+        ? { bajaSugerida: { motivo: item.bajaSugerida } }
+        : {}),
     })),
     incidencias: session.items
-      .filter((item): item is typeof item & { incidentNote: string } => Boolean(item.incidentNote))
+      .filter((item): item is typeof item & { incidentNote: string } =>
+        Boolean(item.incidentNote),
+      )
       .map((item) => ({ codigoQr: item.code, descripcion: item.incidentNote })),
   };
 }
 
-function flattenErrores(errores: ErrorBody['errores']): string[] | undefined {
+function flattenErrores(errores: ErrorBody["errores"]): string[] | undefined {
   if (!errores) return undefined;
-  return errores.map((e) => (typeof e === 'string' ? e : `${e.campo}: ${e.detalle}`));
+  return errores.map((e) =>
+    typeof e === "string" ? e : `${e.campo}: ${e.detalle}`,
+  );
 }
+
+// Tope que acepta CORE por página (paginacionSchema). Se pide el máximo para minimizar viajes,
+// que en un teléfono con datos móviles importa.
+const CATALOGO_PAGINA = 100;
 
 async function parseErrorBody(res: Response): Promise<ErrorBody> {
   try {
@@ -159,7 +178,10 @@ async function parseErrorBody(res: Response): Promise<ErrorBody> {
   }
 }
 
-async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+async function authorizedFetch(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
   const config = loadOidcConfig();
   // Deja pasar AuthenticationRequiredError tal cual — ScanPage.tsx la interpreta como "mandar al
   // operador a loguearse de nuevo" (ver handleDecode/OperatorGate), no como una falla transitoria
@@ -167,42 +189,68 @@ async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Re
   const accessToken = await oidcClient.getValidAccessToken();
 
   const headers = new Headers(init.headers);
-  headers.set('Authorization', `Bearer ${accessToken}`);
-  if (init.body) headers.set('Content-Type', 'application/json');
+  headers.set("Authorization", `Bearer ${accessToken}`);
+  if (init.body) headers.set("Content-Type", "application/json");
 
   return fetch(`${config.cisUrl}${path}`, { ...init, headers });
 }
 
 class HttpQrConnectorClient implements QrConnectorClient {
   async authSession(): Promise<AuthSessionResult> {
-    const res = await authorizedFetch('/auth/session', {
-      method: 'POST',
+    const res = await authorizedFetch("/auth/session", {
+      method: "POST",
       body: JSON.stringify({ deviceId: getOrCreateDeviceId() }),
     });
     if (!res.ok) {
       const body = await parseErrorBody(res);
-      throw new Error(body.message ?? `No se pudo iniciar sesión (${res.status})`);
+      throw new Error(
+        body.message ?? `No se pudo iniciar sesión (${res.status})`,
+      );
     }
     return (await res.json()) as AuthSessionResult;
   }
 
-  async getCatalogo(organizacionId: string, areaId?: string, ubicacionId?: string): Promise<ConnectorAsset[]> {
-    const params = new URLSearchParams({ organizacionId });
-    if (areaId) params.set('areaId', areaId);
-    if (ubicacionId) params.set('ubicacionId', ubicacionId);
+  // `/catalogo` es paginado (RNF-01: default 20, tope 100 por página) y el escáner necesita el
+  // catálogo COMPLETO: si falta un activo, escanear su QR lo reporta como desconocido. Pedir una
+  // sola página traía 20 de 252 y en el teléfono solo aparecían los activos de 2 de las 20
+  // ubicaciones (reporte real 2026-09-09). Se recorren las páginas usando el `total` que devuelve
+  // CIS, conservando los filtros opcionales de área/ubicación.
+  async getCatalogo(
+    organizacionId: string,
+    areaId?: string,
+    ubicacionId?: string,
+  ): Promise<ConnectorAsset[]> {
+    const activos: ConnectorAsset[] = [];
+    let total = 0;
+    do {
+      const params = new URLSearchParams({ organizacionId });
+      if (areaId) params.set("areaId", areaId);
+      if (ubicacionId) params.set("ubicacionId", ubicacionId);
+      params.set("limit", String(CATALOGO_PAGINA));
+      params.set("offset", String(activos.length));
 
-    const res = await authorizedFetch(`/catalogo?${params.toString()}`);
-    if (!res.ok) {
-      const body = await parseErrorBody(res);
-      throw new Error(body.message ?? `No se pudo traer el catálogo (${res.status})`);
-    }
-    const body = (await res.json()) as { activos: ConnectorAsset[] };
-    return body.activos;
+      const res = await authorizedFetch(`/catalogo?${params.toString()}`);
+      if (!res.ok) {
+        const body = await parseErrorBody(res);
+        throw new Error(
+          body.message ?? `No se pudo traer el catálogo (${res.status})`,
+        );
+      }
+      const body = (await res.json()) as {
+        activos: ConnectorAsset[];
+        total: number;
+      };
+      total = body.total;
+      // Corta también con página vacía: si `total` viniera desalineado, el bucle termina igual.
+      if (body.activos.length === 0) break;
+      activos.push(...body.activos);
+    } while (activos.length < total);
+    return activos;
   }
 
   async postInventario(session: InventarioPayload): Promise<InventarioResult> {
-    const res = await authorizedFetch('/inventarios', {
-      method: 'POST',
+    const res = await authorizedFetch("/inventarios", {
+      method: "POST",
       body: JSON.stringify(toInventarioRequest(session)),
     });
 
@@ -215,16 +263,22 @@ class HttpQrConnectorClient implements QrConnectorClient {
     }
     if (!res.ok) {
       const body = await parseErrorBody(res);
-      throw new Error(body.message ?? `No se pudo enviar el inventario (${res.status})`);
+      throw new Error(
+        body.message ?? `No se pudo enviar el inventario (${res.status})`,
+      );
     }
     return (await res.json()) as InventarioResult;
   }
 
   async getInventarioEstado(inventarioId: string): Promise<InventarioEstado> {
-    const res = await authorizedFetch(`/inventarios/${encodeURIComponent(inventarioId)}/estado`);
+    const res = await authorizedFetch(
+      `/inventarios/${encodeURIComponent(inventarioId)}/estado`,
+    );
     if (!res.ok) {
       const body = await parseErrorBody(res);
-      throw new Error(body.message ?? `No se pudo consultar el estado (${res.status})`);
+      throw new Error(
+        body.message ?? `No se pudo consultar el estado (${res.status})`,
+      );
     }
     return (await res.json()) as InventarioEstado;
   }
@@ -246,20 +300,41 @@ export function buildOrganizationTree(
   const areasById = new Map<string, OrgArea>();
 
   for (const activo of catalogo) {
-    if (activo.organizacionId !== summary.id || !activo.areaId || !activo.ubicacionId) continue;
+    if (
+      activo.organizacionId !== summary.id ||
+      !activo.areaId ||
+      !activo.ubicacionId
+    )
+      continue;
 
     let area = areasById.get(activo.areaId);
     if (!area) {
-      area = { id: activo.areaId, name: activo.areaNombre ?? activo.areaId, locations: [] };
+      area = {
+        id: activo.areaId,
+        name: activo.areaNombre ?? activo.areaId,
+        locations: [],
+      };
       areasById.set(activo.areaId, area);
     }
 
-    if (!area.locations.some((location) => location.id === activo.ubicacionId)) {
-      const sede = summary.sedes.find((s) => s.id === activo.ubicacionId);
-      const location: OrgLocation = { id: activo.ubicacionId, name: sede?.nombre ?? activo.ubicacionId };
+    if (
+      !area.locations.some((location) => location.id === activo.ubicacionId)
+    ) {
+      // `ubicacionNombre` lo compone CORE (partes físicas de la ubicación, o el nombre del
+      // área si no tiene ninguna). Antes esto buscaba el id de la ubicación entre las SEDES
+      // de la organización — dos entidades distintas, así que nunca coincidía y el selector
+      // terminaba mostrando el UUID crudo (reporte real 2026-09-09).
+      const location: OrgLocation = {
+        id: activo.ubicacionId,
+        name: activo.ubicacionNombre ?? activo.ubicacionId,
+      };
       area.locations.push(location);
     }
   }
 
-  return { id: summary.id, name: summary.nombre, areas: Array.from(areasById.values()) };
+  return {
+    id: summary.id,
+    name: summary.nombre,
+    areas: Array.from(areasById.values()),
+  };
 }

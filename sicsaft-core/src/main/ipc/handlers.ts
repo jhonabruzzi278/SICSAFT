@@ -65,6 +65,8 @@ import {
   crearRespaldoBpi,
   listarRespaldos,
 } from "../services/backup-service";
+// TEMPORAL — banco de pruebas, ver reset-bpi-dev.ts
+import { vaciarBpiDev } from "../services/reset-bpi-dev";
 
 // Todos los handlers reciben el ServiceOrchestrator ya arrancado -- ningún handler expone
 // secretos al renderer (el admin de Keycloak, el client secret de cis-admin) más allá de lo que
@@ -257,6 +259,13 @@ export function registrarIpcHandlers(
     },
   );
 
+  // TEMPORAL — vaciado de la BPI para el banco de pruebas. El servicio se niega a correr si la
+  // app está empaquetada, así que este handler es inofensivo en un cliente instalado; el botón
+  // del renderer además solo se dibuja en dev. Ver reset-bpi-dev.ts para eliminarlo.
+  ipcMain.handle("sicsaft-core:vaciarBpiDev", async () => {
+    return vaciarBpiDev();
+  });
+
   // DOC-028 Fase C.1 -- el wizard llama esto al relanzar, después de getInstalacionExistente(). Si
   // la IP de LAN de la PC cambió desde la instalación, devuelve cambio: true y el wizard muestra
   // PasoIpCambio antes del login. Backfill: una instalación anterior a Fase C no tiene ipLan
@@ -345,6 +354,7 @@ export function registrarIpcHandlers(
       // una carpeta de ingesta configurada, el watcher tiene que volver a levantarse acá (no lo
       // hace nadie más en este camino).
       await asegurarWatcherIngesta(orquestador);
+      await asegurarServidoresPortales();
     }
     return existente;
   });
@@ -406,9 +416,10 @@ export function registrarIpcHandlers(
         clienteNombre: input.clienteNombre,
         ipLan: obtenerIpLan(),
         // DOC-030 -- nivel de producto contratado (DOC-025), elegido por el vendedor en el paso 1
-        // del wizard (PasoDatosCliente). Se inyecta al servir `ccp` como VITE_SICSAFT_NIVEL
-        // (asegurarServidoresPortales): el CCP va completo en todos los niveles; Nivel 2 solo
-        // agrega el Dashboard/indicadores (CIP) -- correccion 2026-09-02, ver ccp/src/lib/nivel.ts.
+        // del wizard (PasoDatosCliente). Se inyecta a los portales como VITE_SICSAFT_NIVEL
+        // (asegurarServidoresPortales): el CCP va completo en todos los niveles y no lo mira;
+        // Nivel 2 agrega el CIP, que es el tablero del **Directivo** y solo se ve desde su portal
+        // (correccion 2026-09-09, ver core/frontend/src/lib/nivel.ts y ccp/src/lib/nivel.ts).
         // El portal `web_admin` se eliminó por completo (2026-09, ver DOC-030) -- el CRUD de
         // Organizacion/Contrato/Sede es intervencion directa del proveedor + el wizard.
         nivel: input.nivel,

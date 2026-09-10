@@ -77,3 +77,36 @@ body {
 #root {
   height: 100%;
 }
+
+/* Barra de scroll visible. Con `body { overflow: hidden }` el único contenedor que scrollea
+   es el <main> del wizard, y la barra por defecto de Chromium sobre esta paleta oscura
+   (--background en 15% de luminosidad) es casi indistinguible del fondo: el usuario no tenía
+   señal de que hubiera contenido más abajo y el cuadro de login le quedaba fuera de la vista
+   sin pista de cómo llegar (reporte real 2026-09-08). Solo pseudo-elementos -webkit-: si se
+   mezclan con `scrollbar-width`/`scrollbar-color`, Chromium ignora estos. */
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--input);
+}
+
+::-webkit-scrollbar-thumb {
+  /* `background-clip: content-box` + borde transparente deja aire a los costados del pulgar
+     sin necesidad de un contenedor extra. */
+  background: var(--border-strong);
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--input);
+}

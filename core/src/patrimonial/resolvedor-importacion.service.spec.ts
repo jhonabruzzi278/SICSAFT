@@ -3,6 +3,7 @@ import { ResolvedorImportacionService } from './resolvedor-importacion.service';
 import type { AreaRepository } from '../estructura/area.repository';
 import type { ResponsableRepository } from '../estructura/responsable.repository';
 import type { CatalogoTipoActivoRepository } from './catalogo-tipo-activo.repository';
+import type { UbicacionRepository } from '../estructura/ubicacion.repository';
 
 function build() {
   const areaRepository = {
@@ -17,16 +18,21 @@ function build() {
     listar: jest.fn(),
     crear: jest.fn(),
   } as unknown as jest.Mocked<CatalogoTipoActivoRepository>;
+  const ubicacionRepository = {
+    resolverPorArea: jest.fn(),
+  } as unknown as jest.Mocked<UbicacionRepository>;
   const service = new ResolvedorImportacionService(
     areaRepository,
     responsableRepository,
     catalogoTipoActivoRepository,
+    ubicacionRepository,
   );
   return {
     service,
     areaRepository,
     responsableRepository,
     catalogoTipoActivoRepository,
+    ubicacionRepository,
   };
 }
 
@@ -211,5 +217,29 @@ describe('ResolvedorImportacionService', () => {
       expect(areaRepository.buscarPorNombre).not.toHaveBeenCalled();
       expect(responsableRepository.buscarPorNombre).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('resolverUbicacion', () => {
+  it('devuelve el id que resuelve el repositorio', async () => {
+    const { service, ubicacionRepository } = build();
+    ubicacionRepository.resolverPorArea.mockResolvedValue('ubic-1');
+
+    await expect(service.resolverUbicacion('org-1', 'area-1')).resolves.toBe(
+      'ubic-1',
+    );
+    expect(ubicacionRepository.resolverPorArea).toHaveBeenCalledWith(
+      'org-1',
+      'area-1',
+    );
+  });
+
+  it('traduce el null del repositorio a undefined para la fila canonica', async () => {
+    const { service, ubicacionRepository } = build();
+    ubicacionRepository.resolverPorArea.mockResolvedValue(null);
+
+    await expect(
+      service.resolverUbicacion('org-1', 'area-1'),
+    ).resolves.toBeUndefined();
   });
 });

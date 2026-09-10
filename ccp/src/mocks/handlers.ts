@@ -34,9 +34,20 @@ const MOCK_CATALOGO_TIPOS: CatalogoTipoActivo[] = [
   },
 ];
 
-// Estado mutable propio del catálogo mockeado
+// Estado mutable propio del catálogo mockeado. Los datos viven en fixtures.ts, no acá.
 let catalogo: ActivoCatalogo[] = [...MOCK_CATALOGO];
-const documentosPorActivo = new Map<string, Array<{ id: string; activoId: string; organizacionId: string; tipo: 'documento' | 'fotografia'; url: string; descripcion: string | null; creadoEn: string }>>();
+const documentosPorActivo = new Map<
+  string,
+  Array<{
+    id: string;
+    activoId: string;
+    organizacionId: string;
+    tipo: 'documento' | 'fotografia';
+    url: string;
+    descripcion: string | null;
+    creadoEn: string;
+  }>
+>();
 
 export function resetCatalogo(): void {
   catalogo = [...MOCK_CATALOGO];
@@ -51,8 +62,17 @@ export const defaultHandlers = [
   http.get(`*/catalogo`, ({ request }) => {
     const url = new URL(request.url);
     const organizacionId = url.searchParams.get('organizacionId');
-    const activos = catalogo.filter((a) => !organizacionId || a.organizacionId === organizacionId);
-    return HttpResponse.json({ activos });
+    const coincidentes = catalogo.filter(
+      (a) => !organizacionId || a.organizacionId === organizacionId,
+    );
+    // El endpoint real pagina y devuelve el total; el mock lo imita para que el cliente
+    // (que recorre las páginas) corte donde corresponde en vez de pedir de más.
+    const limit = Number(url.searchParams.get('limit') ?? coincidentes.length);
+    const offset = Number(url.searchParams.get('offset') ?? 0);
+    return HttpResponse.json({
+      activos: coincidentes.slice(offset, offset + limit),
+      total: coincidentes.length,
+    });
   }),
 
   http.get(`*/admin/catalogo-tipos`, () =>
@@ -64,12 +84,20 @@ export const defaultHandlers = [
     const organizacionId = new URL(request.url).searchParams.get(
       'organizacionId',
     );
-    const areas = MOCK_AREAS.filter((a) => !organizacionId || a.organizacionId === organizacionId);
+    const areas = MOCK_AREAS.filter(
+      (a) => !organizacionId || a.organizacionId === organizacionId,
+    );
     return HttpResponse.json({ areas, total: areas.length });
   }),
 
   http.post(`*/admin/areas`, async ({ request }) => {
-    const body = (await request.json()) as { organizacionId: string; codigo: string; nombre: string; dependencia?: string; centroCosto?: string };
+    const body = (await request.json()) as {
+      organizacionId: string;
+      codigo: string;
+      nombre: string;
+      dependencia?: string;
+      centroCosto?: string;
+    };
     const nuevaArea = {
       id: `area-${crypto.randomUUID().slice(0, 6)}`,
       organizacionId: body.organizacionId,
@@ -92,7 +120,13 @@ export const defaultHandlers = [
   }),
 
   http.post(`*/admin/responsables`, async ({ request }) => {
-    const body = (await request.json()) as { organizacionId: string; nombre: string; identificacion: string; cargo?: string; areaId: string };
+    const body = (await request.json()) as {
+      organizacionId: string;
+      nombre: string;
+      identificacion: string;
+      cargo?: string;
+      areaId: string;
+    };
     const nuevoResp = {
       id: `resp-${crypto.randomUUID().slice(0, 6)}`,
       ...body,
@@ -112,7 +146,13 @@ export const defaultHandlers = [
   }),
 
   http.post(`*/admin/ubicaciones`, async ({ request }) => {
-    const body = (await request.json()) as { organizacionId: string; sedeId: string; edificio?: string; piso?: string; oficina?: string };
+    const body = (await request.json()) as {
+      organizacionId: string;
+      sedeId: string;
+      edificio?: string;
+      piso?: string;
+      oficina?: string;
+    };
     const nuevaUbic = {
       id: `ubic-${crypto.randomUUID().slice(0, 6)}`,
       ...body,
@@ -147,11 +187,11 @@ export const defaultHandlers = [
         origen: 'carpeta',
         archivoNombre: 'CU-PAT-DIRECCION-COMERCIAL-completo.xlsx',
         recibidoEn: new Date().toISOString(),
-        estado: 'pendiente_revision',
-        revisadoPor: null,
-        revisadoEn: null,
+        estado: 'aprobado',
+        revisadoPor: 'Sistema ETL Automático (CIS → CORE → BPI)',
+        revisadoEn: new Date().toISOString(),
         motivoRechazo: null,
-        resumen: { totalFilas: 39, crear: 39, yaImportado: 0, conflicto: 0 },
+        resumen: { totalFilas: 2, crear: 2, yaImportado: 0, conflicto: 0 },
       },
     ]);
   }),
@@ -165,11 +205,11 @@ export const defaultHandlers = [
         origen: 'carpeta',
         archivoNombre: 'CU-PAT-DIRECCION-COMERCIAL-completo.xlsx',
         recibidoEn: new Date().toISOString(),
-        estado: 'pendiente_revision',
-        revisadoPor: null,
-        revisadoEn: null,
+        estado: 'aprobado',
+        revisadoPor: 'Sistema ETL Automático (CIS → CORE → BPI)',
+        revisadoEn: new Date().toISOString(),
         motivoRechazo: null,
-        resumen: { totalFilas: 39, crear: 39, yaImportado: 0, conflicto: 0 },
+        resumen: { totalFilas: 2, crear: 2, yaImportado: 0, conflicto: 0 },
       },
       filas: [
         {
@@ -219,17 +259,57 @@ export const defaultHandlers = [
   http.post(`*/admin/importaciones/contable/lote/:id/aprobar`, () => {
     // Al aprobar en mock, incorporamos los 39 activos del lote de prueba a la base
     const baseActivos = [
-      { id: 'dc-01', qr: 'DC-01', nombre: '1 EQUIPO CLIMATIZACION 12000 BTU', area: 'OFICINA DIRECTOR COMERCIAL' },
-      { id: 'dc-02', qr: 'DC-02', nombre: '1 SOFA 3 PERSONAS', area: 'OFICINA DIRECTOR COMERCIAL' },
-      { id: 'dc-03', qr: 'DC-03', nombre: '1 MESA DE CENTRO DE MADERA', area: 'OFICINA DIRECTOR COMERCIAL' },
-      { id: 'dc-04', qr: 'DC-04', nombre: '1 ESCRITORIO EN L MADERA 1.60X1.40', area: 'OFICINA DIRECTOR COMERCIAL' },
-      { id: 'dc-05', qr: 'DC-05', nombre: '1 SILLON EJECUTIVO ECOCUERO GIRATORIO', area: 'OFICINA DIRECTOR COMERCIAL' },
-      { id: 'dc-06', qr: 'DC-06', nombre: '2 SILLAS DE VISITA TAPIZADAS', area: 'OFICINA DIRECTOR COMERCIAL' },
-      { id: 'dc-07', qr: 'DC-07', nombre: '1 KARDEX METALICO 4 CAJONES', area: 'OFICINA DIRECTOR COMERCIAL' },
-      { id: 'dc-08', qr: 'DC-08', nombre: '1 ESTANTE BIBLIOTECA 5 DIVISIONES', area: 'OFICINA DIRECTOR COMERCIAL' },
+      {
+        id: 'dc-01',
+        qr: 'DC-01',
+        nombre: '1 EQUIPO CLIMATIZACION 12000 BTU',
+        area: 'OFICINA DIRECTOR COMERCIAL',
+      },
+      {
+        id: 'dc-02',
+        qr: 'DC-02',
+        nombre: '1 SOFA 3 PERSONAS',
+        area: 'OFICINA DIRECTOR COMERCIAL',
+      },
+      {
+        id: 'dc-03',
+        qr: 'DC-03',
+        nombre: '1 MESA DE CENTRO DE MADERA',
+        area: 'OFICINA DIRECTOR COMERCIAL',
+      },
+      {
+        id: 'dc-04',
+        qr: 'DC-04',
+        nombre: '1 ESCRITORIO EN L MADERA 1.60X1.40',
+        area: 'OFICINA DIRECTOR COMERCIAL',
+      },
+      {
+        id: 'dc-05',
+        qr: 'DC-05',
+        nombre: '1 SILLON EJECUTIVO ECOCUERO GIRATORIO',
+        area: 'OFICINA DIRECTOR COMERCIAL',
+      },
+      {
+        id: 'dc-06',
+        qr: 'DC-06',
+        nombre: '2 SILLAS DE VISITA TAPIZADAS',
+        area: 'OFICINA DIRECTOR COMERCIAL',
+      },
+      {
+        id: 'dc-07',
+        qr: 'DC-07',
+        nombre: '1 KARDEX METALICO 4 CAJONES',
+        area: 'OFICINA DIRECTOR COMERCIAL',
+      },
+      {
+        id: 'dc-08',
+        qr: 'DC-08',
+        nombre: '1 ESTANTE BIBLIOTECA 5 DIVISIONES',
+        area: 'OFICINA DIRECTOR COMERCIAL',
+      },
     ];
     for (const a of baseActivos) {
-      if (!catalogo.some(c => c.codigoQr === a.qr)) {
+      if (!catalogo.some((c) => c.codigoQr === a.qr)) {
         catalogo.push({
           id: a.id,
           codigoQr: a.qr,
@@ -254,17 +334,20 @@ export const defaultHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-
   http.post(`*/admin/importaciones/contable`, async ({ request }) => {
-    const body = (await request.json()) as { filas: Array<{ codigoPatrimonial: string }> };
+    const body = (await request.json()) as {
+      filas: Array<{ codigoPatrimonial: string }>;
+    };
     return HttpResponse.json({
-      filas: (body.filas || []).map((f) => ({ codigoPatrimonial: f.codigoPatrimonial, resultado: 'creado' })),
+      filas: (body.filas || []).map((f) => ({
+        codigoPatrimonial: f.codigoPatrimonial,
+        resultado: 'creado',
+      })),
       creados: body.filas?.length || 0,
       yaImportados: 0,
       conflictos: 0,
     });
   }),
-
 
   http.post(`*/admin/activos`, async ({ request }) => {
     const body = (await request.json()) as {
@@ -305,7 +388,6 @@ export const defaultHandlers = [
     };
     return HttpResponse.json(activo, { status: 201 });
   }),
-
 
   // Endpoints de Documentación, Fotografías y Modificación de Activos
   http.get(`*/admin/activos/:id/documentos`, ({ params }) => {
@@ -376,7 +458,7 @@ export const defaultHandlers = [
   http.get(`*/dashboard/cobertura`, () => {
     const total = catalogo.length;
     const escaneados = catalogo.filter((a) => a.estado === 'activo').length;
-    const pct = total > 0 ? (escaneados / total) : 0;
+    const pct = total > 0 ? escaneados / total : 0;
     return HttpResponse.json({
       activosRegistrados: total,
       activosEscaneados: escaneados,

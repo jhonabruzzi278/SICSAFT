@@ -57,10 +57,11 @@ export interface InstalacionCompleta {
   // IP actual como línea base la primera vez.
   ipLan?: string;
   // DOC-029 RF-A -- nivel de producto contratado (DOC-025). Se fija en el bootstrap y se inyecta
-  // al servir `ccp` (VITE_SICSAFT_NIVEL, ver ipc/handlers.ts asegurarServidoresPortales) para que
-  // el portal oculte el módulo Dashboard (CIP) en Nivel 1 -- el CCP va completo en todos los
-  // niveles, lo único gateado a Nivel 2 es el Dashboard (corrección 2026-09-02, ver ccp/src/lib/
-  // nivel.ts MODULOS_CIP). Opcional: una instalación anterior a RF-A no lo tiene -- ahí se asume
+  // al servir `ccp` y `core-frontend` (VITE_SICSAFT_NIVEL, ver ipc/handlers.ts
+  // asegurarServidoresPortales). Desde 2026-09-09 el que lo usa para decidir qué mostrar es el
+  // portal del **Directivo** (core/frontend/src/lib/nivel.ts): Nivel 2 agrega el CIP, que es su
+  // tablero. El CCP va completo en todos los niveles y ya no gatea ningún módulo por este valor
+  // (ccp/src/lib/nivel.ts). Opcional: una instalación anterior a RF-A no lo tiene -- ahí se asume
   // Nivel 1.
   nivel?: 1 | 2;
   // DOC-029 RF-B.6 -- carpeta del PC del cliente donde el especialista contable deja los .xls/.xlsx.
@@ -185,6 +186,17 @@ export interface SicsaftCoreApi {
   crearRespaldoBpi(): Promise<RespaldoInfo>;
   listarRespaldos(): Promise<RespaldoInfo[]>;
   abrirCarpetaRespaldos(): Promise<void>;
+  // TEMPORAL — banco de pruebas. Ver src/main/services/reset-bpi-dev.ts para el porqué y para
+  // los pasos exactos de eliminación. Solo responde fuera del .exe empaquetado.
+  vaciarBpiDev(): Promise<ResultadoVaciadoBpi>;
+}
+
+// TEMPORAL — se va junto con vaciarBpiDev().
+export interface ResultadoVaciadoBpi {
+  /** Nombre del respaldo que se tomó ANTES de vaciar. */
+  respaldo: string;
+  filasBorradas: number;
+  tablas: { tabla: string; filas: number }[];
 }
 
 export interface RespaldoInfo {

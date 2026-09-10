@@ -47,14 +47,15 @@ describe('moduloHabilitado', () => {
     }
   });
 
-  it('en Nivel 1 oculta el CIP — la suite analitica avanzada entra en Nivel 2', () => {
-    window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '1' };
-    expect(moduloHabilitado('cip')).toBe(false);
+  it('el CIP no es un modulo del CCP en ningun nivel — vive en el portal del Directivo', () => {
+    for (const nivel of ['1', '2']) {
+      window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: nivel };
+      expect(moduloHabilitado('cip')).toBe(false);
+    }
   });
 
-  it('en Nivel 2 habilita tambien el CIP', () => {
+  it('en Nivel 2 el CCP muestra exactamente los mismos modulos que en Nivel 1', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '2' };
-    expect(moduloHabilitado('cip')).toBe(true);
     expect(moduloHabilitado('dashboard')).toBe(true);
     expect(moduloHabilitado('estructura')).toBe(true);
   });

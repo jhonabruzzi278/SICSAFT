@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   contarDryRun,
+  etiquetaEstadoLote,
   loteAccionable,
   ordenarLotes,
 } from './lotes-importacion';
@@ -56,6 +57,29 @@ describe('loteAccionable', () => {
     expect(loteAccionable({ estado: 'pendiente_revision' })).toBe(true);
     expect(loteAccionable({ estado: 'aprobado' })).toBe(false);
     expect(loteAccionable({ estado: 'rechazado' })).toBe(false);
+  });
+});
+
+describe('etiquetaEstadoLote', () => {
+  it('solo un lote aprobado se muestra como ingresado a la BPI', () => {
+    expect(etiquetaEstadoLote('aprobado')).toEqual({
+      texto: '✓ Ingresado a BPI',
+      variant: 'success',
+    });
+  });
+
+  it('un lote pendiente_revision avisa que la ingesta no terminó, no que entró', () => {
+    expect(etiquetaEstadoLote('pendiente_revision')).toEqual({
+      texto: 'Ingreso pendiente',
+      variant: 'warning',
+    });
+  });
+
+  it('un lote rechazado se muestra como rechazado', () => {
+    expect(etiquetaEstadoLote('rechazado')).toEqual({
+      texto: 'Rechazado',
+      variant: 'error',
+    });
   });
 });
 

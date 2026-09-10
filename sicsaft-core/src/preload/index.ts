@@ -54,6 +54,8 @@ const api: SicsaftCoreApi = {
   listarRespaldos: () => ipcRenderer.invoke("sicsaft-core:listarRespaldos"),
   abrirCarpetaRespaldos: () =>
     ipcRenderer.invoke("sicsaft-core:abrirCarpetaRespaldos"),
+  // TEMPORAL — ver reset-bpi-dev.ts
+  vaciarBpiDev: () => ipcRenderer.invoke("sicsaft-core:vaciarBpiDev"),
   onLogLinea: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, linea: string): void =>
       callback(linea);

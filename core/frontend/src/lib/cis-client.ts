@@ -11,6 +11,20 @@ export interface Sede {
   nombre: string;
 }
 
+// Forma del catalogo que devuelve CIS (GET /catalogo). Solo los campos que consume el tablero.
+export interface ActivoCatalogo {
+  id: string;
+  codigoQr: string;
+  nombre: string;
+  familia: string;
+  areaId: string;
+  areaNombre: string;
+  ubicacionNombre: string;
+  /** ISO 8601. Cuando el activo entro a la BPI. */
+  incorporadoEn: string;
+  estado: string;
+}
+
 export interface Organizacion {
   id: string;
   nombre: string;
@@ -79,6 +93,9 @@ async function authorizedFetch(
   return res;
 }
 
+// Tope que acepta CORE por pagina (paginacionSchema). Se pide el maximo para minimizar viajes.
+const CATALOGO_PAGINA = 100;
+
 export const cisClient = {
   // POST /auth/session — única forma hoy de resolver la organización del Directivo para el
   // Dashboard (GET /entitlements vive detrás de CORE, sin ruta directa para un navegador; ver
@@ -90,6 +107,33 @@ export const cisClient = {
       body: JSON.stringify({ deviceId: getDeviceId() }),
     });
     return (await res.json()) as { organizaciones: Organizacion[] };
+  },
+
+  // GET /catalogo — el tablero lo necesita para dos cosas que hasta 2026-09-09 eran datos de
+  // demo: la tabla de ultimas incorporaciones (un array `ACTIVOS_DEMO` hardcodeado) y el nombre
+  // de las areas del control de relevamiento (que mostraba el UUID crudo, porque la proyeccion
+  // del CIP solo trae `areaId`). El endpoint es paginado (default 20, tope 100), asi que se
+  // recorren las paginas guiandose por el `total`.
+  async getCatalogo(organizacionId: string): Promise<ActivoCatalogo[]> {
+    const activos: ActivoCatalogo[] = [];
+    let total = 0;
+    do {
+      const params = new URLSearchParams({
+        organizacionId,
+        limit: String(CATALOGO_PAGINA),
+        offset: String(activos.length),
+      });
+      const res = await authorizedFetch(`/catalogo?${params.toString()}`);
+      const data = (await res.json()) as {
+        activos: ActivoCatalogo[];
+        total: number;
+      };
+      total = data.total;
+      // Corta tambien con pagina vacia: si `total` viniera desalineado, el bucle termina igual.
+      if (data.activos.length === 0) break;
+      activos.push(...data.activos);
+    } while (activos.length < total);
+    return activos;
   },
 
   // DOC-022 3 — sin organizacionId como parámetro: DirectivoGuard en CIS lo deriva siempre del

@@ -325,12 +325,17 @@ def enviar_a_cis(cuerpo: dict[str, Any], cis_url: str, token: str) -> dict[str, 
     return resp.json()
 
 
-def aprobar_lote_en_cis(lote_id: str, cis_url: str, token: str) -> dict[str, Any]:
+def aprobar_lote_en_cis(
+    lote_id: str, cis_url: str, token: str, organizacion: str
+) -> dict[str, Any]:
     import requests
 
+    # CIS valida el cuerpo con `aprobarLoteImportacionContableSchema`: `organizacionId` es
+    # obligatorio (string no vacío). Mandar el cuerpo vacío devolvía 400 y el lote quedaba en
+    # `pendiente_revision` sin ninguna vía de salida hacia la BPI.
     resp = requests.post(
         f"{cis_url.rstrip('/')}/admin/importaciones/contable/lote/{lote_id}/aprobar",
-        json={},
+        json={"organizacionId": organizacion},
         headers={"Authorization": f"Bearer {token}"},
         timeout=60,
     )
@@ -348,8 +353,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--token", help="Bearer JWT para CIS")
     parser.add_argument(
         "--auto-aprobar",
+        dest="auto_aprobar",
         action="store_true",
-        help="Aprueba inmediatamente el lote en CORE tras crearlo, insertando directo en la BPI",
+        default=True,
+        help=(
+            "Aprueba inmediatamente el lote en CORE tras crearlo, insertando directo "
+            "en la BPI (por defecto)"
+        ),
+    )
+    parser.add_argument(
+        "--sin-auto-aprobar",
+        dest="auto_aprobar",
+        action="store_false",
+        help="Desactiva la incorporación automática a la BPI",
     )
     parser.add_argument(
         "--salida",
@@ -383,7 +399,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.auto_aprobar and lote_id:
         print(f"Lote creado ({lote_id}). Ejecutando auto-aprobación hacia BPI...", file=sys.stderr)
-        aprobacion = aprobar_lote_en_cis(lote_id, args.cis_url, token)
+        aprobacion = aprobar_lote_en_cis(lote_id, args.cis_url, token, args.organizacion)
         print(json.dumps({"lote": creacion, "bpi": aprobacion}, ensure_ascii=False))
         return 0
 

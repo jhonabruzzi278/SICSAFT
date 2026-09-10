@@ -1,0 +1,239 @@
+<!-- @dsCard group="Tokens" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>SICSAFT — Paleta de color</title>
+<style>
+  :root {
+    /* Neutros y acento — BRAND.md, familia azul-marino hue 254-258.
+       Idénticos hoy en ccp/, core/frontend/, app-qr-sicsaft/ y sicsaft-core/. */
+    --color-bg: oklch(15% 0.045 258);
+    --color-bg-raised: oklch(19% 0.05 258);
+    --color-bg-card: oklch(21% 0.05 258);
+    --color-border: oklch(32% 0.05 258);
+    --color-border-strong: oklch(44% 0.07 258);
+    --color-text: oklch(97% 0.006 258);
+    --color-text-dim: oklch(78% 0.03 258);
+    --color-text-faint: oklch(58% 0.03 258);
+    --color-accent: oklch(68% 0.19 254);
+    --color-accent-strong: oklch(74% 0.17 240);
+    --color-accent-dim: oklch(40% 0.11 254);
+
+    /* Semánticos — universales, no de marca (BRAND.md "Qué no toca esta paleta") */
+    --color-destructive: oklch(0.704 0.191 22.216);
+    --color-success: oklch(0.68 0.14 155);
+    --color-warning: oklch(0.78 0.15 70);
+
+    /* Elevación — layout, no marca; mismos valores en los 4 sistemas */
+    --elev-1: 0 1px 2px oklch(0% 0 0 / 0.4), 0 1px 3px oklch(0% 0 0 / 0.3);
+    --elev-2: 0 2px 10px oklch(0% 0 0 / 0.45), 0 8px 24px oklch(0% 0 0 / 0.35);
+    --elev-float: 0 6px 22px oklch(68% 0.19 254 / 0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 32px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  h1 { font-size: 1.25rem; font-weight: 700; margin: 0 0 4px; }
+  p.lead { color: var(--color-text-dim); font-size: 0.85rem; margin: 0 0 28px; }
+
+  h2 {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+    margin: 28px 0 12px;
+  }
+  h2:first-of-type { margin-top: 0; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+
+  .swatch {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--color-bg-card);
+  }
+
+  .swatch-color { height: 64px; }
+
+  .swatch-meta {
+    padding: 8px 10px;
+    font-size: 0.72rem;
+    line-height: 1.4;
+  }
+
+  .swatch-name { font-weight: 600; color: var(--color-text); }
+  .swatch-value {
+    color: var(--color-text-faint);
+    font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+    font-size: 0.65rem;
+  }
+
+  .swatch-note {
+    color: var(--color-text-dim);
+    margin-top: 2px;
+  }
+
+  .elev-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .elev-box {
+    width: 140px;
+    height: 80px;
+    border-radius: 12px;
+    background: var(--color-bg-card);
+    display: flex;
+    align-items: flex-end;
+    padding: 10px;
+    font-size: 0.7rem;
+    color: var(--color-text-dim);
+  }
+</style>
+</head>
+<body>
+  <h1>Paleta SICSAFT</h1>
+  <p class="lead">
+    Fuente: BRAND.md. Vigente hoy en ccp/, core/frontend/, app-qr-sicsaft/ y sicsaft-core/ — la
+    landing quedó fuera de este sistema (se desvió a Tailwind slate/sky en su rediseño).
+  </p>
+
+  <h2>Neutros</h2>
+  <div class="grid">
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-bg)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">bg</div>
+        <div class="swatch-value">oklch(15% 0.045 258)</div>
+        <div class="swatch-note">Fondo de página</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-bg-raised)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">bg-raised</div>
+        <div class="swatch-value">oklch(19% 0.05 258)</div>
+        <div class="swatch-note">Nav, sidebar</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-bg-card)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">bg-card</div>
+        <div class="swatch-value">oklch(21% 0.05 258)</div>
+        <div class="swatch-note">Tarjetas</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-border)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">border</div>
+        <div class="swatch-value">oklch(32% 0.05 258)</div>
+        <div class="swatch-note">Borde default</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-border-strong)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">border-strong</div>
+        <div class="swatch-value">oklch(44% 0.07 258)</div>
+        <div class="swatch-note">Borde hover/activo</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-text)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">text</div>
+        <div class="swatch-value">oklch(97% 0.006 258)</div>
+        <div class="swatch-note">Texto principal</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-text-dim)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">text-dim</div>
+        <div class="swatch-value">oklch(78% 0.03 258)</div>
+        <div class="swatch-note">Texto secundario</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-text-faint)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">text-faint</div>
+        <div class="swatch-value">oklch(58% 0.03 258)</div>
+        <div class="swatch-note">Texto terciario</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Acento (marca — no cambia con el tema)</h2>
+  <div class="grid">
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-accent)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">accent</div>
+        <div class="swatch-value">oklch(68% 0.19 254)</div>
+        <div class="swatch-note">CTA, links activos, foco</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-accent-strong)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">accent-strong</div>
+        <div class="swatch-value">oklch(74% 0.17 240)</div>
+        <div class="swatch-note">Headings, íconos</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-accent-dim)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">accent-dim</div>
+        <div class="swatch-value">oklch(40% 0.11 254)</div>
+        <div class="swatch-note">Bordes con tinte, fondos sutiles</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Semánticos (universales, no de marca)</h2>
+  <div class="grid">
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-destructive)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">destructive</div>
+        <div class="swatch-value">oklch(0.704 0.191 22.216)</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-success)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">success</div>
+        <div class="swatch-value">oklch(0.68 0.14 155)</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--color-warning)"></div>
+      <div class="swatch-meta">
+        <div class="swatch-name">warning</div>
+        <div class="swatch-value">oklch(0.78 0.15 70)</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Elevación (layout, no marca)</h2>
+  <div class="elev-row">
+    <div class="elev-box" style="box-shadow: var(--elev-1)">elev-1</div>
+    <div class="elev-box" style="box-shadow: var(--elev-2)">elev-2</div>
+    <div class="elev-box" style="box-shadow: var(--elev-float)">elev-float</div>
+  </div>
+</body>
+</html>
