@@ -12,7 +12,6 @@ import {
   IconMapPin,
   IconQrCode,
   IconShield,
-  IconSparkles,
   IconUpload,
 } from './icons';
 
@@ -113,36 +112,17 @@ function Sidebar({ organizacionId }: { organizacionId: string }) {
             </SideNavLink>
           </>
         )}
-        {moduloHabilitado('cip') && (
-          <>
-            <div className="my-3 border-t border-border" />
-            <div className="px-3 pb-1 flex items-center justify-between text-[0.65rem] font-bold tracking-wider text-accent-strong uppercase">
-              <span>Inteligencia</span>
-              <span className="rounded bg-accent/20 px-1 py-0.5 text-[0.6rem] font-bold text-accent-strong ring-1 ring-accent/30">
-                Nivel 2
-              </span>
-            </div>
-            <a
-              href={`/cip${q}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors text-accent-strong bg-accent/10 hover:bg-accent/20"
-            >
-              <span className="flex items-center gap-3">
-                <IconSparkles />
-                <span>CIP Analytics</span>
-              </span>
-              <span className="text-xs">↗</span>
-            </a>
-          </>
-        )}
       </nav>
     </aside>
   );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const location = useLocation();
+  // Suscribe el shell al location del router: `isAuthenticated()` lee sessionStorage durante el
+  // render y no es reactivo, así que sin esto el header se queda con el valor del primer render
+  // tras un login client-side (mismo bug que documenta core/frontend/AppShell.tsx). Hoy
+  // useSearchParams() ya lo garantiza por debajo, pero eso es un detalle de implementación suyo.
+  useLocation();
   const authenticated = oidcClient.isAuthenticated();
   const nombre = oidcClient.getCurrentOperatorDisplayName();
   const [searchParams] = useSearchParams();
@@ -151,11 +131,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   function cerrarSesion() {
     oidcClient.logout();
     window.location.assign('/');
-  }
-
-  // Si es la ruta /cip, se renderiza como portal standalone externo sin el sidebar operativo de CCP
-  if (location.pathname === '/cip') {
-    return <div className="min-h-screen bg-bg text-text">{children}</div>;
   }
 
   return (
@@ -177,17 +152,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
           {authenticated && (
             <div className="flex items-center gap-3 text-sm">
-              {organizacionId && moduloHabilitado('cip') && (
-                <a
-                  href={`/cip?organizacionId=${encodeURIComponent(organizacionId)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs font-bold text-accent-strong hover:bg-accent/25 transition-all shadow-sm ring-1 ring-accent/30"
-                >
-                  <IconSparkles />
-                  <span>CIP Analytics ↗</span>
-                </a>
-              )}
               {nombre && (
                 <span className="flex items-center gap-2.5 text-text-dim">
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-dim text-xs font-semibold text-accent-strong ring-1 ring-border-strong">

@@ -13,6 +13,8 @@ export const PUERTOS = {
   ccp: 8766,
   coreFrontend: 8768,
   appQr: 8765,
+  // DOC-028 Fase G -- CCP servido en la IP de LAN por HTTPS (puesto del AFT en otra PC).
+  ccpLan: 8767,
 } as const;
 
 export const URLS = {

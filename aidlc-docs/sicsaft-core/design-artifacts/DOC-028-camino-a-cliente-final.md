@@ -33,6 +33,7 @@ Lo que **falta** para un cliente real (todo lo de este documento):
 | 4 | El wizard crea la Organization en **Keycloak**, no la org/contrato/sede en **CORE** | Sin org+contrato en CORE, el Profesional de AFT no ve el catálogo de su organización ni puede enviar inventarios reales de ella |
 | 5 | La IP de LAN se congela al arrancar (`IP_LAN` a nivel de módulo) | Si el router del cliente reasigna la IP, login y tokens quedan apuntando a una dirección muerta, sin recuperación guiada |
 | 6 | No hay APK Android — `CORE-Q-01` reabierta | El Profesional de AFT necesita abrir la PWA en el navegador del teléfono contra `https://<ip>:8765` con cert autofirmado, y alguien tiene que correr `npm run preview` de `app-qr-sicsaft/` a mano |
+| 7 | El CCP solo se sirve en `127.0.0.1:8766` (agregado 2026-09-10) | El Profesional de AFT solo puede trabajar sentado en la PC del Director; instalar el `.exe` en su propia PC crea una **segunda BPI** independiente (Fase G) |
 
 ## 2. Fases, en orden de dependencia y de bloqueo
 
@@ -164,6 +165,138 @@ Track aparte, su propio ciclo de diseño (Inception → Construction). Capacitor
 configurable en el primer arranque, no un TWA. **No bloquea Fases A-D** — la PWA por navegador
 (Fase D) cubre el uso mientras tanto.
 
+### Fase G — Puesto de trabajo del Profesional de AFT en su propia PC (CCP por la red local)
+
+> No confundir con la Fase F (portal de administración remota / `web_admin` embebido), que quedó
+> **descartada** (§4). Esta fase no abre ningún canal hacia afuera de la LAN del cliente ni suma un
+> portal ni un rol: expone en la LAN el mismo CCP que ya existe, para el mismo Profesional de AFT.
+
+**Pedido (2026-09-10)**: instalar el sistema primero en la PC del Director — la **PC madre**, con UPS
+y privilegios de administrador — y que el Profesional de AFT, desde **su propia PC**, entre directo
+al login y al CCP contra esa PC madre, mientras el Director sigue usando su portal en la PC madre.
+
+**Por qué no alcanzaba con lo que había** (verificado en código 2026-09-10):
+
+| Traba | Dónde |
+|---|---|
+| El CCP escucha solo en `127.0.0.1:8766`: otra PC no lo ve | `static-portal-server.ts` (`host` por defecto), `ipc/handlers.ts` `asegurarServidoresPortales` |
+| El client OIDC `ccp` solo acepta volver a `http://127.0.0.1:8766` | `keycloak-bootstrap.ts` `crearClientesPortales` |
+| La config inyectada apunta a CIS en `127.0.0.1` — desde otra PC es ella misma | `ipc/handlers.ts` (`cisUrl`) |
+| PKCE usa `crypto.subtle`, que solo existe en contexto seguro: una IP de LAN solo lo es por HTTPS | `ccp/src/lib/oidc/pkce.ts` |
+| Un `fetch` de una página HTTPS a CIS o Keycloak, que van por HTTP, es contenido mixto: Firefox y los Chromium sin Local Network Access lo bloquean (el Chromium actual lo deja pasar con advertencia, solo por tratarse de una IP privada). Además, CIS no tiene ese origen en su CORS | `KC_HOSTNAME=http://…` (`keycloak-service.ts`), CIS HTTP, `CIS_CORS_ORIGIN` (`backend-configs.ts`) |
+| Instalar el `.exe` en la PC del AFT corre el wizard de cero → **segunda BPI independiente** | no hay "modo cliente" en `sicsaft-core` |
+
+**Decisión**: en la PC del Profesional de AFT **no se instala el `.exe`**. El CCP ya es una SPA web:
+la PC madre lo sirve también en la LAN y la PC del AFT lo abre en el navegador, desde un acceso
+directo en el escritorio. Una sola instalación = una sola BPI (Tomo III, fuente única de verdad).
+
+- **G.1 — El `.exe` sirve el CCP también en la IP de LAN, por HTTPS.** Un segundo servidor
+  estático sobre el mismo `ccp/dist`, en `https://<ip-lan>:8767` (`PUERTO_CCP_LAN`, `lan-ip.ts`),
+  con el mismo certificado autofirmado de la APP QR (`appqr-tls.ts`, SAN con la IP de LAN). El de
+  `127.0.0.1:8766` sigue igual para el portal embebido de la PC madre. Si el de LAN no puede
+  arrancar (puerto ocupado), se loguea y la PC madre sigue funcionando: el puesto remoto es
+  secundario y no puede tumbar el login del Director.
+- **G.2 — Proxy de mismo origen hacia CIS y el token endpoint de Keycloak.** El servidor de LAN
+  reenvía `/cis/*` → `http://127.0.0.1:56000/*` y `/kc/token` →
+  `<issuer>/protocol/openid-connect/token`. Sin esto, el `fetch` de la página HTTPS a CIS y a
+  Keycloak por HTTP sería contenido mixto: bloqueado en Firefox y en Chromium sin Local Network
+  Access, y tolerado con advertencia en el Chromium actual (ver Limitaciones). Además, CIS no tiene
+  ese origen en su CORS. Con el proxy todo es mismo origen: no se depende de lo que tolere el
+  navegador del puesto ni hace falta tocar CIS. El login (`/protocol/openid-connect/auth`) es una
+  navegación de página completa, no un `fetch`, así que va directo a Keycloak (`http://<ip>:58080`)
+  sin proxy.
+  - Solo esas dos rutas se reenvían, con destino fijo al configurar el servidor: no es un proxy
+    abierto. Fuera las cabeceras hop-by-hop, `Host` del destino, timeout, y un 502 si el destino
+    no responde.
+  - Config inyectada: `VITE_CIS_URL=https://<ip>:8767/cis` y
+    `VITE_KEYCLOAK_TOKEN_URL=https://<ip>:8767/kc/token`. `ccp/` suma solo el override opcional
+    `VITE_KEYCLOAK_TOKEN_URL` (`oidc-config.ts` / `oidc-client.ts`); sin él, todo sigue igual (dev,
+    Docker, portal embebido).
+  - CIS no cambia: el pedido le llega desde la misma PC (el proxy) y, para el navegador, CCP y CIS
+    comparten origen, así que no hay CORS de por medio. Lo que autoriza sigue siendo el JWT (`iss`
+    = `KC_HOSTNAME`, igual que en el embebido).
+- **G.3 — El client OIDC `ccp` acepta los dos orígenes.** `redirectUris`, `webOrigins` y
+  `post.logout.redirect.uris` quedan en `http://127.0.0.1:8766` + `https://<ip-lan>:8767`. Así se
+  registra en el bootstrap, y se re-sincroniza (idempotente) en cada relanzamiento
+  (`getInstalacionExistente`) y en `reconfigurarIpLan`. Eso cubre las instalaciones anteriores a
+  esta fase y los cambios de IP (Fase C) sin reinstalar. Mismo mecanismo que
+  `reconfigurarClientAppQr`.
+- **G.4 — La pantalla "listo" del `.exe` muestra el acceso del puesto.** Una tarjeta "Puesto del
+  Profesional de AFT (otra PC)" con la dirección `https://<ip>:8767` y dos acciones:
+  - **Copiar**.
+  - **Guardar acceso directo**: un `SICSAFT CCP.url` que se lleva a la PC del AFT por pendrive o por
+    red.
+
+  Sin red local (IP de LAN = `127.0.0.1`) la tarjeta avisa que ningún otro equipo puede alcanzar
+  esta PC.
+- **G.5 — Firewall de Windows al instalar la PC madre.** El instalador NSIS (`scripts/installer.nsh`,
+  vía `nsis.include`) agrega reglas de entrada, solo para los perfiles **Privado** y **Dominio**
+  (nunca Público):
+  - TCP 8765 (APP QR), 8767 (CCP del puesto), 56000 (CIS) y 58080 (Keycloak);
+  - UDP 58765 (descubrimiento).
+
+  El desinstalador las quita. Las reglas necesitan instalar "para todos los usuarios", es decir,
+  con elevación de administrador: son los "máximos privilegios" del pedido. Instalado solo para el
+  usuario actual, no se crean: ahí queda el permiso puntual de Windows la primera vez que el `.exe`
+  escucha en la red, o el script manual `herramientas/devops/configurar-firewall-sicsaft.ps1`
+  (mismas reglas, mismo alcance de perfil).
+
+**Requisitos operativos de la PC madre** (no son código; van en el README y en la entrega):
+
+1. **UPS**. Si la PC madre se apaga, ni el puesto del AFT ni los teléfonos pueden trabajar. La APP
+   QR sí guarda los inventarios pendientes y los reenvía al volver (cola offline).
+2. **IP estable**: reserva DHCP en el router (Fase C.2). El acceso directo del AFT lleva la IP; si
+   cambia, se genera uno nuevo desde la pantalla "listo".
+3. **Instalar como administrador** ("para todos los usuarios"), para las reglas de firewall de G.5.
+4. La red de la PC madre en perfil **Privado** de Windows, no Público.
+5. Sin suspensión ni hibernación de la PC madre en horario de trabajo.
+
+**Primer ingreso desde la PC del AFT**: doble clic en el acceso directo → el navegador avisa
+"certificado propio" (autofirmado, igual que la APP QR en el teléfono) → *Configuración avanzada →
+Continuar*, una sola vez → *Iniciar sesión* → formulario de Keycloak con el usuario y la clave del
+Profesional de AFT → CCP.
+
+**Limitaciones conocidas (no son de esta fase)**:
+
+- El proxy tiene un tope de inactividad del socket (120 s), pero no un límite propio de tamaño de
+  cuerpo ni de conexiones concurrentes. No agrega superficie nueva —CIS ya escuchaba en la LAN y
+  el mismo cliente podía golpearlo directo— pero conviene sumarle un límite de concurrencia si el
+  endpoint de importación de Excel de CIS no acota ya el tamaño del cuerpo.
+
+- *Cerrar sesión* en el CCP limpia los tokens del navegador, pero no cierra la sesión SSO de
+  Keycloak (no llama a `end_session`). Un nuevo *Iniciar sesión* en esa misma PC entra sin pedir
+  clave. Es aceptable en la PC personal del AFT; el logout OIDC real (`ccp/` + `core/frontend/`) se
+  corrige aparte.
+- La carpeta vigilada de ingesta (DOC-029 RF-B.6) vive en la PC madre. El CCP del puesto la
+  muestra, pero para soltar Excel ahí desde otra PC hay que compartir esa carpeta por la red de
+  Windows (fuera de alcance). La carga manual por la UI del CCP sí funciona desde el puesto: pasa
+  por el proxy hacia CIS.
+- **Contenido mixto en la APP QR (Fase D)**. Verificado el 2026-09-10 con Chromium 153: un `fetch`
+  de `https://192.168.1.8` a `http://192.168.1.8` pasa, solo con la advertencia *"Mixed Content …
+  should also be served over HTTPS"*, porque Chromium relaja el bloqueo para IP privadas (Local
+  Network Access). Por eso la APP QR, que llama a CIS por HTTP desde HTTPS, funciona en teléfonos
+  con Chrome actual. En Firefox o en un Chromium anterior quedaría bloqueada (no verificado). El
+  proxy de G.2 no depende de esa excepción, y si hiciera falta, el mismo mecanismo resuelve la APP
+  QR.
+- **G.6 (futuro, no implementado)** — un "modo puesto de trabajo" en el `.exe`:
+  - ventana propia, sin el aviso de certificado (con el fingerprint del cert de la PC madre fijado);
+  - descubrimiento automático por el UDP de `discovery-service.ts`;
+  - un aviso en el wizard si ya hay una PC madre en la red, para evitar una segunda BPI por error.
+
+  No hace falta para operar; se evalúa con el primer cliente.
+
+**Entrega**: el Profesional de AFT, desde su propia PC y sin instalar nada, abre el acceso directo,
+inicia sesión con sus credenciales y trabaja en el CCP contra la BPI de la PC madre, al mismo tiempo
+que el Director usa su portal en la PC madre.
+
+**Verificación**:
+
+- Unit: `static-portal-server.test.ts` (proxy, rutas permitidas, 502), `keycloak-bootstrap.test.ts`
+  (orígenes del client `ccp`), `lan-ip.test.ts` y, en `ccp/`, `oidc-config` / `oidc-client`
+  (token endpoint por proxy).
+- e2e `20-puesto-aft-lan.spec.ts`: login real del AFT contra `https://<ip-lan>:8767` y lectura de CIS
+  por el proxy, en un Chromium aparte que representa la PC del AFT.
+
 ## 3. Orden de ejecución
 
 ```
@@ -172,6 +305,8 @@ Fase A (empaquetado)         ── HECHA (PR #68)
 Fase B (base limpia + org)   ── HECHA (PR #69), verificada E2E
 Fase C (estabilidad de IP)   ── HECHA (PR #71), verificada E2E — sumó C.0 (config de portal runtime)
 Fase E (APK)                  ── track aparte, no bloquea nada de A-D
+Fase G (puesto AFT en la LAN) ── HECHA (2026-09-10) — sicsaft-core/ + ccp/ (override de token endpoint)
+  └─ G.6 (modo puesto en el .exe) ── futuro, no bloquea
 ```
 
 `main` recibió A/B/C. D toca `sicsaft-core/` + `app-qr-sicsaft/` (un `oidc-config.ts`) → PR de
@@ -198,3 +333,5 @@ propio `aidlc-docs/`.
       por un paquete que el cliente envía, no un canal abierto a su PC.
 - [ ] APK Android: decidida (construida, o explícitamente diferida con la PWA como camino
       oficial) (Fase E).
+- [x] El Profesional de AFT trabaja en el CCP desde **su propia PC** contra la PC madre, sin
+      instalar nada ni crear una segunda BPI, en simultáneo con el Director (Fase G).

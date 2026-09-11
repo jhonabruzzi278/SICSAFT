@@ -120,13 +120,21 @@ export async function irARuta(
   }
 }
 
-async function loginPorNavegador(page: Page, rol: Rol): Promise<string> {
+/**
+ * Login OIDC real por el navegador contra el portal del rol. `portal` permite entrar por otra URL
+ * del mismo portal -- p.ej. el CCP que el `.exe` sirve en la IP de LAN (DOC-028 Fase G, spec 20).
+ */
+export async function loginPorNavegador(
+  page: Page,
+  rol: Rol,
+  portal: string = PORTAL[rol],
+): Promise<string> {
   const cred = leerCredenciales();
   const datos = cred[rol];
-  const origin = new URL(PORTAL[rol]).origin;
+  const origin = new URL(portal).origin;
   const clave = CLAVE_TOKENS[rol];
 
-  await irARuta(page, `${PORTAL[rol]}/`);
+  await irARuta(page, `${portal}/`);
   const boton = page.getByRole("button", { name: /iniciar sesión/i });
   if (await boton.isVisible({ timeout: 10_000 }).catch(() => false)) {
     await boton.click({ noWaitAfter: true }).catch(() => undefined);

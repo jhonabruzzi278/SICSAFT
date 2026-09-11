@@ -3,21 +3,20 @@ import {
   cisClient,
   CisApiError,
   type DryRunResultado,
+  type EstadoLoteImportacion,
   type LoteConFilasImportacionContable,
   type LoteImportacionContable,
 } from '@/lib/cis-client';
 import {
   contarDryRun,
-  loteAccionable,
+  etiquetaEstadoLote,
   ordenarLotes,
 } from '@/lib/lotes-importacion';
 import { Alert, Badge, Button, Card } from '@/components/ui';
 
-// DOC-029 RF-B — bandeja de staging. El ETL (sidecar Python que corre el .exe al detectar un
-// .xls en la carpeta vigilada) crea los lotes en CORE en estado `pendiente_revision`; acá el
-// Profesional de AFT los revisa fila por fila (dry-run: crear / ya importado / conflicto) y los
-// aprueba o rechaza. Solo al aprobar CORE resuelve-o-crea dirección/área/responsable/catálogo por
-// nombre e inserta los activos en la Base Patrimonial, bajo la identidad real del AFT.
+// Ingesta Contable Directa: El ETL (sidecar Python que corre al detectar un .xls/.xlsx en la
+// carpeta vigilada) envía el lote a través de CIS → CORE e ingresa los activos directamente
+// a la Base Patrimonial Inteligente (BPI) sin necesidad de revisión ni validación manual.
 
 const CARPETA_CONFIG_KEY = 'VITE_SICSAFT_CARPETA_INGESTA';
 
@@ -40,6 +39,11 @@ function mensajeError(err: unknown): string {
   return err instanceof Error ? err.message : 'Error desconocido';
 }
 
+function BadgeEstadoLote({ estado }: { estado: EstadoLoteImportacion }) {
+  const { texto, variant } = etiquetaEstadoLote(estado);
+  return <Badge variant={variant}>{texto}</Badge>;
+}
+
 export function LotesRevision({ organizacionId }: { organizacionId: string }) {
   const [lotes, setLotes] = useState<LoteImportacionContable[] | null>(null);
   const [errorLista, setErrorLista] = useState<string | null>(null);
@@ -48,13 +52,6 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
     useState<LoteConFilasImportacionContable | null>(null);
   const [errorDetalle, setErrorDetalle] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<DryRunResultado | 'todos'>('todos');
-  const [procesando, setProcesando] = useState(false);
-  const [mostrarRechazo, setMostrarRechazo] = useState(false);
-  const [motivo, setMotivo] = useState('');
-  const [aviso, setAviso] = useState<{
-    variant: 'success' | 'error';
-    texto: string;
-  } | null>(null);
 
   const cargarLista = useCallback(async () => {
     setErrorLista(null);
@@ -96,8 +93,6 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
     let ignorar = false;
     setDetalle(null);
     setErrorDetalle(null);
-    setMostrarRechazo(false);
-    setMotivo('');
     void (async () => {
       try {
         const res =
@@ -112,64 +107,17 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
     };
   }, [seleccionadoId]);
 
-  async function aprobar() {
-    if (!seleccionadoId) return;
-    setProcesando(true);
-    setAviso(null);
-    try {
-      const res = await cisClient.aprobarLoteImportacionContable(
-        seleccionadoId,
-        organizacionId,
-      );
-      setAviso({
-        variant: 'success',
-        texto: `Lote aprobado: ${res.creados} creados, ${res.yaImportados} ya importados, ${res.conflictos} conflictos.`,
-      });
-      await cargarLista();
-      const refrescado =
-        await cisClient.obtenerLoteImportacionContable(seleccionadoId);
-      setDetalle(refrescado);
-    } catch (err: unknown) {
-      setAviso({ variant: 'error', texto: mensajeError(err) });
-    } finally {
-      setProcesando(false);
-    }
-  }
-
-  async function rechazar() {
-    if (!seleccionadoId) return;
-    setProcesando(true);
-    setAviso(null);
-    try {
-      await cisClient.rechazarLoteImportacionContable(
-        seleccionadoId,
-        organizacionId,
-        motivo.trim() || undefined,
-      );
-      setAviso({
-        variant: 'success',
-        texto: 'Lote rechazado. Nada tocó la base.',
-      });
-      setMostrarRechazo(false);
-      setMotivo('');
-      await cargarLista();
-      const refrescado =
-        await cisClient.obtenerLoteImportacionContable(seleccionadoId);
-      setDetalle(refrescado);
-    } catch (err: unknown) {
-      setAviso({ variant: 'error', texto: mensajeError(err) });
-    } finally {
-      setProcesando(false);
-    }
-  }
-
   const filasVisibles =
     detalle?.filas.filter(
       (f) => filtro === 'todos' || f.dryRunResultado === filtro,
     ) ?? [];
 
   const [carpetaActual, setCarpetaActual] = useState<string>(() => {
-    return localStorage.getItem('sicsaft_carpeta_ingesta') || carpetaVigilada() || 'C:\\SICSAFT\\IngestaExcel';
+    return (
+      localStorage.getItem('sicsaft_carpeta_ingesta') ||
+      carpetaVigilada() ||
+      'C:\\SICSAFT\\IngestaExcel'
+    );
   });
   const [editandoCarpeta, setEditandoCarpeta] = useState(false);
   const [nuevaCarpeta, setNuevaCarpeta] = useState('');
@@ -190,8 +138,9 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
           return;
         }
       }
-    } catch (e) {
-      // Si el usuario canceló el diálogo o no tiene permisos, abrir el editor manual
+    } catch {
+      // No hay error que reportar: cancelar el diálogo o no tener permisos es un camino
+      // esperado, y el manejo es justamente caer al editor manual de abajo.
     }
     setNuevaCarpeta(carpetaActual);
     setEditandoCarpeta(true);
@@ -219,7 +168,10 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
               <Badge variant="success">VIGILANCIA ACTIVA</Badge>
             </h2>
             <p className="text-xs text-text-dim">
-              Los archivos Excel depositados en esta ruta son procesados automáticamente por el Sidecar Python ETL (<code className="font-mono text-accent">pandas/openpyxl</code>) y enviados a la bandeja inferior.
+              Los archivos Excel depositados en esta ruta son procesados
+              automáticamente por el Sidecar Python ETL (
+              <code className="font-mono text-accent">pandas/openpyxl</code>),
+              enviados vía CIS → CORE e ingresados directamente a la BPI.
             </p>
           </div>
 
@@ -267,10 +219,17 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
                 autoFocus
               />
               <div className="flex gap-2 shrink-0 w-full sm:w-auto">
-                <Button onClick={() => guardarCarpeta()} className="!py-2 text-xs font-bold flex-1 sm:flex-none">
+                <Button
+                  onClick={() => guardarCarpeta()}
+                  className="!py-2 text-xs font-bold flex-1 sm:flex-none"
+                >
                   Guardar Ruta
                 </Button>
-                <Button variant="ghost" onClick={() => setEditandoCarpeta(false)} className="!py-2 text-xs flex-1 sm:flex-none">
+                <Button
+                  variant="ghost"
+                  onClick={() => setEditandoCarpeta(false)}
+                  className="!py-2 text-xs flex-1 sm:flex-none"
+                >
                   Cancelar
                 </Button>
               </div>
@@ -303,7 +262,9 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
         ) : (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl bg-bg-raised/70 border border-border/80 px-3.5 py-2.5">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xs text-text-dim font-medium shrink-0">Ruta vigilada:</span>
+              <span className="text-xs text-text-dim font-medium shrink-0">
+                Ruta vigilada:
+              </span>
               <code className="text-xs font-mono font-bold text-accent-strong truncate select-all">
                 {carpetaActual}
               </code>
@@ -315,8 +276,6 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
           </div>
         )}
       </div>
-
-      {aviso && <Alert>{aviso.texto}</Alert>}
 
       <Card>
         <div className="mb-3 flex items-center justify-between">
@@ -364,7 +323,7 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
                         {lote.resumen.conflicto} conflicto
                       </span>
                     </span>
-                    <Badge>{lote.estado}</Badge>
+                    <BadgeEstadoLote estado={lote.estado} />
                   </button>
                 </li>
               );
@@ -394,7 +353,7 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
                     })()}
                   </p>
                 </div>
-                <Badge>{detalle.lote.estado}</Badge>
+                <BadgeEstadoLote estado={detalle.lote.estado} />
               </div>
 
               {detalle.lote.estado === 'rechazado' &&
@@ -486,59 +445,46 @@ export function LotesRevision({ organizacionId }: { organizacionId: string }) {
                 </table>
               </div>
 
-              {loteAccionable(detalle.lote) && (
-                <div className="space-y-3">
-                  {mostrarRechazo ? (
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="motivo-rechazo"
-                        className="block text-sm font-medium text-text-dim"
-                      >
-                        Motivo del rechazo (opcional)
-                      </label>
-                      <textarea
-                        id="motivo-rechazo"
-                        value={motivo}
-                        onChange={(e) => setMotivo(e.target.value)}
-                        rows={2}
-                        className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text outline-none focus:border-accent focus:ring-2 focus:ring-accent/25"
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          variant="secondary"
-                          disabled={procesando}
-                          onClick={() => void rechazar()}
-                        >
-                          {procesando ? 'Rechazando…' : 'Confirmar rechazo'}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          disabled={procesando}
-                          onClick={() => setMostrarRechazo(false)}
-                        >
-                          Cancelar
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button
-                        disabled={procesando}
-                        onClick={() => void aprobar()}
-                      >
-                        {procesando
-                          ? 'Aprobando…'
-                          : `Aprobar e incorporar ${detalle.filas.length} activos`}
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        disabled={procesando}
-                        onClick={() => setMostrarRechazo(true)}
-                      >
-                        Rechazar
-                      </Button>
+              {detalle.lote.estado === 'aprobado' && (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-400">
+                  <div className="flex items-center gap-2 font-semibold text-sm">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300 text-xs">
+                      ✓
+                    </span>
+                    <span>
+                      Ingreso Directo a la Base Patrimonial Inteligente (BPI)
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-xs text-emerald-300/90 leading-relaxed">
+                    Este lote fue detectado por el vigilante Python ETL,
+                    transferido a través de CIS → CORE e ingresado
+                    automáticamente en la BPI sin necesidad de validación ni
+                    revisión manual.
+                  </p>
+                  {detalle.lote.revisadoPor && (
+                    <div className="mt-2 text-[11px] text-emerald-400/80 font-mono">
+                      Trazabilidad: {detalle.lote.revisadoPor}
+                      {detalle.lote.revisadoEn &&
+                        ` · ${new Date(detalle.lote.revisadoEn).toLocaleString()}`}
                     </div>
                   )}
+                </div>
+              )}
+
+              {detalle.lote.estado === 'pendiente_revision' && (
+                <div className="rounded-xl border border-warning/30 bg-warning/10 p-4 text-warning">
+                  <div className="flex items-center gap-2 font-semibold text-sm">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-warning/20 text-xs">
+                      !
+                    </span>
+                    <span>Ingreso automático sin completar</span>
+                  </div>
+                  <p className="mt-1.5 text-xs leading-relaxed">
+                    El ETL entregó el lote a CIS, pero la incorporación a la BPI
+                    no se confirmó. Ningún activo de este lote está todavía en
+                    la Base Patrimonial: revisar el log de ingesta de la carpeta
+                    vigilada.
+                  </p>
                 </div>
               )}
             </>

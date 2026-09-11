@@ -2,8 +2,14 @@
 
 > **Estado**: propuesta de fase, pendiente de aprobación. No se toca `src/` hasta confirmar.
 > **Nace de**: la corrida completa del harness del `.exe` (PR #112/#113/#114) y la revisión de
-> huecos que dejó. Continúa [DOC-028](DOC-028-camino-a-cliente-final.md); los bugs que ya se
-> corrigieron van en [DOC-027](DOC-027-bitacora-bugs-reales.md).
+> huecos que dejó. Continúa [DOC-028](DOC-028-camino-a-cliente-final.md) (cuya última fase cerrada
+> es la **G** — puesto del Profesional de AFT en su propia PC); los bugs que ya se corrigieron van
+> en [DOC-027](DOC-027-bitacora-bugs-reales.md).
+>
+> **Avances desde que se escribió** (2026-09): el CI de `sicsaft-core` ya existe
+> (`.github/workflows/sicsaft-core-ci.yml`: lint + typecheck + unit + build por PR) — falta la
+> parte de `pack` + subconjunto `e2e` (Fase 4 abajo). El respaldo de la BPI (`pg_dumpall`/`pg_dump`)
+> ya está en el `.exe` (`backup-service.ts`, RUNBOOK §10) — falta el **restore** guiado (Fase 2).
 
 ## 1. Por qué esta fase
 
@@ -18,9 +24,9 @@ Lo que **no** está probado es, justamente, el corazón del producto:
 |---|---|
 | **El ciclo de captura nunca se ejecutó de verdad** | `app-qr-sicsaft/tests/` corre con `VITE_MOCK_API=true` + MSW contra `mock-cis.invalid` ("Keycloak nunca se llama de verdad", `.env.e2e`). `casos-de-uso/e2e/` tiene 3 casos y ninguno es de inventario. `sicsaft-core/e2e/` sólo verifica que `GET /inventarios` responde `[]`. |
 | **Todo el CIP (Nivel 2) se verificó vacío** | Cobertura, áreas controladas, activos fuera de área, no localizados, incidencias y `PantallaControlArea` se alimentan **exclusivamente** de sesiones de inventario. Como nunca hubo ninguna, las 56 pruebas vieron esos paneles en cero. |
-| **La BPI no tiene respaldo** | No existe `pg_dump`, export ni restore en el `.exe`. Todo el patrimonio vive en `%APPDATA%\sicsaft-core\postgres-data\`. Si ese directorio se pierde, se perdió el inventario. |
+| **La BPI no tiene restore guiado** | El respaldo (`pg_dumpall`/`pg_dump`) ya está (`backup-service.ts`), pero no hay flujo de restauración si `postgres-data` se pierde. Todo el patrimonio vive en `%APPDATA%\sicsaft-core\postgres-data\`. |
 | **No hay camino de actualización** | Sin `electron-updater`. Un fix llega al cliente como un `.exe` de 490 MB reinstalado a mano. |
-| **`sicsaft-core/` no tiene CI** | Las 56 pruebas corren sólo si alguien se acuerda. Así llegó a la entrega el bug del `java` huérfano. |
+| **El CI del `.exe` no ejercita el `.exe`** | `sicsaft-core-ci.yml` corre lint/typecheck/unit/build por PR, pero no `pack` + `e2e`. Las ~56+ pruebas contra el binario real corren sólo si alguien se acuerda. Así llegó a la entrega el bug del `java` huérfano. |
 
 La APP QR **es la fuente de captura principal** del ecosistema
 (`APP QR → CIS → CORE → BPI`, [README.md](../../../README.md)). Que no esté probada de punta a

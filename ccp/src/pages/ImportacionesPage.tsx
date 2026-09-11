@@ -25,10 +25,12 @@ export function ImportacionesPage() {
             <span>Sidecar Python ETL & Base Patrimonial</span>
           </div>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-text">
-            Bandeja de Staging e Ingesta Contable
+            Bandeja de Ingesta Contable Directa a BPI
           </h1>
           <p className="mt-0.5 text-xs text-text-dim">
-            Supervisión y aprobación de planillas Excel (.xlsx) procesadas por el motor Python en la carpeta vigilada.
+            Trazabilidad y supervisión de planillas Excel (.xlsx) procesadas
+            automáticamente e ingresadas a la BPI (CIS → CORE → Base
+            Patrimonial) sin revisión manual.
           </p>
         </div>
 

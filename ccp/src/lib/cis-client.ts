@@ -428,6 +428,10 @@ function getDeviceId(): string {
   return deviceId;
 }
 
+// Tope que acepta CORE por página (paginacionSchema). Se pide el máximo para minimizar
+// viajes: 66 activos entran en una sola vuelta, 250 en tres.
+const CATALOGO_PAGINA = 100;
+
 async function authorizedFetch(
   path: string,
   init: RequestInit = {},
@@ -463,11 +467,32 @@ export const cisClient = {
     return (await res.json()) as { organizaciones: Organizacion[] };
   },
 
+  // `/catalogo` es paginado (RNF-01: default 20, tope 100 por página). Las pantallas que
+  // llaman acá —catálogo de activos, etiquetas masivas, CIP— necesitan el conjunto completo
+  // para contar y para imprimir, así que se recorren las páginas guiándose por el `total`
+  // que devuelve CIS. Pedir una sola página mostraba 20 de 66 activos sin ninguna señal de
+  // que faltaran los demás (bug real 2026-09-08).
   async getCatalogo(organizacionId: string): Promise<ActivoCatalogo[]> {
-    const params = new URLSearchParams({ organizacionId });
-    const res = await authorizedFetch(`/catalogo?${params.toString()}`);
-    const data = (await res.json()) as { activos: ActivoCatalogo[] };
-    return data.activos;
+    const activos: ActivoCatalogo[] = [];
+    let total = 0;
+    do {
+      const params = new URLSearchParams({
+        organizacionId,
+        limit: String(CATALOGO_PAGINA),
+        offset: String(activos.length),
+      });
+      const res = await authorizedFetch(`/catalogo?${params.toString()}`);
+      const data = (await res.json()) as {
+        activos: ActivoCatalogo[];
+        total: number;
+      };
+      total = data.total;
+      // Corta también con página vacía: si `total` viniera inflado o desalineado, el bucle
+      // termina igual en vez de pedir páginas para siempre.
+      if (data.activos.length === 0) break;
+      activos.push(...data.activos);
+    } while (activos.length < total);
+    return activos;
   },
 
   async altaActivo(input: AltaActivoInput): Promise<Activo> {

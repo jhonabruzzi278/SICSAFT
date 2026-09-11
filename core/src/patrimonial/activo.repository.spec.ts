@@ -25,6 +25,9 @@ const FILA_BASE = {
   organizacionId: 'duoc-uc',
   areaId: 'area-biblioteca',
   ubicacionId: 'ubicacion-biblioteca-101',
+  areaNombre: 'BIBLIOTECA',
+  ubicacionNombre: 'Edificio A · Piso 1 · 101',
+  incorporadoEn: new Date('2026-09-09T12:00:00.000Z'),
   responsableId: 'resp-1',
   estado: 'activo' as const,
   ultimoInventario: '2026-08-15',
@@ -157,12 +160,22 @@ describe('ActivoRepository', () => {
             organizacionId: 'duoc-uc',
             areaId: 'area-biblioteca',
             ubicacionId: 'ubicacion-biblioteca-101',
+            areaNombre: 'BIBLIOTECA',
+            ubicacionNombre: 'Edificio A · Piso 1 · 101',
+            incorporadoEn: '2026-09-09T12:00:00.000Z',
             estado: 'activo',
           },
         ],
       });
       expect(queries[1].sql).toContain('a.area_id = $2');
       expect(queries[1].sql).toContain('a.ubicacion_id = $3');
+      // Los nombres legibles se derivan en la consulta (no son columnas de `activos`): sin
+      // estos JOIN la APP QR vuelve a mostrar UUIDs en el selector de area/ubicacion, y sin
+      // el COALESCE una ubicacion creada por la ingesta contable (sin edificio/piso/oficina)
+      // queda sin etiqueta.
+      expect(queries[1].sql).toContain('LEFT JOIN areas ar');
+      expect(queries[1].sql).toContain('LEFT JOIN ubicaciones u');
+      expect(queries[1].sql).toContain('COALESCE(');
       expect(queries[1].params).toEqual([
         'duoc-uc',
         'area-biblioteca',

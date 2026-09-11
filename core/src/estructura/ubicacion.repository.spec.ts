@@ -36,6 +36,136 @@ describe('UbicacionRepository', () => {
     });
   });
 
+  describe('ubicacionPrincipalDeArea (solo lectura, para el dry-run)', () => {
+    it('devuelve la principal del area con una sola consulta, sin escribir', async () => {
+      const pool = {
+        query: jest.fn().mockResolvedValueOnce({
+          rows: [{ ubicacionPrincipalId: 'ubic-ppal' }],
+        }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new UbicacionRepository(pool);
+
+      await expect(
+        repository.ubicacionPrincipalDeArea('org-1', 'area-1'),
+      ).resolves.toBe('ubic-ppal');
+      expect(pool.query).toHaveBeenCalledTimes(1);
+      expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
+        'area-1',
+        'org-1',
+      ]);
+    });
+
+    it('devuelve null si el area no tiene principal o no existe en la organizacion', async () => {
+      const pool = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [{ ubicacionPrincipalId: null }] }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new UbicacionRepository(pool);
+
+      await expect(
+        repository.ubicacionPrincipalDeArea('org-1', 'area-1'),
+      ).resolves.toBeNull();
+    });
+  });
+
+  // DOC-029 RF-B — el Excel contable ubica los bienes por area y nunca trae ubicacion fisica,
+  // pero el catalogo operativo exige ubicacion_id (DOC-006 2). Sin esto los activos importados
+  // quedaban en la BPI pero invisibles en catalogo, etiquetas y CIP.
+  describe('resolverPorArea', () => {
+    it('reusa la ubicacion principal que el area ya tiene, sin crear nada', async () => {
+      const pool = {
+        query: jest.fn().mockResolvedValueOnce({
+          rows: [{ ubicacionPrincipalId: 'ubic-ya' }],
+        }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new UbicacionRepository(pool);
+
+      await expect(repository.resolverPorArea('org-1', 'area-1')).resolves.toBe(
+        'ubic-ya',
+      );
+      expect(pool.query).toHaveBeenCalledTimes(1);
+    });
+
+    it('adopta una ubicacion ya asociada al area y la marca como principal', async () => {
+      const pool = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [{ ubicacionPrincipalId: null }] })
+          .mockResolvedValueOnce({ rows: [{ id: 'ubic-asociada' }] })
+          .mockResolvedValueOnce({ rows: [] }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new UbicacionRepository(pool);
+
+      await expect(repository.resolverPorArea('org-1', 'area-1')).resolves.toBe(
+        'ubic-asociada',
+      );
+      expect(pool.query).toHaveBeenNthCalledWith(
+        3,
+        expect.stringContaining('UPDATE areas SET ubicacion_principal_id'),
+        ['area-1', 'ubic-asociada'],
+      );
+    });
+
+    it('crea una ubicacion en la sede de la organizacion y la deja como principal', async () => {
+      const pool = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [{ ubicacionPrincipalId: null }] })
+          .mockResolvedValueOnce({ rows: [] })
+          .mockResolvedValueOnce({ rows: [{ id: 'sede-1' }] })
+          .mockResolvedValueOnce({ rows: [] })
+          .mockResolvedValueOnce({ rows: [] }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new UbicacionRepository(pool);
+
+      const id = await repository.resolverPorArea('org-1', 'area-1');
+
+      expect(id).toEqual(expect.any(String));
+      expect(pool.query).toHaveBeenNthCalledWith(
+        4,
+        expect.stringContaining('INSERT INTO ubicaciones'),
+        [id, 'sede-1', 'area-1', expect.stringContaining('ingesta contable')],
+      );
+      expect(pool.query).toHaveBeenNthCalledWith(
+        5,
+        expect.stringContaining('UPDATE areas SET ubicacion_principal_id'),
+        ['area-1', id],
+      );
+    });
+
+    it('devuelve null si la organizacion todavia no tiene sede, sin frenar la aprobacion', async () => {
+      const pool = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [{ ubicacionPrincipalId: null }] })
+          .mockResolvedValueOnce({ rows: [] })
+          .mockResolvedValueOnce({ rows: [] }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new UbicacionRepository(pool);
+
+      await expect(
+        repository.resolverPorArea('org-sin-sede', 'area-1'),
+      ).resolves.toBeNull();
+      expect(pool.query).toHaveBeenCalledTimes(3);
+    });
+
+    it('devuelve null si el area no existe en la organizacion', async () => {
+      const pool = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [] })
+          .mockResolvedValueOnce({ rows: [] })
+          .mockResolvedValueOnce({ rows: [] }),
+      } as unknown as jest.Mocked<Pool>;
+      const repository = new UbicacionRepository(pool);
+
+      await expect(
+        repository.resolverPorArea('org-1', 'area-fantasma'),
+      ).resolves.toBeNull();
+    });
+  });
+
   describe('crear', () => {
     it('inserta y devuelve la ubicacion recien creada cuando la sede pertenece a la organizacion', async () => {
       const pool = {

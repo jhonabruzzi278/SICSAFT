@@ -14,10 +14,18 @@ export const authSessionRequestSchema = z.object({
 });
 export type AuthSessionRequest = z.infer<typeof authSessionRequestSchema>;
 
+// `limit`/`offset` se declaran aca a proposito: `z.object()` descarta las claves que no
+// declara, asi que mientras no estuvieran el paginado que el consumidor mandaba se perdia
+// antes de llegar a CORE y la respuesta quedaba fija en la primera pagina de 20, sin ninguna
+// senal de que hubiera mas (bug real 2026-09-08: el CCP mostraba 20 de 66 activos). Mismos
+// limites que `paginacionSchema` de CORE (default 20, tope 100) — CORE valida igual, esto solo
+// evita mandarle un valor que ya sabemos que va a rechazar.
 export const catalogoQuerySchema = z.object({
   organizacionId: z.string().min(1),
   areaId: z.string().min(1).optional(),
   ubicacionId: z.string().min(1).optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  offset: z.coerce.number().int().nonnegative().optional(),
 });
 export type CatalogoQuery = z.infer<typeof catalogoQuerySchema>;
 

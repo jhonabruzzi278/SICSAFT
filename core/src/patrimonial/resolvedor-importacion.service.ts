@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { AreaRepository } from '../estructura/area.repository';
 import { ResponsableRepository } from '../estructura/responsable.repository';
+import { UbicacionRepository } from '../estructura/ubicacion.repository';
 import { CatalogoTipoActivoRepository } from './catalogo-tipo-activo.repository';
 
 // DOC-029 RF-B — al aprobar un lote de importación de Excel, las filas pueden traer nombres del
@@ -30,7 +31,38 @@ export class ResolvedorImportacionService {
     private readonly areaRepository: AreaRepository,
     private readonly responsableRepository: ResponsableRepository,
     private readonly catalogoTipoActivoRepository: CatalogoTipoActivoRepository,
+    private readonly ubicacionRepository: UbicacionRepository,
   ) {}
+
+  // Ver UbicacionRepository.resolverPorArea: el Excel contable ubica los bienes por área y no
+  // por ubicación física, pero el catálogo operativo exige ubicación. `undefined` (no null)
+  // para encajar con el resto de los campos opcionales de la fila canónica.
+  async resolverUbicacion(
+    organizacionId: string,
+    areaId: string,
+  ): Promise<string | undefined> {
+    const id = await this.ubicacionRepository.resolverPorArea(
+      organizacionId,
+      areaId,
+    );
+    return id ?? undefined;
+  }
+
+  // Solo lectura, para el dry-run de la bandeja de staging: la ubicación que el activo tomaría al
+  // aprobarse, sin crearla. Tras una aprobación previa el área ya tiene principal, así que el
+  // dry-run de una reimportación ve el mismo id que el activo existente y `evaluarFila` da
+  // `ya_importado` en vez de `conflicto` (mismo motivo que `resolverSoloExistentes` para
+  // área/responsable/catálogo). `undefined` (no null) para la fila canónica.
+  async resolverUbicacionExistente(
+    organizacionId: string,
+    areaId: string,
+  ): Promise<string | undefined> {
+    const id = await this.ubicacionRepository.ubicacionPrincipalDeArea(
+      organizacionId,
+      areaId,
+    );
+    return id ?? undefined;
+  }
 
   // catalogo_activos es compartido entre organizaciones (sin organizacion_id) — se busca por
   // familia o tipo == categoría, sin distinguir mayúsculas ni espacios sobrantes.

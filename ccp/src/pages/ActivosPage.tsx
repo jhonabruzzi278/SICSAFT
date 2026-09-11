@@ -167,10 +167,13 @@ export function ActivosPage() {
       const matchBusqueda =
         a.codigoQr.toLowerCase().includes(busqueda.toLowerCase()) ||
         a.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-        (a.codigoAft && a.codigoAft.toLowerCase().includes(busqueda.toLowerCase())) ||
-        (a.areaNombre && a.areaNombre.toLowerCase().includes(busqueda.toLowerCase()));
+        (a.codigoAft &&
+          a.codigoAft.toLowerCase().includes(busqueda.toLowerCase())) ||
+        (a.areaNombre &&
+          a.areaNombre.toLowerCase().includes(busqueda.toLowerCase()));
       const matchEstado =
-        filtroEstado === 'todos' || a.estado.toLowerCase() === filtroEstado.toLowerCase();
+        filtroEstado === 'todos' ||
+        a.estado.toLowerCase() === filtroEstado.toLowerCase();
       return matchBusqueda && matchEstado;
     });
   }, [activos, busqueda, filtroEstado]);
@@ -249,8 +252,10 @@ export function ActivosPage() {
     setEditarError(null);
     setDocumentoError(null);
     resetEditar({
-      descripcion: (activo as unknown as { descripcion?: string }).descripcion || '',
-      responsableId: (activo as unknown as { responsableId?: string }).responsableId || '',
+      descripcion:
+        (activo as unknown as { descripcion?: string }).descripcion || '',
+      responsableId:
+        (activo as unknown as { responsableId?: string }).responsableId || '',
     });
     setDocumentos(null);
     cisClient
@@ -323,7 +328,9 @@ export function ActivosPage() {
       );
       setDocumentos(lista);
     } catch (err: unknown) {
-      setDocumentoError(errorDeCisApi(err, 'agregar un documento o fotografía'));
+      setDocumentoError(
+        errorDeCisApi(err, 'agregar un documento o fotografía'),
+      );
     }
   }
 
@@ -354,8 +361,14 @@ export function ActivosPage() {
     );
   }
 
-  const fotos = documentos?.filter((d) => d.tipo === 'fotografia' || d.url.startsWith('data:image/')) || [];
-  const docsNoFotos = documentos?.filter((d) => d.tipo !== 'fotografia' && !d.url.startsWith('data:image/')) || [];
+  const fotos =
+    documentos?.filter(
+      (d) => d.tipo === 'fotografia' || d.url.startsWith('data:image/'),
+    ) || [];
+  const docsNoFotos =
+    documentos?.filter(
+      (d) => d.tipo !== 'fotografia' && !d.url.startsWith('data:image/'),
+    ) || [];
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
@@ -367,12 +380,15 @@ export function ActivosPage() {
               Catálogo de Activos Fijos
             </h1>
             <p className="text-sm text-text-dim">
-              Gestión maestra, fichas técnicas, trazabilidad física y documental de la BPI.
+              Gestión maestra, fichas técnicas, trazabilidad física y documental
+              de la BPI.
             </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-lg bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent-strong">
-              {activos ? `${activos.length} activos registrados` : 'Cargando...'}
+              {activos
+                ? `${activos.length} activos registrados`
+                : 'Cargando...'}
             </span>
           </div>
         </div>
@@ -400,7 +416,9 @@ export function ActivosPage() {
         </div>
 
         {listError && <Alert variant="error">{listError}</Alert>}
-        {!listError && !activos && <p className="text-text-dim">Cargando catálogo...</p>}
+        {!listError && !activos && (
+          <p className="text-text-dim">Cargando catálogo...</p>
+        )}
         {activos && activos.length === 0 && (
           <p className="text-text-dim">Sin activos en el catálogo todavía.</p>
         )}
@@ -447,11 +465,13 @@ export function ActivosPage() {
                             activo.estado === 'activo'
                               ? 'success'
                               : activo.estado === 'baja'
-                              ? 'error'
-                              : 'warning'
+                                ? 'error'
+                                : 'warning'
                           }
                         >
-                          {activo.estado === 'activo' ? 'En Servicio' : activo.estado}
+                          {activo.estado === 'activo'
+                            ? 'En Servicio'
+                            : activo.estado}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -506,12 +526,19 @@ export function ActivosPage() {
                   <h2 className="text-xl font-bold text-text">
                     {fichaActivo.nombre}
                   </h2>
-                  <Badge variant={fichaActivo.estado === 'activo' ? 'success' : 'error'}>
-                    {fichaActivo.estado === 'activo' ? 'En Servicio' : fichaActivo.estado}
+                  <Badge
+                    variant={
+                      fichaActivo.estado === 'activo' ? 'success' : 'error'
+                    }
+                  >
+                    {fichaActivo.estado === 'activo'
+                      ? 'En Servicio'
+                      : fichaActivo.estado}
                   </Badge>
                 </div>
                 <p className="text-xs text-text-dim">
-                  ID del registro BPI: <code className="font-mono">{fichaActivo.id}</code>
+                  ID del registro BPI:{' '}
+                  <code className="font-mono">{fichaActivo.id}</code>
                 </p>
               </div>
               <Button
@@ -561,7 +588,9 @@ export function ActivosPage() {
                     Área Patrimonial
                   </span>
                   <span className="font-semibold text-text">
-                    {fichaActivo.areaNombre || fichaActivo.areaId || 'No asignada'}
+                    {fichaActivo.areaNombre ||
+                      fichaActivo.areaId ||
+                      'No asignada'}
                   </span>
                 </div>
                 <div className="rounded-lg border border-border bg-bg/50 p-3">
@@ -577,20 +606,26 @@ export function ActivosPage() {
                     Estado Operativo
                   </span>
                   <span className="font-semibold text-emerald-400">
-                    {fichaActivo.estado === 'activo' ? 'Operativo en Planta' : fichaActivo.estado}
+                    {fichaActivo.estado === 'activo'
+                      ? 'Operativo en Planta'
+                      : fichaActivo.estado}
                   </span>
                 </div>
                 <div className="rounded-lg border border-border bg-bg/50 p-3">
                   <span className="block text-[11px] font-medium text-text-dim uppercase">
                     Tecnología Captura
                   </span>
-                  <span className="font-semibold text-text">QR / Matriz 2D</span>
+                  <span className="font-semibold text-text">
+                    QR / Matriz 2D
+                  </span>
                 </div>
                 <div className="rounded-lg border border-border bg-bg/50 p-3">
                   <span className="block text-[11px] font-medium text-text-dim uppercase">
                     Sincronización BPI
                   </span>
-                  <span className="font-semibold text-emerald-400">● En Línea</span>
+                  <span className="font-semibold text-emerald-400">
+                    ● En Línea
+                  </span>
                 </div>
               </div>
             </div>
@@ -605,7 +640,9 @@ export function ActivosPage() {
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="editar-responsable">Responsable Asignado</Label>
+                  <Label htmlFor="editar-responsable">
+                    Responsable Asignado
+                  </Label>
                   <Input
                     id="editar-responsable"
                     placeholder="Ej. JEFE DEPARTAMENTO COMERCIAL"
@@ -614,7 +651,9 @@ export function ActivosPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="editar-descripcion">Notas / Descripción Técnica</Label>
+                  <Label htmlFor="editar-descripcion">
+                    Notas / Descripción Técnica
+                  </Label>
                   <Input
                     id="editar-descripcion"
                     placeholder="Detalles sobre el estado físico o mantenciones..."
@@ -629,7 +668,11 @@ export function ActivosPage() {
                 </div>
               )}
               <div className="mt-3 flex justify-end">
-                <Button type="submit" disabled={guardandoEdicion} className="!px-4 !py-1.5 text-xs font-semibold">
+                <Button
+                  type="submit"
+                  disabled={guardandoEdicion}
+                  className="!px-4 !py-1.5 text-xs font-semibold"
+                >
                   {guardandoEdicion ? 'Guardando…' : 'Guardar Cambios'}
                 </Button>
               </div>
@@ -643,11 +686,14 @@ export function ActivosPage() {
                     Fotografías y Documentos de Respaldo
                   </h3>
                   <p className="text-xs text-text-dim">
-                    Sube fotografías del bien, fichas en PDF, garantías o actas en Word.
+                    Sube fotografías del bien, fichas en PDF, garantías o actas
+                    en Word.
                   </p>
                 </div>
                 <span className="text-xs font-medium text-text-dim">
-                  {documentos ? `${documentos.length} archivos adjuntos` : 'Cargando...'}
+                  {documentos
+                    ? `${documentos.length} archivos adjuntos`
+                    : 'Cargando...'}
                 </span>
               </div>
 
@@ -694,8 +740,12 @@ export function ActivosPage() {
                   </h4>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {docsNoFotos.map((doc) => {
-                      const esPdf = doc.url.toLowerCase().includes('.pdf') || doc.descripcion?.toLowerCase().includes('.pdf');
-                      const esWord = doc.url.toLowerCase().includes('.doc') || doc.descripcion?.toLowerCase().includes('.doc');
+                      const esPdf =
+                        doc.url.toLowerCase().includes('.pdf') ||
+                        doc.descripcion?.toLowerCase().includes('.pdf');
+                      const esWord =
+                        doc.url.toLowerCase().includes('.doc') ||
+                        doc.descripcion?.toLowerCase().includes('.doc');
                       return (
                         <div
                           key={doc.id}
@@ -715,7 +765,11 @@ export function ActivosPage() {
                                 {doc.descripcion || doc.url}
                               </a>
                               <span className="text-[10px] text-text-dim uppercase">
-                                {esPdf ? 'Documento PDF' : esWord ? 'Documento Word' : 'Archivo adjunto'}
+                                {esPdf
+                                  ? 'Documento PDF'
+                                  : esWord
+                                    ? 'Documento Word'
+                                    : 'Archivo adjunto'}
                               </span>
                             </div>
                           </div>
@@ -735,13 +789,16 @@ export function ActivosPage() {
 
               {documentos?.length === 0 && (
                 <div className="mb-6 rounded-xl border border-dashed border-border p-6 text-center text-sm text-text-dim">
-                  Sin fotografías ni documentos adjuntos. Selecciona un archivo abajo para agregar.
+                  Sin fotografías ni documentos adjuntos. Selecciona un archivo
+                  abajo para agregar.
                 </div>
               )}
 
               {/* Formulario de Carga de Archivos / URL */}
               <form
-                onSubmit={(e) => void handleSubmitDocumento(onSubmitDocumento)(e)}
+                onSubmit={(e) =>
+                  void handleSubmitDocumento(onSubmitDocumento)(e)
+                }
                 className="rounded-xl border border-border bg-bg/50 p-4"
               >
                 <div className="mb-3 flex items-center justify-between">
@@ -777,7 +834,9 @@ export function ActivosPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   {/* Selector de archivo local */}
                   <div>
-                    <Label htmlFor="doc-file">Seleccionar archivo desde tu equipo</Label>
+                    <Label htmlFor="doc-file">
+                      Seleccionar archivo desde tu equipo
+                    </Label>
                     <input
                       id="doc-file"
                       type="file"
@@ -786,13 +845,17 @@ export function ActivosPage() {
                       className="mt-1 block w-full text-xs text-text-dim file:mr-3 file:rounded-lg file:border-0 file:bg-accent/20 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-accent-strong hover:file:bg-accent/30"
                     />
                     {archivoCargando && (
-                      <span className="mt-1 block text-xs text-accent">Procesando archivo...</span>
+                      <span className="mt-1 block text-xs text-accent">
+                        Procesando archivo...
+                      </span>
                     )}
                   </div>
 
                   {/* Nombre / Descripción */}
                   <div>
-                    <Label htmlFor="doc-descripcion">Nombre o Descripción</Label>
+                    <Label htmlFor="doc-descripcion">
+                      Nombre o Descripción
+                    </Label>
                     <Input
                       id="doc-descripcion"
                       placeholder="Ej. Fotografía frontal, Factura de compra..."
@@ -804,7 +867,9 @@ export function ActivosPage() {
 
                 {/* Campo URL / DataURL generado */}
                 <div className="mt-3">
-                  <Label htmlFor="doc-url">URL o Contenido Base64 del Archivo</Label>
+                  <Label htmlFor="doc-url">
+                    URL o Contenido Base64 del Archivo
+                  </Label>
                   <Input
                     id="doc-url"
                     placeholder="https://... o selecciona un archivo arriba"
@@ -826,7 +891,9 @@ export function ActivosPage() {
                     disabled={agregandoDocumento || archivoCargando}
                     className="!px-5 !py-2 text-xs font-bold"
                   >
-                    {agregandoDocumento ? 'Subiendo…' : '✔ Guardar en la Base de Datos'}
+                    {agregandoDocumento
+                      ? 'Subiendo…'
+                      : '✔ Guardar en la Base de Datos'}
                   </Button>
                 </div>
               </form>
@@ -840,7 +907,9 @@ export function ActivosPage() {
       {/* ========================================================= */}
       <div className="space-y-6">
         <Card className="h-fit">
-          <h2 className="mb-4 text-base font-bold text-text">Alta Rápida de Activo</h2>
+          <h2 className="mb-4 text-base font-bold text-text">
+            Alta Rápida de Activo
+          </h2>
           <form
             onSubmit={(e) => void handleSubmit(onSubmit)(e)}
             className="space-y-4 text-sm"
@@ -885,20 +954,37 @@ export function ActivosPage() {
                 className="mt-1.5 text-xs font-semibold text-accent hover:text-accent-strong"
                 onClick={() => setNuevoTipoAbierto((v) => !v)}
               >
-                {nuevoTipoAbierto ? '✕ Cancelar' : '+ Crear nuevo tipo de catálogo'}
+                {nuevoTipoAbierto
+                  ? '✕ Cancelar'
+                  : '+ Crear nuevo tipo de catálogo'}
               </button>
             </div>
             <div>
               <Label htmlFor="serie">Número de Serie</Label>
-              <Input id="serie" placeholder="Ej. SN-DC40-9999" {...register('serie')} className="mt-1" />
+              <Input
+                id="serie"
+                placeholder="Ej. SN-DC40-9999"
+                {...register('serie')}
+                className="mt-1"
+              />
             </div>
             <div>
               <Label htmlFor="areaId">Área Patrimonial</Label>
-              <Input id="areaId" placeholder="Ej. DEPARTAMENTO COMERCIAL" {...register('areaId')} className="mt-1" />
+              <Input
+                id="areaId"
+                placeholder="Ej. DEPARTAMENTO COMERCIAL"
+                {...register('areaId')}
+                className="mt-1"
+              />
             </div>
             <div>
               <Label htmlFor="descripcion">Descripción</Label>
-              <Input id="descripcion" placeholder="Notas sobre el bien..." {...register('descripcion')} className="mt-1" />
+              <Input
+                id="descripcion"
+                placeholder="Notas sobre el bien..."
+                {...register('descripcion')}
+                className="mt-1"
+              />
             </div>
 
             {submitError && <Alert variant="error">{submitError}</Alert>}
@@ -921,21 +1007,41 @@ export function ActivosPage() {
             >
               <div>
                 <Label htmlFor="tipo-tipo">Tipo</Label>
-                <Input id="tipo-tipo" placeholder="Ej. Silla Ergonómica" {...registerTipo('tipo')} className="mt-1" />
+                <Input
+                  id="tipo-tipo"
+                  placeholder="Ej. Silla Ergonómica"
+                  {...registerTipo('tipo')}
+                  className="mt-1"
+                />
                 <FieldError>{erroresTipo.tipo?.message}</FieldError>
               </div>
               <div>
                 <Label htmlFor="tipo-familia">Familia</Label>
-                <Input id="tipo-familia" placeholder="Ej. Mobiliario" {...registerTipo('familia')} className="mt-1" />
+                <Input
+                  id="tipo-familia"
+                  placeholder="Ej. Mobiliario"
+                  {...registerTipo('familia')}
+                  className="mt-1"
+                />
                 <FieldError>{erroresTipo.familia?.message}</FieldError>
               </div>
               <div>
                 <Label htmlFor="tipo-marca">Marca</Label>
-                <Input id="tipo-marca" placeholder="Ej. Herman Miller" {...registerTipo('marca')} className="mt-1" />
+                <Input
+                  id="tipo-marca"
+                  placeholder="Ej. Herman Miller"
+                  {...registerTipo('marca')}
+                  className="mt-1"
+                />
               </div>
               <div>
                 <Label htmlFor="tipo-modelo">Modelo</Label>
-                <Input id="tipo-modelo" placeholder="Ej. Aeron V2" {...registerTipo('modelo')} className="mt-1" />
+                <Input
+                  id="tipo-modelo"
+                  placeholder="Ej. Aeron V2"
+                  {...registerTipo('modelo')}
+                  className="mt-1"
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

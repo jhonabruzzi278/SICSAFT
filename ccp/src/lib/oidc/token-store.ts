@@ -12,31 +12,57 @@ export interface StoredTokens {
   expiresAt: string;
 }
 
+// Solo sessionStorage, como dice el encabezado. Hasta 2026-09-08 esto escribía ADEMÁS en
+// localStorage y `loadTokens` lo leía primero, así que el token sobrevivía al cierre de la app
+// y podía durar más que la sesión que lo respalda en Keycloak: el portal se mostraba logueado
+// con un token que el servidor ya no reconocía.
 export function saveTokens(tokens: StoredTokens): void {
-  try {
-    localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
-  } catch {
-    // fallback si localStorage no está disponible
-  }
+  purgarTokenPersistido();
   sessionStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
 }
 
+// Restos de la versión que persistía en localStorage. Se limpian en cada guardado/lectura para
+// que una instalación ya usada no se quede con un token muerto en disco.
+function purgarTokenPersistido(): void {
+  try {
+    localStorage.removeItem(TOKENS_KEY);
+  } catch {
+    // localStorage puede no estar disponible; no hay nada que limpiar entonces
+  }
+}
+
+// `JSON.parse` devuelve `any`: sin esta validación un objeto viejo o corrupto pasaba como
+// StoredTokens y `expiresAt: undefined` hacía que isExpired() calculara con NaN y respondiera
+// "no venció" — el cliente mandaba un token muerto para siempre sin intentar refrescarlo.
+function esStoredTokens(valor: unknown): valor is StoredTokens {
+  if (typeof valor !== 'object' || valor === null) return false;
+  const t = valor as Record<string, unknown>;
+  return (
+    typeof t.accessToken === 'string' &&
+    t.accessToken.length > 0 &&
+    typeof t.refreshToken === 'string' &&
+    t.refreshToken.length > 0 &&
+    typeof t.expiresAt === 'string' &&
+    Number.isFinite(new Date(t.expiresAt).getTime())
+  );
+}
+
 export function loadTokens(): StoredTokens | null {
-  let raw: string | null = null;
-  try {
-    raw = localStorage.getItem(TOKENS_KEY);
-  } catch {
-    // fallback
-  }
-  if (!raw) {
-    raw = sessionStorage.getItem(TOKENS_KEY);
-  }
+  purgarTokenPersistido();
+  const raw = sessionStorage.getItem(TOKENS_KEY);
   if (!raw) return null;
+  let parsed: unknown;
   try {
-    return JSON.parse(raw) as StoredTokens;
+    parsed = JSON.parse(raw);
   } catch {
+    clearTokens();
     return null;
   }
+  if (!esStoredTokens(parsed)) {
+    clearTokens();
+    return null;
+  }
+  return parsed;
 }
 
 export function clearTokens(): void {

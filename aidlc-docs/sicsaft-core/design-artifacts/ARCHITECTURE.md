@@ -226,6 +226,29 @@ capturado en el `.log`, sin fuga de secretos.
 
 ## Red: localhost para el escritorio, LAN para el teléfono (riesgo nuevo, mismo tipo que el ya encontrado)
 
+> **► Actualización 2026-09-10 ([DOC-028](DOC-028-camino-a-cliente-final.md) Fase G, CORE-RF-06)**:
+> la LAN ya no es solo para el teléfono. La PC del Director (la "PC madre") sirve el CCP también en
+> `https://<ip-lan>:8767`, para que el Profesional de AFT trabaje desde su propia PC con el
+> navegador, sin instalar el `.exe` (que crearía una segunda BPI).
+>
+> Un `fetch` de esa página HTTPS a CIS o Keycloak por HTTP es contenido mixto: Firefox y los
+> Chromium sin Local Network Access lo bloquean. Además, CIS no tiene ese origen en su CORS. Por
+> eso ese servidor hace de **proxy de mismo origen**, solo para `/cis/*` y para el token endpoint
+> del realm. El login va directo a Keycloak porque es una navegación de página completa.
+>
+> Mapa de puertos en la LAN:
+>
+> | Puerto | Servicio |
+> |---|---|
+> | 8765 | APP QR (HTTPS) |
+> | 8767 | CCP del puesto (HTTPS + proxy) |
+> | 56000 | CIS (HTTP) |
+> | 58080 | Keycloak (HTTP) |
+> | UDP 58765 | Descubrimiento |
+>
+> En loopback siguen los portales embebidos (8766 y 8768) y Postgres (55432). El instalador abre
+> los puertos de LAN en el firewall solo para los perfiles Privado y Dominio.
+
 Todo lo de arriba asume `127.0.0.1` —válido para la ventana de Electron misma, pero **la APK corre
 en el teléfono, no en la PC del Director** — para que la APP QR sincronice contra `cis`, este tiene
 que escuchar en la IP de LAN de la PC del Director (no solo loopback), y Keycloak necesita un

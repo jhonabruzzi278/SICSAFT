@@ -22,4 +22,3 @@ describe('core: calcularVeredicto (Contrato Canónico)', () => {
     expect(calcularVeredicto(10, 5)).toBe('defectuoso');
   });
 });
-

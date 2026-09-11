@@ -158,9 +158,7 @@ export function WizardApp() {
       );
     }
     if (paso === "listo") {
-      return (
-        <PasoListoConLogin onPortalCargado={() => setPortalCargado(true)} />
-      );
+      return <PasoListoConLogin onPortalCargadoChange={setPortalCargado} />;
     }
     return null;
   }

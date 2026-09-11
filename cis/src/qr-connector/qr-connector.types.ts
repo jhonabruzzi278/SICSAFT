@@ -24,11 +24,20 @@ export interface ActivoCatalogo {
   organizacionId: string;
   areaId: string;
   ubicacionId: string;
+  // Etiquetas para el operador, derivadas en CORE (no son columnas de `activos`).
+  areaNombre: string;
+  ubicacionNombre: string;
+  familia: string;
+  /** ISO 8601. Cuando el activo entro a la BPI. */
+  incorporadoEn: string;
   estado: string;
 }
 
 export interface CatalogoResponse {
   activos: ActivoCatalogo[];
+  // Total de la consulta, no de la pagina: sin esto el consumidor no puede saber si hay mas
+  // paginas ni mostrar un conteo real. CORE ya lo calculaba y CIS lo descartaba.
+  total: number;
 }
 
 export type InventarioEstado = 'pendiente' | 'recibido' | 'rechazado';

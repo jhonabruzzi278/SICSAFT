@@ -68,11 +68,11 @@ export class QrConnectorService {
     query: CatalogoQuery,
     correlationId: string,
   ): Promise<CatalogoResponse> {
-    const { activos } = await this.coreClientService.getCatalogo(
+    const { activos, total } = await this.coreClientService.getCatalogo(
       query,
       correlationId,
     );
-    return { activos };
+    return { activos, total };
   }
 
   // DOC-006 3 (Fase 3): idempotencia, clasificacion de escaneos y validacion de

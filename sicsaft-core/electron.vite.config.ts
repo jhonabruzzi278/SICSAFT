@@ -10,8 +10,11 @@ import tailwindcss from "@tailwindcss/vite";
 // un archivo con <link> (nada inline), así que el CSP puede ser estricto -- sin 'unsafe-eval' ni
 // 'unsafe-inline', que es lo que SonarCloud (Web:S7039) marca. El renderer del wizard solo habla
 // con el proceso principal por IPC (contextBridge), nunca hace fetch, de ahí `connect-src 'self'`.
+// `img-src 'self' data:` no es opcional: el QR de la APP QR se genera como data URL y sin esto
+// `default-src 'self'` lo bloquea -- en dev el recuadro del QR quedaba vacío con un error de CSP
+// en la consola del renderer, mientras en el .exe empaquetado funcionaba (CSP_PROD sí lo trae).
 const CSP_DEV =
-  "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws:";
+  "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' ws:";
 const CSP_PROD =
   "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'";
 

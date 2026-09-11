@@ -90,3 +90,15 @@ export const PUERTO_APP_QR = 8765;
 export function obtenerOrigenAppQr(): string {
   return `https://${obtenerIpLan()}:${PUERTO_APP_QR}`;
 }
+
+// DOC-028 Fase G (CORE-RF-06) -- el CCP servido también en la IP de LAN, para que el Profesional de
+// AFT trabaje desde su propia PC contra esta (la "PC madre"). HTTPS por el mismo motivo que la APP
+// QR (crypto.subtle/PKCE solo en contexto seguro). Puerto propio y no el 8766 del CCP de loopback:
+// sin red, obtenerIpLan() cae a 127.0.0.1 y los dos servidores chocarían en el mismo host:puerto.
+// Centralizado acá por la misma razón que obtenerOrigenAppQr: el redirect URI del client OIDC `ccp`
+// (keycloak-bootstrap.ts) y la URL que se le muestra al usuario tienen que ser el mismo origen.
+export const PUERTO_CCP_LAN = 8767;
+
+export function obtenerOrigenCcpLan(): string {
+  return `https://${obtenerIpLan()}:${PUERTO_CCP_LAN}`;
+}

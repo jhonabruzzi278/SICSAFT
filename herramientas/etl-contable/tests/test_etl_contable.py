@@ -287,11 +287,50 @@ def test_aprobar_lote_en_cis_ok(monkeypatch: pytest.MonkeyPatch):
     import requests
 
     monkeypatch.setattr(requests, "post", post_fake)
-    resultado = etl.aprobar_lote_en_cis("lote-123", "http://cis:56000/", "jwt-123")
+    resultado = etl.aprobar_lote_en_cis("lote-123", "http://cis:56000/", "jwt-123", "muni-x")
 
     assert resultado == {"insertados": 60, "actualizados": 0, "conflictos": 0}
     assert llamadas["url"] == "http://cis:56000/admin/importaciones/contable/lote/lote-123/aprobar"
     assert llamadas["headers"]["Authorization"] == "Bearer jwt-123"
+    # CIS exige organizacionId en el cuerpo; sin este assert el 400 real pasaba en verde.
+    assert llamadas["json"] == {"organizacionId": "muni-x"}
+
+
+def test_main_auto_aprobar_le_pasa_la_organizacion_a_la_aprobacion(
+    excel_cliente: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """main() tiene que propagar --organizacion a la aprobación: sin eso CIS devuelve 400 y el
+    lote queda en pendiente_revision para siempre."""
+    recibido: dict[str, object] = {}
+
+    monkeypatch.setattr(etl, "enviar_a_cis", lambda *a, **k: {"loteId": "lote-9"})
+
+    def aprobar_fake(lote_id: str, cis_url: str, token: str, organizacion: str) -> dict[str, int]:
+        recibido.update(lote_id=lote_id, cis_url=cis_url, token=token, organizacion=organizacion)
+        return {"insertados": 1}
+
+    monkeypatch.setattr(etl, "aprobar_lote_en_cis", aprobar_fake)
+
+    codigo = etl.main(
+        [
+            "--entrada",
+            str(excel_cliente),
+            "--organizacion",
+            "muni",
+            "--cis-url",
+            "http://cis:56000",
+            "--token",
+            "jwt-9",
+        ]
+    )
+
+    assert codigo == 0
+    assert recibido == {
+        "lote_id": "lote-9",
+        "cis_url": "http://cis:56000",
+        "token": "jwt-9",
+        "organizacion": "muni",
+    }
 
 
 def test_acunar_qr_con_prefijo():

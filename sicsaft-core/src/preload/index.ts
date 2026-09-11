@@ -14,6 +14,9 @@ const api: SicsaftCoreApi = {
   reconfigurarIpLan: () => ipcRenderer.invoke("sicsaft-core:reconfigurarIpLan"),
   getUrlAppQr: () => ipcRenderer.invoke("sicsaft-core:getUrlAppQr"),
   getInfoAppQr: () => ipcRenderer.invoke("sicsaft-core:getInfoAppQr"),
+  getInfoPuestoAft: () => ipcRenderer.invoke("sicsaft-core:getInfoPuestoAft"),
+  guardarAccesoDirectoPuestoAft: () =>
+    ipcRenderer.invoke("sicsaft-core:guardarAccesoDirectoPuestoAft"),
   elegirCarpetaIngesta: () =>
     ipcRenderer.invoke("sicsaft-core:elegirCarpetaIngesta"),
   leerCarpetaIngesta: () =>
@@ -54,6 +57,8 @@ const api: SicsaftCoreApi = {
   listarRespaldos: () => ipcRenderer.invoke("sicsaft-core:listarRespaldos"),
   abrirCarpetaRespaldos: () =>
     ipcRenderer.invoke("sicsaft-core:abrirCarpetaRespaldos"),
+  // TEMPORAL — ver reset-bpi-dev.ts
+  vaciarBpiDev: () => ipcRenderer.invoke("sicsaft-core:vaciarBpiDev"),
   onLogLinea: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, linea: string): void =>
       callback(linea);

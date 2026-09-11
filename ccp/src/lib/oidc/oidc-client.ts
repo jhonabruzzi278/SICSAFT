@@ -68,8 +68,10 @@ async function postTokenEndpoint(
   body: URLSearchParams,
 ): Promise<TokenResponse> {
   const config = loadOidcConfig();
+  // tokenUrl: proxy de mismo origen del CCP servido en la LAN (DOC-028 Fase G, ver oidc-config.ts).
   const res = await fetch(
-    endpointUrl(config.issuer, 'protocol/openid-connect/token'),
+    config.tokenUrl ??
+      endpointUrl(config.issuer, 'protocol/openid-connect/token'),
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -151,11 +153,12 @@ async function refreshAccessToken(refreshToken: string): Promise<StoredTokens> {
   return tokens;
 }
 
+// Negado a propósito en vez de `<=`: si `expiresAt` no se puede interpretar, getTime() da NaN y
+// toda comparación con NaN es false -- con la forma anterior eso significaba "no venció" y el
+// token muerto se mandaba igual. Así, NaN cae del lado seguro (vencido -> se intenta refrescar).
 function isExpired(tokens: StoredTokens): boolean {
-  return (
-    new Date(tokens.expiresAt).getTime() - TOKEN_EXPIRY_SAFETY_MARGIN_MS <=
-    Date.now()
-  );
+  const venceEn = new Date(tokens.expiresAt).getTime();
+  return !(venceEn - TOKEN_EXPIRY_SAFETY_MARGIN_MS > Date.now());
 }
 
 async function getValidAccessToken(): Promise<string> {

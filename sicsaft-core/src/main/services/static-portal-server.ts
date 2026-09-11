@@ -1,4 +1,12 @@
-import { createServer, type Server, type ServerResponse } from "node:http";
+import {
+  createServer,
+  request as httpRequest,
+  type IncomingHttpHeaders,
+  type IncomingMessage,
+  type OutgoingHttpHeaders,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import { createServer as createHttpsServer } from "node:https";
 import { createReadStream, existsSync, readFile } from "node:fs";
 import { extname, isAbsolute, join, relative, resolve } from "node:path";
@@ -49,6 +57,136 @@ export interface ConfigPortalEstatico {
   // caer a import.meta.env (ver sus oidc-config.ts). Claves con el mismo nombre que las env
   // vars VITE_*.
   configRuntime?: Record<string, string>;
+  // DOC-028 Fase G -- rutas que no se sirven del dist sino que se reenvían a un backend de esta
+  // misma PC (proxy de mismo origen). Solo lo usa el CCP servido en la LAN por HTTPS. Un fetch de
+  // esa página a CIS/Keycloak por HTTP es contenido mixto (Firefox y los Chromium sin Local Network
+  // Access lo bloquean) y CIS no tiene ese origen en su CORS; por eso CIS y el token endpoint se
+  // exponen bajo el origen del propio portal. Ausente -> no se reenvía nada.
+  proxies?: readonly ProxyPortal[];
+}
+
+// Una ruta del portal que se reenvía (DOC-028 Fase G). `destino` es fijo, lo arma el proceso
+// principal al configurar el servidor -- nunca sale del request, así que esto no es un proxy
+// abierto: el request solo aporta la parte de la ruta que cuelga del prefijo y el query.
+export interface ProxyPortal {
+  // Ruta pública sin barra final (ej. "/cis"). Matchea esa ruta y lo que cuelga de ella
+  // ("/cis/activos"), nunca un prefijo parcial ("/cisx").
+  prefijo: string;
+  // URL http absoluta. Lo que sigue al prefijo se agrega al final de su path.
+  destino: string;
+  // true -> solo la ruta exacta (ej. el token endpoint: no se reenvía "token/introspect").
+  exacto?: boolean;
+}
+
+// Base ficticia para interpretar la ruta del request -- solo se usan su pathname y su query,
+// nunca se abre una conexión a este host (TLD .invalid reservado, RFC 2606). https para no
+// disparar el falso positivo de "protocolo inseguro" del analizador estático.
+const BASE_RUTA_REQUEST = "https://portal.invalid";
+
+// Devuelve la URL de destino si la ruta cae en algún proxy, o null. La ruta se normaliza con
+// `new URL` ANTES de comparar ("..", "%2e%2e") y lo que se reenvía es esa misma ruta ya
+// normalizada: el chequeo y el reenvío miran el mismo valor, así "/cis/../admin" no pasa el filtro
+// con una forma y llega al destino con otra. El path se asigna con el setter de `pathname` (no
+// armando un string que se vuelve a parsear): una ruta como "/cis//otro-host/x" no puede cambiar
+// el host del destino.
+export function resolverDestinoProxy(
+  proxies: readonly ProxyPortal[],
+  urlCruda: string,
+): URL | null {
+  let ruta: URL;
+  try {
+    ruta = new URL(urlCruda, BASE_RUTA_REQUEST);
+  } catch {
+    return null;
+  }
+  const { pathname } = ruta;
+  for (const proxy of proxies) {
+    const esExacta = pathname === proxy.prefijo;
+    const cuelga = !proxy.exacto && pathname.startsWith(`${proxy.prefijo}/`);
+    if (!esExacta && !cuelga) continue;
+    const destino = new URL(proxy.destino);
+    // El host/puerto salen del literal `proxy.destino`, nunca de `urlCruda` -- reasignar
+    // pathname/search no puede cambiarlos. Se guarda el origin fijo ANTES de tocar la ruta y se
+    // reverifica después: cinturón y tirantes, y patrón que el taint engine (Sonar S5144/SSRF)
+    // reconoce como saneador -- una comparación literal del destino contra un origen conocido.
+    const origenFijo = destino.origin;
+    const basePath = destino.pathname.replace(/\/$/, "");
+    destino.pathname = `${basePath}${pathname.slice(proxy.prefijo.length)}`;
+    destino.search = ruta.search;
+    if (destino.origin !== origenFijo) return null;
+    return destino;
+  }
+  return null;
+}
+
+// Cabeceras hop-by-hop (RFC 9110 §7.6.1): describen la conexión de ESTE salto, no el mensaje -- un
+// proxy no las reenvía. `host` también sale: node:http pone el del destino (Keycloak valida el
+// Host contra KC_HOSTNAME, ver keycloak-service.ts).
+const CABECERAS_NO_REENVIABLES = new Set([
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+  "host",
+]);
+
+function cabecerasReenviables(
+  cabeceras: IncomingHttpHeaders,
+): OutgoingHttpHeaders {
+  return Object.fromEntries(
+    Object.entries(cabeceras).filter(
+      ([nombre, valor]) =>
+        valor !== undefined &&
+        !CABECERAS_NO_REENVIABLES.has(nombre.toLowerCase()),
+    ),
+  );
+}
+
+// Un import de Excel grande pasa por acá (CCP -> /cis) y CORE puede tardar; es tope de inactividad
+// del socket, no de duración total.
+const TIMEOUT_PROXY_MS = 120_000;
+
+function reenviar(
+  req: IncomingMessage,
+  res: ServerResponse,
+  destino: URL,
+): void {
+  const peticion = httpRequest(
+    destino,
+    {
+      method: req.method,
+      headers: cabecerasReenviables(req.headers),
+      timeout: TIMEOUT_PROXY_MS,
+    },
+    (respuesta) => {
+      res.writeHead(
+        respuesta.statusCode ?? 502,
+        cabecerasReenviables(respuesta.headers),
+      );
+      respuesta.pipe(res);
+    },
+  );
+  peticion.on("timeout", () => {
+    peticion.destroy(new Error("timeout del proxy"));
+  });
+  peticion.on("error", () => {
+    if (res.headersSent) {
+      res.destroy();
+      return;
+    }
+    res.statusCode = 502;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("La PC madre no respondió a este pedido (servicio no disponible).");
+  });
+  // Si el navegador corta (cerró la pestaña), no dejar el pedido al backend colgado.
+  res.on("close", () => {
+    if (!res.writableFinished) peticion.destroy();
+  });
+  req.pipe(peticion);
 }
 
 // DOC-028 Fase C.0 -- mete un <script> con la config runtime justo después de <head>, para que
@@ -126,7 +264,15 @@ export function iniciarServidorEstatico(
     });
   }
 
-  function manejar(req: { url?: string }, res: ServerResponse): void {
+  function manejar(req: IncomingMessage, res: ServerResponse): void {
+    const destinoProxy = config.proxies
+      ? resolverDestinoProxy(config.proxies, req.url ?? "/")
+      : null;
+    if (destinoProxy) {
+      reenviar(req, res, destinoProxy);
+      return;
+    }
+
     if (
       req.url === "/sicsaft-aft.apk" ||
       req.url?.startsWith("/sicsaft-aft.apk?")

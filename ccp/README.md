@@ -15,7 +15,8 @@ Consume servicios exclusivamente a través de **CIS**, respetando la regla no ne
   - **Importaciones Contables** (DOC-029 RF-B): Bandeja de staging de lotes de Excel (revisión, aprobación y rechazo supervisado).
   - **Etiquetas y Códigos QR** (DOC-029 RF-F): Generación masiva y maquetación de impresión (`@media print`) de etiquetas con QR y Code 128 por área/dirección.
   - **Auditoría** (DOC-029 RF-E): Registro histórico con filtro por área operativa (`?area=`) y panel de revisión de trazabilidad.
-  - **Dashboard / CIP** (Nivel 2): Indicadores clave de cobertura, estado patrimonial y resumen de sesiones de inventario (Pantalla 8).
+  - **Resumen Operativo**: Indicadores básicos de catálogo, estructura, custodios y cobertura de relevamiento, más accesos directos a los módulos (Pantalla 8).
+- **El CIP no vive acá** (2026-09-09): el Centro de Inteligencia Patrimonial es la analítica de Nivel 2 del **Directivo** y se accede únicamente desde su portal ([`core/frontend/`](../core/frontend/)). El CCP no lo enlaza, no lo hospeda y no cambia según `VITE_SICSAFT_NIVEL` — va completo en todos los niveles.
 - **Despliegue y Empaquetado**: Corre como SPA local y va embebida en el ejecutable [`sicsaft-core`](../sicsaft-core/).
 
 ## Módulos y Arquitectura

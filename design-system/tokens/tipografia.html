@@ -1,0 +1,117 @@
+<!-- @dsCard group="Tokens" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>SICSAFT — Tipografía</title>
+<!--
+  Solo para este preview: Google Fonts por CDN. El código productivo va self-hosted vía
+  @fontsource-variable (ya así en app-qr-sicsaft/src/index.css; pendiente sumar el import en
+  ccp/, core/frontend/ y sicsaft-core/ cuando se implemente esta decisión).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --color-bg: oklch(15% 0.045 258);
+    --color-bg-card: oklch(21% 0.05 258);
+    --color-border: oklch(32% 0.05 258);
+    --color-text: oklch(97% 0.006 258);
+    --color-text-dim: oklch(78% 0.03 258);
+    --color-text-faint: oklch(58% 0.03 258);
+    --color-accent-strong: oklch(74% 0.17 240);
+
+    --font-heading: 'Playfair Display', serif;
+    --font-sans: 'Noto Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 32px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+  }
+
+  h1 { font-size: 1.25rem; font-weight: 700; margin: 0 0 4px; font-family: var(--font-sans); }
+  p.lead { color: var(--color-text-dim); font-size: 0.85rem; margin: 0 0 28px; }
+
+  h2 {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+    margin: 28px 0 12px;
+  }
+  h2:first-of-type { margin-top: 0; }
+
+  .card {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-bg-card);
+    padding: 16px 20px;
+    margin-bottom: 10px;
+  }
+
+  .label {
+    font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+    font-size: 0.65rem;
+    color: var(--color-text-faint);
+    margin-bottom: 6px;
+  }
+
+  .display-1 { font-family: var(--font-heading); font-weight: 700; font-size: 2.5rem; line-height: 1.15; color: var(--color-accent-strong); }
+  .display-2 { font-family: var(--font-heading); font-weight: 600; font-size: 1.875rem; line-height: 1.2; }
+  .display-3 { font-family: var(--font-heading); font-weight: 600; font-size: 1.5rem; line-height: 1.25; }
+
+  .scale-row { display: flex; align-items: baseline; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--color-border); }
+  .scale-row:last-child { border-bottom: none; }
+  .scale-token { width: 90px; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--color-text-faint); flex-shrink: 0; }
+  .scale-sample { font-family: var(--font-sans); }
+
+  .t-3xl { font-size: 1.875rem; font-weight: 700; }
+  .t-2xl { font-size: 1.5rem; font-weight: 700; }
+  .t-xl { font-size: 1.25rem; font-weight: 600; }
+  .t-lg { font-size: 1.125rem; font-weight: 600; }
+  .t-base { font-size: 1rem; font-weight: 400; }
+  .t-sm { font-size: 0.875rem; font-weight: 400; color: var(--color-text-dim); }
+  .t-xs { font-size: 0.75rem; font-weight: 500; color: var(--color-text-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+  <h1>Tipografía SICSAFT</h1>
+  <p class="lead">
+    Noto Sans (texto) + Playfair Display (display/headings) — el mismo par que ya corre self-hosted
+    en app-qr-sicsaft. Decidido 2026-09-09 como estándar para los 4 portales internos.
+  </p>
+
+  <h2>Display — Playfair Display</h2>
+  <div class="card">
+    <div class="label">display-1 · 2.5rem / 700</div>
+    <div class="display-1">Centro de Inteligencia Patrimonial</div>
+  </div>
+  <div class="card">
+    <div class="label">display-2 · 1.875rem / 600</div>
+    <div class="display-2">Resumen Ejecutivo</div>
+  </div>
+  <div class="card">
+    <div class="label">display-3 · 1.5rem / 600</div>
+    <div class="display-3">Áreas, ubicaciones y responsables</div>
+  </div>
+
+  <h2>Escala de texto — Noto Sans (Tailwind default, ya en uso en los 4 portales)</h2>
+  <div class="card">
+    <div class="scale-row"><span class="scale-token">text-3xl</span><span class="scale-sample t-3xl">252 activos en BPI</span></div>
+    <div class="scale-row"><span class="scale-token">text-2xl</span><span class="scale-sample t-2xl">Catálogo de Activos</span></div>
+    <div class="scale-row"><span class="scale-token">text-xl</span><span class="scale-sample t-xl">Ingresado a BPI</span></div>
+    <div class="scale-row"><span class="scale-token">text-lg</span><span class="scale-sample t-lg">Cobertura de Relevamiento</span></div>
+    <div class="scale-row"><span class="scale-token">text-base</span><span class="scale-sample t-base">Panel de control, estado del catálogo y operaciones patrimoniales.</span></div>
+    <div class="scale-row"><span class="scale-token">text-sm</span><span class="scale-sample t-sm">Verificado en terreno con APP QR</span></div>
+    <div class="scale-row"><span class="scale-token">text-xs</span><span class="scale-sample t-xs">Total Activos</span></div>
+  </div>
+</body>
+</html>

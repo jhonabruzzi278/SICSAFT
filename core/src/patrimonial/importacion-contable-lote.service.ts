@@ -71,10 +71,11 @@ export class ImportacionContableLoteService {
     const filasParaCrear: FilaLoteParaCrear[] = [];
     for (const fila of input.filas) {
       // Dry-run: si el codigoPatrimonial no existe → `crear`; si existe, `evaluarFila` compara el
-      // contenido (área/responsable/QR). La fila del ETL trae nombres, no ids, así que primero se
-      // resuelven SOLO-LECTURA a los ids ya existentes (DOC-030) — sin esto, re-importar el mismo
-      // Excel tras aprobarlo se veía como `conflicto` en vez de `ya_importado`. El resolve-o-crea
-      // real (que sí crea área/responsable/catálogo faltantes) ocurre al aprobar.
+      // contenido (área/responsable/ubicación/QR). La fila del ETL trae nombres, no ids, así que
+      // primero se resuelven SOLO-LECTURA a los ids ya existentes (DOC-030) — sin esto, re-importar
+      // el mismo Excel tras aprobarlo se veía como `conflicto` en vez de `ya_importado`. El
+      // resolve-o-crea real (que sí crea área/responsable/catálogo/ubicación faltantes) ocurre al
+      // aprobar.
       const resueltos = await this.resolvedor.resolverSoloExistentes(
         input.organizacionId,
         {
@@ -83,6 +84,18 @@ export class ImportacionContableLoteService {
           categoriaNombre: fila.categoriaNombre,
         },
       );
+      const areaId = fila.areaId ?? resueltos.areaId;
+      // La ubicación no viene en la fila del ETL: al aprobar se deriva del área. Se replica esa
+      // derivación acá SOLO-LECTURA (la principal que el área ya tenga) para que la comparación
+      // mire el mismo valor en ambos lados.
+      const ubicacionId =
+        fila.ubicacionId ??
+        (areaId
+          ? await this.resolvedor.resolverUbicacionExistente(
+              input.organizacionId,
+              areaId,
+            )
+          : undefined);
       const dryRunResultado = await this.importacionContableService.evaluarFila(
         input.organizacionId,
         {
@@ -91,8 +104,8 @@ export class ImportacionContableLoteService {
           catalogoId: fila.catalogoId ?? resueltos.catalogoId ?? '',
           serie: fila.serie,
           responsableId: fila.responsableId ?? resueltos.responsableId,
-          areaId: fila.areaId ?? resueltos.areaId,
-          ubicacionId: fila.ubicacionId,
+          areaId,
+          ubicacionId,
           valorPatrimonial: fila.valorPatrimonial,
         },
       );
@@ -198,7 +211,11 @@ export class ImportacionContableLoteService {
       serie: fila.serie ?? undefined,
       responsableId,
       areaId,
-      ubicacionId: fila.ubicacionId ?? undefined,
+      ubicacionId:
+        fila.ubicacionId ??
+        (areaId
+          ? await this.resolvedor.resolverUbicacion(organizacionId, areaId)
+          : undefined),
       valorPatrimonial: fila.valorPatrimonial ?? undefined,
     };
   }

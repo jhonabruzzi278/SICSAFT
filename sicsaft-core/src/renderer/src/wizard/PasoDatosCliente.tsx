@@ -35,9 +35,11 @@ export function PasoDatosCliente({
   // DOC-030 — nivel de producto contratado (DOC-025). Antes se horneaba `1`; ahora lo elige el
   // vendedor según el contrato. Toggle de dos opciones fijas -> `useState` tipado en vez de zod
   // (no puede quedar inválido). Se persiste en instalacion.json y el .exe lo inyecta al servir
-  // `ccp` (VITE_SICSAFT_NIVEL). Corrección 2026-09-02: el **CCP va completo en todos los niveles**
-  // (operación, administración, control); lo único que Nivel 2 agrega es el **CIP** — el Dashboard
-  // de indicadores/análisis (ver ccp/src/lib/nivel.ts, NOMENCLATURA.md).
+  // los portales (VITE_SICSAFT_NIVEL). Corrección 2026-09-02: el **CCP va completo en todos los
+  // niveles** (operación, administración, control); lo único que Nivel 2 agrega es el **CIP** — el
+  // Dashboard de indicadores/análisis. Corrección 2026-09-09: ese CIP es del **Directivo** y se ve
+  // solo desde su portal (core/frontend/src/lib/nivel.ts); el CCP ya no lo enlaza ni lo hospeda,
+  // y por eso tampoco mira este flag (ver ccp/src/lib/nivel.ts, NOMENCLATURA.md).
   const [nivel, setNivel] = useState<1 | 2>(1);
   const {
     register,
@@ -111,7 +113,7 @@ export function PasoDatosCliente({
                 valor: 2 as const,
                 titulo: "Nivel 2 — Modo Profesional",
                 detalle:
-                  "+ CIP — Dashboard de indicadores y análisis patrimonial",
+                  "+ CIP — Dashboard de indicadores y análisis, en el portal del Directivo",
               },
             ].map(({ valor, titulo, detalle }) => (
               <label

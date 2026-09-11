@@ -41,6 +41,50 @@ describe('saveTokens / loadTokens / clearTokens', () => {
     clearTokens();
     expect(loadTokens()).toBeNull();
   });
+
+  it('no deja el access token en localStorage, que sobrevive al cierre de la app', () => {
+    saveTokens(TOKENS);
+    expect(localStorage.getItem('web-sicsaft-oidc-tokens')).toBeNull();
+    expect(sessionStorage.getItem('web-sicsaft-oidc-tokens')).not.toBeNull();
+  });
+
+  it('ignora y limpia un token persistido por la version anterior en localStorage', () => {
+    localStorage.setItem('web-sicsaft-oidc-tokens', JSON.stringify(TOKENS));
+    expect(loadTokens()).toBeNull();
+    expect(localStorage.getItem('web-sicsaft-oidc-tokens')).toBeNull();
+  });
+
+  it('descarta un token guardado sin expiresAt en vez de darlo por vigente', () => {
+    // El bug real: sin expiresAt, isExpired comparaba con NaN, respondia "no vencio" y el
+    // cliente mandaba un token muerto a CIS para siempre en vez de refrescarlo.
+    sessionStorage.setItem(
+      'web-sicsaft-oidc-tokens',
+      JSON.stringify({ accessToken: 'a', refreshToken: 'r' }),
+    );
+    expect(loadTokens()).toBeNull();
+    expect(sessionStorage.getItem('web-sicsaft-oidc-tokens')).toBeNull();
+  });
+
+  it('descarta un token con expiresAt no interpretable', () => {
+    sessionStorage.setItem(
+      'web-sicsaft-oidc-tokens',
+      JSON.stringify({ ...TOKENS, expiresAt: 'cuando sea' }),
+    );
+    expect(loadTokens()).toBeNull();
+  });
+
+  it('descarta un token al que le falta el refreshToken', () => {
+    sessionStorage.setItem(
+      'web-sicsaft-oidc-tokens',
+      JSON.stringify({ accessToken: 'a', expiresAt: TOKENS.expiresAt }),
+    );
+    expect(loadTokens()).toBeNull();
+  });
+
+  it('descarta un valor que no es un objeto', () => {
+    sessionStorage.setItem('web-sicsaft-oidc-tokens', JSON.stringify('pelado'));
+    expect(loadTokens()).toBeNull();
+  });
 });
 
 describe('savePendingPkce / loadPendingPkce / clearPendingPkce', () => {

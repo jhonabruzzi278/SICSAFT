@@ -5,7 +5,11 @@ const { networkInterfacesMock } = vi.hoisted(() => ({
 }));
 vi.mock("node:os", () => ({ networkInterfaces: networkInterfacesMock }));
 
-import { obtenerIpLan, obtenerOrigenAppQr } from "./lan-ip";
+import {
+  obtenerIpLan,
+  obtenerOrigenAppQr,
+  obtenerOrigenCcpLan,
+} from "./lan-ip";
 
 function iface(address: string, family: "IPv4" | "IPv6", internal: boolean) {
   return { address, family, internal } as never;
@@ -53,5 +57,14 @@ describe("obtenerOrigenAppQr", () => {
       "Wi-Fi": [iface("10.31.89.92", "IPv4", false)],
     });
     expect(obtenerOrigenAppQr()).toBe("https://10.31.89.92:8765");
+  });
+});
+
+describe("obtenerOrigenCcpLan (DOC-028 Fase G)", () => {
+  test("https en la IP de LAN, en un puerto propio distinto del CCP de loopback (8766)", () => {
+    networkInterfacesMock.mockReturnValue({
+      "Wi-Fi": [iface("192.168.1.20", "IPv4", false)],
+    });
+    expect(obtenerOrigenCcpLan()).toBe("https://192.168.1.20:8767");
   });
 });

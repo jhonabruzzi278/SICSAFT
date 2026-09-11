@@ -21,8 +21,9 @@ export const entitlementsResponseSchema = z.object({
 export type EntitlementsResult = z.infer<typeof entitlementsResponseSchema>;
 
 // Contrato de GET /catalogo de CORE — ver core/aidlc-docs/design-artifacts/DOC-006-api-cis-core.md
-// 2. CORE pagina (`total`), pero el contrato ya construido con APP QR (DOC-002) no expone
-// paginacion todavia — CoreClientService devuelve solo `activos`, sin cambiar CatalogoResponse.
+// 2. CORE pagina y CIS ya propaga ese paginado: `limit`/`offset` viajan en la query y `total`
+// vuelve en la respuesta (CatalogoResponse). Antes CIS descartaba ambos y el consumidor
+// quedaba clavado en la primera pagina de 20 sin saberlo.
 const activoCatalogoSchema = z.object({
   // DOC-021 3 — necesario para las acciones nuevas por fila en WEB (baja/reincorporación/
   // responsable/descripción son por :id, no por codigoQr).
@@ -32,6 +33,15 @@ const activoCatalogoSchema = z.object({
   organizacionId: z.string(),
   areaId: z.string(),
   ubicacionId: z.string(),
+  // Nombres legibles de la estructura: sin esto la APP QR mostraba UUIDs crudos en el
+  // selector de area/ubicacion y el operador no podia saber que estaba por relevar.
+  areaNombre: z.string(),
+  ubicacionNombre: z.string(),
+  // `familia` la calculaba CORE y CIS la descartaba: el tablero del Directivo no tenia de
+  // donde sacar la categoria de un activo y mostraba una tabla de demo. `incorporadoEn` es
+  // cuando entro a la BPI, para 'ultimas incorporaciones'.
+  familia: z.string(),
+  incorporadoEn: z.string(),
   estado: z.string(),
 });
 

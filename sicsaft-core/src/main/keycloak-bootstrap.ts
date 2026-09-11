@@ -12,7 +12,7 @@
 import { randomBytes } from "node:crypto";
 import type { AdminBootstrapKeycloak } from "./services/keycloak-service";
 import { KEYCLOAK_CONFIG } from "./services/keycloak-service";
-import { obtenerOrigenAppQr } from "./services/lan-ip";
+import { obtenerOrigenAppQr, obtenerOrigenCcpLan } from "./services/lan-ip";
 import { PUERTO_CCP, PUERTO_CORE_FRONTEND } from "./services/backend-configs";
 
 interface RespuestaConLocation {
@@ -301,15 +301,35 @@ async function crearClientAdminCis(token: string): Promise<ClienteAdminCreado> {
   return { clientId: "cis-admin", secret: secretResp.value };
 }
 
-// origen sin barra final, ej. "http://127.0.0.1:58090" o "http://10.31.89.92:8765" -- el
-// parámetro pasó de "puertoRenderer" (solo desktop, siempre 127.0.0.1) a un origen completo para
-// poder reusar esto también con la APP QR, que vive en la IP de LAN, no en loopback (ver
-// crearClientAppQr).
+// Keycloak guarda varias post-logout redirect URIs en un solo atributo, separadas por "##".
+const SEPARADOR_POST_LOGOUT = "##";
+
+// Los tres campos de un client público que dependen de sus orígenes, armados siempre igual al
+// crearlo (crearClientPublico) y al reescribirlo (reescribirOrigenesClient).
+function camposDeOrigenes(origenes: readonly string[]): {
+  redirectUris: string[];
+  webOrigins: string[];
+  postLogout: string;
+} {
+  return {
+    redirectUris: origenes.map((origen) => `${origen}/auth/callback`),
+    webOrigins: [...origenes],
+    postLogout: origenes
+      .map((origen) => `${origen}/`)
+      .join(SEPARADOR_POST_LOGOUT),
+  };
+}
+
+// origenes sin barra final, ej. ["http://127.0.0.1:58090"] o ["https://10.31.89.92:8765"] -- el
+// parámetro pasó de "puertoRenderer" (solo desktop, siempre 127.0.0.1) a orígenes completos para
+// reusar esto con la APP QR, que vive en la IP de LAN (ver crearClientAppQr), y con el CCP, que
+// desde DOC-028 Fase G vive en los dos (ver origenesClientCcp).
 async function crearClientPublico(
   token: string,
   clientId: string,
-  origen: string,
+  origenes: readonly string[],
 ): Promise<void> {
+  const { redirectUris, webOrigins, postLogout } = camposDeOrigenes(origenes);
   await adminApi(token, "POST", "/clients", {
     clientId,
     name: clientId,
@@ -319,11 +339,11 @@ async function crearClientPublico(
     implicitFlowEnabled: false,
     directAccessGrantsEnabled: true,
     serviceAccountsEnabled: false,
-    redirectUris: [`${origen}/auth/callback`],
-    webOrigins: [origen],
+    redirectUris,
+    webOrigins,
     attributes: {
       "pkce.code.challenge.method": "S256",
-      "post.logout.redirect.uris": `${origen}/`,
+      "post.logout.redirect.uris": postLogout,
     },
   });
 }
@@ -342,7 +362,7 @@ async function crearClientAppQr(
   token: string,
   origenAppQr: string,
 ): Promise<void> {
-  await crearClientPublico(token, CLIENT_ID_APP_QR, origenAppQr);
+  await crearClientPublico(token, CLIENT_ID_APP_QR, [origenAppQr]);
 }
 
 // CORE-RF-04 (alcance corregido 2026-08-28) -- clients propios para los portales embebidos.
@@ -353,17 +373,23 @@ async function crearClientAppQr(
 export const CLIENT_ID_CCP = "ccp";
 export const CLIENT_ID_CORE_FRONTEND = "core-frontend";
 
+// DOC-028 Fase G -- el CCP se sirve en dos orígenes: loopback (el portal embebido de la PC madre)
+// y la IP de LAN por HTTPS (el puesto del Profesional de AFT en su propia PC). El client `ccp`
+// tiene que aceptar volver a los dos. El Directivo sigue solo en loopback: su portal se usa en la
+// PC madre.
+export function origenesClientCcp(origenCcpLan: string): string[] {
+  return [`http://127.0.0.1:${PUERTO_CCP}`, origenCcpLan];
+}
+
 async function crearClientesPortales(token: string): Promise<void> {
   await crearClientPublico(
     token,
     CLIENT_ID_CCP,
-    `http://127.0.0.1:${PUERTO_CCP}`,
+    origenesClientCcp(obtenerOrigenCcpLan()),
   );
-  await crearClientPublico(
-    token,
-    CLIENT_ID_CORE_FRONTEND,
+  await crearClientPublico(token, CLIENT_ID_CORE_FRONTEND, [
     `http://127.0.0.1:${PUERTO_CORE_FRONTEND}`,
-  );
+  ]);
 }
 
 // Bug real encontrado 2026-08-28: iniciarCis() (service-orchestrator.ts) solo se llamaba desde el
@@ -395,40 +421,69 @@ export async function resolverCredencialesClienteAdminCis(
   return { clientId: "cis-admin", secret: secretResp.value };
 }
 
+// Reescribe los orígenes de un client ya creado. PUT /clients/{id} exige la representación
+// completa, así que se parte de la que devuelve Keycloak y se pisan solo los orígenes (más
+// `extra`), conservando el resto de los attributes (pkce, etc.). Idempotente: correrlo con los
+// orígenes que ya tenía no cambia nada. Reemplaza, no acumula -- la IP vieja no queda registrada.
+async function reescribirOrigenesClient(
+  token: string,
+  clientId: string,
+  origenes: readonly string[],
+  extra: Record<string, unknown> = {},
+): Promise<void> {
+  const clientes = (await (
+    await adminApi(token, "GET", `/clients?clientId=${clientId}`)
+  ).json()) as Array<Record<string, unknown> & { id: string }>;
+  const cliente = clientes[0];
+  if (!cliente) {
+    throw new Error(
+      `No se encontró el client '${clientId}' en Keycloak -- ¿esta instalación se ` +
+        "completó de verdad? (instalacion.json dice que sí, pero el client no está).",
+    );
+  }
+  const { redirectUris, webOrigins, postLogout } = camposDeOrigenes(origenes);
+  const attributesPrevios =
+    (cliente.attributes as Record<string, unknown> | undefined) ?? {};
+  await adminApi(token, "PUT", `/clients/${cliente.id}`, {
+    ...cliente,
+    ...extra,
+    redirectUris,
+    webOrigins,
+    attributes: {
+      ...attributesPrevios,
+      "post.logout.redirect.uris": postLogout,
+    },
+  });
+}
+
 // DOC-028 Fase C.1 -- cuando la IP de LAN de la PC cambia (DHCP que reasigna), el client OIDC de
 // la APP QR queda con redirectUris/webOrigins apuntando a la IP vieja y Keycloak rechaza el login
-// del teléfono con "Invalid parameter: redirect_uri". Es el ÚNICO client que hace falta tocar en
-// un cambio de IP: `sicsaft-core`, `ccp` y `core-frontend` están registrados con orígenes
-// 127.0.0.1 (ver crearClientPublico/crearClientesPortales), que no cambian nunca. Se reescribe
-// sobre la representación completa que devuelve Keycloak (PUT /clients/{id} la exige entera) --
-// idempotente: correrlo con el origen que ya tenía no cambia nada.
+// del teléfono con "Invalid parameter: redirect_uri". `sicsaft-core` y `core-frontend` están
+// registrados solo con orígenes 127.0.0.1, que no cambian nunca; `ccp` desde la Fase G también
+// tiene uno de LAN -- lo resincroniza sincronizarOrigenesClientCcp.
 export async function reconfigurarClientAppQr(
   admin: AdminBootstrapKeycloak,
   nuevoOrigenAppQr: string,
 ): Promise<void> {
   const token = await obtenerTokenAdmin(admin);
-  const clientes = (await (
-    await adminApi(token, "GET", `/clients?clientId=${CLIENT_ID_APP_QR}`)
-  ).json()) as Array<Record<string, unknown> & { id: string }>;
-  const cliente = clientes[0];
-  if (!cliente) {
-    throw new Error(
-      `No se encontró el client '${CLIENT_ID_APP_QR}' en Keycloak -- ¿esta instalación se ` +
-        "completó de verdad? (instalacion.json dice que sí, pero el client no está).",
-    );
-  }
-  const attributesPrevios =
-    (cliente.attributes as Record<string, unknown> | undefined) ?? {};
-  await adminApi(token, "PUT", `/clients/${cliente.id}`, {
-    ...cliente,
+  await reescribirOrigenesClient(token, CLIENT_ID_APP_QR, [nuevoOrigenAppQr], {
     directAccessGrantsEnabled: true,
-    redirectUris: [`${nuevoOrigenAppQr}/auth/callback`],
-    webOrigins: [nuevoOrigenAppQr],
-    attributes: {
-      ...attributesPrevios,
-      "post.logout.redirect.uris": `${nuevoOrigenAppQr}/`,
-    },
   });
+}
+
+// DOC-028 Fase G -- deja el client `ccp` con loopback + el origen de LAN actual. Se corre en cada
+// relanzamiento y en la reconfiguración de IP (ipc/handlers.ts): cubre las instalaciones hechas
+// antes de esta fase (su client solo tenía loopback) y los cambios de IP, sin reinstalar.
+export async function sincronizarOrigenesClientCcp(
+  admin: AdminBootstrapKeycloak,
+  origenCcpLan: string,
+): Promise<void> {
+  const token = await obtenerTokenAdmin(admin);
+  await reescribirOrigenesClient(
+    token,
+    CLIENT_ID_CCP,
+    origenesClientCcp(origenCcpLan),
+  );
 }
 
 export interface ResultadoBootstrap {
@@ -457,11 +512,9 @@ export async function bootstrapPrimeraInstalacion(
   // redirectUri acá nunca se sirve de verdad -- el login corre en un BrowserView que Electron
   // intercepta antes de que el navegador intente cargar esa URL, no hace falta que
   // puertoRenderer sea exacto (ver comentario de PUERTO_RENDERER en renderer-config.ts).
-  await crearClientPublico(
-    token,
-    "sicsaft-core",
+  await crearClientPublico(token, "sicsaft-core", [
     `http://127.0.0.1:${puertoRenderer}`,
-  );
+  ]);
   await crearClientAppQr(token, obtenerOrigenAppQr());
   // "ccp"/"core-frontend" -- clients propios de los portales embebidos, ver
   // crearClientesPortales() arriba.

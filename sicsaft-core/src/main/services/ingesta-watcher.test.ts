@@ -51,6 +51,7 @@ describe("construirEjecucionEtl", () => {
       "muni-x",
       "--cis-url",
       "http://127.0.0.1:56000",
+      "--auto-aprobar",
     ]);
     expect(ej.args).not.toContain("--token");
     expect(ej.args).not.toContain("--mapeo");

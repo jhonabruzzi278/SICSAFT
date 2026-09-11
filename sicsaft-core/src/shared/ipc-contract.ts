@@ -57,10 +57,11 @@ export interface InstalacionCompleta {
   // IP actual como línea base la primera vez.
   ipLan?: string;
   // DOC-029 RF-A -- nivel de producto contratado (DOC-025). Se fija en el bootstrap y se inyecta
-  // al servir `ccp` (VITE_SICSAFT_NIVEL, ver ipc/handlers.ts asegurarServidoresPortales) para que
-  // el portal oculte el módulo Dashboard (CIP) en Nivel 1 -- el CCP va completo en todos los
-  // niveles, lo único gateado a Nivel 2 es el Dashboard (corrección 2026-09-02, ver ccp/src/lib/
-  // nivel.ts MODULOS_CIP). Opcional: una instalación anterior a RF-A no lo tiene -- ahí se asume
+  // al servir `ccp` y `core-frontend` (VITE_SICSAFT_NIVEL, ver ipc/handlers.ts
+  // asegurarServidoresPortales). Desde 2026-09-09 el que lo usa para decidir qué mostrar es el
+  // portal del **Directivo** (core/frontend/src/lib/nivel.ts): Nivel 2 agrega el CIP, que es su
+  // tablero. El CCP va completo en todos los niveles y ya no gatea ningún módulo por este valor
+  // (ccp/src/lib/nivel.ts). Opcional: una instalación anterior a RF-A no lo tiene -- ahí se asume
   // Nivel 1.
   nivel?: 1 | 2;
   // DOC-029 RF-B.6 -- carpeta del PC del cliente donde el especialista contable deja los .xls/.xlsx.
@@ -127,6 +128,14 @@ export interface InfoAppQr {
   apkDisponible: boolean;
 }
 
+// DOC-028 Fase G -- acceso del Profesional de AFT desde su propia PC: el CCP que esta PC (la "PC
+// madre") sirve en la LAN. `enRed` = false cuando esta PC no tiene IP de LAN (cayó a 127.0.0.1) y
+// ningún otro equipo la puede alcanzar.
+export interface InfoPuestoAft {
+  url: string;
+  enRed: boolean;
+}
+
 // API expuesta al renderer vía contextBridge (ver src/preload/index.ts). Cada método es
 // ipcRenderer.invoke(...) por debajo — async siempre, nunca acceso directo a Node/Electron desde
 // el renderer (contextIsolation: true, nodeIntegration: false, ver src/main/index.ts).
@@ -147,6 +156,11 @@ export interface SicsaftCoreApi {
   // correspondientes.
   getUrlAppQr(): Promise<string>;
   getInfoAppQr(): Promise<InfoAppQr>;
+  // DOC-028 Fase G -- dirección del CCP en la LAN para el puesto del Profesional de AFT (arranca
+  // su servidor si hace falta) y un acceso directo .url a esa dirección, guardado donde elija el
+  // usuario con el diálogo nativo (devuelve la ruta, o null si canceló).
+  getInfoPuestoAft(): Promise<InfoPuestoAft>;
+  guardarAccesoDirectoPuestoAft(): Promise<string | null>;
   // DOC-029 RF-B.6 -- carpeta vigilada de ingesta de Excel. `elegir...` abre el diálogo nativo de
   // carpeta, persiste la elección en instalacion.json y (re)arranca el watcher; devuelve la ruta
   // elegida o null si el usuario canceló. `leer...` devuelve la ruta persistida (o null).
@@ -185,6 +199,17 @@ export interface SicsaftCoreApi {
   crearRespaldoBpi(): Promise<RespaldoInfo>;
   listarRespaldos(): Promise<RespaldoInfo[]>;
   abrirCarpetaRespaldos(): Promise<void>;
+  // TEMPORAL — banco de pruebas. Ver src/main/services/reset-bpi-dev.ts para el porqué y para
+  // los pasos exactos de eliminación. Solo responde fuera del .exe empaquetado.
+  vaciarBpiDev(): Promise<ResultadoVaciadoBpi>;
+}
+
+// TEMPORAL — se va junto con vaciarBpiDev().
+export interface ResultadoVaciadoBpi {
+  /** Nombre del respaldo que se tomó ANTES de vaciar. */
+  respaldo: string;
+  filasBorradas: number;
+  tablas: { tabla: string; filas: number }[];
 }
 
 export interface RespaldoInfo {

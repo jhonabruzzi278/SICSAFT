@@ -2,6 +2,7 @@
 // src/pages/importaciones/; acá solo la lógica testeable (mismo criterio que nivel.ts / lib/oidc).
 import type {
   DryRunResultado,
+  EstadoLoteImportacion,
   FilaLoteImportacionContable,
   LoteImportacionContable,
 } from './cis-client';
@@ -42,6 +43,20 @@ export function loteAccionable(
   lote: Pick<LoteImportacionContable, 'estado'>,
 ): boolean {
   return lote.estado === 'pendiente_revision';
+}
+
+// Cómo se muestra el estado de un lote con la ingesta directa a BPI: `aprobado` es el único
+// estado en el que los activos ya están en la Base Patrimonial. Un lote que sigue en
+// `pendiente_revision` es una ingesta automática que no terminó (p. ej. CIS rechazó la
+// aprobación), y pintarlo como ingresado escondería justamente ese fallo.
+export function etiquetaEstadoLote(estado: EstadoLoteImportacion): {
+  texto: string;
+  variant: 'success' | 'warning' | 'error';
+} {
+  if (estado === 'aprobado')
+    return { texto: '✓ Ingresado a BPI', variant: 'success' };
+  if (estado === 'rechazado') return { texto: 'Rechazado', variant: 'error' };
+  return { texto: 'Ingreso pendiente', variant: 'warning' };
 }
 
 // Orden de la bandeja: los pendientes de revisión primero, después por fecha de recepción

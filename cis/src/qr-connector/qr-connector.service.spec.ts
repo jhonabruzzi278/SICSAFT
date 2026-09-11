@@ -215,7 +215,7 @@ describe('QrConnectorService', () => {
   // clasificacion ya no vive acá, se prueba en core/src (unit + e2e). Estos tests solo verifican
   // que QrConnectorService delega correctamente y propaga resultados/errores tal cual.
   describe('getCatalogo', () => {
-    it('delega en CoreClientService y descarta el total (sin paginacion todavia en el contrato de CIS)', async () => {
+    it('delega en CoreClientService y propaga el total para que el consumidor pueda paginar', async () => {
       const activos = [
         {
           id: 'activo-1',
@@ -235,10 +235,16 @@ describe('QrConnectorService', () => {
         deviceRegistryService as unknown as DeviceRegistryService,
       );
 
-      const query: CatalogoQuery = { organizacionId: 'duoc-uc' };
+      const query: CatalogoQuery = {
+        organizacionId: 'duoc-uc',
+        limit: 100,
+        offset: 0,
+      };
       const result = await service.getCatalogo(query, 'corr-1');
 
-      expect(result).toEqual({ activos });
+      // El total viaja: sin el, el consumidor no sabe si hay mas paginas y se queda con la
+      // primera (el CCP mostraba 20 de 66 activos).
+      expect(result).toEqual({ activos, total: 1 });
       expect(coreClientService.getCatalogo).toHaveBeenCalledWith(
         query,
         'corr-1',
