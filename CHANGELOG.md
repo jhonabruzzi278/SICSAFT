@@ -5,20 +5,42 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ## [Sin publicar]
 
+_Sin cambios registrados todavía._
+
+## [1.1.0] - 2026-09-11
+
 ### Added
 - **`sicsaft-core` — Fase G: puesto del Profesional de AFT en su propia PC ([DOC-028](aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md) Fase G, `CORE-RF-06`)**:
   - La PC del Director (la "PC madre", instalación única = BPI única) sirve el CCP también en `https://<ip-lan>:8767` por HTTPS con el certificado autofirmado de la APP QR. En la PC del AFT **no se instala nada**.
-  - Proxy de mismo origen en `static-portal-server.ts` para `/cis/*` y el token endpoint del realm (`/kc/token`), porque una página HTTPS no puede hacer `fetch` a CIS/Keycloak por HTTP (contenido mixto) y CIS no tiene ese origen en su CORS. Rutas fijas, sin proxy abierto; verificación explícita del origen de destino (saneador S5144).
+  - Proxy de mismo origen en `static-portal-server.ts` para `/cis/*` y el token endpoint del realm (`/kc/token`), porque una página HTTPS no puede hacer `fetch` a CIS/Keycloak por HTTP (contenido mixto) y CIS no tiene ese origen en su CORS. Rutas fijas, sin proxy abierto; verificación explícita del origen de destino (saneador S5144), cabeceras hop-by-hop filtradas, `502` si la PC madre no responde.
   - El client OIDC `ccp` de Keycloak acepta loopback + el origen de LAN, re-sincronizado en cada relanzamiento y al reconfigurar la IP (`sincronizarOrigenesClientCcp`).
   - Pantalla "listo" del wizard: tarjeta **"Puesto del Profesional de AFT — otra PC"** con *Copiar dirección* y *Guardar acceso directo* (`SICSAFT CCP.url`).
   - `ccp/`: override opcional `VITE_KEYCLOAK_TOKEN_URL` en `oidc-config.ts` / `oidc-client.ts` (sin él, comportamiento idéntico en dev/Docker/portal embebido).
   - Firewall: `scripts/installer.nsh` (NSIS, al instalar "para todos los usuarios") y `herramientas/devops/configurar-firewall-sicsaft.ps1` (manual) crean las reglas de entrada TCP 8765/8767/56000/58080 + UDP 58765, **solo perfiles Privado y Dominio**.
   - e2e: `sicsaft-core/e2e/specs/20-puesto-aft-lan.spec.ts` (login real del AFT por la IP de LAN + lectura de CIS por el proxy, sin contenido mixto).
   - Doc: DOC-028 Fase G, `REQUIREMENTS.md` `CORE-RF-06`, `ARCHITECTURE.md` (mapa de puertos de LAN), `sicsaft-core/README.md`, `RUNBOOK-INSTALACION.md` §5.1.
+- **`core` — ubicación por defecto del área en la ingesta contable ([DOC-029](aidlc-docs/sicsaft-core/design-artifacts/) RF-B)**: el Excel del especialista trae el área pero nunca una ubicación física y el catálogo operativo exige `ubicacion_id` no nulo. Al aprobar un lote, el activo toma la ubicación principal del área (o se crea una en la sede de la organización). Migración `1756300000000_ubicacion-por-defecto-ingesta-contable.ts`, `UbicacionRepository.resolverPorArea`.
+- **Portal Directivo (`core/frontend`) — Ficha Técnica analítica en modo lectura** dentro del CIP (pestaña Activos): visor de QR institucional, trazabilidad, expediente documental y valor contable, con separación estricta entre BI analítico (CIP) y administración operativa (CCP).
+- **`sicsaft-core` — banco de pruebas de dev**: handler IPC `vaciarBpiDev` (`reset-bpi-dev.ts`) para vaciar la BPI entre corridas manuales de prueba. Solo disponible en desarrollo.
+
+### Changed
+- **CIP retirado del CCP y modularizado en el Portal Directivo (`core/frontend`)**: el Centro de Inteligencia Patrimonial se accede únicamente desde el portal del Directivo. Se descompone en módulos dedicados (`use-cip-data` como fachada de datos, `CipSidebar`, `CipHeader`, `CipKpiCards`, `CipCharts`, `CipActivosTable`, `CipFichaModal`) y adopta un diseño institucional a pantalla completa sin scroll horizontal.
+- **`app-qr-sicsaft` — reescritura del conector QR y del gate de operador**: `qr-connector.ts` y `OperatorGate` (login directo usuario/contraseña vía OIDC), `OrganizationPicker` / `AreaLocationPicker` separados. `main.tsx` de `ccp` y `app-qr` deciden el modo mock por `import.meta.env.MODE === 'e2e'` en vez de `VITE_MOCK_API`, para que un `.env.local` olvidado no hornee MSW en un build de producción.
+- **CI / SonarCloud**: exclusión de CPD para los entrypoints de SPA (`**/src/main.tsx`), los handlers de MSW (`ccp/src/mocks/handlers.ts`) y el spec de galería (`ccp/tests/galeria-completa.spec.js`) — mismo criterio ya documentado para `App.tsx` / `app.e2e-spec.ts` (SPAs independientes sin workspace, boilerplate inherente).
+
+### Fixed
+- **`core` — dry-run de la ingesta contable**: reimportar un Excel ya aprobado daba `conflicto` en vez de `ya_importado` porque el dry-run comparaba la `ubicacion_id` ya resuelta del activo contra `undefined`. El dry-run ahora resuelve la ubicación por área en solo-lectura (`ubicacionPrincipalDeArea`), mismo patrón que ya se usaba para área/responsable/catálogo.
+- **`ccp` — galería visual de `/importaciones`**: los casos 16/17 esperaban un `<h2>` de `DropzoneImportacionExcel`, componente que `ImportacionesPage` ya no monta; se repuntan a la bandeja de lotes que la ruta renderiza hoy.
+- **`sicsaft-core` — SonarCloud S5332** en el parser de rutas del proxy de Fase G: la base ficticia `BASE_RUTA_REQUEST` pasa de `http://portal.invalid` a `https://` (host reservado RFC 2606, nunca se contacta; no-op funcional).
+
+### Security
+- **SEC-01 (continuación)**: `token-store.ts` de `ccp` y `app-qr-sicsaft` limita el ciclo de vida del token a `sessionStorage` y trata un `expiresAt` no parseable (`NaN`) como expirado.
 
 ### Verificación
-- `sicsaft-core`: `typecheck` / `lint:ci` / `build` / `vitest` (unit) en verde. `ccp`: `lint:ci` / `vitest` / `build` en verde.
-- **Pendiente**: correr `sicsaft-core/e2e` (specs 01/02/20) contra el `.exe` empaquetado — el fixture del `.exe` falló al lanzar en el último intento, en revisión.
+- **Verde**: `sicsaft-core` (`typecheck` / `lint:ci` / `build` / `vitest`), `ccp` (`lint:ci` / `vitest` / `build`), `core` (`lint:ci` / `test` unit 403 / cobertura 100 % líneas-funciones / `build`), `cis`, `core/frontend`, `ETL contable`. SonarCloud Quality Gate en verde en los PRs #117 y #118.
+- **Pendiente / conocido**:
+  - `sicsaft-core/e2e` (specs 01/02/20, incluido el ciclo de Fase G) nunca se corrió contra el `.exe` empaquetado — el fixture del `.exe` falla al lanzar, en revisión.
+  - `APP QR CI` está en rojo en `main` desde `ea0b6e0` (2026-09-08): la migración del flujo `OperatorGate` / pickers dejó `tests/helpers.js`, `src/mocks/fixtures.ts` y los handlers MSW desincronizados; toda la suite e2e de `app-qr-sicsaft` hace timeout esperando el selector de organización. Requiere una corrección aparte antes de considerar publicable el camino de captura móvil.
 
 ## [1.0.1] - 2026-09-07
 
