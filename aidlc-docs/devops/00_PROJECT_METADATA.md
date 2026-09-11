@@ -1,39 +1,30 @@
-# DevOps — Instalador on-premise por cliente — Metadata del proyecto
+# DevOps — Infraestructura On-Premise y Release — Metadata del proyecto
 
-**Fase AI-DLC:** Inception
+**Sistema:** `devops/` (Capacidad transversal — OPS)  
+**Fase AI-DLC:** Operations — stack e instaladores construibles para Stage 1 y Stage 2; sin despliegue en cliente todavía (Gate 1/2 pendientes)  
+**Última actualización:** 2026-09-10  
+**Gobernanza:** Conforme a [`aidlc-docs/GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md`](../GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md)
 
-**Sistema:** `devops/` (capacidad transversal — OPS)
-
-**Incremento:** Instalador on-premise por cliente (Nivel 1/Nivel 2), primera versión sin
-empaquetar como `.exe`.
-
-## Quick links
-
-- Intención: [`requirements/INTENT.md`](requirements/INTENT.md)
-- Requisitos: [`requirements/REQUIREMENTS.md`](requirements/REQUIREMENTS.md)
-- Arquitectura: [`design-artifacts/ARCHITECTURE.md`](design-artifacts/ARCHITECTURE.md)
-- Niveles de producto: [`design-artifacts/DOC-025-niveles-producto-onprem.md`](design-artifacts/DOC-025-niveles-producto-onprem.md)
-- Implementación: [`devops/onprem/`](../../devops/onprem)
+---
 
 ## Estado
 
-🟡 Diseño completo + primer entregable construible (stack Podman parametrizado por nivel +
-bootstrap de Keycloak, ADR-004 Fase 3 — reemplazó al bootstrap de Zitadel original, 2026-08-26).
-Empaquetado como instalador `.exe` real es un incremento siguiente, no cubierto acá.
+- [x] **Inception Phase**: Diseño del instalador on-premise por cliente y definición de niveles de producto ([`DOC-025`](design-artifacts/DOC-025-niveles-producto-onprem.md)).
+- [x] **Construction Phase**:
+  - Implementación del stack `devops/onprem/` sobre Podman / Docker Compose con Keycloak 26 (ADR-004) y PostgreSQL 16.
+  - Script de instalación desatendida y parametrizada: `instalar-cliente.ps1 -Nivel 1|2`.
+  - Retiro formal de stacks `devops/local` y `devops/prod` ([DOC-032](../revision-codigo/DOC-032-revision-de-codigo-y-documentacion.md) H-01, ver `ROADMAP.md`): consolidación del 100% de la infraestructura en el modelo On-Premise / Desktop.
+- [x] **Operations Phase**:
+  - Coexistencia con `sicsaft-core/`: empaquetado nativo en `.exe` (Electron / NSIS) con binarios vendorizados de Postgres 16 y Keycloak 26 para clientes finales en PCs de escritorio Windows sin requerir Docker ni WSL2.
 
-## Depende de
+---
 
-`devops/local/docker-compose.yml` (base reusada — todavía en Zitadel, no migró en esta fase),
-`cis/src/keycloak-admin/` (cliente HTTP de la Admin REST API de Keycloak, mismos shapes que reusa
-`bootstrap-keycloak.ps1`).
+## Quick links
 
-## Bloquea
-
-Nada de forma dura — es un despliegue alternativo al VPS compartido, no reemplaza
-`devops/prod/`.
-
-## Próximo paso sugerido
-
-Verificar el stack Nivel 1/Nivel 2 de punta a punta contra una VM Windows limpia (sin WSL2/Podman
-preinstalados) antes de construir el instalador `.exe` empaquetado (Fase 3, ver
-`design-artifacts/ARCHITECTURE.md`).
+- Gobernanza de etapas: [`aidlc-docs/GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md`](../GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md)
+- Intención: [`requirements/INTENT.md`](requirements/INTENT.md)
+- Requisitos: [`requirements/REQUIREMENTS.md`](requirements/REQUIREMENTS.md)
+- Arquitectura On-Premise: [`design-artifacts/ARCHITECTURE.md`](design-artifacts/ARCHITECTURE.md)
+- Niveles de producto: [`design-artifacts/DOC-025-niveles-producto-onprem.md`](design-artifacts/DOC-025-niveles-producto-onprem.md)
+- README operativo: [`devops/README.md`](../../devops/README.md)
+- Carpeta On-Premise: [`devops/onprem/`](../../devops/onprem)

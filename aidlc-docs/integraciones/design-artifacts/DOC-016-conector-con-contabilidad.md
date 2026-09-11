@@ -17,7 +17,7 @@ flowchart LR
     Carpeta --> Conector["Conector\nCON-CONTABILIDAD\n(cis/)"]
     Conector -->|"POST /importaciones/contable\n(CoreClientService, ya existente)"| Core["SICSAFT CORE"]
     Conector -->|"POST /auditoria\n(ya existente)"| Core
-    Core --> BPI["Base Patrimonial Central"]
+    Core --> BPI["BPI — Base Patrimonial Inteligente"]
 ```
 
 **Nada de esto es un camino de escritura nuevo**: el conector es, literalmente, "un cliente más"

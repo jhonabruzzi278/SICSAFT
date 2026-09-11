@@ -8,14 +8,14 @@ flowchart LR
     Connector --> CIS["CIS"]
     CIS --> Core["SICSAFT CORE"]
     Core --> Rules["Reglas patrimoniales"]
-    Rules --> Database["Base Patrimonial Central"]
+    Rules --> Database["BPI (Base Patrimonial Inteligente)"]
 ```
 
 > **Estado del contrato**: implementado real de punta a punta desde TASK-007 — `cis/src/qr-connector/` sirve exactamente estas 4 rutas (formalizadas del lado de CORE en `aidlc-docs/core/design-artifacts/DOC-006-api-cis-core.md`) y `app-qr-sicsaft/src/lib/qr-connector.ts` (`HttpQrConnectorClient`) las consume real. Los puntos que decían **⚠️ Pendiente de confirmar con el equipo de SICSAFT CORE** ya tienen respuesta — se anota la resolución real en cada uno en vez de borrar la pregunta original, para que quede el registro de qué se asumió en el diseño vs. qué resultó ser cierto.
 
 ## 1. Alcance del Conector QR
 
-El Conector QR es la **única** vía por la que APP QR SICSAFT toca datos que no son locales al dispositivo. La app nunca escribe directo a la Base Patrimonial Central (ver [ADR-003](./ADR/ADR-003-rename-app-qr-sicsaft.md) y TASK-006). Responsabilidades del conector:
+El Conector QR es la **única** vía por la que APP QR SICSAFT toca datos que no son locales al dispositivo. La app nunca escribe directo a la BPI (ver [ADR-003](./ADR/ADR-003-rename-app-qr-sicsaft.md) y TASK-006). Responsabilidades del conector:
 
 - Autenticar al operador/dispositivo ante CIS.
 - Enviar sesiones de inventario cerradas (no escaneos sueltos) hacia CORE.
@@ -23,7 +23,7 @@ El Conector QR es la **única** vía por la que APP QR SICSAFT toca datos que no
 - Reintentar envíos fallidos sin duplicar datos en CORE.
 - Producir un identificador de correlación por cada operación, para trazabilidad de punta a punta.
 
-Fuera de alcance del conector: aplicar Reglas patrimoniales (eso vive en CORE) y escribir directo en la Base Patrimonial Central (eso vive en CORE + Reglas).
+Fuera de alcance del conector: aplicar Reglas patrimoniales (eso vive en CORE) y escribir directo en la BPI (eso vive en CORE + Reglas).
 
 ## 2. Operaciones (contrato de mensajes)
 
@@ -45,7 +45,7 @@ Propuesta REST/HTTPS sobre JSON, una operación por caso de uso del flujo oficia
 - El operador se autentica una vez por sesión de trabajo (pantalla 1) contra `POST /auth/session`; el token resultante se usa en todas las llamadas posteriores (`Authorization: Bearer <accessToken>`).
 - Vencimiento corto (`expiresAt`) + refresh explícito con refresh token si el operador sigue trabajando; si el token vence en medio de una sesión offline, el envío se reintenta re-autenticando primero (ver sección 4).
 
-✅ **Resuelto (TASK-007)**: mecanismo real es OIDC (Zitadel) — authorization code + PKCE, app tipo User Agent/SPA sin secreto de cliente (ver ADR-002 del lado de CIS y `devops/local/README.md` "Cliente OIDC real"). Implementado en `app-qr-sicsaft/src/lib/oidc/`.
+✅ **Resuelto (TASK-007 / ADR-004)**: mecanismo real es OIDC (Keycloak 26, ADR-004 — originalmente Zitadel) — authorization code + PKCE, app tipo User Agent/SPA sin secreto de cliente. Implementado en `app-qr-sicsaft/src/lib/oidc/`.
 
 **Decisión sobre dónde persistir el token** (no estaba resuelta en el diseño original, que solo decía "memoria/IndexedDB local, nunca `localStorage` sin cifrar" sin considerar `sessionStorage`): se usa `sessionStorage` — se pierde al cerrar la pestaña/PWA, el operador re-autentica cada turno en vez de dejar un token vivo indefinidamente en el dispositivo. Decisión confirmada explícitamente con el usuario, ver `app-qr-sicsaft/src/lib/oidc/token-store.ts`.
 

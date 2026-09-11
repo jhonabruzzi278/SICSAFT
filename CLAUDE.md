@@ -56,8 +56,11 @@ Fuentes de captura (APP SICSAFT/QR, CCP/WEB, RFID, ERP, ...)
   y versionado en `core/migrations/` (Postgres real).
 - **`devops/`** — infraestructura de despliegue on-premise por cliente ([`devops/onprem/`](devops/onprem/))
   sobre **Podman** / Docker Compose (Keycloak 26 + Postgres + Traefik + backends y frontends),
-  empaquetada como instalador `.exe` con Inno Setup en `devops/onprem/installer/` y orquestada por
-  `sicsaft-core`. Los stacks multi-tenant en VPS (`local/` y `prod/`) fueron retirados a favor del `.exe`. Detalle en [devops/README.md](devops/README.md).
+  empaquetada como instalador `.exe` con **Inno Setup** en `devops/onprem/installer/`
+  (`sicsaft-onprem.iss`). Coexiste con el `.exe` **nativo** de [`sicsaft-core/`](sicsaft-core)
+  (Electron + NSIS vía `electron-builder`, sin contenedores). Los stacks multi-tenant en VPS
+  (`local/` y `prod/`) fueron retirados a favor de la entrega On-Premise / Desktop. Detalle en
+  [devops/README.md](devops/README.md).
 
 Estado real y detalle de cada sistema (qué está mockeado vs. real, endpoints, dependencias): tabla
 completa en [README.md](README.md) y el `README.md` propio de cada carpeta.
@@ -172,6 +175,10 @@ primero que la entidad no sea un registro oficial cubierto por este invariante.
   u oculta. Antes de agregar un endpoint nuevo con autorización, revisar ahí qué patrón de guard
   ya existe para el caso (rol contra `organizacionId` puntual, rol en cualquier organización,
   o solo `ServiceTokenGuard`) en vez de inventar uno nuevo.
+- **Gobernanza de etapas, límites de proyecto y Definition of Done (DoD)**:
+  [`aidlc-docs/GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md`](aidlc-docs/GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md)
+  — marco oficial que define las fronteras inmutables de Stage 1 (Nivel 1) y Stage 2 (Nivel 2), los
+  criterios de aceptación para cerrar cada fase y el protocolo estricto de freeze.
 - **Estado real de cada sistema**: el README de esa carpeta, no memoria de conversaciones
   anteriores — los README se mantienen sincronizados con el código en cada commit relevante (ver
   "Documentación" abajo).

@@ -16,29 +16,23 @@ construcción del séptimo módulo, Dashboard/CIP — DOC-019; mismo día, dise�
 segmentación por rol Directivo — DOC-020; mismo día, diseño de cierre de gaps del CCP + rol
 Administrador del Sistema — DOC-021; mismo día, diseño de la reestructuración de portales — CCP/
 `web_admin`/frontend de CORE — DOC-022)
-**Fase actual:** Construction — los 9 módulos (6 del MVP de Fase 5 + Dashboard RF-09 +
-Importaciones/Administración RF-14/RF-15) y RF-10 (segmentación por rol) tienen código
-funcionando. RF-01/RF-09/RF-10 verificados de punta a punta contra Docker/Zitadel reales; RF-11 a
-RF-14 (DOC-021, gaps del CCP) implementados y verificados. RF-15 (rol `administrador-sistema` +
-módulo Administración) se implementó y luego se **eliminó (2026-09)** junto con el portal `web_admin/`.
+**Fase actual:** Construction completa (CI verde) e integrada en Stage 1 y Stage 2; Gate 1/Gate 2 pendientes de verificación en cliente  
+**Gobernanza:** Conforme a [`aidlc-docs/GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md`](../GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md)
 
 ## Status
 
-- [x] Inception — requirements, historias, arquitectura, DOC-013 y un mockup visual diseñados en
-      la sesión de Fase 2.
-- [x] Construction — MVP de Fase 5 (6 módulos) completo. Incremento (Dashboard/CIP, DOC-019,
-      2026-08-18): `src/dashboard-connector/` en CIS + `DashboardPage.tsx` en WEB implementados,
-      verificados de punta a punta contra Docker real (login OIDC real, datos reales de CIP).
-      Incremento (segmentación por rol, DOC-020, 2026-08-18): `esDirectivo()` en `oidc-client.ts` +
-      bifurcación en `HubPage.tsx` implementados, verificados en el navegador (modo mock, 3 casos)
-      y de punta a punta contra Docker/Zitadel reales (rol `directivo` creado en Zitadel, login
-      real confirma el redirect automático a `/dashboard`).
-- [ ] Operations — pendiente.
-- [x] Construction — DOC-021 (cierre de gaps del CCP): los 5 gaps del CCP quedaron cerrados. La
-      parte "Administrador del Sistema" (rol + endpoints) se **eliminó (2026-09)**.
-- [x] Construction — DOC-022 (reestructuración de portales): `core/frontend/` (Directivo) vivo;
-      `web_admin/` se construyó y luego se **eliminó por completo (2026-09)** — quedan 2 portales.
-      La gestión de roles acotada a la organización (`cis/src/directivo/`) sigue vigente.
+- [x] Inception — requirements, historias, arquitectura, DOC-013 y mockup visual completados.
+- [x] Construction — MVP de Fase 5 (6 módulos) completo:
+  - Activos: consulta y alta manual de activos patrimoniales.
+  - Estructura: Áreas, Ubicaciones y Responsables con asignación cruzada.
+  - Ingesta Contable (DOC-029 RF-B): revisión y aprobación de lotes Excel procesados por ETL Python.
+  - QR/Etiquetas (DOC-029 RF-F): generación e impresión de etiquetas QR y Code 128.
+  - Auditoría: consulta filtrable por usuario, fecha, operación y área con columna "Revisar".
+  - Resumen post-inventario (DOC-029 RF-I, Pantalla 8).
+  - Dashboard analítico CIP (DOC-019): integrado y gateado a Nivel 2 mediante `VITE_SICSAFT_NIVEL=2`.
+  - Autenticación OIDC/PKCE verificada contra Keycloak 26 (ADR-004).
+  - Reestructuración de portales (DOC-022): exclusivo del Profesional AFT (`administrador-patrimonial`); el Directivo usa `core/frontend/` y `web_admin/` fue formalmente eliminado (2026-09).
+- [~] Operations — servido On-Premise en `127.0.0.1:8766` por `sicsaft-core.exe` (portal embebido) y en `<ip-lan>:8767` para el puesto del AFT (Fase G), además de por Podman en `devops/onprem/`. Sin despliegue en cliente todavía (Gate pendiente).
 
 ## Por qué este directorio existe ahora, adelantado
 

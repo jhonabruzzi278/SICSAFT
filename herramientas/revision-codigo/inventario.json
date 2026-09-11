@@ -1,13 +1,13 @@
 {
-  "generado": "2026-09-08T19:29:48.995Z",
-  "commit": "49165e5",
-  "rama": "main",
+  "generado": "2026-09-11T00:46:43.462Z",
+  "commit": "df379e2",
+  "rama": "chore/release-1.1.0",
   "totales": {
-    "loc": 48244,
-    "locTests": 32010,
+    "loc": 48455,
+    "locTests": 32915,
     "docs": 124,
     "huerfanos": 0,
-    "docsDesactualizados": 28,
+    "docsDesactualizados": 21,
     "todos": 5
   },
   "nodos": [
@@ -57,11 +57,11 @@
       "archivosFuente": 65,
       "archivosTest": 46,
       "docs": 1,
-      "loc": 5890,
-      "locComentario": 589,
-      "locTests": 8784,
-      "pctComentario": 10,
-      "ratioTest": 1.49,
+      "loc": 5937,
+      "locComentario": 618,
+      "locTests": 8794,
+      "pctComentario": 10.4,
+      "ratioTest": 1.48,
       "todos": 0,
       "huerfanos": [],
       "docsDesactualizados": []
@@ -110,14 +110,14 @@
         "Auditoría Inmutable (Quién, Qué, Cuándo, Dónde) con snapshots de estado"
       ],
       "resumenTecnico": "Núcleo de negocio: Esquema BPI PostgreSQL versionado, máquina de estados de contratos (DOC-004), 11 dominios patrimoniales y auditoría inmutable.",
-      "archivosFuente": 111,
+      "archivosFuente": 112,
       "archivosTest": 77,
       "docs": 1,
-      "loc": 7928,
-      "locComentario": 913,
-      "locTests": 11113,
-      "pctComentario": 11.5,
-      "ratioTest": 1.4,
+      "loc": 8187,
+      "locComentario": 975,
+      "locTests": 11391,
+      "pctComentario": 11.9,
+      "ratioTest": 1.39,
       "todos": 1,
       "huerfanos": [],
       "docsDesactualizados": []
@@ -212,14 +212,14 @@
         "Flujo de Autenticación Segura OIDC con PKCE (RFC 7636)"
       ],
       "resumenTecnico": "Centro de Control Patrimonial: Ficha de activos, estructura organizacional, ingesta supervisada de planillas Excel y generación de etiquetas QR/Código 128.",
-      "archivosFuente": 51,
+      "archivosFuente": 46,
       "archivosTest": 15,
       "docs": 1,
-      "loc": 11196,
-      "locComentario": 430,
-      "locTests": 1603,
-      "pctComentario": 3.8,
-      "ratioTest": 0.14,
+      "loc": 10114,
+      "locComentario": 488,
+      "locTests": 1744,
+      "pctComentario": 4.8,
+      "ratioTest": 0.17,
       "todos": 0,
       "huerfanos": [],
       "docsDesactualizados": []
@@ -266,11 +266,11 @@
       "archivosFuente": 21,
       "archivosTest": 4,
       "docs": 1,
-      "loc": 2528,
-      "locComentario": 118,
+      "loc": 2746,
+      "locComentario": 175,
       "locTests": 600,
-      "pctComentario": 4.7,
-      "ratioTest": 0.24,
+      "pctComentario": 6.4,
+      "ratioTest": 0.22,
       "todos": 1,
       "huerfanos": [],
       "docsDesactualizados": []
@@ -319,11 +319,11 @@
       "archivosFuente": 80,
       "archivosTest": 15,
       "docs": 2,
-      "loc": 8291,
-      "locComentario": 449,
+      "loc": 8031,
+      "locComentario": 469,
       "locTests": 1202,
-      "pctComentario": 5.4,
-      "ratioTest": 0.14,
+      "pctComentario": 5.8,
+      "ratioTest": 0.15,
       "todos": 0,
       "huerfanos": [],
       "docsDesactualizados": []
@@ -369,14 +369,14 @@
         "Firma Digital de Código con Authenticode SHA-256 (SmartScreen EXE-08)"
       ],
       "resumenTecnico": "Entregable cliente On-Premise: Binario nativo Windows que orquesta y aísla Postgres, Keycloak 26, CIS, CORE y CIP sin requerir Docker ni WSL2.",
-      "archivosFuente": 48,
-      "archivosTest": 51,
+      "archivosFuente": 51,
+      "archivosTest": 54,
       "docs": 4,
-      "loc": 6409,
-      "locComentario": 1292,
-      "locTests": 5195,
+      "loc": 7138,
+      "locComentario": 1440,
+      "locTests": 5632,
       "pctComentario": 20.2,
-      "ratioTest": 0.81,
+      "ratioTest": 0.79,
       "todos": 3,
       "huerfanos": [],
       "docsDesactualizados": []
@@ -418,14 +418,14 @@
         "Validación de Integridad y Detección Temprana de Duplicados"
       ],
       "resumenTecnico": "Sidecar de ingesta contable: Transforma formatos heterogéneos de planillas contables institucionales hacia el esquema canónico de importación de la BPI.",
-      "archivosFuente": 7,
+      "archivosFuente": 9,
       "archivosTest": 1,
       "docs": 2,
-      "loc": 1010,
-      "locComentario": 52,
-      "locTests": 410,
-      "pctComentario": 5.1,
-      "ratioTest": 0.41,
+      "loc": 1310,
+      "locComentario": 69,
+      "locTests": 449,
+      "pctComentario": 5.3,
+      "ratioTest": 0.34,
       "todos": 0,
       "huerfanos": [],
       "docsDesactualizados": []
@@ -623,34 +623,10 @@
           "veces": 1
         },
         {
-          "archivo": "aidlc-docs/app-qr-sicsaft/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
-        },
-        {
-          "archivo": "aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-001-flujo-oficial.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
-        },
-        {
           "archivo": "aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md",
           "termino": "Zitadel",
           "vigente": "Keycloak",
           "veces": 1
-        },
-        {
-          "archivo": "aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 3
-        },
-        {
-          "archivo": "aidlc-docs/ccp/00_PROJECT_METADATA.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 3
         },
         {
           "archivo": "aidlc-docs/ccp/design-artifacts/ARCHITECTURE.md",
@@ -695,12 +671,6 @@
           "veces": 9
         },
         {
-          "archivo": "aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
-        },
-        {
           "archivo": "aidlc-docs/ccp/requirements/REQUIREMENTS.md",
           "termino": "Zitadel",
           "vigente": "Keycloak",
@@ -723,12 +693,6 @@
           "termino": "Zitadel",
           "vigente": "Keycloak",
           "veces": 1
-        },
-        {
-          "archivo": "aidlc-docs/devops/00_PROJECT_METADATA.md",
-          "termino": "Zitadel",
-          "vigente": "Keycloak",
-          "veces": 2
         },
         {
           "archivo": "aidlc-docs/devops/design-artifacts/ARCHITECTURE.md",
@@ -759,12 +723,6 @@
           "termino": "Zitadel",
           "vigente": "Keycloak",
           "veces": 2
-        },
-        {
-          "archivo": "aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
         },
         {
           "archivo": "aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md",

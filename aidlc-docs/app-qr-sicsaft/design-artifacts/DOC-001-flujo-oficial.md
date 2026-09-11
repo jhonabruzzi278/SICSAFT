@@ -52,7 +52,7 @@ Cada lectura de QR debe resolverse en una de estas categorías. La app debe most
 | Activo correcto | El código pertenece a un activo esperado en esta organización/área/ubicación | Queda marcado como encontrado; continuar escaneando |
 | Activo de otra área | El activo existe pero está registrado en otra área de la misma organización | Ver a qué área pertenece; opción de reportarlo como "fuera de lugar" o continuar |
 | Activo de otra ubicación | El activo existe pero está registrado en otra ubicación | Igual que arriba, a nivel ubicación |
-| Activo no registrado | El código no corresponde a ningún activo conocido en la Base Patrimonial Central | Opción de registrar como hallazgo / activo externo, o descartar |
+| Activo no registrado | El código no corresponde a ningún activo conocido en la BPI (Base Patrimonial Inteligente) | Opción de registrar como hallazgo / activo externo, o descartar |
 | Código QR inválido | El código leído no tiene el formato esperado (no es un QR de activo) | Mensaje de error claro; reintentar escaneo |
 | Activo duplicado | El mismo código físico aparece registrado más de una vez en la base | Alertar; requiere resolución manual fuera del flujo de escaneo (no la resuelve el operador en campo) |
 | Activo ya escaneado | El código ya fue leído en esta misma sesión de inventario | Aviso de "ya contado"; no se duplica en el conteo |

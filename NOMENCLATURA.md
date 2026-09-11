@@ -13,12 +13,16 @@ Enlazado desde [CLAUDE.md](CLAUDE.md), [README.md](README.md) y
 
 | Sigla | Nombre vigente | Responsabilidad única (Tomo IV) | Carpeta |
 |---|---|---|---|
-| **APP SICSAFT** | APP SICSAFT (APP QR) | Captura vía QR | `app-qr-sicsaft/` |
-| **CIS** | Centro de Interoperabilidad SICSAFT | Integración y validación de comunicaciones | `cis/` |
-| **SICSAFT CORE** | SICSAFT CORE | Orquestación de procesos y gobierno de cambios patrimoniales | `core/` |
+| **APP SICSAFT** | APP SICSAFT (APP QR) | Captura vía QR en terreno (PWA instalable) | `app-qr-sicsaft/` |
+| **CIS** | Centro de Interoperabilidad SICSAFT | Integración, validación de comunicaciones y proxy auth Keycloak | `cis/` |
+| **SICSAFT CORE** | SICSAFT CORE (Backend) | Orquestación de procesos y gobierno de cambios patrimoniales | `core/` |
+| **DIRECTIVO** | Portal WEB del Directivo | Visualización ejecutiva, estructura y designación del Profesional AFT | `core/frontend/` |
 | **BPI** | **Base Patrimonial Inteligente** | Conservación y relación de la información patrimonial oficial | `base-patrimonial/` (modelo) · `core/migrations/` (implementación) |
-| **CIP** | Centro de Inteligencia Patrimonial | Explotación: análisis, indicadores, alertas, inteligencia | `cip/` |
-| **CCP** | Centro de Control Patrimonial | Interfaz de operación, administración y control patrimonial | `ccp/` |
+| **CIP** | Centro de Inteligencia Patrimonial | Explotación: análisis, indicadores, alertas, inteligencia (Nivel 2) | `cip/` |
+| **CCP** | Centro de Control Patrimonial | Interfaz de operación, administración y control patrimonial (AFT) | `ccp/` |
+| **SICSAFT HOST** | SICSAFT CORE (.exe) | App nativa Electron / NSIS que orquesta el stack On-Premise | `sicsaft-core/` |
+| **ETL CONTABLE** | Ingesta Contable Excel | Sidecar Python (pandas/xlrd) para normalización de planillas | `herramientas/etl-contable/` |
+| **APK AFT** | APP Android WebView | WebView Android nativa para distribución local desde el .exe | `apk-aft/` (esqueleto Gradle; opcional — la PWA es el camino base) |
 | **RFID** | RFID SICSAFT | Captura automática de eventos | `rfid/` (no iniciado) |
 
 ### 1.1 `CCP ≠ CIP` — distinción congelada
@@ -75,6 +79,12 @@ Son cuatro niveles distintos. Detalle en
   responsable); CIP = *entender* (observar un indicador de activos no localizados).
 - Detalle y justificación de negocio en
   [DOC-025](aidlc-docs/devops/design-artifacts/DOC-025-niveles-producto-onprem.md).
+
+### 4.1 Taxonomía de entrega: `Stage` vs. `Nivel` vs. `Fase`
+
+- **Nivel / Modo**: Es la **superficie funcional comercial/licenciada** entregada al cliente (Nivel 1 = Modo Básico sin CIP; Nivel 2 = Modo Profesional con CIP; Nivel 3 = Modo Enterprise con RFID).
+- **Stage**: Es el **hito de empaquetado, integración y congelamiento de proyecto** para entrega a producción. Tiene fronteras de alcance inmutables y criterios de cierre estrictos (Gate 1 para Stage 1 / Nivel 1; Gate 2 para Stage 2 / Nivel 2). Documento maestro de referencia: [`aidlc-docs/GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md`](aidlc-docs/GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md).
+- **Fase AI-DLC**: Es el **ciclo interno de ingeniería** que vive en `aidlc-docs/<sistema>/` (Inception → Construction → Operations).
 
 ## 5. Regla transversal — Profesional de AFT
 

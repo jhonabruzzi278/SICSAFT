@@ -1,20 +1,16 @@
-# Metadata — Integraciones / CON-CONTABILIDAD
+# Metadata — Integraciones / Ingesta Contable
 
-**Fase**: Inception → Construction (diseño cerrado, `DOC-016`; código sin empezar).
+**Fase AI-DLC:** Construction Completa (Implementada vía DOC-029 en STAGE 1 y STAGE 2)  
+**Gobernanza:** Conforme a [`aidlc-docs/GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md`](../GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md)
 
-**Sistema de código**: `cis/` (módulo nuevo `importacion-contable-conector/`). `integraciones/`
-como carpeta de nivel raíz sigue sin código propio — solo su README, corregido en este mismo
-incremento (ver ROADMAP.md Fase 7 "Ojo con la clasificación").
+**Implementación oficial**: La ingesta contable institucional opera mediante el modelo supervisado de DOC-029:
+- **Sidecar ETL**: [`herramientas/etl-contable/`](../../herramientas/etl-contable/) (Python 3.12, `pandas`, `xlrd`).
+- **Bandeja de Staging**: CORE (`sesiones_inventario` y staging de activos en Postgres).
+- **Aprobación Humana**: CCP (`ccp/src/pages/ImportacionesPage.tsx`), respetando el principio no negociable de Tomo III: el Profesional de AFT no es una integración automática desatendida; revisa y aprueba el lote con su identidad real.
 
 ## Quick links
 
-- [INTENT.md](requirements/INTENT.md) — qué se pidió, por qué ahora, qué NO es esta fase.
-- [REQUIREMENTS.md](requirements/REQUIREMENTS.md) — RF-01 a RF-08, RNF-01 a RNF-05.
-- [DOC-016](design-artifacts/DOC-016-conector-con-contabilidad.md) — diseño técnico completo.
-
-## Próximo paso sugerido
-
-Implementar `cis/src/importacion-contable-conector/` según DOC-016 2–7, con tests unitarios
-del parseo CSV y del armado de la identidad sintética (5) — sin depender de un sistema contable
-real todavía (riesgo aceptado, DOC-016 8). Actualizar `integraciones/README.md` y `cis/README.md`
-en el mismo commit que el código, no antes (regla de `CLAUDE.md` "Documentación").
+- [DOC-029](../../aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md) — Endurecimiento e ingesta contable real (RF-B).
+- [INTENT.md](requirements/INTENT.md) — contexto original.
+- [DOC-016](design-artifacts/DOC-016-conector-con-contabilidad.md) — diseño conceptual previo (superado por el modelo supervisado DOC-029).
+- [ETL Contable README](../../herramientas/etl-contable/README.md) — documentación operativa.

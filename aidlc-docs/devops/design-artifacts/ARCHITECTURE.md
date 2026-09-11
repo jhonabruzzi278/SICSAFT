@@ -49,19 +49,17 @@ flowchart TB
   8080).
 - **Runtime de contenedores: Podman, no Docker Desktop** — ver "Runtime: Podman" abajo.
 
-## Niveles de producto → servicios (resumen, detalle formal en DOC-025)
+## Niveles de producto → servicios (resumen, detalle formal en DOC-025 y Documento Maestro de Stages)
 
-| Nivel | Servicios que se levantan |
-|---|---|
-| Nivel 1 | `postgres`, `keycloak`, `core-migrate`→`core`, `cis`, `cip-migrate`→`cip`, `app-qr-sicsaft`, `core-frontend` |
-| Nivel 2 | Nivel 1 + `ccp` |
-| Nivel 3 | Nivel 2 + RFID — **no implementado, `rfid/` no tiene código todavía** |
+> **Corrección 2026-09-02 (Definitiva y Normativa)**: El **CCP va completo desde Nivel 1** (operación, administración y control). La única diferencia entre Nivel 1 y Nivel 2 es el **CIP** (Centro de Inteligencia Patrimonial). En Nivel 1 el módulo Dashboard está oculto en el CCP mediante el flag de build `VITE_SICSAFT_NIVEL=1` y el worker analítico `cip` no se ejecuta. Ver [`aidlc-docs/GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md`](../GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md).
 
-Implementado con **Compose profiles** (`nivel2`) en un solo `docker-compose.yml` — mismo mecanismo
-que ya usa `devops/local/docker-compose.yml` para aislar el servicio `k6` (`profiles: ["k6"]`).
-Los servicios base (postgres/keycloak/cis/core/cip/app-qr-sicsaft/core-frontend) no
-llevan profile (siempre se levantan, desde Nivel 1 — DOC-025 1 revisado 2026-08-25); `ccp` es el
-único con `profiles: ["nivel2"]`.
+| Nivel / Modo | Servicios que se levantan | Frontends habilitados |
+|---|---|---|
+| **Nivel 1 (Modo Básico)** | `postgres`, `keycloak`, `core-migrate`→`core`, `cis`, `app-qr-sicsaft`, `core-frontend` (Directivo), `ccp` | APP QR + Portal Directivo + **CCP Completo** (Dashboard CIP oculto por flag) |
+| **Nivel 2 (Modo Profesional)** | Nivel 1 + `cip-migrate`→`cip` (Worker `pg-boss` + 8 endpoints analíticos) | Todo Nivel 1 + **Dashboard analítico CIP activo en CCP** |
+| **Nivel 3 (Modo Enterprise)** | Nivel 2 + `rfid` (Captura automática) | **No iniciado / Congelado** |
+
+El CCP está completo en todos los niveles; ningún servicio operativo del AFT está gateado por perfil de Compose en Nivel 1. Nivel 2 suma exclusivamente la inteligencia decisional servida por CIP.
 
 ## Runtime: Podman, no Docker Desktop
 

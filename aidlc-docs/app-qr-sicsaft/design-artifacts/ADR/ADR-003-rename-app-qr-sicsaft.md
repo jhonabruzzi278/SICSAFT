@@ -4,7 +4,7 @@
 Aceptado
 
 ## Context
-QR Vault nace como un generador de etiquetas QR + lector de inventario standalone (ver ADR-001, ADR-002). El proyecto pasa ahora a integrarse en el ecosistema SICSAFT como la app de **captura** del inventario patrimonial: identificar operador, seleccionar organización/área/ubicación, escanear, validar contra la Base Patrimonial Central (vía CIS/SICSAFT CORE), registrar incidencias y enviar resultados. Ese ecosistema y su backlog quedaron registrados en el tablero Trello [SICSAFT](https://trello.com/b/nCi6W4oB/sicsaft) (tarjetas ADR-001, TASK-001…010, DOC-001/002).
+QR Vault nace como un generador de etiquetas QR + lector de inventario standalone (ver ADR-001, ADR-002). El proyecto pasa ahora a integrarse en el ecosistema SICSAFT como la app de **captura** del inventario patrimonial: identificar operador, seleccionar organización/área/ubicación, escanear, validar contra la BPI (Base Patrimonial Inteligente, vía CIS/SICSAFT CORE), registrar incidencias y enviar resultados. Ese ecosistema y su backlog quedaron registrados en el tablero Trello [SICSAFT](https://trello.com/b/nCi6W4oB/sicsaft) (tarjetas ADR-001, TASK-001…010, DOC-001/002).
 
 Una auditoría del repo (2026-08-10) confirmó que la app actual **no implementa** la mayor parte de ese flujo todavía: no hay operador/login, no hay organización/área/ubicación, no hay incidencias, no hay envío a un backend (solo export CSV local), y el acceso a datos es directo a IndexedDB sin capa API. El rename es, por lo tanto, el primer paso visible de una migración funcional más grande, no solo un cambio de etiqueta.
 

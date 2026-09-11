@@ -96,20 +96,17 @@ que CORE valida en tiempo constante — sin ese header, 401.
 
 Backlog completo y contexto de negocio de APP QR: `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md`.
 
-## Orden de trabajo recomendado
+## Estado de entrega por Stages y gobernanza de proyecto
 
-1. **APP QR** completó su backlog local (TASK-004 a TASK-010) — las 12 pantallas del flujo oficial
-   están cubiertas, incluida TASK-007 (sincronización real con CORE) con autenticación OIDC vía Keycloak 26.
-2. Modelo de dominio compartido entre `core/` y `base-patrimonial/` — `Contrato` hecho, incluida la tabla real en Postgres
-   ([DOC-004](base-patrimonial/DOC-004-modelo-contrato.md)); Motor Patrimonial (catálogo, inventarios) también hecho sobre `sesiones_inventario` (Fase 2 de `ROADMAP.md`).
-3. `cis/` — proxy real hacia CORE, auth real contra Keycloak (ADR-004), circuit breaker + reintentos + rate limiting (WAF 4), `deviceId` enforced
-   (DOC-002 1) y CORS habilitado. CIS consume a CORE vía `CoreClientService` con auth interna.
-4. `seguridad/`: mecanismo de identidad (Keycloak 26 / OIDC), modelo de `Contrato` (DOC-004) y auth servicio-a-servicio CIS→CORE ya resueltos e implementados.
-5. `ccp/` — MVP completo (Profesional de AFT); `core/frontend/` (Directivo). El portal del Administrador del Sistema (`web_admin/`) se eliminó en 2026-09.
-6. `rfid/` e `integraciones/` quedan para fases posteriores.
-7. `devops/` se diseña recién cuando cada sistema tenga su ADR de stack — usa
-   [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md) como marco (Trello `OPS-DOC-001`, ya entregado).
+El proyecto se gobierna por etapas cerradas (*Stages*) con límites inmutables de alcance y criterios estrictos de *Definition of Done* definidos en [`aidlc-docs/GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md`](aidlc-docs/GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md):
 
-Tablero Trello: [SICSAFT](https://trello.com/b/nCi6W4oB/sicsaft) — las tarjetas de cada sistema
-llevan el prefijo del código (`CORE-`, `BASE-`, `CIS-`, `SEC-`/`DEC-`, `OPS-`) para diferenciarlas
-de las de APP QR (`TASK-`/`DOC-`/`ADR-`, sin prefijo de sistema por ser el primero en marcha).
+1. **STAGE 1 — Nivel 1 (Modo Básico On-Premise)**: 🟡 **Construido y empaquetable — Gate 1 pendiente de verificación en cliente**
+   - **Alcance**: APP QR (`app-qr-sicsaft/`) + CCP completo (`ccp/`: Activos, Estructura, Importaciones con ETL Python, QR/Etiquetas, Auditoría) + Portal Directivo (`core/frontend/`) + CIS + CORE (BPI Postgres) + instalador `.exe` nativo Windows (`sicsaft-core/`, `VERSION` 1.0.1 — CHANGELOG 1.1.0 en preparación; wizard de 3 pasos y consola técnica).
+   - **Límite**: Cero CIP (oculto en CCP mediante `VITE_SICSAFT_NIVEL=1`; worker apagado para ahorrar RAM). Cero RFID.
+   - **Criterio de cierre (Gate 1, pendiente)**: instalador `.exe` firmado, instalación en VM Windows limpia, prueba de campo con teléfono físico en la LAN contra `https://<ip-lan>:8765` (PWA APP QR) y `https://<ip-lan>:8767` (CCP del puesto), `sicsaft-core/e2e` en verde contra el `.exe`, y aprobación de lote contable. Ver DOC-031 §7.
+2. **STAGE 2 — Nivel 2 (Modo Profesional On-Premise)**: 🟡 **Construido e integrado — Gate 2 pendiente de verificación en cliente**
+   - **Alcance**: Todo Stage 1 + Centro de Inteligencia Patrimonial (`cip/`: worker `pg-boss`, 8 endpoints analíticos) + módulo Dashboard activo en CCP (`VITE_SICSAFT_NIVEL=2`) + KPIs en Portal Directivo + Veredicto cuatripartito cruzado.
+   - **Límite**: Cero RFID.
+3. **STAGE 3 — Nivel 3 (Modo Enterprise / RFID)**: ⛔ **Congelado**
+   - No se inicia trabajo en `rfid/` hasta la certificación final de Stage 1 y Stage 2 en clientes reales.
+

@@ -53,6 +53,12 @@ consumidor necesita ambos modos (como `app-qr-sicsaft`, que tiene toggle de tema
 Implementación de referencia (mapeo completo claro + oscuro contra los tokens de shadcn/Tailwind):
 [`app-qr-sicsaft/src/index.css`](app-qr-sicsaft/src/index.css).
 
+## Aplicación de temas por sistema del ecosistema
+
+- **`landing/`**: Solo modo oscuro (presentación comercial).
+- **`ccp/` (Portal AFT) y `core/frontend/` (Portal Directivo)**: **Solo modo oscuro** por diseño institucional, garantizando contraste AA y ergonomía para jornadas extensas de auditoría y control de inventarios.
+- **`app-qr-sicsaft/` (Móvil en Terreno)**: Implementa **modo dual (oscuro y claro)** seleccionable por el operario, debido a la variabilidad extrema de iluminación ambiental en terreno (luz solar directa en patios, galpones o bodegas).
+
 ## Qué no toca esta paleta
 
 Colores semánticos (éxito, advertencia, error/destructivo) son universales, no de marca — se

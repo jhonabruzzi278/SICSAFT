@@ -152,7 +152,7 @@ flowchart TD
     Staging --> Rev["Profesional de AFT en CCP\nmodulo 'Importacion' -> revisa filas,\nve dry-run (crear / actualizar / conflicto)"]
     Rev -->|Aprobar| Aplica["CORE aplica: resuelve-o-crea area/responsable/catalogo\npor nombre, inserta activos (idempotente por codigoPatrimonial)\n+ POST /auditoria"]
     Rev -->|Rechazar| Rechazado["lote 'rechazado'\nnada toca la base"]
-    Aplica --> BPI["Base Patrimonial Central"]
+    Aplica --> BPI["BPI — Base Patrimonial Inteligente"]
 ```
 
 Respeta el invariante de CLAUDE.md: nada escribe directo a la BPI, todo pasa por CIS→CORE, y ahora

@@ -1,9 +1,9 @@
 # SICSAFT CORE — app de escritorio nativa — Metadata del proyecto
 
-**Fase AI-DLC:** Inception
+**Fase AI-DLC:** Operations — empaquetable On-Premise para Stage 1 y Stage 2 (`VERSION` 1.0.1; CHANGELOG 1.1.0 en preparación); instalador firmado + validación en VM limpia y `e2e` contra el `.exe` pendientes (Gate 1)  
+**Gobernanza:** Conforme a [`aidlc-docs/GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md`](../GOBERNANZA-ETAPAS-Y-LIMITES-MAESTRO.md)
 
-**Sistema:** `sicsaft-core/` (nuevo — app de escritorio Electron, reemplaza a `devops/onprem/`
-como camino principal de instalación por cliente, ver `INTENT.md` CORE-Q-02)
+**Sistema:** `sicsaft-core/` (app de escritorio Electron / NSIS, orquestador de procesos On-Premise)
 
 **Incremento:** Nivel 1 **y Nivel 2** en un único instalador `.exe` (Postgres/Keycloak/CIS/CORE/CIP
 como procesos nativos, sin contenedores — sin Redis, ver ADR-005) + wizard de primer arranque (alta
