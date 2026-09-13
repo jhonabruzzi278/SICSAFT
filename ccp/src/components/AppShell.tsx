@@ -62,7 +62,7 @@ function Sidebar({ organizacionId }: { organizacionId: string }) {
   const q = `?organizacionId=${encodeURIComponent(organizacionId)}`;
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-bg-raised shadow-elev-2 lg:flex">
+    <aside className="workspace-sidebar sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-bg-raised shadow-elev-2 lg:flex">
       <div
         className="flex h-16 items-center gap-2.5 border-b border-border px-6"
         style={{ background: 'var(--brand-grad)' }}
@@ -104,7 +104,7 @@ function Sidebar({ organizacionId }: { organizacionId: string }) {
           <>
             <div className="my-3 border-t border-border" />
             <SideNavLink
-              to="/auditoria"
+              to={`/auditoria${q}`}
               active={location.pathname === '/auditoria'}
               icon={<IconShield />}
             >
@@ -113,6 +113,10 @@ function Sidebar({ organizacionId }: { organizacionId: string }) {
           </>
         )}
       </nav>
+      <div className="workspace-context">
+        <strong>Control patrimonial</strong>
+        <span className="break-all">{organizacionId}</span>
+      </div>
     </aside>
   );
 }
@@ -134,13 +138,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-bg text-text">
+    <div className="workspace flex min-h-screen bg-bg text-text">
+      <a className="skip-link" href="#contenido">
+        Ir al contenido
+      </a>
       {authenticated && organizacionId && (
         <Sidebar organizacionId={organizacionId} />
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-border bg-bg-raised/95 px-6 shadow-elev-1 backdrop-blur">
+        <header className="workspace-header sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-border bg-bg-raised/95 px-6 shadow-elev-1 backdrop-blur">
           <Link
             to="/"
             className="text-sm font-bold tracking-[0.2em] text-accent-strong uppercase lg:hidden"
@@ -172,7 +179,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
         </header>
 
-        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+        <main
+          id="contenido"
+          tabIndex={-1}
+          className="workspace-main mx-auto w-full max-w-6xl flex-1 px-6 py-8"
+        >
           {children}
         </main>
       </div>
