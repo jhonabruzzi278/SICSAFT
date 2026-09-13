@@ -8,15 +8,26 @@ import {
 import { Alert, Badge, Button, Card } from '@/components/ui';
 import { PantallaControlArea } from '@/components/PantallaControlArea';
 
-// RF-04 / DOC-029 RF-I — Módulo de Inventarios y Contrastación BPI:
-// Muestra las sesiones enviadas desde la APK móvil en terreno y permite al Profesional AFT
-// contrastar los escaneos contra la base de datos oficial BPI (Pantalla 8 / Control de Área).
+// Fase 4 (reestructuracion CCP/CIP, 2026-09-13) — portado de ccp/src/pages/InventariosPage.tsx:
+// mismo componente, mismo contrato con CIS (GET /inventarios*), solo reconectado al cis-client.ts
+// de este portal. Pantalla de solo lectura — sin escrituras propias, sin cambios de guard.
+// RF-04 / DOC-029 RF-I — Módulo de Controles de Área: muestra las sesiones enviadas desde la APK
+// móvil en terreno y permite al Directivo/Profesional AFT contrastar los escaneos contra la base
+// de datos oficial BPI (Pantalla 8 / Control de Área).
+
+// Fase 3.1 — lo que el controlador declaró por ese AFT durante el control (no confundir con el
+// resultado del escaneo en sí, que es `resultado`). 'activo' no se muestra: es el caso sin
+// anomalía, no aporta nada resaltarlo fila por fila.
+const ESTADO_DECLARADO_LABEL: Record<'mantenimiento' | 'inactivo', string> = {
+  mantenimiento: 'No funciona',
+  inactivo: 'Fuera de servicio',
+};
 
 function formatFechaHora(iso: string): string {
   return new Date(iso).toLocaleString('es-CL');
 }
 
-export function InventariosPage() {
+export function ControlesAreaTab() {
   const [searchParams] = useSearchParams();
   const organizacionId = searchParams.get('organizacionId') ?? '';
 
@@ -75,7 +86,7 @@ export function InventariosPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-accent-strong">
-          Inventarios y Contrastación BPI
+          Controles de Área y Contrastación BPI
         </h1>
         <p className="mt-1 text-sm text-text-dim">
           Recepción y supervisión de sesiones de relevamiento en terreno
@@ -204,12 +215,37 @@ export function InventariosPage() {
                         {detalle.escaneos.map((escaneo) => (
                           <li
                             key={escaneo.codigoQr}
-                            className="flex items-center justify-between rounded-lg border border-border bg-bg-card px-3 py-2 text-xs"
+                            className="flex flex-col gap-1 rounded-lg border border-border bg-bg-card px-3 py-2 text-xs"
                           >
-                            <span className="font-mono">
-                              {escaneo.codigoQr}
-                            </span>
-                            <Badge>{escaneo.resultado}</Badge>
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono">
+                                {escaneo.codigoQr}
+                              </span>
+                              <Badge>{escaneo.resultado}</Badge>
+                            </div>
+                            {escaneo.estadoDeclarado &&
+                              escaneo.estadoDeclarado !== 'activo' && (
+                                <div>
+                                  <Badge variant="warning">
+                                    Declarado:{' '}
+                                    {
+                                      ESTADO_DECLARADO_LABEL[
+                                        escaneo.estadoDeclarado
+                                      ]
+                                    }
+                                  </Badge>
+                                </div>
+                              )}
+                            {escaneo.bajaSugeridaMotivo && (
+                              <p className="text-destructive">
+                                Baja sugerida: {escaneo.bajaSugeridaMotivo}
+                              </p>
+                            )}
+                            {escaneo.observaciones && (
+                              <p className="text-text-dim">
+                                {escaneo.observaciones}
+                              </p>
+                            )}
                           </li>
                         ))}
                       </ul>

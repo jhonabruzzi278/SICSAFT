@@ -7,7 +7,6 @@ import { LoginPage } from '@/pages/LoginPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
 import { HubPage } from '@/pages/HubPage';
 import { ContratosPage } from '@/pages/ContratosPage';
-import { InventariosPage } from '@/pages/InventariosPage';
 import { AuditoriaPage } from '@/pages/AuditoriaPage';
 import { EstructuraPage } from '@/pages/EstructuraPage';
 import { DashboardPage } from '@/pages/DashboardPage';
@@ -61,16 +60,6 @@ export default function App() {
             <RequireAuth>
               <RequireModulo path="contratos">
                 <ContratosPage />
-              </RequireModulo>
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/inventarios"
-          element={
-            <RequireAuth>
-              <RequireModulo path="inventarios">
-                <InventariosPage />
               </RequireModulo>
             </RequireAuth>
           }
