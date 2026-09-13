@@ -33,17 +33,23 @@ describe('nivelActual', () => {
 });
 
 describe('moduloHabilitado', () => {
-  it('en Nivel 1 el CCP esta completo: dashboard operativo, activos, estructura, importaciones, etiquetas, auditoria', () => {
+  it('en Nivel 1 el CCP esta completo: dashboard operativo, estructura, importaciones, etiquetas, auditoria', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '1' };
     for (const path of [
       'dashboard',
-      'activos',
       'estructura',
       'importaciones',
       'auditoria',
       'etiquetas',
     ]) {
       expect(moduloHabilitado(path)).toBe(true);
+    }
+  });
+
+  it('activos se mudo al CIP (Fase 3) — ya no es un modulo del CCP en ningun nivel', () => {
+    for (const nivel of ['1', '2']) {
+      window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: nivel };
+      expect(moduloHabilitado('activos')).toBe(false);
     }
   });
 
