@@ -17,10 +17,7 @@ export function nivelActual(): NivelProducto {
 }
 
 // Modulos retirados del CCP por completo, en cualquier nivel — "no es necesario" (usuario,
-// 2026-08-31): Contratos (la vigencia/estado del contrato no se gestiona desde el portal del AFT)
-// e Inventarios (el escaneo se hace en la APP QR del telefono; los resultados de cada sesion se
-// ven en el Resumen, tarjeta "Sesiones de inventario"). Las paginas y los metodos de cliente
-// quedan en el repo por si vuelven — el hub, el sidebar y las rutas no los exponen.
+// 2026-08-31): Contratos (la vigencia/estado del contrato no se gestiona desde el portal del AFT).
 // `cip` se suma a la lista el 2026-09-09 por pedido del usuario: el Centro de Inteligencia
 // Patrimonial es del Directivo y se accede solo desde su portal (`core/frontend/`). Aca no queda
 // ni ruta ni pagina — la entrada esta igual para que una URL vieja (`/cip?organizacionId=...`,
@@ -30,11 +27,15 @@ export function nivelActual(): NivelProducto {
 // (core/frontend/src/pages/cip/ActivosTab.tsx) — el Profesional de AFT sigue pudiendo operarlo
 // (el guard de CORE ahora acepta administrador-patrimonial O directivo), pero ya no tiene pantalla
 // propia en el CCP.
+// `inventarios` ("Controles de areas") se suma el mismo dia (Fase 4): la contrastacion de
+// sesiones de control de area contra la BPI (Pantalla 8 / Escaneos) tambien se mudo a una pestaña
+// del CIP (core/frontend/src/pages/cip/ControlesAreaTab.tsx). Es una pantalla de solo lectura —
+// el traslado no cambio ningun guard de CORE.
 const MODULOS_RETIRADOS: ReadonlySet<string> = new Set([
   'contratos',
-  'inventarios',
   'cip',
   'activos',
+  'inventarios',
 ]);
 
 // El CCP — Centro de Control Patrimonial (operacion, administracion y control) — esta COMPLETO en

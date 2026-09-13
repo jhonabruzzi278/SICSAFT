@@ -52,7 +52,7 @@ en 2026-09 — su función pasó a intervención directa del proveedor.
 | **Profesional de AFT** (Keycloak, org propia) | Consultar / Designar | ➖ | ✅ | `DirectivoGuard` — organización **derivada siempre del JWT**, nunca de la ruta/body |
 | **Auditoría** | Consultar | ⚠️ | ➖ | Sin chequeo de rol |
 | **Dashboard** (CIP, vía CIS) | Consultar | ⚠️ | ⚠️ | Sin chequeo de rol — accesible a cualquier operador autenticado |
-| **Inventarios** (sesiones QR/RFID) | Crear / Consultar | ⚠️ | ➖ | Sin chequeo de rol — módulo de fuente de captura, no exclusivo de este portal |
+| **Inventarios** (sesiones QR/RFID) | Crear / Consultar | ⚠️ | ⚠️ | Sin chequeo de rol — módulo de fuente de captura, no exclusivo de este portal. Consultar (lista/detalle/Pantalla 8) ahora también se muestra en el CIP como "Controles de área" (Fase 4, `ControlesAreaTab.tsx`) — solo lectura, sin cambio de guard |
 
 **Organización / Sede / Contrato (escritura) e Indicadores de plataforma** ya no aparecen en la
 matriz: sus endpoints (`POST/PATCH /admin/organizaciones|sedes|contratos`, `GET /admin/indicadores`,
@@ -113,9 +113,10 @@ exigiendo `administrador-patrimonial` exclusivamente, el CIP no los expone. Revi
 El sidebar de `ccp/` (`ccp/src/components/AppShell.tsx`) solo linkea a módulos donde
 `administrador-patrimonial` tiene alguna acción real según esta matriz — Organización
 (áreas/departamentos/responsables), Importaciones (con la bandeja de staging), Auditoría,
-QR/Etiquetas y el Dashboard/Resumen. Activos ya no está acá (Fase 3: se mudó al CIP, ver 4b) — el
-guard de escritura sigue aceptando `administrador-patrimonial`, solo cambió dónde vive la pantalla.
-**Nunca** Organizaciones/Contratos/Usuarios de plataforma/Indicadores (esos
+QR/Etiquetas y el Dashboard/Resumen. Activos y Controles de área ya no están acá (Fases 3/4: se
+mudaron al CIP, ver 4b) — para Activos el guard de escritura sigue aceptando
+`administrador-patrimonial`, solo cambió dónde vive la pantalla; Controles de área era de solo
+lectura y sigue siéndolo. **Nunca** Organizaciones/Contratos/Usuarios de plataforma/Indicadores (esos
 módulos vivían en `web_admin/`, eliminado en 2026-09), ni la gestión del Profesional de AFT
 (exclusiva de `core/frontend/`) — la separación de portales de DOC-022 ya hace que cada sidebar
 sea, por construcción, un subconjunto de lo que el rol de ese portal puede hacer. Este documento es lo que
