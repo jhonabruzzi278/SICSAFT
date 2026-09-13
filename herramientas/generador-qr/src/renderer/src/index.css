@@ -1,0 +1,139 @@
+@import "tailwindcss";
+@import "@fontsource-variable/manrope";
+
+/* Paleta de marca SICSAFT — ver BRAND.md en la raíz del repo (no se reinventa paleta por
+   sistema). App de escritorio interna, modo oscuro fijo — mismo criterio que sicsaft-core. */
+:root {
+  --background: oklch(15% 0.045 258);
+  --foreground: oklch(97% 0.006 258);
+  --card: oklch(21% 0.05 258);
+  --card-foreground: oklch(97% 0.006 258);
+  --input: oklch(18% 0.045 258);
+  --border: oklch(32% 0.05 258);
+  --border-strong: oklch(44% 0.07 258);
+  --muted-foreground: oklch(78% 0.03 258);
+  --faint-foreground: oklch(58% 0.03 258);
+  --primary: oklch(68% 0.19 254);
+  --primary-strong: oklch(74% 0.17 240);
+  --primary-dim: oklch(40% 0.11 254);
+  --destructive: oklch(0.577 0.245 27.325);
+  --success: oklch(0.58 0.13 155);
+  --radius: 0.625rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--background);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-faint-foreground: var(--faint-foreground);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.6);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    "Manrope Variable",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* DOC-029 RF-F — impresión de etiquetas, portado tal cual de ccp/src/index.css (mismas clases,
+   mismas plantillas Avery/Tarjeta/Térmica y saltos de página — ver
+   src/renderer/src/components/EtiquetaActivo.tsx). */
+@media print {
+  @page {
+    size: letter;
+    margin: 8mm;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Plantilla Avery 5160: 3 columnas, 10 filas */
+  .plantilla-avery .lista-etiquetas {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 3mm !important;
+  }
+
+  /* Plantilla Tarjetas: 2 columnas, 5 filas */
+  .plantilla-tarjeta .lista-etiquetas {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 4.5mm !important;
+  }
+
+  /* Plantilla Térmica: 1 columna continua */
+  .plantilla-termica .lista-etiquetas {
+    display: block !important;
+  }
+  .plantilla-termica .etiqueta {
+    page-break-after: always !important;
+    break-after: page !important;
+    margin-bottom: 2mm !important;
+  }
+
+  /* Saltos de página configurables */
+  .salto-direccion .grupo-direccion {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+  .salto-direccion .grupo-direccion:first-of-type {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+
+  .salto-area .grupo-area {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+  .salto-area .grupo-area:first-of-type {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+
+  .salto-ninguno .grupo-direccion,
+  .salto-ninguno .grupo-area {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
+
+  .etiqueta {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    border-color: #777 !important;
+    box-shadow: none !important;
+  }
+}
