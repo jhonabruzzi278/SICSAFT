@@ -54,6 +54,20 @@ export interface CategoriaResumenResponse {
   cantidad: number;
 }
 
+export interface VeredictoResumenResponse {
+  veredicto: string;
+  cantidad: number;
+}
+
+// RF-01 (extensión "Resumen" del CIP) — el mismo `veredicto_sesion` que ya sirve `sesiones`,
+// agrupado por veredicto en dos ventanas: hoy ("dia", para el control diario) y sin filtro de
+// fecha ("acumulado", historico completo de la organización). `total` es la suma de `cantidad` de
+// cada ventana, no un COUNT(*) aparte — evita una tercera consulta para un numero derivable.
+export interface ResumenVeredictosResponse {
+  dia: { total: number; porVeredicto: VeredictoResumenResponse[] };
+  acumulado: { total: number; porVeredicto: VeredictoResumenResponse[] };
+}
+
 export interface Pagina<T> {
   items: T[];
   total: number;

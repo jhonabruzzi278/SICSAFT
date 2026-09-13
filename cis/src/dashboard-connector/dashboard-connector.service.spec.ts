@@ -16,6 +16,7 @@ describe('DashboardConnectorService', () => {
       getNoLocalizados: jest.fn(),
       getIncidencias: jest.fn(),
       getEstadoActivos: jest.fn(),
+      getVeredictos: jest.fn(),
       getCategorias: jest.fn(),
     } as unknown as jest.Mocked<CipClientService>;
     service = new DashboardConnectorService(cipClientService);
@@ -125,6 +126,24 @@ describe('DashboardConnectorService', () => {
       service.getEstadoActivos('duoc-uc', 'correlation-test'),
     ).resolves.toBe(expected);
     expect(cipClientService.getEstadoActivos).toHaveBeenCalledWith(
+      'duoc-uc',
+      'correlation-test',
+    );
+  });
+
+  it('getVeredictos delega en CipClientService', async () => {
+    const expected = {
+      dia: { total: 0, porVeredicto: [] },
+      acumulado: { total: 0, porVeredicto: [] },
+      actualizadoEn: null,
+      alDia: true,
+    };
+    cipClientService.getVeredictos.mockResolvedValue(expected);
+
+    await expect(
+      service.getVeredictos('duoc-uc', 'correlation-test'),
+    ).resolves.toBe(expected);
+    expect(cipClientService.getVeredictos).toHaveBeenCalledWith(
       'duoc-uc',
       'correlation-test',
     );
