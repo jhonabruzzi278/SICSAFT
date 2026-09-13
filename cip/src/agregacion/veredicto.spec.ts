@@ -23,4 +23,3 @@ describe('cip: calcularVeredicto (Contrato Canónico)', () => {
     expect(calcularVeredicto(8, 6)).toBe('defectuoso');
   });
 });
-
