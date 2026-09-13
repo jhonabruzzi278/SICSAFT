@@ -121,6 +121,83 @@ export interface AltaDocumentoActivoInput {
   descripcion?: string;
 }
 
+// Fase 4 (reestructuracion CCP/CIP) — tipos/métodos de "Controles de área", portados de
+// ccp/src/lib/cis-client.ts (misma forma, mismos endpoints GET /inventarios* de CIS — pantalla de
+// solo lectura, sin cambios de guard).
+export interface SesionInventario {
+  id: string;
+  organizacionId: string;
+  areaId: string;
+  ubicacionId: string;
+  operadorId: string;
+  fechaInicio: string;
+  fechaCierre: string;
+  estado: string;
+  creadoEn: string;
+}
+
+export interface EscaneoInventario {
+  codigoQr: string;
+  resultado: string;
+  observaciones: string | null;
+  estadoDeclarado: 'activo' | 'mantenimiento' | 'inactivo' | null;
+  bajaSugeridaMotivo: string | null;
+}
+
+export interface SesionInventarioDetalle extends SesionInventario {
+  escaneos: EscaneoInventario[];
+}
+
+// DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"). Passthrough del
+// contrato de CORE vía CIS (GET /inventarios/:id/control); refleja
+// cis/src/qr-connector/qr-connector.types.ts ResumenControl.
+export type TipoControlAft = 'ordinario' | 'extraordinario';
+export type VeredictoControl = 'exitoso' | 'aceptable' | 'defectuoso';
+
+export interface EscaneoControlAft {
+  codigoQr: string;
+  nombre: string | null;
+  tipo: TipoControlAft | null;
+  resultado: string;
+}
+
+export interface FueraDeAreaControlAft {
+  codigoQr: string;
+  nombre: string | null;
+  tipo: TipoControlAft | null;
+  areaRealNombre: string | null;
+}
+
+export interface FaltanteControlAft {
+  codigoQr: string;
+  nombre: string;
+}
+
+export interface ResumenControlArea {
+  sesionId: string;
+  organizacionId: string;
+  areaId: string;
+  ubicacionId: string;
+  operadorId: string;
+  fechaInicio: string;
+  fechaCierre: string;
+  estado: string;
+  escaneados: number;
+  delArea: number;
+  activosDelArea: number;
+  delAreaPct: number;
+  porEstadoDeclarado: {
+    enServicio: number;
+    enMantenimiento: number;
+    inactivo: number;
+    baja: number;
+  };
+  escaneadosLista: EscaneoControlAft[];
+  fueraDeArea: FueraDeAreaControlAft[];
+  faltantes: FaltanteControlAft[];
+  veredicto: VeredictoControl;
+}
+
 // DOC-022 3 — misma forma que GrantUsuario del lado de CIS (cis/src/keycloak-admin/keycloak-admin.types.ts).
 export interface UsuarioOrganizacion {
   userId: string;
@@ -329,6 +406,25 @@ export const cisClient = {
       `/admin/activos/${encodeURIComponent(activoId)}/documentos/${encodeURIComponent(documentoId)}`,
       { method: 'DELETE', body: JSON.stringify({ organizacionId }) },
     );
+  },
+
+  async getInventarios(organizacionId: string): Promise<SesionInventario[]> {
+    const params = new URLSearchParams({ organizacionId });
+    const res = await authorizedFetch(`/inventarios?${params.toString()}`);
+    return (await res.json()) as SesionInventario[];
+  },
+
+  async getInventarioDetalle(id: string): Promise<SesionInventarioDetalle> {
+    const res = await authorizedFetch(`/inventarios/${encodeURIComponent(id)}`);
+    return (await res.json()) as SesionInventarioDetalle;
+  },
+
+  // DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"), vía el puente de CIS.
+  async getInventarioResumenControl(id: string): Promise<ResumenControlArea> {
+    const res = await authorizedFetch(
+      `/inventarios/${encodeURIComponent(id)}/control`,
+    );
+    return (await res.json()) as ResumenControlArea;
   },
 
   // DOC-022 3 — sin organizacionId como parámetro: DirectivoGuard en CIS lo deriva siempre del

@@ -24,8 +24,8 @@ import {
 const NAV_ITEMS = [
   { path: 'activos', nombre: 'Activos', icon: IconBox },
   { path: 'contratos', nombre: 'Contratos', icon: IconFileText },
-  { path: 'inventarios', nombre: 'Inventarios', icon: IconLayers },
-  { path: 'estructura', nombre: 'Áreas y ubicaciones', icon: IconMapPin },
+  { path: 'inventarios', nombre: 'Controles de áreas', icon: IconLayers },
+  { path: 'estructura', nombre: 'Organización', icon: IconMapPin },
   { path: 'importaciones', nombre: 'Importaciones', icon: IconUpload },
   { path: 'etiquetas', nombre: 'QR / Etiquetas', icon: IconQrCode },
 ] as const;
