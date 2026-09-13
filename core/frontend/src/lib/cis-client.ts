@@ -11,18 +11,29 @@ export interface Sede {
   nombre: string;
 }
 
-// Forma del catalogo que devuelve CIS (GET /catalogo). Solo los campos que consume el tablero.
+// Forma del catalogo que devuelve CIS (GET /catalogo).
 export interface ActivoCatalogo {
   id: string;
   codigoQr: string;
+  codigoAft?: string;
   nombre: string;
   familia: string;
   areaId: string;
   areaNombre: string;
+  areaDependencia: string | null;
+  ubicacionId: string;
   ubicacionNombre: string;
   /** ISO 8601. Cuando el activo entro a la BPI. */
   incorporadoEn: string;
   estado: string;
+  // DOC-033 — catálogo enriquecido de CCP, mismo endpoint GET /catalogo (CIS ya los sirve, ver
+  // cis/src/core-client/core-client.types.ts activoCatalogoSchema) — faltaban en esta copia local.
+  marca: string | null;
+  modelo: string | null;
+  serie: string | null;
+  valorPatrimonial: number | null;
+  fechaCompra: string | null;
+  responsableNombre: string | null;
 }
 
 export interface Organizacion {

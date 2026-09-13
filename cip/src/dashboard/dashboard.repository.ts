@@ -10,7 +10,9 @@ import type {
   IncidenciaResponse,
   NoLocalizadoResponse,
   Pagina,
+  ResumenVeredictosResponse,
   SyncInfo,
+  VeredictoResumenResponse,
   VeredictoSesionResponse,
 } from './dashboard.types';
 
@@ -247,6 +249,45 @@ export class DashboardRepository {
       familia: fila.familia,
       cantidad: fila.cantidad,
     }));
+  }
+
+  // RF-01 (extensión "Resumen" del CIP) — dos agrupados sobre la misma tabla `veredicto_sesion`:
+  // "dia" filtra por `fecha_cierre >= date_trunc('day', now())`, "acumulado" no filtra. Se pide en
+  // paralelo porque son dos lecturas independientes sobre la misma tabla, no una transacción.
+  async resumenVeredictos(
+    organizacionId: string,
+  ): Promise<ResumenVeredictosResponse> {
+    const [dia, acumulado] = await Promise.all([
+      this.agruparVeredictos(organizacionId, true),
+      this.agruparVeredictos(organizacionId, false),
+    ]);
+    return { dia, acumulado };
+  }
+
+  private async agruparVeredictos(
+    organizacionId: string,
+    soloHoy: boolean,
+  ): Promise<{ total: number; porVeredicto: VeredictoResumenResponse[] }> {
+    const filtroFecha = soloHoy
+      ? `AND fecha_cierre >= date_trunc('day', now())`
+      : '';
+    const resultado = await this.pool.query<{
+      veredicto: string;
+      cantidad: string;
+    }>(
+      `SELECT veredicto, COUNT(*) AS cantidad FROM veredicto_sesion
+       WHERE organizacion_id = $1 ${filtroFecha}
+       GROUP BY veredicto ORDER BY veredicto`,
+      [organizacionId],
+    );
+    const porVeredicto = resultado.rows.map((fila) => ({
+      veredicto: fila.veredicto,
+      cantidad: Number(fila.cantidad),
+    }));
+    return {
+      total: porVeredicto.reduce((acc, v) => acc + v.cantidad, 0),
+      porVeredicto,
+    };
   }
 
   async obtenerSyncInfo(): Promise<SyncInfo> {

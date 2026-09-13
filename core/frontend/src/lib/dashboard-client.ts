@@ -59,6 +59,21 @@ export interface CategoriaResumen {
   cantidad: number;
 }
 
+export interface VeredictoResumen {
+  veredicto: string;
+  cantidad: number;
+}
+
+export interface VentanaVeredictos {
+  total: number;
+  porVeredicto: VeredictoResumen[];
+}
+
+export interface ResumenVeredictos extends SyncInfo {
+  dia: VentanaVeredictos;
+  acumulado: VentanaVeredictos;
+}
+
 interface Pagina<T> {
   items: T[];
   total: number;
@@ -146,6 +161,13 @@ export const dashboardClient = {
       organizacionId,
     });
     return (await res.json()) as { estados: EstadoResumen[] } & SyncInfo;
+  },
+
+  async getVeredictos(organizacionId: string): Promise<ResumenVeredictos> {
+    const res = await authorizedFetch('/dashboard/veredictos', {
+      organizacionId,
+    });
+    return (await res.json()) as ResumenVeredictos;
   },
 
   async getCategorias(

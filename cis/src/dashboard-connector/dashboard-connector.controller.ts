@@ -13,6 +13,7 @@ import {
   incidenciasQuerySchema,
   noLocalizadosQuerySchema,
   sesionesQuerySchema,
+  veredictosQuerySchema,
   type AreasQuery,
   type CategoriasQuery,
   type CoberturaQuery,
@@ -21,6 +22,7 @@ import {
   type IncidenciasQuery,
   type NoLocalizadosQuery,
   type SesionesQuery,
+  type VeredictosQuery,
 } from './dashboard-connector.schemas';
 import type {
   AreasResult,
@@ -31,6 +33,7 @@ import type {
   IncidenciasResult,
   NoLocalizadosResult,
   SesionesResult,
+  VeredictosResult,
 } from '../cip-client/cip-client.types';
 
 // DOC-019 2/3.1 — septimo módulo del hub de WEB (RF-09): mismo criterio de autorización que
@@ -132,6 +135,17 @@ export class DashboardConnectorController {
     @Req() request: RequestWithCorrelationId,
   ): Promise<EstadoActivosResult> {
     return this.dashboardConnectorService.getEstadoActivos(
+      query.organizacionId,
+      request.correlationId,
+    );
+  }
+
+  @Get('veredictos')
+  getVeredictos(
+    @Query(new ZodValidationPipe(veredictosQuerySchema)) query: VeredictosQuery,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<VeredictosResult> {
+    return this.dashboardConnectorService.getVeredictos(
       query.organizacionId,
       request.correlationId,
     );

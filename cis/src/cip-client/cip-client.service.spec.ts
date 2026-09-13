@@ -327,6 +327,33 @@ describe('CipClientService', () => {
     });
   });
 
+  describe('getVeredictos', () => {
+    it('llama a GET /dashboard/veredictos y devuelve dia/acumulado', async () => {
+      const resumen = {
+        dia: {
+          total: 1,
+          porVeredicto: [{ veredicto: 'exitoso', cantidad: 1 }],
+        },
+        acumulado: {
+          total: 5,
+          porVeredicto: [{ veredicto: 'exitoso', cantidad: 5 }],
+        },
+      };
+      axiosGet.mockResolvedValue(
+        buildAxiosResponse({ ...resumen, ...SYNC_INFO }),
+      );
+
+      const result = await service.getVeredictos('duoc-uc', 'correlation-test');
+
+      expect(axiosGet).toHaveBeenCalledWith(
+        'http://cip:3002/dashboard/veredictos',
+        expect.objectContaining({ params: { organizacionId: 'duoc-uc' } }),
+      );
+      expect(result.dia).toEqual(resumen.dia);
+      expect(result.acumulado).toEqual(resumen.acumulado);
+    });
+  });
+
   describe('getCategorias', () => {
     it('incluye areaId cuando se pasa', async () => {
       axiosGet.mockResolvedValue(

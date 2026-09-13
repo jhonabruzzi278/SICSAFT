@@ -44,50 +44,6 @@ export function Card({
   );
 }
 
-type StatTone = 'accent' | 'success' | 'warning' | 'destructive';
-
-const STAT_TONE_STYLES: Record<StatTone, string> = {
-  accent: 'bg-accent/12 text-accent-strong',
-  success: 'bg-success/12 text-success',
-  warning: 'bg-warning/12 text-warning',
-  destructive: 'bg-destructive/12 text-destructive',
-};
-
-// KPI card estilo "Resumen ejecutivo" — icono acentuado + valor grande + etiqueta. Pensado para
-// filas de 3-4 tarjetas en la parte superior de un dashboard.
-export function StatCard({
-  label,
-  value,
-  icon,
-  tone = 'accent',
-  hint,
-}: {
-  label: string;
-  value: ReactNode;
-  icon?: ReactNode;
-  tone?: StatTone;
-  hint?: string;
-}) {
-  return (
-    <Card className="flex items-start justify-between gap-4">
-      <div>
-        <p className="text-xs font-medium text-text-dim">{label}</p>
-        <p className="mt-1.5 text-3xl font-semibold tracking-tight text-text">
-          {value}
-        </p>
-        {hint && <p className="mt-1 text-xs text-text-faint">{hint}</p>}
-      </div>
-      {icon && (
-        <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${STAT_TONE_STYLES[tone]}`}
-        >
-          {icon}
-        </span>
-      )}
-    </Card>
-  );
-}
-
 export function Label({
   className = '',
   ...rest

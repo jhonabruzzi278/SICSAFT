@@ -14,6 +14,10 @@ function buildRepository(): jest.Mocked<DashboardRepository> {
     listarIncidencias: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     listarEstadoActivos: jest.fn().mockResolvedValue([]),
     listarCategorias: jest.fn().mockResolvedValue([]),
+    resumenVeredictos: jest.fn().mockResolvedValue({
+      dia: { total: 0, porVeredicto: [] },
+      acumulado: { total: 0, porVeredicto: [] },
+    }),
     obtenerSyncInfo: jest.fn().mockResolvedValue(SYNC),
   } as unknown as jest.Mocked<DashboardRepository>;
 }
@@ -148,6 +152,26 @@ describe('DashboardController', () => {
 
     expect(repository.listarEstadoActivos).toHaveBeenCalledWith('org-1');
     expect(resultado).toEqual({ estados: [], ...SYNC });
+  });
+
+  it('getVeredictos delega y agrega sync', async () => {
+    const repository = buildRepository();
+    const resumen = {
+      dia: { total: 1, porVeredicto: [{ veredicto: 'exitoso', cantidad: 1 }] },
+      acumulado: {
+        total: 5,
+        porVeredicto: [{ veredicto: 'exitoso', cantidad: 5 }],
+      },
+    };
+    repository.resumenVeredictos.mockResolvedValue(resumen);
+    const controller = new DashboardController(repository);
+
+    const resultado = await controller.getVeredictos({
+      organizacionId: 'org-1',
+    });
+
+    expect(repository.resumenVeredictos).toHaveBeenCalledWith('org-1');
+    expect(resultado).toEqual({ ...resumen, ...SYNC });
   });
 
   it('getCategorias pasa areaId opcional', async () => {
