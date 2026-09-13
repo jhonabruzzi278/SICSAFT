@@ -96,6 +96,7 @@ export const defaultHandlers = [
       codigo: string;
       nombre: string;
       dependencia?: string;
+      departamento?: string;
       centroCosto?: string;
     };
     const nuevaArea = {
@@ -104,6 +105,7 @@ export const defaultHandlers = [
       codigo: body.codigo,
       nombre: body.nombre,
       dependencia: body.dependencia || null,
+      departamento: body.departamento || null,
       centroCosto: body.centroCosto || null,
       responsableId: null,
       ubicacionPrincipalId: null,
@@ -136,33 +138,6 @@ export const defaultHandlers = [
       estado: 'activo' as const,
     };
     return HttpResponse.json(nuevoResp, { status: 201 });
-  }),
-
-  http.get(`*/admin/ubicaciones`, () => {
-    return HttpResponse.json({
-      ubicaciones: [],
-      total: 0,
-    });
-  }),
-
-  http.post(`*/admin/ubicaciones`, async ({ request }) => {
-    const body = (await request.json()) as {
-      organizacionId: string;
-      sedeId: string;
-      edificio?: string;
-      piso?: string;
-      oficina?: string;
-    };
-    const nuevaUbic = {
-      id: `ubic-${crypto.randomUUID().slice(0, 6)}`,
-      ...body,
-      edificio: body.edificio || null,
-      piso: body.piso || null,
-      areaId: null,
-      oficina: body.oficina || null,
-      dependencia: null,
-    };
-    return HttpResponse.json(nuevaUbic, { status: 201 });
   }),
 
   http.get(`*/admin/contratos`, () => {
@@ -317,8 +292,16 @@ export const defaultHandlers = [
           organizacionId: 'org-demo',
           areaId: 'area-001',
           areaNombre: a.area,
+          areaDependencia: null,
           ubicacionId: 'loc-001',
           estado: 'activo',
+          familia: 'Mobiliario',
+          marca: null,
+          modelo: null,
+          serie: null,
+          valorPatrimonial: null,
+          fechaCompra: null,
+          responsableNombre: null,
         });
       }
     }
@@ -365,8 +348,16 @@ export const defaultHandlers = [
       nombre: `Activo ${body.codigoPatrimonial}`,
       organizacionId: body.organizacionId,
       areaId: body.areaId ?? '',
+      areaDependencia: null,
       ubicacionId: body.ubicacionId ?? '',
       estado: 'activo',
+      familia: 'Mobiliario',
+      marca: null,
+      modelo: null,
+      serie: null,
+      valorPatrimonial: null,
+      fechaCompra: null,
+      responsableNombre: null,
     });
     const activo: Activo = {
       id: nuevoId,

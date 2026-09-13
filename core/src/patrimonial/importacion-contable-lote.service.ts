@@ -40,10 +40,14 @@ export interface FilaLoteEntrada {
   ubicacionId?: string;
   valorPatrimonial?: number;
   direccionNombre?: string;
+  departamentoNombre?: string;
   areaNombre?: string;
   responsableNombre?: string;
   categoriaNombre?: string;
   nombreAft?: string;
+  marca?: string;
+  modelo?: string;
+  fechaCompra?: string;
   crudo: Record<string, string>;
 }
 
@@ -185,7 +189,11 @@ export class ImportacionContableLoteService {
   ): Promise<FilaImportacionContable> {
     const catalogoId =
       fila.catalogoId ??
-      (await this.resolvedor.resolverCatalogo(fila.categoriaNombre as string));
+      (await this.resolvedor.resolverCatalogo(
+        fila.categoriaNombre as string,
+        fila.marca,
+        fila.modelo,
+      ));
     const areaId =
       fila.areaId ??
       (fila.areaNombre
@@ -193,6 +201,7 @@ export class ImportacionContableLoteService {
             organizacionId,
             fila.areaNombre,
             fila.direccionNombre,
+            fila.departamentoNombre,
           )
         : undefined);
     const responsableId =
@@ -217,6 +226,7 @@ export class ImportacionContableLoteService {
           ? await this.resolvedor.resolverUbicacion(organizacionId, areaId)
           : undefined),
       valorPatrimonial: fila.valorPatrimonial ?? undefined,
+      fechaCompra: fila.fechaCompra ?? undefined,
     };
   }
 

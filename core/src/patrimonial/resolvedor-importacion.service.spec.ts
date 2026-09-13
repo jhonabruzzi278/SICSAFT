@@ -74,6 +74,41 @@ describe('ResolvedorImportacionService', () => {
         tecnologiaIdentificacion: 'qr',
       });
     });
+
+    it('DOC-033 — pasa marca/modelo al crear un catálogo nuevo', async () => {
+      const { service, catalogoTipoActivoRepository } = build();
+      catalogoTipoActivoRepository.listar.mockResolvedValue([]);
+      catalogoTipoActivoRepository.crear.mockResolvedValue({
+        id: 'cat-nuevo',
+      } as never);
+
+      await service.resolverCatalogo(
+        'Mobiliario',
+        ' Herman Miller ',
+        ' Aeron ',
+      );
+
+      expect(catalogoTipoActivoRepository.crear).toHaveBeenCalledWith({
+        tipo: 'Mobiliario',
+        familia: 'Mobiliario',
+        marca: 'Herman Miller',
+        modelo: 'Aeron',
+        criticidad: 'media',
+        tecnologiaIdentificacion: 'qr',
+      });
+    });
+
+    it('DOC-033 — no pisa marca/modelo de un catálogo ya existente', async () => {
+      const { service, catalogoTipoActivoRepository } = build();
+      catalogoTipoActivoRepository.listar.mockResolvedValue([
+        { id: 'cat-mob', tipo: 'Mobiliario', familia: 'Mobiliario' } as never,
+      ]);
+
+      expect(
+        await service.resolverCatalogo('Mobiliario', 'Herman Miller', 'Aeron'),
+      ).toBe('cat-mob');
+      expect(catalogoTipoActivoRepository.crear).not.toHaveBeenCalled();
+    });
   });
 
   describe('resolverArea', () => {
@@ -116,6 +151,43 @@ describe('ResolvedorImportacionService', () => {
       await service.resolverArea('muni', 'Pañol');
 
       expect(areaRepository.crear.mock.calls[0][0].dependencia).toBeUndefined();
+      expect(
+        areaRepository.crear.mock.calls[0][0].departamento,
+      ).toBeUndefined();
+    });
+
+    it('crea el área con el departamento cuando viene en la fila', async () => {
+      const { service, areaRepository } = build();
+      areaRepository.buscarPorNombre.mockResolvedValue(null);
+      areaRepository.crear.mockResolvedValue({ id: 'area-nueva' } as never);
+
+      await service.resolverArea(
+        'muni',
+        'Oficina Director General',
+        'DIRECCION GENERAL',
+        'Departamento de Finanzas',
+      );
+
+      const arg = areaRepository.crear.mock.calls[0][0];
+      expect(arg.dependencia).toBe('DIRECCION GENERAL');
+      expect(arg.departamento).toBe('Departamento de Finanzas');
+    });
+
+    it('no pisa el área existente aunque venga un departamento nuevo en la fila', async () => {
+      const { service, areaRepository } = build();
+      areaRepository.buscarPorNombre.mockResolvedValue({
+        id: 'area-1',
+      } as never);
+
+      const id = await service.resolverArea(
+        'muni',
+        'OFICINA DIRECTOR',
+        'DIRECCION GENERAL',
+        'Departamento de Finanzas',
+      );
+
+      expect(id).toBe('area-1');
+      expect(areaRepository.crear).not.toHaveBeenCalled();
     });
   });
 

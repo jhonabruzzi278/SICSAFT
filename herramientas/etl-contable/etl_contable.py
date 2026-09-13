@@ -36,14 +36,24 @@ MAPEO_POR_DEFECTO: dict[str, Any] = {
     "columnas": {
         "CODIGO": "codigoPatrimonial",
         "DIRECCION": "direccionNombre",
+        "DEPARTAMENTO": "departamentoNombre",
         "AREA": "areaNombre",
         "RESPONSABLE": "responsableNombre",
         "CATEGORIA": "categoriaNombre",
         "NOMBRE AFT": "nombreAft",
         "SERIE": "serie",
         "VALOR.CLP.": "valorPatrimonial",
+        # DOC-033 — catálogo enriquecido de CCP.
+        "MARCA": "marca",
+        "MODELO": "modelo",
+        "FECHA COMPRA": "fechaCompra",
     },
-    "rellenar_hacia_abajo": ["direccionNombre", "areaNombre", "responsableNombre"],
+    "rellenar_hacia_abajo": [
+        "direccionNombre",
+        "departamentoNombre",
+        "areaNombre",
+        "responsableNombre",
+    ],
     # El schema de CORE exige `catalogoId` o `categoriaNombre` en CADA fila -- una sola celda de
     # categoría en blanco rechazaría el lote entero (400). El Excel real del cliente trae bloques
     # sin categoría (secciones que el contador no completó). En vez de perder el lote, las filas
@@ -60,11 +70,16 @@ MAPEO_POR_DEFECTO: dict[str, Any] = {
 
 CAMPOS_OPCIONALES_TEXTO = (
     "direccionNombre",
+    "departamentoNombre",
     "areaNombre",
     "responsableNombre",
     "categoriaNombre",
     "nombreAft",
     "serie",
+    # DOC-033 — catálogo enriquecido de CCP. `fechaCompra` NO va acá: es una fecha, no texto
+    # libre, se normaliza aparte (ver normalizar_fecha).
+    "marca",
+    "modelo",
 )
 
 # Campos que identifican al activo: dos filas iguales en todos ellos son la misma línea cargada
@@ -168,6 +183,37 @@ def normalizar_valor(valor: Any) -> float | None:
     return numero if numero >= 0 else None
 
 
+def normalizar_fecha(valor: Any) -> str | None:
+    """Fecha de compra del Excel -> ISO 8601 ("YYYY-MM-DD"), o None si está vacía/no se pudo leer.
+
+    Acepta tanto texto en formato chileno (DD/MM/YYYY, `dayfirst=True`) como el serial numérico
+    de Excel (días desde 1899-12-30) — la hoja se lee con `dtype=str`, así que una celda con
+    formato de fecha en el Excel puede llegar como texto normal ("15/01/2026") o, si la celda no
+    tenía formato de fecha, como el número crudo ("45673"). Nunca lanza: una fecha ilegible
+    simplemente no se manda (mismo criterio que `normalizar_valor`), no bloquea el lote entero.
+    """
+    if valor is None:
+        return None
+    texto = str(valor).strip()
+    if not texto or texto.lower() == "nan":
+        return None
+    if re.fullmatch(r"\d+(\.\d+)?", texto):
+        try:
+            origen_excel = pd.Timestamp("1899-12-30")
+            fecha = origen_excel + pd.Timedelta(days=float(texto))
+            return fecha.strftime("%Y-%m-%d")
+        except (ValueError, OverflowError):
+            return None
+    # ISO ("YYYY-MM-DD") ya es inequívoco -- dayfirst solo aplica a formatos ambiguos como
+    # DD/MM/YYYY, pasarlo igual dispara un warning espurio de pandas sin cambiar el resultado.
+    es_iso = bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", texto))
+    try:
+        fecha = pd.to_datetime(texto, dayfirst=not es_iso, errors="raise")
+    except (ValueError, TypeError):
+        return None
+    return fecha.strftime("%Y-%m-%d")
+
+
 def acunar_qr(codigo_patrimonial: str, prefijo: str = "") -> str:
     """Deriva el codigoQr del código patrimonial (ej. DG-001 -> QR-DG-001 o DG-001)."""
     limpio = codigo_patrimonial.strip().upper()
@@ -209,6 +255,9 @@ def construir_filas(
         valor_num = normalizar_valor(cruda.get("valorPatrimonial"))
         if valor_num is not None:
             fila["valorPatrimonial"] = valor_num
+        fecha_compra = normalizar_fecha(cruda.get("fechaCompra"))
+        if fecha_compra is not None:
+            fila["fechaCompra"] = fecha_compra
         filas.append(fila)
     return filas
 

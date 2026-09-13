@@ -87,6 +87,12 @@ describe('ImportacionContableLoteRepository', () => {
       expect(query).toHaveBeenNthCalledWith(1, 'BEGIN');
       // 1 BEGIN + 1 INSERT lote + 2 INSERT fila + 1 COMMIT
       expect(query).toHaveBeenCalledTimes(5);
+      const [insertFilaSql, insertFilaValores] = query.mock.calls[2] as [
+        string,
+        unknown[],
+      ];
+      expect(insertFilaSql).toContain('$23');
+      expect(insertFilaValores).toHaveLength(23);
       expect(query).toHaveBeenLastCalledWith('COMMIT');
       expect(release).toHaveBeenCalledTimes(1);
     });

@@ -10,6 +10,7 @@ const AREA_ROW: Area = {
   codigo: 'BIB',
   nombre: 'Biblioteca',
   dependencia: null,
+  departamento: null,
   centroCosto: null,
   responsableId: null,
   ubicacionPrincipalId: null,
@@ -132,11 +133,12 @@ describe('AreaRepository', () => {
       expect(area).toEqual(actualizada);
     });
 
-    it('actualiza codigo, dependencia y centroCosto', async () => {
+    it('actualiza codigo, dependencia, departamento y centroCosto', async () => {
       const actualizada = {
         ...AREA_ROW,
         codigo: 'BIB-2',
         dependencia: 'Rectoria',
+        departamento: 'Departamento de Finanzas',
         centroCosto: 'CC-100',
       };
       const pool = {
@@ -151,6 +153,7 @@ describe('AreaRepository', () => {
       const area = await repository.actualizar('area-1', 'duoc-uc', {
         codigo: 'BIB-2',
         dependencia: 'Rectoria',
+        departamento: 'Departamento de Finanzas',
         centroCosto: 'CC-100',
       });
 

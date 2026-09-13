@@ -7,6 +7,7 @@ export interface Area {
   codigo: string;
   nombre: string;
   dependencia: string | null;
+  departamento: string | null;
   centroCosto: string | null;
   responsableId: string | null;
   ubicacionPrincipalId: string | null;
@@ -20,6 +21,7 @@ export interface NuevaAreaInput {
   codigo: string;
   nombre: string;
   dependencia?: string;
+  departamento?: string;
   centroCosto?: string;
 }
 
@@ -32,6 +34,7 @@ export interface ActualizarAreaInput {
   codigo?: string;
   nombre?: string;
   dependencia?: string;
+  departamento?: string;
   centroCosto?: string;
   responsableId?: string;
   ubicacionPrincipalId?: string;
