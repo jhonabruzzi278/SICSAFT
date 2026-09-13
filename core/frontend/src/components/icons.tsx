@@ -19,47 +19,11 @@ function base(props: IconProps) {
   };
 }
 
-export function IconHome(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path d="M3 11.5 12 4l9 7.5" />
-      <path d="M5.5 10v9a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1v-9" />
-    </svg>
-  );
-}
-
-export function IconBox(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path d="M21 8 12 3 3 8v8l9 5 9-5Z" />
-      <path d="M3 8l9 5 9-5M12 13v8" />
-    </svg>
-  );
-}
-
 export function IconLayers(props: IconProps) {
   return (
     <svg {...base(props)}>
       <path d="M12 3 3 8l9 5 9-5-9-5Z" />
       <path d="M3 13l9 5 9-5M3 17.5 12 22l9-4.5" />
-    </svg>
-  );
-}
-
-export function IconMapPin(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z" />
-      <circle cx="12" cy="9.5" r="2.3" />
-    </svg>
-  );
-}
-
-export function IconUpload(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path d="M12 15V4M8 8l4-4 4 4" />
-      <path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" />
     </svg>
   );
 }
@@ -78,15 +42,6 @@ export function IconShield(props: IconProps) {
     <svg {...base(props)}>
       <path d="M12 3 5 6v6c0 4.5 3 7.7 7 9 4-1.3 7-4.5 7-9V6l-7-3Z" />
       <path d="m9.5 12 1.8 1.8L14.7 10" />
-    </svg>
-  );
-}
-
-export function IconFileText(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
-      <path d="M14 3v4h4M9 12h6M9 16h6" />
     </svg>
   );
 }
@@ -119,27 +74,10 @@ export function IconSearch(props: IconProps) {
   );
 }
 
-export function IconBell(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" />
-      <path d="M10 19a2 2 0 0 0 4 0" />
-    </svg>
-  );
-}
-
 export function IconChevronDown(props: IconProps) {
   return (
     <svg {...base(props)}>
       <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-export function IconMenu(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path d="M4 6h16M4 12h16M4 18h16" />
     </svg>
   );
 }
@@ -159,23 +97,6 @@ export function IconCpu(props: IconProps) {
       <rect x="4" y="4" width="16" height="16" rx="2" />
       <rect x="9" y="9" width="6" height="6" />
       <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3" />
-    </svg>
-  );
-}
-
-export function IconTrendingUp(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-      <polyline points="16 7 22 7 22 13" />
-    </svg>
-  );
-}
-
-export function IconCheck(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }

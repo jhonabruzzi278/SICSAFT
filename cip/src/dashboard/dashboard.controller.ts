@@ -11,6 +11,7 @@ import {
   incidenciasQuerySchema,
   noLocalizadosQuerySchema,
   sesionesQuerySchema,
+  veredictosQuerySchema,
   type AreasQuery,
   type CategoriasQuery,
   type CoberturaQuery,
@@ -19,6 +20,7 @@ import {
   type IncidenciasQuery,
   type NoLocalizadosQuery,
   type SesionesQuery,
+  type VeredictosQuery,
 } from './dashboard.schemas';
 import type {
   CategoriaResumenResponse,
@@ -29,6 +31,7 @@ import type {
   IncidenciaResponse,
   NoLocalizadoResponse,
   Pagina,
+  ResumenVeredictosResponse,
   SyncInfo,
   VeredictoSesionResponse,
 } from './dashboard.types';
@@ -144,6 +147,17 @@ export class DashboardController {
       this.repository.obtenerSyncInfo(),
     ]);
     return { estados, ...sync };
+  }
+
+  @Get('veredictos')
+  async getVeredictos(
+    @Query(new ZodValidationPipe(veredictosQuerySchema)) query: VeredictosQuery,
+  ): Promise<ResumenVeredictosResponse & SyncInfo> {
+    const [resumen, sync] = await Promise.all([
+      this.repository.resumenVeredictos(query.organizacionId),
+      this.repository.obtenerSyncInfo(),
+    ]);
+    return { ...resumen, ...sync };
   }
 
   @Get('categorias')

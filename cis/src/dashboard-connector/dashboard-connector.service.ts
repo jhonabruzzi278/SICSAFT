@@ -9,6 +9,7 @@ import type {
   IncidenciasResult,
   NoLocalizadosResult,
   SesionesResult,
+  VeredictosResult,
 } from '../cip-client/cip-client.types';
 
 // DOC-019 3.1 — proxy delgado hacia CIP, mismo criterio que QrConnectorService hacia CORE: sin
@@ -97,6 +98,13 @@ export class DashboardConnectorService {
       organizacionId,
       correlationId,
     );
+  }
+
+  getVeredictos(
+    organizacionId: string,
+    correlationId: string,
+  ): Promise<VeredictosResult> {
+    return this.cipClientService.getVeredictos(organizacionId, correlationId);
   }
 
   getCategorias(
