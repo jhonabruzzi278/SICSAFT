@@ -1,13 +1,16 @@
 import { useSearchParams } from 'react-router-dom';
 import { ResumenTab } from './ResumenTab';
+import { ActivosTab } from './ActivosTab';
 
-// Fase 2 (rediseño CIP) — el CIP deja de ser una página única y pasa a tener sub-pestañas. El tab
-// activo vive en la URL (mismo criterio "URL as state" que el resto del repo) para no perder
-// contexto al recargar o compartir el link.
-type CipTab = 'resumen';
+// Fase 2 (rediseño CIP) — el CIP deja de ser una página única y pasa a tener sub-pestañas.
+// Fase 3: "Activos" ya vive acá (portado de ccp/src/pages/ActivosPage.tsx). El tab activo vive en
+// la URL (mismo criterio "URL as state" que el resto del repo) para no perder contexto al
+// recargar o compartir el link.
+type CipTab = 'resumen' | 'activos';
 
 const TABS: { id: CipTab; label: string }[] = [
   { id: 'resumen', label: 'Resumen' },
+  { id: 'activos', label: 'Activos' },
 ];
 
 function esCipTab(valor: string | null): valor is CipTab {
@@ -50,7 +53,10 @@ export function CipPage() {
         ))}
       </div>
 
-      <div role="tabpanel">{tabActivo === 'resumen' && <ResumenTab />}</div>
+      <div role="tabpanel">
+        {tabActivo === 'resumen' && <ResumenTab />}
+        {tabActivo === 'activos' && <ActivosTab />}
+      </div>
     </div>
   );
 }

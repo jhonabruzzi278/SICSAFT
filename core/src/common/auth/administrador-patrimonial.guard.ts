@@ -10,6 +10,13 @@ import type { ServiceAuthenticatedRequest } from './service-token.guard';
 // Patrimonial (Tomo III 1.4 Entrada 4).
 export const ADMINISTRADOR_PATRIMONIAL_ROLE = 'administrador-patrimonial';
 
+// Fase 3 (reestructuracion CCP/CIP, 2026-09) — el catalogo de Activos (alta/baja/reincorporacion/
+// responsable/descripcion/documentos/tipos de catalogo) se muestra ahora tambien desde el CIP
+// (portal del Directivo, core/frontend), no solo desde el CCP. Mismo rol de Zitadel que ya usa
+// DirectivoGuard en CIS (cis/src/directivo/directivo.constants.ts) -- CIS y CORE no comparten
+// codigo (ver CLAUDE.md), asi que se duplica el string acá, no se importa entre sistemas.
+export const DIRECTIVO_ROLE = 'directivo';
+
 interface EscrituraOficialBody {
   organizacionId?: unknown;
   rolesPorOrganizacion?: unknown;
@@ -59,6 +66,22 @@ export function verificarRolAdministradorPatrimonial(
 ): void {
   return verificarRolesPermitidos(rolesPorOrganizacion, organizacionId, [
     ADMINISTRADOR_PATRIMONIAL_ROLE,
+  ]);
+}
+
+// Fase 3 — variante para las escrituras de Activo/catálogo-tipo/documento que el CIP ahora
+// también ofrece: acepta administrador-patrimonial (Profesional de AFT, CCP) O directivo (CIP),
+// siempre acotado a la organizacionId de la operacion (nunca "¿tiene el rol en algún lado?",
+// mismo criterio de fondo que verificarRolAdministradorPatrimonial). No se usa para
+// Área/Ubicación/Responsable/Contrato/Importación — esos siguen siendo exclusivos del
+// Profesional de AFT, el CIP no los expone.
+export function verificarRolAdministradorPatrimonialODirectivo(
+  rolesPorOrganizacion: unknown,
+  organizacionId: string,
+): void {
+  return verificarRolesPermitidos(rolesPorOrganizacion, organizacionId, [
+    ADMINISTRADOR_PATRIMONIAL_ROLE,
+    DIRECTIVO_ROLE,
   ]);
 }
 

@@ -25,18 +25,24 @@ export function nivelActual(): NivelProducto {
 // Patrimonial es del Directivo y se accede solo desde su portal (`core/frontend/`). Aca no queda
 // ni ruta ni pagina — la entrada esta igual para que una URL vieja (`/cip?organizacionId=...`,
 // que ademas se abria en pestana nueva) no encuentre un modulo habilitado por descuido.
+// `activos` se suma el 2026-09-13 (Fase 3 de la reestructuracion CCP/CIP): el catalogo de Activos
+// (alta/baja/reincorporacion/ficha tecnica/documentos) se mudo entero a una pestaña del CIP
+// (core/frontend/src/pages/cip/ActivosTab.tsx) — el Profesional de AFT sigue pudiendo operarlo
+// (el guard de CORE ahora acepta administrador-patrimonial O directivo), pero ya no tiene pantalla
+// propia en el CCP.
 const MODULOS_RETIRADOS: ReadonlySet<string> = new Set([
   'contratos',
   'inventarios',
   'cip',
+  'activos',
 ]);
 
 // El CCP — Centro de Control Patrimonial (operacion, administracion y control) — esta COMPLETO en
-// todos los niveles: activos (con alta manual), estructura (ABM de areas/ubicaciones/
-// responsables), importaciones, etiquetas, auditoria, y el Resumen Operativo basico (`dashboard`).
-// Ningun modulo del CCP depende del nivel: la suite analitica de Nivel 2 (CIP — Centro de
-// Inteligencia Patrimonial) es del Directivo, y vive en su portal (`core/frontend/`, ver
-// core/frontend/src/lib/nivel.ts). El CCP no la enlaza ni la hospeda (usuario, 2026-09-09).
+// todos los niveles: estructura (ABM de areas/departamentos/responsables), importaciones,
+// etiquetas, auditoria, y el Resumen Operativo basico (`dashboard`). Ningun modulo del CCP depende
+// del nivel: la suite analitica de Nivel 2 (CIP — Centro de Inteligencia Patrimonial) es del
+// Directivo, y vive en su portal (`core/frontend/`, ver core/frontend/src/lib/nivel.ts). El CCP no
+// la enlaza ni la hospeda (usuario, 2026-09-09).
 export function moduloHabilitado(path: string): boolean {
   return !MODULOS_RETIRADOS.has(path);
 }

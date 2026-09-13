@@ -1,7 +1,9 @@
 // Cliente HTTP hacia CIS — WEB nunca le habla a CORE directo (regla no negociable de CLAUDE.md).
 // Reusa DOC-006 (GET /catalogo, POST /auth/session) igual que app-qr-sicsaft (WAF 8, "WEB y APP
-// QR son clientes intercambiables del mismo contrato") + el endpoint nuevo de Fase 5
-// (POST /admin/activos, DOC-012 5).
+// QR son clientes intercambiables del mismo contrato"). Las escrituras de Activo (alta/baja/
+// reincorporación/responsable/descripción/documentos/tipos de catálogo, DOC-012 5/DOC-021 3-4) se
+// mudaron al CIP (Fase 3, 2026-09-13, ver core/frontend/src/lib/cis-client.ts) — acá solo queda
+// `getCatalogo`, que sigue haciendo falta para la hoja de etiquetas QR.
 import { loadOidcConfig } from './oidc/oidc-config';
 import { oidcClient, AuthenticationRequiredError } from './oidc/oidc-client';
 
@@ -40,86 +42,6 @@ export interface ActivoCatalogo {
   /** ISO 8601 (solo fecha, "YYYY-MM-DD"). Fecha de compra real. */
   fechaCompra: string | null;
   responsableNombre: string | null;
-}
-
-export interface AltaActivoInput {
-  organizacionId: string;
-  codigoPatrimonial: string;
-  codigoQr: string;
-  catalogoId: string;
-  serie?: string;
-  areaId?: string;
-  ubicacionId?: string;
-  valorPatrimonial?: number;
-  descripcion?: string;
-}
-
-export interface Activo {
-  id: string;
-  codigoPatrimonial: string;
-  codigoQr: string;
-  organizacionId: string;
-  areaId: string | null;
-  ubicacionId: string | null;
-  responsableId: string | null;
-  estado: string;
-  // DOC-021 3 (gap "descripciones").
-  descripcion: string | null;
-  catalogo: {
-    tipo: string;
-    familia: string;
-    subfamilia: string | null;
-    marca: string | null;
-    modelo: string | null;
-  };
-}
-
-// DOC-021 4 (gap "familias/categorías") — catalogo_activos (tipos/familias), no ActivoCatalogo
-// (listado de activos que consume APP QR).
-export interface CatalogoTipoActivo {
-  id: string;
-  tipo: string;
-  familia: string;
-  subfamilia: string | null;
-  marca: string | null;
-  modelo: string | null;
-  fabricante: string | null;
-  vidaUtilMeses: number | null;
-  criticidad: 'baja' | 'media' | 'alta';
-  tecnologiaIdentificacion: 'qr' | 'rfid' | 'qr_rfid';
-}
-
-export interface AltaCatalogoTipoInput {
-  organizacionId: string;
-  tipo: string;
-  familia: string;
-  subfamilia?: string;
-  marca?: string;
-  modelo?: string;
-  fabricante?: string;
-  vidaUtilMeses?: number;
-  criticidad: 'baja' | 'media' | 'alta';
-  tecnologiaIdentificacion: 'qr' | 'rfid' | 'qr_rfid';
-}
-
-// DOC-021 3 (gap "documentación y fotografías", versión mínima — url externa, sin bucket/OCR
-// propio todavía, ver ROADMAP.md Fase 7).
-export interface DocumentoActivo {
-  id: string;
-  activoId: string;
-  organizacionId: string;
-  tipo: 'documento' | 'fotografia';
-  url: string;
-  descripcion: string | null;
-  creadoEn: string;
-  creadoPor: string;
-}
-
-export interface AltaDocumentoActivoInput {
-  organizacionId: string;
-  tipo: 'documento' | 'fotografia';
-  url: string;
-  descripcion?: string;
 }
 
 // DOC-012 6 (gap "importaciones controladas").
@@ -478,118 +400,6 @@ export const cisClient = {
       activos.push(...data.activos);
     } while (activos.length < total);
     return activos;
-  },
-
-  async altaActivo(input: AltaActivoInput): Promise<Activo> {
-    const res = await authorizedFetch('/admin/activos', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
-    return (await res.json()) as Activo;
-  },
-
-  // DOC-021 3 (gap "estados").
-  async bajaActivo(id: string, organizacionId: string): Promise<Activo> {
-    const res = await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(id)}/baja`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ organizacionId }),
-      },
-    );
-    return (await res.json()) as Activo;
-  },
-
-  async reincorporarActivo(
-    id: string,
-    organizacionId: string,
-  ): Promise<Activo> {
-    const res = await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(id)}/reincorporacion`,
-      { method: 'POST', body: JSON.stringify({ organizacionId }) },
-    );
-    return (await res.json()) as Activo;
-  },
-
-  async cambiarResponsableActivo(
-    id: string,
-    organizacionId: string,
-    responsableId: string,
-  ): Promise<Activo> {
-    const res = await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(id)}/responsable`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({ organizacionId, responsableId }),
-      },
-    );
-    return (await res.json()) as Activo;
-  },
-
-  // DOC-021 3 (gap "descripciones") — `descripcion: null` limpia el campo.
-  async actualizarDescripcionActivo(
-    id: string,
-    organizacionId: string,
-    descripcion: string | null,
-  ): Promise<Activo> {
-    const res = await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(id)}/descripcion`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({ organizacionId, descripcion }),
-      },
-    );
-    return (await res.json()) as Activo;
-  },
-
-  // DOC-021 4 (gap "familias/categorías") — lectura abierta.
-  async getCatalogoTipos(): Promise<CatalogoTipoActivo[]> {
-    const res = await authorizedFetch('/admin/catalogo-tipos');
-    return (await res.json()) as CatalogoTipoActivo[];
-  },
-
-  async altaCatalogoTipo(
-    input: AltaCatalogoTipoInput,
-  ): Promise<CatalogoTipoActivo> {
-    const res = await authorizedFetch('/admin/catalogo-tipos', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
-    return (await res.json()) as CatalogoTipoActivo;
-  },
-
-  // DOC-021 3 (gap "documentación y fotografías").
-  async getDocumentosActivo(
-    activoId: string,
-    organizacionId: string,
-  ): Promise<DocumentoActivo[]> {
-    const params = new URLSearchParams({ organizacionId });
-    const res = await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(activoId)}/documentos?${params.toString()}`,
-    );
-    return (await res.json()) as DocumentoActivo[];
-  },
-
-  async altaDocumentoActivo(
-    activoId: string,
-    input: AltaDocumentoActivoInput,
-  ): Promise<DocumentoActivo> {
-    const res = await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(activoId)}/documentos`,
-      { method: 'POST', body: JSON.stringify(input) },
-    );
-    return (await res.json()) as DocumentoActivo;
-  },
-
-  async eliminarDocumentoActivo(
-    activoId: string,
-    documentoId: string,
-    organizacionId: string,
-  ): Promise<void> {
-    await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(activoId)}/documentos/${encodeURIComponent(documentoId)}`,
-      { method: 'DELETE', body: JSON.stringify({ organizacionId }) },
-    );
   },
 
   // DOC-012 6 (gap "importaciones controladas").

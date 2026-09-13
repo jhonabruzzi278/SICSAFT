@@ -166,30 +166,6 @@ export function DashboardPage() {
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link
-            to={`/activos${q}`}
-            className="group flex flex-col justify-between rounded-2xl border border-border bg-bg-card p-5 shadow-elev-1 transition-all hover:border-accent hover:bg-bg-raised"
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
-                  <IconBox />
-                </span>
-                <span className="text-xs text-text-faint group-hover:text-accent-strong">
-                  Acceder ➔
-                </span>
-              </div>
-              <h3 className="mt-4 font-bold text-text">Catálogo de Activos</h3>
-              <p className="mt-1 text-xs text-text-dim">
-                Alta manual, edición de fichas técnicas, trazabilidad y estado
-                patrimonial.
-              </p>
-            </div>
-            <div className="mt-4 text-[0.75rem] font-medium text-accent-strong">
-              {totalActivos} bienes activos
-            </div>
-          </Link>
-
-          <Link
             to={`/estructura${q}`}
             className="group flex flex-col justify-between rounded-2xl border border-border bg-bg-card p-5 shadow-elev-1 transition-all hover:border-accent hover:bg-bg-raised"
           >

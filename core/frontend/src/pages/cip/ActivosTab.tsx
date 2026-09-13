@@ -56,6 +56,19 @@ const documentoSchema = z.object({
 });
 type DocumentoForm = z.infer<typeof documentoSchema>;
 
+// DOC-033 — "YYYY-MM-DD" (fecha pura, sin hora) a DD-MM-YYYY para lectura. Se formatea como
+// texto, no vía `Date`, para no arrastrar corrimiento de huso horario en un valor que no lo tiene.
+function formatearFecha(fechaIso: string | null): string {
+  if (!fechaIso) return '—';
+  const [anio, mes, dia] = fechaIso.split('-');
+  return `${dia}-${mes}-${anio}`;
+}
+
+function formatearClp(valor: number | null): string {
+  if (valor === null) return '—';
+  return `$${valor.toLocaleString('es-CL')}`;
+}
+
 function errorDeCisApi(err: unknown, accion: string): string {
   if (err instanceof CisApiError && err.status === 403) {
     return `No tenés el rol necesario para ${accion} en esta organización.`;
@@ -63,7 +76,11 @@ function errorDeCisApi(err: unknown, accion: string): string {
   return err instanceof Error ? err.message : 'Error desconocido';
 }
 
-export function ActivosPage() {
+// Fase 3 (reestructuracion CCP/CIP, 2026-09) — portado de ccp/src/pages/ActivosPage.tsx: mismo
+// componente, mismo contrato con CIS (GET /catalogo, /admin/activos*, /admin/catalogo-tipos), solo
+// reconectado al cis-client.ts de este portal. El guard de escritura en CORE
+// (verificarRolAdministradorPatrimonialODirectivo) ya acepta también el rol directivo.
+export function ActivosTab() {
   const [searchParams] = useSearchParams();
   const organizacionId = searchParams.get('organizacionId') ?? '';
   const [activos, setActivos] = useState<ActivoCatalogo[] | null>(null);
@@ -423,22 +440,32 @@ export function ActivosPage() {
           <p className="text-text-dim">Sin activos en el catálogo todavía.</p>
         )}
 
-        {/* Tabla enriquecida con acceso a Ficha Técnica */}
+        {/* Tabla enriquecida con acceso a Ficha Técnica — DOC-033, mismo orden de columnas que
+            pidió el usuario (No/DIRECCION/CODIGO/NOMBRE AFT/CATEGORIA/ESTADO/AREA/MARCA/MODELO/
+            SERIE/FECHA COMPRA/VALOR.CLP./RESPONSABLE), + Acciones al final. */}
         {activos && activos.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-border bg-bg-raised shadow-sm">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border bg-bg-card/50 text-xs font-semibold uppercase tracking-wider text-text-dim">
                 <tr>
-                  <th className="px-4 py-3">Código QR</th>
-                  <th className="px-4 py-3">Código AFT</th>
-                  <th className="px-4 py-3">Nombre del Activo</th>
-                  <th className="px-4 py-3">Área Asignada</th>
+                  <th className="px-4 py-3">No</th>
+                  <th className="px-4 py-3">Dirección</th>
+                  <th className="px-4 py-3">Código</th>
+                  <th className="px-4 py-3">Nombre AFT</th>
+                  <th className="px-4 py-3">Categoría</th>
                   <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3">Área</th>
+                  <th className="px-4 py-3">Marca</th>
+                  <th className="px-4 py-3">Modelo</th>
+                  <th className="px-4 py-3">Serie</th>
+                  <th className="px-4 py-3">Fecha compra</th>
+                  <th className="px-4 py-3 text-right">Valor CLP</th>
+                  <th className="px-4 py-3">Responsable</th>
                   <th className="px-4 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {activosFiltrados.map((activo) => {
+                {activosFiltrados.map((activo, indice) => {
                   const seleccionado = fichaActivo?.id === activo.id;
                   return (
                     <tr
@@ -447,17 +474,18 @@ export function ActivosPage() {
                         seleccionado ? 'bg-accent/10 font-medium' : ''
                       }`}
                     >
-                      <td className="px-4 py-3 font-mono text-xs font-bold text-accent-strong">
-                        {activo.codigoQr}
+                      <td className="px-4 py-3 text-text-dim">{indice + 1}</td>
+                      <td className="px-4 py-3 text-sm text-text-dim">
+                        {activo.areaDependencia ?? '—'}
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-text">
+                      <td className="px-4 py-3 font-mono text-xs font-bold text-accent-strong">
                         {activo.codigoAft || activo.codigoQr}
                       </td>
                       <td className="px-4 py-3 font-semibold text-text">
                         {activo.nombre}
                       </td>
                       <td className="px-4 py-3 text-sm text-text-dim">
-                        {activo.areaNombre || activo.areaId || 'Área General'}
+                        {activo.familia}
                       </td>
                       <td className="px-4 py-3">
                         <Badge
@@ -473,6 +501,27 @@ export function ActivosPage() {
                             ? 'En Servicio'
                             : activo.estado}
                         </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text-dim">
+                        {activo.areaNombre || activo.areaId || 'Área General'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text-dim">
+                        {activo.marca ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text-dim">
+                        {activo.modelo ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-text-dim">
+                        {activo.serie ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text-dim">
+                        {formatearFecha(activo.fechaCompra)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-text-dim">
+                        {formatearClp(activo.valorPatrimonial)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text-dim">
+                        {activo.responsableNombre ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">

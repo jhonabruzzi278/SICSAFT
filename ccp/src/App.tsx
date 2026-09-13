@@ -6,7 +6,6 @@ import { moduloHabilitado } from '@/lib/nivel';
 import { LoginPage } from '@/pages/LoginPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
 import { HubPage } from '@/pages/HubPage';
-import { ActivosPage } from '@/pages/ActivosPage';
 import { ContratosPage } from '@/pages/ContratosPage';
 import { InventariosPage } from '@/pages/InventariosPage';
 import { AuditoriaPage } from '@/pages/AuditoriaPage';
@@ -53,14 +52,6 @@ export default function App() {
           element={
             <RequireAuth>
               <HubPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/activos"
-          element={
-            <RequireAuth>
-              <ActivosPage />
             </RequireAuth>
           }
         />

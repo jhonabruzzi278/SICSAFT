@@ -42,6 +42,85 @@ export interface Organizacion {
   sedes: Sede[];
 }
 
+// Fase 3 (reestructuracion CCP/CIP) — tipos/métodos de escritura de Activo, portados de
+// ccp/src/lib/cis-client.ts (misma forma, mismos endpoints /admin/activos* de CIS — ahora
+// también accesibles desde el CIP, ver core/src/common/auth/administrador-patrimonial.guard.ts
+// verificarRolAdministradorPatrimonialODirectivo).
+export interface AltaActivoInput {
+  organizacionId: string;
+  codigoPatrimonial: string;
+  codigoQr: string;
+  catalogoId: string;
+  serie?: string;
+  areaId?: string;
+  ubicacionId?: string;
+  valorPatrimonial?: number;
+  descripcion?: string;
+}
+
+export interface Activo {
+  id: string;
+  codigoPatrimonial: string;
+  codigoQr: string;
+  organizacionId: string;
+  areaId: string | null;
+  ubicacionId: string | null;
+  responsableId: string | null;
+  estado: string;
+  descripcion: string | null;
+  catalogo: {
+    tipo: string;
+    familia: string;
+    subfamilia: string | null;
+    marca: string | null;
+    modelo: string | null;
+  };
+}
+
+export interface CatalogoTipoActivo {
+  id: string;
+  tipo: string;
+  familia: string;
+  subfamilia: string | null;
+  marca: string | null;
+  modelo: string | null;
+  fabricante: string | null;
+  vidaUtilMeses: number | null;
+  criticidad: 'baja' | 'media' | 'alta';
+  tecnologiaIdentificacion: 'qr' | 'rfid' | 'qr_rfid';
+}
+
+export interface AltaCatalogoTipoInput {
+  organizacionId: string;
+  tipo: string;
+  familia: string;
+  subfamilia?: string;
+  marca?: string;
+  modelo?: string;
+  fabricante?: string;
+  vidaUtilMeses?: number;
+  criticidad: 'baja' | 'media' | 'alta';
+  tecnologiaIdentificacion: 'qr' | 'rfid' | 'qr_rfid';
+}
+
+export interface DocumentoActivo {
+  id: string;
+  activoId: string;
+  organizacionId: string;
+  tipo: 'documento' | 'fotografia';
+  url: string;
+  descripcion: string | null;
+  creadoEn: string;
+  creadoPor: string;
+}
+
+export interface AltaDocumentoActivoInput {
+  organizacionId: string;
+  tipo: 'documento' | 'fotografia';
+  url: string;
+  descripcion?: string;
+}
+
 // DOC-022 3 — misma forma que GrantUsuario del lado de CIS (cis/src/keycloak-admin/keycloak-admin.types.ts).
 export interface UsuarioOrganizacion {
   userId: string;
@@ -145,6 +224,111 @@ export const cisClient = {
       activos.push(...data.activos);
     } while (activos.length < total);
     return activos;
+  },
+
+  async altaActivo(input: AltaActivoInput): Promise<Activo> {
+    const res = await authorizedFetch('/admin/activos', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return (await res.json()) as Activo;
+  },
+
+  async bajaActivo(id: string, organizacionId: string): Promise<Activo> {
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(id)}/baja`,
+      { method: 'POST', body: JSON.stringify({ organizacionId }) },
+    );
+    return (await res.json()) as Activo;
+  },
+
+  async reincorporarActivo(
+    id: string,
+    organizacionId: string,
+  ): Promise<Activo> {
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(id)}/reincorporacion`,
+      { method: 'POST', body: JSON.stringify({ organizacionId }) },
+    );
+    return (await res.json()) as Activo;
+  },
+
+  async cambiarResponsableActivo(
+    id: string,
+    organizacionId: string,
+    responsableId: string,
+  ): Promise<Activo> {
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(id)}/responsable`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ organizacionId, responsableId }),
+      },
+    );
+    return (await res.json()) as Activo;
+  },
+
+  async actualizarDescripcionActivo(
+    id: string,
+    organizacionId: string,
+    descripcion: string | null,
+  ): Promise<Activo> {
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(id)}/descripcion`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ organizacionId, descripcion }),
+      },
+    );
+    return (await res.json()) as Activo;
+  },
+
+  async getCatalogoTipos(): Promise<CatalogoTipoActivo[]> {
+    const res = await authorizedFetch('/admin/catalogo-tipos');
+    return (await res.json()) as CatalogoTipoActivo[];
+  },
+
+  async altaCatalogoTipo(
+    input: AltaCatalogoTipoInput,
+  ): Promise<CatalogoTipoActivo> {
+    const res = await authorizedFetch('/admin/catalogo-tipos', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return (await res.json()) as CatalogoTipoActivo;
+  },
+
+  async getDocumentosActivo(
+    activoId: string,
+    organizacionId: string,
+  ): Promise<DocumentoActivo[]> {
+    const params = new URLSearchParams({ organizacionId });
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(activoId)}/documentos?${params.toString()}`,
+    );
+    return (await res.json()) as DocumentoActivo[];
+  },
+
+  async altaDocumentoActivo(
+    activoId: string,
+    input: AltaDocumentoActivoInput,
+  ): Promise<DocumentoActivo> {
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(activoId)}/documentos`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return (await res.json()) as DocumentoActivo;
+  },
+
+  async eliminarDocumentoActivo(
+    activoId: string,
+    documentoId: string,
+    organizacionId: string,
+  ): Promise<void> {
+    await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(activoId)}/documentos/${encodeURIComponent(documentoId)}`,
+      { method: 'DELETE', body: JSON.stringify({ organizacionId }) },
+    );
   },
 
   // DOC-022 3 — sin organizacionId como parámetro: DirectivoGuard en CIS lo deriva siempre del
