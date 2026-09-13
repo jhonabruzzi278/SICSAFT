@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Insignia circular de tono "error" — mismo criterio que bg-destructive/15 en ui.tsx: un
+     círculo de superficie tenue en vez de depender del color propio del glifo/emoji. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/sicsaft_destructive_badge" />
+</shape>

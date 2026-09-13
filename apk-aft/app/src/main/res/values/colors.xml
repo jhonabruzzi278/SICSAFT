@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Naranja SICSAFT (BRAND.md, origen landing/src/style.css). -->
-    <color name="sicsaft_primary">#EB6C36</color>
-    <color name="sicsaft_ink">#2D3142</color>
+    <!-- Azul SICSAFT, equivalente sRGB para Android de la familia BRAND.md. -->
+    <color name="sicsaft_primary">#559BEE</color>
+    <color name="sicsaft_ink">#071020</color>
+    <color name="sicsaft_surface">#101E33</color>
+    <color name="sicsaft_text">#F3F6FC</color>
+    <color name="sicsaft_text_dim">#BAC9E0</color>
+    <!-- Borde sutil de superficie — equivalente sRGB del token color-border (oklch(32% .05 258)). -->
+    <color name="sicsaft_border">#26374F</color>
+    <!-- Rojo semántico de error — universal, no de marca (BRAND.md "Qué no toca esta paleta"),
+         equivalente sRGB del token color-destructive (oklch(0.704 0.191 22.216)) en ccp/index.css.
+         La variante "_badge" es el mismo rojo al 15% de alpha sobre el fondo (ARGB de 8 dígitos),
+         mismo criterio que bg-destructive/15 en ui.tsx (ver Badge/BADGE_STYLES). -->
+    <color name="sicsaft_destructive">#EF4444</color>
+    <color name="sicsaft_destructive_badge">#26EF4444</color>
 </resources>
