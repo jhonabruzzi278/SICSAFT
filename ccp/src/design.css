@@ -1,0 +1,254 @@
+/* Control sereno · shared visual specification in aidlc-docs/sicsaft-core. */
+@layer base {
+  body {
+    font-family: 'Manrope Variable', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  /* Apple Design (WWDC 2020, "The Details of UI Typography"): tracking is size-specific — un
+     h1 grande de página pide tracking negativo marcado; los h2/h3 de esta app son títulos de
+     sección/tarjeta cerca del tamaño de cuerpo y un -0.025em ahí sobre-comprime la legibilidad. */
+  h1 {
+    letter-spacing: -0.025em;
+  }
+  h2,
+  h3 {
+    letter-spacing: -0.01em;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  button,
+  select,
+  input:not([type='checkbox']):not([type='radio']) {
+    min-height: 2.75rem;
+  }
+  button {
+    touch-action: manipulation;
+  }
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    font-size: 0.75rem;
+    letter-spacing: 0.025em;
+  }
+  td {
+    padding-block: 1rem;
+  }
+  ::selection {
+    background: var(--color-accent-dim);
+    color: var(--color-text);
+  }
+}
+:root:root {
+  color-scheme: dark;
+  --color-text-faint: oklch(72% 0.025 258);
+  --elev-1: 0 1px 0 oklch(97% 0.006 258 / 0.03);
+  --elev-2: 0 8px 24px oklch(0% 0 0 / 0.16);
+  --elev-float: 0 1px 2px oklch(0% 0 0 / 0.12);
+  --brand-grad: var(--color-bg);
+}
+body {
+  font-family: 'Manrope Variable', system-ui, sans-serif;
+}
+.workspace {
+  min-height: 100dvh;
+}
+.workspace-sidebar {
+  background: var(--color-bg);
+  box-shadow: none;
+}
+.workspace-sidebar nav {
+  padding-top: 2rem;
+}
+.workspace-sidebar nav a {
+  min-height: 2.75rem;
+  transition: background-color 100ms;
+}
+.workspace-sidebar nav a:active {
+  background-color: var(--color-bg-card);
+}
+.workspace-header {
+  background: color-mix(in oklch, var(--color-bg) 94%, transparent);
+  box-shadow: none;
+  gap: 1rem;
+}
+.workspace-main {
+  padding: 2rem;
+}
+.workspace-main h1 {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  color: var(--color-text);
+}
+.workspace-card {
+  border-color: color-mix(in oklch, var(--color-border) 65%, transparent);
+  border-radius: 1rem;
+}
+.workspace-button {
+  font-weight: 600;
+  transition:
+    transform 120ms cubic-bezier(0.23, 1, 0.32, 1),
+    background-color 120ms;
+}
+.workspace-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.workspace-brand {
+  letter-spacing: 0.12em;
+}
+.dashboard-metrics {
+  gap: 0;
+  border-block: 1px solid var(--color-border);
+  padding-block: 0.5rem;
+}
+.dashboard-metrics > div {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-metrics > div:hover {
+  box-shadow: none;
+}
+.dashboard-metrics .font-extrabold {
+  font-weight: 600;
+}
+.dashboard-metrics > div > .absolute {
+  display: none;
+}
+.operation-links {
+  gap: 0;
+}
+.operation-links > a {
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: none;
+  background: transparent;
+  padding: 1.5rem;
+  transition: background-color 120ms;
+}
+.operation-links > a:hover {
+  background: var(--color-bg-raised);
+}
+/* Apple Design (§1 Response): el feedback tiene que empezar en el toque (pointer-down), no
+   esperar al hover — en touch el hover casi no se percibe. Fondo mas marcado e instantaneo al
+   presionar. */
+.operation-links > a:active {
+  background: var(--color-bg-card);
+  transition: background-color 60ms;
+}
+.operation-links > a > div:last-child {
+  color: var(--color-text-dim);
+}
+.operation-links > a > div:first-child > div > span:first-child {
+  color: var(--color-accent-strong);
+  background: var(--color-bg-card);
+  border-radius: 0.5rem;
+}
+.workspace-context {
+  margin: auto 1.5rem 1.5rem;
+  padding-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--color-text-dim);
+}
+.workspace-context strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-radius: 0.5rem;
+  transform: translateY(-200%);
+}
+.skip-link:focus {
+  transform: none;
+}
+@media (max-width: 1023px) {
+  .workspace {
+    flex-direction: column;
+  }
+  .workspace-sidebar {
+    display: flex;
+    position: static;
+    height: auto;
+    width: 100%;
+    border-right: 0;
+  }
+  .workspace-sidebar > div:first-child,
+  .workspace-context {
+    display: none;
+  }
+  .workspace-sidebar nav {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.75rem 1rem;
+  }
+  .workspace-sidebar nav > p,
+  .workspace-sidebar nav > div {
+    display: none;
+  }
+  .workspace-sidebar nav a {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .workspace-sidebar nav a::before {
+    display: none;
+  }
+  .workspace-header {
+    position: static;
+    padding-inline: 1rem;
+  }
+  .workspace-main {
+    padding: 1.5rem 1rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-button {
+    transition: background-color 120ms;
+  }
+  .workspace-button:active:not(:disabled) {
+    transform: none;
+  }
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .workspace-header {
+    background: var(--color-bg);
+    backdrop-filter: none;
+  }
+}
+@media (prefers-contrast: more) {
+  .workspace-card {
+    border-color: var(--color-text-dim);
+  }
+}

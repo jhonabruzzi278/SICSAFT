@@ -24,7 +24,10 @@ export function Button({
     ghost: 'text-text-dim hover:bg-bg-card hover:text-text',
   };
   return (
-    <button className={`${base} ${variants[variant]} ${className}`} {...rest} />
+    <button
+      className={`workspace-button ${base} ${variants[variant]} ${className}`}
+      {...rest}
+    />
   );
 }
 
@@ -37,7 +40,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-xl border border-border bg-bg-card p-6 shadow-elev-1 ${className}`}
+      className={`workspace-card rounded-xl border border-border bg-bg-card p-6 shadow-elev-1 ${className}`}
     >
       {children}
     </div>

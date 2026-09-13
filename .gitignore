@@ -2,6 +2,7 @@
 .claude/
 .codex/
 *.local.md
+.agents/skills/apple-design/
 
 # Dependencias
 node_modules/
@@ -75,6 +76,9 @@ sicsaft-core/release/
 # herramientas/generador-qr: mismo caso -- salida de electron-builder para la herramienta interna
 # de generación de QR/etiquetas (Fase 5, reestructuración CCP/CIP).
 herramientas/generador-qr/release/
+
+# Artefactos locales del prototipo Electron de CCP (sin fuentes en este árbol).
+ccp-desktop/release/
 
 # Informes/entregables generados para el usuario — no son código ni documentación del repo
 /SICSAFT-informe-integral-proyecto*.docx
