@@ -165,6 +165,23 @@ const ACENTO_DIRECCION = [
   { borde: 'border-l-sky-500', punto: 'bg-sky-500', texto: 'text-sky-400' },
 ] as const;
 
+function agruparAreasPorDireccion(areas: Area[] | null) {
+  const grupos = new Map<string, Area[]>();
+  for (const area of areas ?? []) {
+    const direccion = area.dependencia?.trim() || SIN_DIRECCION;
+    const lista = grupos.get(direccion) ?? [];
+    lista.push(area);
+    grupos.set(direccion, lista);
+  }
+  return Array.from(grupos.entries()).sort(([a], [b]) =>
+    a === SIN_DIRECCION
+      ? 1
+      : b === SIN_DIRECCION
+        ? -1
+        : a.localeCompare(b, 'es'),
+  );
+}
+
 // DOC-033 — organigrama Organización→Dirección→Departamento→Área sobre los mismos datos que la
 // tabla plana de abajo (ningún endpoint nuevo). "Dirección" es `area.dependencia` y
 // "Departamento" es `area.departamento`, ambos texto libre, ingresados por el Profesional de AFT
@@ -182,22 +199,8 @@ function JerarquiaSection({
   areas: Area[] | null;
 }) {
   const porDireccion = useMemo(() => {
-    const grupos = new Map<string, Area[]>();
-    for (const area of areas ?? []) {
-      const direccion = area.dependencia?.trim() || SIN_DIRECCION;
-      const lista = grupos.get(direccion) ?? [];
-      lista.push(area);
-      grupos.set(direccion, lista);
-    }
-    return Array.from(grupos.entries())
-      .sort(([a], [b]) =>
-        a === SIN_DIRECCION
-          ? 1
-          : b === SIN_DIRECCION
-            ? -1
-            : a.localeCompare(b, 'es'),
-      )
-      .map(([direccion, areasDeDireccion]) => {
+    return agruparAreasPorDireccion(areas).map(
+      ([direccion, areasDeDireccion]) => {
         // Solo vale la pena sub-agrupar por Departamento si alguna área de esta Dirección
         // realmente tiene uno cargado — si nadie usa el campo todavía, se ve como antes: lista
         // plana de áreas, sin un "Sin departamento" repetido en cada tarjeta.
@@ -222,7 +225,8 @@ function JerarquiaSection({
               : a.localeCompare(b, 'es'),
         );
         return { direccion, areasDeDireccion, porDepartamento };
-      });
+      },
+    );
   }, [areas]);
 
   if (!areas || areas.length === 0) return null;
@@ -328,22 +332,8 @@ function JerarquiaSection({
 // el color de una Dirección sea el mismo en ambas secciones.
 function DireccionesSection({ areas }: { areas: Area[] | null }) {
   const direcciones = useMemo(() => {
-    const grupos = new Map<string, Area[]>();
-    for (const area of areas ?? []) {
-      const direccion = area.dependencia?.trim() || SIN_DIRECCION;
-      const lista = grupos.get(direccion) ?? [];
-      lista.push(area);
-      grupos.set(direccion, lista);
-    }
-    return Array.from(grupos.entries())
-      .sort(([a], [b]) =>
-        a === SIN_DIRECCION
-          ? 1
-          : b === SIN_DIRECCION
-            ? -1
-            : a.localeCompare(b, 'es'),
-      )
-      .map(([direccion, areasDeDireccion]) => {
+    return agruparAreasPorDireccion(areas).map(
+      ([direccion, areasDeDireccion]) => {
         const departamentos = new Set(
           areasDeDireccion
             .map((a) => a.departamento?.trim())
@@ -354,7 +344,8 @@ function DireccionesSection({ areas }: { areas: Area[] | null }) {
           totalAreas: areasDeDireccion.length,
           totalDepartamentos: departamentos.size,
         };
-      });
+      },
+    );
   }, [areas]);
 
   if (direcciones.length === 0) return null;
