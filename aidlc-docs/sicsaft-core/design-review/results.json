@@ -1,0 +1,238 @@
+[
+  {
+    "app": "ccp",
+    "stage": "access",
+    "width": 320,
+    "overflow": false,
+    "title": "Tu espacio patrimonial",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 0,
+    "errors": []
+  },
+  {
+    "app": "ccp",
+    "stage": "access",
+    "width": 768,
+    "overflow": false,
+    "title": "Tu espacio patrimonial",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 0,
+    "errors": []
+  },
+  {
+    "app": "ccp",
+    "stage": "access",
+    "width": 1024,
+    "overflow": false,
+    "title": "Tu espacio patrimonial",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 0,
+    "errors": []
+  },
+  {
+    "app": "ccp",
+    "stage": "access",
+    "width": 1440,
+    "overflow": false,
+    "title": "Tu espacio patrimonial",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 0,
+    "errors": []
+  },
+  {
+    "app": "ccp",
+    "stage": "workspace",
+    "width": 320,
+    "overflow": false,
+    "title": "Resumen Operativo",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 6,
+    "errors": []
+  },
+  {
+    "app": "ccp",
+    "stage": "workspace",
+    "width": 768,
+    "overflow": false,
+    "title": "Resumen Operativo",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 6,
+    "errors": []
+  },
+  {
+    "app": "ccp",
+    "stage": "workspace",
+    "width": 1024,
+    "overflow": false,
+    "title": "Resumen Operativo",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 6,
+    "errors": []
+  },
+  {
+    "app": "ccp",
+    "stage": "workspace",
+    "width": 1440,
+    "overflow": false,
+    "title": "Resumen Operativo",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 6,
+    "errors": []
+  },
+  {
+    "app": "cip",
+    "stage": "access",
+    "width": 320,
+    "overflow": false,
+    "title": "Portal del Directivo",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 0,
+    "errors": []
+  },
+  {
+    "app": "cip",
+    "stage": "access",
+    "width": 768,
+    "overflow": false,
+    "title": "Portal del Directivo",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 0,
+    "errors": []
+  },
+  {
+    "app": "cip",
+    "stage": "access",
+    "width": 1024,
+    "overflow": false,
+    "title": "Portal del Directivo",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 0,
+    "errors": []
+  },
+  {
+    "app": "cip",
+    "stage": "access",
+    "width": 1440,
+    "overflow": false,
+    "title": "Portal del Directivo",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 0,
+    "errors": []
+  },
+  {
+    "app": "cip",
+    "stage": "workspace",
+    "width": 320,
+    "overflow": false,
+    "title": "Resumen Ejecutivo",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 2,
+    "errors": []
+  },
+  {
+    "app": "cip",
+    "stage": "workspace",
+    "width": 768,
+    "overflow": false,
+    "title": "Resumen Ejecutivo",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 2,
+    "errors": []
+  },
+  {
+    "app": "cip",
+    "stage": "workspace",
+    "width": 1024,
+    "overflow": false,
+    "title": "Resumen Ejecutivo",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 2,
+    "errors": []
+  },
+  {
+    "app": "cip",
+    "stage": "workspace",
+    "width": 1440,
+    "overflow": false,
+    "title": "Resumen Ejecutivo",
+    "font": "\"Manrope Variable\", system-ui, sans-serif",
+    "nav": 2,
+    "errors": []
+  },
+  {
+    "app": "apk",
+    "stage": "access",
+    "width": 320,
+    "overflow": false,
+    "title": "Control de inventario",
+    "font": "\"Manrope Variable\", sans-serif",
+    "nav": 0,
+    "errors": []
+  },
+  {
+    "app": "apk",
+    "stage": "access",
+    "width": 768,
+    "overflow": false,
+    "title": "Control de inventario",
+    "font": "\"Manrope Variable\", sans-serif",
+    "nav": 0,
+    "errors": []
+  },
+  {
+    "app": "apk",
+    "stage": "access",
+    "width": 1024,
+    "overflow": false,
+    "title": "Control de inventario",
+    "font": "\"Manrope Variable\", sans-serif",
+    "nav": 0,
+    "errors": []
+  },
+  {
+    "app": "apk",
+    "stage": "access",
+    "width": 1440,
+    "overflow": false,
+    "title": "Control de inventario",
+    "font": "\"Manrope Variable\", sans-serif",
+    "nav": 0,
+    "errors": []
+  },
+  {
+    "app": "apk",
+    "stage": "workspace",
+    "width": 320,
+    "overflow": false,
+    "font": "\"Manrope Variable\", sans-serif",
+    "nav": 3,
+    "errors": []
+  },
+  {
+    "app": "apk",
+    "stage": "workspace",
+    "width": 768,
+    "overflow": false,
+    "font": "\"Manrope Variable\", sans-serif",
+    "nav": 3,
+    "errors": []
+  },
+  {
+    "app": "apk",
+    "stage": "workspace",
+    "width": 1024,
+    "overflow": false,
+    "font": "\"Manrope Variable\", sans-serif",
+    "nav": 3,
+    "errors": []
+  },
+  {
+    "app": "apk",
+    "stage": "workspace",
+    "width": 1440,
+    "overflow": false,
+    "font": "\"Manrope Variable\", sans-serif",
+    "nav": 3,
+    "errors": []
+  }
+]
