@@ -23,37 +23,13 @@ import {
   Input,
   Label,
 } from '@/components/ui';
+import { EditFormFooter } from '@/pages/estructura/EditFormFooter';
 
 // RF-05 — módulo "Organización": Organigrama (Dirección→Departamento→Área) + rollup de
 // Direcciones + ABM de Áreas y Responsables. La sección de Ubicaciones que vivía acá se quitó de
 // esta pantalla (2026-09-13) — el backend de Ubicacion sigue existiendo (UbicacionRepository en
 // CORE sigue resolviendo/creando la ubicación placeholder que necesita todo activo importado,
 // ver `ubicacion.repository.ts` `resolverPorArea`), pero ya no tiene ABM propio en el CCP.
-
-// Pie compartido del formulario de edición de Área (error + acciones).
-function EditFormFooter({
-  error,
-  isSubmitting,
-  onCancel,
-}: {
-  error: string | null;
-  isSubmitting: boolean;
-  onCancel: () => void;
-}) {
-  return (
-    <>
-      {error && <Alert>{error}</Alert>}
-      <div className="flex gap-2">
-        <Button type="submit" disabled={isSubmitting} className="flex-1">
-          {isSubmitting ? 'Guardando…' : 'Guardar cambios'}
-        </Button>
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancelar
-        </Button>
-      </div>
-    </>
-  );
-}
 
 const altaAreaSchema = z.object({
   codigo: z.string().min(1, 'Requerido'),
