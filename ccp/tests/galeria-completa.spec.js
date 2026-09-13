@@ -157,16 +157,17 @@ test('08 - El CIP ya no vive en el CCP: /cip redirige al hub', async ({
 // 4. GESTIÓN PATRIMONIAL Y ESTRUCTURA
 // ==========================================
 
-test('10 - CCP: Catálogo de Activos Fijos', async ({ page }) => {
+test('10 - CCP: la ruta histórica de Activos vuelve al hub', async ({
+  page,
+}) => {
   await seedAuth(page);
   await page.goto('/activos?organizacionId=duoc-uc');
-  await page.waitForSelector('button:has-text("Crear activo")');
-  await expect(page.getByText('DC-01').first()).toBeVisible();
-  await page.waitForTimeout(500);
-  await page.screenshot({
-    path: `${OUT}/10-ccp-catalogo-activos.png`,
-    fullPage: true,
+  await expect(page).toHaveURL(/\/(dashboard)?\?organizacionId=/, {
+    timeout: 10_000,
   });
+  await expect(page.getByRole('button', { name: 'Crear activo' })).toHaveCount(
+    0,
+  );
 });
 
 test('11 - CCP: Estructura Patrimonial (Áreas y Dependencias)', async ({
