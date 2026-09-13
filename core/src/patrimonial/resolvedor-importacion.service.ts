@@ -78,22 +78,36 @@ export class ResolvedorImportacionService {
     return existente?.id;
   }
 
-  async resolverCatalogo(categoriaNombre: string): Promise<string> {
+  // DOC-033 — `marca`/`modelo` del Excel solo se aplican al CREAR un catalogo_activos nuevo: uno
+  // ya existente (encontrado por `categoriaNombre`) no se pisa, es compartido entre
+  // organizaciones y puede tener marca/modelo distintos según qué activo lo haya creado primero.
+  async resolverCatalogo(
+    categoriaNombre: string,
+    marca?: string | null,
+    modelo?: string | null,
+  ): Promise<string> {
     const existente = await this.buscarCatalogoExistente(categoriaNombre);
     if (existente) return existente;
     const creado = await this.catalogoTipoActivoRepository.crear({
       tipo: categoriaNombre.trim(),
       familia: categoriaNombre.trim(),
+      marca: marca?.trim() || undefined,
+      modelo: modelo?.trim() || undefined,
       criticidad: 'media',
       tecnologiaIdentificacion: 'qr',
     });
     return creado.id;
   }
 
+  // `direccionNombre`/`departamentoNombre` solo se fijan al CREAR el área — igual que
+  // `dependencia` hoy, si el área ya existe (resuelta por nombre) el valor que traiga esta fila
+  // del Excel se descarta, nunca actualiza un área existente. Es una asimetría real y documentada
+  // del sistema (no un bug nuevo): la ingesta masiva resuelve-o-crea, no actualiza.
   async resolverArea(
     organizacionId: string,
     nombre: string,
     direccionNombre?: string | null,
+    departamentoNombre?: string | null,
   ): Promise<string> {
     const existente = await this.areaRepository.buscarPorNombre(
       organizacionId,
@@ -105,6 +119,7 @@ export class ResolvedorImportacionService {
       codigo: `${slug(nombre)}-${randomUUID().slice(0, 8)}`,
       nombre: nombre.trim(),
       dependencia: direccionNombre?.trim() || undefined,
+      departamento: departamentoNombre?.trim() || undefined,
     });
     return creada.id;
   }

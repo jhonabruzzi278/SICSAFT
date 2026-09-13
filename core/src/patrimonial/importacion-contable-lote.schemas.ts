@@ -16,10 +16,16 @@ const filaLoteSchema = z
     ubicacionId: z.string().min(1).optional(),
     valorPatrimonial: z.number().nonnegative().optional(),
     direccionNombre: z.string().min(1).optional(),
+    departamentoNombre: z.string().min(1).optional(),
     areaNombre: z.string().min(1).optional(),
     responsableNombre: z.string().min(1).optional(),
     categoriaNombre: z.string().min(1).optional(),
     nombreAft: z.string().min(1).optional(),
+    // DOC-033 — catálogo enriquecido de CCP. `fechaCompra` ISO 8601 (solo fecha), distinta de
+    // `fecha_alta` (cuándo el bien entró a la BPI, la decide CORE al aprobar).
+    marca: z.string().min(1).optional(),
+    modelo: z.string().min(1).optional(),
+    fechaCompra: z.string().min(1).optional(),
     crudo: z.record(z.string(), z.string()).default({}),
   })
   // Un activo necesita un catálogo sí o sí (activos.catalogo_id NOT NULL) — o el id ya resuelto,

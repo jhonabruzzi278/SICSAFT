@@ -25,8 +25,21 @@ export interface ActivoCatalogo {
   organizacionId: string;
   areaId: string;
   areaNombre?: string;
+  // DOC-033 — "Dirección" (`areas.dependencia`). Null cuando el área no la tiene cargada
+  // (cliente simple).
+  areaDependencia: string | null;
   ubicacionId: string;
   estado: string;
+  // DOC-033 — columnas del catálogo enriquecido, todas nullable (dependen de si el Excel del
+  // cliente las trae).
+  familia: string;
+  marca: string | null;
+  modelo: string | null;
+  serie: string | null;
+  valorPatrimonial: number | null;
+  /** ISO 8601 (solo fecha, "YYYY-MM-DD"). Fecha de compra real. */
+  fechaCompra: string | null;
+  responsableNombre: string | null;
 }
 
 export interface AltaActivoInput {
@@ -325,6 +338,7 @@ export interface Area {
   codigo: string;
   nombre: string;
   dependencia: string | null;
+  departamento: string | null;
   centroCosto: string | null;
   responsableId: string | null;
   ubicacionPrincipalId: string | null;
@@ -335,6 +349,7 @@ export interface AltaAreaInput {
   codigo: string;
   nombre: string;
   dependencia?: string;
+  departamento?: string;
   centroCosto?: string;
 }
 
@@ -345,40 +360,10 @@ export interface ActualizarAreaInput {
   codigo?: string;
   nombre?: string;
   dependencia?: string;
+  departamento?: string;
   centroCosto?: string;
   responsableId?: string;
   ubicacionPrincipalId?: string;
-}
-
-export interface Ubicacion {
-  id: string;
-  sedeId: string;
-  edificio: string | null;
-  piso: string | null;
-  areaId: string | null;
-  oficina: string | null;
-  dependencia: string | null;
-}
-
-export interface AltaUbicacionInput {
-  organizacionId: string;
-  sedeId: string;
-  edificio?: string;
-  piso?: string;
-  areaId?: string;
-  oficina?: string;
-  dependencia?: string;
-}
-
-// RF-05 (cierra el gap "ABM completo") — PATCH /admin/ubicaciones/:id. Sin sedeId (mover de sede
-// es un traslado, fuera de alcance).
-export interface ActualizarUbicacionInput {
-  organizacionId: string;
-  edificio?: string;
-  piso?: string;
-  areaId?: string;
-  oficina?: string;
-  dependencia?: string;
 }
 
 export type EstadoResponsable = 'activo' | 'inactivo';
@@ -763,38 +748,6 @@ export const cisClient = {
       },
     );
     return (await res.json()) as Area;
-  },
-
-  // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.
-  async getUbicaciones(sedeId: string): Promise<Ubicacion[]> {
-    const params = new URLSearchParams({ sedeId, limit: '100' });
-    const res = await authorizedFetch(
-      `/admin/ubicaciones?${params.toString()}`,
-    );
-    const data = (await res.json()) as {
-      ubicaciones: Ubicacion[];
-      total: number;
-    };
-    return data.ubicaciones;
-  },
-
-  async altaUbicacion(input: AltaUbicacionInput): Promise<Ubicacion> {
-    const res = await authorizedFetch('/admin/ubicaciones', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
-    return (await res.json()) as Ubicacion;
-  },
-
-  async actualizarUbicacion(
-    id: string,
-    input: ActualizarUbicacionInput,
-  ): Promise<Ubicacion> {
-    const res = await authorizedFetch(
-      `/admin/ubicaciones/${encodeURIComponent(id)}`,
-      { method: 'PATCH', body: JSON.stringify(input) },
-    );
-    return (await res.json()) as Ubicacion;
   },
 
   // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.

@@ -61,6 +61,9 @@ export interface NuevoActivoInput {
   ubicacionId?: string;
   valorPatrimonial?: number;
   descripcion?: string;
+  // DOC-033 — fecha de compra real del Excel contable, distinta de `fecha_alta` (cuándo entró a
+  // la BPI). ISO 8601 (solo fecha, "YYYY-MM-DD").
+  fechaCompra?: string;
 }
 
 export interface CatalogoFiltro {
@@ -92,9 +95,21 @@ export interface ActivoCatalogo {
   // mostrar ids. Se derivan en la consulta, no son columnas de `activos`.
   areaNombre: string;
   ubicacionNombre: string;
+  // DOC-033 — "Dirección" (`areas.dependencia`, texto libre agrupador de áreas). Null cuando el
+  // área no la tiene cargada (cliente simple).
+  areaDependencia: string | null;
   /** ISO 8601. Cuando el activo entro a la BPI. */
   incorporadoEn: string;
   estado: EstadoActivo;
+  // DOC-033 — columnas del catálogo enriquecido de CCP, todas nullable (dato opcional que
+  // depende de si el Excel del cliente las trae).
+  marca: string | null;
+  modelo: string | null;
+  serie: string | null;
+  valorPatrimonial: number | null;
+  /** ISO 8601 (solo fecha, "YYYY-MM-DD"). Fecha de compra real, distinta de `incorporadoEn`. */
+  fechaCompra: string | null;
+  responsableNombre: string | null;
 }
 
 export interface CatalogoPagina {

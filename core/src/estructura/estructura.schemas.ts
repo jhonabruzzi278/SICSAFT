@@ -9,6 +9,7 @@ export const altaAreaSchema = escrituraOficialSchema.extend({
   codigo: z.string().min(1),
   nombre: z.string().min(1),
   dependencia: z.string().min(1).optional(),
+  departamento: z.string().min(1).optional(),
   centroCosto: z.string().min(1).optional(),
 });
 export type AltaAreaBody = z.infer<typeof altaAreaSchema>;
@@ -20,6 +21,7 @@ export const actualizarAreaSchema = escrituraOficialSchema
     codigo: z.string().min(1).optional(),
     nombre: z.string().min(1).optional(),
     dependencia: z.string().min(1).optional(),
+    departamento: z.string().min(1).optional(),
     centroCosto: z.string().min(1).optional(),
     responsableId: z.string().min(1).optional(),
     ubicacionPrincipalId: z.string().min(1).optional(),
@@ -29,6 +31,7 @@ export const actualizarAreaSchema = escrituraOficialSchema
       data.codigo !== undefined ||
       data.nombre !== undefined ||
       data.dependencia !== undefined ||
+      data.departamento !== undefined ||
       data.centroCosto !== undefined ||
       data.responsableId !== undefined ||
       data.ubicacionPrincipalId !== undefined,

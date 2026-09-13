@@ -72,6 +72,16 @@ def test_normalizar_valor():
     assert etl.normalizar_valor("-5") is None  # negativo -> None
 
 
+def test_normalizar_fecha():
+    assert etl.normalizar_fecha("15/01/2026") == "2026-01-15"  # DD/MM/YYYY chileno
+    assert etl.normalizar_fecha("2026-01-15") == "2026-01-15"  # ISO ya normalizado
+    assert etl.normalizar_fecha("45673") == "2025-01-16"  # serial de Excel (dias desde 1899-12-30)
+    assert etl.normalizar_fecha("") is None
+    assert etl.normalizar_fecha(None) is None
+    assert etl.normalizar_fecha("nan") is None
+    assert etl.normalizar_fecha("no es una fecha") is None
+
+
 def test_acunar_qr():
     assert etl.acunar_qr(" dg-001 ") == "DG-001"
 
@@ -106,6 +116,23 @@ def test_procesar_normaliza_encabezado_fill_down_y_filas(excel_cliente: Path):
     assert all(f["categoriaNombre"] for f in filas)
     # `crudo` guarda las columnas originales no vacías.
     assert filas[0]["crudo"]["CODIGO"] == "DG-001"
+
+
+def test_procesar_pasa_departamentonombre_tal_cual_con_fill_down(tmp_path: Path):
+    filas = [
+        ["No.", "DIRECCION", "DEPARTAMENTO", "CODIGO", "CATEGORIA", "AREA"],
+        [1, "DIRECCION GENERAL", "FINANZAS", "DG-001", "MOBILIARIO", "OFICINA DIRECTOR"],
+        [2, None, None, "DG-002", "MOBILIARIO", None],
+        [3, "JURIDICO", "LEGAL", "JU-001", "INFORMATICA", "OFICINA ABOGADO"],
+    ]
+    ruta = tmp_path / "con-departamento.xlsx"
+    pd.DataFrame(filas).to_excel(ruta, header=False, index=False, engine="openpyxl")
+
+    cuerpo = etl.procesar(ruta, "muni", etl.MAPEO_POR_DEFECTO)
+    departamentos = [f["departamentoNombre"] for f in cuerpo["filas"]]
+
+    # fill-down igual que direccionNombre: la fila 2 hereda el departamento de la fila 1.
+    assert departamentos == ["FINANZAS", "FINANZAS", "LEGAL"]
 
 
 def test_procesar_sin_encabezado_falla(tmp_path: Path):

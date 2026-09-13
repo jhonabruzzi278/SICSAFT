@@ -109,6 +109,11 @@ const filaLoteImportacionContableSchema = filaImportacionContableSchema
     responsableNombre: z.string().min(1).optional(),
     categoriaNombre: z.string().min(1).optional(),
     nombreAft: z.string().min(1).optional(),
+    // DOC-033 — catálogo enriquecido de CCP. `fechaCompra` ISO 8601 (solo fecha), distinta de
+    // `fecha_alta` (cuándo el bien entró a la BPI, la decide CORE al aprobar).
+    marca: z.string().min(1).optional(),
+    modelo: z.string().min(1).optional(),
+    fechaCompra: z.string().min(1).optional(),
     crudo: z.record(z.string(), z.string()).default({}),
   })
   .refine((f) => Boolean(f.catalogoId ?? f.categoriaNombre), {
@@ -155,6 +160,7 @@ export const altaAreaSchema = z.object({
   codigo: z.string().min(1),
   nombre: z.string().min(1),
   dependencia: z.string().min(1).optional(),
+  departamento: z.string().min(1).optional(),
   centroCosto: z.string().min(1).optional(),
 });
 export type AltaAreaBody = z.infer<typeof altaAreaSchema>;
@@ -168,6 +174,7 @@ export const actualizarAreaSchema = z
     codigo: z.string().min(1).optional(),
     nombre: z.string().min(1).optional(),
     dependencia: z.string().min(1).optional(),
+    departamento: z.string().min(1).optional(),
     centroCosto: z.string().min(1).optional(),
     responsableId: z.string().min(1).optional(),
     ubicacionPrincipalId: z.string().min(1).optional(),
@@ -177,6 +184,7 @@ export const actualizarAreaSchema = z
       data.codigo !== undefined ||
       data.nombre !== undefined ||
       data.dependencia !== undefined ||
+      data.departamento !== undefined ||
       data.centroCosto !== undefined ||
       data.responsableId !== undefined ||
       data.ubicacionPrincipalId !== undefined,
