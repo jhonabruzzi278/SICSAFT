@@ -31,17 +31,22 @@ export function nivelActual(): NivelProducto {
 // sesiones de control de area contra la BPI (Pantalla 8 / Escaneos) tambien se mudo a una pestaña
 // del CIP (core/frontend/src/pages/cip/ControlesAreaTab.tsx). Es una pantalla de solo lectura —
 // el traslado no cambio ningun guard de CORE.
+// `etiquetas` se suma el mismo dia (Fase 5): a diferencia de los anteriores, esta NO se mudo al
+// CIP -- se extrajo del ecosistema web por completo a un programa de escritorio standalone
+// (herramientas/generador-qr/), de uso interno del equipo SICSAFT (no del cliente). Corre el ETL
+// en modo dry-run localmente, sin hablar nunca con CIS/CORE.
 const MODULOS_RETIRADOS: ReadonlySet<string> = new Set([
   'contratos',
   'cip',
   'activos',
   'inventarios',
+  'etiquetas',
 ]);
 
 // El CCP — Centro de Control Patrimonial (operacion, administracion y control) — esta COMPLETO en
-// todos los niveles: estructura (ABM de areas/departamentos/responsables), importaciones,
-// etiquetas, auditoria, y el Resumen Operativo basico (`dashboard`). Ningun modulo del CCP depende
-// del nivel: la suite analitica de Nivel 2 (CIP — Centro de Inteligencia Patrimonial) es del
+// todos los niveles: estructura (ABM de areas/departamentos/responsables), importaciones y
+// auditoria, mas el Resumen Operativo basico (`dashboard`). Ningun modulo del CCP depende del
+// nivel: la suite analitica de Nivel 2 (CIP — Centro de Inteligencia Patrimonial) es del
 // Directivo, y vive en su portal (`core/frontend/`, ver core/frontend/src/lib/nivel.ts). El CCP no
 // la enlaza ni la hospeda (usuario, 2026-09-09).
 export function moduloHabilitado(path: string): boolean {

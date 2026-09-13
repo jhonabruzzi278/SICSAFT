@@ -1,12 +1,12 @@
-import { code128b } from '@/lib/code128';
-import type { EtiquetaActivo as EtiquetaActivoData } from '@/lib/etiquetas';
+import { code128b } from "@/lib/code128";
+import type { EtiquetaActivo as EtiquetaActivoData } from "@/lib/etiquetas";
 
 // DOC-029 RF-F / Mejora 2 — Etiqueta imprimible multi-plantilla (Avery 3x10, Tarjetas 2x5,
 // Térmica 1x1). QR de alta nitidez + código de barras Code 128 + código patrimonial + nombre +
 // área. El QR llega ya renderizado como data URL (PNG) desde EtiquetasPage para optimizar
 // el rendimiento al renderizar cientos de etiquetas en masa.
 
-export type PlantillaEtiqueta = 'avery' | 'tarjeta' | 'termica';
+export type PlantillaEtiqueta = "avery" | "tarjeta" | "termica";
 
 function Barcode({ valor, alto = 24 }: { valor: string; alto?: number }) {
   let datos;
@@ -50,12 +50,12 @@ export interface EtiquetaActivoProps {
 export function EtiquetaActivo({
   etiqueta,
   qrDataUrl,
-  plantilla = 'avery',
+  plantilla = "avery",
   mostrarBarcode = true,
   mostrarInstitucion = true,
-  nombreOrganizacion = 'SICSAFT PATRIMONIO',
+  nombreOrganizacion = "SICSAFT PATRIMONIO",
 }: EtiquetaActivoProps) {
-  if (plantilla === 'termica') {
+  if (plantilla === "termica") {
     return (
       <div className="etiqueta etiqueta-termica flex flex-col items-center justify-between rounded border border-neutral-400 bg-white p-2 text-black shadow-sm">
         {mostrarInstitucion && (
@@ -92,7 +92,7 @@ export function EtiquetaActivo({
     );
   }
 
-  if (plantilla === 'tarjeta') {
+  if (plantilla === "tarjeta") {
     return (
       <div className="etiqueta etiqueta-tarjeta flex flex-col justify-between rounded-lg border border-neutral-400 bg-white p-3 text-black shadow-sm">
         {mostrarInstitucion && (
@@ -129,7 +129,7 @@ export function EtiquetaActivo({
               </div>
             )}
             <p className="font-mono text-sm font-bold tracking-wider text-black">
-              AFT: {etiqueta.codigoAft || etiqueta.codigoQr} | QR:{' '}
+              AFT: {etiqueta.codigoAft || etiqueta.codigoQr} | QR:{" "}
               {etiqueta.codigoQr}
             </p>
           </div>
@@ -169,7 +169,7 @@ export function EtiquetaActivo({
           </div>
         )}
         <p className="font-mono text-[11px] font-bold tracking-wide text-neutral-950">
-          AFT: {etiqueta.codigoAft || etiqueta.codigoQr} | QR:{' '}
+          AFT: {etiqueta.codigoAft || etiqueta.codigoQr} | QR:{" "}
           {etiqueta.codigoQr}
         </p>
       </div>

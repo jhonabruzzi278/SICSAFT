@@ -5,9 +5,10 @@ import { seedAuth } from './helpers.js';
 // Documenta el 100% de los flujos solicitados por el usuario:
 //  - Paso a paso de instalación y registro de organización (Pasos 1 al 4)
 //  - Portales, Logins, Hub Multi-organización
-//  - Módulo de Impresión Masiva de Etiquetas con Plantillas Industriales (Mejora 2 / RF-F)
 //  - Módulo de Ingesta Excel Drag & Drop con Diff Visual en tiempo real (Mejora 6 / RF-B)
-//  - Catálogo, Estructura y Auditoría BPI
+//  - Estructura y Auditoría BPI
+// Catálogo de Activos, Controles de área e Impresión de Etiquetas ya no viven acá (Fases 3/4/5 de
+// la reestructuración CCP/CIP, 2026-09-13) — ver los guard tests "08a"/"08b"/"08c".
 
 const OUT = 'docs/screenshots';
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -153,21 +154,44 @@ test('08 - El CIP ya no vive en el CCP: /cip redirige al hub', async ({
   await expect(page.getByText(/CIP Analytics/i)).toHaveCount(0);
 });
 
+// Controles de área (Inventarios) se mudó al CIP el mismo día (Fase 4): tampoco tiene ruta propia
+// en el CCP. Mismo criterio de guard.
+test('08a - Controles de área ya no vive en el CCP: /inventarios redirige al hub', async ({
+  page,
+}) => {
+  await seedAuth(page);
+  await page.goto('/inventarios?organizacionId=duoc-uc');
+  await expect(page).not.toHaveURL(/\/inventarios/);
+  await expect(
+    page.getByText(/Controles de Área y Contrastación BPI/i),
+  ).toHaveCount(0);
+});
+
+// El catálogo de Activos se mudó al CIP el 2026-09-13 (Fase 3 de la reestructuración CCP/CIP):
+// ya no tiene ruta propia en el CCP. Mismo criterio de guard que el test anterior para /cip.
+test('08b - Activos ya no vive en el CCP: /activos redirige al hub', async ({
+  page,
+}) => {
+  await seedAuth(page);
+  await page.goto('/activos?organizacionId=duoc-uc');
+  await expect(page).not.toHaveURL(/\/activos/);
+  await expect(page.getByText(/Catálogo de Activos Fijos/i)).toHaveCount(0);
+});
+
+// La Impresión de Etiquetas se extrajo del CCP el mismo día (Fase 5) a un programa de escritorio
+// standalone (herramientas/generador-qr/) — tampoco tiene ruta propia en el CCP.
+test('08c - Etiquetas ya no vive en el CCP: /etiquetas redirige al hub', async ({
+  page,
+}) => {
+  await seedAuth(page);
+  await page.goto('/etiquetas?organizacionId=duoc-uc');
+  await expect(page).not.toHaveURL(/\/etiquetas/);
+  await expect(page.getByText(/Impresión Masiva de Etiquetas/i)).toHaveCount(0);
+});
+
 // ==========================================
 // 4. GESTIÓN PATRIMONIAL Y ESTRUCTURA
 // ==========================================
-
-test('10 - CCP: Catálogo de Activos Fijos', async ({ page }) => {
-  await seedAuth(page);
-  await page.goto('/activos?organizacionId=duoc-uc');
-  await page.waitForSelector('button:has-text("Crear activo")');
-  await expect(page.getByText('DC-01').first()).toBeVisible();
-  await page.waitForTimeout(500);
-  await page.screenshot({
-    path: `${OUT}/10-ccp-catalogo-activos.png`,
-    fullPage: true,
-  });
-});
 
 test('11 - CCP: Estructura Patrimonial (Áreas y Dependencias)', async ({
   page,
@@ -184,100 +208,10 @@ test('11 - CCP: Estructura Patrimonial (Áreas y Dependencias)', async ({
   });
 });
 
-// ==========================================
-// 5. MEJORA 2: IMPRESIÓN MASIVA DE ETIQUETAS
-// ==========================================
-
-test('12 - Mejora 2: Etiquetas Masivas - Plantilla Avery 5160 (3x10)', async ({
-  page,
-}) => {
-  await seedAuth(page);
-  await page.goto('/etiquetas?organizacionId=duoc-uc');
-  await page.waitForSelector('text=Impresión Masiva de Etiquetas');
-  await expect(page.getByText('DC-01').first()).toBeVisible({
-    timeout: 10_000,
-  });
-  const totalEtiquetas = await page
-    .locator(
-      'img[alt*="QR"], .etiqueta-industrial, [data-testid="etiqueta-activo"]',
-    )
-    .count();
-  expect(totalEtiquetas).toBeGreaterThan(0);
-  await page.waitForTimeout(600);
-  await page.screenshot({
-    path: `${OUT}/12-ccp-etiquetas-plantilla-avery.png`,
-    fullPage: true,
-  });
-});
-
-test('13 - Mejora 2: Etiquetas Masivas - Plantilla Tarjetas de Inventario (2x5)', async ({
-  page,
-}) => {
-  await seedAuth(page);
-  await page.goto('/etiquetas?organizacionId=duoc-uc');
-  await page.waitForSelector('button:has-text("Tarjetas 2×5")');
-  await page.getByRole('button', { name: 'Tarjetas 2×5' }).click();
-  await expect(page.getByText('DC-01').first()).toBeVisible({
-    timeout: 10_000,
-  });
-  const totalEtiquetas = await page
-    .locator(
-      'img[alt*="QR"], .etiqueta-industrial, [data-testid="etiqueta-activo"]',
-    )
-    .count();
-  expect(totalEtiquetas).toBeGreaterThan(0);
-  await page.waitForTimeout(600);
-  await page.screenshot({
-    path: `${OUT}/13-ccp-etiquetas-plantilla-tarjetas.png`,
-    fullPage: true,
-  });
-});
-
-test('14 - Mejora 2: Etiquetas Masivas - Plantilla Rollo Térmico (1x1)', async ({
-  page,
-}) => {
-  await seedAuth(page);
-  await page.goto('/etiquetas?organizacionId=duoc-uc');
-  await page.waitForSelector('button:has-text("Térmica 1×1")');
-  await page.getByRole('button', { name: 'Térmica 1×1' }).click();
-  await expect(page.getByText('DC-01').first()).toBeVisible({
-    timeout: 10_000,
-  });
-  const totalEtiquetas = await page
-    .locator(
-      'img[alt*="QR"], .etiqueta-industrial, [data-testid="etiqueta-activo"]',
-    )
-    .count();
-  expect(totalEtiquetas).toBeGreaterThan(0);
-  await page.waitForTimeout(600);
-  await page.screenshot({
-    path: `${OUT}/14-ccp-etiquetas-plantilla-termica.png`,
-    fullPage: true,
-  });
-});
-
-test('15 - Mejora 2: Etiquetas Masivas - Simulación de Hoja de Papel Troquelada', async ({
-  page,
-}) => {
-  await seedAuth(page);
-  await page.goto('/etiquetas?organizacionId=duoc-uc');
-  await page.waitForSelector('button:has-text("Simular Papel")');
-  await page.getByRole('button', { name: 'Simular Papel' }).click();
-  await expect(page.getByText('DC-01').first()).toBeVisible({
-    timeout: 10_000,
-  });
-  const totalEtiquetas = await page
-    .locator(
-      'img[alt*="QR"], .etiqueta-industrial, [data-testid="etiqueta-activo"]',
-    )
-    .count();
-  expect(totalEtiquetas).toBeGreaterThan(0);
-  await page.waitForTimeout(600);
-  await page.screenshot({
-    path: `${OUT}/15-ccp-etiquetas-simulacion-papel.png`,
-    fullPage: true,
-  });
-});
+// La Impresión Masiva de Etiquetas (Mejora 2 / RF-F) se extrajo del CCP el 2026-09-13 (Fase 5 de
+// la reestructuración CCP/CIP) a un programa de escritorio standalone, de uso interno del equipo
+// SICSAFT: herramientas/generador-qr/. /etiquetas ya no es una ruta del CCP — ver el guard test
+// "08c" más arriba, mismo criterio que el de /cip y /activos.
 
 // ==========================================
 // 6. INGESTA CONTABLE: BANDEJA Y REVISIÓN DE LOTES

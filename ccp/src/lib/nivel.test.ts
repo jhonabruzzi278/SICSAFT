@@ -33,14 +33,13 @@ describe('nivelActual', () => {
 });
 
 describe('moduloHabilitado', () => {
-  it('en Nivel 1 el CCP esta completo: dashboard operativo, estructura, importaciones, etiquetas, auditoria', () => {
+  it('en Nivel 1 el CCP esta completo: dashboard operativo, estructura, importaciones, auditoria', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '1' };
     for (const path of [
       'dashboard',
       'estructura',
       'importaciones',
       'auditoria',
-      'etiquetas',
     ]) {
       expect(moduloHabilitado(path)).toBe(true);
     }
@@ -77,6 +76,13 @@ describe('moduloHabilitado', () => {
     for (const nivel of ['1', '2']) {
       window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: nivel };
       expect(moduloHabilitado('inventarios')).toBe(false);
+    }
+  });
+
+  it('etiquetas se extrajo a un programa externo (Fase 5) — ya no es un modulo del CCP en ningun nivel', () => {
+    for (const nivel of ['1', '2']) {
+      window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: nivel };
+      expect(moduloHabilitado('etiquetas')).toBe(false);
     }
   });
 });
