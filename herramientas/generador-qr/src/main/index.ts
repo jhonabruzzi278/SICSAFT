@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
-import { join } from "node:path";
+import { stat } from "node:fs/promises";
+import { extname, join, resolve } from "node:path";
 import { generarEtiquetas } from "./services/etl-runner";
 import type {
   GenerarError,
@@ -40,6 +41,49 @@ function crearVentana(): BrowserWindow {
   return v;
 }
 
+const seleccionados = new Set<string>();
+
+function registrarSeleccion(ruta: string): string {
+  const absoluta = resolve(ruta);
+  seleccionados.add(absoluta);
+  return absoluta;
+}
+
+async function validarArchivoSeleccionado(
+  ruta: unknown,
+  extensiones: readonly string[],
+): Promise<string> {
+  if (typeof ruta !== "string" || ruta.trim().length === 0) {
+    throw new Error("Seleccioná un archivo válido.");
+  }
+  const absoluta = resolve(ruta);
+  if (!seleccionados.has(absoluta)) {
+    throw new Error(
+      "El archivo debe seleccionarse desde el diálogo de la aplicación.",
+    );
+  }
+  if (!extensiones.includes(extname(absoluta).toLowerCase())) {
+    throw new Error(
+      `El archivo debe tener una de estas extensiones: ${extensiones.join(", ")}.`,
+    );
+  }
+  const info = await stat(absoluta);
+  if (!info.isFile()) throw new Error("La ruta seleccionada no es un archivo.");
+  return absoluta;
+}
+
+function validarEntrada(input: unknown): input is GenerarInput {
+  if (!input || typeof input !== "object") return false;
+  const candidato = input as Partial<GenerarInput>;
+  return (
+    typeof candidato.rutaExcel === "string" &&
+    typeof candidato.organizacionId === "string" &&
+    candidato.organizacionId.trim().length > 0 &&
+    (candidato.rutaMapeo === undefined ||
+      typeof candidato.rutaMapeo === "string")
+  );
+}
+
 ipcMain.handle("generador-qr:elegirExcel", async () => {
   const resultado = await dialog.showOpenDialog({
     title: "Elegir Excel de activos",
@@ -47,7 +91,7 @@ ipcMain.handle("generador-qr:elegirExcel", async () => {
     properties: ["openFile"],
   });
   if (resultado.canceled || resultado.filePaths.length === 0) return null;
-  return resultado.filePaths[0];
+  return registrarSeleccion(resultado.filePaths[0]);
 });
 
 ipcMain.handle("generador-qr:elegirMapeo", async () => {
@@ -57,20 +101,32 @@ ipcMain.handle("generador-qr:elegirMapeo", async () => {
     properties: ["openFile"],
   });
   if (resultado.canceled || resultado.filePaths.length === 0) return null;
-  return resultado.filePaths[0];
+  return registrarSeleccion(resultado.filePaths[0]);
 });
 
 ipcMain.handle(
   "generador-qr:generar",
-  async (
-    _event,
-    input: GenerarInput,
-  ): Promise<GenerarResultado | GenerarError> => {
+  async (event, input: unknown): Promise<GenerarResultado | GenerarError> => {
     try {
+      const rendererUrl = event.senderFrame?.url ?? "";
+      const devUrl = process.env.ELECTRON_RENDERER_URL;
+      const rendererPermitido = app.isPackaged
+        ? rendererUrl.startsWith("file://")
+        : rendererUrl.startsWith(devUrl ?? "http://localhost:");
+      if (!rendererPermitido) throw new Error("Renderer no autorizado.");
+      if (!validarEntrada(input))
+        throw new Error("Datos de generación inválidos.");
+      const rutaExcel = await validarArchivoSeleccionado(input.rutaExcel, [
+        ".xls",
+        ".xlsx",
+      ]);
+      const rutaMapeo = input.rutaMapeo
+        ? await validarArchivoSeleccionado(input.rutaMapeo, [".json"])
+        : undefined;
       const cuerpo = await generarEtiquetas(
-        input.rutaExcel,
+        rutaExcel,
         input.organizacionId,
-        input.rutaMapeo,
+        rutaMapeo,
       );
       return { ok: true, cuerpo };
     } catch (err: unknown) {

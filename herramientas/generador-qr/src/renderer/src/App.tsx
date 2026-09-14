@@ -80,16 +80,26 @@ export function App() {
     setGenerando(true);
     setError(null);
     setCuerpo(null);
-    const resultado = await window.generadorQr.generar({
-      rutaExcel,
-      organizacionId: organizacionId.trim(),
-      rutaMapeo: rutaMapeo ?? undefined,
-    });
-    setGenerando(false);
-    if (resultado.ok) {
-      setCuerpo(resultado.cuerpo);
-    } else {
-      setError(resultado.mensaje);
+    setQrPorLinea(new Map());
+    try {
+      const resultado = await window.generadorQr.generar({
+        rutaExcel,
+        organizacionId: organizacionId.trim(),
+        rutaMapeo: rutaMapeo ?? undefined,
+      });
+      if (resultado.ok) {
+        setCuerpo(resultado.cuerpo);
+      } else {
+        setError(resultado.mensaje);
+      }
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo generar la hoja de etiquetas.",
+      );
+    } finally {
+      setGenerando(false);
     }
   }
 
