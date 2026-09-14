@@ -41,7 +41,17 @@ jobs:
           java-version: "17"
 
       - name: Configurar Android SDK para APK
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+        # android-actions/setup-android@v3.2.2 instala el paquete legacy "tools", que Google
+        # elimino del manifiesto del repositorio del SDK -- sdkmanager corta con "Failed to find
+        # package 'tools'" (visto en apk-aft-ci.yml, mismo runner de GitHub, 2026-09-14). El runner
+        # windows-latest ya trae un Android SDK funcional (ANDROID_HOME/ANDROID_SDK_ROOT, licencias
+        # aceptadas); alcanza con asegurar los paquetes que el proyecto realmente usa (compileSdk/
+        # targetSdk 34, ver apk-aft/app/build.gradle.kts), sin pasar por ese paquete roto.
+        shell: bash
+        run: |
+          SDKMANAGER="$(command -v sdkmanager || echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager")"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Instalar Dependencias de los Subsistemas
         shell: bash
