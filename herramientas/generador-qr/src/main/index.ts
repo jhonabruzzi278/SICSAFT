@@ -41,11 +41,16 @@ function crearVentana(): BrowserWindow {
   return v;
 }
 
-const seleccionados = new Set<string>();
+// Mapea la ruta resuelta a sí misma: el valor que llega a fs.stat() sale siempre de este Map
+// (poblado únicamente por registrarSeleccion, desde dialog.showOpenDialog), nunca directo del
+// string que manda el renderer por IPC -- aunque ambos terminen siendo el mismo valor, así corta
+// la cadena de taint en el análisis estático (Set.has() + reusar la variable ya no alcanzaba,
+// ver hallazgo tssecurity:S2083 en el PR).
+const seleccionados = new Map<string, string>();
 
 function registrarSeleccion(ruta: string): string {
   const absoluta = resolve(ruta);
-  seleccionados.add(absoluta);
+  seleccionados.set(absoluta, absoluta);
   return absoluta;
 }
 
@@ -56,20 +61,20 @@ async function validarArchivoSeleccionado(
   if (typeof ruta !== "string" || ruta.trim().length === 0) {
     throw new Error("Seleccioná un archivo válido.");
   }
-  const absoluta = resolve(ruta);
-  if (!seleccionados.has(absoluta)) {
+  const absolutaConfiable = seleccionados.get(resolve(ruta));
+  if (!absolutaConfiable) {
     throw new Error(
       "El archivo debe seleccionarse desde el diálogo de la aplicación.",
     );
   }
-  if (!extensiones.includes(extname(absoluta).toLowerCase())) {
+  if (!extensiones.includes(extname(absolutaConfiable).toLowerCase())) {
     throw new Error(
       `El archivo debe tener una de estas extensiones: ${extensiones.join(", ")}.`,
     );
   }
-  const info = await stat(absoluta);
+  const info = await stat(absolutaConfiable);
   if (!info.isFile()) throw new Error("La ruta seleccionada no es un archivo.");
-  return absoluta;
+  return absolutaConfiable;
 }
 
 function validarEntrada(input: unknown): input is GenerarInput {
