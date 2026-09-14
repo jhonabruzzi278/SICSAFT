@@ -41,15 +41,30 @@ test('el veredicto es exitoso cuando no falta nada y nada aparece fuera de área
   await expect(escaneados.first()).toContainText('ORDINARIO');
 });
 
-test('el veredicto es aceptable cuando falta un activo pero nada aparece fuera de área', async ({ page }) => {
+test('el veredicto es defectuoso cuando falta un activo aunque nada aparezca fuera de área', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  // 9 de los 10 esperados (queda 1 faltante) — nada aparece fuera de área: exactamente un
-  // problema, no ambos (ver lib/verdict.ts).
+  // 3 de los 4 esperados (queda 1 faltante) — nada aparece fuera de área: faltar un AFT ya
+  // alcanza para defectuoso (ver lib/verdict.ts).
   for (const code of ESPERADOS_AREA_001_LOC_001.slice(0, -1)) {
     await scanCode(page, code);
   }
+  await page.click('[data-testid="finish-btn"]');
+
+  await expect(page.locator('[data-testid="report-verdict"]')).toHaveText('Defectuoso');
+  await expect(page.locator('[data-testid="report-verdict"]')).toHaveAttribute('data-verdict', 'defectuoso');
+});
+
+test('el veredicto es aceptable cuando no falta nada pero aparece un activo de otra área', async ({ page }) => {
+  await resetApp(page);
+  await page.click('[data-testid="start-scan-btn"]');
+
+  // Los 4 esperados + QR-DG-008 (otra área) — nada falta, solo contaminación: aceptable.
+  for (const code of ESPERADOS_AREA_001_LOC_001) {
+    await scanCode(page, code);
+  }
+  await scanCode(page, 'QR-DG-008');
   await page.click('[data-testid="finish-btn"]');
 
   await expect(page.locator('[data-testid="report-verdict"]')).toHaveText('Aceptable');

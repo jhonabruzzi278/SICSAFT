@@ -6,9 +6,9 @@ describe('app-qr-sicsaft: calcularVeredicto (Contrato Canónico)', () => {
     expect(calcularVeredicto(0, 0)).toBe('exitoso');
   });
 
-  it('Caso 2: aceptable cuando solo hay faltantes (missing > 0, outOfPlace = 0)', () => {
-    expect(calcularVeredicto(1, 0)).toBe('aceptable');
-    expect(calcularVeredicto(42, 0)).toBe('aceptable');
+  it('Caso 2: defectuoso cuando solo hay faltantes (missing > 0, outOfPlace = 0)', () => {
+    expect(calcularVeredicto(1, 0)).toBe('defectuoso');
+    expect(calcularVeredicto(42, 0)).toBe('defectuoso');
   });
 
   it('Caso 3: aceptable cuando solo hay bienes fuera de área (missing = 0, outOfPlace > 0)', () => {
