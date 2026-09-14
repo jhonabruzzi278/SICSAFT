@@ -45,6 +45,12 @@ jobs:
 
       - name: Instalar Dependencias de los Subsistemas
         shell: bash
+        # generador-qr y ccp-desktop instalan con --ignore-scripts (SonarCloud githubactions:S6505):
+        # bloquea lifecycle scripts arbitrarios del resto del arbol de dependencias, y se corre a
+        # mano solo el install.js de electron (unico paquete que de verdad lo necesita -- descarga
+        # el binario de Electron; verificado que build+pack de electron-builder siguen funcionando
+        # igual). trustedDependencies de bun no alcanza: --ignore-scripts bloquea TODO sin
+        # excepcion, incluidos los paquetes marcados como confiables.
         run: |
           (cd cis && bun install --frozen-lockfile)
           (cd core && bun install --frozen-lockfile)
@@ -52,8 +58,8 @@ jobs:
           (cd ccp && bun install --frozen-lockfile)
           (cd cip && bun install --frozen-lockfile)
           (cd app-qr-sicsaft && bun install --frozen-lockfile)
-          (cd herramientas/generador-qr && bun install --frozen-lockfile)
-          (cd ccp-desktop && bun install --frozen-lockfile)
+          (cd herramientas/generador-qr && bun install --frozen-lockfile --ignore-scripts && node node_modules/electron/install.js)
+          (cd ccp-desktop && bun install --frozen-lockfile --ignore-scripts && node node_modules/electron/install.js)
           (cd sicsaft-core && bun install --frozen-lockfile)
 
       - name: Construir APK Android firmada
