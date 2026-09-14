@@ -19,6 +19,8 @@
 - **Fase 3.1** (ROADMAP.md ✅ completa — selector de modo, veredicto de sesión, estado
   operativo/baja sugerida, AFT fuera de área):
   [`design-artifacts/DOC-017-fase-3.1-brechas-flujo.md`](design-artifacts/DOC-017-fase-3.1-brechas-flujo.md)
+- **Dirección como nivel previo a Área en el selector de escaneo** (toca CORE→CIS→APP QR, DOC-006):
+  [`design-artifacts/DOC-033-direccion-jerarquia-de-area.md`](design-artifacts/DOC-033-direccion-jerarquia-de-area.md)
 
 ## Notas del Análisis Automático
 - El directorio del proyecto estaba vacío al iniciar esta sesión (0 archivos). Todo el código fue generado en esta sesión a partir del brief funcional provisto por el usuario.

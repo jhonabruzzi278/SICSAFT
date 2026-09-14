@@ -36,6 +36,9 @@ export interface ConnectorAsset {
   organizacionId: string;
   areaId: string;
   areaNombre?: string;
+  // DOC-033 — "Dirección" (`areas.dependencia` en CORE). Null/undefined cuando el área no la
+  // tiene cargada (cliente simple que no usa esa columna en su Excel).
+  areaDependencia?: string | null;
   ubicacionId: string;
   ubicacionNombre?: string;
   // Extensión no cubierta por DOC-002 todavía: el contrato documentado no
@@ -312,6 +315,7 @@ export function buildOrganizationTree(
       area = {
         id: activo.areaId,
         name: activo.areaNombre ?? activo.areaId,
+        direccion: activo.areaDependencia ?? null,
         locations: [],
       };
       areasById.set(activo.areaId, area);
