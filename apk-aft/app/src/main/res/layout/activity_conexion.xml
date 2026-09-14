@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/sicsaft_ink">
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -9,9 +15,20 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/conexion_titulo"
-        android:textSize="22sp"
+        android:text="SICSAFT / AFT"
+        android:textColor="@color/sicsaft_primary"
+        android:textSize="14sp"
+        android:letterSpacing="0.12"
         android:textStyle="bold"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/conexion_titulo"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:letterSpacing="-0.025"
         android:paddingBottom="8dp" />
 
     <TextView
@@ -19,8 +36,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="14sp"
+        android:textColor="@color/sicsaft_text_dim"
+        android:lineSpacingMultiplier="1.3"
         android:paddingBottom="24dp" />
 
+    <!-- Ruta recomendada (un toque, sin cámara): auto-descubrimiento primero, filled/primaria.
+         El escaneo de QR es la alternativa, con menos peso visual (outlined). -->
     <Button
         android:id="@+id/boton_descubrir"
         android:layout_width="match_parent"
@@ -30,6 +51,7 @@
 
     <Button
         android:id="@+id/boton_escanear"
+        style="@style/Widget.Material3.Button.OutlinedButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/conexion_boton_escanear" />
@@ -38,23 +60,47 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/conexion_o"
+        android:textColor="@color/sicsaft_text_dim"
         android:gravity="center"
-        android:paddingTop="16dp"
-        android:paddingBottom="8dp" />
+        android:paddingTop="20dp"
+        android:paddingBottom="12dp" />
 
-    <EditText
-        android:id="@+id/campo_url"
+    <!-- Ruta manual/de respaldo: agrupada en su propia superficie (mismo criterio que
+         .workspace-card en design.css) para que se lea como "paso avanzado", no al mismo nivel
+         que el auto-descubrimiento de arriba. -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="https://192.168.1.10:8765"
-        android:inputType="textUri"
-        android:autofillHints="url" />
+        android:orientation="vertical"
+        android:background="@drawable/bg_surface_card"
+        android:padding="16dp">
 
-    <Button
-        android:id="@+id/boton_conectar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/conexion_boton_conectar" />
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/conexion_url_label"
+            app:helperText="@string/conexion_url_ejemplo"
+            app:boxBackgroundMode="outline"
+            app:boxStrokeColor="@color/sicsaft_primary"
+            app:hintTextColor="@color/sicsaft_text_dim">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/campo_url"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textUri"
+                android:autofillHints="url" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <Button
+            android:id="@+id/boton_conectar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/conexion_boton_conectar" />
+
+    </LinearLayout>
 
 </LinearLayout>
+</ScrollView>

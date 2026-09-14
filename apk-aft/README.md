@@ -53,13 +53,18 @@ para distribuir.
 
 ### Vía local (Android Studio)
 
-Abrir `apk-aft/` en Android Studio (regenera el wrapper solo), poner un `keystore.properties` al
-lado de `app/build.gradle.kts` (`storeFile=`, `storePassword=`, `keyAlias=`, `keyPassword=` — está
-gitignoreado) y `Build → Generate Signed Bundle / APK`, o:
-```bash
-gradle wrapper --gradle-version 8.9   # una vez, para tener ./gradlew
-./gradlew assembleRelease
+Abrir `apk-aft/` en Android Studio, poner `keystore.properties` en la raíz `apk-aft/`
+(`storeFile=`, `storePassword=`, `keyAlias=`, `keyPassword=` — está gitignoreado) y usar
+`Build → Generate Signed Bundle / APK`, o desde PowerShell con JDK 17, Android SDK 34 y Gradle
+disponibles:
+```powershell
+gradle wrapper --gradle-version 8.9   # una vez; genera gradle-wrapper.jar y gradlew.bat
+.\gradlew.bat --no-daemon assembleRelease
 ```
+
+El resultado queda en `app/build/outputs/apk/release/app-release.apk`. Si no existe
+`keystore.properties`, el build release usa la debug key y sirve solo para pruebas; no se debe
+distribuir a clientes.
 
 ## Cómo llega al `.exe`
 
