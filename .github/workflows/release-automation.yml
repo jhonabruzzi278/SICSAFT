@@ -34,6 +34,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Configurar Java 17 para APK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Configurar Android SDK para APK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+
       - name: Instalar Dependencias de los Subsistemas
         shell: bash
         run: |
@@ -43,7 +52,39 @@ jobs:
           (cd ccp && bun install --frozen-lockfile)
           (cd cip && bun install --frozen-lockfile)
           (cd app-qr-sicsaft && bun install --frozen-lockfile)
+          (cd herramientas/generador-qr && bun install --frozen-lockfile)
+          (cd ccp-desktop && bun install --frozen-lockfile)
           (cd sicsaft-core && bun install --frozen-lockfile)
+
+      - name: Construir APK Android firmada
+        id: apk
+        shell: bash
+        env:
+          KS_B64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.APK_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.APK_KEY_PASSWORD }}
+        working-directory: apk-aft
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
+            echo "Faltan secretos APK_*; un release oficial no puede salir con debug key." >&2
+            exit 1
+          fi
+          gradle wrapper --gradle-version 8.9
+          echo "$KS_B64" | base64 -d > sicsaft-release.jks
+          {
+            echo "storeFile=sicsaft-release.jks"
+            echo "storePassword=$KS_PASS"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASS"
+          } > keystore.properties
+          ./gradlew --no-daemon assembleRelease
+
+      - name: Limpiar secretos APK
+        if: always()
+        shell: bash
+        working-directory: apk-aft
+        run: rm -f sicsaft-release.jks keystore.properties
 
       - name: Ejecutar Pruebas Automatizadas
         shell: bash
@@ -51,6 +92,7 @@ jobs:
           (cd cis && bun run test)
           (cd core && bun run test)
           (cd ccp && bun run test)
+          (cd ccp-desktop && bun run typecheck && bun run lint:ci)
           (cd sicsaft-core && bun run test)
 
       - name: Extraer Versión del Tag
@@ -66,6 +108,7 @@ jobs:
         shell: bash
         run: |
           (cd sicsaft-core && bun run prepack:artefactos)
+          test -f apk-aft/app/build/outputs/apk/release/*.apk
 
       - name: Compilar Instalador Windows (.exe)
         env:
@@ -126,10 +169,11 @@ jobs:
           body: |
             ## SICSAFT Release ${{ steps.get_version.outputs.tag_name }} — Entregable On-Premise
             
-            Este release contiene el instalador de escritorio de **SICSAFT CORE** para Windows y su paquete de distribución completo.
+            Este release contiene el instalador único de escritorio de **SICSAFT CORE** para Windows y su paquete de distribución completo, incluido CCP Desktop y el Generador QR interno.
             
             ### 📦 Contenido del Paquete:
             - **Instalador de escritorio**: `SICSAFT CORE Setup ${{ steps.get_version.outputs.version_raw }}.exe`
+              (incluye portales, APK, ETL contable, CCP Desktop y Generador QR)
             - **Paquete completo en ZIP**: `SICSAFT-v${{ steps.get_version.outputs.version_raw }}-Windows-OnPremise.zip`
             - **Guía de instalación paso a paso**: `RUNBOOK-INSTALACION.md`
             - **Manual de despliegue on-premise**: `MANUAL-DESPLIEGUE.md`
