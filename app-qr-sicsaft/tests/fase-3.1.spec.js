@@ -4,20 +4,10 @@ import { resetApp, scanCode } from './helpers.js';
 // Fase 3.1/DOC-017 — selector de modo, veredicto de sesión, estado operativo declarado, baja
 // sugerida y lista de AFT fuera de área con su área real.
 // Ubicación por defecto de los tests (tests/helpers.js: org-001/area-001/loc-001): esperados =
-// QR-DG-001 a QR-DG-004 y QR-DG-010 a QR-DG-015 (10 activos, ver catalog-data.ts). QR-DG-008 =
-// otra área (area-002, OFICINA SECRETARIA EJECUTIVA, ver fixtures.ts areaNameMap).
-const ESPERADOS_AREA_001_LOC_001 = [
-  'QR-DG-001',
-  'QR-DG-002',
-  'QR-DG-003',
-  'QR-DG-004',
-  'QR-DG-010',
-  'QR-DG-011',
-  'QR-DG-012',
-  'QR-DG-013',
-  'QR-DG-014',
-  'QR-DG-015',
-];
+// QR-DG-001 a QR-DG-004 (4 activos -- org-001 completo tiene solo 9, ver catalog-data.ts;
+// QR-DG-010+ son de org-002, que reusa los mismos IDs de área/ubicación). QR-DG-008 = otra área
+// (area-002, OFICINA SECRETARIA EJECUTIVA, ver fixtures.ts areaNameMap).
+const ESPERADOS_AREA_001_LOC_001 = ['QR-DG-001', 'QR-DG-002', 'QR-DG-003', 'QR-DG-004'];
 
 test('el selector de modo muestra Modo 3 deshabilitado y Modo 1/2 llevan al mismo escaneo', async ({ page }) => {
   await resetApp(page);

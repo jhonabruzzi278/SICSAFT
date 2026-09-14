@@ -57,25 +57,14 @@ test('finalizar escaneo guarda una sesión y aparece en el historial', async ({ 
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  // Los 10 activos de area-001/loc-001 (ver catalog-data.ts) — todos "correcto".
-  const codes = [
-    'QR-DG-001',
-    'QR-DG-002',
-    'QR-DG-003',
-    'QR-DG-004',
-    'QR-DG-010',
-    'QR-DG-011',
-    'QR-DG-012',
-    'QR-DG-013',
-    'QR-DG-014',
-    'QR-DG-015',
-  ];
+  // Los 4 activos de area-001/loc-001 en org-001 (ver catalog-data.ts) — todos "correcto".
+  const codes = ['QR-DG-001', 'QR-DG-002', 'QR-DG-003', 'QR-DG-004'];
   for (const code of codes) {
     await scanCode(page, code);
   }
 
   await page.click('[data-testid="finish-btn"]');
-  await expect(page.locator('[data-testid="report-total"]')).toHaveText('10');
+  await expect(page.locator('[data-testid="report-total"]')).toHaveText('4');
 
   await page.click('[data-testid="confirm-send-btn"]');
   await expect(page.locator('[data-testid="confirm-send-btn"]')).toHaveText('Enviado ✔');
@@ -83,8 +72,8 @@ test('finalizar escaneo guarda una sesión y aparece en el historial', async ({ 
   await page.click('[data-testid="nav-history"]');
 
   await expect(page.locator('[data-testid="history-item"]')).toHaveCount(1);
-  await expect(page.locator('[data-testid="history-item"]')).toContainText('10 escaneados');
-  await expect(page.locator('[data-testid="history-item"]')).toContainText('10 correctos');
+  await expect(page.locator('[data-testid="history-item"]')).toContainText('4 escaneados');
+  await expect(page.locator('[data-testid="history-item"]')).toContainText('4 correctos');
 });
 
 test('exportar CSV genera un archivo con los productos escaneados', async ({ page }) => {
