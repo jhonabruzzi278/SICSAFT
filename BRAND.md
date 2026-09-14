@@ -31,10 +31,14 @@ cualquier modo/tema**, no varía con luz/oscuridad. Los neutros (fondo/borde/tex
 
 La landing usa `Century Gothic` / `Segoe UI` / `Cascadia Code` — **no son fuentes self-hosteables**
 (Segoe UI es fuente de sistema Windows, Century Gothic es comercial), así que no aplican a apps que
-necesiten funcionar 100% offline (PWAs instalables, por ejemplo `app-qr-sicsaft`, que usa
-`@fontsource-variable` con Noto Sans + Playfair Display). Elegir tipografía self-hosted equivalente
-en espíritu (geométrica/display para títulos, neutra para texto) es responsabilidad de cada
-consumidor — este documento cubre color, no tipografía.
+necesiten funcionar 100% offline (PWAs instalables, apps de escritorio Electron). Desde el rediseño
+"Control sereno" (2026-09-12, ver
+[`aidlc-docs/sicsaft-core/diseno-ecosistema-2026-09-12.md`](aidlc-docs/sicsaft-core/diseno-ecosistema-2026-09-12.md)),
+`Manrope Variable` (pesos 400/500/600/700, self-hosted vía `@fontsource-variable/manrope`) es la
+tipografía única y compartida de todo el ecosistema — títulos y texto — reemplazando las elecciones
+previas por app (`app-qr-sicsaft` usaba antes Noto Sans + Playfair Display; ese par quedó
+depreciado, no reintroducirlo). Un consumidor nuevo adopta Manrope directamente en vez de elegir su
+propia tipografía — este documento cubre color y tipografía compartida, no solo color.
 
 ## Cómo extender a modo claro
 
