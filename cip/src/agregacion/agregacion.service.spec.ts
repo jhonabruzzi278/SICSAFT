@@ -94,7 +94,7 @@ describe('AgregacionService', () => {
       expect(repository.actualizarSyncEstado).toHaveBeenCalled();
     });
 
-    it('calcula veredicto aceptable cuando falta un activo esperado', async () => {
+    it('calcula veredicto defectuoso cuando falta un activo esperado aunque nada aparezca fuera de área', async () => {
       const coreClient = buildCoreClient();
       const repository = buildRepository();
       coreClient.obtenerInventarioDetalle.mockResolvedValue(
@@ -109,7 +109,7 @@ describe('AgregacionService', () => {
       });
 
       expect(repository.upsertVeredictoSesion).toHaveBeenCalledWith(
-        expect.objectContaining({ veredicto: 'aceptable' }),
+        expect.objectContaining({ veredicto: 'defectuoso' }),
       );
     });
 

@@ -2,10 +2,12 @@
 // cip/src/agregacion/veredicto.ts (implementación independiente por desplegable, ARCHITECTURE.md
 // 5). "EXITOSO" del negocio ("excelente") = `exitoso`.
 // --
+// Regla corregida con el usuario 2026-09-14 (reemplaza la versión anterior: antes "falta solo"
+// era ACEPTABLE, ahora es DEFECTUOSO):
 // EXITOSO: nada falta y nada apareció fuera del área/ubicación.
-// ACEPTABLE: exactamente uno de los dos problemas (falta algo, o apareció algo de otra área) —
-//            no ambos.
-// DEFECTUOSO: ambos a la vez → además dispara la auto-auditoría de RF-D 3.
+// ACEPTABLE: no faltan AFT del área, pero aparecieron AFT de otras áreas en la acción de control.
+// DEFECTUOSO: faltan AFT — solos, o junto con AFT de otras áreas → además dispara la
+//             auto-auditoría de RF-D 3.
 export type Veredicto = 'exitoso' | 'aceptable' | 'defectuoso';
 
 export function calcularVeredicto(
@@ -15,11 +17,11 @@ export function calcularVeredicto(
   const faltan = faltantes > 0;
   const hayFueraDeArea = fueraDeArea > 0;
 
-  if (!faltan && !hayFueraDeArea) {
-    return 'exitoso';
-  }
-  if (faltan && hayFueraDeArea) {
+  if (faltan) {
     return 'defectuoso';
   }
-  return 'aceptable';
+  if (hayFueraDeArea) {
+    return 'aceptable';
+  }
+  return 'exitoso';
 }
