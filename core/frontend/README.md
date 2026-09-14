@@ -10,7 +10,11 @@ Físicamente reside bajo `core/frontend/`, pero **le habla a CIS mediante OIDC/H
 ## Estado
 🟢 **Completamente funcional y verificado**:
 - **Autenticación OIDC + PKCE con Keycloak 26** ([ADR-004](../../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)).
-- **Dashboard Ejecutivo / CIP**: Lectura consolidada de indicadores patrimoniales vía `cis/src/dashboard-connector/`. En instalaciones **Nivel 2** esta misma ruta (`/dashboard`) *es* el **CIP — Centro de Inteligencia Patrimonial**: se titula así, y la entrada de la sidebar pasa a llamarse "Centro de Inteligencia (CIP)". Desde 2026-09-09 este portal es el **único** lugar donde se accede al CIP — el CCP dejó de enlazarlo y de hospedarlo (ver [`ccp/README.md`](../../ccp/README.md)).
+- **Dashboard Ejecutivo / CIP**: En instalaciones **Nivel 2** esta misma ruta (`/dashboard`) *es* el **CIP — Centro de Inteligencia Patrimonial**: se titula así, y la entrada de la sidebar pasa a llamarse "Centro de Inteligencia (CIP)". Desde 2026-09-09 este portal es el **único** lugar donde se accede al CIP — el CCP dejó de enlazarlo y de hospedarlo (ver [`ccp/README.md`](../../ccp/README.md)).
+- **CIP con sub-pestañas** (Fase 2/3 de la reestructuración CCP/CIP, 2026-09-13, `src/pages/cip/`): `CipPage.tsx` reemplaza la página única de antes con tres pestañas (estado en la URL, `?tab=`):
+  - **Resumen** (`ResumenTab.tsx`): 5 KPI (Total AFT, En Servicio, En Mantenimiento, Inactivos, Valor AFT CLP), Control Día/Acumulado por veredicto (Excelente/Aceptable/Deficiente, vía `GET /dashboard/veredictos` nuevo en CIS→CIP) y Distribución por Categorías.
+  - **Activos** (`ActivosTab.tsx`): catálogo de Activos Fijos completo — portado de `ccp/src/pages/ActivosPage.tsx`, mismo contrato con CIS. El guard de escritura en CORE (`verificarRolAdministradorPatrimonialODirectivo`) ahora acepta `directivo` además de `administrador-patrimonial`.
+  - **Controles de área** (`ControlesAreaTab.tsx`): sesiones de control enviadas desde la App QR — Pantalla 8 (Control BPI, vía `PantallaControlArea.tsx`/`lib/pantalla-8.ts`) y detalle de Escaneos (estado declarado, baja sugerida, observaciones). Portado de `ccp/src/pages/InventariosPage.tsx`; pantalla de solo lectura, sin cambios de guard.
 - **Designación de Profesional de AFT**: `GET/POST /directivo/usuarios` en CIS, protegido por `DirectivoGuard` que asegura el aislamiento multi-tenant basándose en el JWT.
 - **Empaquetado en `.exe`**: Embebido dentro de `sicsaft-core` sirviendo en `directivo.sicsaft.localhost` o en ventana nativa tras login por rol.
 

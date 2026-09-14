@@ -172,7 +172,7 @@ describe('SesionInventarioRepository', () => {
       creadoEn: new Date('2026-01-15T10:30:05.000Z'),
     };
 
-    it('devuelve la sesion con sus escaneos', async () => {
+    it('devuelve la sesion con sus escaneos, incluido lo declarado por el controlador', async () => {
       const client = buildClient();
       const pool = buildPool(client);
       const query = jest
@@ -184,6 +184,15 @@ describe('SesionInventarioRepository', () => {
               codigoQr: 'QR-000001',
               resultado: 'correcto',
               observaciones: null,
+              estadoDeclarado: null,
+              bajaSugeridaMotivo: null,
+            },
+            {
+              codigoQr: 'QR-000002',
+              resultado: 'correcto',
+              observaciones: null,
+              estadoDeclarado: 'mantenimiento',
+              bajaSugeridaMotivo: 'Pantalla rota',
             },
           ],
         });
@@ -203,7 +212,20 @@ describe('SesionInventarioRepository', () => {
         estado: 'recibido',
         creadoEn: '2026-01-15T10:30:05.000Z',
         escaneos: [
-          { codigoQr: 'QR-000001', resultado: 'correcto', observaciones: null },
+          {
+            codigoQr: 'QR-000001',
+            resultado: 'correcto',
+            observaciones: null,
+            estadoDeclarado: null,
+            bajaSugeridaMotivo: null,
+          },
+          {
+            codigoQr: 'QR-000002',
+            resultado: 'correcto',
+            observaciones: null,
+            estadoDeclarado: 'mantenimiento',
+            bajaSugeridaMotivo: 'Pantalla rota',
+          },
         ],
       });
     });

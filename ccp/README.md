@@ -2,7 +2,7 @@
 
 ## Objetivo
 Aplicación web privada de administración y operación patrimonial para el **Profesional de AFT** (`administrador-patrimonial`).
-Permite el control integral del inventario físico, altas/bajas de activos, gestión de la estructura organizacional (Áreas, Ubicaciones, Responsables), generación e impresión de etiquetas QR / Code 128, revisión de lotes de ingesta contable y consulta de auditorías.
+Permite la gestión de la estructura organizacional (Organización: organigrama Dirección→Departamento→Área, Responsables), revisión de lotes de ingesta contable y consulta de auditorías.
 
 Consume servicios exclusivamente a través de **CIS**, respetando la regla no negociable de cero acceso directo a la BPI.
 
@@ -10,24 +10,24 @@ Consume servicios exclusivamente a través de **CIS**, respetando la regla no ne
 🟢 **Completamente funcional y verificado**:
 - **Autenticación OIDC + PKCE con Keycloak 26** ([ADR-004](../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)).
 - **Módulos Operativos (Modo Básico / Profesional / Enterprise)**:
-  - **Activos**: Catálogo interactivo con alta manual, bajas, reincorporaciones, cambio de responsable y asignación de documentos.
-  - **Estructura**: Administración completa de Áreas, Ubicaciones y Responsables con estados bidireccionales.
+  - **Organización**: Organigrama (Dirección→Departamento→Área), rollup de Direcciones, ABM de Áreas y Responsables.
   - **Importaciones Contables** (DOC-029 RF-B): Bandeja de staging de lotes de Excel (revisión, aprobación y rechazo supervisado).
-  - **Etiquetas y Códigos QR** (DOC-029 RF-F): Generación masiva y maquetación de impresión (`@media print`) de etiquetas con QR y Code 128 por área/dirección.
   - **Auditoría** (DOC-029 RF-E): Registro histórico con filtro por área operativa (`?area=`) y panel de revisión de trazabilidad.
-  - **Resumen Operativo**: Indicadores básicos de catálogo, estructura, custodios y cobertura de relevamiento, más accesos directos a los módulos (Pantalla 8).
+  - **Resumen Operativo**: Indicadores básicos de estructura, custodios y cobertura de relevamiento, más accesos directos a los módulos.
 - **El CIP no vive acá** (2026-09-09): el Centro de Inteligencia Patrimonial es la analítica de Nivel 2 del **Directivo** y se accede únicamente desde su portal ([`core/frontend/`](../core/frontend/)). El CCP no lo enlaza, no lo hospeda y no cambia según `VITE_SICSAFT_NIVEL` — va completo en todos los niveles.
+- **Activos y Controles de áreas se mudaron al CIP** (2026-09-13, Fases 3/4 de la reestructuración CCP/CIP): el catálogo de Activos Fijos (alta, baja, reincorporación, ficha técnica, documentos) y la contrastación de sesiones de control de área contra la BPI (Pantalla 8 / Escaneos) ya no tienen pantalla propia acá — viven en `core/frontend/src/pages/cip/ActivosTab.tsx` y `ControlesAreaTab.tsx`. El Profesional de AFT sigue pudiendo operar Activos desde ahí: el guard de escritura de CORE acepta `administrador-patrimonial` **o** `directivo`. Controles de área es de solo lectura, sin cambios de guard.
+- **Etiquetas y Códigos QR se extrajeron del ecosistema web** (2026-09-13, Fase 5): a diferencia de Activos/Controles de área, esto NO se mudó al CIP — se convirtió en un programa de escritorio standalone de uso interno del equipo SICSAFT: [`herramientas/generador-qr/`](../herramientas/generador-qr/). Corre el ETL en modo dry-run localmente (sin hablar con CIS/CORE) antes de que el Excel del cliente entre al sistema.
 - **Despliegue y Empaquetado**: Corre como SPA local y va embebida en el ejecutable [`sicsaft-core`](../sicsaft-core/).
 
 ## Módulos y Arquitectura
 
 ```
 src/
-├── components/         # Primitivos UI (Tailwind v4, tokens BRAND.md), AppShell, PantallaControlArea
-├── lib/                # Clientes HTTP (cis-client.ts), OIDC PKCE (oidc/), helpers de nivel, etiquetas y lotes
-├── pages/              # ActivosPage, EstructuraPage, EtiquetasPage, AuditoriaPage, HubPage, LoginPage
+├── components/         # Primitivos UI (Tailwind v4, tokens BRAND.md), AppShell
+├── lib/                # Clientes HTTP (cis-client.ts), OIDC PKCE (oidc/), helpers de nivel y lotes
+├── pages/              # EstructuraPage, AuditoriaPage, HubPage, LoginPage
 │   └── importaciones/  # LotesRevision, CargaManualCsv
-└── tests/              # Suites Playwright e2e (login, alta de activos)
+└── tests/              # Suites Playwright e2e (login, galería visual)
 ```
 
 ## Desarrollo y Ejecución Local

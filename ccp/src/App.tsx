@@ -6,14 +6,11 @@ import { moduloHabilitado } from '@/lib/nivel';
 import { LoginPage } from '@/pages/LoginPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
 import { HubPage } from '@/pages/HubPage';
-import { ActivosPage } from '@/pages/ActivosPage';
 import { ContratosPage } from '@/pages/ContratosPage';
-import { InventariosPage } from '@/pages/InventariosPage';
 import { AuditoriaPage } from '@/pages/AuditoriaPage';
 import { EstructuraPage } from '@/pages/EstructuraPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ImportacionesPage } from '@/pages/ImportacionesPage';
-import { EtiquetasPage } from '@/pages/EtiquetasPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   if (!oidcClient.isAuthenticated()) {
@@ -57,29 +54,11 @@ export default function App() {
           }
         />
         <Route
-          path="/activos"
-          element={
-            <RequireAuth>
-              <ActivosPage />
-            </RequireAuth>
-          }
-        />
-        <Route
           path="/contratos"
           element={
             <RequireAuth>
               <RequireModulo path="contratos">
                 <ContratosPage />
-              </RequireModulo>
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/inventarios"
-          element={
-            <RequireAuth>
-              <RequireModulo path="inventarios">
-                <InventariosPage />
               </RequireModulo>
             </RequireAuth>
           }
@@ -115,16 +94,6 @@ export default function App() {
           element={
             <RequireAuth>
               <ImportacionesPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/etiquetas"
-          element={
-            <RequireAuth>
-              <RequireModulo path="etiquetas">
-                <EtiquetasPage />
-              </RequireModulo>
             </RequireAuth>
           }
         />

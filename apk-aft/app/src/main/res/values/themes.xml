@@ -5,6 +5,15 @@
          el mismo tema con su propio título en el layout. -->
     <style name="Theme.SicsaftAft" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/sicsaft_primary</item>
-        <item name="android:statusBarColor">@color/sicsaft_primary</item>
+        <item name="colorOnPrimary">@color/sicsaft_ink</item>
+        <item name="colorSurface">@color/sicsaft_surface</item>
+        <item name="colorOnSurface">@color/sicsaft_text</item>
+        <item name="android:windowBackground">@color/sicsaft_ink</item>
+        <item name="android:colorBackground">@color/sicsaft_ink</item>
+        <item name="android:textColorPrimary">@color/sicsaft_text</item>
+        <item name="android:textColorSecondary">@color/sicsaft_text_dim</item>
+        <item name="android:statusBarColor">@color/sicsaft_ink</item>
+        <item name="android:navigationBarColor">@color/sicsaft_ink</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

@@ -2,13 +2,15 @@ import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import {
   AdministradorPatrimonialGuard,
   ADMINISTRADOR_PATRIMONIAL_ROLE,
+  DIRECTIVO_ROLE,
   verificarRolAdministradorPatrimonial,
+  verificarRolAdministradorPatrimonialODirectivo,
   verificarRolesPermitidos,
 } from './administrador-patrimonial.guard';
 
 // Rol NO patrimonial cualquiera, para ejercitar la variante multi-rol de verificarRolesPermitidos
 // sin acoplar el test a un segundo rol de negocio concreto.
-const OTRO_ROL = 'directivo';
+const OTRO_ROL = DIRECTIVO_ROLE;
 
 function buildContext(
   body: unknown,
@@ -64,6 +66,46 @@ describe('verificarRolAdministradorPatrimonial', () => {
     expect(() =>
       verificarRolAdministradorPatrimonial(
         { 'org-1': ADMINISTRADOR_PATRIMONIAL_ROLE },
+        'org-1',
+      ),
+    ).toThrow(ForbiddenException);
+  });
+});
+
+describe('verificarRolAdministradorPatrimonialODirectivo', () => {
+  // Fase 3 — el catálogo de Activos ahora se ofrece también desde el CIP (Directivo). Acepta
+  // administrador-patrimonial O directivo, siempre acotado a la misma organizacionId.
+  it('no lanza con administrador-patrimonial en la organizacion', () => {
+    expect(() =>
+      verificarRolAdministradorPatrimonialODirectivo(
+        { 'org-1': [ADMINISTRADOR_PATRIMONIAL_ROLE] },
+        'org-1',
+      ),
+    ).not.toThrow();
+  });
+
+  it('no lanza con directivo en la organizacion', () => {
+    expect(() =>
+      verificarRolAdministradorPatrimonialODirectivo(
+        { 'org-1': [DIRECTIVO_ROLE] },
+        'org-1',
+      ),
+    ).not.toThrow();
+  });
+
+  it('lanza 403 sin ninguno de los dos roles en esa organizacion', () => {
+    expect(() =>
+      verificarRolAdministradorPatrimonialODirectivo(
+        { 'org-1': ['operador'] },
+        'org-1',
+      ),
+    ).toThrow(ForbiddenException);
+  });
+
+  it('lanza 403 si el rol esta en otra organizacion distinta', () => {
+    expect(() =>
+      verificarRolAdministradorPatrimonialODirectivo(
+        { 'org-2': [DIRECTIVO_ROLE] },
         'org-1',
       ),
     ).toThrow(ForbiddenException);

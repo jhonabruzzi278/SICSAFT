@@ -22,7 +22,7 @@ function esErrorPg(error: unknown): error is { code: string } {
 }
 
 const SELECT_AREA_SQL = `
-  SELECT id, organizacion_id AS "organizacionId", codigo, nombre, dependencia,
+  SELECT id, organizacion_id AS "organizacionId", codigo, nombre, dependencia, departamento,
          centro_costo AS "centroCosto", responsable_id AS "responsableId",
          ubicacion_principal_id AS "ubicacionPrincipalId"
   FROM areas
@@ -70,14 +70,15 @@ export class AreaRepository {
     const id = randomUUID();
     try {
       await this.pool.query(
-        `INSERT INTO areas (id, organizacion_id, codigo, nombre, dependencia, centro_costo)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO areas (id, organizacion_id, codigo, nombre, dependencia, departamento, centro_costo)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           id,
           input.organizacionId,
           input.codigo,
           input.nombre,
           input.dependencia ?? null,
+          input.departamento ?? null,
           input.centroCosto ?? null,
         ],
       );
@@ -142,6 +143,10 @@ export class AreaRepository {
     if (cambios.dependencia !== undefined) {
       valores.push(cambios.dependencia);
       sets.push(`dependencia = $${valores.length}`);
+    }
+    if (cambios.departamento !== undefined) {
+      valores.push(cambios.departamento);
+      sets.push(`departamento = $${valores.length}`);
     }
     if (cambios.centroCosto !== undefined) {
       valores.push(cambios.centroCosto);

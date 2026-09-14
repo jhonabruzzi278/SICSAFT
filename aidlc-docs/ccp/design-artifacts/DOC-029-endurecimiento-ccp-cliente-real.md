@@ -24,6 +24,14 @@ varias capas se documenta bajo el sistema donde nace la decisión").
 > `feat/apk-aft-webview` ← `feat/sicsaft-core-ingesta-watcher`. **Falta**: servir el `.apk` en
 > `:8765` + 2º QR en el wizard (RF-H); verificación real del round-trip de ingesta + del claim
 > `organization` en un token `client_credentials` (RF-B.6.2); keystore + APK en un teléfono real.
+> **v6 (2026-09-13)** — **RF-F se retira de `ccp/`** (pedido del usuario, reestructuración
+> CCP/CIP): el módulo "QR / Etiquetas" descrito en la sección RF-F de abajo (agrupación
+> Dirección→Área, `lib/etiquetas.ts`, `lib/code128.ts`, plantillas Avery/Tarjeta/Térmica) se
+> extrajo entero a un programa de escritorio standalone de uso interno del equipo SICSAFT —
+> [`herramientas/generador-qr/`](../../../herramientas/generador-qr/README.md) — que corre el ETL
+> en modo dry-run localmente, sin hablar con CIS/CORE, antes de que el Excel del cliente entre al
+> sistema. La sección RF-F de este documento queda como registro histórico de cómo se diseñó e
+> implementó originalmente (2026-08-31); el código real ya no vive en `ccp/`.
 
 **Estado (v5, act. 2026-09-02): RF-G, RF-A, RF-F, RF-I y RF-E completos. RF-B completo en código
 (B.6.2 — watcher + service account + wiring + `prepack.cjs`); falta verificar el round-trip real.

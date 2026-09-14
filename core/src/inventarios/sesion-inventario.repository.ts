@@ -63,6 +63,11 @@ export interface EscaneoDetalle {
   codigoQr: string;
   resultado: ScanResultado;
   observaciones: string | null;
+  // DOC-029 RF-I — lo que el controlador declaró por este AFT durante el control, para que la
+  // vista de detalle de CCP pueda mostrar toda la información recibida (antes solo se exponían
+  // en el agregado de `findResumenControl`, nunca por escaneo individual).
+  estadoDeclarado: EstadoOperativoDeclarable | null;
+  bajaSugeridaMotivo: string | null;
 }
 
 export interface SesionDetalle extends SesionResumen {
@@ -263,7 +268,9 @@ export class SesionInventarioRepository {
     }
 
     const escaneosResult = await this.pool.query<EscaneoDetalle>(
-      `SELECT codigo_qr AS "codigoQr", resultado, observaciones
+      `SELECT codigo_qr AS "codigoQr", resultado, observaciones,
+              estado_declarado AS "estadoDeclarado",
+              baja_sugerida_motivo AS "bajaSugeridaMotivo"
        FROM inventarios WHERE sesion_id = $1 ORDER BY codigo_qr`,
       [id],
     );

@@ -253,6 +253,63 @@ describe('DashboardRepository', () => {
     ]);
   });
 
+  describe('resumenVeredictos', () => {
+    it('agrupa por veredicto en "dia" (con filtro de fecha) y "acumulado" (sin filtro)', async () => {
+      const queries: Array<{ sql: string; params: unknown[] }> = [];
+      const pool = buildPool((sql, params) => {
+        queries.push({ sql, params: params ?? [] });
+        // La primera consulta que corre es "dia" (filtra fecha_cierre); la resolución en paralelo
+        // de Promise.all no garantiza el orden de arribo así que se distingue por el SQL, no por
+        // el orden de llamada.
+        if (sql.includes('fecha_cierre >=')) {
+          return {
+            rows: [
+              { veredicto: 'exitoso', cantidad: '3' },
+              { veredicto: 'aceptable', cantidad: '1' },
+            ],
+          };
+        }
+        return {
+          rows: [
+            { veredicto: 'exitoso', cantidad: '30' },
+            { veredicto: 'aceptable', cantidad: '10' },
+            { veredicto: 'defectuoso', cantidad: '5' },
+          ],
+        };
+      });
+      const repository = new DashboardRepository(pool);
+
+      await expect(repository.resumenVeredictos('org-1')).resolves.toEqual({
+        dia: {
+          total: 4,
+          porVeredicto: [
+            { veredicto: 'exitoso', cantidad: 3 },
+            { veredicto: 'aceptable', cantidad: 1 },
+          ],
+        },
+        acumulado: {
+          total: 45,
+          porVeredicto: [
+            { veredicto: 'exitoso', cantidad: 30 },
+            { veredicto: 'aceptable', cantidad: 10 },
+            { veredicto: 'defectuoso', cantidad: 5 },
+          ],
+        },
+      });
+      expect(queries.every((q) => q.params[0] === 'org-1')).toBe(true);
+    });
+
+    it('devuelve total 0 y lista vacía sin sesiones todavía', async () => {
+      const pool = buildPool(() => ({ rows: [] }));
+      const repository = new DashboardRepository(pool);
+
+      await expect(repository.resumenVeredictos('org-1')).resolves.toEqual({
+        dia: { total: 0, porVeredicto: [] },
+        acumulado: { total: 0, porVeredicto: [] },
+      });
+    });
+  });
+
   describe('listarCategorias', () => {
     it('usa "(todas)" cuando no se pasa areaId', async () => {
       const queries: Array<{ sql: string; params: unknown[] }> = [];

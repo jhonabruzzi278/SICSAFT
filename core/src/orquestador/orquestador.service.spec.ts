@@ -277,6 +277,28 @@ describe('OrquestadorService', () => {
       });
     });
 
+    // Fase 3 (reestructuracion CCP/CIP) — el catálogo de Activos ahora también se ofrece desde el
+    // CIP (Directivo). A diferencia de administrador-patrimonial, este rol NO era aceptado antes
+    // de este incremento.
+    it('crea el activo con rol directivo (nuevo, para el alta desde el CIP)', async () => {
+      const { service, escrituraActivoService, auditoriaRepository } =
+        buildService();
+      escrituraActivoService.alta.mockResolvedValue(ACTIVO);
+
+      const activo = await service.procesarAltaActivo(
+        buildAltaPayload({
+          rolesPorOrganizacion: { 'duoc-uc': ['directivo'] },
+        }),
+      );
+
+      expect(activo).toBe(ACTIVO);
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /activos',
+        resultado: 'activo',
+      });
+    });
+
     // Hallazgo de revision de seguridad: el rol en OTRA organizacion nunca debe alcanzar.
     it('rechaza con 403 si el operador tiene el rol pero en otra organizacion', async () => {
       const { service, escrituraActivoService, auditoriaRepository } =
@@ -927,6 +949,28 @@ describe('OrquestadorService', () => {
         usuario: 'op-admin',
         operacion: 'POST /areas',
         resultado: 'area-1',
+      });
+    });
+
+    // Fase 3 — a diferencia de Activo, Área sigue siendo exclusivo de administrador-patrimonial:
+    // el CIP no expone Organización/Áreas, así que el rol directivo NO debe alcanzar acá. Prueba
+    // deliberada de que la ampliación de rol de la Fase 3 quedó acotada a Activos, no se filtró.
+    it('rechaza con 403 si el rol es directivo (Área no lo acepta, a diferencia de Activo)', async () => {
+      const { service, escrituraEstructuraService, auditoriaRepository } =
+        buildService();
+
+      await expect(
+        service.procesarAltaArea({
+          ...payload,
+          rolesPorOrganizacion: { 'duoc-uc': ['directivo'] },
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(escrituraEstructuraService.altaArea).not.toHaveBeenCalled();
+      expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
+        usuario: 'op-admin',
+        operacion: 'POST /areas',
+        resultado: 'rechazado:403',
       });
     });
 

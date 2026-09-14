@@ -5,7 +5,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// Firma de release. En local: un `keystore.properties` (gitignoreado) al lado de este archivo.
+// Firma de release. En local: `apk-aft/keystore.properties` (gitignoreado, en la raíz Gradle).
 // En CI (apk-aft-ci.yml): las mismas 4 claves vienen de secretos y se escriben a
 // keystore.properties antes del build. Si no hay keystore, `assembleRelease` firma con la debug
 // key (sirve para iterar, NO para distribuir).

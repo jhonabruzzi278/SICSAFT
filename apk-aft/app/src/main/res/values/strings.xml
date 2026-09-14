@@ -10,6 +10,8 @@
     <string name="conexion_servidor_encontrado">¡Servidor SICSAFT detectado en la red!</string>
     <string name="conexion_servidor_no_encontrado">No se detectó ningún servidor en esta red Wi-Fi. Podés escanear el QR o escribir la IP.</string>
     <string name="conexion_o">— o —</string>
+    <string name="conexion_url_label">Dirección del servidor</string>
+    <string name="conexion_url_ejemplo">Ej: https://192.168.1.10:8765</string>
     <string name="conexion_boton_conectar">Conectar</string>
     <string name="conexion_prompt_scan">Apuntá al QR de la pantalla de SICSAFT CORE</string>
     <string name="conexion_url_invalida">Esa dirección no es válida. Tiene que ser https://&lt;ip&gt;:8765</string>

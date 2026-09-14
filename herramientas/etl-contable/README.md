@@ -28,12 +28,14 @@ directamente; todo pasa por CIS → CORE") se cumple: este ETL es un cliente má
 
 1. Detecta la fila de encabezado (busca una celda `CODIGO`; configurable).
 2. Renombra columnas del Excel a los campos canónicos según el mapeo de la organización.
-3. Rellena hacia abajo las celdas combinadas (`DIRECCION` / `AREA` / `RESPONSABLE`).
+3. Rellena hacia abajo las celdas combinadas (`DIRECCION` / `DEPARTAMENTO` / `AREA` /
+   `RESPONSABLE`).
 4. Normaliza `VALOR.CLP.` (formato CL: `.` miles, `,` decimales).
 5. **Acuña `codigoQr`** a partir del `codigoPatrimonial` (`DG-001` → `DG-001`).
 6. Manda **los nombres tal cual del Excel** (`categoriaNombre`, `areaNombre`,
-   `responsableNombre`, `direccionNombre`) — CORE los resuelve-o-crea al aprobar. Además guarda
-   el bloque `crudo` con las columnas originales, para que el revisor vea qué llegó.
+   `responsableNombre`, `direccionNombre`, `departamentoNombre`) — CORE los resuelve-o-crea al
+   aprobar. Además guarda el bloque `crudo` con las columnas originales, para que el revisor vea
+   qué llegó.
 7. Las filas que llegan **sin categoría** (bloques que el contador no completó) entran con
    `categoriaNombre = "SIN CATEGORIA"` en vez de rechazar el lote entero — CORE exige
    `catalogoId` o `categoriaNombre` en cada fila. El Profesional de AFT las reclasifica en la
@@ -94,8 +96,17 @@ python etl_contable.py --entrada activos.xls --organizacion municipalidad-melipi
 
 Copiar [`mapeo/mapeo-ejemplo.json`](mapeo/mapeo-ejemplo.json) a `mapeo-<organizacionId>.json` y
 ajustar `columnas` a los nombres reales del Excel del cliente. Los valores son los campos
-canónicos: `codigoPatrimonial`, `direccionNombre`, `areaNombre`, `responsableNombre`,
-`categoriaNombre`, `nombreAft`, `serie`, `valorPatrimonial`.
+canónicos: `codigoPatrimonial`, `direccionNombre`, `departamentoNombre`, `areaNombre`,
+`responsableNombre`, `categoriaNombre`, `nombreAft`, `serie`, `valorPatrimonial`.
+
+### Organigrama recomendado
+
+Para que el organigrama que arma el CCP (Organización → Dirección → Departamento → Área →
+Responsable) salga completo, se recomienda que el Excel del cliente incluya las columnas
+`DIRECCION` y `AREA` como mínimo, y `DEPARTAMENTO` cuando la organización tenga ese nivel
+intermedio (es opcional: sin esa columna el organigrama simplemente no muestra ese nivel). El
+nombre de la Organización en sí no viene del Excel — se define una sola vez en el wizard de
+instalación de `sicsaft-core` (DOC-028).
 
 ## Desarrollo
 

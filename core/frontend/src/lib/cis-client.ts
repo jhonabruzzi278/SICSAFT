@@ -11,24 +11,191 @@ export interface Sede {
   nombre: string;
 }
 
-// Forma del catalogo que devuelve CIS (GET /catalogo). Solo los campos que consume el tablero.
+// Forma del catalogo que devuelve CIS (GET /catalogo).
 export interface ActivoCatalogo {
   id: string;
   codigoQr: string;
+  codigoAft?: string;
   nombre: string;
   familia: string;
   areaId: string;
   areaNombre: string;
+  areaDependencia: string | null;
+  ubicacionId: string;
   ubicacionNombre: string;
   /** ISO 8601. Cuando el activo entro a la BPI. */
   incorporadoEn: string;
   estado: string;
+  // DOC-033 — catálogo enriquecido de CCP, mismo endpoint GET /catalogo (CIS ya los sirve, ver
+  // cis/src/core-client/core-client.types.ts activoCatalogoSchema) — faltaban en esta copia local.
+  marca: string | null;
+  modelo: string | null;
+  serie: string | null;
+  valorPatrimonial: number | null;
+  fechaCompra: string | null;
+  responsableNombre: string | null;
 }
 
 export interface Organizacion {
   id: string;
   nombre: string;
   sedes: Sede[];
+}
+
+// Fase 3 (reestructuracion CCP/CIP) — tipos/métodos de escritura de Activo, portados de
+// ccp/src/lib/cis-client.ts (misma forma, mismos endpoints /admin/activos* de CIS — ahora
+// también accesibles desde el CIP, ver core/src/common/auth/administrador-patrimonial.guard.ts
+// verificarRolAdministradorPatrimonialODirectivo).
+export interface AltaActivoInput {
+  organizacionId: string;
+  codigoPatrimonial: string;
+  codigoQr: string;
+  catalogoId: string;
+  serie?: string;
+  areaId?: string;
+  ubicacionId?: string;
+  valorPatrimonial?: number;
+  descripcion?: string;
+}
+
+export interface Activo {
+  id: string;
+  codigoPatrimonial: string;
+  codigoQr: string;
+  organizacionId: string;
+  areaId: string | null;
+  ubicacionId: string | null;
+  responsableId: string | null;
+  estado: string;
+  descripcion: string | null;
+  catalogo: {
+    tipo: string;
+    familia: string;
+    subfamilia: string | null;
+    marca: string | null;
+    modelo: string | null;
+  };
+}
+
+export interface CatalogoTipoActivo {
+  id: string;
+  tipo: string;
+  familia: string;
+  subfamilia: string | null;
+  marca: string | null;
+  modelo: string | null;
+  fabricante: string | null;
+  vidaUtilMeses: number | null;
+  criticidad: 'baja' | 'media' | 'alta';
+  tecnologiaIdentificacion: 'qr' | 'rfid' | 'qr_rfid';
+}
+
+export interface AltaCatalogoTipoInput {
+  organizacionId: string;
+  tipo: string;
+  familia: string;
+  subfamilia?: string;
+  marca?: string;
+  modelo?: string;
+  fabricante?: string;
+  vidaUtilMeses?: number;
+  criticidad: 'baja' | 'media' | 'alta';
+  tecnologiaIdentificacion: 'qr' | 'rfid' | 'qr_rfid';
+}
+
+export interface DocumentoActivo {
+  id: string;
+  activoId: string;
+  organizacionId: string;
+  tipo: 'documento' | 'fotografia';
+  url: string;
+  descripcion: string | null;
+  creadoEn: string;
+  creadoPor: string;
+}
+
+export interface AltaDocumentoActivoInput {
+  organizacionId: string;
+  tipo: 'documento' | 'fotografia';
+  url: string;
+  descripcion?: string;
+}
+
+// Fase 4 (reestructuracion CCP/CIP) — tipos/métodos de "Controles de área", portados de
+// ccp/src/lib/cis-client.ts (misma forma, mismos endpoints GET /inventarios* de CIS — pantalla de
+// solo lectura, sin cambios de guard).
+export interface SesionInventario {
+  id: string;
+  organizacionId: string;
+  areaId: string;
+  ubicacionId: string;
+  operadorId: string;
+  fechaInicio: string;
+  fechaCierre: string;
+  estado: string;
+  creadoEn: string;
+}
+
+export interface EscaneoInventario {
+  codigoQr: string;
+  resultado: string;
+  observaciones: string | null;
+  estadoDeclarado: 'activo' | 'mantenimiento' | 'inactivo' | null;
+  bajaSugeridaMotivo: string | null;
+}
+
+export interface SesionInventarioDetalle extends SesionInventario {
+  escaneos: EscaneoInventario[];
+}
+
+// DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"). Passthrough del
+// contrato de CORE vía CIS (GET /inventarios/:id/control); refleja
+// cis/src/qr-connector/qr-connector.types.ts ResumenControl.
+export type TipoControlAft = 'ordinario' | 'extraordinario';
+export type VeredictoControl = 'exitoso' | 'aceptable' | 'defectuoso';
+
+export interface EscaneoControlAft {
+  codigoQr: string;
+  nombre: string | null;
+  tipo: TipoControlAft | null;
+  resultado: string;
+}
+
+export interface FueraDeAreaControlAft {
+  codigoQr: string;
+  nombre: string | null;
+  tipo: TipoControlAft | null;
+  areaRealNombre: string | null;
+}
+
+export interface FaltanteControlAft {
+  codigoQr: string;
+  nombre: string;
+}
+
+export interface ResumenControlArea {
+  sesionId: string;
+  organizacionId: string;
+  areaId: string;
+  ubicacionId: string;
+  operadorId: string;
+  fechaInicio: string;
+  fechaCierre: string;
+  estado: string;
+  escaneados: number;
+  delArea: number;
+  activosDelArea: number;
+  delAreaPct: number;
+  porEstadoDeclarado: {
+    enServicio: number;
+    enMantenimiento: number;
+    inactivo: number;
+    baja: number;
+  };
+  escaneadosLista: EscaneoControlAft[];
+  fueraDeArea: FueraDeAreaControlAft[];
+  faltantes: FaltanteControlAft[];
+  veredicto: VeredictoControl;
 }
 
 // DOC-022 3 — misma forma que GrantUsuario del lado de CIS (cis/src/keycloak-admin/keycloak-admin.types.ts).
@@ -134,6 +301,130 @@ export const cisClient = {
       activos.push(...data.activos);
     } while (activos.length < total);
     return activos;
+  },
+
+  async altaActivo(input: AltaActivoInput): Promise<Activo> {
+    const res = await authorizedFetch('/admin/activos', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return (await res.json()) as Activo;
+  },
+
+  async bajaActivo(id: string, organizacionId: string): Promise<Activo> {
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(id)}/baja`,
+      { method: 'POST', body: JSON.stringify({ organizacionId }) },
+    );
+    return (await res.json()) as Activo;
+  },
+
+  async reincorporarActivo(
+    id: string,
+    organizacionId: string,
+  ): Promise<Activo> {
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(id)}/reincorporacion`,
+      { method: 'POST', body: JSON.stringify({ organizacionId }) },
+    );
+    return (await res.json()) as Activo;
+  },
+
+  async cambiarResponsableActivo(
+    id: string,
+    organizacionId: string,
+    responsableId: string,
+  ): Promise<Activo> {
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(id)}/responsable`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ organizacionId, responsableId }),
+      },
+    );
+    return (await res.json()) as Activo;
+  },
+
+  async actualizarDescripcionActivo(
+    id: string,
+    organizacionId: string,
+    descripcion: string | null,
+  ): Promise<Activo> {
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(id)}/descripcion`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ organizacionId, descripcion }),
+      },
+    );
+    return (await res.json()) as Activo;
+  },
+
+  async getCatalogoTipos(): Promise<CatalogoTipoActivo[]> {
+    const res = await authorizedFetch('/admin/catalogo-tipos');
+    return (await res.json()) as CatalogoTipoActivo[];
+  },
+
+  async altaCatalogoTipo(
+    input: AltaCatalogoTipoInput,
+  ): Promise<CatalogoTipoActivo> {
+    const res = await authorizedFetch('/admin/catalogo-tipos', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return (await res.json()) as CatalogoTipoActivo;
+  },
+
+  async getDocumentosActivo(
+    activoId: string,
+    organizacionId: string,
+  ): Promise<DocumentoActivo[]> {
+    const params = new URLSearchParams({ organizacionId });
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(activoId)}/documentos?${params.toString()}`,
+    );
+    return (await res.json()) as DocumentoActivo[];
+  },
+
+  async altaDocumentoActivo(
+    activoId: string,
+    input: AltaDocumentoActivoInput,
+  ): Promise<DocumentoActivo> {
+    const res = await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(activoId)}/documentos`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return (await res.json()) as DocumentoActivo;
+  },
+
+  async eliminarDocumentoActivo(
+    activoId: string,
+    documentoId: string,
+    organizacionId: string,
+  ): Promise<void> {
+    await authorizedFetch(
+      `/admin/activos/${encodeURIComponent(activoId)}/documentos/${encodeURIComponent(documentoId)}`,
+      { method: 'DELETE', body: JSON.stringify({ organizacionId }) },
+    );
+  },
+
+  async getInventarios(organizacionId: string): Promise<SesionInventario[]> {
+    const params = new URLSearchParams({ organizacionId });
+    const res = await authorizedFetch(`/inventarios?${params.toString()}`);
+    return (await res.json()) as SesionInventario[];
+  },
+
+  async getInventarioDetalle(id: string): Promise<SesionInventarioDetalle> {
+    const res = await authorizedFetch(`/inventarios/${encodeURIComponent(id)}`);
+    return (await res.json()) as SesionInventarioDetalle;
+  },
+
+  // DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"), vía el puente de CIS.
+  async getInventarioResumenControl(id: string): Promise<ResumenControlArea> {
+    const res = await authorizedFetch(
+      `/inventarios/${encodeURIComponent(id)}/control`,
+    );
+    return (await res.json()) as ResumenControlArea;
   },
 
   // DOC-022 3 — sin organizacionId como parámetro: DirectivoGuard en CIS lo deriva siempre del

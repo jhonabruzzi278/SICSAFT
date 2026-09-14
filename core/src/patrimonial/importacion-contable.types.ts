@@ -10,6 +10,8 @@ export interface FilaImportacionContable {
   areaId?: string;
   ubicacionId?: string;
   valorPatrimonial?: number;
+  // DOC-033 — ISO 8601 (solo fecha), distinta de `fecha_alta` (cuándo el bien entró a la BPI).
+  fechaCompra?: string;
 }
 
 // DOC-012 6 — "idempotente por fila, no por request completo": cada fila se resuelve

@@ -36,6 +36,9 @@ const activoCatalogoSchema = z.object({
   // Nombres legibles de la estructura: sin esto la APP QR mostraba UUIDs crudos en el
   // selector de area/ubicacion y el operador no podia saber que estaba por relevar.
   areaNombre: z.string(),
+  // DOC-033 — "Dirección" (`areas.dependencia`), para el catálogo enriquecido de CCP y el
+  // selector de escaneo de APP QR. Null cuando el área no la tiene cargada (cliente simple).
+  areaDependencia: z.string().nullable(),
   ubicacionNombre: z.string(),
   // `familia` la calculaba CORE y CIS la descartaba: el tablero del Directivo no tenia de
   // donde sacar la categoria de un activo y mostraba una tabla de demo. `incorporadoEn` es
@@ -43,6 +46,14 @@ const activoCatalogoSchema = z.object({
   familia: z.string(),
   incorporadoEn: z.string(),
   estado: z.string(),
+  // DOC-033 — columnas del catálogo enriquecido de CCP, todas nullable (dependen de si el
+  // Excel del cliente las trae).
+  marca: z.string().nullable(),
+  modelo: z.string().nullable(),
+  serie: z.string().nullable(),
+  valorPatrimonial: z.number().nullable(),
+  fechaCompra: z.string().nullable(),
+  responsableNombre: z.string().nullable(),
 });
 
 export const catalogoResponseSchema = z.object({
@@ -113,6 +124,13 @@ export const sesionDetalleResponseSchema = sesionResumenSchema.extend({
       codigoQr: z.string(),
       resultado: z.string(),
       observaciones: z.string().nullable(),
+      // DOC-029 RF-I — lo que el controlador declaró por este AFT durante el control, para que
+      // CCP pueda mostrar toda la información recibida por escaneo (antes solo llegaba agregada
+      // en resumenControlResponseSchema, nunca por fila individual).
+      estadoDeclarado: z
+        .enum(['activo', 'mantenimiento', 'inactivo'])
+        .nullable(),
+      bajaSugeridaMotivo: z.string().nullable(),
     }),
   ),
 });
@@ -205,6 +223,7 @@ export const areaResponseSchema = z.object({
   codigo: z.string(),
   nombre: z.string(),
   dependencia: z.string().nullable(),
+  departamento: z.string().nullable(),
   centroCosto: z.string().nullable(),
   responsableId: z.string().nullable(),
   ubicacionPrincipalId: z.string().nullable(),
@@ -226,6 +245,7 @@ export interface PostAreaRequest {
   codigo: string;
   nombre: string;
   dependencia?: string;
+  departamento?: string;
   centroCosto?: string;
 }
 
@@ -238,6 +258,7 @@ export interface PatchAreaRequest {
   codigo?: string;
   nombre?: string;
   dependencia?: string;
+  departamento?: string;
   centroCosto?: string;
   responsableId?: string;
   ubicacionPrincipalId?: string;
@@ -549,6 +570,9 @@ const filaLoteImportacionContableRowSchema = z.object({
   responsableNombre: z.string().nullable(),
   categoriaNombre: z.string().nullable(),
   nombreAft: z.string().nullable(),
+  marca: z.string().nullable(),
+  modelo: z.string().nullable(),
+  fechaCompra: z.string().nullable(),
   crudo: z.record(z.string(), z.string()),
   dryRunResultado: z.enum(['crear', 'ya_importado', 'conflicto']).nullable(),
   dryRunMotivo: z.string().nullable(),

@@ -38,6 +38,8 @@ const SELECT_ACTIVO_SQL = `
     a.responsable_id AS "responsableId",
     a.estado,
     a.descripcion,
+    a.valor_patrimonial AS "valorPatrimonial",
+    a.fecha_compra AS "fechaCompra",
     -- Cuando el bien entro a la BPI (no la fecha contable de alta): es lo que necesita el
     -- tablero para 'ultimas incorporaciones', que hasta ahora mostraba fechas de una tabla
     -- de demo.
@@ -49,6 +51,10 @@ const SELECT_ACTIVO_SQL = `
     c.marca,
     c.modelo,
     ar.nombre AS "areaNombre",
+    -- DOC-033 — "Dirección" (texto libre que agrupa áreas, ver areas.dependencia). Null cuando
+    -- el área no la tiene cargada (cliente simple).
+    ar.dependencia AS "areaDependencia",
+    r.nombre AS "responsableNombre",
     -- DOC-006 2: la ubicacion no tiene un campo nombre propio, se compone de sus partes
     -- físicas. Las que crea la ingesta contable no tienen ninguna (el Excel del contador no
     -- trae ubicación), así que caen al nombre del área: es lo único cierto que se sabe de
@@ -62,11 +68,14 @@ const SELECT_ACTIVO_SQL = `
   JOIN catalogo_activos c ON c.id = a.catalogo_id
   LEFT JOIN areas ar ON ar.id = a.area_id
   LEFT JOIN ubicaciones u ON u.id = a.ubicacion_id
+  LEFT JOIN responsables r ON r.id = a.responsable_id
 `;
 
 interface ActivoRow {
   incorporadoEn: Date | string | null;
   areaNombre: string | null;
+  areaDependencia: string | null;
+  responsableNombre: string | null;
   ubicacionNombre: string | null;
   id: string;
   codigoPatrimonial: string;
@@ -78,6 +87,8 @@ interface ActivoRow {
   responsableId: string | null;
   estado: EstadoActivo;
   descripcion: string | null;
+  valorPatrimonial: string | null;
+  fechaCompra: Date | string | null;
   ultimoInventario: string | null;
   tipo: string;
   familia: string;
@@ -208,8 +219,9 @@ export class ActivoRepository {
       await this.pool.query(
         `INSERT INTO activos
            (id, codigo_patrimonial, codigo_qr, organizacion_id, catalogo_id, serie, estado,
-            responsable_id, area_id, ubicacion_id, valor_patrimonial, fecha_alta, descripcion)
-         VALUES ($1, $2, $3, $4, $5, $6, 'activo', $7, $8, $9, $10, CURRENT_DATE, $11)`,
+            responsable_id, area_id, ubicacion_id, valor_patrimonial, fecha_alta, descripcion,
+            fecha_compra)
+         VALUES ($1, $2, $3, $4, $5, $6, 'activo', $7, $8, $9, $10, CURRENT_DATE, $11, $12)`,
         [
           id,
           input.codigoPatrimonial,
@@ -222,6 +234,7 @@ export class ActivoRepository {
           input.ubicacionId ?? null,
           input.valorPatrimonial ?? null,
           input.descripcion ?? null,
+          input.fechaCompra ?? null,
         ],
       );
     } catch (error: unknown) {
@@ -354,6 +367,7 @@ export class ActivoRepository {
       // Etiquetas para quien opera: sin esto la APP QR mostraba UUIDs crudos en el selector
       // de área/ubicación y el operador no podía saber qué estaba por relevar.
       areaNombre: row.areaNombre ?? row.areaId ?? '',
+      areaDependencia: row.areaDependencia,
       ubicacionNombre: row.ubicacionNombre ?? row.ubicacionId ?? '',
       // `pg` devuelve timestamptz como Date; el contrato viaja como ISO.
       incorporadoEn:
@@ -361,6 +375,18 @@ export class ActivoRepository {
           ? row.incorporadoEn.toISOString()
           : (row.incorporadoEn ?? ''),
       estado: row.estado,
+      marca: row.marca,
+      modelo: row.modelo,
+      serie: row.serie,
+      // `pg` devuelve `numeric` como string — se convierte igual que
+      // importacion-contable-lote.repository.ts.
+      valorPatrimonial:
+        row.valorPatrimonial === null ? null : Number(row.valorPatrimonial),
+      fechaCompra:
+        row.fechaCompra instanceof Date
+          ? row.fechaCompra.toISOString().slice(0, 10)
+          : row.fechaCompra,
+      responsableNombre: row.responsableNombre,
     };
   }
 }

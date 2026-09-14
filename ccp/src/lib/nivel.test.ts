@@ -33,17 +33,22 @@ describe('nivelActual', () => {
 });
 
 describe('moduloHabilitado', () => {
-  it('en Nivel 1 el CCP esta completo: dashboard operativo, activos, estructura, importaciones, etiquetas, auditoria', () => {
+  it('en Nivel 1 el CCP esta completo: dashboard operativo, estructura, importaciones, auditoria', () => {
     window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: '1' };
     for (const path of [
       'dashboard',
-      'activos',
       'estructura',
       'importaciones',
       'auditoria',
-      'etiquetas',
     ]) {
       expect(moduloHabilitado(path)).toBe(true);
+    }
+  });
+
+  it('activos se mudo al CIP (Fase 3) — ya no es un modulo del CCP en ningun nivel', () => {
+    for (const nivel of ['1', '2']) {
+      window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: nivel };
+      expect(moduloHabilitado('activos')).toBe(false);
     }
   });
 
@@ -60,11 +65,24 @@ describe('moduloHabilitado', () => {
     expect(moduloHabilitado('estructura')).toBe(true);
   });
 
-  it('contratos e inventarios estan retirados del CCP en cualquier nivel', () => {
+  it('contratos esta retirado del CCP en cualquier nivel', () => {
     for (const nivel of ['1', '2']) {
       window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: nivel };
       expect(moduloHabilitado('contratos')).toBe(false);
+    }
+  });
+
+  it('inventarios ("Controles de areas") se mudo al CIP (Fase 4) — ya no es un modulo del CCP en ningun nivel', () => {
+    for (const nivel of ['1', '2']) {
+      window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: nivel };
       expect(moduloHabilitado('inventarios')).toBe(false);
+    }
+  });
+
+  it('etiquetas se extrajo a un programa externo (Fase 5) — ya no es un modulo del CCP en ningun nivel', () => {
+    for (const nivel of ['1', '2']) {
+      window.__SICSAFT_PORTAL_CONFIG__ = { VITE_SICSAFT_NIVEL: nivel };
+      expect(moduloHabilitado('etiquetas')).toBe(false);
     }
   });
 });

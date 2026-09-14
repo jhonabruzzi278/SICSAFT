@@ -26,11 +26,23 @@ export interface ActivoCatalogo {
   ubicacionId: string;
   // Etiquetas para el operador, derivadas en CORE (no son columnas de `activos`).
   areaNombre: string;
+  // DOC-033 — "Dirección" (`areas.dependencia`), para el catálogo enriquecido de CCP y el
+  // selector de escaneo de APP QR. Null cuando el área no la tiene cargada (cliente simple).
+  areaDependencia: string | null;
   ubicacionNombre: string;
   familia: string;
   /** ISO 8601. Cuando el activo entro a la BPI. */
   incorporadoEn: string;
   estado: string;
+  // DOC-033 — columnas del catálogo enriquecido de CCP, todas nullable (dependen de si el
+  // Excel del cliente las trae).
+  marca: string | null;
+  modelo: string | null;
+  serie: string | null;
+  valorPatrimonial: number | null;
+  /** ISO 8601 (solo fecha, "YYYY-MM-DD"). Fecha de compra real, distinta de `incorporadoEn`. */
+  fechaCompra: string | null;
+  responsableNombre: string | null;
 }
 
 export interface CatalogoResponse {
