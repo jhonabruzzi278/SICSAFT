@@ -79,13 +79,13 @@ describe('DOC-021 — cierre de gaps del CCP (e2e)', () => {
 
     it('permite limpiar la descripcion con null', async () => {
       const activoId = await crearActivo();
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .patch(`/activos/${activoId}/descripcion`)
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
         .send(buildEscrituraOficialBody({ descripcion: 'algo' }))
         .expect(200);
 
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .patch(`/activos/${activoId}/descripcion`)
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
         .send(buildEscrituraOficialBody({ descripcion: null }))
