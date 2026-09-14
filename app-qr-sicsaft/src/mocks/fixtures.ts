@@ -33,6 +33,17 @@ const areaNameMap: Record<string, string> = {
   'area-005': 'PANTRY',
 };
 
+// Mismos nombres que las sedes de org-001 (arriba) — buildOrganizationTree (qr-connector.ts)
+// deriva el nombre de la ubicación de `ubicacionNombre` del activo, no de `sedes`, así que sin
+// esto el árbol mostraba el id crudo ("loc-001") en vez del nombre.
+const locationNameMap: Record<string, string> = {
+  'loc-001': 'Oficina Director General',
+  'loc-002': 'Oficina Secretaría Ejecutiva',
+  'loc-003': 'Salón de Reuniones',
+  'loc-004': 'Departamento Jurídico',
+  'loc-005': 'Pantry & Serv. Generales',
+};
+
 export const MOCK_CATALOGO: ConnectorAsset[] = FULL_CATALOG.filter(
   (p): p is typeof p & { organizationId: string; areaId: string; locationId: string } =>
     Boolean(p.organizationId && p.areaId && p.locationId),
@@ -44,6 +55,7 @@ export const MOCK_CATALOGO: ConnectorAsset[] = FULL_CATALOG.filter(
   areaId: p.areaId,
   areaNombre: areaNameMap[p.areaId] || p.areaId,
   ubicacionId: p.locationId,
+  ubicacionNombre: locationNameMap[p.locationId] || p.locationId,
 }));
 
 // QR-DG-001 con una variante — ejercita la resolución de códigos "BASE-VARIANTE" (labels.ts,

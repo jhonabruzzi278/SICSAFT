@@ -4,7 +4,20 @@ import { resetApp, scanCode } from './helpers.js';
 // Fase 3.1/DOC-017 — selector de modo, veredicto de sesión, estado operativo declarado, baja
 // sugerida y lista de AFT fuera de área con su área real.
 // Ubicación por defecto de los tests (tests/helpers.js: org-001/area-001/loc-001): esperados =
-// P001-P004 (ver catalog-data.ts).
+// QR-DG-001 a QR-DG-004 y QR-DG-010 a QR-DG-015 (10 activos, ver catalog-data.ts). QR-DG-008 =
+// otra área (area-002, OFICINA SECRETARIA EJECUTIVA, ver fixtures.ts areaNameMap).
+const ESPERADOS_AREA_001_LOC_001 = [
+  'QR-DG-001',
+  'QR-DG-002',
+  'QR-DG-003',
+  'QR-DG-004',
+  'QR-DG-010',
+  'QR-DG-011',
+  'QR-DG-012',
+  'QR-DG-013',
+  'QR-DG-014',
+  'QR-DG-015',
+];
 
 test('el selector de modo muestra Modo 3 deshabilitado y Modo 1/2 llevan al mismo escaneo', async ({ page }) => {
   await resetApp(page);
@@ -23,8 +36,7 @@ test('el veredicto es exitoso cuando no falta nada y nada aparece fuera de área
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  for (let i = 1; i <= 11; i++) {
-    const code = `DTP-${String(i).padStart(2, '0')}`;
+  for (const code of ESPERADOS_AREA_001_LOC_001) {
     await scanCode(page, code);
   }
   await page.click('[data-testid="finish-btn"]');
@@ -35,7 +47,7 @@ test('el veredicto es exitoso cuando no falta nada y nada aparece fuera de área
   // DOC-029 RF-I / CONTRATO-PANTALLA-8 — bloques 2 y 4 del informe de control de área.
   await expect(page.locator('[data-testid="report-area-pct"]')).toHaveText('100 %');
   const escaneados = page.locator('[data-testid="report-scanned-list"] li');
-  await expect(escaneados).toHaveCount(11);
+  await expect(escaneados).toHaveCount(ESPERADOS_AREA_001_LOC_001.length);
   await expect(escaneados.first()).toContainText('ORDINARIO');
 });
 
@@ -43,10 +55,9 @@ test('el veredicto es aceptable cuando falta un activo pero nada aparece fuera d
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  // DTP-01 a DTP-10 (esta área) — DTP-11 queda faltante, nada aparece fuera de área: exactamente un
+  // 9 de los 10 esperados (queda 1 faltante) — nada aparece fuera de área: exactamente un
   // problema, no ambos (ver lib/verdict.ts).
-  for (let i = 1; i <= 10; i++) {
-    const code = `DTP-${String(i).padStart(2, '0')}`;
+  for (const code of ESPERADOS_AREA_001_LOC_001.slice(0, -1)) {
     await scanCode(page, code);
   }
   await page.click('[data-testid="finish-btn"]');
@@ -59,9 +70,10 @@ test('el veredicto es defectuoso cuando faltan activos y aparece uno de otra ár
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  // DTP-01 (esta área) + DTP-12 (otra área: Departamento Técnico) — DTP-02 a DTP-11 quedan faltantes.
-  await scanCode(page, 'DTP-01');
-  await scanCode(page, 'DTP-12');
+  // QR-DG-001 (esta área) + QR-DG-008 (otra área: OFICINA SECRETARIA EJECUTIVA) — el resto de
+  // ESPERADOS_AREA_001_LOC_001 queda faltante.
+  await scanCode(page, 'QR-DG-001');
+  await scanCode(page, 'QR-DG-008');
   await page.click('[data-testid="finish-btn"]');
 
   await expect(page.locator('[data-testid="report-verdict"]')).toHaveAttribute('data-verdict', 'defectuoso');
@@ -70,7 +82,7 @@ test('el veredicto es defectuoso cuando faltan activos y aparece uno de otra ár
 test('declarar mantenimiento en un activo y confirmar el envío no rompe el flujo', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'DTP-01');
+  await scanCode(page, 'QR-DG-001');
 
   await page.selectOption('[data-testid="estado-declarado-select"]', 'mantenimiento');
   await expect(page.locator('[data-testid="estado-declarado-select"]')).toHaveValue('mantenimiento');
@@ -90,7 +102,7 @@ test('declarar mantenimiento en un activo y confirmar el envío no rompe el fluj
 test('sugerir baja guarda el motivo sin ejecutar ninguna baja', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'DTP-01');
+  await scanCode(page, 'QR-DG-001');
 
   await page.click('[data-testid="suggest-baja-btn"]');
   await expect(page.locator('[data-testid="baja-sugerida-modal"]')).toBeVisible();
@@ -108,10 +120,10 @@ test('sugerir baja guarda el motivo sin ejecutar ninguna baja', async ({ page })
 test('un activo de otra área aparece agrupado por su área real en el reporte', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'DTP-12'); // otra área: DEPARTAMENTO TECNICO
+  await scanCode(page, 'QR-DG-008'); // otra área: OFICINA SECRETARIA EJECUTIVA (area-002)
   await page.click('[data-testid="finish-btn"]');
 
   await expect(page.locator('[data-testid="report-out-of-area-list"]')).toBeVisible();
-  await expect(page.locator('[data-testid="report-out-of-area-list"]')).toContainText('DEPARTAMENTO TECNICO');
-  await expect(page.locator('[data-testid="report-out-of-area-list"]')).toContainText('DTP-12');
+  await expect(page.locator('[data-testid="report-out-of-area-list"]')).toContainText('OFICINA SECRETARIA EJECUTIVA');
+  await expect(page.locator('[data-testid="report-out-of-area-list"]')).toContainText('QR-DG-008');
 });
