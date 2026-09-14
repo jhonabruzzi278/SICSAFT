@@ -41,37 +41,51 @@ export function ControlesAreaTab() {
   );
 
   useEffect(() => {
+    let cancelled = false;
+    setSesiones(null);
+    setSeleccionId(null);
+    setDetalle(null);
+    setDetalleError(null);
+    setVistaDetalle('control');
     if (!organizacionId) return;
     setListError(null);
     cisClient
       .getInventarios(organizacionId)
       .then((data) => {
+        if (cancelled) return;
         setSesiones(data);
-        // Autoselecciona la primera sesión solo si el usuario todavía no eligió ninguna. El
-        // valor actual se lee desde el updater en vez de cerrar sobre `seleccionId`: con esa
-        // variable en las dependencias del efecto, cada cambio de selección volvería a pedirle
-        // la lista completa a CIS.
         if (data.length > 0) {
-          setSeleccionId((actual) => (actual ? actual : data[0].id));
+          setSeleccionId(data[0].id);
         }
       })
       .catch((err: unknown) => {
+        if (cancelled) return;
         setListError(err instanceof Error ? err.message : 'Error desconocido');
       });
+    return () => {
+      cancelled = true;
+    };
   }, [organizacionId]);
 
   useEffect(() => {
     if (!seleccionId) return;
+    let cancelled = false;
     setDetalle(null);
     setDetalleError(null);
     cisClient
       .getInventarioDetalle(seleccionId)
-      .then(setDetalle)
+      .then((data) => {
+        if (!cancelled) setDetalle(data);
+      })
       .catch((err: unknown) => {
+        if (cancelled) return;
         setDetalleError(
           err instanceof Error ? err.message : 'Error desconocido',
         );
       });
+    return () => {
+      cancelled = true;
+    };
   }, [seleccionId]);
 
   if (!organizacionId) {
@@ -119,8 +133,7 @@ export function ControlesAreaTab() {
                   {sesiones.map((sesion) => (
                     <tr
                       key={sesion.id}
-                      onClick={() => setSeleccionId(sesion.id)}
-                      className={`cursor-pointer border-t border-border transition-colors hover:bg-bg-raised ${
+                      className={`border-t border-border transition-colors hover:bg-bg-raised ${
                         seleccionId === sesion.id
                           ? 'bg-accent/10 border-l-4 border-l-accent'
                           : ''
@@ -139,7 +152,15 @@ export function ControlesAreaTab() {
                         {sesion.operadorId}
                       </td>
                       <td className="px-4 py-3">
-                        <Badge>{sesion.estado}</Badge>
+                        <button
+                          type="button"
+                          aria-label={`Ver sesión del ${formatFechaHora(sesion.fechaCierre)}`}
+                          aria-pressed={seleccionId === sesion.id}
+                          onClick={() => setSeleccionId(sesion.id)}
+                          className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                        >
+                          <Badge>{sesion.estado}</Badge>
+                        </button>
                       </td>
                     </tr>
                   ))}
