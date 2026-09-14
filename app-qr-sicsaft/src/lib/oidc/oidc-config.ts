@@ -7,6 +7,10 @@ export interface OidcConfig {
   clientId: string;
   redirectUri: string;
   cisUrl: string;
+  // Cuando el CORE sirve la PWA por HTTPS en la LAN, el canje de credenciales no puede ir
+  // directo a Keycloak por HTTP: Chromium lo bloquea como contenido mixto. El CORE expone este
+  // endpoint de mismo origen y lo reenvía internamente a Keycloak.
+  tokenUrl?: string;
 }
 
 // DOC-028 Fase C.0 / Fase D — cuando el .exe embebido de sicsaft-core sirve esta PWA, la config
@@ -25,11 +29,19 @@ function requireEnv(name: string): string {
   return value;
 }
 
+function optionalEnv(name: string): string | undefined {
+  const value =
+    window.__SICSAFT_PORTAL_CONFIG__?.[name] || import.meta.env[name];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
 export function loadOidcConfig(): OidcConfig {
+  const tokenUrl = optionalEnv('VITE_KEYCLOAK_TOKEN_URL');
   return {
     issuer: requireEnv('VITE_KEYCLOAK_ISSUER'),
     clientId: requireEnv('VITE_KEYCLOAK_CLIENT_ID'),
     redirectUri: `${window.location.origin}/auth/callback`,
     cisUrl: requireEnv('VITE_CIS_URL'),
+    ...(tokenUrl ? { tokenUrl } : {}),
   };
 }
