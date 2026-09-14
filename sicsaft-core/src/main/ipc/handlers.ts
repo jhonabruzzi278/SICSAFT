@@ -234,6 +234,8 @@ function asegurarServidoresPortales(): Promise<void> {
 function asegurarServidorAppQr(): Promise<void> {
   promesaServidorAppQr ??= (async () => {
     const ipLan = obtenerIpLan();
+    const origen = `https://${ipLan}:${PUERTO_APP_QR}`;
+    const issuer = issuerDelRealm();
     const tls = await obtenerCertificadoAppQr();
     await iniciarServidorEstatico({
       nombre: "app-qr-sicsaft",
@@ -242,10 +244,24 @@ function asegurarServidorAppQr(): Promise<void> {
       host: ipLan,
       tls,
       configRuntime: {
-        VITE_KEYCLOAK_ISSUER: `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}`,
+        VITE_KEYCLOAK_ISSUER: issuer,
         VITE_KEYCLOAK_CLIENT_ID: CLIENT_ID_APP_QR,
-        VITE_CIS_URL: `http://${ipLan}:${PUERTO_CIS}`,
+        // La PWA se abre por HTTPS: token y API deben conservar el mismo origen para que
+        // Android WebView no bloquee estos fetch como contenido mixto.
+        VITE_KEYCLOAK_TOKEN_URL: `${origen}${RUTA_PROXY_TOKEN}`,
+        VITE_CIS_URL: `${origen}${RUTA_PROXY_CIS}`,
       },
+      proxies: [
+        {
+          prefijo: RUTA_PROXY_CIS,
+          destino: `http://127.0.0.1:${PUERTO_CIS}`,
+        },
+        {
+          prefijo: RUTA_PROXY_TOKEN,
+          destino: `${issuer}/protocol/openid-connect/token`,
+          exacto: true,
+        },
+      ],
     });
   })().catch((err: unknown) => {
     promesaServidorAppQr = null;
