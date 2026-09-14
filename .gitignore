@@ -77,8 +77,10 @@ sicsaft-core/release/
 # de generación de QR/etiquetas (Fase 5, reestructuración CCP/CIP).
 herramientas/generador-qr/release/
 
-# Artefactos locales del prototipo Electron de CCP (sin fuentes en este árbol).
-ccp-desktop/release/
+# ccp-desktop (launcher Electron del puesto del AFT, DOC-028 Fase G): salida de electron-builder
+# -- "release" y variantes con sufijo de timestamp que genera --dir en pruebas locales
+# (release-sicsaft-core, release-sicsaft-core-<ts>), nunca se versionan.
+ccp-desktop/release*/
 
 # Informes/entregables generados para el usuario — no son código ni documentación del repo
 /SICSAFT-informe-integral-proyecto*.docx
