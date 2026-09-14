@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,9 +8,12 @@ import {
   CisApiError,
   type Area,
   type Responsable,
-  type Sede,
-  type Ubicacion,
 } from '@/lib/cis-client';
+// Antes vivían en lib/etiquetas.ts (compartidas con la hoja de etiquetas QR) — ese módulo se
+// extrajo del CCP en la Fase 5 de la reestructuración CCP/CIP (2026-09-13, ver
+// herramientas/generador-qr/), así que quedan acá como constantes locales, únicas usuarias ahora.
+const SIN_DIRECCION = 'Sin dirección';
+const SIN_DEPARTAMENTO = 'Sin departamento';
 import {
   Alert,
   Badge,
@@ -20,83 +23,38 @@ import {
   Input,
   Label,
 } from '@/components/ui';
+import { EditFormFooter } from '@/pages/estructura/EditFormFooter';
 
-// RF-05 — módulo Áreas/Ubicaciones/Responsables: ABM, el único módulo del MVP que no reusaba
-// infraestructura ya construida (ni CORE ni CIS tenían ningún endpoint todavía). Una sola pantalla
-// con las tres secciones, en el orden en que se necesitan para completar el ciclo real (un Area
-// primero, porque Responsable exige un areaId existente; Ubicacion exige un sedeId — se toma de
-// las sedes del contrato vigente de la organización, ya cargadas en el hub).
-
-// Pie compartido de los formularios de edición de Área/Ubicación (error + acciones) — mismo
-// bloque en ambas secciones, cada una con su propio estado de edición local (no hay nada real
-// para compartir más allá de este fragmento presentacional).
-function EditFormFooter({
-  error,
-  isSubmitting,
-  onCancel,
-}: {
-  error: string | null;
-  isSubmitting: boolean;
-  onCancel: () => void;
-}) {
-  return (
-    <>
-      {error && <Alert>{error}</Alert>}
-      <div className="flex gap-2">
-        <Button type="submit" disabled={isSubmitting} className="flex-1">
-          {isSubmitting ? 'Guardando…' : 'Guardar cambios'}
-        </Button>
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancelar
-        </Button>
-      </div>
-    </>
-  );
-}
+// RF-05 — módulo "Organización": Organigrama (Dirección→Departamento→Área) + rollup de
+// Direcciones + ABM de Áreas y Responsables. La sección de Ubicaciones que vivía acá se quitó de
+// esta pantalla (2026-09-13) — el backend de Ubicacion sigue existiendo (UbicacionRepository en
+// CORE sigue resolviendo/creando la ubicación placeholder que necesita todo activo importado,
+// ver `ubicacion.repository.ts` `resolverPorArea`), pero ya no tiene ABM propio en el CCP.
 
 const altaAreaSchema = z.object({
   codigo: z.string().min(1, 'Requerido'),
   nombre: z.string().min(1, 'Requerido'),
   dependencia: z.string().optional(),
+  departamento: z.string().optional(),
   centroCosto: z.string().optional(),
 });
 type AltaAreaForm = z.infer<typeof altaAreaSchema>;
 
 // RF-05 (cierra el gap "ABM completo") — edición de Área, incluida la asignación de
 // responsableId/ubicacionPrincipalId (DOC-005 2, el ciclo que el alta dejaba abierto a propósito).
-// Ids en texto libre, mismo criterio que "Área (id)" en el formulario de Ubicaciones — esta
-// sección no tiene cargadas las listas de Responsables/Ubicaciones de las otras (viven con su
-// propio scope de sede/área), agregar un selector cruzado es más alcance del que este incremento
-// necesita.
+// Ids en texto libre — esta sección no tiene cargada la lista de Responsables de la otra sección
+// (vive con su propio scope de área), agregar un selector cruzado es más alcance del que este
+// incremento necesita.
 const actualizarAreaSchema = z.object({
   codigo: z.string().optional(),
   nombre: z.string().optional(),
   dependencia: z.string().optional(),
+  departamento: z.string().optional(),
   centroCosto: z.string().optional(),
   responsableId: z.string().optional(),
   ubicacionPrincipalId: z.string().optional(),
 });
 type ActualizarAreaForm = z.infer<typeof actualizarAreaSchema>;
-
-const altaUbicacionSchema = z.object({
-  sedeId: z.string().min(1, 'Requerido'),
-  edificio: z.string().optional(),
-  piso: z.string().optional(),
-  areaId: z.string().optional(),
-  oficina: z.string().optional(),
-});
-type AltaUbicacionForm = z.infer<typeof altaUbicacionSchema>;
-
-// RF-05 (cierra el gap "ABM completo") — edición de Ubicación. Sin sedeId: mover de sede es un
-// traslado, una operación distinta y más grande, fuera de alcance (mismo criterio que CORE/CIS).
-const actualizarUbicacionSchema = z.object({
-  edificio: z.string().optional(),
-  piso: z.string().optional(),
-  areaId: z.string().optional(),
-  oficina: z.string().optional(),
-  dependencia: z.string().optional(),
-});
-type ActualizarUbicacionForm = z.infer<typeof actualizarUbicacionSchema>;
 
 const altaResponsableSchema = z.object({
   identificacion: z.string().min(1, 'Requerido'),
@@ -114,7 +72,10 @@ export function EstructuraPage() {
 
   const [areas, setAreas] = useState<Area[] | null>(null);
   const [areasError, setAreasError] = useState<string | null>(null);
-  const [sedes, setSedes] = useState<Sede[] | null>(null);
+  // DOC-033 — nombre real de la organización para el encabezado de la jerarquía
+  // Organización→Dirección→Departamento→Área (siempre "lo más arriba", ver diseño). Antes se
+  // descartaba, este mismo `authSession()` ya lo trae.
+  const [organizacionNombre, setOrganizacionNombre] = useState('');
 
   useEffect(() => {
     if (!organizacionId) return;
@@ -122,9 +83,12 @@ export function EstructuraPage() {
       .authSession()
       .then((res) => {
         const org = res.organizaciones.find((o) => o.id === organizacionId);
-        setSedes(org?.sedes ?? []);
+        setOrganizacionNombre(org?.nombre ?? '');
       })
-      .catch(() => setSedes([]));
+      .catch(() => {
+        // Sin nombre de organización el encabezado del organigrama cae al fallback genérico
+        // ("Organización") — no es un error que el operador necesite ver.
+      });
   }, [organizacionId]);
 
   function cargarAreas() {
@@ -152,24 +116,289 @@ export function EstructuraPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-accent-strong">
-        Áreas, ubicaciones y responsables
+      <h1 className="mb-1 text-2xl font-semibold text-accent-strong">
+        Organización
       </h1>
+      <p className="mb-6 text-sm text-text-dim">
+        Organigrama, direcciones, áreas y responsables.
+      </p>
       <div className="space-y-8">
+        <JerarquiaSection
+          organizacionNombre={organizacionNombre}
+          areas={areas}
+        />
+        <DireccionesSection areas={areas} />
         <AreasSection
           organizacionId={organizacionId}
           areas={areas}
           error={areasError}
           onCreated={cargarAreas}
         />
-        <UbicacionesSection
-          organizacionId={organizacionId}
-          sedes={sedes}
-          areas={areas}
-        />
         <ResponsablesSection organizacionId={organizacionId} areas={areas} />
       </div>
     </div>
+  );
+}
+
+// Acento por dirección — mismo criterio que la paleta de categorías del Resumen Ejecutivo (CIP):
+// un color fijo por posición, no por hash del nombre, para que el orden alfabético ya estable de
+// `porDireccion` alcance para que el color de una dirección no salte de sesión a sesión. "Sin
+// dirección" no entra en el ciclo — se distingue con un estilo neutro/punteado a propósito, ver
+// abajo.
+const ACENTO_DIRECCION = [
+  { borde: 'border-l-blue-500', punto: 'bg-blue-500', texto: 'text-blue-400' },
+  {
+    borde: 'border-l-emerald-500',
+    punto: 'bg-emerald-500',
+    texto: 'text-emerald-400',
+  },
+  {
+    borde: 'border-l-amber-500',
+    punto: 'bg-amber-500',
+    texto: 'text-amber-400',
+  },
+  {
+    borde: 'border-l-purple-500',
+    punto: 'bg-purple-500',
+    texto: 'text-purple-400',
+  },
+  { borde: 'border-l-sky-500', punto: 'bg-sky-500', texto: 'text-sky-400' },
+] as const;
+
+function agruparAreasPorDireccion(areas: Area[] | null) {
+  const grupos = new Map<string, Area[]>();
+  for (const area of areas ?? []) {
+    const direccion = area.dependencia?.trim() || SIN_DIRECCION;
+    const lista = grupos.get(direccion) ?? [];
+    lista.push(area);
+    grupos.set(direccion, lista);
+  }
+  return Array.from(grupos.entries()).sort(([a], [b]) =>
+    a === SIN_DIRECCION
+      ? 1
+      : b === SIN_DIRECCION
+        ? -1
+        : a.localeCompare(b, 'es'),
+  );
+}
+
+// DOC-033 — organigrama Organización→Dirección→Departamento→Área sobre los mismos datos que la
+// tabla plana de abajo (ningún endpoint nuevo). "Dirección" es `area.dependencia` y
+// "Departamento" es `area.departamento`, ambos texto libre, ingresados por el Profesional de AFT
+// vía las columnas DIRECCION/DEPARTAMENTO del Excel de carga masiva — mismo criterio y misma
+// etiqueta de "sin …" que ya usa la hoja de etiquetas (DOC-029 RF-F, ver lib/etiquetas.ts), para
+// no inventar una segunda convención para el mismo concepto. Tarjetas en vez de un diagrama de
+// cajas-y-líneas a propósito: con datos reales (decenas de áreas, nombres largos) un layout de
+// líneas conectoras se rompe o necesita una librería nueva; una tarjeta por dirección escala mejor
+// (wrap/scroll) y sigue el mismo lenguaje visual que el resto del portal (Card + acento de color).
+function JerarquiaSection({
+  organizacionNombre,
+  areas,
+}: {
+  organizacionNombre: string;
+  areas: Area[] | null;
+}) {
+  const porDireccion = useMemo(() => {
+    return agruparAreasPorDireccion(areas).map(
+      ([direccion, areasDeDireccion]) => {
+        // Solo vale la pena sub-agrupar por Departamento si alguna área de esta Dirección
+        // realmente tiene uno cargado — si nadie usa el campo todavía, se ve como antes: lista
+        // plana de áreas, sin un "Sin departamento" repetido en cada tarjeta.
+        const usaDepartamento = areasDeDireccion.some((a) =>
+          a.departamento?.trim(),
+        );
+        if (!usaDepartamento) {
+          return { direccion, areasDeDireccion, porDepartamento: null };
+        }
+        const grupos = new Map<string, Area[]>();
+        for (const area of areasDeDireccion) {
+          const departamento = area.departamento?.trim() || SIN_DEPARTAMENTO;
+          const lista = grupos.get(departamento) ?? [];
+          lista.push(area);
+          grupos.set(departamento, lista);
+        }
+        const porDepartamento = Array.from(grupos.entries()).sort(([a], [b]) =>
+          a === SIN_DEPARTAMENTO
+            ? 1
+            : b === SIN_DEPARTAMENTO
+              ? -1
+              : a.localeCompare(b, 'es'),
+        );
+        return { direccion, areasDeDireccion, porDepartamento };
+      },
+    );
+  }, [areas]);
+
+  if (!areas || areas.length === 0) return null;
+
+  return (
+    <section>
+      <div className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-accent-strong uppercase">
+        <span>Organigrama</span>
+      </div>
+      <div className="workspace-card rounded-xl border border-border bg-bg-card p-6 shadow-elev-1">
+        <p className="text-xl font-bold tracking-tight text-text">
+          {organizacionNombre || 'Organización'}
+        </p>
+        <p className="mt-0.5 text-xs text-text-dim">
+          {porDireccion.length}{' '}
+          {porDireccion.length === 1 ? 'dirección' : 'direcciones'} ·{' '}
+          {areas.length} {areas.length === 1 ? 'área' : 'áreas'} — definidas por
+          el Profesional de AFT (carga desde Excel a la BPI).
+        </p>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {porDireccion.map(
+            ({ direccion, areasDeDireccion, porDepartamento }, i) => {
+              const esSinDireccion = direccion === SIN_DIRECCION;
+              const acento = ACENTO_DIRECCION[i % ACENTO_DIRECCION.length];
+              return (
+                <div
+                  key={direccion}
+                  className={`rounded-lg border border-border bg-bg-raised p-4 ${
+                    esSinDireccion
+                      ? 'border-dashed opacity-80'
+                      : `border-l-4 ${acento.borde}`
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p
+                      className={`text-sm font-semibold ${esSinDireccion ? 'text-text-dim' : 'text-text'}`}
+                    >
+                      {direccion}
+                    </p>
+                    <span className="shrink-0 rounded-full bg-bg-card px-2 py-0.5 text-[0.7rem] font-medium text-text-faint">
+                      {areasDeDireccion.length}
+                    </span>
+                  </div>
+                  {porDepartamento ? (
+                    <div className="mt-3 space-y-3">
+                      {porDepartamento.map(
+                        ([departamento, areasDelDepartamento]) => (
+                          <div key={departamento}>
+                            <p className="text-[0.7rem] font-semibold tracking-wide text-text-faint uppercase">
+                              {departamento}
+                            </p>
+                            <ul className="mt-1.5 space-y-1.5">
+                              {areasDelDepartamento.map((area) => (
+                                <li
+                                  key={area.id}
+                                  className="flex items-center gap-2 text-xs text-text-dim"
+                                >
+                                  {!esSinDireccion && (
+                                    <span
+                                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${acento.punto}`}
+                                    />
+                                  )}
+                                  <span className="truncate">
+                                    {area.nombre}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  ) : (
+                    <ul className="mt-3 space-y-1.5">
+                      {areasDeDireccion.map((area) => (
+                        <li
+                          key={area.id}
+                          className="flex items-center gap-2 text-xs text-text-dim"
+                        >
+                          {!esSinDireccion && (
+                            <span
+                              className={`h-1.5 w-1.5 shrink-0 rounded-full ${acento.punto}`}
+                            />
+                          )}
+                          <span className="truncate">{area.nombre}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            },
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Rollup de solo-lectura pedido aparte del Organigrama: una fila por Dirección con el conteo de
+// Departamentos y Áreas — mismo acento de color por índice que ya usa JerarquiaSection, para que
+// el color de una Dirección sea el mismo en ambas secciones.
+function DireccionesSection({ areas }: { areas: Area[] | null }) {
+  const direcciones = useMemo(() => {
+    return agruparAreasPorDireccion(areas).map(
+      ([direccion, areasDeDireccion]) => {
+        const departamentos = new Set(
+          areasDeDireccion
+            .map((a) => a.departamento?.trim())
+            .filter((d): d is string => Boolean(d)),
+        );
+        return {
+          direccion,
+          totalAreas: areasDeDireccion.length,
+          totalDepartamentos: departamentos.size,
+        };
+      },
+    );
+  }, [areas]);
+
+  if (direcciones.length === 0) return null;
+
+  return (
+    <section>
+      <h2 className="mb-4 text-lg font-medium text-text">Direcciones</h2>
+      <div className="overflow-x-auto rounded-xl border border-border bg-bg-card shadow-sm">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-bg-raised text-text-dim">
+            <tr>
+              <th className="px-4 py-2 font-medium">Dirección</th>
+              <th className="px-4 py-2 font-medium">Departamentos</th>
+              <th className="px-4 py-2 font-medium">Áreas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {direcciones.map(
+              ({ direccion, totalAreas, totalDepartamentos }, i) => {
+                const esSinDireccion = direccion === SIN_DIRECCION;
+                const acento = ACENTO_DIRECCION[i % ACENTO_DIRECCION.length];
+                return (
+                  <tr key={direccion} className="border-t border-border">
+                    <td className="px-4 py-2">
+                      <span className="flex items-center gap-2">
+                        {!esSinDireccion && (
+                          <span
+                            className={`h-1.5 w-1.5 shrink-0 rounded-full ${acento.punto}`}
+                          />
+                        )}
+                        <span
+                          className={
+                            esSinDireccion
+                              ? 'text-text-dim'
+                              : 'font-medium text-text'
+                          }
+                        >
+                          {direccion}
+                        </span>
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-text-dim">
+                      {totalDepartamentos}
+                    </td>
+                    <td className="px-4 py-2 text-text-dim">{totalAreas}</td>
+                  </tr>
+                );
+              },
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -210,6 +439,7 @@ function AreasSection({
         codigo: values.codigo,
         nombre: values.nombre,
         dependencia: values.dependencia || undefined,
+        departamento: values.departamento || undefined,
         centroCosto: values.centroCosto || undefined,
       });
       reset();
@@ -232,6 +462,7 @@ function AreasSection({
       codigo: area.codigo,
       nombre: area.nombre,
       dependencia: area.dependencia ?? '',
+      departamento: area.departamento ?? '',
       centroCosto: area.centroCosto ?? '',
       responsableId: area.responsableId ?? '',
       ubicacionPrincipalId: area.ubicacionPrincipalId ?? '',
@@ -247,6 +478,7 @@ function AreasSection({
         codigo: values.codigo || undefined,
         nombre: values.nombre || undefined,
         dependencia: values.dependencia || undefined,
+        departamento: values.departamento || undefined,
         centroCosto: values.centroCosto || undefined,
         responsableId: values.responsableId || undefined,
         ubicacionPrincipalId: values.ubicacionPrincipalId || undefined,
@@ -280,7 +512,8 @@ function AreasSection({
                 <tr>
                   <th className="px-4 py-2 font-medium">Código</th>
                   <th className="px-4 py-2 font-medium">Nombre</th>
-                  <th className="px-4 py-2 font-medium">Dependencia</th>
+                  <th className="px-4 py-2 font-medium">Dirección</th>
+                  <th className="px-4 py-2 font-medium">Departamento</th>
                   <th className="px-4 py-2 font-medium"></th>
                 </tr>
               </thead>
@@ -293,6 +526,9 @@ function AreasSection({
                     <td className="px-4 py-2">{area.nombre}</td>
                     <td className="px-4 py-2 text-text-dim">
                       {area.dependencia ?? '—'}
+                    </td>
+                    <td className="px-4 py-2 text-text-dim">
+                      {area.departamento ?? '—'}
                     </td>
                     <td className="px-4 py-2">
                       <Button variant="ghost" onClick={() => editar(area)}>
@@ -325,10 +561,17 @@ function AreasSection({
               <Input id="area-edit-nombre" {...registerEdicion('nombre')} />
             </div>
             <div>
-              <Label htmlFor="area-edit-dependencia">Dependencia</Label>
+              <Label htmlFor="area-edit-dependencia">Dirección</Label>
               <Input
                 id="area-edit-dependencia"
                 {...registerEdicion('dependencia')}
+              />
+            </div>
+            <div>
+              <Label htmlFor="area-edit-departamento">Departamento</Label>
+              <Input
+                id="area-edit-departamento"
+                {...registerEdicion('departamento')}
               />
             </div>
             <div>
@@ -379,8 +622,12 @@ function AreasSection({
               <FieldError>{errors.nombre?.message}</FieldError>
             </div>
             <div>
-              <Label htmlFor="area-dependencia">Dependencia (opcional)</Label>
+              <Label htmlFor="area-dependencia">Dirección (opcional)</Label>
               <Input id="area-dependencia" {...register('dependencia')} />
+            </div>
+            <div>
+              <Label htmlFor="area-departamento">Departamento (opcional)</Label>
+              <Input id="area-departamento" {...register('departamento')} />
             </div>
             <div>
               <Label htmlFor="area-centroCosto">
@@ -391,288 +638,6 @@ function AreasSection({
             {submitError && <Alert>{submitError}</Alert>}
             <Button type="submit" disabled={isSubmitting} className="w-full">
               {isSubmitting ? 'Creando…' : 'Crear área'}
-            </Button>
-          </form>
-        </Card>
-      )}
-    </section>
-  );
-}
-
-function UbicacionesSection({
-  organizacionId,
-  sedes,
-  areas,
-}: {
-  organizacionId: string;
-  sedes: Sede[] | null;
-  areas: Area[] | null;
-}) {
-  const [sedeId, setSedeId] = useState('');
-  const [ubicaciones, setUbicaciones] = useState<Ubicacion[] | null>(null);
-  const [listError, setListError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [editando, setEditando] = useState<Ubicacion | null>(null);
-  const [editError, setEditError] = useState<string | null>(null);
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { isSubmitting },
-  } = useForm<AltaUbicacionForm>({
-    resolver: zodResolver(altaUbicacionSchema),
-  });
-  const {
-    register: registerEdicion,
-    handleSubmit: handleSubmitEdicion,
-    reset: resetEdicion,
-    formState: { isSubmitting: isEditSubmitting },
-  } = useForm<ActualizarUbicacionForm>({
-    resolver: zodResolver(actualizarUbicacionSchema),
-  });
-
-  useEffect(() => {
-    if (!sedeId && sedes && sedes.length > 0) setSedeId(sedes[0].id);
-  }, [sedes, sedeId]);
-
-  function cargarUbicaciones(sede: string) {
-    setListError(null);
-    cisClient
-      .getUbicaciones(sede)
-      .then(setUbicaciones)
-      .catch((err: unknown) => {
-        setListError(err instanceof Error ? err.message : 'Error desconocido');
-      });
-  }
-
-  useEffect(() => {
-    if (sedeId) cargarUbicaciones(sedeId);
-  }, [sedeId]);
-
-  async function onSubmit(values: AltaUbicacionForm) {
-    setSubmitError(null);
-    try {
-      await cisClient.altaUbicacion({
-        organizacionId,
-        sedeId: values.sedeId,
-        edificio: values.edificio || undefined,
-        piso: values.piso || undefined,
-        areaId: values.areaId || undefined,
-        oficina: values.oficina || undefined,
-      });
-      reset({ sedeId: values.sedeId });
-      cargarUbicaciones(values.sedeId);
-    } catch (err: unknown) {
-      setSubmitError(
-        err instanceof CisApiError && err.status === 403
-          ? 'No tenés el rol administrador-patrimonial en esta organización.'
-          : err instanceof Error
-            ? err.message
-            : 'Error desconocido',
-      );
-    }
-  }
-
-  function editar(ubicacion: Ubicacion) {
-    setEditError(null);
-    setEditando(ubicacion);
-    resetEdicion({
-      edificio: ubicacion.edificio ?? '',
-      piso: ubicacion.piso ?? '',
-      areaId: ubicacion.areaId ?? '',
-      oficina: ubicacion.oficina ?? '',
-      dependencia: ubicacion.dependencia ?? '',
-    });
-  }
-
-  async function onSubmitEdicion(values: ActualizarUbicacionForm) {
-    if (!editando) return;
-    setEditError(null);
-    try {
-      await cisClient.actualizarUbicacion(editando.id, {
-        organizacionId,
-        edificio: values.edificio || undefined,
-        piso: values.piso || undefined,
-        areaId: values.areaId || undefined,
-        oficina: values.oficina || undefined,
-        dependencia: values.dependencia || undefined,
-      });
-      setEditando(null);
-      cargarUbicaciones(sedeId);
-    } catch (err: unknown) {
-      setEditError(
-        err instanceof CisApiError && err.status === 403
-          ? 'No tenés el rol administrador-patrimonial en esta organización.'
-          : err instanceof Error
-            ? err.message
-            : 'Error desconocido',
-      );
-    }
-  }
-
-  if (sedes && sedes.length === 0) {
-    return (
-      <section>
-        <h2 className="mb-4 text-lg font-medium text-text">Ubicaciones</h2>
-        <p className="text-text-dim">
-          Esta organización no tiene sedes contratadas.
-        </p>
-      </section>
-    );
-  }
-
-  return (
-    <section className="grid gap-8 lg:grid-cols-[1fr_360px]">
-      <div>
-        <h2 className="mb-4 text-lg font-medium text-text">Ubicaciones</h2>
-        <div className="mb-4">
-          <Label htmlFor="ubicacion-sede">Sede</Label>
-          <select
-            id="ubicacion-sede"
-            value={sedeId}
-            onChange={(e) => setSedeId(e.target.value)}
-            className="w-full rounded-lg border border-border bg-bg-raised px-3 py-2 text-sm text-text focus:border-accent"
-          >
-            {sedes?.map((sede) => (
-              <option key={sede.id} value={sede.id}>
-                {sede.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-        {listError && <Alert>{listError}</Alert>}
-        {!listError && !ubicaciones && (
-          <p className="text-text-dim">Cargando…</p>
-        )}
-        {ubicaciones?.length === 0 && (
-          <p className="text-text-dim">Sin ubicaciones en esta sede todavía.</p>
-        )}
-        {ubicaciones && ubicaciones.length > 0 && (
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-bg-raised text-text-dim">
-                <tr>
-                  <th className="px-4 py-2 font-medium">Edificio</th>
-                  <th className="px-4 py-2 font-medium">Piso</th>
-                  <th className="px-4 py-2 font-medium">Oficina</th>
-                  <th className="px-4 py-2 font-medium">Área</th>
-                  <th className="px-4 py-2 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {ubicaciones.map((ubicacion) => (
-                  <tr key={ubicacion.id} className="border-t border-border">
-                    <td className="px-4 py-2">{ubicacion.edificio ?? '—'}</td>
-                    <td className="px-4 py-2">{ubicacion.piso ?? '—'}</td>
-                    <td className="px-4 py-2">{ubicacion.oficina ?? '—'}</td>
-                    <td className="px-4 py-2 text-text-dim">
-                      {ubicacion.areaId ?? '—'}
-                    </td>
-                    <td className="px-4 py-2">
-                      <Button variant="ghost" onClick={() => editar(ubicacion)}>
-                        Editar
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <datalist id="areas-datalist">
-        {areas?.map((area) => (
-          <option key={area.id} value={area.id}>
-            {area.nombre}
-          </option>
-        ))}
-      </datalist>
-
-      {editando ? (
-        <Card className="h-fit">
-          <h3 className="mb-4 font-medium text-text">
-            Editar ubicación — {editando.edificio ?? editando.id}
-          </h3>
-          <form
-            onSubmit={(e) => void handleSubmitEdicion(onSubmitEdicion)(e)}
-            className="space-y-4"
-          >
-            <div>
-              <Label htmlFor="ubicacion-edit-edificio">Edificio</Label>
-              <Input
-                id="ubicacion-edit-edificio"
-                {...registerEdicion('edificio')}
-              />
-            </div>
-            <div>
-              <Label htmlFor="ubicacion-edit-piso">Piso</Label>
-              <Input id="ubicacion-edit-piso" {...registerEdicion('piso')} />
-            </div>
-            <div>
-              <Label htmlFor="ubicacion-edit-oficina">Oficina</Label>
-              <Input
-                id="ubicacion-edit-oficina"
-                {...registerEdicion('oficina')}
-              />
-            </div>
-            <div>
-              <Label htmlFor="ubicacion-edit-dependencia">Dependencia</Label>
-              <Input
-                id="ubicacion-edit-dependencia"
-                {...registerEdicion('dependencia')}
-              />
-            </div>
-            <div>
-              <Label htmlFor="ubicacion-edit-area">Área (id)</Label>
-              <Input
-                id="ubicacion-edit-area"
-                list="areas-datalist"
-                {...registerEdicion('areaId')}
-              />
-            </div>
-            <EditFormFooter
-              error={editError}
-              isSubmitting={isEditSubmitting}
-              onCancel={() => setEditando(null)}
-            />
-          </form>
-        </Card>
-      ) : (
-        <Card className="h-fit">
-          <h3 className="mb-4 font-medium text-text">Alta de ubicación</h3>
-          <form
-            onSubmit={(e) => void handleSubmit(onSubmit)(e)}
-            className="space-y-4"
-          >
-            <input type="hidden" value={sedeId} {...register('sedeId')} />
-            <div>
-              <Label htmlFor="ubicacion-edificio">Edificio (opcional)</Label>
-              <Input id="ubicacion-edificio" {...register('edificio')} />
-            </div>
-            <div>
-              <Label htmlFor="ubicacion-piso">Piso (opcional)</Label>
-              <Input id="ubicacion-piso" {...register('piso')} />
-            </div>
-            <div>
-              <Label htmlFor="ubicacion-oficina">Oficina (opcional)</Label>
-              <Input id="ubicacion-oficina" {...register('oficina')} />
-            </div>
-            <div>
-              <Label htmlFor="ubicacion-area">Área (id, opcional)</Label>
-              <Input
-                id="ubicacion-area"
-                list="areas-datalist"
-                {...register('areaId')}
-              />
-            </div>
-            {submitError && <Alert>{submitError}</Alert>}
-            <Button
-              type="submit"
-              disabled={isSubmitting || !sedeId}
-              className="w-full"
-            >
-              {isSubmitting ? 'Creando…' : 'Crear ubicación'}
             </Button>
           </form>
         </Card>

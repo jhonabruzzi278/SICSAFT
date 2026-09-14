@@ -18,6 +18,7 @@ import {
   incidenciasResponseSchema,
   noLocalizadosResponseSchema,
   sesionesResponseSchema,
+  veredictosResponseSchema,
   type AreasResult,
   type CategoriasResult,
   type CoberturaResult,
@@ -27,6 +28,7 @@ import {
   type NoLocalizadosResult,
   type Paginacion,
   type SesionesResult,
+  type VeredictosResult,
 } from './cip-client.types';
 import { CORRELATION_ID_HEADER } from '../common/correlation-id/correlation-id.constants';
 
@@ -172,6 +174,18 @@ export class CipClientService {
       data,
       'dashboard/estado-activos',
     );
+  }
+
+  async getVeredictos(
+    organizacionId: string,
+    correlationId: string,
+  ): Promise<VeredictosResult> {
+    const data = await this.get(
+      '/dashboard/veredictos',
+      { organizacionId },
+      correlationId,
+    );
+    return this.parse(veredictosResponseSchema, data, 'dashboard/veredictos');
   }
 
   async getCategorias(

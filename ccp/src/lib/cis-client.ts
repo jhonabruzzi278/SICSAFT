@@ -1,7 +1,9 @@
 // Cliente HTTP hacia CIS — WEB nunca le habla a CORE directo (regla no negociable de CLAUDE.md).
 // Reusa DOC-006 (GET /catalogo, POST /auth/session) igual que app-qr-sicsaft (WAF 8, "WEB y APP
-// QR son clientes intercambiables del mismo contrato") + el endpoint nuevo de Fase 5
-// (POST /admin/activos, DOC-012 5).
+// QR son clientes intercambiables del mismo contrato"). Las escrituras de Activo (alta/baja/
+// reincorporación/responsable/descripción/documentos/tipos de catálogo, DOC-012 5/DOC-021 3-4) se
+// mudaron al CIP (Fase 3, 2026-09-13, ver core/frontend/src/lib/cis-client.ts) — acá solo queda
+// `getCatalogo`, que sigue haciendo falta para la hoja de etiquetas QR.
 import { loadOidcConfig } from './oidc/oidc-config';
 import { oidcClient, AuthenticationRequiredError } from './oidc/oidc-client';
 
@@ -25,88 +27,21 @@ export interface ActivoCatalogo {
   organizacionId: string;
   areaId: string;
   areaNombre?: string;
+  // DOC-033 — "Dirección" (`areas.dependencia`). Null cuando el área no la tiene cargada
+  // (cliente simple).
+  areaDependencia: string | null;
   ubicacionId: string;
   estado: string;
-}
-
-export interface AltaActivoInput {
-  organizacionId: string;
-  codigoPatrimonial: string;
-  codigoQr: string;
-  catalogoId: string;
-  serie?: string;
-  areaId?: string;
-  ubicacionId?: string;
-  valorPatrimonial?: number;
-  descripcion?: string;
-}
-
-export interface Activo {
-  id: string;
-  codigoPatrimonial: string;
-  codigoQr: string;
-  organizacionId: string;
-  areaId: string | null;
-  ubicacionId: string | null;
-  responsableId: string | null;
-  estado: string;
-  // DOC-021 3 (gap "descripciones").
-  descripcion: string | null;
-  catalogo: {
-    tipo: string;
-    familia: string;
-    subfamilia: string | null;
-    marca: string | null;
-    modelo: string | null;
-  };
-}
-
-// DOC-021 4 (gap "familias/categorías") — catalogo_activos (tipos/familias), no ActivoCatalogo
-// (listado de activos que consume APP QR).
-export interface CatalogoTipoActivo {
-  id: string;
-  tipo: string;
+  // DOC-033 — columnas del catálogo enriquecido, todas nullable (dependen de si el Excel del
+  // cliente las trae).
   familia: string;
-  subfamilia: string | null;
   marca: string | null;
   modelo: string | null;
-  fabricante: string | null;
-  vidaUtilMeses: number | null;
-  criticidad: 'baja' | 'media' | 'alta';
-  tecnologiaIdentificacion: 'qr' | 'rfid' | 'qr_rfid';
-}
-
-export interface AltaCatalogoTipoInput {
-  organizacionId: string;
-  tipo: string;
-  familia: string;
-  subfamilia?: string;
-  marca?: string;
-  modelo?: string;
-  fabricante?: string;
-  vidaUtilMeses?: number;
-  criticidad: 'baja' | 'media' | 'alta';
-  tecnologiaIdentificacion: 'qr' | 'rfid' | 'qr_rfid';
-}
-
-// DOC-021 3 (gap "documentación y fotografías", versión mínima — url externa, sin bucket/OCR
-// propio todavía, ver ROADMAP.md Fase 7).
-export interface DocumentoActivo {
-  id: string;
-  activoId: string;
-  organizacionId: string;
-  tipo: 'documento' | 'fotografia';
-  url: string;
-  descripcion: string | null;
-  creadoEn: string;
-  creadoPor: string;
-}
-
-export interface AltaDocumentoActivoInput {
-  organizacionId: string;
-  tipo: 'documento' | 'fotografia';
-  url: string;
-  descripcion?: string;
+  serie: string | null;
+  valorPatrimonial: number | null;
+  /** ISO 8601 (solo fecha, "YYYY-MM-DD"). Fecha de compra real. */
+  fechaCompra: string | null;
+  responsableNombre: string | null;
 }
 
 // DOC-012 6 (gap "importaciones controladas").
@@ -218,78 +153,6 @@ export interface AltaContratoInput {
   modulosContratados: string[];
 }
 
-export interface SesionInventario {
-  id: string;
-  organizacionId: string;
-  areaId: string;
-  ubicacionId: string;
-  operadorId: string;
-  fechaInicio: string;
-  fechaCierre: string;
-  estado: string;
-  creadoEn: string;
-}
-
-export interface EscaneoInventario {
-  codigoQr: string;
-  resultado: string;
-  observaciones: string | null;
-}
-
-export interface SesionInventarioDetalle extends SesionInventario {
-  escaneos: EscaneoInventario[];
-}
-
-// DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"). Passthrough del
-// contrato de CORE vía CIS (GET /inventarios/:id/control); refleja
-// cis/src/qr-connector/qr-connector.types.ts ResumenControl.
-export type TipoControlAft = 'ordinario' | 'extraordinario';
-export type VeredictoControl = 'exitoso' | 'aceptable' | 'defectuoso';
-
-export interface EscaneoControlAft {
-  codigoQr: string;
-  nombre: string | null;
-  tipo: TipoControlAft | null;
-  resultado: string;
-}
-
-export interface FueraDeAreaControlAft {
-  codigoQr: string;
-  nombre: string | null;
-  tipo: TipoControlAft | null;
-  areaRealNombre: string | null;
-}
-
-export interface FaltanteControlAft {
-  codigoQr: string;
-  nombre: string;
-}
-
-export interface ResumenControlArea {
-  sesionId: string;
-  organizacionId: string;
-  areaId: string;
-  ubicacionId: string;
-  operadorId: string;
-  fechaInicio: string;
-  fechaCierre: string;
-  estado: string;
-  escaneados: number;
-  delArea: number;
-  activosDelArea: number;
-  delAreaPct: number;
-  porEstadoDeclarado: {
-    enServicio: number;
-    enMantenimiento: number;
-    inactivo: number;
-    baja: number;
-  };
-  escaneadosLista: EscaneoControlAft[];
-  fueraDeArea: FueraDeAreaControlAft[];
-  faltantes: FaltanteControlAft[];
-  veredicto: VeredictoControl;
-}
-
 // RF-06 — sin organizacionId (ver core/src/auditoria/auditoria.types.ts): la tabla audita
 // cualquier operacion del ecosistema, no solo las de una organizacion.
 export interface AuditoriaEntrada {
@@ -325,6 +188,7 @@ export interface Area {
   codigo: string;
   nombre: string;
   dependencia: string | null;
+  departamento: string | null;
   centroCosto: string | null;
   responsableId: string | null;
   ubicacionPrincipalId: string | null;
@@ -335,6 +199,7 @@ export interface AltaAreaInput {
   codigo: string;
   nombre: string;
   dependencia?: string;
+  departamento?: string;
   centroCosto?: string;
 }
 
@@ -345,40 +210,10 @@ export interface ActualizarAreaInput {
   codigo?: string;
   nombre?: string;
   dependencia?: string;
+  departamento?: string;
   centroCosto?: string;
   responsableId?: string;
   ubicacionPrincipalId?: string;
-}
-
-export interface Ubicacion {
-  id: string;
-  sedeId: string;
-  edificio: string | null;
-  piso: string | null;
-  areaId: string | null;
-  oficina: string | null;
-  dependencia: string | null;
-}
-
-export interface AltaUbicacionInput {
-  organizacionId: string;
-  sedeId: string;
-  edificio?: string;
-  piso?: string;
-  areaId?: string;
-  oficina?: string;
-  dependencia?: string;
-}
-
-// RF-05 (cierra el gap "ABM completo") — PATCH /admin/ubicaciones/:id. Sin sedeId (mover de sede
-// es un traslado, fuera de alcance).
-export interface ActualizarUbicacionInput {
-  organizacionId: string;
-  edificio?: string;
-  piso?: string;
-  areaId?: string;
-  oficina?: string;
-  dependencia?: string;
 }
 
 export type EstadoResponsable = 'activo' | 'inactivo';
@@ -495,118 +330,6 @@ export const cisClient = {
     return activos;
   },
 
-  async altaActivo(input: AltaActivoInput): Promise<Activo> {
-    const res = await authorizedFetch('/admin/activos', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
-    return (await res.json()) as Activo;
-  },
-
-  // DOC-021 3 (gap "estados").
-  async bajaActivo(id: string, organizacionId: string): Promise<Activo> {
-    const res = await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(id)}/baja`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ organizacionId }),
-      },
-    );
-    return (await res.json()) as Activo;
-  },
-
-  async reincorporarActivo(
-    id: string,
-    organizacionId: string,
-  ): Promise<Activo> {
-    const res = await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(id)}/reincorporacion`,
-      { method: 'POST', body: JSON.stringify({ organizacionId }) },
-    );
-    return (await res.json()) as Activo;
-  },
-
-  async cambiarResponsableActivo(
-    id: string,
-    organizacionId: string,
-    responsableId: string,
-  ): Promise<Activo> {
-    const res = await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(id)}/responsable`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({ organizacionId, responsableId }),
-      },
-    );
-    return (await res.json()) as Activo;
-  },
-
-  // DOC-021 3 (gap "descripciones") — `descripcion: null` limpia el campo.
-  async actualizarDescripcionActivo(
-    id: string,
-    organizacionId: string,
-    descripcion: string | null,
-  ): Promise<Activo> {
-    const res = await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(id)}/descripcion`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({ organizacionId, descripcion }),
-      },
-    );
-    return (await res.json()) as Activo;
-  },
-
-  // DOC-021 4 (gap "familias/categorías") — lectura abierta.
-  async getCatalogoTipos(): Promise<CatalogoTipoActivo[]> {
-    const res = await authorizedFetch('/admin/catalogo-tipos');
-    return (await res.json()) as CatalogoTipoActivo[];
-  },
-
-  async altaCatalogoTipo(
-    input: AltaCatalogoTipoInput,
-  ): Promise<CatalogoTipoActivo> {
-    const res = await authorizedFetch('/admin/catalogo-tipos', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
-    return (await res.json()) as CatalogoTipoActivo;
-  },
-
-  // DOC-021 3 (gap "documentación y fotografías").
-  async getDocumentosActivo(
-    activoId: string,
-    organizacionId: string,
-  ): Promise<DocumentoActivo[]> {
-    const params = new URLSearchParams({ organizacionId });
-    const res = await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(activoId)}/documentos?${params.toString()}`,
-    );
-    return (await res.json()) as DocumentoActivo[];
-  },
-
-  async altaDocumentoActivo(
-    activoId: string,
-    input: AltaDocumentoActivoInput,
-  ): Promise<DocumentoActivo> {
-    const res = await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(activoId)}/documentos`,
-      { method: 'POST', body: JSON.stringify(input) },
-    );
-    return (await res.json()) as DocumentoActivo;
-  },
-
-  async eliminarDocumentoActivo(
-    activoId: string,
-    documentoId: string,
-    organizacionId: string,
-  ): Promise<void> {
-    await authorizedFetch(
-      `/admin/activos/${encodeURIComponent(activoId)}/documentos/${encodeURIComponent(documentoId)}`,
-      { method: 'DELETE', body: JSON.stringify({ organizacionId }) },
-    );
-  },
-
   // DOC-012 6 (gap "importaciones controladas").
   async importarContable(
     organizacionId: string,
@@ -703,25 +426,6 @@ export const cisClient = {
     return (await res.json()) as Contrato;
   },
 
-  async getInventarios(organizacionId: string): Promise<SesionInventario[]> {
-    const params = new URLSearchParams({ organizacionId });
-    const res = await authorizedFetch(`/inventarios?${params.toString()}`);
-    return (await res.json()) as SesionInventario[];
-  },
-
-  async getInventarioDetalle(id: string): Promise<SesionInventarioDetalle> {
-    const res = await authorizedFetch(`/inventarios/${encodeURIComponent(id)}`);
-    return (await res.json()) as SesionInventarioDetalle;
-  },
-
-  // DOC-029 RF-I — informe de control de área de una sesión ("Pantalla 8"), vía el puente de CIS.
-  async getInventarioResumenControl(id: string): Promise<ResumenControlArea> {
-    const res = await authorizedFetch(
-      `/inventarios/${encodeURIComponent(id)}/control`,
-    );
-    return (await res.json()) as ResumenControlArea;
-  },
-
   // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.
   async getAuditoria(filtro: AuditoriaFiltro): Promise<AuditoriaEntrada[]> {
     const params = new URLSearchParams({ limit: '100' });
@@ -763,38 +467,6 @@ export const cisClient = {
       },
     );
     return (await res.json()) as Area;
-  },
-
-  // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.
-  async getUbicaciones(sedeId: string): Promise<Ubicacion[]> {
-    const params = new URLSearchParams({ sedeId, limit: '100' });
-    const res = await authorizedFetch(
-      `/admin/ubicaciones?${params.toString()}`,
-    );
-    const data = (await res.json()) as {
-      ubicaciones: Ubicacion[];
-      total: number;
-    };
-    return data.ubicaciones;
-  },
-
-  async altaUbicacion(input: AltaUbicacionInput): Promise<Ubicacion> {
-    const res = await authorizedFetch('/admin/ubicaciones', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
-    return (await res.json()) as Ubicacion;
-  },
-
-  async actualizarUbicacion(
-    id: string,
-    input: ActualizarUbicacionInput,
-  ): Promise<Ubicacion> {
-    const res = await authorizedFetch(
-      `/admin/ubicaciones/${encodeURIComponent(id)}`,
-      { method: 'PATCH', body: JSON.stringify(input) },
-    );
-    return (await res.json()) as Ubicacion;
   },
 
   // RNF-01 — mismo criterio que getContratos: sin UI de paginacion, pide el tope de pagina.

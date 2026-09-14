@@ -26,11 +26,15 @@ const FILA_BASE = {
   areaId: 'area-biblioteca',
   ubicacionId: 'ubicacion-biblioteca-101',
   areaNombre: 'BIBLIOTECA',
+  areaDependencia: null,
   ubicacionNombre: 'Edificio A · Piso 1 · 101',
   incorporadoEn: new Date('2026-09-09T12:00:00.000Z'),
   responsableId: 'resp-1',
+  responsableNombre: null,
   estado: 'activo' as const,
   ultimoInventario: '2026-08-15',
+  valorPatrimonial: null,
+  fechaCompra: null,
   tipo: 'Equipo Computacional',
   familia: 'Informática',
   subfamilia: 'Notebook',
@@ -161,9 +165,16 @@ describe('ActivoRepository', () => {
             areaId: 'area-biblioteca',
             ubicacionId: 'ubicacion-biblioteca-101',
             areaNombre: 'BIBLIOTECA',
+            areaDependencia: null,
             ubicacionNombre: 'Edificio A · Piso 1 · 101',
             incorporadoEn: '2026-09-09T12:00:00.000Z',
             estado: 'activo',
+            marca: 'Dell',
+            modelo: 'Latitude 5440',
+            serie: 'SN-2024-001',
+            valorPatrimonial: null,
+            fechaCompra: null,
+            responsableNombre: null,
           },
         ],
       });
@@ -175,6 +186,10 @@ describe('ActivoRepository', () => {
       // queda sin etiqueta.
       expect(queries[1].sql).toContain('LEFT JOIN areas ar');
       expect(queries[1].sql).toContain('LEFT JOIN ubicaciones u');
+      // DOC-033 — Dirección y Responsable viajan en la misma consulta, sin JOIN adicional al
+      // que ya existía.
+      expect(queries[1].sql).toContain('ar.dependencia AS "areaDependencia"');
+      expect(queries[1].sql).toContain('LEFT JOIN responsables r');
       expect(queries[1].sql).toContain('COALESCE(');
       expect(queries[1].params).toEqual([
         'duoc-uc',
@@ -183,6 +198,34 @@ describe('ActivoRepository', () => {
         20,
         0,
       ]);
+    });
+
+    it('propaga Dirección, Responsable, valor y fecha de compra (DOC-033) cuando están cargados', async () => {
+      const filaEnriquecida = {
+        ...FILA_BASE,
+        areaDependencia: 'DIRECCION GENERAL',
+        responsableNombre: 'María Pérez',
+        valorPatrimonial: '150000.50',
+        fechaCompra: new Date('2026-01-15T00:00:00.000Z'),
+      };
+      const pool = buildPool((sql) => {
+        if (sql.startsWith('SELECT COUNT')) {
+          return { rows: [{ total: '1' }] };
+        }
+        return { rows: [filaEnriquecida] };
+      });
+      const repository = new ActivoRepository(pool);
+
+      const pagina = await repository.findCatalogo({
+        organizacionId: 'duoc-uc',
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(pagina.activos[0].areaDependencia).toBe('DIRECCION GENERAL');
+      expect(pagina.activos[0].responsableNombre).toBe('María Pérez');
+      expect(pagina.activos[0].valorPatrimonial).toBe(150000.5);
+      expect(pagina.activos[0].fechaCompra).toBe('2026-01-15');
     });
 
     it('sin areaId/ubicacionId solo filtra por organizacion', async () => {

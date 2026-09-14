@@ -43,10 +43,17 @@ export interface FilaLoteImportacionContable {
   valorPatrimonial: number | null;
   // Nombres tal cual del Excel del cliente — `aprobar` los resuelve-o-crea.
   direccionNombre: string | null;
+  departamentoNombre: string | null;
   areaNombre: string | null;
   responsableNombre: string | null;
   categoriaNombre: string | null;
   nombreAft: string | null;
+  // DOC-033 — catálogo enriquecido de CCP. `marca`/`modelo` solo se aplican al crear un
+  // `catalogo_activos` nuevo (uno existente por `categoriaNombre` no se pisa). `fechaCompra` es
+  // ISO 8601 (solo fecha), distinta de `fecha_alta` (cuándo el bien entró a la BPI).
+  marca: string | null;
+  modelo: string | null;
+  fechaCompra: string | null;
   crudo: Record<string, string>;
   dryRunResultado: DryRunFila | null;
   dryRunMotivo: string | null;

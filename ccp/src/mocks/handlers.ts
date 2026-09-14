@@ -1,14 +1,10 @@
-// Handlers de MSW para los endpoints de CIS que ejercita el flujo login+alta (DOC-006, DOC-012
-// 5) — solo se registran en modo mock (ver src/main.tsx, VITE_MOCK_API). Keycloak nunca se
-// mockea acá: CIS es quien valida el JWT server-side, el cliente solo mira si hay tokens
-// guardados (oidcClient.isAuthenticated(), sessionStorage) — mismo criterio que
+// Handlers de MSW para los endpoints de CIS que ejercitan el CCP (DOC-006) — solo se registran en
+// modo mock (ver src/main.tsx, VITE_MOCK_API). Keycloak nunca se mockea acá: CIS es quien valida
+// el JWT server-side, el cliente solo mira si hay tokens guardados
+// (oidcClient.isAuthenticated(), sessionStorage) — mismo criterio que
 // app-qr-sicsaft/src/mocks/handlers.ts.
 import { http, HttpResponse } from 'msw';
-import type {
-  Activo,
-  ActivoCatalogo,
-  CatalogoTipoActivo,
-} from '@/lib/cis-client';
+import type { ActivoCatalogo } from '@/lib/cis-client';
 import {
   MOCK_AREAS,
   MOCK_CATALOGO,
@@ -16,42 +12,14 @@ import {
   MOCK_SYNC,
 } from './fixtures';
 
-// DOC-021 4 (gap "familias/categorías") — mismo id de catálogo que ya usaba el fixture de Activo
-// antes de este incremento ('catalogo-notebook'), ahora servido por un endpoint real en vez de
-// texto libre.
-const MOCK_CATALOGO_TIPOS: CatalogoTipoActivo[] = [
-  {
-    id: 'catalogo-notebook',
-    tipo: 'Equipo Computacional',
-    familia: 'Informática',
-    subfamilia: 'Notebook',
-    marca: null,
-    modelo: null,
-    fabricante: null,
-    vidaUtilMeses: null,
-    criticidad: 'media',
-    tecnologiaIdentificacion: 'qr',
-  },
-];
-
-// Estado mutable propio del catálogo mockeado. Los datos viven en fixtures.ts, no acá.
+// Estado mutable propio del catálogo mockeado. Los datos viven en fixtures.ts, no acá. Ya no se
+// escribe desde ningún handler (las escrituras de Activo se mudaron al CIP, Fase 3) — queda
+// mutable porque `resetCatalogo` sigue siendo el punto de reset entre tests (window.__mockControls,
+// ver browser.ts) y GET /catalogo sigue siendo real (lo usa la hoja de etiquetas QR).
 let catalogo: ActivoCatalogo[] = [...MOCK_CATALOGO];
-const documentosPorActivo = new Map<
-  string,
-  Array<{
-    id: string;
-    activoId: string;
-    organizacionId: string;
-    tipo: 'documento' | 'fotografia';
-    url: string;
-    descripcion: string | null;
-    creadoEn: string;
-  }>
->();
 
 export function resetCatalogo(): void {
   catalogo = [...MOCK_CATALOGO];
-  documentosPorActivo.clear();
 }
 
 export const defaultHandlers = [
@@ -75,10 +43,6 @@ export const defaultHandlers = [
     });
   }),
 
-  http.get(`*/admin/catalogo-tipos`, () =>
-    HttpResponse.json(MOCK_CATALOGO_TIPOS),
-  ),
-
   // DOC-029 RF-F — el módulo QR / Etiquetas agrupa el catálogo por `area.dependencia`.
   http.get(`*/admin/areas`, ({ request }) => {
     const organizacionId = new URL(request.url).searchParams.get(
@@ -96,6 +60,7 @@ export const defaultHandlers = [
       codigo: string;
       nombre: string;
       dependencia?: string;
+      departamento?: string;
       centroCosto?: string;
     };
     const nuevaArea = {
@@ -104,6 +69,7 @@ export const defaultHandlers = [
       codigo: body.codigo,
       nombre: body.nombre,
       dependencia: body.dependencia || null,
+      departamento: body.departamento || null,
       centroCosto: body.centroCosto || null,
       responsableId: null,
       ubicacionPrincipalId: null,
@@ -136,33 +102,6 @@ export const defaultHandlers = [
       estado: 'activo' as const,
     };
     return HttpResponse.json(nuevoResp, { status: 201 });
-  }),
-
-  http.get(`*/admin/ubicaciones`, () => {
-    return HttpResponse.json({
-      ubicaciones: [],
-      total: 0,
-    });
-  }),
-
-  http.post(`*/admin/ubicaciones`, async ({ request }) => {
-    const body = (await request.json()) as {
-      organizacionId: string;
-      sedeId: string;
-      edificio?: string;
-      piso?: string;
-      oficina?: string;
-    };
-    const nuevaUbic = {
-      id: `ubic-${crypto.randomUUID().slice(0, 6)}`,
-      ...body,
-      edificio: body.edificio || null,
-      piso: body.piso || null,
-      areaId: null,
-      oficina: body.oficina || null,
-      dependencia: null,
-    };
-    return HttpResponse.json(nuevaUbic, { status: 201 });
   }),
 
   http.get(`*/admin/contratos`, () => {
@@ -317,8 +256,16 @@ export const defaultHandlers = [
           organizacionId: 'org-demo',
           areaId: 'area-001',
           areaNombre: a.area,
+          areaDependencia: null,
           ubicacionId: 'loc-001',
           estado: 'activo',
+          familia: 'Mobiliario',
+          marca: null,
+          modelo: null,
+          serie: null,
+          valorPatrimonial: null,
+          fechaCompra: null,
+          responsableNombre: null,
         });
       }
     }
@@ -347,112 +294,6 @@ export const defaultHandlers = [
       yaImportados: 0,
       conflictos: 0,
     });
-  }),
-
-  http.post(`*/admin/activos`, async ({ request }) => {
-    const body = (await request.json()) as {
-      organizacionId: string;
-      codigoPatrimonial: string;
-      codigoQr: string;
-      catalogoId: string;
-      areaId?: string;
-      ubicacionId?: string;
-    };
-    const nuevoId = crypto.randomUUID();
-    catalogo.push({
-      id: nuevoId,
-      codigoQr: body.codigoQr,
-      nombre: `Activo ${body.codigoPatrimonial}`,
-      organizacionId: body.organizacionId,
-      areaId: body.areaId ?? '',
-      ubicacionId: body.ubicacionId ?? '',
-      estado: 'activo',
-    });
-    const activo: Activo = {
-      id: nuevoId,
-      codigoPatrimonial: body.codigoPatrimonial,
-      codigoQr: body.codigoQr,
-      organizacionId: body.organizacionId,
-      areaId: body.areaId ?? null,
-      ubicacionId: body.ubicacionId ?? null,
-      responsableId: null,
-      estado: 'activo',
-      descripcion: null,
-      catalogo: {
-        tipo: 'equipo',
-        familia: 'tecnologia',
-        subfamilia: null,
-        marca: null,
-        modelo: null,
-      },
-    };
-    return HttpResponse.json(activo, { status: 201 });
-  }),
-
-  // Endpoints de Documentación, Fotografías y Modificación de Activos
-  http.get(`*/admin/activos/:id/documentos`, ({ params }) => {
-    const { id } = params;
-    const docs = documentosPorActivo.get(String(id)) || [];
-    return HttpResponse.json(docs);
-  }),
-
-  http.post(`*/admin/activos/:id/documentos`, async ({ params, request }) => {
-    const { id } = params;
-    const body = (await request.json()) as {
-      organizacionId: string;
-      tipo: 'documento' | 'fotografia';
-      url: string;
-      descripcion?: string;
-    };
-    const nuevoDoc = {
-      id: crypto.randomUUID(),
-      activoId: String(id),
-      organizacionId: body.organizacionId,
-      tipo: body.tipo,
-      url: body.url,
-      descripcion: body.descripcion || null,
-      creadoEn: new Date().toISOString(),
-    };
-    const lista = documentosPorActivo.get(String(id)) || [];
-    lista.push(nuevoDoc);
-    documentosPorActivo.set(String(id), lista);
-    return HttpResponse.json(nuevoDoc, { status: 201 });
-  }),
-
-  http.delete(`*/admin/activos/:id/documentos/:documentoId`, ({ params }) => {
-    const { id, documentoId } = params;
-    const lista = documentosPorActivo.get(String(id)) || [];
-    const filtrada = lista.filter((d) => d.id !== documentoId);
-    documentosPorActivo.set(String(id), filtrada);
-    return new HttpResponse(null, { status: 204 });
-  }),
-
-  http.patch(`*/admin/activos/:id/responsable`, async ({ params, request }) => {
-    const { id } = params;
-    const body = (await request.json()) as { responsableId: string };
-    const act = catalogo.find((a) => a.id === id || a.codigoQr === id);
-    return HttpResponse.json({ id, ...act, responsableId: body.responsableId });
-  }),
-
-  http.patch(`*/admin/activos/:id/descripcion`, async ({ params, request }) => {
-    const { id } = params;
-    const body = (await request.json()) as { descripcion: string | null };
-    const act = catalogo.find((a) => a.id === id || a.codigoQr === id);
-    return HttpResponse.json({ id, ...act, descripcion: body.descripcion });
-  }),
-
-  http.post(`*/admin/activos/:id/baja`, ({ params }) => {
-    const { id } = params;
-    const act = catalogo.find((a) => a.id === id || a.codigoQr === id);
-    if (act) act.estado = 'baja';
-    return HttpResponse.json({ id, estado: 'baja' });
-  }),
-
-  http.post(`*/admin/activos/:id/reincorporar`, ({ params }) => {
-    const { id } = params;
-    const act = catalogo.find((a) => a.id === id || a.codigoQr === id);
-    if (act) act.estado = 'activo';
-    return HttpResponse.json({ id, estado: 'activo' });
   }),
 
   http.get(`*/dashboard/cobertura`, () => {

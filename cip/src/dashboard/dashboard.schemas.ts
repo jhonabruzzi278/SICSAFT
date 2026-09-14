@@ -16,6 +16,9 @@ export type AreasQuery = z.infer<typeof areasQuerySchema>;
 export const estadoActivosQuerySchema = coberturaQuerySchema;
 export type EstadoActivosQuery = z.infer<typeof estadoActivosQuerySchema>;
 
+export const veredictosQuerySchema = coberturaQuerySchema;
+export type VeredictosQuery = z.infer<typeof veredictosQuerySchema>;
+
 export const categoriasQuerySchema = z.object({
   organizacionId: z.string().min(1),
   areaId: z.string().min(1).optional(),

@@ -53,11 +53,3 @@ test('dashboard', async ({ page }) => {
   await page.waitForTimeout(600);
   await page.screenshot({ path: `${OUT}/03-dashboard.png`, fullPage: true });
 });
-
-test('activos', async ({ page }) => {
-  await seedAuth(page);
-  await page.goto('/activos?organizacionId=duoc-uc');
-  await page.waitForSelector('button:has-text("Crear activo")');
-  await page.waitForTimeout(500);
-  await page.screenshot({ path: `${OUT}/04-activos.png`, fullPage: true });
-});

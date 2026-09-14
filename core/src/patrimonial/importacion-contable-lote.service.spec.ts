@@ -46,10 +46,14 @@ function filaStaging(overrides: Record<string, unknown> = {}) {
     ubicacionId: null,
     valorPatrimonial: 850000,
     direccionNombre: null as string | null,
+    departamentoNombre: null as string | null,
     areaNombre: null as string | null,
     responsableNombre: null as string | null,
     categoriaNombre: null as string | null,
     nombreAft: null,
+    marca: null as string | null,
+    modelo: null as string | null,
+    fechaCompra: null as string | null,
     crudo: { CODIGO: 'DG-001' },
     dryRunResultado: 'crear' as const,
     dryRunMotivo: null,
@@ -350,11 +354,16 @@ describe('ImportacionContableLoteService', () => {
 
       await service.aprobarLote('lote-1', 'op-1');
 
-      expect(resolvedor.resolverCatalogo).toHaveBeenCalledWith('MOBILIARIO');
+      expect(resolvedor.resolverCatalogo).toHaveBeenCalledWith(
+        'MOBILIARIO',
+        null,
+        null,
+      );
       expect(resolvedor.resolverArea).toHaveBeenCalledWith(
         'muni',
         'OFICINA DIRECTOR GENERAL',
         'DIRECCION GENERAL',
+        null,
       );
       expect(resolvedor.resolverResponsable).toHaveBeenCalledWith(
         'muni',

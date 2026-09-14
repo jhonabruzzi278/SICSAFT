@@ -10,9 +10,10 @@ import {
   SERVICE_TOKEN,
 } from './support/e2e-app';
 
-// Un rol NO patrimonial, para probar que las escrituras de Activo/catálogo exigen
-// `administrador-patrimonial` y devuelven 403 con cualquier otro rol.
+// Fase 3 CCP/CIP: Directivo también administra Activos desde CIP. Operador conserva el caso
+// negativo para verificar que ampliar el acceso no abrió las escrituras a cualquier rol.
 const DIRECTIVO_ROLES_DUOC_UC = { 'duoc-uc': ['directivo'] };
+const OPERADOR_ROLES_DUOC_UC = { 'duoc-uc': ['operador'] };
 
 function buildAltaActivoBody(overrides: Record<string, unknown> = {}) {
   return {
@@ -93,7 +94,23 @@ describe('DOC-021 — cierre de gaps del CCP (e2e)', () => {
       expect((res.body as Activo).descripcion).toBeNull();
     });
 
-    it('devuelve 403 si rolesPorOrganizacion no incluye administrador-patrimonial', async () => {
+    it('permite actualizar la descripcion con rol directivo desde CIP', async () => {
+      const activoId = await crearActivo();
+      const res = await request(app.getHttpServer())
+        .patch(`/activos/${activoId}/descripcion`)
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(
+          buildEscrituraOficialBody({
+            descripcion: 'algo',
+            rolesPorOrganizacion: DIRECTIVO_ROLES_DUOC_UC,
+          }),
+        )
+        .expect(200);
+
+      expect((res.body as Activo).descripcion).toBe('algo');
+    });
+
+    it('devuelve 403 si el rol no es administrador-patrimonial ni directivo', async () => {
       const activoId = await crearActivo();
       await request(app.getHttpServer())
         .patch(`/activos/${activoId}/descripcion`)
@@ -101,7 +118,7 @@ describe('DOC-021 — cierre de gaps del CCP (e2e)', () => {
         .send(
           buildEscrituraOficialBody({
             descripcion: 'algo',
-            rolesPorOrganizacion: DIRECTIVO_ROLES_DUOC_UC,
+            rolesPorOrganizacion: OPERADOR_ROLES_DUOC_UC,
           }),
         )
         .expect(403);
@@ -139,8 +156,8 @@ describe('DOC-021 — cierre de gaps del CCP (e2e)', () => {
       expect(res.body).toMatchObject({ tipo: 'Silla', familia: 'Mobiliario' });
     });
 
-    it('devuelve 403 si el operador no tiene administrador-patrimonial', async () => {
-      await request(app.getHttpServer())
+    it('permite crear un tipo nuevo con rol directivo desde CIP', async () => {
+      const res = await request(app.getHttpServer())
         .post('/catalogo-tipos')
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
         .send(
@@ -150,6 +167,24 @@ describe('DOC-021 — cierre de gaps del CCP (e2e)', () => {
             criticidad: 'baja',
             tecnologiaIdentificacion: 'qr',
             rolesPorOrganizacion: DIRECTIVO_ROLES_DUOC_UC,
+          }),
+        )
+        .expect(201);
+
+      expect(res.body).toMatchObject({ tipo: 'Silla', familia: 'Mobiliario' });
+    });
+
+    it('devuelve 403 si el rol no es administrador-patrimonial ni directivo', async () => {
+      await request(app.getHttpServer())
+        .post('/catalogo-tipos')
+        .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
+        .send(
+          buildEscrituraOficialBody({
+            tipo: 'Silla',
+            familia: 'Mobiliario',
+            criticidad: 'baja',
+            tecnologiaIdentificacion: 'qr',
+            rolesPorOrganizacion: OPERADOR_ROLES_DUOC_UC,
           }),
         )
         .expect(403);

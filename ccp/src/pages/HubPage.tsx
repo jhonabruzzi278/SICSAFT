@@ -34,8 +34,9 @@ type Modulo = {
 
 // DOC-029 RF-A (corregido 2026-09-09) -- el CCP va completo en todos los niveles y ya no depende
 // del nivel para nada: el CIP se movio al portal del Directivo (core/frontend), que es donde vive
-// la analitica de Nivel 2. Lo unico que `moduloHabilitado` oculta aca son Contratos/Inventarios,
-// retirados en cualquier nivel. Decide por `path` (ver lib/nivel.ts).
+// la analitica de Nivel 2. Lo unico que `moduloHabilitado` oculta aca es Contratos, retirado en
+// cualquier nivel (Inventarios/"Controles de areas" se reincorporo 2026-09-13). Decide por `path`
+// (ver lib/nivel.ts).
 const MODULOS: Modulo[] = [
   {
     path: 'activos',
@@ -51,14 +52,14 @@ const MODULOS: Modulo[] = [
   },
   {
     path: 'inventarios',
-    nombre: 'Inventarios',
+    nombre: 'Controles de áreas',
     descripcion: 'Sesiones de control y sus escaneos',
     icon: IconLayers,
   },
   {
     path: 'estructura',
-    nombre: 'Áreas, ubicaciones y responsables',
-    descripcion: 'ABM de la estructura patrimonial',
+    nombre: 'Organización',
+    descripcion: 'Organigrama, direcciones, áreas y responsables',
     icon: IconMapPin,
   },
   // RF-14 (DOC-021, gap "importaciones controladas") — por organización, como el resto de los

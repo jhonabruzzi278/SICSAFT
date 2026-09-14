@@ -31,6 +31,7 @@ describe('DashboardConnectorController', () => {
             getNoLocalizados: jest.fn(),
             getIncidencias: jest.fn(),
             getEstadoActivos: jest.fn(),
+            getVeredictos: jest.fn(),
             getCategorias: jest.fn(),
           },
         },
@@ -166,6 +167,24 @@ describe('DashboardConnectorController', () => {
       ),
     ).resolves.toBe(expected);
     expect(service.getEstadoActivos).toHaveBeenCalledWith(
+      'duoc-uc',
+      CORRELATION_ID,
+    );
+  });
+
+  it('getVeredictos delega en el service', async () => {
+    const expected = {
+      dia: { total: 0, porVeredicto: [] },
+      acumulado: { total: 0, porVeredicto: [] },
+      actualizadoEn: null,
+      alDia: true,
+    };
+    service.getVeredictos.mockResolvedValue(expected);
+
+    await expect(
+      controller.getVeredictos({ organizacionId: 'duoc-uc' }, buildRequest()),
+    ).resolves.toBe(expected);
+    expect(service.getVeredictos).toHaveBeenCalledWith(
       'duoc-uc',
       CORRELATION_ID,
     );

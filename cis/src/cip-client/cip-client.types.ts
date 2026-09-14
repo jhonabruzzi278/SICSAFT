@@ -95,3 +95,17 @@ export const categoriasResponseSchema = syncInfoSchema.extend({
   categorias: z.array(categoriaResumenSchema),
 });
 export type CategoriasResult = z.infer<typeof categoriasResponseSchema>;
+
+const veredictoResumenSchema = z.object({
+  veredicto: z.string(),
+  cantidad: z.number(),
+});
+const ventanaVeredictosSchema = z.object({
+  total: z.number(),
+  porVeredicto: z.array(veredictoResumenSchema),
+});
+export const veredictosResponseSchema = syncInfoSchema.extend({
+  dia: ventanaVeredictosSchema,
+  acumulado: ventanaVeredictosSchema,
+});
+export type VeredictosResult = z.infer<typeof veredictosResponseSchema>;

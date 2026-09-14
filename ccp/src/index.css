@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/manrope';
+@import './design.css';
 
 /* Paleta de marca SICSAFT — ver BRAND.md en la raíz del repo. Origen canónico:
    landing/src/style.css (solo modo oscuro) — el Portal WEB no define modo claro todavia (RNF-05

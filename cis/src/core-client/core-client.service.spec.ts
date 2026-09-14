@@ -170,10 +170,17 @@ describe('CoreClientService', () => {
           areaId: 'area-biblioteca',
           ubicacionId: 'ubicacion-biblioteca-101',
           areaNombre: 'BIBLIOTECA',
+          areaDependencia: null,
           ubicacionNombre: 'Edificio A · Piso 1 · 101',
           familia: 'Informática',
           incorporadoEn: '2026-09-09T12:00:00.000Z',
           estado: 'activo',
+          marca: null,
+          modelo: null,
+          serie: null,
+          valorPatrimonial: null,
+          fechaCompra: null,
+          responsableNombre: null,
         },
       ];
       axiosGet.mockResolvedValue(buildAxiosResponse({ activos, total: 1 }));
@@ -460,7 +467,20 @@ describe('CoreClientService', () => {
       estado: 'recibido',
       creadoEn: '2026-01-15T10:30:05.000Z',
       escaneos: [
-        { codigoQr: 'QR-0001', resultado: 'correcto', observaciones: null },
+        {
+          codigoQr: 'QR-0001',
+          resultado: 'correcto',
+          observaciones: null,
+          estadoDeclarado: null,
+          bajaSugeridaMotivo: null,
+        },
+        {
+          codigoQr: 'QR-0002',
+          resultado: 'correcto',
+          observaciones: null,
+          estadoDeclarado: 'mantenimiento',
+          bajaSugeridaMotivo: 'Pantalla rota',
+        },
       ],
     };
 
@@ -701,6 +721,7 @@ describe('CoreClientService', () => {
       codigo: 'BIB',
       nombre: 'Biblioteca',
       dependencia: null,
+      departamento: null,
       centroCosto: null,
       responsableId: null,
       ubicacionPrincipalId: null,
@@ -1471,6 +1492,9 @@ describe('CoreClientService', () => {
               responsableNombre: 'DIRECTOR GENERAL',
               categoriaNombre: 'MOBILIARIO',
               nombreAft: '1 MESA BURO',
+              marca: null,
+              modelo: null,
+              fechaCompra: null,
               crudo: { CODIGO: 'DG-001' },
               dryRunResultado: 'crear',
               dryRunMotivo: null,
