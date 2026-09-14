@@ -2,17 +2,22 @@ import { useSearchParams } from 'react-router-dom';
 import { ResumenTab } from './ResumenTab';
 import { ActivosTab } from './ActivosTab';
 import { ControlesAreaTab } from './ControlesAreaTab';
+import { AlertasTab } from './AlertasTab';
 
 // Fase 2 (rediseño CIP) — el CIP deja de ser una página única y pasa a tener sub-pestañas.
 // Fase 3/4: "Activos" y "Controles de área" ya viven acá (portados de ccp/src/pages/ActivosPage.tsx
-// e InventariosPage.tsx). El tab activo vive en la URL (mismo criterio "URL as state" que el
-// resto del repo) para no perder contexto al recargar o compartir el link.
-type CipTab = 'resumen' | 'activos' | 'controles-area';
+// e InventariosPage.tsx). "Alertas" (2026-09-14) es el primer consumidor real del Motor de
+// Alertas que DOC-026 8 había dejado fuera de alcance — el dato y el cliente ya existían
+// (dashboardClient.getFueraDeArea), faltaba la pantalla. El tab activo vive en la URL (mismo
+// criterio "URL as state" que el resto del repo) para no perder contexto al recargar o compartir
+// el link.
+type CipTab = 'resumen' | 'activos' | 'controles-area' | 'alertas';
 
 const TABS: { id: CipTab; label: string }[] = [
   { id: 'resumen', label: 'Resumen' },
   { id: 'activos', label: 'Activos' },
   { id: 'controles-area', label: 'Controles de área' },
+  { id: 'alertas', label: 'Alertas' },
 ];
 
 function esCipTab(valor: string | null): valor is CipTab {
@@ -59,6 +64,7 @@ export function CipPage() {
         {tabActivo === 'resumen' && <ResumenTab />}
         {tabActivo === 'activos' && <ActivosTab />}
         {tabActivo === 'controles-area' && <ControlesAreaTab />}
+        {tabActivo === 'alertas' && <AlertasTab />}
       </div>
     </div>
   );
