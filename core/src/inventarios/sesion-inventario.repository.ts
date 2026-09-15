@@ -348,13 +348,30 @@ export class SesionInventarioRepository {
     );
 
     const filas = escaneosResult.rows;
+    // Bug real reportado por el usuario 2026-09-15: "En servicio" siempre daba 0. Causa raíz: la
+    // APP QR (app-qr-sicsaft/src/lib/qr-connector.ts toInventarioRequest) solo manda
+    // `estadoDeclarado` cuando el operador tocó el selector y lo cambió — el 'activo' que
+    // ScannedList.tsx muestra en el <select> es solo el valor visual por defecto
+    // (`item.estadoDeclarado ?? 'activo'`), nunca se escribe al estado del ítem ni viaja en el
+    // payload si el operador no lo toca. Con eso, la inmensa mayoría de los escaneos normales
+    // llegan acá con `estadoDeclarado = null`, y filtrar por el literal `=== 'activo'` dejaba
+    // "en servicio" en 0 sin importar cuántos AFT estuvieran realmente bien. Un AFT real (matcheó
+    // contra el catálogo — `tipo` no nulo) que no fue declarado mantenimiento/inactivo ni tiene
+    // baja sugerida es "en servicio" por omisión: no hace falta que la app lo declare explícito.
+    const esActivoReal = (f: FilaEscaneoControlRow) => f.tipo !== null;
     const porEstadoDeclarado: PorEstadoDeclarado = {
-      enServicio: filas.filter((f) => f.estadoDeclarado === 'activo').length,
       enMantenimiento: filas.filter(
         (f) => f.estadoDeclarado === 'mantenimiento',
       ).length,
       inactivo: filas.filter((f) => f.estadoDeclarado === 'inactivo').length,
       baja: filas.filter((f) => f.bajaSugeridaMotivo !== null).length,
+      enServicio: filas.filter(
+        (f) =>
+          esActivoReal(f) &&
+          f.estadoDeclarado !== 'mantenimiento' &&
+          f.estadoDeclarado !== 'inactivo' &&
+          f.bajaSugeridaMotivo === null,
+      ).length,
     };
 
     return {
