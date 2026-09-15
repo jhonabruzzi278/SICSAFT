@@ -8,7 +8,19 @@ import type { MigrationBuilder } from 'node-pg-migrate';
 // que `incidencia` (sesion_id, codigo_qr).
 // Parte B: tabla nueva `resumen_diario` para el corte nocturno (ResumenDiarioWorker, pg-boss
 // schedule) que resume `veredicto_sesion` por dia y organizacion.
+//
+// CORRECCION (2026-09-15, encontrada contra una instalacion real con datos): la primera version
+// de esta migracion asumia `activo_fuera_de_area` vacia en todo ambiente real y agregaba
+// sesion_id/veredicto NOT NULL sin default -- rompe con `column "sesion_id" ... contains null
+// values` en cuanto la tabla ya tiene filas (exactamente lo que paso: una organizacion real ya
+// habia corrido controles con AFT fuera de area antes de este incremento). Esta tabla es un cache
+// derivado 100% recomputable desde eventos de CORE (mismo criterio que el resto de
+// AgregacionRepository, "todas las escrituras son upserts o DELETE+INSERT completos" --
+// agregacion.service.ts), asi que se vacia primero: no hay forma de reconstruir retroactivamente
+// a que sesion pertenecia cada fila vieja (ese dato nunca se guardo), y las alertas reales vuelven
+// a aparecer solas en cuanto se cierre la proxima sesion de control.
 export async function up(pgm: MigrationBuilder): Promise<void> {
+  pgm.sql('DELETE FROM activo_fuera_de_area');
   pgm.addColumns('activo_fuera_de_area', {
     sesion_id: { type: 'text', notNull: true },
     veredicto: {
