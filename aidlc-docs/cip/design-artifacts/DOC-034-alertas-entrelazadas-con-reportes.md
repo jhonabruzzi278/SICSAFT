@@ -216,23 +216,29 @@ boss, at-least-once) o se corre manualmente para reprocesar un día, no duplica 
 - `core/frontend/src/lib/dashboard-client.ts` agrega `getHistorico(organizacionId, desde?, hasta?)`
   y el tipo `ResumenDiario { fecha, totalSesiones, exitoso, aceptable, defectuoso }`.
 
-### 7. UI — nueva pestaña "Historial" en el sidebar del CIP
+### 7. UI — "Historial" como sub-vista de Controles de área (confirmado 2026-09-15)
 
-Se agrega como quinta entrada del sidebar (mismo patrón ya establecido para
-Resumen/Activos/Controles de área/Alertas, ver `AppShell.tsx` `NAV_ITEMS_CIP`), ruta
-`/dashboard/historico`, componente nuevo `core/frontend/src/pages/cip/HistorialTab.tsx`:
+**No** va como pestaña nueva del sidebar. `ControlesAreaTab.tsx` ya tiene un toggle interno
+("Control BPI (Pantalla 8)" / "Escaneos", estado local `vistaDetalle`) — se agrega un tercer
+valor a ese mismo toggle:
 
-- Tabla o gráfico de barras apiladas por día (Exitoso/Aceptable/Defectuoso, misma paleta de color
-  que `ResumenTab.tsx` — verde/amarillo/rojo), más reciente primero.
-- Selector de rango (últimos 7/30 días — mismo componente `PERIODOS` que `ResumenTab.tsx` ya
-  define, hoy sin conectar a datos reales; acá sí se conecta).
-- Si "Controles de área" es en realidad donde el usuario quiere ver esto embebido (en vez de una
-  pestaña nueva del sidebar), avisar antes de implementar — ver "Punto a confirmar" abajo.
+- `vistaDetalle: 'control' | 'escaneos' | 'historial'` (antes solo los dos primeros).
+- Botón nuevo "Historial" junto a los otros dos, mismo estilo (`Button variant={vistaDetalle ===
+  'historial' ? 'primary' : 'secondary'}`).
+- Al seleccionarlo, se muestra un componente nuevo `HistorialSesiones.tsx` (mismo directorio
+  `pages/cip/`, no un `*Tab.tsx` — no es una ruta ni una pestaña del sidebar, es una vista más
+  dentro de `ControlesAreaTab`) con:
+  - Tabla o gráfico de barras apiladas por día (Exitoso/Aceptable/Defectuoso, misma paleta que
+    `ResumenTab.tsx` — verde/amarillo/rojo), más reciente primero.
+  - Selector de rango (últimos 7/30 días — mismo componente `PERIODOS` que `ResumenTab.tsx` ya
+    define, hoy sin conectar a datos reales; acá sí se conecta).
+- No se toca el sidebar (`AppShell.tsx` sigue con las mismas 4 entradas del CIP:
+  Resumen/Activos/Controles de área/Alertas).
 
 ### 8. Qué NO se hace en este incremento
 
 - No se dispara el corte diario para organizaciones sin ninguna sesión ese día — no genera filas
-  en 0 (`total_sesiones = 0`) para no ensuciar `resumen_diario` con ruido; `HistorialTab.tsx`
+  en 0 (`total_sesiones = 0`) para no ensuciar `resumen_diario` con ruido; `HistorialSesiones.tsx`
   muestra "sin datos" para los días sin fila.
 - No hay recálculo retroactivo automático de días pasados a la primera corrida — el historial
   empieza a acumularse desde que este incremento se despliega. Un backfill manual (correr el job
@@ -240,17 +246,7 @@ Resumen/Activos/Controles de área/Alertas, ver `AppShell.tsx` `NAV_ITEMS_CIP`),
 - No reemplaza los KPI en tiempo real de `ResumenTab.tsx` — son cosas distintas (hoy/acumulado en
   vivo vs. serie histórica por corte diario).
 
-## Punto a confirmar antes de implementar
-
-**Dónde vive "Historial"**: este plan lo propone como una pestaña nueva del sidebar (consistente
-con que Resumen/Activos/Controles de área/Alertas ya son rutas directas, no sub-pestañas). Si en
-cambio el pedido original ("quiero que los controles tenga una pestaña...") significa que el
-historial debe vivir **dentro** de la pantalla de Controles de área (como una sub-vista, ej. un
-toggle "Sesiones / Historial" igual al que ya tiene esa pantalla para "Control BPI / Escaneos"),
-avisar y se ajusta antes de tocar código — es un cambio de UI menor, no afecta nada del backend
-(§§4-6 quedan iguales en cualquiera de los dos casos).
-
-## Plan de implementación unificado (orden)
+## Plan de implementación unificado (orden) — aprobado 2026-09-15
 
 **Parte A:**
 1. Migración `activo_fuera_de_area` (Parte A §4.1).
@@ -263,10 +259,10 @@ avisar y se ajusta antes de tocar código — es un cambio de UI menor, no afect
 6. `ResumenDiarioWorker` + registro del schedule + `AgregacionRepository.upsertResumenDiario` +
    specs (Parte B §5).
 7. `GET /dashboard/historico` en CIP + proxy en CIS (Parte B §6).
-8. `dashboard-client.ts` (`getHistorico`), `HistorialTab.tsx`, entrada nueva en `AppShell.tsx`
-   (Parte B §7).
+8. `dashboard-client.ts` (`getHistorico`), `HistorialSesiones.tsx`, toggle nuevo dentro de
+   `ControlesAreaTab.tsx` (Parte B §7) — sin tocar `AppShell.tsx`.
 
 **Verificación (ambas partes):**
 9. `bun run test` + `bun run test:e2e` en `cip/` y `core/` (Postgres real); `bun run test` +
    `lint:ci` + `build` en `core/frontend/`; verificación visual en navegador (link Alertas →
-   Controles de área; navegación a Historial; datos del corte diario con fecha simulada).
+   Controles de área; toggle a Historial; datos del corte diario con fecha simulada).
