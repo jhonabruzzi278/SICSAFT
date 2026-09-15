@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method -- jest.fn() mocks no usan `this`. */
-import { AgregacionService } from './agregacion.service';
+import { AgregacionService, fechaDeAyerEnChile } from './agregacion.service';
 import { AgregacionRepository } from './agregacion.repository';
 import { CoreClientService } from '../core-client/core-client.service';
 import type {
@@ -26,6 +26,14 @@ function buildRepository(): jest.Mocked<AgregacionRepository> {
     reemplazarCategoriaActivoResumen: jest.fn().mockResolvedValue(undefined),
     reemplazarActivoNoLocalizado: jest.fn().mockResolvedValue(undefined),
     actualizarSyncEstado: jest.fn().mockResolvedValue(undefined),
+    listarOrganizacionesConocidas: jest.fn().mockResolvedValue([]),
+    contarVeredictosPorDia: jest.fn().mockResolvedValue({
+      totalSesiones: 0,
+      exitoso: 0,
+      aceptable: 0,
+      defectuoso: 0,
+    }),
+    upsertResumenDiario: jest.fn().mockResolvedValue(undefined),
   } as unknown as jest.Mocked<AgregacionRepository>;
 }
 
@@ -142,10 +150,12 @@ describe('AgregacionService', () => {
         expect.objectContaining({ veredicto: 'defectuoso' }),
       );
       expect(repository.upsertFueraDeArea).toHaveBeenCalledWith({
+        sesionId: 'ses-1',
         codigoQr: 'QR-otra',
         organizacionId: 'org-1',
         areaRealId: 'area-1',
         areaEsperadaId: 'area-2',
+        veredicto: 'defectuoso',
       });
     });
 
@@ -324,5 +334,84 @@ describe('AgregacionService', () => {
       expect(coreClient.obtenerCatalogoCompleto).not.toHaveBeenCalled();
       expect(repository.actualizarSyncEstado).toHaveBeenCalled();
     });
+  });
+
+  describe('procesarResumenDiario (DOC-034 Parte B)', () => {
+    it('upsertea el corte del día por cada organización con sesiones ese día', async () => {
+      const coreClient = buildCoreClient();
+      const repository = buildRepository();
+      repository.listarOrganizacionesConocidas.mockResolvedValue([
+        'org-1',
+        'org-2',
+      ]);
+      repository.contarVeredictosPorDia.mockImplementation((organizacionId) =>
+        Promise.resolve(
+          organizacionId === 'org-1'
+            ? { totalSesiones: 3, exitoso: 2, aceptable: 0, defectuoso: 1 }
+            : { totalSesiones: 0, exitoso: 0, aceptable: 0, defectuoso: 0 },
+        ),
+      );
+      const service = new AgregacionService(coreClient, repository);
+
+      await service.procesarResumenDiario('2026-09-14');
+
+      expect(repository.contarVeredictosPorDia).toHaveBeenCalledWith(
+        'org-1',
+        '2026-09-14',
+      );
+      expect(repository.contarVeredictosPorDia).toHaveBeenCalledWith(
+        'org-2',
+        '2026-09-14',
+      );
+      expect(repository.upsertResumenDiario).toHaveBeenCalledTimes(1);
+      expect(repository.upsertResumenDiario).toHaveBeenCalledWith({
+        organizacionId: 'org-1',
+        fecha: '2026-09-14',
+        totalSesiones: 3,
+        exitoso: 2,
+        aceptable: 0,
+        defectuoso: 1,
+      });
+    });
+
+    it('no upsertea nada para una organización sin sesiones ese día', async () => {
+      const coreClient = buildCoreClient();
+      const repository = buildRepository();
+      repository.listarOrganizacionesConocidas.mockResolvedValue(['org-1']);
+      const service = new AgregacionService(coreClient, repository);
+
+      await service.procesarResumenDiario('2026-09-14');
+
+      expect(repository.upsertResumenDiario).not.toHaveBeenCalled();
+    });
+
+    it('sin fecha explícita, usa el día de ayer en huso Chile', async () => {
+      const coreClient = buildCoreClient();
+      const repository = buildRepository();
+      repository.listarOrganizacionesConocidas.mockResolvedValue([]);
+      const service = new AgregacionService(coreClient, repository);
+
+      await service.procesarResumenDiario();
+
+      expect(repository.listarOrganizacionesConocidas).toHaveBeenCalled();
+    });
+  });
+});
+
+describe('fechaDeAyerEnChile', () => {
+  // Fechas de pleno invierno/verano austral a propósito (no cerca de una transición de horario
+  // de verano) para no depender de en qué fecha exacta cambia el huso de Chile cada año.
+  it('resta un día calendario en huso America/Santiago (horario de invierno, UTC-4)', () => {
+    // 2026-07-15T04:00:00Z = 2026-07-15T00:00 en Chile -> ayer 07-14.
+    expect(fechaDeAyerEnChile(new Date('2026-07-15T04:00:00.000Z'))).toBe(
+      '2026-07-14',
+    );
+  });
+
+  it('cruza de mes correctamente (horario de verano austral, UTC-3)', () => {
+    // 2026-02-01T03:00:00Z = 2026-02-01T00:00 en Chile -> ayer 01-31.
+    expect(fechaDeAyerEnChile(new Date('2026-02-01T03:00:00.000Z'))).toBe(
+      '2026-01-31',
+    );
   });
 });

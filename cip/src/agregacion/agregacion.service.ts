@@ -94,10 +94,12 @@ export class AgregacionService {
         continue;
       }
       await this.repository.upsertFueraDeArea({
+        sesionId: sesion.id,
         codigoQr: escaneo.codigoQr,
         organizacionId: sesion.organizacionId,
         areaRealId: sesion.areaId,
         areaEsperadaId: activo.areaId,
+        veredicto,
       });
     }
 
@@ -192,4 +194,49 @@ export class AgregacionService {
     }
     return filas;
   }
+
+  // DOC-034 Parte B — corte nocturno (ResumenDiarioScheduler, @nestjs/schedule, cron a
+  // medianoche de Chile). `fecha` opcional ('YYYY-MM-DD') para reprocesar un dia puntual a mano;
+  // sin argumento resume el dia que acaba de terminar. No genera fila para una organizacion sin
+  // ninguna sesion ese dia (DOC-034 Parte B 8) — evita ensuciar `resumen_diario` con ceros.
+  async procesarResumenDiario(fecha?: string): Promise<void> {
+    const dia = fecha ?? fechaDeAyerEnChile(new Date());
+    const organizaciones =
+      await this.repository.listarOrganizacionesConocidas();
+    for (const organizacionId of organizaciones) {
+      const conteo = await this.repository.contarVeredictosPorDia(
+        organizacionId,
+        dia,
+      );
+      if (conteo.totalSesiones === 0) {
+        continue;
+      }
+      await this.repository.upsertResumenDiario({
+        organizacionId,
+        fecha: dia,
+        ...conteo,
+      });
+    }
+  }
+}
+
+// Exportada (no privada del servicio) para poder testearla aparte con fechas/horas fijas sin
+// mockear el reloj del sistema entero.
+export function fechaDeAyerEnChile(ahora: Date): string {
+  const formateador = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Santiago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const partes = new Map(
+    formateador.formatToParts(ahora).map((p) => [p.type, p.value]),
+  );
+  const hoyUtc = Date.UTC(
+    Number(partes.get('year')),
+    Number(partes.get('month')) - 1,
+    Number(partes.get('day')),
+  );
+  const ayerUtc = hoyUtc - 24 * 60 * 60 * 1000;
+  return new Date(ayerUtc).toISOString().slice(0, 10);
 }

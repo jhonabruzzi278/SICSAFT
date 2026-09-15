@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   dashboardClient,
   type ActivoFueraDeArea,
@@ -15,9 +15,26 @@ import { IconRefresh } from '@/components/icons';
 // consumidor: por cada AFT que apareció fuera de su área durante un control (app-qr-sicsaft,
 // resultado 'otra_area'/'otra_ubicacion'), señala dónde se lo encontró en el momento del control
 // y dónde debería estar según el catálogo que administra el Profesional de AFT (CCP).
+//
+// DOC-034 Parte A (2026-09-15) — cada alerta ahora viaja entrelazada a la sesión/reporte que la
+// generó (`sesionId`/`veredicto`, calculados una sola vez en CIP al cerrar la sesión, nunca
+// recalculados acá) — mismo badge de veredicto que ResumenTab.tsx y un link directo al reporte
+// completo (Pantalla 8) de esa sesión en Controles de área.
 function formatFecha(iso: string): string {
   return new Date(iso).toLocaleString('es-CL');
 }
+
+const VARIANTE_VEREDICTO: Record<string, 'success' | 'warning' | 'error'> = {
+  exitoso: 'success',
+  aceptable: 'warning',
+  defectuoso: 'error',
+};
+
+const ETIQUETA_VEREDICTO: Record<string, string> = {
+  exitoso: 'Exitoso',
+  aceptable: 'Aceptable',
+  defectuoso: 'Defectuoso',
+};
 
 export function AlertasTab() {
   const [searchParams] = useSearchParams();
@@ -134,12 +151,16 @@ export function AlertasTab() {
             const activo = porCodigoQr.get(alerta.codigoQr);
             return (
               <div
-                key={`${alerta.codigoQr}-${alerta.detectadoEn}`}
+                key={`${alerta.sesionId}-${alerta.codigoQr}`}
                 className="flex flex-col gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="warning">AFT fuera de lugar</Badge>
+                    <Badge variant={VARIANTE_VEREDICTO[alerta.veredicto]}>
+                      Sesión{' '}
+                      {ETIQUETA_VEREDICTO[alerta.veredicto] ?? alerta.veredicto}
+                    </Badge>
                     <span className="font-mono text-xs text-text-dim">
                       {alerta.codigoQr}
                     </span>
@@ -150,6 +171,12 @@ export function AlertasTab() {
                   <p className="mt-0.5 text-xs text-text-faint">
                     Detectado el {formatFecha(alerta.detectadoEn)}
                   </p>
+                  <Link
+                    to={`/dashboard/controles-area?organizacionId=${encodeURIComponent(organizacionId)}&sesionId=${encodeURIComponent(alerta.sesionId)}`}
+                    className="mt-1 inline-block text-xs font-semibold text-accent hover:underline"
+                  >
+                    Ver reporte completo →
+                  </Link>
                 </div>
                 <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 sm:text-right">
                   <div>

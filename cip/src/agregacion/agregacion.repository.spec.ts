@@ -119,17 +119,21 @@ describe('AgregacionRepository', () => {
     const repository = new AgregacionRepository(pool);
 
     await repository.upsertFueraDeArea({
+      sesionId: 'ses-1',
       codigoQr: 'QR-1',
       organizacionId: 'org-1',
       areaRealId: 'area-real',
       areaEsperadaId: 'area-esperada',
+      veredicto: 'defectuoso',
     });
 
     expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
+      'ses-1',
       'QR-1',
       'org-1',
       'area-real',
       'area-esperada',
+      'defectuoso',
     ]);
   });
 
@@ -275,5 +279,74 @@ describe('AgregacionRepository', () => {
     await repository.marcarAtrasado();
 
     expect(pool.query).toHaveBeenCalledWith(expect.any(String));
+  });
+
+  describe('DOC-034 Parte B — resumen diario', () => {
+    it('listarOrganizacionesConocidas devuelve los organizacion_id de cobertura_organizacion', async () => {
+      const pool = buildPool(() => ({
+        rows: [{ organizacion_id: 'org-1' }, { organizacion_id: 'org-2' }],
+      }));
+      const repository = new AgregacionRepository(pool);
+
+      await expect(repository.listarOrganizacionesConocidas()).resolves.toEqual(
+        ['org-1', 'org-2'],
+      );
+    });
+
+    it('contarVeredictosPorDia agrupa por veredicto y suma el total', async () => {
+      const pool = buildPool(() => ({
+        rows: [
+          { veredicto: 'exitoso', cantidad: '2' },
+          { veredicto: 'defectuoso', cantidad: '1' },
+        ],
+      }));
+      const repository = new AgregacionRepository(pool);
+
+      await expect(
+        repository.contarVeredictosPorDia('org-1', '2026-09-14'),
+      ).resolves.toEqual({
+        totalSesiones: 3,
+        exitoso: 2,
+        aceptable: 0,
+        defectuoso: 1,
+      });
+    });
+
+    it('contarVeredictosPorDia devuelve todo en cero sin filas', async () => {
+      const pool = buildPool(() => ({ rows: [] }));
+      const repository = new AgregacionRepository(pool);
+
+      await expect(
+        repository.contarVeredictosPorDia('org-1', '2026-09-14'),
+      ).resolves.toEqual({
+        totalSesiones: 0,
+        exitoso: 0,
+        aceptable: 0,
+        defectuoso: 0,
+      });
+    });
+
+    it('upsertResumenDiario inserta los 4 contadores del día', async () => {
+      const pool = buildPool();
+      const repository = new AgregacionRepository(pool);
+
+      await repository.upsertResumenDiario({
+        organizacionId: 'org-1',
+        fecha: '2026-09-14',
+        totalSesiones: 3,
+        exitoso: 2,
+        aceptable: 0,
+        defectuoso: 1,
+      });
+
+      expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
+        'org-1',
+        '2026-09-14',
+        3,
+        2,
+        0,
+        1,
+      ]);
+    });
   });
 });

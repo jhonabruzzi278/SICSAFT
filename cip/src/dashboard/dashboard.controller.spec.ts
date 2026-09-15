@@ -10,6 +10,7 @@ function buildRepository(): jest.Mocked<DashboardRepository> {
     listarAreas: jest.fn().mockResolvedValue([]),
     listarSesiones: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     listarFueraDeArea: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+    listarHistorico: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     listarNoLocalizados: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     listarIncidencias: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     listarEstadoActivos: jest.fn().mockResolvedValue([]),
@@ -105,6 +106,27 @@ describe('DashboardController', () => {
     expect(repository.listarFueraDeArea).toHaveBeenCalledWith(
       'org-1',
       'area-1',
+      10,
+      0,
+    );
+  });
+
+  it('getHistorico pasa desde/hasta/limit/offset', async () => {
+    const repository = buildRepository();
+    const controller = new DashboardController(repository);
+
+    await controller.getHistorico({
+      organizacionId: 'org-1',
+      desde: '2026-09-01',
+      hasta: '2026-09-14',
+      limit: 10,
+      offset: 0,
+    });
+
+    expect(repository.listarHistorico).toHaveBeenCalledWith(
+      'org-1',
+      '2026-09-01',
+      '2026-09-14',
       10,
       0,
     );

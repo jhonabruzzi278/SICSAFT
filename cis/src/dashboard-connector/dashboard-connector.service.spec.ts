@@ -18,6 +18,7 @@ describe('DashboardConnectorService', () => {
       getEstadoActivos: jest.fn(),
       getVeredictos: jest.fn(),
       getCategorias: jest.fn(),
+      getHistorico: jest.fn(),
     } as unknown as jest.Mocked<CipClientService>;
     service = new DashboardConnectorService(cipClientService);
   });
@@ -159,6 +160,29 @@ describe('DashboardConnectorService', () => {
     expect(cipClientService.getCategorias).toHaveBeenCalledWith(
       'duoc-uc',
       'area-1',
+      'correlation-test',
+    );
+  });
+
+  it('getHistorico delega en CipClientService (DOC-034 Parte B)', async () => {
+    const expected = { items: [], total: 0, actualizadoEn: null, alDia: true };
+    cipClientService.getHistorico.mockResolvedValue(expected);
+
+    await expect(
+      service.getHistorico(
+        'duoc-uc',
+        '2026-09-01',
+        '2026-09-14',
+        20,
+        0,
+        'correlation-test',
+      ),
+    ).resolves.toBe(expected);
+    expect(cipClientService.getHistorico).toHaveBeenCalledWith(
+      'duoc-uc',
+      '2026-09-01',
+      '2026-09-14',
+      { limit: 20, offset: 0 },
       'correlation-test',
     );
   });

@@ -370,4 +370,60 @@ describe('CipClientService', () => {
       );
     });
   });
+
+  describe('getHistorico (DOC-034 Parte B)', () => {
+    it('incluye desde/hasta/limit/offset y valida la respuesta', async () => {
+      axiosGet.mockResolvedValue(
+        buildAxiosResponse({
+          items: [
+            {
+              fecha: '2026-09-14',
+              totalSesiones: 3,
+              exitoso: 2,
+              aceptable: 0,
+              defectuoso: 1,
+            },
+          ],
+          total: 1,
+          ...SYNC_INFO,
+        }),
+      );
+
+      const resultado = await service.getHistorico(
+        'duoc-uc',
+        '2026-09-01',
+        '2026-09-14',
+        { limit: 20, offset: 0 },
+        'correlation-test',
+      );
+
+      expect(axiosGet).toHaveBeenCalledWith(
+        'http://cip:3002/dashboard/historico',
+        expect.objectContaining({
+          params: {
+            organizacionId: 'duoc-uc',
+            desde: '2026-09-01',
+            hasta: '2026-09-14',
+            limit: 20,
+            offset: 0,
+          },
+        }),
+      );
+      expect(resultado.items).toHaveLength(1);
+    });
+
+    it('rechaza con 502 si CIP devuelve una forma inesperada', async () => {
+      axiosGet.mockResolvedValue(buildAxiosResponse({ items: 'no-es-array' }));
+
+      await expect(
+        service.getHistorico(
+          'duoc-uc',
+          undefined,
+          undefined,
+          { limit: 20, offset: 0 },
+          'correlation-test',
+        ),
+      ).rejects.toThrow(BadGatewayException);
+    });
+  });
 });

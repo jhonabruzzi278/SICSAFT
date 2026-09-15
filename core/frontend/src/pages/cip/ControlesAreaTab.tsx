@@ -7,6 +7,7 @@ import {
 } from '@/lib/cis-client';
 import { Alert, Badge, Button, Card } from '@/components/ui';
 import { PantallaControlArea } from '@/components/PantallaControlArea';
+import { HistorialSesiones } from './HistorialSesiones';
 
 // Fase 4 (reestructuracion CCP/CIP, 2026-09-13) — portado de ccp/src/pages/InventariosPage.tsx:
 // mismo componente, mismo contrato con CIS (GET /inventarios*), solo reconectado al cis-client.ts
@@ -36,9 +37,13 @@ export function ControlesAreaTab() {
   const [seleccionId, setSeleccionId] = useState<string | null>(null);
   const [detalle, setDetalle] = useState<SesionInventarioDetalle | null>(null);
   const [detalleError, setDetalleError] = useState<string | null>(null);
-  const [vistaDetalle, setVistaDetalle] = useState<'control' | 'escaneos'>(
-    'control',
-  );
+  const [vistaDetalle, setVistaDetalle] = useState<
+    'control' | 'escaneos' | 'historial'
+  >('control');
+
+  // DOC-034 Parte A — el link "Ver reporte completo" de Alertas llega acá con `?sesionId=` para
+  // abrir directo esa sesión en vez de la primera de la lista.
+  const sesionIdDesdeUrl = searchParams.get('sesionId');
 
   useEffect(() => {
     let cancelled = false;
@@ -54,7 +59,12 @@ export function ControlesAreaTab() {
       .then((data) => {
         if (cancelled) return;
         setSesiones(data);
-        if (data.length > 0) {
+        const coincide = sesionIdDesdeUrl
+          ? data.find((s) => s.id === sesionIdDesdeUrl)
+          : undefined;
+        if (coincide) {
+          setSeleccionId(coincide.id);
+        } else if (data.length > 0) {
           setSeleccionId(data[0].id);
         }
       })
@@ -65,7 +75,7 @@ export function ControlesAreaTab() {
     return () => {
       cancelled = true;
     };
-  }, [organizacionId]);
+  }, [organizacionId, sesionIdDesdeUrl]);
 
   useEffect(() => {
     if (!seleccionId) return;
@@ -202,12 +212,25 @@ export function ControlesAreaTab() {
                   >
                     Escaneos ({detalle?.escaneos?.length ?? 0})
                   </Button>
+                  <Button
+                    variant={
+                      vistaDetalle === 'historial' ? 'primary' : 'secondary'
+                    }
+                    className="px-3 py-1.5 text-xs"
+                    onClick={() => setVistaDetalle('historial')}
+                  >
+                    Historial
+                  </Button>
                 </div>
               </div>
 
-              {vistaDetalle === 'control' ? (
+              {vistaDetalle === 'control' && (
                 <PantallaControlArea sesionId={seleccionId} />
-              ) : (
+              )}
+              {vistaDetalle === 'historial' && (
+                <HistorialSesiones organizacionId={organizacionId} />
+              )}
+              {vistaDetalle === 'escaneos' && (
                 <Card className="h-fit">
                   <h2 className="mb-4 font-medium text-text">
                     Listado de Escaneos

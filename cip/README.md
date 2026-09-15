@@ -24,14 +24,21 @@ falla, ver DOC-018 3), `AgregacionModule` (worker + watcher), `DashboardModule` 
   `app-qr-sicsaft/src/lib/verdict.ts`, DOC-018 5.1), cobertura incremental, activos fuera de área
   e incidencias; `evento` recalcula estado/categoría de activos y cobertura registrada desde el
   catálogo completo de la organización (DOC-018 5.2).
-- `AgregacionRepository` — 8 tablas de agregados + `sync_estado`, todo por `codigoQr` (no
+- `AgregacionRepository` — 9 tablas de agregados + `sync_estado`, todo por `codigoQr` (no
   `activoId` — `GET /catalogo`/`GET /inventarios/:id` de CORE no lo exponen, DOC-018 2.5/2.6).
 - `SyncEstadoWatcher` — marca `sync_estado.al_dia = false` si hay mensajes pendientes en la cola y
   el último procesado supera el umbral (`CIP_UMBRAL_ATRASO_MINUTOS`, default 15) — RF-10.
+- `ResumenDiarioScheduler` (DOC-034 Parte B) — `@nestjs/schedule` con cron a medianoche de Chile
+  (`timeZone: 'America/Santiago'`, sin esto correría en UTC), resume `veredicto_sesion` del día
+  que acaba de terminar en `resumen_diario`, por organización. No genera fila para una
+  organización sin sesiones ese día.
 
-**`DashboardModule`** (`src/dashboard/`): 8 endpoints de lectura (`GET /dashboard/cobertura`,
+**`DashboardModule`** (`src/dashboard/`): 9 endpoints de lectura (`GET /dashboard/cobertura`,
 `/areas`, `/sesiones`, `/fuera-de-area`, `/no-localizados`, `/incidencias`, `/estado-activos`,
-`/categorias`), paginados donde corresponde (RNF-02), todos devuelven `actualizadoEn`/`alDia`.
+`/categorias`, `/historico`), paginados donde corresponde (RNF-02), todos devuelven
+`actualizadoEn`/`alDia`. `/fuera-de-area` (DOC-034 Parte A) expone además `sesionId`/`veredicto`
+por alerta — entrelaza cada AFT fuera de lugar con la sesión/reporte que lo detectó, calculados
+una sola vez en `AgregacionService` (nunca recalculados en la lectura).
 
 **Verificado real** (no solo mocks/unit): Servicios de migración y arranque de `cip` verificados
 con Postgres real, procesamiento de `POST /inventarios` confirmado en el dashboard de CIP (`GET /dashboard/cobertura`
@@ -93,6 +100,10 @@ de `ccp/` (no una app propia), y WEB nunca le habla directo a CIP: pasa por un p
 (`src/dashboard-connector/` + `src/cip-client/`, mismo patrón que `qr-connector.controller.ts`/
 `CoreClientService`), que retira la nota "provisional" de DOC-018 3 sobre `CIP_SERVICE_TOKEN` —
 CIS es ahora el único llamador real de la API de lectura de CIP. Verificado en el navegador contra
-MSW; pendiente verificación real de punta a punta (WEB→CIS→CIP→Postgres) dentro de Docker. Fuera
-de alcance de este incremento: informe diario automático a hora fija (requiere scheduler + canal
-de entrega, spec pptx) y Motor de Alertas (sin consumidor real todavía).
+MSW; pendiente verificación real de punta a punta (WEB→CIS→CIP→Postgres) dentro de Docker.
+
+**DOC-034 (2026-09-15)** resolvió los dos pendientes que quedaban acá: el corte diario automático
+(`ResumenDiarioScheduler`, sin canal de entrega/notificación — se consulta desde
+`core/frontend/src/pages/cip/HistorialSesiones.tsx`, dentro de Controles de área, no un informe
+enviado) y un primer consumidor real del Motor de Alertas
+(`core/frontend/src/pages/cip/AlertasTab.tsx`, ya entrelazado a su sesión de origen).

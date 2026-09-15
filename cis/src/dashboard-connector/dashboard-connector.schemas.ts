@@ -53,3 +53,14 @@ export const incidenciasQuerySchema = z.object({
   ...paginacionSchema,
 });
 export type IncidenciasQuery = z.infer<typeof incidenciasQuerySchema>;
+
+// DOC-034 Parte B
+const fechaSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+export const historicoQuerySchema = z.object({
+  organizacionId: z.string().min(1),
+  desde: fechaSchema.optional(),
+  hasta: fechaSchema.optional(),
+  ...paginacionSchema,
+});
+export type HistoricoQuery = z.infer<typeof historicoQuerySchema>;
