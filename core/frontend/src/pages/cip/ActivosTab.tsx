@@ -6,7 +6,9 @@ import {
   type ActivoCatalogo,
   type DocumentoActivo,
 } from '@/lib/cis-client';
-import { Alert, Badge, Button, Card, Input } from '@/components/ui';
+import { Alert, Badge, Button, Card, Input, Modal } from '@/components/ui';
+
+const SIN_ASIGNAR = 'Sin asignar';
 
 function formatearFecha(fechaIso: string | null): string {
   if (!fechaIso) return '—';
@@ -19,14 +21,18 @@ function formatearClp(valor: number | null): string {
   return `$${valor.toLocaleString('es-CL')}`;
 }
 
+function valoresUnicos(valores: (string | null | undefined)[]): string[] {
+  return Array.from(
+    new Set(valores.filter((v): v is string => Boolean(v))),
+  ).sort((a, b) => a.localeCompare(b, 'es'));
+}
+
 function DetalleActivo({
   activo,
   organizacionId,
-  onCerrar,
 }: {
   activo: ActivoCatalogo;
   organizacionId: string;
-  onCerrar: () => void;
 }) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [documentos, setDocumentos] = useState<DocumentoActivo[] | null>(null);
@@ -89,9 +95,9 @@ function DetalleActivo({
     ) ?? [];
 
   return (
-    <Card className="border-accent/40 bg-gradient-to-b from-bg-card to-bg-raised p-6 shadow-xl">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-border pb-4">
-        <div className="space-y-1">
+    <div className="p-5 sm:p-6">
+      <div className="mb-6 flex flex-wrap items-start gap-4 border-b border-border pb-4">
+        <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-md bg-accent px-2.5 py-1 font-mono text-sm font-bold text-bg">
               {activo.codigoQr}
@@ -105,13 +111,6 @@ function DetalleActivo({
             ID del registro BPI: <code className="font-mono">{activo.id}</code>
           </p>
         </div>
-        <Button
-          variant="ghost"
-          className="!px-3 !py-1 text-xs font-semibold"
-          onClick={onCerrar}
-        >
-          Cerrar ficha
-        </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-[180px_1fr]">
@@ -143,15 +142,15 @@ function DetalleActivo({
             </dd>
           </div>
           <div className="rounded-lg border border-border bg-bg/50 p-3">
-            <dt className="text-[11px] text-text-dim">Área patrimonial</dt>
+            <dt className="text-[11px] text-text-dim">Dirección</dt>
             <dd className="font-semibold text-text">
-              {activo.areaNombre || activo.areaId || 'No asignada'}
+              {activo.areaDependencia || SIN_ASIGNAR}
             </dd>
           </div>
           <div className="rounded-lg border border-border bg-bg/50 p-3">
-            <dt className="text-[11px] text-text-dim">Ubicación / sede</dt>
+            <dt className="text-[11px] text-text-dim">Área patrimonial</dt>
             <dd className="font-semibold text-text">
-              {activo.ubicacionNombre || activo.ubicacionId || '—'}
+              {activo.areaNombre || activo.areaId || 'No asignada'}
             </dd>
           </div>
           <div className="rounded-lg border border-border bg-bg/50 p-3">
@@ -245,17 +244,32 @@ function DetalleActivo({
           </p>
         )}
       </div>
-    </Card>
+    </div>
   );
 }
+
+interface Filtros {
+  busqueda: string;
+  estado: string;
+  direccion: string;
+  area: string;
+  categoria: string;
+}
+
+const FILTROS_INICIALES: Filtros = {
+  busqueda: '',
+  estado: 'todos',
+  direccion: 'todas',
+  area: 'todas',
+  categoria: 'todas',
+};
 
 export function ActivosTab() {
   const [searchParams] = useSearchParams();
   const organizacionId = searchParams.get('organizacionId') ?? '';
   const [activos, setActivos] = useState<ActivoCatalogo[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
-  const [busqueda, setBusqueda] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('todos');
+  const [filtros, setFiltros] = useState<Filtros>(FILTROS_INICIALES);
   const [fichaActivo, setFichaActivo] = useState<ActivoCatalogo | null>(null);
 
   useEffect(() => {
@@ -284,8 +298,17 @@ export function ActivosTab() {
     };
   }, [organizacionId]);
 
+  const opciones = useMemo(
+    () => ({
+      direcciones: valoresUnicos((activos ?? []).map((a) => a.areaDependencia)),
+      areas: valoresUnicos((activos ?? []).map((a) => a.areaNombre)),
+      categorias: valoresUnicos((activos ?? []).map((a) => a.familia)),
+    }),
+    [activos],
+  );
+
   const activosFiltrados = useMemo(() => {
-    const texto = busqueda.trim().toLowerCase();
+    const texto = filtros.busqueda.trim().toLowerCase();
     return (activos ?? []).filter((activo) => {
       const coincideTexto =
         !texto ||
@@ -299,11 +322,26 @@ export function ActivosTab() {
           .filter(Boolean)
           .some((valor) => valor!.toLowerCase().includes(texto));
       const coincideEstado =
-        filtroEstado === 'todos' ||
-        activo.estado.toLowerCase() === filtroEstado;
-      return coincideTexto && coincideEstado;
+        filtros.estado === 'todos' ||
+        activo.estado.toLowerCase() === filtros.estado;
+      const coincideDireccion =
+        filtros.direccion === 'todas' ||
+        (filtros.direccion === SIN_ASIGNAR
+          ? !activo.areaDependencia
+          : activo.areaDependencia === filtros.direccion);
+      const coincideArea =
+        filtros.area === 'todas' || activo.areaNombre === filtros.area;
+      const coincideCategoria =
+        filtros.categoria === 'todas' || activo.familia === filtros.categoria;
+      return (
+        coincideTexto &&
+        coincideEstado &&
+        coincideDireccion &&
+        coincideArea &&
+        coincideCategoria
+      );
     });
-  }, [activos, busqueda, filtroEstado]);
+  }, [activos, filtros]);
 
   if (!organizacionId) {
     return (
@@ -330,23 +368,76 @@ export function ActivosTab() {
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-bg-raised p-3">
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-bg-raised p-3">
         <Input
           placeholder="Buscar por código, nombre, serie o área..."
-          value={busqueda}
-          onChange={(event) => setBusqueda(event.target.value)}
-          className="min-w-[240px] flex-1 text-sm"
+          value={filtros.busqueda}
+          onChange={(event) =>
+            setFiltros((f) => ({ ...f, busqueda: event.target.value }))
+          }
+          className="text-sm"
         />
-        <select
-          value={filtroEstado}
-          onChange={(event) => setFiltroEstado(event.target.value)}
-          className="rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text focus:border-accent focus:outline-none"
-        >
-          <option value="todos">Todos los estados</option>
-          <option value="activo">En servicio</option>
-          <option value="baja">Baja</option>
-          <option value="extraviado">Extraviado</option>
-        </select>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <select
+            value={filtros.direccion}
+            onChange={(event) =>
+              setFiltros((f) => ({ ...f, direccion: event.target.value }))
+            }
+            aria-label="Filtrar por dirección"
+            className="rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text focus:border-accent focus:outline-none"
+          >
+            <option value="todas">Toda dirección</option>
+            {opciones.direcciones.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+            <option value={SIN_ASIGNAR}>{SIN_ASIGNAR}</option>
+          </select>
+          <select
+            value={filtros.area}
+            onChange={(event) =>
+              setFiltros((f) => ({ ...f, area: event.target.value }))
+            }
+            aria-label="Filtrar por área"
+            className="rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text focus:border-accent focus:outline-none"
+          >
+            <option value="todas">Toda área</option>
+            {opciones.areas.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filtros.categoria}
+            onChange={(event) =>
+              setFiltros((f) => ({ ...f, categoria: event.target.value }))
+            }
+            aria-label="Filtrar por categoría"
+            className="rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text focus:border-accent focus:outline-none"
+          >
+            <option value="todas">Toda categoría</option>
+            {opciones.categorias.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filtros.estado}
+            onChange={(event) =>
+              setFiltros((f) => ({ ...f, estado: event.target.value }))
+            }
+            aria-label="Filtrar por estado"
+            className="rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text focus:border-accent focus:outline-none"
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="activo">En servicio</option>
+            <option value="baja">Baja</option>
+            <option value="extraviado">Extraviado</option>
+          </select>
+        </div>
       </div>
 
       {listError && <Alert variant="error">{listError}</Alert>}
@@ -356,85 +447,166 @@ export function ActivosTab() {
       {activos && activos.length === 0 && (
         <p className="text-text-dim">Sin activos en el catálogo todavía.</p>
       )}
-      {activos && activos.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-border bg-bg-raised shadow-sm">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border bg-bg-card/50 text-xs font-semibold uppercase tracking-wider text-text-dim">
-              <tr>
-                <th className="px-4 py-3">Código</th>
-                <th className="px-4 py-3">Nombre AFT</th>
-                <th className="px-4 py-3">Categoría</th>
-                <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3">Área</th>
-                <th className="px-4 py-3">Marca / modelo</th>
-                <th className="px-4 py-3">Responsable</th>
-                <th className="px-4 py-3 text-right">Consulta</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {activosFiltrados.map((activo) => (
-                <tr
-                  key={activo.id}
-                  className="transition-colors hover:bg-bg-card/40"
-                >
-                  <td className="px-4 py-3 font-mono text-xs font-bold text-accent-strong">
-                    {activo.codigoAft || activo.codigoQr}
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-text">
-                    {activo.nombre}
-                  </td>
-                  <td className="px-4 py-3 text-text-dim">{activo.familia}</td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant={
-                        activo.estado === 'activo'
-                          ? 'success'
-                          : activo.estado === 'baja'
-                            ? 'error'
-                            : 'warning'
-                      }
-                    >
-                      {activo.estado === 'activo'
-                        ? 'En Servicio'
-                        : activo.estado}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-text-dim">
-                    {activo.areaNombre || activo.areaId || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-text-dim">
-                    {[activo.marca, activo.modelo]
-                      .filter(Boolean)
-                      .join(' / ') || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-text-dim">
-                    {activo.responsableNombre || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button
-                      variant={
-                        fichaActivo?.id === activo.id ? 'primary' : 'secondary'
-                      }
-                      className="!px-2.5 !py-1 text-xs shadow-none"
-                      onClick={() => setFichaActivo(activo)}
-                    >
-                      Ver ficha
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {activos && activos.length > 0 && activosFiltrados.length === 0 && (
+        <p className="text-text-dim">Ningún activo coincide con los filtros.</p>
       )}
 
-      {fichaActivo && (
-        <DetalleActivo
-          activo={fichaActivo}
-          organizacionId={organizacionId}
-          onCerrar={() => setFichaActivo(null)}
-        />
+      {activosFiltrados.length > 0 && (
+        <>
+          {/* Desktop / tablet: tabla completa. Mobile (<sm): tarjetas apiladas — una tabla de 7
+              columnas con overflow-x-auto como único tratamiento mobile no cumple el estándar de
+              diseño del repo (ver ecc/web/design-quality.md), así que abajo hay una vista
+              alternativa real, no solo scroll horizontal. */}
+          <div className="hidden overflow-x-auto rounded-xl border border-border bg-bg-raised shadow-sm sm:block">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-border bg-bg-card/50 text-xs font-semibold uppercase tracking-wider text-text-dim">
+                <tr>
+                  <th className="px-4 py-3">Código</th>
+                  <th className="px-4 py-3">Nombre AFT</th>
+                  <th className="px-4 py-3">Categoría</th>
+                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3">Dirección</th>
+                  <th className="px-4 py-3">Área</th>
+                  <th className="px-4 py-3">Responsable</th>
+                  <th className="px-4 py-3 text-right">Consulta</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {activosFiltrados.map((activo) => (
+                  <tr
+                    key={activo.id}
+                    className="transition-colors hover:bg-bg-card/40"
+                  >
+                    <td className="px-4 py-3 font-mono text-xs font-bold text-accent-strong">
+                      {activo.codigoAft || activo.codigoQr}
+                    </td>
+                    <td className="px-4 py-3 font-semibold text-text">
+                      {activo.nombre}
+                    </td>
+                    <td className="px-4 py-3 text-text-dim">
+                      {activo.familia}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        variant={
+                          activo.estado === 'activo'
+                            ? 'success'
+                            : activo.estado === 'baja'
+                              ? 'error'
+                              : 'warning'
+                        }
+                      >
+                        {activo.estado === 'activo'
+                          ? 'En Servicio'
+                          : activo.estado}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-text-dim">
+                      {activo.areaDependencia || SIN_ASIGNAR}
+                    </td>
+                    <td className="px-4 py-3 text-text-dim">
+                      {activo.areaNombre || activo.areaId || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-text-dim">
+                      {activo.responsableNombre || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button
+                        variant="secondary"
+                        className="!px-2.5 !py-1 text-xs shadow-none"
+                        onClick={() => setFichaActivo(activo)}
+                      >
+                        Ver ficha
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="space-y-3 sm:hidden">
+            {activosFiltrados.map((activo) => (
+              <Card key={activo.id} className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs font-bold text-accent-strong">
+                      {activo.codigoAft || activo.codigoQr}
+                    </p>
+                    <p className="truncate font-semibold text-text">
+                      {activo.nombre}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={
+                      activo.estado === 'activo'
+                        ? 'success'
+                        : activo.estado === 'baja'
+                          ? 'error'
+                          : 'warning'
+                    }
+                  >
+                    {activo.estado === 'activo' ? 'En Servicio' : activo.estado}
+                  </Badge>
+                </div>
+                <dl className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <dt className="text-text-dim">Categoría</dt>
+                    <dd className="font-medium text-text">{activo.familia}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-text-dim">Dirección</dt>
+                    <dd className="font-medium text-text">
+                      {activo.areaDependencia || SIN_ASIGNAR}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-text-dim">Área</dt>
+                    <dd className="font-medium text-text">
+                      {activo.areaNombre || activo.areaId || '—'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-text-dim">Responsable</dt>
+                    <dd className="font-medium text-text">
+                      {activo.responsableNombre || '—'}
+                    </dd>
+                  </div>
+                </dl>
+                <Button
+                  variant="secondary"
+                  className="w-full !py-1.5 text-xs shadow-none"
+                  onClick={() => setFichaActivo(activo)}
+                >
+                  Ver ficha
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
+
+      <Modal
+        open={fichaActivo !== null}
+        onClose={() => setFichaActivo(null)}
+        className="max-h-[calc(100vh-5rem)] overflow-y-auto"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl border-b border-border bg-bg-card/95 px-5 py-3 backdrop-blur sm:px-6">
+          <h2 className="text-sm font-bold text-text-dim uppercase tracking-wide">
+            Ficha del activo
+          </h2>
+          <Button
+            variant="ghost"
+            className="!px-3 !py-1 text-xs font-semibold"
+            onClick={() => setFichaActivo(null)}
+          >
+            Cerrar ✕
+          </Button>
+        </div>
+        {fichaActivo && (
+          <DetalleActivo activo={fichaActivo} organizacionId={organizacionId} />
+        )}
+      </Modal>
     </div>
   );
 }

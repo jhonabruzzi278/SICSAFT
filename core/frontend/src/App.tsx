@@ -1,12 +1,16 @@
 import type { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/components/AppShell';
+import { RequireNivel2 } from '@/components/RequireNivel2';
 import { oidcClient } from '@/lib/oidc/oidc-client';
 import { LoginPage } from '@/pages/LoginPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
 import { InicioPage } from '@/pages/InicioPage';
-import { DashboardPage } from '@/pages/DashboardPage';
 import { GestionarProfesionalAftPage } from '@/pages/GestionarProfesionalAftPage';
+import { ResumenTab } from '@/pages/cip/ResumenTab';
+import { ActivosTab } from '@/pages/cip/ActivosTab';
+import { ControlesAreaTab } from '@/pages/cip/ControlesAreaTab';
+import { AlertasTab } from '@/pages/cip/AlertasTab';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   if (!oidcClient.isAuthenticated()) {
@@ -15,6 +19,10 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+// 2026-09-14 — el CIP dejó de ser una única ruta (`/dashboard`) con sub-pestañas internas
+// (`CipPage.tsx`, eliminado) y pasó a ser 4 rutas directas, cada una navegable desde su propia
+// entrada del sidebar (ver AppShell.tsx). `/dashboard` sigue siendo la ruta "hogar" (Resumen) para
+// no romper el redirect que ya hace InicioPage.tsx tras resolver la organización.
 export default function App() {
   return (
     <AppShell>
@@ -33,7 +41,39 @@ export default function App() {
           path="/dashboard"
           element={
             <RequireAuth>
-              <DashboardPage />
+              <RequireNivel2>
+                <ResumenTab />
+              </RequireNivel2>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/dashboard/activos"
+          element={
+            <RequireAuth>
+              <RequireNivel2>
+                <ActivosTab />
+              </RequireNivel2>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/dashboard/controles-area"
+          element={
+            <RequireAuth>
+              <RequireNivel2>
+                <ControlesAreaTab />
+              </RequireNivel2>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/dashboard/alertas"
+          element={
+            <RequireAuth>
+              <RequireNivel2>
+                <AlertasTab />
+              </RequireNivel2>
             </RequireAuth>
           }
         />

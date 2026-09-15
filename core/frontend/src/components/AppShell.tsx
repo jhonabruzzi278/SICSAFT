@@ -1,42 +1,79 @@
 import type { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { oidcClient } from '@/lib/oidc/oidc-client';
 import { esNivel2 } from '@/lib/nivel';
 import { Button } from './ui';
-import { IconChart, IconLogOut, IconSparkles, IconUsers } from './icons';
+import {
+  IconBell,
+  IconBox,
+  IconChart,
+  IconLogOut,
+  IconMapPin,
+  IconUsers,
+} from './icons';
 
-// DOC-022 3 — sidebar del portal del Directivo. Solo dos destinos reales: el dashboard ejecutivo
-// (InicioPage resuelve la única organización del Directivo y redirige a /dashboard, ver
-// InicioPage.tsx) y la gestión del Profesional de AFT — a diferencia de ccp/ no hay
-// selector de organización (DirectivoGuard en CIS siempre deriva la organización del JWT).
+// DOC-022 3 — sidebar del portal del Directivo. A diferencia de ccp/ no hay selector de
+// organización (DirectivoGuard en CIS siempre deriva la organización del JWT) — sí hace falta
+// preservar `organizacionId` de la URL actual al armar los links de abajo, porque InicioPage.tsx
+// lo agrega recién en el primer /dashboard?organizacionId=... y de ahí en más viaja en la URL.
 //
-// DOC-025 / pedido del usuario (2026-09-09): el CIP es exclusivo del Directivo y NO se enlaza
-// desde el CCP. Acá no hace falta una entrada aparte para él porque /dashboard **es** el CIP
-// cuando la instalación es Nivel 2 — la misma página se titula "Centro de Inteligencia
-// Patrimonial" (ver DashboardPage.tsx). Antes había además un link "Centro de Inteligencia (CIP)"
-// en la sidebar y un botón "CIP Analytics" en el header, los dos apuntando a /dashboard: llevaban
-// a la pantalla donde el Directivo ya estaba parado. Se reemplazan por el nombre correcto de la
-// única entrada que ya existía.
-const NAV_ITEMS = [
+// 2026-09-14, pedido del usuario: el CIP dejó de ser una única entrada "CIP — Inteligencia" que
+// adentro tenía sub-pestañas (`CipPage.tsx`, eliminado) — ahora sus 4 secciones son entradas
+// directas del sidebar, cada una su propia ruta bajo /dashboard/*. Nivel 1 (sin CIP contratado,
+// RF-A) sigue viendo un único "Resumen ejecutivo" que apunta a /dashboard y muestra el teaser
+// (ver RequireNivel2.tsx) — la misma validación de "¿el cliente tiene esto instalado?" que ya
+// existía, solo que ahora decide CUÁNTAS entradas mostrar en vez de solo el texto de una.
+const NAV_ITEM_PROFESIONAL = {
+  path: '/gestionar-profesional-aft',
+  matches: ['/gestionar-profesional-aft'],
+  nombre: 'Profesional de AFT',
+  icon: IconUsers,
+} as const;
+
+const NAV_ITEMS_NIVEL1 = [
   {
-    path: '/',
+    path: '/dashboard',
     matches: ['/', '/dashboard'],
     nombre: 'Resumen ejecutivo',
     icon: IconChart,
   },
-  {
-    path: '/gestionar-profesional-aft',
-    matches: ['/gestionar-profesional-aft'],
-    nombre: 'Profesional de AFT',
-    icon: IconUsers,
-  },
+  NAV_ITEM_PROFESIONAL,
 ] as const;
 
-const RUTA_TABLERO = '/';
+const NAV_ITEMS_CIP = [
+  {
+    path: '/dashboard',
+    matches: ['/', '/dashboard'],
+    nombre: 'Resumen',
+    icon: IconChart,
+  },
+  {
+    path: '/dashboard/activos',
+    matches: ['/dashboard/activos'],
+    nombre: 'Activos',
+    icon: IconBox,
+  },
+  {
+    path: '/dashboard/controles-area',
+    matches: ['/dashboard/controles-area'],
+    nombre: 'Controles de área',
+    icon: IconMapPin,
+  },
+  {
+    path: '/dashboard/alertas',
+    matches: ['/dashboard/alertas'],
+    nombre: 'Alertas',
+    icon: IconBell,
+  },
+  NAV_ITEM_PROFESIONAL,
+] as const;
 
 function Sidebar() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const nivel2 = esNivel2();
+  const organizacionId = searchParams.get('organizacionId');
+  const navItems = nivel2 ? NAV_ITEMS_CIP : NAV_ITEMS_NIVEL1;
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-bg-raised shadow-elev-2 lg:flex">
@@ -54,17 +91,19 @@ function Sidebar() {
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         <p className="px-3 pb-1.5 text-[0.7rem] font-semibold tracking-wide text-text-faint uppercase">
-          Directivo
+          {nivel2 ? 'CIP — Nivel 2' : 'Directivo'}
         </p>
-        {NAV_ITEMS.map(({ path, matches, nombre, icon: Icon }) => {
+        {navItems.map(({ path, matches, nombre, icon: Icon }) => {
           const active = (matches as readonly string[]).includes(
             location.pathname,
           );
-          const esCip = path === RUTA_TABLERO && nivel2;
+          const href = organizacionId
+            ? `${path}?organizacionId=${encodeURIComponent(organizacionId)}`
+            : path;
           return (
             <Link
               key={path}
-              to={path}
+              to={href}
               aria-current={active ? 'page' : undefined}
               className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 active
@@ -72,18 +111,8 @@ function Sidebar() {
                   : 'text-text-dim hover:bg-bg-card hover:text-text'
               }`}
             >
-              {esCip ? <IconSparkles /> : <Icon />}
-              {/* La sigla va primero: con el badge "Nivel 2" al lado el ancho alcanza justo, y
-                  truncar "Centro de Inteligencia (CIP)" se comía justamente el "(CIP)" que el
-                  Directivo busca en el menú. */}
-              <span className="min-w-0 flex-1 truncate">
-                {esCip ? 'CIP — Inteligencia' : nombre}
-              </span>
-              {esCip && (
-                <span className="shrink-0 rounded bg-accent/20 px-1 py-0.5 text-[0.6rem] font-bold text-accent-strong ring-1 ring-accent/30">
-                  Nivel 2
-                </span>
-              )}
+              <Icon />
+              <span className="min-w-0 flex-1 truncate">{nombre}</span>
             </Link>
           );
         })}

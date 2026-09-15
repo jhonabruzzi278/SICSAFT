@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,
@@ -109,6 +110,49 @@ export function Badge({
     >
       {children}
     </span>
+  );
+}
+
+// Modal minimo (sin radix/shadcn, mismo criterio que el resto de este archivo): overlay +
+// panel centrado, cierra con Escape o click afuera. `role="dialog"` + `aria-modal` para lectores
+// de pantalla; el foco no se atrapa dentro a propósito (alcance mínimo viable, ver ccp/README.md
+// "Decisiones de esta primera version" para el mismo criterio en otros primitivos).
+export function Modal({
+  open,
+  onClose,
+  children,
+  className = '',
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-bg/80 p-4 py-10 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={(event) => event.stopPropagation()}
+        className={`w-full max-w-3xl rounded-2xl border border-border bg-bg-card shadow-2xl ${className}`}
+      >
+        {children}
+      </div>
+    </div>
   );
 }
 
