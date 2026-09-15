@@ -4,6 +4,10 @@ dist/
 *.tsbuildinfo
 coverage/
 
+# jsPDF `doc.save()` bajo jsdom (vitest) escribe el archivo al cwd en vez de disparar una
+# descarga real de navegador — ver src/lib/pdf-informe-control.test.ts.
+informe-control-*.pdf
+
 # Secretos locales de este paquete
 .env
 .env.*

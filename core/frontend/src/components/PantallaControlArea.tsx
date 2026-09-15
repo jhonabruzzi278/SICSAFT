@@ -9,22 +9,28 @@ import {
   etiquetaTipo,
   formatPorcentaje,
 } from '@/lib/pantalla-8';
-import { Alert, Badge } from '@/components/ui';
+import {
+  generarPdfInformeControl,
+  type InformeControlPdfFila,
+} from '@/lib/pdf-informe-control';
+import { Alert, Badge, Button } from '@/components/ui';
 import { KpiCard } from '@/components/KpiCard';
 import { DonutChart } from '@/components/DonutChart';
-import { IconMapPin } from '@/components/icons';
+import { IconDownload, IconMapPin } from '@/components/icons';
 import { PALETA_CATEGORIAS } from '@/lib/colores';
 
 // DOC-029 RF-I — "Pantalla 8": informe de control de área de una sesión de relevamiento.
 // Contrato exacto: casos-de-uso/CONTRATO-PANTALLA-8.md (los 6 bloques + veredicto son
 // obligatorios; el resto — tarjetas KPI, hallazgos, donut — es presentación agregada sobre esos
-// mismos datos, no un contrato nuevo). Rediseño 2026-09-15 pedido por el usuario (referencia:
-// tarjetas KPI + hallazgos + gráficos en vez de bloques numerados) — vive ahora dentro de un
-// modal (ver ControlesAreaTab.tsx), así que este componente no arma su propio contenedor de
-// tarjeta ni su propio botón de cerrar. Los datos vienen de `GET /inventarios/:id/control` vía
-// CIS — este componente no calcula nada, salvo cruzar `codigoQr` contra el catálogo (mismo
-// patrón que AlertasTab.tsx) para poder agrupar "AFT por categoría", dato que ese endpoint no
-// expone directo.
+// mismos datos, no un contrato nuevo).
+//
+// DOC-035 (2026-09-15) — deja de vivir dentro de un modal (ver ReporteControlPage.tsx, que ahora
+// es su propia ruta) y pasa a recibir `areaNombre`/`direccionNombre`/`departamentoNombre` ya
+// resueltos por el padre (que de todas formas necesita el árbol de áreas para el breadcrumb) —
+// antes el header mostraba `resumen.areaId` crudo (bug real reportado por el usuario). Las 3
+// listas (Escaneados/Fuera de área/No se escanearon) pasan de "las 3 a la vez en 3 columnas" a un
+// selector de pestañas — con datos reales eran la sección que más obligaba a hacer scroll de
+// página completa.
 
 type Severidad = 'critico' | 'atencion';
 
@@ -32,6 +38,8 @@ interface Hallazgo {
   severidad: Severidad;
   texto: string;
 }
+
+type ListaId = 'escaneados' | 'fueraDeArea' | 'faltantes';
 
 function fecha(iso: string): string {
   return new Date(iso).toLocaleDateString('es-CL');
@@ -65,7 +73,7 @@ function ListaAft({
     return <p className="text-sm text-text-dim">— ninguno —</p>;
   }
   return (
-    <ul className="divide-y divide-border rounded-lg border border-border text-sm">
+    <ul className="max-h-72 divide-y divide-border overflow-y-auto rounded-lg border border-border text-sm">
       {filas.map((f) => (
         <li
           key={f.codigoQr}
@@ -132,21 +140,35 @@ function BarraEstado({
   );
 }
 
+const LISTAS_TABS: { id: ListaId; titulo: string }[] = [
+  { id: 'escaneados', titulo: 'AFT escaneados' },
+  { id: 'fueraDeArea', titulo: 'No corresponden al área' },
+  { id: 'faltantes', titulo: 'No se escanearon' },
+];
+
 export function PantallaControlArea({
   sesionId,
   organizacionId,
+  areaNombre,
+  direccionNombre,
+  departamentoNombre,
 }: {
   sesionId: string;
   organizacionId: string;
+  areaNombre: string;
+  direccionNombre: string | null;
+  departamentoNombre: string | null;
 }) {
   const [resumen, setResumen] = useState<ResumenControlArea | null>(null);
   const [catalogo, setCatalogo] = useState<ActivoCatalogo[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [listaActiva, setListaActiva] = useState<ListaId>('escaneados');
 
   useEffect(() => {
     let ignorar = false;
     setResumen(null);
     setError(null);
+    setListaActiva('escaneados');
     void (async () => {
       try {
         const res = await cisClient.getInventarioResumenControl(sesionId);
@@ -230,6 +252,91 @@ export function PantallaControlArea({
     return lista;
   }, [resumen]);
 
+  function descargarPdf() {
+    if (!resumen) return;
+    const listaAPdf = (
+      filas: Array<{
+        codigoQr: string;
+        nombre: string | null;
+        areaRealNombre?: string | null;
+      }>,
+    ): InformeControlPdfFila[] =>
+      filas.map((f) => ({
+        codigoQr: f.codigoQr,
+        nombre: f.nombre ?? '(sin registrar)',
+        extra: f.areaRealNombre
+          ? `pertenece a: ${f.areaRealNombre}`
+          : undefined,
+      }));
+
+    generarPdfInformeControl({
+      areaNombre,
+      direccionNombre,
+      departamentoNombre,
+      fechaInicio: resumen.fechaInicio,
+      fechaCierre: resumen.fechaCierre,
+      operadorId: resumen.operadorId,
+      veredicto: resumen.veredicto,
+      veredictoEtiqueta: estiloVeredicto(resumen.veredicto).etiqueta,
+      kpis: [
+        {
+          titulo: 'AFT del área',
+          valor: String(resumen.activosDelArea),
+          dato: 'Registrados en la BPI',
+        },
+        {
+          titulo: 'AFT escaneados',
+          valor: String(resumen.escaneados),
+          dato: 'En esta acción de control',
+        },
+        {
+          titulo: 'Alertas detectadas',
+          valor: String(resumen.faltantes.length + resumen.fueraDeArea.length),
+          dato: 'Faltantes + fuera de área',
+        },
+        {
+          titulo: 'Cobertura del área',
+          valor: formatPorcentaje(resumen.delAreaPct),
+          dato: `${resumen.delArea} de ${resumen.activosDelArea} del área`,
+        },
+      ],
+      hallazgos,
+      categorias: segmentosCategorias.map((s) => ({
+        nombre: s.nombre,
+        cantidad: s.cantidad,
+        porcentaje:
+          resumen.escaneados > 0
+            ? ((s.cantidad / resumen.escaneados) * 100).toFixed(1)
+            : '0',
+      })),
+      estadoDeclarado: [
+        {
+          etiqueta: 'En servicio',
+          cantidad: resumen.porEstadoDeclarado.enServicio,
+        },
+        {
+          etiqueta: 'Mantenimiento',
+          cantidad: resumen.porEstadoDeclarado.enMantenimiento,
+        },
+        { etiqueta: 'Inactivo', cantidad: resumen.porEstadoDeclarado.inactivo },
+        { etiqueta: 'Baja', cantidad: resumen.porEstadoDeclarado.baja },
+      ],
+      listas: [
+        { titulo: 'AFT escaneados', filas: listaAPdf(resumen.escaneadosLista) },
+        {
+          titulo: 'No corresponden al área',
+          filas: listaAPdf(resumen.fueraDeArea),
+        },
+        {
+          titulo: 'No se escanearon',
+          filas: listaAPdf(
+            resumen.faltantes.map((f) => ({ ...f, tipo: null })),
+          ),
+        },
+      ],
+    });
+  }
+
   if (error) return <Alert>{error}</Alert>;
   if (!resumen)
     return <p className="text-sm text-text-dim">Cargando la Pantalla 8…</p>;
@@ -238,6 +345,35 @@ export function PantallaControlArea({
   const alertasDetectadas =
     resumen.faltantes.length + resumen.fueraDeArea.length;
   const est = resumen.porEstadoDeclarado;
+  const ruta = [direccionNombre, departamentoNombre]
+    .filter((v): v is string => Boolean(v))
+    .join(' → ');
+
+  const listasPorId: Record<
+    ListaId,
+    {
+      filas: Array<{
+        codigoQr: string;
+        nombre: string | null;
+        tipo: 'ordinario' | 'extraordinario' | null;
+        areaRealNombre?: string | null;
+      }>;
+      total: number;
+    }
+  > = {
+    escaneados: {
+      filas: resumen.escaneadosLista,
+      total: resumen.escaneadosLista.length,
+    },
+    fueraDeArea: {
+      filas: resumen.fueraDeArea,
+      total: resumen.fueraDeArea.length,
+    },
+    faltantes: {
+      filas: resumen.faltantes.map((f) => ({ ...f, tipo: null })),
+      total: resumen.faltantes.length,
+    },
+  };
 
   return (
     <div className="space-y-6">
@@ -248,18 +384,29 @@ export function PantallaControlArea({
           </span>
           <div>
             <h2 className="text-base font-bold text-text">
-              Reporte de control — Área {resumen.areaId}
+              Reporte de control — {areaNombre}
             </h2>
+            {ruta && <p className="text-xs text-text-faint">{ruta}</p>}
             <p className="text-xs text-text-dim">
               Sesión del {fecha(resumen.fechaCierre)} ·{' '}
               {hora(resumen.fechaCierre)}
             </p>
           </div>
         </div>
-        <div className={`rounded-xl px-4 py-2 text-right ${veredicto.fondo}`}>
-          <p className="text-sm font-bold tracking-wide">
-            Proceso {veredicto.etiqueta}
-          </p>
+        <div className="flex items-center gap-2">
+          <div className={`rounded-xl px-4 py-2 text-right ${veredicto.fondo}`}>
+            <p className="text-sm font-bold tracking-wide">
+              Proceso {veredicto.etiqueta}
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            className="gap-1.5 px-3 py-2 text-xs"
+            onClick={descargarPdf}
+          >
+            <IconDownload />
+            <span className="hidden sm:inline">Descargar PDF</span>
+          </Button>
         </div>
       </header>
 
@@ -343,27 +490,20 @@ export function PantallaControlArea({
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div>
-          <h3 className="mb-2 text-xs font-bold tracking-wide text-text-dim uppercase">
-            AFT escaneados ({resumen.escaneadosLista.length})
-          </h3>
-          <ListaAft filas={resumen.escaneadosLista} />
+      <div className="rounded-2xl border border-border bg-bg-card p-5">
+        <div className="mb-3 flex flex-wrap gap-2">
+          {LISTAS_TABS.map((tab) => (
+            <Button
+              key={tab.id}
+              variant={listaActiva === tab.id ? 'primary' : 'secondary'}
+              className="px-3 py-1.5 text-xs"
+              onClick={() => setListaActiva(tab.id)}
+            >
+              {tab.titulo} ({listasPorId[tab.id].total})
+            </Button>
+          ))}
         </div>
-        <div>
-          <h3 className="mb-2 text-xs font-bold tracking-wide text-text-dim uppercase">
-            No corresponden al área ({resumen.fueraDeArea.length})
-          </h3>
-          <ListaAft filas={resumen.fueraDeArea} />
-        </div>
-        <div>
-          <h3 className="mb-2 text-xs font-bold tracking-wide text-text-dim uppercase">
-            No se escanearon ({resumen.faltantes.length})
-          </h3>
-          <ListaAft
-            filas={resumen.faltantes.map((f) => ({ ...f, tipo: null }))}
-          />
-        </div>
+        <ListaAft filas={listasPorId[listaActiva].filas} />
       </div>
 
       <p className="border-t border-border pt-3 text-xs text-text-faint">

@@ -3,9 +3,10 @@ import { dashboardClient, type ResumenDiario } from '@/lib/dashboard-client';
 import { Alert, Card } from '@/components/ui';
 
 // DOC-034 Parte B — corte diario generado a medianoche (ResumenDiarioScheduler, cip/) a partir de
-// veredicto_sesion. No calcula nada acá: solo lista lo que CIP ya resumió. Vive como una vista
-// más del toggle de ControlesAreaTab (junto a "Control BPI"/"Escaneos"), no como pestaña propia
-// del sidebar — confirmado con el usuario 2026-09-15.
+// veredicto_sesion. No calcula nada acá: solo lista lo que CIP ya resumió. Es un dato por
+// organización, no por sesión — DOC-035 (2026-09-15) lo reubicó como un toggle "Ver historial" en
+// el landing del organigrama (OrganigramaControlesArea.tsx), en vez de una pestaña dentro del
+// reporte de una sesión puntual, donde vivía antes.
 function formatFecha(fechaIso: string): string {
   const [anio, mes, dia] = fechaIso.split('-');
   return `${dia}-${mes}-${anio}`;

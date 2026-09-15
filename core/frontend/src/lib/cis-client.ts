@@ -42,6 +42,20 @@ export interface Organizacion {
   sedes: Sede[];
 }
 
+// DOC-035 — jerarquía Organización→Dirección→Departamento→Área para el organigrama de Controles
+// de área. Copia adaptada de `ccp/src/lib/cis-client.ts` (ccp/ y core/frontend/ son SPAs
+// independientes que no comparten código, ver CLAUDE.md) — mismo `GET /admin/areas` de CIS, que ya
+// es de lectura abierta (administrador.controller.ts "RF-05 — lectura abierta"), así que el
+// Directivo ya puede leerlo con su propio token OIDC.
+export interface Area {
+  id: string;
+  organizacionId: string;
+  codigo: string;
+  nombre: string;
+  dependencia: string | null;
+  departamento: string | null;
+}
+
 export interface DocumentoActivo {
   id: string;
   activoId: string;
@@ -244,6 +258,15 @@ export const cisClient = {
       `/admin/activos/${encodeURIComponent(activoId)}/documentos?${params.toString()}`,
     );
     return (await res.json()) as DocumentoActivo[];
+  },
+
+  // DOC-035 — mismo endpoint que ccp/src/lib/cis-client.ts getAreas(): lectura abierta, tope de
+  // página (RNF-01), sin paginación en la UI porque el organigrama necesita el árbol completo.
+  async getAreas(organizacionId: string): Promise<Area[]> {
+    const params = new URLSearchParams({ organizacionId, limit: '100' });
+    const res = await authorizedFetch(`/admin/areas?${params.toString()}`);
+    const data = (await res.json()) as { areas: Area[]; total: number };
+    return data.areas;
   },
 
   async getInventarios(organizacionId: string): Promise<SesionInventario[]> {

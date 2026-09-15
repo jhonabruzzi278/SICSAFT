@@ -94,8 +94,12 @@ function Sidebar() {
           {nivel2 ? 'CIP — Nivel 2' : 'Directivo'}
         </p>
         {navItems.map(({ path, matches, nombre, icon: Icon }) => {
-          const active = (matches as readonly string[]).includes(
-            location.pathname,
+          // DOC-035 — "Controles de área" ganó sub-rutas (/reportes, /reporte/:sesionId): además
+          // de la coincidencia exacta, un pathname que cuelga de una de las rutas listadas también
+          // cuenta como activo. No afecta a los demás ítems (ninguno tiene hijos hoy).
+          const active = (matches as readonly string[]).some(
+            (m) =>
+              location.pathname === m || location.pathname.startsWith(`${m}/`),
           );
           const href = organizacionId
             ? `${path}?organizacionId=${encodeURIComponent(organizacionId)}`

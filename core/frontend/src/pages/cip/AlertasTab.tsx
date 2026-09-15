@@ -172,7 +172,7 @@ export function AlertasTab() {
                     Detectado el {formatFecha(alerta.detectadoEn)}
                   </p>
                   <Link
-                    to={`/dashboard/controles-area?organizacionId=${encodeURIComponent(organizacionId)}&sesionId=${encodeURIComponent(alerta.sesionId)}`}
+                    to={`/dashboard/controles-area/reporte/${encodeURIComponent(alerta.sesionId)}?organizacionId=${encodeURIComponent(organizacionId)}`}
                     className="mt-1 inline-block text-xs font-semibold text-accent hover:underline"
                   >
                     Ver reporte completo →

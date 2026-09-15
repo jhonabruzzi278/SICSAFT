@@ -9,7 +9,9 @@ import { InicioPage } from '@/pages/InicioPage';
 import { GestionarProfesionalAftPage } from '@/pages/GestionarProfesionalAftPage';
 import { ResumenTab } from '@/pages/cip/ResumenTab';
 import { ActivosTab } from '@/pages/cip/ActivosTab';
-import { ControlesAreaTab } from '@/pages/cip/ControlesAreaTab';
+import { OrganigramaControlesArea } from '@/pages/cip/OrganigramaControlesArea';
+import { ReportesDeAreaPage } from '@/pages/cip/ReportesDeAreaPage';
+import { ReporteControlPage } from '@/pages/cip/ReporteControlPage';
 import { AlertasTab } from '@/pages/cip/AlertasTab';
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -62,7 +64,27 @@ export default function App() {
           element={
             <RequireAuth>
               <RequireNivel2>
-                <ControlesAreaTab />
+                <OrganigramaControlesArea />
+              </RequireNivel2>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/dashboard/controles-area/reportes"
+          element={
+            <RequireAuth>
+              <RequireNivel2>
+                <ReportesDeAreaPage />
+              </RequireNivel2>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/dashboard/controles-area/reporte/:sesionId"
+          element={
+            <RequireAuth>
+              <RequireNivel2>
+                <ReporteControlPage />
               </RequireNivel2>
             </RequireAuth>
           }
