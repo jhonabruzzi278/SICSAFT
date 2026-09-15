@@ -1,9 +1,23 @@
-# DOC-034 — Alertas del CIP entrelazadas con el reporte de origen
+# DOC-034 — Plan unificado: Alertas entrelazadas con reportes + Historial nocturno del CIP
 
 **Fecha**: 2026-09-15 · **Fase**: Construction (incremento sobre DOC-026 8, que dejaba el Motor
 de Alertas fuera de alcance) · **Pedido por**: usuario, sesión 2026-09-14/15.
 
-## 1. Contexto
+Este documento une en un solo plan dos pedidos separados de la misma sesión, ambos sobre el CIP:
+
+- **Parte A** — las alertas de AFT fuera de lugar deben quedar entrelazadas al reporte (sesión de
+  control) que las generó, siguiendo la misma regla de veredicto que ese reporte.
+- **Parte B** — "Controles" necesita una pestaña tipo dashboard/resumen **con historial**, que se
+  genere siempre a las 12 de la noche (pedido original de esta sesión, 2026-09-14, sin retomar
+  hasta ahora).
+
+Van en el mismo documento porque las dos tocan la misma pieza de infraestructura (el worker de
+agregación de CIP, ADR-005) y porque un "Historial" del CIP sin las alertas entrelazadas a su
+sesión de origen sería una fuente de verdad a medias — conviene implementarlas juntas.
+
+## Parte A — Alertas entrelazadas con el reporte de origen
+
+### 1. Contexto
 
 La pestaña **Alertas** del CIP (`core/frontend/src/pages/cip/AlertasTab.tsx`, agregada
 2026-09-14) lista los AFT detectados fuera de su área durante una acción de control, leyendo
@@ -16,7 +30,7 @@ El usuario pidió (2026-09-14, re-confirmado 2026-09-15) que **las alertas quede
 los reportes** (las sesiones de control, RF-I / "Pantalla 8") y que **seguán la misma regla de
 veredicto que los reportes** — sin cambiar cómo se ven hoy más allá de eso.
 
-## 2. Regla de veredicto — verificada, sin cambios de lógica
+### 2. Regla de veredicto — verificada, sin cambios de lógica
 
 Confirmado contra el código actual (2026-09-15): las tres implementaciones independientes de la
 regla (`app-qr-sicsaft/src/lib/verdict.ts`, `core/src/inventarios/veredicto.ts`,
@@ -31,7 +45,7 @@ Este incremento **no toca esa lógica**. Lo que falta es que el veredicto de la 
 calculado una vez por `AgregacionService` en `veredicto_sesion`) viaje también hasta cada alerta
 de esa sesión, en vez de recalcularse o vivir desconectado.
 
-## 3. El gap real (por qué "no están entrelazadas" hoy)
+### 3. El gap real (por qué "no están entrelazadas" hoy)
 
 `activo_fuera_de_area` (schema actual):
 
@@ -63,9 +77,9 @@ sesión** (línea `const veredicto = calcularVeredicto(...)`) **antes** del loop
 dashboard ni recalcular nada: alcanza con pasar `sesion.id` y `veredicto` (ya en memoria) al
 `upsertFueraDeArea` de cada fila, en el mismo commit lógico que ya escribe `veredicto_sesion`.
 
-## 4. Cambios de diseño
+### 4. Cambios de diseño
 
-### 4.1 Esquema (`cip/migrations/`, migración nueva)
+#### 4.1 Esquema (`cip/migrations/`, migración nueva)
 
 ```
 ALTER TABLE activo_fuera_de_area
@@ -83,7 +97,7 @@ inicial. Dado que hoy no hay ningún ambiente productivo con filas reales en est
 reciente, ver README de `cip/`), se agrega directo `NOT NULL` sin default — si en la migración
 `down()` hace falta revertir, vuelve a la forma anterior sin pérdida de datos reales.
 
-### 4.2 Backend CIP
+#### 4.2 Backend CIP
 
 - `agregacion.repository.ts` `upsertFueraDeArea(input)`: agrega `sesionId: string` y
   `veredicto: Veredicto` a `input`; el `INSERT`/`ON CONFLICT` pasa a `(sesion_id, codigo_qr)`
@@ -94,7 +108,7 @@ reciente, ver README de `cip/`), se agrega directo `NOT NULL` sin default — si
 - `dashboard.repository.ts` `listarFueraDeArea()`: el `SELECT` agrega `sesion_id, veredicto` y el
   mapeo de la respuesta los expone.
 
-### 4.3 `core/frontend`
+#### 4.3 `core/frontend`
 
 - `dashboard-client.ts` `ActivoFueraDeArea`: agrega `sesionId: string` y `veredicto: string`.
 - `AlertasTab.tsx`: cada alerta muestra el veredicto de su sesión de origen (mismo estilo de badge
@@ -107,7 +121,7 @@ reciente, ver README de `cip/`), se agrega directo `NOT NULL` sin default — si
   (`data[0].id`). Se agrega: si la URL trae `?sesionId=`, esa es la selección inicial en vez de la
   primera — así el link de Alertas realmente "entra" al reporte correcto, no solo a la pestaña.
 
-### 4.4 Qué NO cambia en este incremento
+#### 4.4 Qué NO cambia en este incremento
 
 - La regla de veredicto en sí (§2) — cero cambios de lógica, ya está correcta en los tres
   desplegables.
@@ -117,22 +131,142 @@ reciente, ver README de `cip/`), se agrega directo `NOT NULL` sin default — si
   a futuro, pero no fueron parte del pedido; queda fuera de este incremento (YAGNI, mismo criterio
   que DOC-026 8).
 
-## 5. Plan de implementación (orden)
-
-1. Migración `cip/migrations/<timestamp>_alertas-entrelazadas-con-reportes.ts` (§4.1).
-2. `cip/src/agregacion/agregacion.repository.ts` + su spec.
-3. `cip/src/agregacion/agregacion.service.ts` + su spec (verificar que el test de
-   "aceptable"/"defectuoso" ahora también asegura `sesionId`/`veredicto` en `upsertFueraDeArea`).
-4. `cip/src/dashboard/dashboard.types.ts` + `dashboard.repository.ts` + su spec.
-5. `core/frontend/src/lib/dashboard-client.ts` (tipo `ActivoFueraDeArea`).
-6. `core/frontend/src/pages/cip/AlertasTab.tsx` (badge de veredicto + link al reporte).
-7. `core/frontend/src/pages/cip/ControlesAreaTab.tsx` (preselección por `?sesionId=`).
-8. `bun run test` + `bun run test:e2e` en `cip/` y `core/` (Postgres real vía Testcontainers-style
-   service, igual que el resto del e2e de `core/`); `bun run test` + `lint:ci` + `build` en
-   `core/frontend/`; verificación visual en navegador del link Alertas → Controles de área.
-
-## 6. Depende de
+### 5. Depende de (Parte A)
 
 [DOC-018](DOC-018-cip-servicio-nestjs.md) (arquitectura de agregación, tabla `incidencia` como
 precedente del patrón `(sesion_id, codigo_qr)`) y [DOC-026 8](DOC-026-cip-inteligencia-decisional.md)
 (donde se dejó constancia de que el Motor de Alertas quedaba diferido).
+
+## Parte B — Historial nocturno de "Controles de área"
+
+### 1. Contexto y pedido original
+
+Pedido literal (2026-09-14): *"quiero que los controles tenga una pestaña tipo dashboard como
+resumen que se realice siempre a las 12 de la noche con historial"*. Interpretación: una nueva
+vista del CIP tipo "Historial" — una serie de cortes diarios (cuántas sesiones exitosas/
+aceptables/defectuosas hubo cada día), generada automáticamente cada medianoche, no calculada al
+vuelo cada vez que alguien abre la pantalla.
+
+`ResumenTab.tsx` ya muestra "Total Acciones Control Día/Acumulada por veredicto"
+(`GET /dashboard/veredictos`), pero son **totales en tiempo real** (hoy vs. siempre), sin cortes
+por día ni serie histórica navegable — no cubre el pedido de "con historial".
+
+### 2. Por qué a medianoche y no al vuelo
+
+`veredicto_sesion` ya tiene una fila por sesión con `fecha_cierre` — técnicamente se podría agrupar
+por día en el momento de la lectura (`GROUP BY date_trunc('day', fecha_cierre)`) sin ningún job
+nuevo. Se descarta esa opción porque el usuario pidió explícitamente el corte a medianoche, y
+porque agregar sobre *todo* el historial de sesiones en cada carga de pantalla no escala a medida
+que pasan los meses — un corte diario pre-calculado sí.
+
+### 3. Infraestructura ya disponible
+
+CIP ya tiene un cliente pg-boss propio (ADR-005, `CIP_EVENTOS_PGBOSS`,
+`agregacion/create-pgboss-client.ts`), usado hoy solo para consumir la cola `cip-eventos`. pg-boss
+soporta jobs programados de forma nativa (`boss.schedule(queue, cronExpression, data, options)`)
+— no hace falta sumar ninguna librería nueva (`node-cron`, etc.), alcanza con registrar un
+schedule más sobre el mismo cliente.
+
+**Detalle real a no pasar por alto**: pg-boss interpreta el cron en UTC salvo que se pase
+`options.tz` explícito. "Medianoche" tiene que ser medianoche **de Chile**
+(`America/Santiago`), no medianoche UTC (que cae a las 20:00 o 21:00 en Chile según horario de
+verano) — el schedule se registra como `boss.schedule('cip-resumen-diario', '0 0 * * *', {}, { tz:
+'America/Santiago' })`.
+
+### 4. Esquema nuevo
+
+```
+CREATE TABLE resumen_diario (
+  organizacion_id text NOT NULL,
+  fecha           date NOT NULL,        -- el día que resume (calendario Chile)
+  total_sesiones  integer NOT NULL DEFAULT 0,
+  exitoso         integer NOT NULL DEFAULT 0,
+  aceptable       integer NOT NULL DEFAULT 0,
+  defectuoso      integer NOT NULL DEFAULT 0,
+  generado_en     timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (organizacion_id, fecha)
+);
+CREATE INDEX ON resumen_diario (organizacion_id, fecha DESC);
+```
+
+`PRIMARY KEY (organizacion_id, fecha)` con upsert (no `INSERT` puro): si el job se reintenta (pg-
+boss, at-least-once) o se corre manualmente para reprocesar un día, no duplica filas.
+
+### 5. Job y worker nuevos (`cip/src/agregacion/`)
+
+- `AgregacionModule` registra el schedule al arrancar (`onModuleInit` o similar), igual que hoy
+  registra el consumidor de `cip-eventos`.
+- Nuevo handler `ResumenDiarioWorker` (mismo directorio, mismo patrón que
+  `EventosOutboxWorker`/`SyncEstadoWatcher`) que al recibir el job:
+  1. Recorre las organizaciones conocidas (`cobertura_organizacion` ya tiene una fila por
+     organización — no hace falta una tabla de organizaciones nueva en CIP).
+  2. Para cada una, cuenta `veredicto_sesion` agrupado por `veredicto` donde
+     `fecha_cierre::date = (ayer, huso Chile)`.
+  3. Upsertea la fila del día en `resumen_diario` (nuevo método
+     `AgregacionRepository.upsertResumenDiario`).
+- Idempotente por diseño (mismo criterio que el resto de `AgregacionRepository`, ver comentario en
+  `agregacion.service.ts` sobre reintentos): reprocesar el mismo día pisa la fila existente, no la
+  duplica.
+
+### 6. API (`cip/src/dashboard/`, `cis/`, `core/frontend`)
+
+- Nuevo `GET /dashboard/historico?organizacionId=&desde=&hasta=` en CIP, paginado como el resto de
+  `dashboard.controller.ts` — devuelve la lista de filas de `resumen_diario` en el rango.
+- CIS agrega el proxy (mismo patrón que el resto de `/dashboard/*`, `dashboard-connector`).
+- `core/frontend/src/lib/dashboard-client.ts` agrega `getHistorico(organizacionId, desde?, hasta?)`
+  y el tipo `ResumenDiario { fecha, totalSesiones, exitoso, aceptable, defectuoso }`.
+
+### 7. UI — nueva pestaña "Historial" en el sidebar del CIP
+
+Se agrega como quinta entrada del sidebar (mismo patrón ya establecido para
+Resumen/Activos/Controles de área/Alertas, ver `AppShell.tsx` `NAV_ITEMS_CIP`), ruta
+`/dashboard/historico`, componente nuevo `core/frontend/src/pages/cip/HistorialTab.tsx`:
+
+- Tabla o gráfico de barras apiladas por día (Exitoso/Aceptable/Defectuoso, misma paleta de color
+  que `ResumenTab.tsx` — verde/amarillo/rojo), más reciente primero.
+- Selector de rango (últimos 7/30 días — mismo componente `PERIODOS` que `ResumenTab.tsx` ya
+  define, hoy sin conectar a datos reales; acá sí se conecta).
+- Si "Controles de área" es en realidad donde el usuario quiere ver esto embebido (en vez de una
+  pestaña nueva del sidebar), avisar antes de implementar — ver "Punto a confirmar" abajo.
+
+### 8. Qué NO se hace en este incremento
+
+- No se dispara el corte diario para organizaciones sin ninguna sesión ese día — no genera filas
+  en 0 (`total_sesiones = 0`) para no ensuciar `resumen_diario` con ruido; `HistorialTab.tsx`
+  muestra "sin datos" para los días sin fila.
+- No hay recálculo retroactivo automático de días pasados a la primera corrida — el historial
+  empieza a acumularse desde que este incremento se despliega. Un backfill manual (correr el job
+  una vez por cada día pasado) queda fuera de alcance salvo que se pida explícitamente.
+- No reemplaza los KPI en tiempo real de `ResumenTab.tsx` — son cosas distintas (hoy/acumulado en
+  vivo vs. serie histórica por corte diario).
+
+## Punto a confirmar antes de implementar
+
+**Dónde vive "Historial"**: este plan lo propone como una pestaña nueva del sidebar (consistente
+con que Resumen/Activos/Controles de área/Alertas ya son rutas directas, no sub-pestañas). Si en
+cambio el pedido original ("quiero que los controles tenga una pestaña...") significa que el
+historial debe vivir **dentro** de la pantalla de Controles de área (como una sub-vista, ej. un
+toggle "Sesiones / Historial" igual al que ya tiene esa pantalla para "Control BPI / Escaneos"),
+avisar y se ajusta antes de tocar código — es un cambio de UI menor, no afecta nada del backend
+(§§4-6 quedan iguales en cualquiera de los dos casos).
+
+## Plan de implementación unificado (orden)
+
+**Parte A:**
+1. Migración `activo_fuera_de_area` (Parte A §4.1).
+2. `agregacion.repository.ts`/`agregacion.service.ts` + specs (Parte A §4.2).
+3. `dashboard.types.ts`/`dashboard.repository.ts` + specs (Parte A §4.2).
+4. `dashboard-client.ts`, `AlertasTab.tsx`, `ControlesAreaTab.tsx` (Parte A §4.3).
+
+**Parte B:**
+5. Migración `resumen_diario` (Parte B §4).
+6. `ResumenDiarioWorker` + registro del schedule + `AgregacionRepository.upsertResumenDiario` +
+   specs (Parte B §5).
+7. `GET /dashboard/historico` en CIP + proxy en CIS (Parte B §6).
+8. `dashboard-client.ts` (`getHistorico`), `HistorialTab.tsx`, entrada nueva en `AppShell.tsx`
+   (Parte B §7).
+
+**Verificación (ambas partes):**
+9. `bun run test` + `bun run test:e2e` en `cip/` y `core/` (Postgres real); `bun run test` +
+   `lint:ci` + `build` en `core/frontend/`; verificación visual en navegador (link Alertas →
+   Controles de área; navegación a Historial; datos del corte diario con fecha simulada).
