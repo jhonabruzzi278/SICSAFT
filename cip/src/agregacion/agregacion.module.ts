@@ -9,6 +9,7 @@ import { CIP_EVENTOS_PGBOSS } from './eventos-outbox-queue.constants';
 import { loadEventosOutboxQueueConfig } from './eventos-outbox-queue.config';
 import { CIP_EVENTOS_QUEUE_NAME } from './eventos-outbox.constants';
 import { EventosOutboxWorker } from './eventos-outbox.worker';
+import { ResumenDiarioScheduler } from './resumen-diario.scheduler';
 import { SyncEstadoWatcher } from './sync-estado.watcher';
 
 // ADR-005 — único cliente pg-boss del lado de CIP, compartido por EventosOutboxWorker (consume
@@ -33,6 +34,7 @@ import { SyncEstadoWatcher } from './sync-estado.watcher';
       },
     },
     EventosOutboxWorker,
+    ResumenDiarioScheduler,
     SyncEstadoWatcher,
   ],
 })

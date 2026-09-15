@@ -58,20 +58,19 @@ export function construirEjecucionEtl(datos: DatosEjecucionEtl): EjecucionEtl {
   };
 }
 
-// Rutas del sidecar Python. Empaquetado: python vendorizado + copia del script en
-// resources/etl-contable/ (mismo criterio que sicsaft-core/scripts/prepack.cjs — pendiente de
-// vendorizar acá, ver README.md "Empaquetado"). Dev: el `python` del sistema + la carpeta del
-// repo. `SICSAFT_ETL_PYTHON` permite apuntar a un venv concreto en dev sin tocar el PATH.
+// Rutas del ETL. El script se copia a resources/etl-contable al empaquetar; Python y sus
+// dependencias siguen siendo del entorno operativo y pueden apuntarse con SICSAFT_ETL_PYTHON.
 export function resolverRutasEtl(): {
   ejecutablePython: string;
   rutaScript: string;
 } {
-  const python = process.platform === "win32" ? "python.exe" : "bin/python3";
   if (app.isPackaged) {
     const base = join(process.resourcesPath, "etl-contable");
     return {
-      ejecutablePython: join(base, "python", python),
-      rutaScript: join(base, "app", "etl_contable.py"),
+      ejecutablePython:
+        process.env.SICSAFT_ETL_PYTHON ??
+        (process.platform === "win32" ? "python.exe" : "python3"),
+      rutaScript: join(base, "etl_contable.py"),
     };
   }
   // generador-qr/out/main -> ../../../etl-contable == herramientas/etl-contable (generador-qr es

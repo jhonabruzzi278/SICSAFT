@@ -34,8 +34,33 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Configurar Java 17 para APK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Configurar Android SDK para APK
+        # android-actions/setup-android@v3.2.2 instala el paquete legacy "tools", que Google
+        # elimino del manifiesto del repositorio del SDK -- sdkmanager corta con "Failed to find
+        # package 'tools'" (visto en apk-aft-ci.yml, mismo runner de GitHub, 2026-09-14). El runner
+        # windows-latest ya trae un Android SDK funcional (ANDROID_HOME/ANDROID_SDK_ROOT, licencias
+        # aceptadas); alcanza con asegurar los paquetes que el proyecto realmente usa (compileSdk/
+        # targetSdk 34, ver apk-aft/app/build.gradle.kts), sin pasar por ese paquete roto.
+        shell: bash
+        run: |
+          SDKMANAGER="$(command -v sdkmanager || echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager")"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
       - name: Instalar Dependencias de los Subsistemas
         shell: bash
+        # generador-qr y ccp-desktop instalan con --ignore-scripts (SonarCloud githubactions:S6505):
+        # bloquea lifecycle scripts arbitrarios del resto del arbol de dependencias, y se corre a
+        # mano solo el install.js de electron (unico paquete que de verdad lo necesita -- descarga
+        # el binario de Electron; verificado que build+pack de electron-builder siguen funcionando
+        # igual). trustedDependencies de bun no alcanza: --ignore-scripts bloquea TODO sin
+        # excepcion, incluidos los paquetes marcados como confiables.
         run: |
           (cd cis && bun install --frozen-lockfile)
           (cd core && bun install --frozen-lockfile)
@@ -43,7 +68,39 @@ jobs:
           (cd ccp && bun install --frozen-lockfile)
           (cd cip && bun install --frozen-lockfile)
           (cd app-qr-sicsaft && bun install --frozen-lockfile)
+          (cd herramientas/generador-qr && bun install --frozen-lockfile --ignore-scripts && node node_modules/electron/install.js)
+          (cd ccp-desktop && bun install --frozen-lockfile --ignore-scripts && node node_modules/electron/install.js)
           (cd sicsaft-core && bun install --frozen-lockfile)
+
+      - name: Construir APK Android firmada
+        id: apk
+        shell: bash
+        env:
+          KS_B64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.APK_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.APK_KEY_PASSWORD }}
+        working-directory: apk-aft
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
+            echo "Faltan secretos APK_*; un release oficial no puede salir con debug key." >&2
+            exit 1
+          fi
+          gradle wrapper --gradle-version 8.9
+          echo "$KS_B64" | base64 -d > sicsaft-release.jks
+          {
+            echo "storeFile=sicsaft-release.jks"
+            echo "storePassword=$KS_PASS"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASS"
+          } > keystore.properties
+          ./gradlew --no-daemon assembleRelease
+
+      - name: Limpiar secretos APK
+        if: always()
+        shell: bash
+        working-directory: apk-aft
+        run: rm -f sicsaft-release.jks keystore.properties
 
       - name: Ejecutar Pruebas Automatizadas
         shell: bash
@@ -51,6 +108,7 @@ jobs:
           (cd cis && bun run test)
           (cd core && bun run test)
           (cd ccp && bun run test)
+          (cd ccp-desktop && bun run typecheck && bun run lint:ci)
           (cd sicsaft-core && bun run test)
 
       - name: Extraer Versión del Tag
@@ -66,6 +124,7 @@ jobs:
         shell: bash
         run: |
           (cd sicsaft-core && bun run prepack:artefactos)
+          test -f apk-aft/app/build/outputs/apk/release/*.apk
 
       - name: Compilar Instalador Windows (.exe)
         env:
@@ -126,10 +185,11 @@ jobs:
           body: |
             ## SICSAFT Release ${{ steps.get_version.outputs.tag_name }} — Entregable On-Premise
             
-            Este release contiene el instalador de escritorio de **SICSAFT CORE** para Windows y su paquete de distribución completo.
+            Este release contiene el instalador único de escritorio de **SICSAFT CORE** para Windows y su paquete de distribución completo, incluido CCP Desktop y el Generador QR interno.
             
             ### 📦 Contenido del Paquete:
             - **Instalador de escritorio**: `SICSAFT CORE Setup ${{ steps.get_version.outputs.version_raw }}.exe`
+              (incluye portales, APK, ETL contable, CCP Desktop y Generador QR)
             - **Paquete completo en ZIP**: `SICSAFT-v${{ steps.get_version.outputs.version_raw }}-Windows-OnPremise.zip`
             - **Guía de instalación paso a paso**: `RUNBOOK-INSTALACION.md`
             - **Manual de despliegue on-premise**: `MANUAL-DESPLIEGUE.md`

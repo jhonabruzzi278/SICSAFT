@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 import { resetApp, scanCode } from './helpers.js';
 
 // Ubicación por defecto de los tests (tests/helpers.js): org-001/area-001/loc-001.
-// DG-001 = correcto, DG-005 = otra ubicación (misma área), DG-008 = otra área
-// (misma organización) — ver catalog-data.ts.
+// QR-DG-001 = correcto, QR-DG-005 = otra ubicación (misma área, loc-002), QR-DG-008 = otra área
+// (area-002, OFICINA SECRETARIA EJECUTIVA, misma organización) — ver catalog-data.ts.
 
 test.beforeEach(async ({ page }) => {
   await resetApp(page);
@@ -11,22 +11,22 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('clasifica un activo correcto', async ({ page }) => {
-  await scanCode(page, 'DTP-01');
+  await scanCode(page, 'QR-DG-001');
   await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('✔ Correcto');
 });
 
 test('clasifica un activo de otra área y permite marcarlo fuera de lugar', async ({ page }) => {
-  await scanCode(page, 'DTP-12');
+  await scanCode(page, 'QR-DG-008');
   await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('⚠ Otra área');
-  await expect(page.locator('[data-testid="scanned-item-expected"]')).toContainText('DEPARTAMENTO TECNICO');
+  await expect(page.locator('[data-testid="scanned-item-expected"]')).toContainText('OFICINA SECRETARIA EJECUTIVA');
 
   await page.click('[data-testid="mark-out-of-place-btn"]');
   await expect(page.locator('[data-testid="mark-out-of-place-btn"]')).toHaveText('Marcado fuera de lugar');
 });
 
 test('clasifica un activo de otra ubicación', async ({ page }) => {
-  await scanCode(page, 'DTP-31');
-  await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('⚠ Otra área');
+  await scanCode(page, 'QR-DG-005');
+  await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('⚠ Otra ubicación');
 });
 
 test('clasifica un activo no registrado y permite registrarlo como hallazgo externo', async ({ page }) => {

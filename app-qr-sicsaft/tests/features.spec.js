@@ -5,10 +5,10 @@ test('entrada manual de código agrega un producto escaneado', async ({ page }) 
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  await scanCode(page, 'dtp-01');
+  await scanCode(page, 'qr-dg-001');
 
   await expect(page.locator('[data-testid="scanned-count"]')).toHaveText('1');
-  await expect(page.locator('[data-testid="scanned-item-code"]')).toHaveText('DTP-01');
+  await expect(page.locator('[data-testid="scanned-item-code"]')).toHaveText('QR-DG-001');
   await expect(page.locator('[data-testid="manual-code-input"]')).toHaveValue('');
 });
 
@@ -27,11 +27,11 @@ test('en mobile, la bottom nav está siempre visible y navega (sin trigger)', as
 });
 
 test('el escáner reconoce un código de variante BASE-VARIANTE', async ({ page }) => {
-  // DTP-01 tiene una variante 'M' en el catálogo mockeado del Conector QR (src/mocks/fixtures.ts) —
+  // QR-DG-001 tiene una variante 'M' en el catálogo mockeado del Conector QR (src/mocks/fixtures.ts) —
   // CatalogPage (catálogo local) está desconectado del catálogo real desde TASK-007, ver HANDOFF 3.
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'dtp-01-m');
+  await scanCode(page, 'qr-dg-001-m');
 
   await expect(page.locator('[data-testid="scanned-count"]')).toHaveText('1');
   await expect(page.locator('[data-testid="scanned-item-status"]')).toHaveText('✔ Correcto');
@@ -57,13 +57,14 @@ test('finalizar escaneo guarda una sesión y aparece en el historial', async ({ 
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
 
-  const codes = Array.from({ length: 11 }, (_, i) => `DTP-${String(i + 1).padStart(2, '0')}`);
+  // Los 4 activos de area-001/loc-001 en org-001 (ver catalog-data.ts) — todos "correcto".
+  const codes = ['QR-DG-001', 'QR-DG-002', 'QR-DG-003', 'QR-DG-004'];
   for (const code of codes) {
     await scanCode(page, code);
   }
 
   await page.click('[data-testid="finish-btn"]');
-  await expect(page.locator('[data-testid="report-total"]')).toHaveText('11');
+  await expect(page.locator('[data-testid="report-total"]')).toHaveText('4');
 
   await page.click('[data-testid="confirm-send-btn"]');
   await expect(page.locator('[data-testid="confirm-send-btn"]')).toHaveText('Enviado ✔');
@@ -71,14 +72,14 @@ test('finalizar escaneo guarda una sesión y aparece en el historial', async ({ 
   await page.click('[data-testid="nav-history"]');
 
   await expect(page.locator('[data-testid="history-item"]')).toHaveCount(1);
-  await expect(page.locator('[data-testid="history-item"]')).toContainText('11 escaneados');
-  await expect(page.locator('[data-testid="history-item"]')).toContainText('11 correctos');
+  await expect(page.locator('[data-testid="history-item"]')).toContainText('4 escaneados');
+  await expect(page.locator('[data-testid="history-item"]')).toContainText('4 correctos');
 });
 
 test('exportar CSV genera un archivo con los productos escaneados', async ({ page }) => {
   await resetApp(page);
   await page.click('[data-testid="start-scan-btn"]');
-  await scanCode(page, 'DTP-01');
+  await scanCode(page, 'QR-DG-001');
   await scanCode(page, 'P999');
   await page.click('[data-testid="finish-btn"]');
   await expect(page.locator('[data-testid="export-csv-btn"]')).toBeVisible();
@@ -102,6 +103,6 @@ test('exportar CSV genera un archivo con los productos escaneados', async ({ pag
   });
 
   expect(csv).toContain('codigo,nombre,categoria,incidencia,fuera_de_lugar');
-  expect(csv).toContain('DTP-01,1 MESA BURO/ 4 GAVETAS,correct,,no');
+  expect(csv).toContain('QR-DG-001,MESA BURO/ 4 GAVETAS,correct,,no');
   expect(csv).toContain('P999,Producto desconocido,unregistered,,no');
 });

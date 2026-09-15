@@ -10,8 +10,8 @@ import {
   SERVICE_TOKEN,
 } from './support/e2e-app';
 
-// Fase 3 CCP/CIP: Directivo también administra Activos desde CIP. Operador conserva el caso
-// negativo para verificar que ampliar el acceso no abrió las escrituras a cualquier rol.
+// El CIP del Directivo es solo analítico. Las escrituras patrimoniales siguen restringidas al
+// administrador-patrimonial; el operador conserva el caso negativo adicional.
 const DIRECTIVO_ROLES_DUOC_UC = { 'duoc-uc': ['directivo'] };
 const OPERADOR_ROLES_DUOC_UC = { 'duoc-uc': ['operador'] };
 
@@ -94,9 +94,9 @@ describe('DOC-021 — cierre de gaps del CCP (e2e)', () => {
       expect((res.body as Activo).descripcion).toBeNull();
     });
 
-    it('permite actualizar la descripcion con rol directivo desde CIP', async () => {
+    it('rechaza actualizar la descripcion con rol directivo desde CIP', async () => {
       const activoId = await crearActivo();
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .patch(`/activos/${activoId}/descripcion`)
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
         .send(
@@ -105,12 +105,10 @@ describe('DOC-021 — cierre de gaps del CCP (e2e)', () => {
             rolesPorOrganizacion: DIRECTIVO_ROLES_DUOC_UC,
           }),
         )
-        .expect(200);
-
-      expect((res.body as Activo).descripcion).toBe('algo');
+        .expect(403);
     });
 
-    it('devuelve 403 si el rol no es administrador-patrimonial ni directivo', async () => {
+    it('devuelve 403 si el rol no es administrador-patrimonial', async () => {
       const activoId = await crearActivo();
       await request(app.getHttpServer())
         .patch(`/activos/${activoId}/descripcion`)
@@ -156,8 +154,8 @@ describe('DOC-021 — cierre de gaps del CCP (e2e)', () => {
       expect(res.body).toMatchObject({ tipo: 'Silla', familia: 'Mobiliario' });
     });
 
-    it('permite crear un tipo nuevo con rol directivo desde CIP', async () => {
-      const res = await request(app.getHttpServer())
+    it('rechaza crear un tipo nuevo con rol directivo desde CIP', async () => {
+      await request(app.getHttpServer())
         .post('/catalogo-tipos')
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)
         .send(
@@ -169,12 +167,10 @@ describe('DOC-021 — cierre de gaps del CCP (e2e)', () => {
             rolesPorOrganizacion: DIRECTIVO_ROLES_DUOC_UC,
           }),
         )
-        .expect(201);
-
-      expect(res.body).toMatchObject({ tipo: 'Silla', familia: 'Mobiliario' });
+        .expect(403);
     });
 
-    it('devuelve 403 si el rol no es administrador-patrimonial ni directivo', async () => {
+    it('devuelve 403 si el rol no es administrador-patrimonial', async () => {
       await request(app.getHttpServer())
         .post('/catalogo-tipos')
         .set(SERVICE_TOKEN_HEADER, SERVICE_TOKEN)

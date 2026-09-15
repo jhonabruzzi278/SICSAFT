@@ -29,11 +29,24 @@ export interface VeredictoSesion {
   fechaCierre: string;
 }
 
+// DOC-034 Parte A — sesionId/veredicto agregados para entrelazar la alerta con el reporte
+// (sesión de control) que la generó.
 export interface ActivoFueraDeArea {
   codigoQr: string;
+  sesionId: string;
   areaRealId: string;
   areaEsperadaId: string;
+  veredicto: string;
   detectadoEn: string;
+}
+
+// DOC-034 Parte B — un corte diario del historial (resumen_diario).
+export interface ResumenDiario {
+  fecha: string;
+  totalSesiones: number;
+  exitoso: number;
+  aceptable: number;
+  defectuoso: number;
 }
 
 export interface ActivoNoLocalizado {
@@ -178,5 +191,17 @@ export const dashboardClient = {
     if (areaId) params.areaId = areaId;
     const res = await authorizedFetch('/dashboard/categorias', params);
     return (await res.json()) as { categorias: CategoriaResumen[] } & SyncInfo;
+  },
+
+  async getHistorico(
+    organizacionId: string,
+    desde?: string,
+    hasta?: string,
+  ): Promise<Pagina<ResumenDiario> & SyncInfo> {
+    const params: Record<string, string> = { organizacionId, limit: '100' };
+    if (desde) params.desde = desde;
+    if (hasta) params.hasta = hasta;
+    const res = await authorizedFetch('/dashboard/historico', params);
+    return (await res.json()) as Pagina<ResumenDiario> & SyncInfo;
   },
 };

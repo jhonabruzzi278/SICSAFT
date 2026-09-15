@@ -33,6 +33,7 @@ describe('DashboardConnectorController', () => {
             getEstadoActivos: jest.fn(),
             getVeredictos: jest.fn(),
             getCategorias: jest.fn(),
+            getHistorico: jest.fn(),
           },
         },
       ],
@@ -203,6 +204,32 @@ describe('DashboardConnectorController', () => {
     expect(service.getCategorias).toHaveBeenCalledWith(
       'duoc-uc',
       'area-1',
+      CORRELATION_ID,
+    );
+  });
+
+  it('getHistorico delega en el service (DOC-034 Parte B)', async () => {
+    const expected = { items: [], total: 0, actualizadoEn: null, alDia: true };
+    service.getHistorico.mockResolvedValue(expected);
+
+    await expect(
+      controller.getHistorico(
+        {
+          organizacionId: 'duoc-uc',
+          desde: '2026-09-01',
+          hasta: '2026-09-14',
+          limit: 20,
+          offset: 0,
+        },
+        buildRequest(),
+      ),
+    ).resolves.toBe(expected);
+    expect(service.getHistorico).toHaveBeenCalledWith(
+      'duoc-uc',
+      '2026-09-01',
+      '2026-09-14',
+      20,
+      0,
       CORRELATION_ID,
     );
   });

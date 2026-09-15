@@ -62,6 +62,14 @@
         "to": "etl-contable"
       },
       {
+        "from": "resources/generador-qr",
+        "to": "generador-qr"
+      },
+      {
+        "from": "resources/ccp-desktop",
+        "to": "ccp-desktop"
+      },
+      {
         "from": "../cis",
         "to": "cis",
         "filter": [

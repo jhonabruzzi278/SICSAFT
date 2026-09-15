@@ -16,7 +16,8 @@ import { QrScanner } from '@/components/QrScanner';
 import { ScannedList, type ScannedItem } from '@/components/ScannedList';
 import { Screen } from '@/components/mobile/Screen';
 import { SectionHeader } from '@/components/mobile/SectionHeader';
-import { StatTile } from '@/components/mobile/StatTile';
+import { ReportSummaryCard } from '@/components/mobile/ReportSummaryCard';
+import { ReportItemLists } from '@/components/mobile/ReportItemLists';
 import { OperatorGate } from '@/components/OperatorGate';
 import { OrganizationPicker } from '@/components/OrganizationPicker';
 import { AreaLocationPicker } from '@/components/AreaLocationPicker';
@@ -36,7 +37,7 @@ import { downloadCsv } from '@/lib/csv-export';
 import { oidcClient, AuthenticationRequiredError } from '@/lib/oidc/oidc-client';
 import { getOrCreateDeviceId } from '@/lib/device-id';
 import { logAuditEvent } from '@/lib/audit-log';
-import { calcularVeredicto, VERDICT_LABEL } from '@/lib/verdict';
+import { calcularVeredicto } from '@/lib/verdict';
 import { getScanMode, setScanMode, SCAN_MODE_OPTIONS, type ScanMode } from '@/lib/scan-mode';
 import type { Organization, OrgArea, OrgLocation } from '@/lib/organizations-data';
 
@@ -325,10 +326,23 @@ export function ScanPage() {
     setSending(true);
     const items = Array.from(scanned.values());
     const sessionItems: ScannedSessionItem[] = items.map(
-      ({ code, name, category, incidentNote, outOfPlace, externalFind, estadoDeclarado, bajaSugerida }) => ({
+      ({
         code,
         name,
         category,
+        expectedAreaName,
+        expectedLocationName,
+        incidentNote,
+        outOfPlace,
+        externalFind,
+        estadoDeclarado,
+        bajaSugerida,
+      }) => ({
+        code,
+        name,
+        category,
+        expectedAreaName,
+        expectedLocationName,
         incidentNote,
         outOfPlace,
         externalFind,
@@ -359,6 +373,7 @@ export function ScanPage() {
         invalid: invalidAttemptsRef.current,
         incidents: items.filter((i) => i.incidentNote).length,
         missing: missingCount,
+        missingAssets: missingAssets.map(({ codigoQr, nombre }) => ({ codigoQr, nombre })),
         verdict: calcularVeredicto(missingCount, outOfPlaceTotal),
         items: sessionItems,
         correlationId: correlationIdRef.current,
@@ -641,161 +656,37 @@ export function ScanPage() {
     );
   }
 
-  // Clases literales completas (Tailwind JIT no resuelve `text-${x}` dinámico).
-  const VERDICT_STYLE = {
-    exitoso: { box: 'border-success/30 bg-success/10', text: 'text-success' },
-    aceptable: { box: 'border-warning/30 bg-warning/10', text: 'text-warning' },
-    defectuoso: { box: 'border-destructive/30 bg-destructive/10', text: 'text-destructive' },
-  } as const;
-
-  const pctLabel = `${(delAreaPct * 100).toLocaleString('es-CL', { maximumFractionDigits: 1 })} %`;
-
   return (
     <Screen title="Resultado del control">
-      {/* DOC-029 RF-I / CONTRATO-PANTALLA-8 — informe de control de área ("Pantalla 8"). */}
-      <div className={`rounded-2xl border p-5 shadow-elev-1 ${VERDICT_STYLE[verdict].box}`}>
-        <p className="text-[0.7rem] font-semibold tracking-wide text-muted-foreground uppercase">
-          Resultados de acción de supervisión y control de AFT
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">Declaración del proceso</p>
-        <p
-          className={`text-2xl font-bold ${VERDICT_STYLE[verdict].text}`}
-          data-testid="report-verdict"
-          data-verdict={verdict}
-        >
-          {VERDICT_LABEL[verdict]}
-        </p>
-        {area && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Área {area.name} · {new Date().toLocaleDateString('es-CL')}
-          </p>
-        )}
-      </div>
+      {/* DOC-029 RF-I / CONTRATO-PANTALLA-8 — informe de control de área ("Pantalla 8"). Extraído a
+          ReportSummaryCard para que HistoryPage muestre el mismo diseño sobre una sesión guardada
+          (pedido del usuario 2026-09-11). */}
+      <ReportSummaryCard
+        data={{
+          verdict,
+          areaName: area?.name,
+          date: new Date(),
+          expected: expectedAssets.length,
+          scanned: items.length,
+          correct: correctCount,
+          missing: missingAssets.length,
+          outOfPlace: outOfPlaceCount,
+          areaPct: delAreaPct,
+          external: externalFindCount,
+          unregistered: unregisteredCount,
+          incidents: incidentCount,
+          estadoDeclarado: porEstadoDeclarado,
+        }}
+      />
 
-      <div className="grid grid-cols-3 gap-3">
-        <StatTile value={items.length} label="Escaneados" valueTestId="report-total" />
-        <StatTile value={expectedAssets.length} label="Esperados" valueTestId="report-expected" />
-        <StatTile value={missingAssets.length} label="Faltantes" tone="warning" valueTestId="report-missing" />
-        <StatTile value={correctCount} label="Correctos" tone="success" valueTestId="report-correct" />
-        <StatTile
-          value={pctLabel}
-          label="% del área"
-          tone="success"
-          valueTestId="report-area-pct"
-        />
-        <StatTile value={outOfPlaceCount} label="Fuera de lugar" tone="warning" valueTestId="report-out-of-place" />
-        <StatTile value={unregisteredCount} label="No registrados" tone="destructive" valueTestId="report-unregistered" />
-        <StatTile value={externalFindCount} label="Externos" valueTestId="report-external-finds" />
-        <StatTile value={incidentCount} label="Incidencias" valueTestId="report-incidents" />
-      </div>
-
-      <div className="space-y-2">
-        <SectionHeader>Estado de los AFT declarado por el controlador</SectionHeader>
-        <div
-          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-          data-testid="report-estado-declarado"
-        >
-          {[
-            ['EN SERVICIO', porEstadoDeclarado.enServicio],
-            ['EN MANTENIMIENTO', porEstadoDeclarado.enMantenimiento],
-            ['INACTIVO', porEstadoDeclarado.inactivo],
-            ['BAJA', porEstadoDeclarado.baja],
-          ].map(([label, n]) => (
-            <div
-              key={label}
-              className="rounded-xl border border-border bg-card px-3 py-2 text-center shadow-elev-1"
-            >
-              <p className="text-lg font-bold text-foreground">{n}</p>
-              <p className="text-[0.6rem] font-medium tracking-wide text-muted-foreground">
-                {label}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <SectionHeader>AFT escaneados</SectionHeader>
-        <div className="rounded-xl border border-border bg-card p-4 shadow-elev-1">
-          {items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Ninguno</p>
-          ) : (
-            <ul className="space-y-1 text-sm" data-testid="report-scanned-list">
-              {items.map((item) => (
-                <li key={item.code} className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-brand">{item.code}</span>
-                  <span className="min-w-0 flex-1 truncate">{item.name}</span>
-                  {/* La APP QR sólo lee etiquetas QR → ORDINARIO. EXTRAORDINARIO (QR + RFID) es
-                      Nivel 3 y lo marca CORE en el informe del CCP a partir de
-                      catalogo_activos.tecnologia_identificacion. */}
-                  <span className="text-[0.6rem] font-semibold tracking-wide text-muted-foreground">
-                    ORDINARIO
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <SectionHeader>Detalle (todo lo que no fue correcto)</SectionHeader>
-        <div className="rounded-xl border border-border bg-card p-4 shadow-elev-1">
-          {nonCorrectItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Ninguno</p>
-          ) : (
-            <ul className="space-y-1 text-sm" data-testid="report-detail-list">
-              {nonCorrectItems.map((item) => (
-                <li key={item.code} className="text-destructive">
-                  {item.code} – {item.name} · {item.category}
-                  {item.incidentNote ? ` · incidencia: ${item.incidentNote}` : ''}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <SectionHeader>Activos faltantes (esperados y no escaneados)</SectionHeader>
-        <div className="rounded-xl border border-border bg-card p-4 shadow-elev-1">
-          {missingAssets.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Ninguno</p>
-          ) : (
-            <ul className="space-y-1 text-sm" data-testid="report-missing-list">
-              {missingAssets.map((asset) => (
-                <li key={asset.codigoQr} className="text-warning">
-                  {asset.codigoQr} – {asset.nombre}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <SectionHeader>AFT que no corresponden a esta área</SectionHeader>
-        <div className="rounded-xl border border-border bg-card p-4 shadow-elev-1">
-          {outOfAreaByArea.size === 0 ? (
-            <p className="text-sm text-muted-foreground">Ninguno</p>
-          ) : (
-            <ul className="space-y-2 text-sm" data-testid="report-out-of-area-list">
-              {Array.from(outOfAreaByArea.entries()).map(([areaName, grupo]) => (
-                <li key={areaName}>
-                  <span className="font-semibold">{areaName}</span>
-                  <ul className="ml-4 space-y-0.5">
-                    {grupo.map((item) => (
-                      <li key={item.code} className="text-warning">
-                        {item.code} – {item.name}
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
+      <ReportItemLists
+        data={{
+          scannedItems: items,
+          nonCorrectItems,
+          missingAssets,
+          outOfAreaByArea,
+        }}
+      />
 
       <div className="flex flex-col gap-2">
         <Button

@@ -61,13 +61,12 @@ Requiere Python en el PATH del sistema para correr el ETL (`SICSAFT_ETL_PYTHON` 
 venv concreto). En dev resuelve `herramientas/etl-contable/etl_contable.py` como carpeta hermana;
 ver `src/main/services/etl-runner.ts`.
 
-## Empaquetado (pendiente)
+## Empaquetado
 
-`bun run dist:win` genera el instalador con `electron-builder`, pero **todavía no vendoriza
-Python** dentro del `.exe` (a diferencia de `sicsaft-core`, que sí empaqueta un Python completo en
-`resources/etl-contable/python/`, ver `sicsaft-core/scripts/prepack.cjs`). Hasta que se resuelva
-ese empaquetado, correr esta herramienta requiere Python instalado en la PC — aceptable hoy porque
-la usa el equipo SICSAFT en su propio equipo, no un cliente.
+`bun run dist:win` genera el instalador y copia `etl_contable.py` a
+`resources/etl-contable/`. Python y sus dependencias deben estar instalados en la PC; se puede
+seleccionar un ejecutable concreto con `SICSAFT_ETL_PYTHON`. La herramienta no ejecuta rutas que
+no hayan sido elegidas mediante sus diálogos nativos.
 
 ## Depende de
 

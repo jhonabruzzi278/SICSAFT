@@ -15,6 +15,7 @@ import {
   coberturaResponseSchema,
   estadoActivosResponseSchema,
   fueraDeAreaResponseSchema,
+  historicoResponseSchema,
   incidenciasResponseSchema,
   noLocalizadosResponseSchema,
   sesionesResponseSchema,
@@ -24,6 +25,7 @@ import {
   type CoberturaResult,
   type EstadoActivosResult,
   type FueraDeAreaResult,
+  type HistoricoResult,
   type IncidenciasResult,
   type NoLocalizadosResult,
   type Paginacion,
@@ -199,6 +201,28 @@ export class CipClientService {
       correlationId,
     );
     return this.parse(categoriasResponseSchema, data, 'dashboard/categorias');
+  }
+
+  // DOC-034 Parte B
+  async getHistorico(
+    organizacionId: string,
+    desde: string | undefined,
+    hasta: string | undefined,
+    paginacion: Paginacion,
+    correlationId: string,
+  ): Promise<HistoricoResult> {
+    const data = await this.get(
+      '/dashboard/historico',
+      {
+        organizacionId,
+        desde,
+        hasta,
+        limit: paginacion.limit,
+        offset: paginacion.offset,
+      },
+      correlationId,
+    );
+    return this.parse(historicoResponseSchema, data, 'dashboard/historico');
   }
 
   private async get(

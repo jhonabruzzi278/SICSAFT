@@ -45,8 +45,10 @@ export type SesionesResult = z.infer<typeof sesionesResponseSchema>;
 
 const fueraDeAreaSchema = z.object({
   codigoQr: z.string(),
+  sesionId: z.string(),
   areaRealId: z.string(),
   areaEsperadaId: z.string(),
+  veredicto: z.string(),
   detectadoEn: z.string(),
 });
 export const fueraDeAreaResponseSchema = syncInfoSchema.extend({
@@ -109,3 +111,17 @@ export const veredictosResponseSchema = syncInfoSchema.extend({
   acumulado: ventanaVeredictosSchema,
 });
 export type VeredictosResult = z.infer<typeof veredictosResponseSchema>;
+
+// DOC-034 Parte B
+const resumenDiarioSchema = z.object({
+  fecha: z.string(),
+  totalSesiones: z.number(),
+  exitoso: z.number(),
+  aceptable: z.number(),
+  defectuoso: z.number(),
+});
+export const historicoResponseSchema = syncInfoSchema.extend({
+  items: z.array(resumenDiarioSchema),
+  total: z.number(),
+});
+export type HistoricoResult = z.infer<typeof historicoResponseSchema>;

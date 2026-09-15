@@ -13,6 +13,7 @@ describe("discovery-service", () => {
       "192.168.1.50",
       8765,
       "DUOC UC Melipilla",
+      "AA:BB:CC",
     );
     expect(res).toMatchObject({
       app: "SICSAFT",
@@ -20,6 +21,8 @@ describe("discovery-service", () => {
       url: "https://192.168.1.50:8765",
       ip: "192.168.1.50",
       puerto: 8765,
+      puertoCcp: 8767,
+      fingerprint: "AA:BB:CC",
       nombre: "DUOC UC Melipilla",
       version: pkg.version,
     });
@@ -27,7 +30,11 @@ describe("discovery-service", () => {
 
   it("responde a un ping UDP con la URL correcta del servidor", async () => {
     const puertoTest = 58999;
-    const servicio = await iniciarDiscoveryService(puertoTest, "Test Org");
+    const servicio = await iniciarDiscoveryService(
+      puertoTest,
+      "Test Org",
+      "AA:BB:CC",
+    );
 
     try {
       const cliente = createSocket("udp4");
@@ -55,6 +62,8 @@ describe("discovery-service", () => {
       expect(datos.tipo).toBe("DISCOVERY_PONG");
       expect(datos.url).toMatch(/^https:\/\//);
       expect(datos.puerto).toBe(8765);
+      expect(datos.puertoCcp).toBe(8767);
+      expect(datos.fingerprint).toBe("AA:BB:CC");
     } finally {
       await servicio.detener();
     }

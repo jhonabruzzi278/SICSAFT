@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import { join } from "node:path";
 import { inspect } from "node:util";
+import { X509Certificate } from "node:crypto";
 import { ServiceOrchestrator } from "./services/service-orchestrator";
 import { registrarIpcHandlers } from "./ipc/handlers";
 import { detenerWatcherIngesta } from "./services/ingesta-watcher";
@@ -14,6 +15,7 @@ import {
   iniciarDiscoveryService,
   type ServicioDiscovery,
 } from "./services/discovery-service";
+import { obtenerCertificadoAppQr } from "./services/appqr-tls";
 
 // Punto de entrada del proceso principal -- ver
 // aidlc-docs/sicsaft-core/design-artifacts/ARCHITECTURE.md "Primer arranque" para el flujo
@@ -211,7 +213,12 @@ app.whenReady().then(async () => {
   }
 
   try {
-    servicioDiscovery = await iniciarDiscoveryService();
+    const tls = await obtenerCertificadoAppQr();
+    servicioDiscovery = await iniciarDiscoveryService(
+      undefined,
+      undefined,
+      new X509Certificate(tls.cert).fingerprint256,
+    );
   } catch (err: unknown) {
     registrar(
       "discovery",

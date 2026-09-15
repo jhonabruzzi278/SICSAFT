@@ -265,8 +265,8 @@ describe('CORE Fase 2 — GET /catalogo, POST /inventarios (e2e)', () => {
       );
       // QR-000002 (proyector del área) no se escaneó → faltante.
       expect(control.faltantes.map((f) => f.codigoQr)).toContain('QR-000002');
-      // Falta 1, nada fuera de área → aceptable.
-      expect(control.veredicto).toBe('aceptable');
+      // Falta 1, nada fuera de área → igual defectuoso (faltar ya alcanza, ver veredicto.ts).
+      expect(control.veredicto).toBe('defectuoso');
     });
 
     it('GET /inventarios/:id/control de un id inexistente devuelve 404', async () => {

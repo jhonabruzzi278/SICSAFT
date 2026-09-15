@@ -10,6 +10,7 @@ import {
   coberturaQuerySchema,
   estadoActivosQuerySchema,
   fueraDeAreaQuerySchema,
+  historicoQuerySchema,
   incidenciasQuerySchema,
   noLocalizadosQuerySchema,
   sesionesQuerySchema,
@@ -19,6 +20,7 @@ import {
   type CoberturaQuery,
   type EstadoActivosQuery,
   type FueraDeAreaQuery,
+  type HistoricoQuery,
   type IncidenciasQuery,
   type NoLocalizadosQuery,
   type SesionesQuery,
@@ -30,6 +32,7 @@ import type {
   CoberturaResult,
   EstadoActivosResult,
   FueraDeAreaResult,
+  HistoricoResult,
   IncidenciasResult,
   NoLocalizadosResult,
   SesionesResult,
@@ -160,6 +163,22 @@ export class DashboardConnectorController {
     return this.dashboardConnectorService.getCategorias(
       query.organizacionId,
       query.areaId,
+      request.correlationId,
+    );
+  }
+
+  // DOC-034 Parte B
+  @Get('historico')
+  getHistorico(
+    @Query(new ZodValidationPipe(historicoQuerySchema)) query: HistoricoQuery,
+    @Req() request: RequestWithCorrelationId,
+  ): Promise<HistoricoResult> {
+    return this.dashboardConnectorService.getHistorico(
+      query.organizacionId,
+      query.desde,
+      query.hasta,
+      query.limit,
+      query.offset,
       request.correlationId,
     );
   }

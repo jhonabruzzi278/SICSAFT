@@ -92,6 +92,12 @@ class MainActivity : AppCompatActivity() {
         botonReintentar = findViewById(R.id.boton_reintentar)
         botonCambiarServidor = findViewById(R.id.boton_cambiar_servidor)
 
+        // WebView es opaco y pinta blanco por defecto hasta que su documento termina de cargar
+        // (aunque el FrameLayout contenedor ya tenga sicsaft_ink de fondo, el WebView lo tapa
+        // encima) -- sin esto, cualquier carga lenta por la LAN (negociación TLS del cert
+        // autofirmado, handshake lento) se ve como pantalla en blanco en vez del tema oscuro.
+        webView.setBackgroundColor(ContextCompat.getColor(this, R.color.sicsaft_ink))
+
         botonReintentar.setOnClickListener {
             ocultarError()
             webView.reload()

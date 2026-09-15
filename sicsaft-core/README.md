@@ -83,6 +83,13 @@ DOC-030). `npm run typecheck`/`lint:ci`/`build`/`test` en verde:
   mano en un hook `afterPack`). `pack`/`dist:win` corren primero `scripts/prepack.cjs` (DOC-028
   Fase A): buildea el `dist/` de los 5 sistemas hermanos y corre `kc.bat build --db=postgres
   --health-enabled=true` si falta — ya no hay pasos manuales antes de empaquetar.
+- **Generador QR incluido en el mismo release** (`herramientas/generador-qr/`) — `prepack.cjs`
+  ejecuta su empaquetado Electron, copia el runtime completo a `resources/generador-qr/` y el NSIS
+  crea accesos directos en Escritorio y Menú Inicio. El instalador principal contiene así CORE, los
+  portales, la APK, el ETL y la herramienta interna de etiquetas QR sin exigir un segundo setup.
+- **CCP Desktop incluido en el mismo release** (`ccp-desktop/`) — launcher Electron liviano para el
+  puesto del Profesional de AFT: descubre la PC madre, valida el certificado TLS y abre el CCP real.
+  El NSIS crea sus accesos directos junto al del Generador QR.
 - **Consola técnica en pantalla** (0.1.1, `src/main/services/logger.ts` +
   `src/renderer/src/components/ConsolaTecnica.tsx`) — log unificado del proceso principal
   (`console.*`, transiciones del orquestador, stdout/stderr crudo de los 5 servicios) a un buffer

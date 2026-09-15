@@ -277,25 +277,22 @@ describe('OrquestadorService', () => {
       });
     });
 
-    // Fase 3 (reestructuracion CCP/CIP) — el catálogo de Activos ahora también se ofrece desde el
-    // CIP (Directivo). A diferencia de administrador-patrimonial, este rol NO era aceptado antes
-    // de este incremento.
-    it('crea el activo con rol directivo (nuevo, para el alta desde el CIP)', async () => {
+    it('rechaza el alta de activo con rol directivo desde el CIP analítico', async () => {
       const { service, escrituraActivoService, auditoriaRepository } =
         buildService();
-      escrituraActivoService.alta.mockResolvedValue(ACTIVO);
+      await expect(
+        service.procesarAltaActivo(
+          buildAltaPayload({
+            rolesPorOrganizacion: { 'duoc-uc': ['directivo'] },
+          }),
+        ),
+      ).rejects.toThrow(ForbiddenException);
 
-      const activo = await service.procesarAltaActivo(
-        buildAltaPayload({
-          rolesPorOrganizacion: { 'duoc-uc': ['directivo'] },
-        }),
-      );
-
-      expect(activo).toBe(ACTIVO);
+      expect(escrituraActivoService.alta).not.toHaveBeenCalled();
       expect(auditoriaRepository.registrar).toHaveBeenCalledWith({
         usuario: 'op-admin',
         operacion: 'POST /activos',
-        resultado: 'activo',
+        resultado: 'rechazado:403',
       });
     });
 

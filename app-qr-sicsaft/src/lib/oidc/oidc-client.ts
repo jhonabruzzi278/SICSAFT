@@ -67,7 +67,7 @@ async function postTokenEndpoint(body: URLSearchParams): Promise<TokenResponse> 
   const config = loadOidcConfig();
   let res: Response;
   try {
-    res = await fetch(endpointUrl(config.issuer, 'protocol/openid-connect/token'), {
+    res = await fetch(config.tokenUrl ?? endpointUrl(config.issuer, 'protocol/openid-connect/token'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body,

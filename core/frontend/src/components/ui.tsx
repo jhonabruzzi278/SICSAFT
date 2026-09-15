@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,
   LabelHTMLAttributes,
+  MouseEvent as ReactMouseEvent,
   ReactNode,
 } from 'react';
 
@@ -109,6 +111,65 @@ export function Badge({
     >
       {children}
     </span>
+  );
+}
+
+// Modal minimo (sin radix/shadcn, mismo criterio que el resto de este archivo): overlay +
+// panel centrado, cierra con Escape o click afuera. `role="dialog"` + `aria-modal` para lectores
+// de pantalla; el foco no se atrapa dentro a propósito (alcance mínimo viable, ver ccp/README.md
+// "Decisiones de esta primera version" para el mismo criterio en otros primitivos).
+export function Modal({
+  open,
+  onClose,
+  children,
+  className = '',
+  ancho = 'max-w-3xl',
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  className?: string;
+  /** Clase Tailwind de `max-w-*` — configurable en vez de fija porque el reporte de Control BPI
+   * (grid de 2 columnas con gráfico) necesita más ancho que la ficha de un activo. */
+  ancho?: string;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  // Cierra solo si el click cayó justo en el fondo (target === currentTarget), no en el panel ni
+  // en su contenido — más robusto que un stopPropagation() en el panel. typescript:S1082 pide que
+  // todo elemento con onClick tenga también un listener de teclado: el de acá es redundante con
+  // el Escape global de arriba, pero satisface la regla explícitamente en el mismo elemento en
+  // vez de depender de una regla de excepción por role="presentation".
+  function onFondoClick(event: ReactMouseEvent<HTMLDivElement>) {
+    if (event.target === event.currentTarget) onClose();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-bg/80 p-4 py-10 backdrop-blur-sm sm:items-center"
+      onClick={onFondoClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onClose();
+      }}
+      role="presentation"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        className={`w-full ${ancho} rounded-2xl border border-border bg-bg-card shadow-2xl ${className}`}
+      >
+        {children}
+      </div>
+    </div>
   );
 }
 

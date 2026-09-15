@@ -5,10 +5,10 @@ describe('core: calcularVeredicto (Contrato Canónico)', () => {
     expect(calcularVeredicto(0, 0)).toBe('exitoso');
   });
 
-  it('Caso 2: aceptable cuando solo faltan ítems (faltantes > 0, fueraDeArea = 0)', () => {
-    expect(calcularVeredicto(1, 0)).toBe('aceptable');
-    expect(calcularVeredicto(3, 0)).toBe('aceptable');
-    expect(calcularVeredicto(100, 0)).toBe('aceptable');
+  it('Caso 2: defectuoso cuando solo faltan ítems (faltantes > 0, fueraDeArea = 0)', () => {
+    expect(calcularVeredicto(1, 0)).toBe('defectuoso');
+    expect(calcularVeredicto(3, 0)).toBe('defectuoso');
+    expect(calcularVeredicto(100, 0)).toBe('defectuoso');
   });
 
   it('Caso 3: aceptable cuando solo hay ítems fuera de área (faltantes = 0, fueraDeArea > 0)', () => {

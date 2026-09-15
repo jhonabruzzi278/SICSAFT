@@ -7,10 +7,7 @@ import { ImportacionContableLoteService } from '../patrimonial/importacion-conta
 import { EscrituraEstructuraService } from '../estructura/escritura-estructura.service';
 import { EscrituraDocumentoActivoService } from '../patrimonial/escritura-documento-activo.service';
 import { CatalogoTipoActivoRepository } from '../patrimonial/catalogo-tipo-activo.repository';
-import {
-  verificarRolAdministradorPatrimonial,
-  verificarRolAdministradorPatrimonialODirectivo,
-} from '../common/auth/administrador-patrimonial.guard';
+import { verificarRolAdministradorPatrimonial } from '../common/auth/administrador-patrimonial.guard';
 import type {
   InventarioRequest,
   PostInventarioResponse,
@@ -101,7 +98,7 @@ export class OrquestadorService {
     }
   }
 
-  // DOC-012 5 — POST /activos (alta). Fase 3: administrador-patrimonial (CCP) o directivo (CIP).
+  // DOC-012 5 — POST /activos (alta), exclusivo del administrador-patrimonial.
   procesarAltaActivo(payload: AltaActivoBody): Promise<Activo> {
     return this.ejecutarEscrituraOficial(
       'POST /activos',
@@ -109,11 +106,11 @@ export class OrquestadorService {
       payload.organizacionId,
       payload.rolesPorOrganizacion,
       () => this.escrituraActivoService.alta(payload, payload.operadorId),
-      verificarRolAdministradorPatrimonialODirectivo,
+      verificarRolAdministradorPatrimonial,
     );
   }
 
-  // DOC-012 5 — POST /activos/:id/baja. Fase 3: administrador-patrimonial (CCP) o directivo (CIP).
+  // DOC-012 5 — POST /activos/:id/baja, exclusivo del administrador-patrimonial.
   procesarBajaActivo(
     activoId: string,
     payload: EscrituraOficialBody,
@@ -129,12 +126,11 @@ export class OrquestadorService {
           payload.organizacionId,
           payload.operadorId,
         ),
-      verificarRolAdministradorPatrimonialODirectivo,
+      verificarRolAdministradorPatrimonial,
     );
   }
 
-  // DOC-012 5 — POST /activos/:id/reincorporacion. Fase 3: administrador-patrimonial (CCP) o
-  // directivo (CIP).
+  // DOC-012 5 — POST /activos/:id/reincorporacion, exclusivo del administrador-patrimonial.
   procesarReincorporacionActivo(
     activoId: string,
     payload: EscrituraOficialBody,
@@ -150,12 +146,11 @@ export class OrquestadorService {
           payload.organizacionId,
           payload.operadorId,
         ),
-      verificarRolAdministradorPatrimonialODirectivo,
+      verificarRolAdministradorPatrimonial,
     );
   }
 
-  // DOC-012 5 — PATCH /activos/:id/responsable. Fase 3: administrador-patrimonial (CCP) o
-  // directivo (CIP).
+  // DOC-012 5 — PATCH /activos/:id/responsable, exclusivo del administrador-patrimonial.
   procesarCambioResponsable(
     activoId: string,
     payload: CambioResponsableBody,
@@ -172,12 +167,11 @@ export class OrquestadorService {
           payload.responsableId,
           payload.operadorId,
         ),
-      verificarRolAdministradorPatrimonialODirectivo,
+      verificarRolAdministradorPatrimonial,
     );
   }
 
-  // DOC-021 3 — PATCH /activos/:id/descripcion. Fase 3: administrador-patrimonial (CCP) o
-  // directivo (CIP).
+  // DOC-021 3 — PATCH /activos/:id/descripcion, exclusivo del administrador-patrimonial.
   procesarActualizarDescripcionActivo(
     activoId: string,
     payload: ActualizarDescripcionActivoBody,
@@ -194,13 +188,12 @@ export class OrquestadorService {
           payload.descripcion,
           payload.operadorId,
         ),
-      verificarRolAdministradorPatrimonialODirectivo,
+      verificarRolAdministradorPatrimonial,
     );
   }
 
-  // DOC-021 4 (gap "familias/categorías") — POST /catalogo-tipos. Fase 3: administrador-
-  // patrimonial (CCP) o directivo (CIP) — el alta rápida de Activo desde cualquiera de los dos
-  // portales puede necesitar crear un tipo de catálogo nuevo en el momento.
+  // DOC-021 4 (gap "familias/categorías") — POST /catalogo-tipos, exclusivo del
+  // administrador-patrimonial. El alta de tipos no forma parte del CIP analítico.
   procesarAltaCatalogoTipo(
     payload: AltaCatalogoTipoBody,
   ): Promise<CatalogoTipoActivo> {
@@ -211,12 +204,12 @@ export class OrquestadorService {
       payload.rolesPorOrganizacion,
       () => this.catalogoTipoActivoRepository.crear(payload),
       (tipo) => tipo.id,
-      verificarRolAdministradorPatrimonialODirectivo,
+      verificarRolAdministradorPatrimonial,
     );
   }
 
   // DOC-021 3 (gap "documentación y fotografías") — POST /activos/:id/documentos. Fase 3:
-  // administrador-patrimonial (CCP) o directivo (CIP).
+  // administrador-patrimonial.
   procesarAltaDocumentoActivo(
     activoId: string,
     payload: AltaDocumentoActivoBody,
@@ -236,12 +229,12 @@ export class OrquestadorService {
           creadoPor: payload.operadorId,
         }),
       (documento) => documento.id,
-      verificarRolAdministradorPatrimonialODirectivo,
+      verificarRolAdministradorPatrimonial,
     );
   }
 
-  // DOC-021 3 — DELETE /activos/:id/documentos/:documentoId. Fase 3: administrador-patrimonial
-  // (CCP) o directivo (CIP).
+  // DOC-021 3 — DELETE /activos/:id/documentos/:documentoId, exclusivo del
+  // administrador-patrimonial.
   procesarEliminarDocumentoActivo(
     activoId: string,
     documentoId: string,
@@ -259,7 +252,7 @@ export class OrquestadorService {
           payload.organizacionId,
         ),
       () => documentoId,
-      verificarRolAdministradorPatrimonialODirectivo,
+      verificarRolAdministradorPatrimonial,
     );
   }
 

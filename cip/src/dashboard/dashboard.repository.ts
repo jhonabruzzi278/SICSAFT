@@ -10,6 +10,7 @@ import type {
   IncidenciaResponse,
   NoLocalizadoResponse,
   Pagina,
+  ResumenDiarioResponse,
   ResumenVeredictosResponse,
   SyncInfo,
   VeredictoResumenResponse,
@@ -124,11 +125,13 @@ export class DashboardRepository {
     );
     const filas = await this.pool.query<{
       codigo_qr: string;
+      sesion_id: string;
       area_real_id: string;
       area_esperada_id: string;
+      veredicto: string;
       detectado_en: string;
     }>(
-      `SELECT codigo_qr, area_real_id, area_esperada_id, detectado_en
+      `SELECT codigo_qr, sesion_id, area_real_id, area_esperada_id, veredicto, detectado_en
        FROM activo_fuera_de_area WHERE ${where}
        ORDER BY detectado_en DESC LIMIT $${parametros.length + 1} OFFSET $${parametros.length + 2}`,
       [...parametros, limit, offset],
@@ -138,8 +141,10 @@ export class DashboardRepository {
       total: Number(total.rows[0].count),
       items: filas.rows.map((fila) => ({
         codigoQr: fila.codigo_qr,
+        sesionId: fila.sesion_id,
         areaRealId: fila.area_real_id,
         areaEsperadaId: fila.area_esperada_id,
+        veredicto: fila.veredicto,
         detectadoEn: fila.detectado_en,
       })),
     };
@@ -301,6 +306,55 @@ export class DashboardRepository {
     return {
       actualizadoEn: fila?.ultimo_evento_procesado_en ?? null,
       alDia: fila?.al_dia ?? true,
+    };
+  }
+
+  // DOC-034 Parte B — serie histórica de cortes diarios (resumen_diario), más reciente primero.
+  async listarHistorico(
+    organizacionId: string,
+    desde: string | undefined,
+    hasta: string | undefined,
+    limit: number,
+    offset: number,
+  ): Promise<Pagina<ResumenDiarioResponse>> {
+    const condiciones = ['organizacion_id = $1'];
+    const parametros: unknown[] = [organizacionId];
+    if (desde) {
+      parametros.push(desde);
+      condiciones.push(`fecha >= $${parametros.length}`);
+    }
+    if (hasta) {
+      parametros.push(hasta);
+      condiciones.push(`fecha <= $${parametros.length}`);
+    }
+    const where = condiciones.join(' AND ');
+
+    const total = await this.pool.query<{ count: string }>(
+      `SELECT COUNT(*) FROM resumen_diario WHERE ${where}`,
+      parametros,
+    );
+    const filas = await this.pool.query<{
+      fecha: string;
+      total_sesiones: number;
+      exitoso: number;
+      aceptable: number;
+      defectuoso: number;
+    }>(
+      `SELECT fecha, total_sesiones, exitoso, aceptable, defectuoso
+       FROM resumen_diario WHERE ${where}
+       ORDER BY fecha DESC LIMIT $${parametros.length + 1} OFFSET $${parametros.length + 2}`,
+      [...parametros, limit, offset],
+    );
+
+    return {
+      total: Number(total.rows[0].count),
+      items: filas.rows.map((fila) => ({
+        fecha: fila.fecha,
+        totalSesiones: fila.total_sesiones,
+        exitoso: fila.exitoso,
+        aceptable: fila.aceptable,
+        defectuoso: fila.defectuoso,
+      })),
     };
   }
 }

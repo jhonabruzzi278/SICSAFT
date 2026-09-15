@@ -8,6 +8,7 @@ import {
   coberturaQuerySchema,
   estadoActivosQuerySchema,
   fueraDeAreaQuerySchema,
+  historicoQuerySchema,
   incidenciasQuerySchema,
   noLocalizadosQuerySchema,
   sesionesQuerySchema,
@@ -17,6 +18,7 @@ import {
   type CoberturaQuery,
   type EstadoActivosQuery,
   type FueraDeAreaQuery,
+  type HistoricoQuery,
   type IncidenciasQuery,
   type NoLocalizadosQuery,
   type SesionesQuery,
@@ -31,6 +33,7 @@ import type {
   IncidenciaResponse,
   NoLocalizadoResponse,
   Pagina,
+  ResumenDiarioResponse,
   ResumenVeredictosResponse,
   SyncInfo,
   VeredictoSesionResponse,
@@ -158,6 +161,23 @@ export class DashboardController {
       this.repository.obtenerSyncInfo(),
     ]);
     return { ...resumen, ...sync };
+  }
+
+  @Get('historico')
+  async getHistorico(
+    @Query(new ZodValidationPipe(historicoQuerySchema)) query: HistoricoQuery,
+  ): Promise<Pagina<ResumenDiarioResponse> & SyncInfo> {
+    const [pagina, sync] = await Promise.all([
+      this.repository.listarHistorico(
+        query.organizacionId,
+        query.desde,
+        query.hasta,
+        query.limit,
+        query.offset,
+      ),
+      this.repository.obtenerSyncInfo(),
+    ]);
+    return { ...pagina, ...sync };
   }
 
   @Get('categorias')

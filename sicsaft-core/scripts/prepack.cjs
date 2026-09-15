@@ -17,7 +17,13 @@
 // No bundlea ningún toolchain nuevo: usa el `npm` de cada sistema y el JRE ya vendorizado.
 
 const { execSync } = require("node:child_process");
-const { cpSync, existsSync, mkdirSync, readdirSync } = require("node:fs");
+const {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+} = require("node:fs");
 const path = require("node:path");
 
 const RAIZ_SICSAFT_CORE = path.join(__dirname, "..");
@@ -206,15 +212,91 @@ function prepararEtlContable() {
   }
 }
 
+// Fase 5 CCP/CIP — el Generador QR es una herramienta Electron interna que se distribuye junto
+// con el instalador principal, no como un instalador paralelo. Se copia el resultado `--dir`
+// completo porque contiene su propio runtime Electron, asar y resources/etl-contable.
+function prepararGeneradorQr() {
+  const raizGenerador = path.join(
+    RAIZ_MONOREPO,
+    "herramientas",
+    "generador-qr",
+  );
+  const destinoDir = path.join(RECURSOS, "generador-qr");
+  const origenDir = path.join(raizGenerador, "release", "win-unpacked");
+  const runner = obtenerRunner();
+
+  if (!existsSync(path.join(raizGenerador, "node_modules"))) {
+    log("instalando dependencias de herramientas/generador-qr …");
+    correr(runner.exe, ["install", "--frozen-lockfile"], {
+      cwd: raizGenerador,
+    });
+  }
+  log("empaquetando Generador QR para incluirlo en SICSAFT CORE …");
+  correr(runner.exe, ["run", "pack"], { cwd: raizGenerador });
+  if (!existsSync(path.join(origenDir, "SICSAFT Generador QR.exe"))) {
+    throw new Error(
+      "[prepack] Generador QR no produjo release/win-unpacked/SICSAFT Generador QR.exe.",
+    );
+  }
+  rmSync(destinoDir, { recursive: true, force: true });
+  mkdirSync(destinoDir, { recursive: true });
+  cpSync(origenDir, destinoDir, { recursive: true });
+  log("Generador QR copiado a resources/generador-qr/");
+}
+
+// Launcher liviano del puesto del Profesional de AFT. Se distribuye dentro del instalador
+// principal para que el release de cliente contenga tanto la PC madre como el puesto remoto.
+function prepararCcpDesktop() {
+  const raizLauncher = path.join(RAIZ_MONOREPO, "ccp-desktop");
+  const destinoDir = path.join(RECURSOS, "ccp-desktop");
+  const salidaPrepack = path.join(
+    raizLauncher,
+    `release-sicsaft-core-${Date.now()}`,
+  );
+  const origenDir = path.join(salidaPrepack, "win-unpacked");
+  const runner = obtenerRunner();
+
+  if (!existsSync(path.join(raizLauncher, "node_modules"))) {
+    log("instalando dependencias de ccp-desktop …");
+    correr(runner.exe, ["install", "--frozen-lockfile"], { cwd: raizLauncher });
+  }
+  // Se usa una salida exclusiva por corrida: el output propio del launcher puede quedar bloqueado
+  // por el indexador/antivirus tras una ejecución local anterior (EBUSY/EPERM en Windows).
+  log("empaquetando ccp-desktop para incluirlo en SICSAFT CORE …");
+  correr(
+    runner.exe,
+    ["run", "pack", "--", `--config.directories.output=${salidaPrepack}`],
+    { cwd: raizLauncher },
+  );
+  if (!existsSync(path.join(origenDir, "SICSAFT CCP.exe"))) {
+    throw new Error(
+      "[prepack] ccp-desktop no produjo release/win-unpacked/SICSAFT CCP.exe.",
+    );
+  }
+  rmSync(destinoDir, { recursive: true, force: true });
+  mkdirSync(destinoDir, { recursive: true });
+  cpSync(origenDir, destinoDir, { recursive: true });
+  log("ccp-desktop copiado a resources/ccp-desktop/");
+}
+
 function main() {
   log("preparando artefactos para electron-builder (DOC-028 Fase A)");
-  for (const sub of ["postgres", "keycloak", "apk", "etl-contable"]) {
+  for (const sub of [
+    "postgres",
+    "keycloak",
+    "apk",
+    "etl-contable",
+    "generador-qr",
+    "ccp-desktop",
+  ]) {
     mkdirSync(path.join(RECURSOS, sub), { recursive: true });
   }
   buildarSistemas();
   kcBuild();
   copiarApk();
   prepararEtlContable();
+  prepararGeneradorQr();
+  prepararCcpDesktop();
   log("listo — artefactos de portales/backends y build de Keycloak al día");
 }
 
