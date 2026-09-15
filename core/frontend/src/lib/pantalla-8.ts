@@ -12,22 +12,26 @@ interface EstiloVeredicto {
   detalle: string;
 }
 
+// Regla corregida con el usuario 2026-09-14/15 (reemplaza la version anterior: antes "falta
+// solo" era ACEPTABLE, ahora es DEFECTUOSO) — mismo texto que verdict.ts/veredicto.ts.
 const ESTILOS: Record<VeredictoControl, EstiloVeredicto> = {
   exitoso: {
     fondo: 'bg-success/20 text-success ring-1 ring-success/40',
     etiqueta: 'EXITOSO',
-    detalle: 'Todos los AFT son del área y se escanearon todos.',
+    detalle:
+      'No falta ningún AFT esperado y no apareció ningún AFT de otra área/ubicación.',
   },
   aceptable: {
     fondo: 'bg-warning/20 text-warning ring-1 ring-warning/40',
     etiqueta: 'ACEPTABLE',
     detalle:
-      'Falta escanear algún AFT del área, o apareció alguno de otra área — no ambos.',
+      'No faltan AFT del área, pero aparecieron AFT de otras áreas en la acción de control.',
   },
   defectuoso: {
     fondo: 'bg-destructive/20 text-destructive ring-1 ring-destructive/40',
     etiqueta: 'DEFECTUOSO',
-    detalle: 'Faltan AFT del área y además aparecieron AFT de otras áreas.',
+    detalle:
+      'Faltan AFT del área — solos, o junto con AFT de otras áreas en la acción de control.',
   },
 };
 

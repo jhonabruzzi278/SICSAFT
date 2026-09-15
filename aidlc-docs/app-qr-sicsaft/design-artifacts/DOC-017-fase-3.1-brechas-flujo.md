@@ -62,6 +62,12 @@ requisito concreto.
 | **ACEPTABLE** | Exactamente uno de los dos es `> 0` (faltan activos **o** aparecieron de otra área, no ambos) | Un solo tipo de discrepancia, declarada en el informe |
 | **DEFECTUOSO** | `missingAssets.length > 0 && outOfPlaceCount > 0` | Ambos problemas a la vez — control incompleto y contaminado |
 
+> **Regla de ACEPTABLE/DEFECTUOSO corregida con el usuario 2026-09-14/15** — esta tabla es la
+> propuesta original de esta fase y quedó desactualizada: "falta solo" pasó de ACEPTABLE a
+> DEFECTUOSO (faltar AFT del área ya alcanza para defectuoso, con o sin AFT de otra área). Fuente
+> de verdad vigente: `app-qr-sicsaft/src/lib/verdict.ts` (y sus puertos en `core/`/`cip/`,
+> ARCHITECTURE.md 5).
+
 **Diseño propuesto**: se calcula **en el cliente**, en `ScanPage.tsx`, a partir de contadores que
 ya existen — no requiere cambio de contrato con CORE ni nuevo endpoint. Es un campo derivado para
 mostrar en el resumen visual antes de "Confirmar y enviar" (mismo lugar donde ya se muestran

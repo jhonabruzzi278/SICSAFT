@@ -31,11 +31,15 @@ control y lo envía a CORE. Es la cara detallada de [CU-INV-003](dominios/CU-INV
 `faltantes` = AFT registrados en el área que **no** se escanearon. `fueraDeArea` = AFT escaneados
 que pertenecen a otra área.
 
+Regla corregida con el usuario 2026-09-14/15 (reemplaza la versión anterior de esta tabla: antes
+"falta solo" era ACEPTABLE, ahora es DEFECTUOSO — faltar AFT del área es en sí mismo un control
+defectuoso, haya o no contaminación por AFT de otra área):
+
 | Veredicto | Condición | Fondo | En el repo |
 |---|---|---|---|
-| **EXITOSO** | `faltantes = 0` **y** `fueraDeArea = 0` — todos los AFT son del área y se escanearon todos | 🟩 verde | `exitoso` ("excelente" del negocio) |
-| **ACEPTABLE** | exactamente **uno** de los dos problemas (o faltan AFT del área, o aparecieron AFT de otra área — **no** ambos). Declarar los AFT fuera de área y a qué área pertenecen | 🟨 amarillo | `aceptable` |
-| **DEFECTUOSO** | **ambos** a la vez: hay AFT ausentes del control **y** hay AFT de otras áreas | 🟥 rojo | `defectuoso` — dispara además la auto-auditoría de DOC-029 RF-D §D.3 |
+| **EXITOSO** | `faltantes = 0` **y** `fueraDeArea = 0` — no falta ningún AFT esperado y no apareció ningún AFT de otra área/ubicación | 🟩 verde | `exitoso` ("excelente" del negocio) |
+| **ACEPTABLE** | `faltantes = 0` **y** `fueraDeArea > 0` — no faltan AFT del área, pero aparecieron AFT de otras áreas en la acción de control. Declarar los AFT fuera de área y a qué área pertenecen | 🟨 amarillo | `aceptable` |
+| **DEFECTUOSO** | `faltantes > 0` — solo, o junto con `fueraDeArea > 0`: faltan AFT del área, hayan aparecido o no AFT de otras áreas | 🟥 rojo | `defectuoso` — dispara además la auto-auditoría de DOC-029 RF-D §D.3 |
 
 ## Qué falta construir — RF-I (agregar al plan de DOC-029)
 
