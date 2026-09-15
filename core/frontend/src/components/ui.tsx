@@ -3,6 +3,7 @@ import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,
   LabelHTMLAttributes,
+  MouseEvent as ReactMouseEvent,
   ReactNode,
 } from 'react';
 
@@ -139,15 +140,27 @@ export function Modal({
 
   if (!open) return null;
 
+  // Cierra solo si el click cayó justo en el fondo (target === currentTarget), no en el panel ni
+  // en su contenido — más robusto que un stopPropagation() en el panel. typescript:S1082 pide que
+  // todo elemento con onClick tenga también un listener de teclado: el de acá es redundante con
+  // el Escape global de arriba, pero satisface la regla explícitamente en el mismo elemento en
+  // vez de depender de una regla de excepción por role="presentation".
+  function onFondoClick(event: ReactMouseEvent<HTMLDivElement>) {
+    if (event.target === event.currentTarget) onClose();
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-bg/80 p-4 py-10 backdrop-blur-sm sm:items-center"
-      onClick={onClose}
+      onClick={onFondoClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onClose();
+      }}
+      role="presentation"
     >
       <div
         role="dialog"
         aria-modal="true"
-        onClick={(event) => event.stopPropagation()}
         className={`w-full max-w-3xl rounded-2xl border border-border bg-bg-card shadow-2xl ${className}`}
       >
         {children}
