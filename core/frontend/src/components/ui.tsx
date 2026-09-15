@@ -123,11 +123,15 @@ export function Modal({
   onClose,
   children,
   className = '',
+  ancho = 'max-w-3xl',
 }: {
   open: boolean;
   onClose: () => void;
   children: ReactNode;
   className?: string;
+  /** Clase Tailwind de `max-w-*` — configurable en vez de fija porque el reporte de Control BPI
+   * (grid de 2 columnas con gráfico) necesita más ancho que la ficha de un activo. */
+  ancho?: string;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -161,7 +165,7 @@ export function Modal({
       <div
         role="dialog"
         aria-modal="true"
-        className={`w-full max-w-3xl rounded-2xl border border-border bg-bg-card shadow-2xl ${className}`}
+        className={`w-full ${ancho} rounded-2xl border border-border bg-bg-card shadow-2xl ${className}`}
       >
         {children}
       </div>
