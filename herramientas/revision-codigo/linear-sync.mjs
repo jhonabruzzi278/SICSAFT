@@ -501,8 +501,7 @@ const ESTRUCTURA_PROYECTOS = [
       { nombre: 'v1.1.0 — Certificación en VM Limpia', descripcion: 'Pruebas E2E de instalación en entorno virgen Windows' },
     ],
     links: [
-      { label: 'Manual de Despliegue On-Premise', url: 'https://github.com/jhonabruzzi278/SICSAFT/blob/main/devops/onprem/MANUAL-DESPLIEGUE.md' },
-      { label: 'Runbook de Instalación .EXE', url: 'https://github.com/jhonabruzzi278/SICSAFT/blob/main/sicsaft-core/RUNBOOK-INSTALACION.md' },
+      { label: 'Runbook de Instalación .EXE (RUNBOOK-INSTALACION.md)', url: 'https://github.com/jhonabruzzi278/SICSAFT/blob/main/sicsaft-core/RUNBOOK-INSTALACION.md' },
       { label: 'DOC-030 Selector de Nivel 1/2 en .EXE', url: 'https://github.com/jhonabruzzi278/SICSAFT/blob/main/aidlc-docs/sicsaft-core/design-artifacts/DOC-030-nivel-2-en-sicsaft-core-exe.md' },
     ],
     tareas: [
@@ -511,7 +510,7 @@ const ESTRUCTURA_PROYECTOS = [
       { id: 'EXE-03', titulo: 'Consola Técnica de Diagnóstico y Logs en Pantalla', desc: 'Visualización de logs de procesos y diagnóstico en vivo.', estado: 'done', prio: 3, sistema: 'sicsaft-core', milestone: 'v1.0.0 — Instalador .EXE y Runbook' },
       { id: 'EXE-04', titulo: 'Servidor de Portales Embebidos y Servido PWA QR por LAN', desc: 'Acceso a terminales móviles desde la red local.', estado: 'done', prio: 2, sistema: 'sicsaft-core', milestone: 'v1.0.0 — Instalador .EXE y Runbook' },
       { id: 'EXE-05', titulo: 'Watcher de Ingesta Automática de Carpetas de Red', desc: 'Vigilancia de archivos Excel contables y ejecución de ETL.', estado: 'done', prio: 2, sistema: 'sicsaft-core', milestone: 'v1.0.0 — Instalador .EXE y Runbook' },
-      { id: 'EXE-06', titulo: 'Empaquetado de Instalador Windows Inno Setup (.iss)', desc: 'Instalador desatendido para infraestructura on-premise.', estado: 'done', prio: 2, sistema: 'devops', milestone: 'v1.0.0 — Instalador .EXE y Runbook' },
+      { id: 'EXE-06', titulo: 'Empaquetado de Instalador Windows NSIS (electron-builder / bun run dist:win)', desc: 'Instalador desatendido para infraestructura on-premise generado con NSIS y electron-builder.', estado: 'done', prio: 2, sistema: 'devops', milestone: 'v1.0.0 — Instalador .EXE y Runbook' },
       { id: 'EXE-07', titulo: 'Verificación E2E de Instalador .EXE en VM Windows Limpia', desc: 'Prueba de instalación completa desde cero en máquina limpia sin herramientas de desarrollo (INST-1 / P0 Demo).', estado: 'todo', prio: 1, sistema: 'sicsaft-core', milestone: 'v1.1.0 — Certificación en VM Limpia' },
       { id: 'EXE-08', titulo: 'Firma de Código del Instalador Windows (SmartScreen OV/EV)', desc: 'Certificado digital de firma de ejecutables para eliminar alertas de Windows Defender en clientes finales (INST-2).', estado: 'done', prio: 2, sistema: 'devops', milestone: 'v1.1.0 — Certificación en VM Limpia' },
     ],

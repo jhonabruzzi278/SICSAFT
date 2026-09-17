@@ -195,7 +195,7 @@ const SISTEMAS = [
     coberturaTests: "50 suites Playwright/Vitest (Supervisión de procesos y fallback)",
     modos: ["Nivel 1 (Sin CIP ~120MB RAM)", "Nivel 2 (Full Stack)"],
     rol: "App de Escritorio Nativa (.exe)",
-    tecnologias: ["Electron", "PostgreSQL Embebido", "Keycloak 26", "Playwright E2E", "Inno Setup"],
+    tecnologias: ["Electron", "PostgreSQL Embebido", "Keycloak 26", "Playwright E2E", "NSIS / electron-builder"],
     funcionalidades: [
       "Orquestación y Supervisión de Ciclo de Vida de Subprocesos (Postgres, Keycloak, CIS, CORE, CIP)",
       "Cero Dependencias Externas: No requiere Docker, WSL2 ni instalaciones previas en el SO",
@@ -215,10 +215,10 @@ const SISTEMAS = [
     rutas: ["herramientas/"],
     entrega: true,
     puerto: "CLI / Script Python",
-    entrypoint: "herramientas/ingesta-contable/normalizar.py",
+    entrypoint: "herramientas/etl-contable/etl_contable.py",
     protocolos: ["File System", "CSV / XLSX", "HTTP Upload"],
     almacenamiento: "Archivos temporales staging .parquet / .csv",
-    coberturaTests: "16 tests Pytest (Normalización contable)",
+    coberturaTests: "29 tests Pytest (Normalización contable)",
     modos: ["Nivel 1 (Base)", "Nivel 2 (Avanzado)"],
     rol: "Normalizador Contable Excel/CSV",
     tecnologias: ["Python 3.12", "Pandas", "Pytest", "Ruff", "ETL"],
@@ -235,18 +235,18 @@ const SISTEMAS = [
     nombre: "DevOps & Release",
     capa: "tooling",
     capaMaestra: "Herramientas & Despliegue",
-    rutas: ["devops/"],
+    rutas: ["herramientas/devops/"],
     entrega: false,
     puerto: "CI/CD & PowerShell",
     entrypoint: "herramientas/devops/firmar-instalador.ps1",
-    protocolos: ["Authenticode SHA-256", "Inno Setup 6.x", "GitHub Actions"],
+    protocolos: ["Authenticode SHA-256", "NSIS / electron-builder", "GitHub Actions"],
     almacenamiento: "Artefactos ZIP y ejecutables .exe firmados",
     coberturaTests: "Pipeline CI/CD automatizado en GitHub Actions",
     modos: ["Release Automation"],
     rol: "Infraestructura On-Premise & CI/CD",
-    tecnologias: ["Inno Setup .iss", "GitHub Actions", "PowerShell", "Authenticode"],
+    tecnologias: ["NSIS / electron-builder", "GitHub Actions", "PowerShell", "Authenticode"],
     funcionalidades: [
-      "Generación del Instalador Desatendido Windows (.exe) con Inno Setup",
+      "Generación del Instalador Desatendido Windows (.exe) con NSIS y electron-builder (bun run dist:win)",
       "Pipeline Automatizado de Release en GitHub Actions (.github/workflows/release-automation.yml)",
       "Firma Digital de Código con Authenticode SHA-256 (firmar-instalador.ps1)",
       "Empaquetado Completo en ZIP para Entrega a Clientes On-Premise con Documentación y Checksums"
@@ -549,7 +549,7 @@ const ARISTAS = [
   { de: "sicsaft-core", a: "core-frontend", tipo: "sirve", label: "Servidor Estático Directivo", desc: "Servidor local HTTP embebido en puerto 8768 para el portal directivo." },
   { de: "sicsaft-core", a: "app-qr", tipo: "sirve", label: "mDNS Beacon & HTTPS", desc: "Difusión de nombre sicsaft.local y servidor HTTPS en puerto 8767 para móviles." },
   { de: "casos-de-uso", a: "cis", tipo: "prueba", label: "Harness E2E Playwright", desc: "Validación automatizada de flujos de usuario reales contra el stack completo." },
-  { de: "devops", a: "sicsaft-core", tipo: "empaqueta", label: "Inno Setup & Authenticode", desc: "Compilación del instalador Windows desatendido y firma digital SHA-256." },
+  { de: "devops", a: "sicsaft-core", tipo: "empaqueta", label: "NSIS / electron-builder & Authenticode", desc: "Compilación del instalador Windows desatendido con NSIS/electron-builder y firma digital SHA-256." },
 ];
 
 const nodos = SISTEMAS.map((s) => ({ ...s, ...metricasDe(s) }));

@@ -43,7 +43,7 @@ Cada commit debe seguir la convención estructurada y asociar el ID de issue en 
 - `cip`: Centro de Inteligencia Patrimonial (Worker / Dashboards).
 - `app-qr`: Aplicación de captura móvil PWA.
 - `sicsaft-core`: Instalador de escritorio `.exe` (Electron).
-- `devops`: Scripts de despliegue, Docker/Podman, Keycloak.
+- `devops`: Scripts de despliegue, utilidades de instalación y firma digital Windows en `herramientas/devops/`.
 - `auditoria`: Hallazgos de calidad y arquitectura (`DOC-032`).
 
 ---
