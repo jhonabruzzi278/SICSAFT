@@ -56,6 +56,11 @@ export interface ScannedSessionItem {
   code: string;
   name: string;
   category: ScanCategory;
+  // Solo presentes en 'wrong-area'/'wrong-location' — se persisten para que HistoryPage pueda
+  // reconstruir "AFT que no corresponden a esta área" agrupado, igual que ScanPage en vivo
+  // (pedido del usuario 2026-09-11: misma vista en el historial).
+  expectedAreaName?: string;
+  expectedLocationName?: string;
   incidentNote?: string;
   outOfPlace?: boolean;
   externalFind?: boolean;
@@ -94,6 +99,10 @@ export interface ScanSession {
   // calcularVeredicto pueda recalcularse después (ej. HistoryPage) sin necesitar el catálogo
   // completo de nuevo. `verdict` se calcula una sola vez al confirmar el envío — ver lib/verdict.ts.
   missing: number;
+  // Lista real (no solo el conteo de arriba) de lo esperado y no escaneado — se persiste para que
+  // HistoryPage pueda mostrar "Activos faltantes" con nombre, igual que ScanPage en vivo (mismo
+  // pedido 2026-09-11). Ausente en sesiones guardadas antes de este campo.
+  missingAssets?: { codigoQr: string; nombre: string }[];
   verdict: Verdict;
   items: ScannedSessionItem[];
   syncStatus: SyncStatus;
