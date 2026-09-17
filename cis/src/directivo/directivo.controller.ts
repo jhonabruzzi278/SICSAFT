@@ -28,7 +28,7 @@ import {
 } from './directivo.schemas';
 
 // DOC-022 3 — el Directivo designa quién es el Profesional de AFT de SU organización. Igual que
-// AdministradorController con /organizaciones/:orgId/usuarios: esto es gestión de identidad
+// los controllers de /admin/... con /organizaciones/:orgId/usuarios: esto es gestión de identidad
 // (ADR-004: Keycloak), no escritura de BPI, así que nunca pasa por el Orquestador de CORE (ver
 // DirectivoGuard para el porqué de no necesitar el patrón "verificar dentro del Orquestador" de
 // DOC-012 8).
