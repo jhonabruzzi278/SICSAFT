@@ -204,11 +204,19 @@ async function getValidAccessToken(): Promise<string> {
 
 // Solo para mostrar quién es el operador en la UI (`ScanPage`, `audit-log.ts`) — el claim no se
 // verifica acá, CIS ya validó firma/vencimiento server-side en cada request real.
+//
+// Bug real reportado por el usuario 2026-09-16: el correo aparecía duplicado ("email email") como
+// operador en los reportes de control. Causa raíz: crearUsuarioHuman (CIS/keycloak-admin.service.ts)
+// fuerza firstName = lastName = email al crear el usuario — sin eso Keycloak rechaza el login con
+// "Account is not fully set up" (hallazgo real contra Keycloak 26). Keycloak arma el claim `name`
+// concatenando firstName + lastName, así que para esas cuentas llega literalmente "email email".
+// `preferred_username` no tiene ese problema (es el username real, no una concatenación) — mismo
+// orden de prioridad que ya usa ccp/src/lib/oidc/oidc-client.ts para este mismo propósito.
 function getCurrentOperatorDisplayName(): string | null {
   const tokens = loadTokens();
   if (!tokens) return null;
   const claims = decodeJwtClaims(tokens.accessToken);
-  const name = claims?.name ?? claims?.preferred_username ?? claims?.sub;
+  const name = claims?.preferred_username ?? claims?.name ?? claims?.sub;
   return typeof name === 'string' ? name : null;
 }
 
