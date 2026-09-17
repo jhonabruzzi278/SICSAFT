@@ -33,14 +33,6 @@ test-results/
 *.p12
 *.pfx
 *.cer
-# Binario compilado del instalador (iscc sicsaft-onprem.iss) — se genera localmente, no se
-# versiona (mismo criterio que cualquier artefacto de build).
-devops/onprem/installer/output/
-# Generado por Set-DominioTraefik (instalar-cliente.ps1) a partir de dynamic.yml.template con el
-# dominio real de CADA cliente — encontrado commiteado por error con el dominio de una instalación
-# de prueba anterior (ADR-004 Fase 3, 2026-08-26); nunca debió versionarse, mismo criterio que
-# .env (config real por instalación, no código fuente).
-devops/onprem/traefik/dynamic.yml
 id_rsa*
 *secret*
 *credential*
@@ -94,4 +86,5 @@ core/frontend/informe-*.pdf
 dist-paquete/
 *.zip
 
-devops/onprem/.bootstrap/
+# Substack devops retirado (despliegue consolidado 100% en sicsaft-core .exe)
+devops/

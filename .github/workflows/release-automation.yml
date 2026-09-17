@@ -91,7 +91,6 @@ jobs:
           
           # Copiar manuales y guías de instalación
           if (Test-Path "sicsaft-core\RUNBOOK-INSTALACION.md") { Copy-Item "sicsaft-core\RUNBOOK-INSTALACION.md" -Destination "$distDir\" }
-          if (Test-Path "devops\onprem\README.md") { Copy-Item "devops\onprem\README.md" -Destination "$distDir\MANUAL-DESPLIEGUE.md" }
           if (Test-Path "CHANGELOG.md") { Copy-Item "CHANGELOG.md" -Destination "$distDir\" }
           if (Test-Path "VERSION") { Copy-Item "VERSION" -Destination "$distDir\" }
           if (Test-Path "README.md") { Copy-Item "README.md" -Destination "$distDir\" }
@@ -132,7 +131,6 @@ jobs:
             - **Instalador de escritorio**: `SICSAFT CORE Setup ${{ steps.get_version.outputs.version_raw }}.exe`
             - **Paquete completo en ZIP**: `SICSAFT-v${{ steps.get_version.outputs.version_raw }}-Windows-OnPremise.zip`
             - **Guía de instalación paso a paso**: `RUNBOOK-INSTALACION.md`
-            - **Manual de despliegue on-premise**: `MANUAL-DESPLIEGUE.md`
             - **Verificación de integridad**: `CHECKSUMS.sha256`
             
             Consulta las notas completas en [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md).
