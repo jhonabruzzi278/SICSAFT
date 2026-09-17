@@ -92,3 +92,6 @@ dist-paquete/
 *.zip
 
 devops/onprem/.bootstrap/
+
+# SDK/binarios descargados localmente para apk-aft/ (Android SDK, ~cientos de MB) — nunca versionar
+.tools/
