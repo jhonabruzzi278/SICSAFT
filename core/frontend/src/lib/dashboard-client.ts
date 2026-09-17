@@ -27,6 +27,9 @@ export interface VeredictoSesion {
   areaId: string;
   veredicto: string;
   fechaCierre: string;
+  revisado: boolean;
+  revisadoPor: string | null;
+  revisadoEn: string | null;
 }
 
 // DOC-034 Parte A — sesionId/veredicto agregados para entrelazar la alerta con el reporte
@@ -112,6 +115,25 @@ async function authorizedFetch(
   return res;
 }
 
+// Notificaciones del organigrama (2026-09-16) — única escritura de este cliente. Sin body: CIS
+// deriva revisadoPor del propio JWT (requireAuthContext), nunca lo manda el navegador.
+async function authorizedPatch(path: string): Promise<Response> {
+  const config = loadOidcConfig();
+  const accessToken = await oidcClient.getValidAccessToken();
+  const res = await fetch(`${config.cisUrl}${path}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { message?: string };
+    throw new CisApiError(
+      res.status,
+      body.message ?? `CIS devolvió ${res.status}`,
+    );
+  }
+  return res;
+}
+
 export const dashboardClient = {
   async getCobertura(organizacionId: string): Promise<Cobertura> {
     const res = await authorizedFetch('/dashboard/cobertura', {
@@ -130,11 +152,47 @@ export const dashboardClient = {
   async getSesiones(
     organizacionId: string,
     areaId?: string,
+    limit = 100,
+    offset = 0,
   ): Promise<Pagina<VeredictoSesion> & SyncInfo> {
-    const params: Record<string, string> = { organizacionId, limit: '100' };
+    const params: Record<string, string> = {
+      organizacionId,
+      limit: String(limit),
+      offset: String(offset),
+    };
     if (areaId) params.areaId = areaId;
     const res = await authorizedFetch('/dashboard/sesiones', params);
     return (await res.json()) as Pagina<VeredictoSesion> & SyncInfo;
+  },
+
+  // CIP topea a 100 filas por página (paginacionSchema de CIS) — el organigrama y la lista de
+  // reportes necesitan el universo completo de sesiones de la organización para contar
+  // notificaciones/filtrar por veredicto, no solo una página. Compartido entre
+  // OrganigramaControlesArea.tsx y ReportesDeAreaPage.tsx (2026-09-16).
+  async getTodasLasSesiones(
+    organizacionId: string,
+  ): Promise<VeredictoSesion[]> {
+    const sesiones: VeredictoSesion[] = [];
+    let offset = 0;
+    for (;;) {
+      const pagina = await this.getSesiones(
+        organizacionId,
+        undefined,
+        100,
+        offset,
+      );
+      sesiones.push(...pagina.items);
+      offset += pagina.items.length;
+      if (pagina.items.length === 0 || sesiones.length >= pagina.total) break;
+    }
+    return sesiones;
+  },
+
+  async marcarRevisado(sesionId: string): Promise<VeredictoSesion> {
+    const res = await authorizedPatch(
+      `/dashboard/sesiones/${encodeURIComponent(sesionId)}/revisar`,
+    );
+    return (await res.json()) as VeredictoSesion;
   },
 
   async getFueraDeArea(

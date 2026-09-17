@@ -11,7 +11,7 @@ import {
 import { cisClient, type ActivoCatalogo } from '@/lib/cis-client';
 import { Alert, Button } from '@/components/ui';
 import { IconRefresh } from '@/components/icons';
-import { DonutChart } from '@/components/DonutChart';
+import { PieChart } from '@/components/PieChart';
 import { KpiCard } from '@/components/KpiCard';
 import { PALETA_CATEGORIAS } from '@/lib/colores';
 
@@ -23,6 +23,14 @@ const ETIQUETA_VEREDICTO: Record<(typeof ORDEN_VEREDICTO)[number], string> = {
   exitoso: 'Excelente',
   aceptable: 'Aceptable',
   defectuoso: 'Deficiente',
+};
+// Mismo criterio semántico que el resto de la app (Hallazgos de Pantalla 8, Alertas de CIP):
+// aceptable siempre amarillo, defectuoso siempre rojo — acá antes las 3 filas eran texto neutro,
+// sin ninguna identificación de color (pedido explícito del usuario 2026-09-16).
+const COLOR_VEREDICTO: Record<(typeof ORDEN_VEREDICTO)[number], string> = {
+  exitoso: 'text-success',
+  aceptable: 'text-warning',
+  defectuoso: 'text-destructive',
 };
 
 const PERIODOS = [
@@ -66,6 +74,7 @@ function ModuloControl({
     return {
       veredicto,
       etiqueta: ETIQUETA_VEREDICTO[veredicto],
+      color: COLOR_VEREDICTO[veredicto],
       cantidad,
       porcentaje: ventana.total > 0 ? (cantidad / ventana.total) * 100 : 0,
     };
@@ -91,8 +100,17 @@ function ModuloControl({
           <tbody className="divide-y divide-border/60">
             {filas.map((fila) => (
               <tr key={fila.veredicto}>
-                <td className="py-1.5 pr-3 text-text">{fila.etiqueta}</td>
-                <td className="py-1.5 pr-3 font-medium text-text">
+                <td className="py-1.5 pr-3">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full bg-current ${fila.color}`}
+                    />
+                    <span className={`font-medium ${fila.color}`}>
+                      {fila.etiqueta}
+                    </span>
+                  </span>
+                </td>
+                <td className={`py-1.5 pr-3 font-medium ${fila.color}`}>
                   {fila.cantidad.toLocaleString('es-CL')}
                 </td>
                 <td className="py-1.5 text-text-dim">
@@ -253,7 +271,7 @@ export function ResumenTab() {
           titulo="AFT en Mantenimiento"
           valor={activosMantenimiento.toLocaleString('es-CL')}
           dato={`${porcentaje(activosMantenimiento)} del total`}
-          colorValor="text-amber-400"
+          colorValor="text-warning"
         />
         <KpiCard
           titulo="AFT Inactivos"
@@ -285,10 +303,8 @@ export function ResumenTab() {
             Distribución por Categorías
           </h3>
           <div className="mt-5">
-            <DonutChart
+            <PieChart
               segmentos={segmentosCategorias}
-              centroValor={totalActivos}
-              centroEtiqueta="AFT"
               vacioTexto={
                 cargando
                   ? 'Cargando distribución…'

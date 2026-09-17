@@ -4,18 +4,20 @@ import {
   type ActivoCatalogo,
   type ResumenControlArea,
 } from '@/lib/cis-client';
+import { dashboardClient } from '@/lib/dashboard-client';
 import {
   estiloVeredicto,
   etiquetaTipo,
   formatPorcentaje,
+  nombreOperador,
 } from '@/lib/pantalla-8';
 import {
   generarPdfInformeControl,
   type InformeControlPdfFila,
 } from '@/lib/pdf-informe-control';
-import { Alert, Badge, Button } from '@/components/ui';
+import { Alert, Button, Modal } from '@/components/ui';
 import { KpiCard } from '@/components/KpiCard';
-import { DonutChart } from '@/components/DonutChart';
+import { PieChart } from '@/components/PieChart';
 import { IconDownload, IconMapPin } from '@/components/icons';
 import { PALETA_CATEGORIAS } from '@/lib/colores';
 
@@ -28,15 +30,19 @@ import { PALETA_CATEGORIAS } from '@/lib/colores';
 // es su propia ruta) y pasa a recibir `areaNombre`/`direccionNombre`/`departamentoNombre` ya
 // resueltos por el padre (que de todas formas necesita el árbol de áreas para el breadcrumb) —
 // antes el header mostraba `resumen.areaId` crudo (bug real reportado por el usuario). Las 3
-// listas (Escaneados/Fuera de área/No se escanearon) pasan de "las 3 a la vez en 3 columnas" a un
+// listas (Escaneados/Fuera de área/Extraviados) pasan de "las 3 a la vez en 3 columnas" a un
 // selector de pestañas — con datos reales eran la sección que más obligaba a hacer scroll de
 // página completa.
 
-type Severidad = 'critico' | 'atencion';
-
+// 2026-09-16 — "Hallazgos" dejó de ser un panel en pantalla (ver abajo, dos tarjetas KPI propias
+// para extraviados/fuera de área lo reemplazan; baja/mantenimiento/inactivo ya se ven en "Estado
+// de los AFT declarado"). Esta lista sigue viva solo como insumo del PDF descargable
+// (generarPdfInformeControl), que sí sigue teniendo su propia sección "Hallazgos" — documento
+// impreso, no la misma restricción de espacio que la pantalla.
 interface Hallazgo {
-  severidad: Severidad;
+  severidad: 'critico' | 'atencion';
   texto: string;
+  etiqueta?: string;
 }
 
 type ListaId = 'escaneados' | 'fueraDeArea' | 'faltantes';
@@ -49,14 +55,6 @@ function hora(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function BadgeSeveridad({ severidad }: { severidad: Severidad }) {
-  return severidad === 'critico' ? (
-    <Badge variant="error">CRÍTICO</Badge>
-  ) : (
-    <Badge variant="warning">ATENCIÓN</Badge>
-  );
 }
 
 function ListaAft({
@@ -140,10 +138,21 @@ function BarraEstado({
   );
 }
 
+// "AFT por categoría" solo debe contar activos reales y localizados — no ruido de escaneo
+// (no_registrado/invalido/duplicado/ya_escaneado no resuelven a un activo). con_incidencia
+// también cuenta: es "correcto" con una incidencia adicional, sigue siendo el mismo activo en su
+// lugar (ver clasificar-escaneo.ts).
+const RESULTADOS_ACTIVO_REAL = new Set([
+  'correcto',
+  'con_incidencia',
+  'otra_area',
+  'otra_ubicacion',
+]);
+
 const LISTAS_TABS: { id: ListaId; titulo: string }[] = [
   { id: 'escaneados', titulo: 'AFT escaneados' },
   { id: 'fueraDeArea', titulo: 'No corresponden al área' },
-  { id: 'faltantes', titulo: 'No se escanearon' },
+  { id: 'faltantes', titulo: 'AFT extraviados' },
 ];
 
 export function PantallaControlArea({
@@ -163,12 +172,25 @@ export function PantallaControlArea({
   const [catalogo, setCatalogo] = useState<ActivoCatalogo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [listaActiva, setListaActiva] = useState<ListaId>('escaneados');
+  // Notificaciones del organigrama (2026-09-16) — estado puramente local: no hay lectura previa
+  // de "¿ya estaba revisada?" (esa info vive en veredicto_sesion de CIP, no en este resumen de
+  // CORE); el botón siempre parte visible si el veredicto no es exitoso, y pasa a "Revisado el…"
+  // recién con la respuesta del PATCH. Acción final, sin des-revisar (confirmado por el usuario).
+  const [mostrarConfirmarRevisar, setMostrarConfirmarRevisar] = useState(false);
+  const [marcandoRevisado, setMarcandoRevisado] = useState(false);
+  const [errorRevisar, setErrorRevisar] = useState<string | null>(null);
+  const [revisado, setRevisado] = useState<{
+    por: string;
+    en: string;
+  } | null>(null);
 
   useEffect(() => {
     let ignorar = false;
     setResumen(null);
     setError(null);
     setListaActiva('escaneados');
+    setRevisado(null);
+    setErrorRevisar(null);
     void (async () => {
       try {
         const res = await cisClient.getInventarioResumenControl(sesionId);
@@ -204,7 +226,13 @@ export function PantallaControlArea({
     if (!resumen) return [];
     const catalogoPorCodigo = new Map(catalogo.map((a) => [a.codigoQr, a]));
     const porFamilia = new Map<string, number>();
-    for (const item of [...resumen.escaneadosLista, ...resumen.fueraDeArea]) {
+    // `escaneadosLista` ya trae TODOS los escaneos de la sesión — `fueraDeArea` es un
+    // subconjunto suyo, no una lista aparte (mismo codigoQr aparece en ambas). Concatenar las
+    // dos, como hacía esto antes, contaba cada AFT fuera de área dos veces (bug real: 1 AFT
+    // escaneado aparecía como "2" en el gráfico) — alcanza con recorrer `escaneadosLista` una
+    // sola vez, filtrando a resultados que son un activo real (no ruido de escaneo).
+    for (const item of resumen.escaneadosLista) {
+      if (!RESULTADOS_ACTIVO_REAL.has(item.resultado)) continue;
       const familia =
         catalogoPorCodigo.get(item.codigoQr)?.familia || 'Sin categoría';
       porFamilia.set(familia, (porFamilia.get(familia) ?? 0) + 1);
@@ -222,7 +250,8 @@ export function PantallaControlArea({
     if (resumen.faltantes.length > 0) {
       lista.push({
         severidad: 'critico',
-        texto: `${resumen.faltantes.length} AFT del área no se escanearon`,
+        texto: `${resumen.faltantes.length} AFT extraviados`,
+        etiqueta: 'EXTRAVIADO',
       });
     }
     if (resumen.porEstadoDeclarado.baja > 0) {
@@ -252,6 +281,25 @@ export function PantallaControlArea({
     return lista;
   }, [resumen]);
 
+  async function confirmarRevisar() {
+    setMarcandoRevisado(true);
+    setErrorRevisar(null);
+    try {
+      const actualizado = await dashboardClient.marcarRevisado(sesionId);
+      setRevisado({
+        por: actualizado.revisadoPor ?? '',
+        en: actualizado.revisadoEn ?? new Date().toISOString(),
+      });
+      setMostrarConfirmarRevisar(false);
+    } catch (err: unknown) {
+      setErrorRevisar(
+        err instanceof Error ? err.message : 'No se pudo marcar como revisado',
+      );
+    } finally {
+      setMarcandoRevisado(false);
+    }
+  }
+
   function descargarPdf() {
     if (!resumen) return;
     const listaAPdf = (
@@ -275,7 +323,7 @@ export function PantallaControlArea({
       departamentoNombre,
       fechaInicio: resumen.fechaInicio,
       fechaCierre: resumen.fechaCierre,
-      operadorId: resumen.operadorId,
+      operadorId: nombreOperador(resumen.operadorId),
       veredicto: resumen.veredicto,
       veredictoEtiqueta: estiloVeredicto(resumen.veredicto).etiqueta,
       kpis: [
@@ -292,7 +340,7 @@ export function PantallaControlArea({
         {
           titulo: 'Alertas detectadas',
           valor: String(resumen.faltantes.length + resumen.fueraDeArea.length),
-          dato: 'Faltantes + fuera de área',
+          dato: 'Extraviados + fuera de área',
         },
         {
           titulo: 'Cobertura del área',
@@ -328,7 +376,7 @@ export function PantallaControlArea({
           filas: listaAPdf(resumen.fueraDeArea),
         },
         {
-          titulo: 'No se escanearon',
+          titulo: 'AFT extraviados',
           filas: listaAPdf(
             resumen.faltantes.map((f) => ({ ...f, tipo: null })),
           ),
@@ -342,8 +390,6 @@ export function PantallaControlArea({
     return <p className="text-sm text-text-dim">Cargando la Pantalla 8…</p>;
 
   const veredicto = estiloVeredicto(resumen.veredicto);
-  const alertasDetectadas =
-    resumen.faltantes.length + resumen.fueraDeArea.length;
   const est = resumen.porEstadoDeclarado;
   const ruta = [direccionNombre, departamentoNombre]
     .filter((v): v is string => Boolean(v))
@@ -393,12 +439,26 @@ export function PantallaControlArea({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className={`rounded-xl px-4 py-2 text-right ${veredicto.fondo}`}>
             <p className="text-sm font-bold tracking-wide">
               Proceso {veredicto.etiqueta}
             </p>
           </div>
+          {resumen.veredicto !== 'exitoso' &&
+            (revisado ? (
+              <span className="text-xs text-text-dim">
+                Revisado el {fecha(revisado.en)}
+              </span>
+            ) : (
+              <Button
+                variant="secondary"
+                className="px-3 py-2 text-xs"
+                onClick={() => setMostrarConfirmarRevisar(true)}
+              >
+                Marcar como revisado
+              </Button>
+            ))}
           <Button
             variant="secondary"
             className="gap-1.5 px-3 py-2 text-xs"
@@ -410,7 +470,7 @@ export function PantallaControlArea({
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <KpiCard
           titulo="AFT del área"
           valor={String(resumen.activosDelArea)}
@@ -422,10 +482,22 @@ export function PantallaControlArea({
           dato="En esta acción de control"
         />
         <KpiCard
-          titulo="Alertas detectadas"
-          valor={String(alertasDetectadas)}
-          dato="Faltantes + fuera de área"
-          colorValor={alertasDetectadas > 0 ? 'text-destructive' : undefined}
+          titulo="AFT extraviados"
+          valor={String(resumen.faltantes.length)}
+          dato="No se escanearon en el área"
+          colorValor={
+            resumen.faltantes.length > 0 ? 'text-destructive' : undefined
+          }
+          acento={resumen.faltantes.length > 0 ? 'error' : undefined}
+        />
+        <KpiCard
+          titulo="AFT de otra área"
+          valor={String(resumen.fueraDeArea.length)}
+          dato="Detectados en esta acción de control"
+          colorValor={
+            resumen.fueraDeArea.length > 0 ? 'text-warning' : undefined
+          }
+          acento={resumen.fueraDeArea.length > 0 ? 'warning' : undefined}
         />
         <KpiCard
           titulo="Cobertura del área"
@@ -435,37 +507,12 @@ export function PantallaControlArea({
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-bg-card p-5">
-          <h3 className="mb-3 text-sm font-bold text-text">Hallazgos</h3>
-          {hallazgos.length === 0 ? (
-            <p className="text-sm text-text-dim">
-              Sin hallazgos — todos los AFT del área se escanearon
-              correctamente.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {hallazgos.map((h) => (
-                <li key={h.texto} className="flex items-center gap-2 text-sm">
-                  <BadgeSeveridad severidad={h.severidad} />
-                  <span className="text-text">{h.texto}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="rounded-2xl border border-border bg-bg-card p-5">
-          <h3 className="mb-3 text-sm font-bold text-text">
-            AFT por categoría
-          </h3>
-          <DonutChart
-            segmentos={segmentosCategorias}
-            centroValor={resumen.escaneados}
-            centroEtiqueta="AFT"
-            vacioTexto="Sin datos de categoría disponibles."
-          />
-        </div>
+      <div className="rounded-2xl border border-border bg-bg-card p-5">
+        <h3 className="mb-3 text-sm font-bold text-text">AFT por categoría</h3>
+        <PieChart
+          segmentos={segmentosCategorias}
+          vacioTexto="Sin datos de categoría disponibles."
+        />
       </div>
 
       <div className="rounded-2xl border border-border bg-bg-card p-5">
@@ -507,9 +554,45 @@ export function PantallaControlArea({
       </div>
 
       <p className="border-t border-border pt-3 text-xs text-text-faint">
-        Operador: {resumen.operadorId} · Datos vía CIS/CIP, actualizados al
-        cierre de la sesión.
+        Operador: {nombreOperador(resumen.operadorId)} · Datos vía CIS/CIP,
+        actualizados al cierre de la sesión.
       </p>
+
+      <Modal
+        open={mostrarConfirmarRevisar}
+        onClose={() => setMostrarConfirmarRevisar(false)}
+        ancho="max-w-md"
+      >
+        <div className="space-y-4 p-6">
+          <h3 className="text-base font-bold text-text">
+            Marcar reporte como revisado
+          </h3>
+          <p className="text-sm text-text-dim">
+            Esta sesión va a dejar de contar como notificación pendiente en el
+            organigrama de Controles de área. Es una acción final — no se puede
+            deshacer.
+          </p>
+          {errorRevisar && <Alert variant="error">{errorRevisar}</Alert>}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              className="px-3 py-2 text-xs"
+              onClick={() => setMostrarConfirmarRevisar(false)}
+              disabled={marcandoRevisado}
+            >
+              Volver atrás
+            </Button>
+            <Button
+              variant="primary"
+              className="px-3 py-2 text-xs"
+              onClick={() => void confirmarRevisar()}
+              disabled={marcandoRevisado}
+            >
+              {marcandoRevisado ? 'Marcando…' : 'Aceptar'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

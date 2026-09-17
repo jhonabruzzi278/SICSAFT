@@ -1,5 +1,5 @@
 // Paleta compartida por los gráficos de categorías del CIP (ResumenTab.tsx, PantallaControlArea.tsx
-// vía DonutChart.tsx) — en su propio archivo (no en DonutChart.tsx) porque
+// vía PieChart.tsx) — en su propio archivo (no en PieChart.tsx) porque
 // react-refresh/only-export-components exige que un archivo de componente solo exporte
 // componentes.
 export const PALETA_CATEGORIAS = [

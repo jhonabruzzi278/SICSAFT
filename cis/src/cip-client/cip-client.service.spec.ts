@@ -39,6 +39,7 @@ describe('CipClientService', () => {
     serviceToken: 'secreto-compartido',
   };
   let axiosGet: jest.Mock;
+  let axiosPatch: jest.Mock;
   let httpService: HttpService;
   let breaker: CircuitBreaker;
   let service: CipClientService;
@@ -46,7 +47,10 @@ describe('CipClientService', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     axiosGet = jest.fn();
-    httpService = { axiosRef: { get: axiosGet } } as unknown as HttpService;
+    axiosPatch = jest.fn();
+    httpService = {
+      axiosRef: { get: axiosGet, patch: axiosPatch },
+    } as unknown as HttpService;
     breaker = new CircuitBreaker({ failureThreshold: 100, resetTimeoutMs: 1 });
     service = new CipClientService(config, breaker, httpService);
   });
@@ -237,6 +241,56 @@ describe('CipClientService', () => {
           },
         }),
       );
+    });
+  });
+
+  describe('revisarSesion', () => {
+    it('llama a PATCH /dashboard/sesiones/:id/revisar con el body y headers esperados', async () => {
+      axiosPatch.mockResolvedValue(
+        buildAxiosResponse({
+          sesionId: 'ses-1',
+          areaId: 'area-1',
+          veredicto: 'defectuoso',
+          fechaCierre: '2026-01-01T00:00:00.000Z',
+          revisado: true,
+          revisadoPor: 'kc-sub-directivo',
+          revisadoEn: '2026-01-02T00:00:00.000Z',
+        }),
+      );
+
+      const resultado = await service.revisarSesion(
+        'ses-1',
+        'kc-sub-directivo',
+        'correlation-test',
+      );
+
+      expect(axiosPatch).toHaveBeenCalledWith(
+        'http://cip:3002/dashboard/sesiones/ses-1/revisar',
+        { revisadoPor: 'kc-sub-directivo' },
+        {
+          headers: {
+            'x-internal-service-token': 'secreto-compartido',
+            'x-correlation-id': 'correlation-test',
+          },
+        },
+      );
+      expect(resultado).toEqual({
+        sesionId: 'ses-1',
+        areaId: 'area-1',
+        veredicto: 'defectuoso',
+        fechaCierre: '2026-01-01T00:00:00.000Z',
+        revisado: true,
+        revisadoPor: 'kc-sub-directivo',
+        revisadoEn: '2026-01-02T00:00:00.000Z',
+      });
+    });
+
+    it('tira BadGatewayException si CIP devuelve una forma inesperada', async () => {
+      axiosPatch.mockResolvedValue(buildAxiosResponse({ inesperado: true }));
+
+      await expect(
+        service.revisarSesion('ses-1', 'kc-sub-directivo', 'correlation-test'),
+      ).rejects.toThrow(BadGatewayException);
     });
   });
 

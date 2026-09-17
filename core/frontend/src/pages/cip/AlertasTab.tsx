@@ -4,9 +4,9 @@ import {
   dashboardClient,
   type ActivoFueraDeArea,
 } from '@/lib/dashboard-client';
-import { cisClient, type ActivoCatalogo } from '@/lib/cis-client';
+import { cisClient, type Area, type ActivoCatalogo } from '@/lib/cis-client';
 import { Alert, Badge, Button, Card } from '@/components/ui';
-import { IconRefresh } from '@/components/icons';
+import { IconMapPin, IconRefresh } from '@/components/icons';
 
 // Hub de alertas del CIP — DOC-026 8 lo dejaba explícitamente fuera de alcance ("Motor de
 // Alertas, sin consumidor real todavía"): el dato ya existía (CIP ACTIVO_FUERA_DE_AREA,
@@ -44,6 +44,7 @@ export function AlertasTab() {
   const [error, setError] = useState<string | null>(null);
   const [alertas, setAlertas] = useState<ActivoFueraDeArea[]>([]);
   const [catalogo, setCatalogo] = useState<ActivoCatalogo[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
 
   const cargarDatos = useCallback(async () => {
     if (!organizacionId) {
@@ -53,9 +54,10 @@ export function AlertasTab() {
     setCargando(true);
     setError(null);
     try {
-      const [fueraDeAreaRes, catalogoRes] = await Promise.allSettled([
+      const [fueraDeAreaRes, catalogoRes, areasRes] = await Promise.allSettled([
         dashboardClient.getFueraDeArea(organizacionId),
         cisClient.getCatalogo(organizacionId),
+        cisClient.getAreas(organizacionId),
       ]);
 
       if (fueraDeAreaRes.status === 'fulfilled') {
@@ -68,6 +70,7 @@ export function AlertasTab() {
         );
       }
       if (catalogoRes.status === 'fulfilled') setCatalogo(catalogoRes.value);
+      if (areasRes.status === 'fulfilled') setAreas(areasRes.value);
     } finally {
       setCargando(false);
     }
@@ -98,6 +101,25 @@ export function AlertasTab() {
 
   function nombreDeArea(areaId: string): string {
     return nombrePorArea.get(areaId) ?? areaId;
+  }
+
+  const areaPorId = useMemo(() => {
+    const mapa = new Map<string, Area>();
+    for (const area of areas) mapa.set(area.id, area);
+    return mapa;
+  }, [areas]);
+
+  // "Cambia DC-38 por la dirección en la que se estaba haciendo el control — es lo más
+  // importante" (pedido del usuario 2026-09-16): la jerarquía Dirección → Departamento del área
+  // donde se realizó la acción de control (`areaRealId`, no `areaEsperadaId`) le importa más al
+  // Directivo que el código QR puntual del AFT, sobre todo si un lugar acumula muchas alertas.
+  function jerarquiaDeArea(areaId: string): string {
+    const area = areaPorId.get(areaId);
+    if (!area) return nombreDeArea(areaId);
+    const partes = [area.dependencia, area.departamento].filter(
+      (v): v is string => Boolean(v?.trim()),
+    );
+    return partes.length > 0 ? partes.join(' · ') : area.nombre;
   }
 
   if (!organizacionId) {
@@ -149,52 +171,87 @@ export function AlertasTab() {
         <div className="space-y-3">
           {alertas.map((alerta) => {
             const activo = porCodigoQr.get(alerta.codigoQr);
+            // "Fuera de área" es en sí siempre nivel alerta, pero si la SESIÓN que la generó fue
+            // Defectuoso, toda la tarjeta se pinta de rojo — no solo el badge "Sesión …" chico
+            // (bug real reportado por el usuario: la tarjeta quedaba ámbar aunque la sesión fuera
+            // defectuosa, con un único pill rojo perdido adentro).
+            const esDefectuoso = alerta.veredicto === 'defectuoso';
             return (
               <div
                 key={`${alerta.sesionId}-${alerta.codigoQr}`}
-                className="flex flex-col gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4 sm:flex-row sm:items-center sm:justify-between"
+                className={`flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-start ${
+                  esDefectuoso
+                    ? 'border-destructive/30 bg-destructive/5'
+                    : 'border-warning/30 bg-warning/5'
+                }`}
               >
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="warning">AFT fuera de lugar</Badge>
-                    <Badge variant={VARIANTE_VEREDICTO[alerta.veredicto]}>
-                      Sesión{' '}
-                      {ETIQUETA_VEREDICTO[alerta.veredicto] ?? alerta.veredicto}
-                    </Badge>
-                    <span className="font-mono text-xs text-text-dim">
-                      {alerta.codigoQr}
+                <span
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                    esDefectuoso
+                      ? 'bg-destructive/15 text-destructive'
+                      : 'bg-warning/15 text-warning'
+                  }`}
+                >
+                  <IconMapPin width={17} height={17} />
+                </span>
+                <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="warning">AFT fuera de lugar</Badge>
+                      <Badge variant={VARIANTE_VEREDICTO[alerta.veredicto]}>
+                        Sesión{' '}
+                        {ETIQUETA_VEREDICTO[alerta.veredicto] ??
+                          alerta.veredicto}
+                      </Badge>
+                    </div>
+                    {/* Lo más importante para el Directivo es DÓNDE se hizo el control, no el
+                        código puntual del AFT — sobre todo si un área acumula muchas alertas y
+                        el nombre completo de cada AFT (antes acá) se vuelve una lista larga. El
+                        codigoQr sigue disponible, pero chico y al lado de "Ver reporte". */}
+                    <p className="mt-1 text-sm font-bold text-text">
+                      {jerarquiaDeArea(alerta.areaRealId)}
+                    </p>
+                    <p className="mt-0.5 text-xs font-medium text-accent">
+                      Detectado el {formatFecha(alerta.detectadoEn)}
+                    </p>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <Link
+                        to={`/dashboard/controles-area/reporte/${encodeURIComponent(alerta.sesionId)}?organizacionId=${encodeURIComponent(organizacionId)}`}
+                        className="inline-flex items-center gap-1 rounded-lg border border-accent/30 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent-strong transition-colors hover:bg-accent/20"
+                      >
+                        Ver reporte completo →
+                      </Link>
+                      <span className="font-mono text-[0.65rem] text-text-faint">
+                        {alerta.codigoQr}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Resumen del traslado en una sola línea — antes eran 2 bloques con
+                      explicaciones largas ("al momento del control"/"BD del Profesional de
+                      AFT") que ya se entienden por contexto una vez adentro de "Alertas". */}
+                  <div className="flex items-center gap-2 text-sm sm:text-right">
+                    <div>
+                      <p className="text-[0.65rem] text-text-dim">
+                        Encontrado en
+                      </p>
+                      <p
+                        className={`font-semibold ${esDefectuoso ? 'text-destructive' : 'text-warning'}`}
+                      >
+                        {nombreDeArea(alerta.areaRealId)}
+                      </p>
+                    </div>
+                    <span className="text-text-faint" aria-hidden="true">
+                      →
                     </span>
-                  </div>
-                  <p className="mt-1 font-medium text-text">
-                    {activo?.nombre ?? 'AFT no encontrado en el catálogo'}
-                  </p>
-                  <p className="mt-0.5 text-xs text-text-faint">
-                    Detectado el {formatFecha(alerta.detectadoEn)}
-                  </p>
-                  <Link
-                    to={`/dashboard/controles-area/reporte/${encodeURIComponent(alerta.sesionId)}?organizacionId=${encodeURIComponent(organizacionId)}`}
-                    className="mt-1 inline-block text-xs font-semibold text-accent hover:underline"
-                  >
-                    Ver reporte completo →
-                  </Link>
-                </div>
-                <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 sm:text-right">
-                  <div>
-                    <p className="text-xs text-text-dim">
-                      Está en (al momento del control)
-                    </p>
-                    <p className="font-medium text-destructive">
-                      {nombreDeArea(alerta.areaRealId)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-dim">
-                      Debería estar en (BD del Profesional de AFT)
-                    </p>
-                    <p className="font-medium text-text">
-                      {activo?.areaNombre ??
-                        nombreDeArea(alerta.areaEsperadaId)}
-                    </p>
+                    <div>
+                      <p className="text-[0.65rem] text-text-dim">
+                        Pertenece a
+                      </p>
+                      <p className="font-medium text-text">
+                        {activo?.areaNombre ??
+                          nombreDeArea(alerta.areaEsperadaId)}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -1,7 +1,22 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { KeycloakAuthGuard } from '../common/auth/keycloak-auth.guard';
+import {
+  KeycloakAuthGuard,
+  requireAuthContext,
+} from '../common/auth/keycloak-auth.guard';
 import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
+import {
+  DirectivoGuard,
+  type DirectivoRequest,
+} from '../directivo/directivo.guard';
 import { DashboardConnectorService } from './dashboard-connector.service';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 import {
@@ -35,6 +50,7 @@ import type {
   HistoricoResult,
   IncidenciasResult,
   NoLocalizadosResult,
+  RevisarSesionResult,
   SesionesResult,
   VeredictosResult,
 } from '../cip-client/cip-client.types';
@@ -43,7 +59,8 @@ import type {
 // Activos/Inventarios (KeycloakAuthGuard + RateLimitGuard, sin rol adicional) porque es información
 // agregada de organización completa, no PII ni una escritura — no el patrón de
 // AdministradorController (/admin/..., reservado para escritura oficial). Pipes por parámetro, no
-// @UsePipes de método (DOC-012 5 ya dejó ese hallazgo real).
+// @UsePipes de método (DOC-012 5 ya dejó ese hallazgo real). Única excepción: `revisarSesion`
+// (2026-09-16) sí escribe, así que suma `DirectivoGuard` en esa ruta puntual.
 @Controller('dashboard')
 @UseGuards(KeycloakAuthGuard, RateLimitGuard)
 export class DashboardConnectorController {
@@ -83,6 +100,24 @@ export class DashboardConnectorController {
       query.areaId,
       query.limit,
       query.offset,
+      request.correlationId,
+    );
+  }
+
+  // Notificaciones del organigrama (2026-09-16) — única escritura de este controller (el resto es
+  // agregado de lectura, ver comentario de clase). `DirectivoGuard` solo en esta ruta: el resto
+  // del controller queda con el criterio original (KeycloakAuthGuard, sin rol) porque son
+  // lecturas de agregados, no PII; esto sí muta estado, así que exige el rol `directivo`.
+  // `revisadoPor` se deriva del propio JWT (`requireAuthContext`) — nunca lo manda el cliente.
+  @Patch('sesiones/:sesionId/revisar')
+  @UseGuards(DirectivoGuard)
+  revisarSesion(
+    @Param('sesionId') sesionId: string,
+    @Req() request: DirectivoRequest & RequestWithCorrelationId,
+  ): Promise<RevisarSesionResult> {
+    return this.dashboardConnectorService.revisarSesion(
+      sesionId,
+      requireAuthContext(request).operadorId,
       request.correlationId,
     );
   }

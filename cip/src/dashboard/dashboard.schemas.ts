@@ -58,3 +58,10 @@ export const historicoQuerySchema = z.object({
   ...paginacionSchema,
 });
 export type HistoricoQuery = z.infer<typeof historicoQuerySchema>;
+
+// Notificaciones del organigrama (core/frontend, 2026-09-16) — `revisadoPor` llega resuelto
+// desde CIS (claim de Keycloak del Directivo autenticado), no lo elige el cliente.
+export const revisarSesionSchema = z.object({
+  revisadoPor: z.string().min(1),
+});
+export type RevisarSesionBody = z.infer<typeof revisarSesionSchema>;

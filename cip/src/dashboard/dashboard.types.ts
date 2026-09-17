@@ -22,6 +22,9 @@ export interface VeredictoSesionResponse {
   areaId: string;
   veredicto: string;
   fechaCierre: string;
+  revisado: boolean;
+  revisadoPor: string | null;
+  revisadoEn: string | null;
 }
 
 // DOC-034 Parte A — sesionId/veredicto agregados para entrelazar la alerta con el reporte

@@ -9,6 +9,7 @@ function buildRepository(): jest.Mocked<DashboardRepository> {
     obtenerCobertura: jest.fn(),
     listarAreas: jest.fn().mockResolvedValue([]),
     listarSesiones: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+    marcarSesionRevisada: jest.fn(),
     listarFueraDeArea: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     listarHistorico: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     listarNoLocalizados: jest.fn().mockResolvedValue({ items: [], total: 0 }),
@@ -90,6 +91,45 @@ describe('DashboardController', () => {
       5,
     );
     expect(resultado).toEqual({ items: [], total: 0, ...SYNC });
+  });
+
+  it('revisarSesion delega en el repositorio y devuelve la fila actualizada', async () => {
+    const repository = buildRepository();
+    const fila = {
+      sesionId: 'ses-1',
+      areaId: 'area-1',
+      veredicto: 'defectuoso',
+      fechaCierre: '2026-01-01T00:00:00.000Z',
+      revisado: true,
+      revisadoPor: 'directivo@org.test',
+      revisadoEn: '2026-01-02T00:00:00.000Z',
+    };
+    repository.marcarSesionRevisada.mockResolvedValue(fila);
+    const controller = new DashboardController(repository);
+
+    const resultado = await controller.revisarSesion('ses-1', {
+      revisadoPor: 'directivo@org.test',
+    });
+
+    expect(repository.marcarSesionRevisada).toHaveBeenCalledWith(
+      'ses-1',
+      'directivo@org.test',
+    );
+    expect(resultado).toEqual(fila);
+  });
+
+  it('revisarSesion tira NotFoundException si la sesión no existe', async () => {
+    const repository = buildRepository();
+    repository.marcarSesionRevisada.mockResolvedValue(null);
+    const controller = new DashboardController(repository);
+
+    await expect(
+      controller.revisarSesion('ses-inexistente', {
+        revisadoPor: 'directivo@org.test',
+      }),
+    ).rejects.toThrow(
+      'No existe la sesión ses-inexistente en veredicto_sesion',
+    );
   });
 
   it('getFueraDeArea pasa areaId/limit/offset', async () => {

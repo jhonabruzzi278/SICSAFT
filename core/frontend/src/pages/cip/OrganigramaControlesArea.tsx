@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { cisClient, type Area, type SesionInventario } from '@/lib/cis-client';
+import { cisClient, type Area } from '@/lib/cis-client';
+import { dashboardClient, type VeredictoSesion } from '@/lib/dashboard-client';
 import { Alert, Button } from '@/components/ui';
 import { HistorialSesiones } from './HistorialSesiones';
 
@@ -11,6 +12,13 @@ import { HistorialSesiones } from './HistorialSesiones';
 // reportes por área. Clic en un Área/Dirección/Departamento navega a la lista de reportes de ese
 // alcance (ReportesDeAreaPage.tsx). ccp/ y core/frontend/ no comparten código (son SPAs
 // independientes) — esto es una adaptación, no una extracción compartida.
+//
+// 2026-09-16 (notificaciones) — Dirección sigue mostrando el TOTAL de reportes (foto general de
+// volumen), pero Departamento/Área pasan a mostrar solo el conteo de "notificación": sesiones
+// aceptable/defectuoso que todavía no se marcaron revisadas (ver PantallaControlArea.tsx "Marcar
+// como revisado"). Por eso la fuente de datos cambia de cisClient.getInventarios (CORE, sin
+// veredicto) a dashboardClient.getSesiones (CIP, sí trae veredicto/revisado) — paginado hasta
+// agotar porque CIP tope a 100 filas por página.
 
 const SIN_DIRECCION = 'Sin dirección';
 const SIN_DEPARTAMENTO = 'Sin departamento';
@@ -23,31 +31,72 @@ const ACENTO_DIRECCION = [
   { borde: 'border-l-sky-500', punto: 'bg-sky-500' },
 ] as const;
 
+type SeveridadVeredicto = 'critico' | 'atencion';
+
+interface Notificacion {
+  total: number;
+  severidad: SeveridadVeredicto;
+}
+
 interface AreaConConteo {
   area: Area;
-  conteo: number;
+  conteoTotal: number;
+  notificacion: Notificacion | null;
 }
 
 interface DepartamentoGrupo {
   departamento: string;
   areas: AreaConConteo[];
-  conteo: number;
+  notificacion: Notificacion | null;
 }
 
 interface DireccionGrupo {
   direccion: string;
   areas: AreaConConteo[];
   porDepartamento: DepartamentoGrupo[] | null;
-  conteo: number;
+  conteoTotal: number;
 }
 
-function agrupar(
-  areas: Area[],
-  sesiones: SesionInventario[],
-): DireccionGrupo[] {
-  const conteoPorArea = new Map<string, number>();
+function severidadDeVeredicto(veredicto: string): SeveridadVeredicto | null {
+  if (veredicto === 'defectuoso') return 'critico';
+  if (veredicto === 'aceptable') return 'atencion';
+  return null;
+}
+
+// El peor caso gana (rojo tapa amarillo) — mismo criterio que el contador de Hallazgos de
+// Pantalla 8: si un área/departamento tiene aunque sea 1 sesión defectuosa sin revisar, el nodo
+// entero se pinta rojo, no amarillo.
+function combinarNotificaciones(
+  notificaciones: Array<Notificacion | null>,
+): Notificacion | null {
+  const total = notificaciones.reduce((acc, n) => acc + (n?.total ?? 0), 0);
+  if (total === 0) return null;
+  const severidad = notificaciones.some((n) => n?.severidad === 'critico')
+    ? 'critico'
+    : 'atencion';
+  return { total, severidad };
+}
+
+function agrupar(areas: Area[], sesiones: VeredictoSesion[]): DireccionGrupo[] {
+  const conteoTotalPorArea = new Map<string, number>();
+  const notificacionPorArea = new Map<string, Notificacion>();
   for (const s of sesiones) {
-    conteoPorArea.set(s.areaId, (conteoPorArea.get(s.areaId) ?? 0) + 1);
+    conteoTotalPorArea.set(
+      s.areaId,
+      (conteoTotalPorArea.get(s.areaId) ?? 0) + 1,
+    );
+    const severidad = !s.revisado ? severidadDeVeredicto(s.veredicto) : null;
+    if (!severidad) continue;
+    const actual = notificacionPorArea.get(s.areaId);
+    notificacionPorArea.set(s.areaId, {
+      total: (actual?.total ?? 0) + 1,
+      severidad:
+        actual?.severidad === 'critico'
+          ? 'critico'
+          : severidad === 'critico'
+            ? 'critico'
+            : severidad,
+    });
   }
 
   const porDireccion = new Map<string, Area[]>();
@@ -60,21 +109,25 @@ function agrupar(
 
   const grupos = Array.from(porDireccion.entries()).map(
     ([direccion, areasDeDireccion]): DireccionGrupo => {
-      const conAreaConteo = areasDeDireccion.map((area) => ({
+      const conAreaConteo = areasDeDireccion.map((area): AreaConConteo => ({
         area,
-        conteo: conteoPorArea.get(area.id) ?? 0,
+        conteoTotal: conteoTotalPorArea.get(area.id) ?? 0,
+        notificacion: notificacionPorArea.get(area.id) ?? null,
       }));
       const usaDepartamento = areasDeDireccion.some((a) =>
         a.departamento?.trim(),
       );
-      const conteoTotal = conAreaConteo.reduce((acc, a) => acc + a.conteo, 0);
+      const conteoTotal = conAreaConteo.reduce(
+        (acc, a) => acc + a.conteoTotal,
+        0,
+      );
 
       if (!usaDepartamento) {
         return {
           direccion,
           areas: conAreaConteo,
           porDepartamento: null,
-          conteo: conteoTotal,
+          conteoTotal,
         };
       }
 
@@ -89,7 +142,9 @@ function agrupar(
         .map(([departamento, areasDelDepartamento]): DepartamentoGrupo => ({
           departamento,
           areas: areasDelDepartamento,
-          conteo: areasDelDepartamento.reduce((acc, a) => acc + a.conteo, 0),
+          notificacion: combinarNotificaciones(
+            areasDelDepartamento.map((a) => a.notificacion),
+          ),
         }))
         .sort((a, b) =>
           a.departamento === SIN_DEPARTAMENTO
@@ -103,7 +158,7 @@ function agrupar(
         direccion,
         areas: conAreaConteo,
         porDepartamento: gruposDepartamento,
-        conteo: conteoTotal,
+        conteoTotal,
       };
     },
   );
@@ -117,6 +172,23 @@ function agrupar(
   );
 }
 
+function NotificacionBadge({
+  notificacion,
+}: {
+  notificacion: Notificacion | null;
+}) {
+  if (!notificacion) return null;
+  return (
+    <span
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[0.7rem] font-bold text-bg ${
+        notificacion.severidad === 'critico' ? 'bg-destructive' : 'bg-warning'
+      }`}
+    >
+      {notificacion.total}
+    </span>
+  );
+}
+
 export function OrganigramaControlesArea() {
   const [searchParams] = useSearchParams();
   const organizacionId = searchParams.get('organizacionId') ?? '';
@@ -124,7 +196,7 @@ export function OrganigramaControlesArea() {
 
   const [organizacionNombre, setOrganizacionNombre] = useState('');
   const [areas, setAreas] = useState<Area[] | null>(null);
-  const [sesiones, setSesiones] = useState<SesionInventario[] | null>(null);
+  const [sesiones, setSesiones] = useState<VeredictoSesion[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
 
@@ -144,7 +216,7 @@ export function OrganigramaControlesArea() {
       });
     Promise.all([
       cisClient.getAreas(organizacionId),
-      cisClient.getInventarios(organizacionId),
+      dashboardClient.getTodasLasSesiones(organizacionId),
     ])
       .then(([areasRes, sesionesRes]) => {
         if (cancelled) return;
@@ -165,8 +237,20 @@ export function OrganigramaControlesArea() {
     [areas, sesiones],
   );
 
-  function irAReportes(params: Record<string, string>) {
+  function irAReportes(
+    params: Record<string, string>,
+    notificacion?: Notificacion | null,
+  ) {
     const query = new URLSearchParams({ organizacionId, ...params });
+    // "conectado a los reportes con ese estado veredicto" — filtra a la severidad que mostró el
+    // badge (el peor caso, si combina aceptable+defectuoso). Sin notificación (o Dirección, que
+    // no pasa `notificacion`), la lista llega sin filtrar, como siempre.
+    if (notificacion) {
+      query.set(
+        'veredicto',
+        notificacion.severidad === 'critico' ? 'defectuoso' : 'aceptable',
+      );
+    }
     navigate(`/dashboard/controles-area/reportes?${query.toString()}`);
   }
 
@@ -257,7 +341,7 @@ export function OrganigramaControlesArea() {
                       {grupo.direccion}
                     </span>
                     <span className="shrink-0 rounded-full bg-bg-card px-2 py-0.5 text-[0.7rem] font-medium text-accent-strong">
-                      {grupo.conteo}
+                      {grupo.conteoTotal}
                     </span>
                   </button>
 
@@ -272,10 +356,13 @@ export function OrganigramaControlesArea() {
                               type="button"
                               disabled={esSinDepartamento}
                               onClick={() =>
-                                irAReportes({
-                                  direccion: grupo.direccion,
-                                  departamento: dep.departamento,
-                                })
+                                irAReportes(
+                                  {
+                                    direccion: grupo.direccion,
+                                    departamento: dep.departamento,
+                                  },
+                                  dep.notificacion,
+                                )
                               }
                               className={`flex w-full items-center justify-between gap-2 rounded ${
                                 esSinDepartamento
@@ -286,9 +373,9 @@ export function OrganigramaControlesArea() {
                               <span className="text-[0.7rem] font-semibold tracking-wide text-text-faint uppercase">
                                 {dep.departamento}
                               </span>
-                              <span className="text-[0.65rem] font-medium text-text-faint">
-                                {dep.conteo}
-                              </span>
+                              <NotificacionBadge
+                                notificacion={dep.notificacion}
+                              />
                             </button>
                             <ul className="mt-1.5 space-y-1">
                               {dep.areas.map((a) => (
@@ -297,7 +384,10 @@ export function OrganigramaControlesArea() {
                                   areaConConteo={a}
                                   punto={esSinDireccion ? null : acento.punto}
                                   onClick={() =>
-                                    irAReportes({ areaId: a.area.id })
+                                    irAReportes(
+                                      { areaId: a.area.id },
+                                      a.notificacion,
+                                    )
                                   }
                                 />
                               ))}
@@ -313,7 +403,9 @@ export function OrganigramaControlesArea() {
                           key={a.area.id}
                           areaConConteo={a}
                           punto={esSinDireccion ? null : acento.punto}
-                          onClick={() => irAReportes({ areaId: a.area.id })}
+                          onClick={() =>
+                            irAReportes({ areaId: a.area.id }, a.notificacion)
+                          }
                         />
                       ))}
                     </ul>
@@ -350,9 +442,7 @@ function AreaItem({
           )}
           <span className="truncate">{areaConConteo.area.nombre}</span>
         </span>
-        <span className="shrink-0 rounded-full bg-bg-card px-1.5 py-0.5 text-[0.65rem] font-semibold text-text-faint">
-          {areaConConteo.conteo}
-        </span>
+        <NotificacionBadge notificacion={areaConConteo.notificacion} />
       </button>
     </li>
   );

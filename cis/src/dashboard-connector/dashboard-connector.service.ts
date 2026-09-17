@@ -9,6 +9,7 @@ import type {
   HistoricoResult,
   IncidenciasResult,
   NoLocalizadosResult,
+  RevisarSesionResult,
   SesionesResult,
   VeredictosResult,
 } from '../cip-client/cip-client.types';
@@ -44,6 +45,18 @@ export class DashboardConnectorService {
       organizacionId,
       areaId,
       { limit, offset },
+      correlationId,
+    );
+  }
+
+  revisarSesion(
+    sesionId: string,
+    revisadoPor: string,
+    correlationId: string,
+  ): Promise<RevisarSesionResult> {
+    return this.cipClientService.revisarSesion(
+      sesionId,
+      revisadoPor,
       correlationId,
     );
   }

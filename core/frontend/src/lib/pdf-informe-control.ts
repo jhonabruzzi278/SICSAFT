@@ -15,6 +15,7 @@ export interface InformeControlPdfKpi {
 export interface InformeControlPdfHallazgo {
   severidad: 'critico' | 'atencion';
   texto: string;
+  etiqueta?: string;
 }
 
 export interface InformeControlPdfCategoria {
@@ -178,7 +179,7 @@ function dibujarHallazgos(
   doc.setFontSize(9);
   for (const h of hallazgos) {
     cursor.saltoDePaginaSiNecesario(6);
-    const etiqueta = h.severidad === 'critico' ? '[CRÍTICO]' : '[ATENCIÓN]';
+    const etiqueta = `[${h.etiqueta ?? (h.severidad === 'critico' ? 'CRÍTICO' : 'ATENCIÓN')}]`;
     doc.text(`${etiqueta} ${h.texto}`, MARGEN_X, cursor.y);
     cursor.avanzar(5.5);
   }

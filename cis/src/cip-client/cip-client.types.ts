@@ -36,12 +36,20 @@ const veredictoSesionSchema = z.object({
   areaId: z.string(),
   veredicto: z.string(),
   fechaCierre: z.string(),
+  revisado: z.boolean(),
+  revisadoPor: z.string().nullable(),
+  revisadoEn: z.string().nullable(),
 });
 export const sesionesResponseSchema = syncInfoSchema.extend({
   items: z.array(veredictoSesionSchema),
   total: z.number(),
 });
 export type SesionesResult = z.infer<typeof sesionesResponseSchema>;
+
+// Notificaciones del organigrama (2026-09-16) — respuesta del PATCH de CIP, sin envoltorio
+// SyncInfo (no es una lectura de agregado, es la fila que acaba de mutar).
+export const revisarSesionResponseSchema = veredictoSesionSchema;
+export type RevisarSesionResult = z.infer<typeof revisarSesionResponseSchema>;
 
 const fueraDeAreaSchema = z.object({
   codigoQr: z.string(),

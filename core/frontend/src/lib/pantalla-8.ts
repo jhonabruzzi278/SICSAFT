@@ -54,3 +54,16 @@ export function etiquetaTipo(
   if (tipo === 'extraordinario') return 'EXTRAORDINARIO';
   return '—';
 }
+
+// Hallazgo real 2026-09-16: las cuentas creadas por crearUsuarioHuman (CIS/keycloak-admin.service.ts)
+// fuerzan firstName = lastName = email — workaround necesario de un bug distinto de Keycloak 26
+// ("Account is not fully set up" si cualquiera queda vacío). Keycloak arma el claim `name`
+// concatenando ambos, así que app-qr-sicsaft mandaba literalmente "email email" como operadorId.
+// Ya se corrigió en el origen (app-qr-sicsaft/src/lib/oidc/oidc-client.ts prioriza
+// preferred_username), pero las sesiones ya grabadas en la BPI mantienen el valor duplicado — este
+// helper lo limpia solo en pantalla, sin tocar el dato guardado.
+export function nombreOperador(operadorId: string): string {
+  const partes = operadorId.trim().split(/\s+/);
+  if (partes.length === 2 && partes[0] === partes[1]) return partes[0];
+  return operadorId;
+}

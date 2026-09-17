@@ -27,6 +27,18 @@ function valoresUnicos(valores: (string | null | undefined)[]): string[] {
   ).sort((a, b) => a.localeCompare(b, 'es'));
 }
 
+// Único punto de mapeo estado → color de Badge en este archivo (antes lo repetían 3 bloques con
+// lógica ligeramente distinta entre sí — ver hallazgo 2026-09-16). 'dado_de_baja' y 'extraviado'
+// siempre rojo (mismo criterio "defectuoso" que Pantalla 8); 'mantenimiento'/'inactivo'/
+// 'en_transito' siempre amarillo, nunca rojo — antes la ficha de detalle los mostraba en rojo por
+// comparar solo contra 'activo' (bug real: además comparaba contra el string 'baja', que
+// activo.estado nunca trae — el valor real es 'dado_de_baja', ver activo.types.ts).
+function varianteEstado(estado: string): 'success' | 'warning' | 'error' {
+  if (estado === 'activo') return 'success';
+  if (estado === 'dado_de_baja' || estado === 'extraviado') return 'error';
+  return 'warning';
+}
+
 function DetalleActivo({
   activo,
   organizacionId,
@@ -103,7 +115,7 @@ function DetalleActivo({
               {activo.codigoQr}
             </span>
             <h2 className="text-xl font-bold text-text">{activo.nombre}</h2>
-            <Badge variant={activo.estado === 'activo' ? 'success' : 'error'}>
+            <Badge variant={varianteEstado(activo.estado)}>
               {activo.estado === 'activo' ? 'En Servicio' : activo.estado}
             </Badge>
           </div>
@@ -487,15 +499,7 @@ export function ActivosTab() {
                       {activo.familia}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge
-                        variant={
-                          activo.estado === 'activo'
-                            ? 'success'
-                            : activo.estado === 'baja'
-                              ? 'error'
-                              : 'warning'
-                        }
-                      >
+                      <Badge variant={varianteEstado(activo.estado)}>
                         {activo.estado === 'activo'
                           ? 'En Servicio'
                           : activo.estado}
@@ -537,15 +541,7 @@ export function ActivosTab() {
                       {activo.nombre}
                     </p>
                   </div>
-                  <Badge
-                    variant={
-                      activo.estado === 'activo'
-                        ? 'success'
-                        : activo.estado === 'baja'
-                          ? 'error'
-                          : 'warning'
-                    }
-                  >
+                  <Badge variant={varianteEstado(activo.estado)}>
                     {activo.estado === 'activo' ? 'En Servicio' : activo.estado}
                   </Badge>
                 </div>
