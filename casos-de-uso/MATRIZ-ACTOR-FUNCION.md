@@ -1,4 +1,12 @@
-# Matriz Actor–Función (§12.31)
+# Matriz Actor–Función (§12.31) — Roles y Permisos
+
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué es?**: Mapeo entre los actores formales del negocio y los roles de autenticación reales en Keycloak.
+> - **Roles en Producción**:
+>   1. `administrador-patrimonial` (Profesional de AFT): Opera el portal web `ccp/` con gestión completa de activos (alta, edición, baja), estructura, etiquetas QR, auditoría e importación Excel.
+>   2. `profesional-aft` (Operador de Inventario): Opera la APP Móvil QR (`app-qr-sicsaft/`) para escaneo y control físico.
+>   3. `directivo` (Director): Accede a `core/frontend/` para ver organigrama de área, dashboards y descargar reportes PDF.
+> - **Roles no vigentes**: `administrador-sistema` y `web_admin/` fueron retirados (soporte directo del proveedor vía script/BD).
 
 `✓` permitido · `Según permiso` depende del RBAC fino · `—` no permitido · `⚠` el rol no existe
 como tal en el repo todavía (lo cubre otro).
@@ -38,9 +46,8 @@ La matriz oficial del tomo, seguida de la lectura real contra los guards de CIS/
 
 ## Impacto en la QA del cliente Nivel 1
 
-- El cliente Nivel 1 usa **dos roles**: `administrador-patrimonial` (portal CCP, en el `.exe`) y
-  `profesional-aft` (APP QR en el teléfono). El Director (`directivo`) se crea en el wizard.
+- El cliente Nivel 1 usa **dos roles operativos principales**: `administrador-patrimonial` (portal CCP, en el `.exe`) y
+  `profesional-aft` (APP QR en el teléfono). El Director (`directivo`) se crea durante el wizard inicial.
 - Las funciones de Supervisor/Auditor **no tienen rol separado** — si el cliente los necesita
   distintos, es un cambio de RBAC previo a la entrega. Anotado en `PLAN-QA.md` como riesgo.
-- "Crear / Modificar / Trasladar / Dar de baja" activo desde la UI **no aplican al Nivel 1** (RF-A
-  las oculta). El objetivo de negocio de "incorporar activos" se cubre por **CU-INT-001 / RF-B**.
+- En **Nivel 1**, el portal CCP está disponible con todas sus operaciones patrimoniales (alta manual, edición, baja, importación contable y etiquetas QR). Únicamente se oculta el módulo de Dashboard avanzado analítico (CIP), que corresponde a Nivel 2.

@@ -1,4 +1,10 @@
-# CU-SEG — Seguridad
+# Seguridad y Autenticación (CU-SEG) — Inicio de Sesión OIDC y PKCE
+
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué es?**: Autenticación segura de usuarios mediante OpenID Connect (OIDC) y flujo Authorization Code con PKCE contra Keycloak 26.
+> - **Alcance**: Protege todos los puntos de acceso: el portal web `ccp/`, el portal `core/frontend/`, la APP Móvil QR (`app-qr-sicsaft/`) y el inicio de sesión embebido de `sicsaft-core.exe`.
+> - **Seguridad y Tokens**: Tokens JWT criptográficamente firmados por Keycloak que incluyen la organización y roles. Ningún portal almacena tokens en `localStorage` (se usa `sessionStorage`).
+> - **Estado Real**: 🟢 **Implementado**: Integración completa y verificada con pruebas automatizadas en `lib/oidc/` y spec E2E `cu-seg-001-autenticar.spec.ts`.
 
 Dominio §12.27. Componentes: todos los portales (`ccp/`, `core/frontend/`,
 `app-qr-sicsaft/`), Keycloak. Base: [ADR-004](../../adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)

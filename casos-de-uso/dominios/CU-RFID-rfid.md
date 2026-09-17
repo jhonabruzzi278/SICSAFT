@@ -1,4 +1,9 @@
-# CU-RFID — RFID
+# Identificación por Radiofrecuencia (CU-RFID) — Lectura y Portales RFID
+
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué es?**: Identificación desatendida y automática de activos mediante arcos, antenas y lectores fijos RFID, detectando traslados no autorizados o salidas de perímetro.
+> - **Nivel de Producto**: Corresponde exclusivamente al **Nivel 3** de SICSAFT. No forma parte del entregable para clientes Nivel 1 (QR) ni Nivel 2 (Analítica).
+> - **Estado Real**: 🔲 **No Iniciado (Nivel 3)**: Documentado como especificación conceptual para desarrollo futuro; sin código ni servicios en el repositorio actual.
 
 Dominio §12.18–§12.20. Reglas RFID-001…RFID-006 (tomo). Componentes previstos: etiquetas → antenas
 → lectores → middleware RFID → conector SICSAFT → `cis/` → `core/` (MOP + Motor de Reglas + Motor

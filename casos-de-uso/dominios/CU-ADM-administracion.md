@@ -1,4 +1,12 @@
-# CU-ADM — Administración
+# Administración del Sistema (CU-ADM) — Usuarios, Roles y Bootstrap
+
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué es?**: Gestión de cuentas de usuario, organización y asignación de permisos de acceso en Keycloak.
+> - **Modelo Operativo**:
+>   1. **Asistente de Instalación (Wizard)**: Crea automáticamente la Organización, el Director y el Profesional de AFT en el primer arranque del `.exe`.
+>   2. **Portal Directivo**: Permite al Director "Designar Profesional de AFT" dentro de su organización.
+>   3. **Soporte Directo**: El portal `web_admin/` y el rol `administrador-sistema` fueron eliminados; el soporte avanzado de usuarios y configuración lo realiza el proveedor directamente.
+> - **Estado Real**: 🟡 **Parcial**: Cubierto para clientes reales vía Wizard + Designación de AFT en `core/frontend/`.
 
 Dominio §12.25–§12.26. Componentes: intervención directa del proveedor de SICSAFT (acceso a BD /
 script con service-token) + el bootstrap del wizard de `sicsaft-core` + `core/frontend/` (el

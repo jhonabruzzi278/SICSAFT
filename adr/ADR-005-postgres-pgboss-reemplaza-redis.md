@@ -2,10 +2,12 @@
 
 ## Status
 
-Aceptada — enmienda [ADR-001](ADR-001-stack-backend-nestjs.md) (reemplaza únicamente la cláusula
-"Cache y colas: Redis"; el resto de ADR-001 — NestJS, Vite/React, PostgreSQL — sigue vigente sin
-cambios). Implementación en progreso: `core/` → `cip/` → `cis/` → `devops/` (los 3 perfiles:
-`local/`, `prod/`, `onprem/`).
+Aceptada e **implementada por completo** — enmienda [ADR-001](ADR-001-stack-backend-nestjs.md)
+(reemplaza únicamente la cláusula "Cache y colas: Redis"; el resto de ADR-001 — NestJS, Vite/React,
+PostgreSQL — sigue vigente sin cambios). `pg-boss` real y en uso en `core/src/eventos-outbox/` y
+`cip/src/agregacion/`; cero `redis`/`ioredis`/`bullmq` en los `package.json` reales del repo. Los
+perfiles `devops/local/` y `devops/prod/` mencionados abajo como parte del alcance **se retiraron
+por completo en 2026-09** — `devops/onprem/` es hoy el único perfil real.
 
 ## Context
 

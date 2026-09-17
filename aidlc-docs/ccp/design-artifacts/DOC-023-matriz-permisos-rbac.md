@@ -52,6 +52,7 @@ en 2026-09 — su función pasó a intervención directa del proveedor.
 | **Profesional de AFT** (Keycloak, org propia) | Consultar / Designar | ➖ | ✅ | `DirectivoGuard` — organización **derivada siempre del JWT**, nunca de la ruta/body |
 | **Auditoría** | Consultar | ⚠️ | ➖ | Sin chequeo de rol |
 | **Dashboard** (CIP, vía CIS) | Consultar | ⚠️ | ⚠️ | Sin chequeo de rol — accesible a cualquier operador autenticado |
+| | Marcar sesión revisada (`PATCH /dashboard/sesiones/:sesionId/revisar`) | ➖ | ✅ | `DirectivoGuard` — primera escritura del módulo, ver [DOC-036](../../cip/design-artifacts/DOC-036-marcar-sesion-revisada-cip.md) |
 | **Inventarios** (sesiones QR/RFID) | Crear / Consultar | ⚠️ | ⚠️ | Sin chequeo de rol — módulo de fuente de captura, no exclusivo de este portal. Consultar (lista/detalle/Pantalla 8) ahora también se muestra en el CIP como "Controles de área" (Fase 4, `ControlesAreaTab.tsx`) — solo lectura, sin cambio de guard |
 
 **Organización / Sede / Contrato (escritura) e Indicadores de plataforma** ya no aparecen en la

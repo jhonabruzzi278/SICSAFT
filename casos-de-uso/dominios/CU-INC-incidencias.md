@@ -1,4 +1,9 @@
-# CU-INC — Incidencias
+# Gestión de Incidencias (CU-INC) — Registro y Seguimiento de Novedades
+
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué es?**: Registro de anomalías físicas o administrativas detectadas sobre un bien (ej. daño físico, número de serie ilegible, activo desarmado o extraviado).
+> - **Flujo Operativo**: Durante el relevamiento QR con la APP móvil, el operador marca una incidencia adjuntando el código y una descripción. Esta novedad se consolida al cerrar la sesión y se lista en el portal CCP para su supervisión.
+> - **Estado Real**: 🟡 **`CU-INC-001` Parcial**: Operativo en relevamientos (`{codigoQr, descripcion}` vía `POST /inventarios`). `CU-INC-002` (cierre/resolución formal de expedientes) queda para fases futuras.
 
 Dominio §12.21–§12.22. Componentes: APP QR, `cis/`, `core/`, `cip/` (dashboard), `ccp/` (Resumen).
 

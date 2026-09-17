@@ -5,7 +5,9 @@ Stack de contenedores Podman / Docker para desplegar una instancia **aislada** d
 ## Objetivo
 
 Proveer el entorno local completo por cliente para ejecutar SICSAFT en sus modalidades:
-- **Nivel 1**: APP QR + CCP completo + Directivo + Admin + CIP (sin dashboard analítico).
+- **Nivel 1**: APP QR + CCP completo + Directivo (sin dashboard analítico de CIP). El portal del
+  Administrador del Sistema (`web_admin/`) se eliminó en 2026-09 — el CRUD de
+  Organización/Contrato/Sede pasó a intervención directa del proveedor + el wizard.
 - **Nivel 2**: Nivel 1 + Dashboard analítico e indicadores de CIP activados (`VITE_SICSAFT_NIVEL=2`).
 
 ## Requisitos Previos

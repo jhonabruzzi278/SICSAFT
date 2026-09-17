@@ -1,4 +1,10 @@
-# CU-QR — Código QR
+# Identificación por Código QR (CU-QR) — Asignación y Consulta
+
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué es?**: Generación, asignación e impresión de rótulos con código QR único para cada activo tangible, y su posterior lectura instantánea con la cámara del teléfono móvil.
+> - **Formato de Código**: Alfanumérico estructurado (ej. `SUCHEL-00123`). Es estrictamente único (`UNIQUE`) en la base de datos.
+> - **Impresión de Etiquetas**: `herramientas/generador-qr/`, una app de escritorio Electron separada (no un módulo del portal CCP — se extrajo de `ccp/` el 2026-09-13), genera e imprime etiquetas en hojas estándar (Avery) con código QR y código de barras Code128 agrupados por Dirección/Área.
+> - **Estado Real (corregido 2026-09-17)**: 🟢 **Implementado**: Asignación en alta manual y ETL (`CU-QR-001`), consulta en pantalla por escaneo (`CU-QR-002`) e impresión masiva de etiquetas (RF-F, hoy en `herramientas/generador-qr/`, no en CCP).
 
 Dominio §12.12–§12.13. Reglas QR-001…QR-005 (tomo). Componentes: APP QR (`app-qr-sicsaft/`),
 `cis/`, `core/` (Motor Patrimonial), BPI.
@@ -27,7 +33,7 @@ Dominio §12.12–§12.13. Reglas QR-001…QR-005 (tomo). Componentes: APP QR (`
 | **Resultado esperado** | Identidad QR asociada, escaneable desde la APP. |
 | **Componentes** | CCP / ETL RF-B · CIS · CORE · BPI. |
 | **Prioridad** | Crítica. |
-| **Estado en el repo** | 🟢 **Implementado como parte del alta**: `codigoQr` es campo obligatorio de `CU-PAT-001` con `UNIQUE` en la BPI y validación de formato (`core/src/reglas/clasificar-escaneo.ts` usa el mismo patrón). **RF-F (DOC-029)** agrega el acuñado masivo por dirección + la impresión de etiquetas (QR + Code128). No hay un flujo "re-asignar QR" dedicado todavía. |
+| **Estado en el repo** | 🟢 **Implementado como parte del alta**: `codigoQr` es campo obligatorio de `CU-PAT-001` con `UNIQUE` en la BPI y validación de formato (`core/src/reglas/clasificar-escaneo.ts` usa el mismo patrón). **RF-F (DOC-029)** agrega el acuñado masivo por dirección + la impresión de etiquetas (QR + Code128), hoy en `herramientas/generador-qr/` (extraído de `ccp/` el 2026-09-13, no vive en el portal). No hay un flujo "re-asignar QR" dedicado todavía. |
 
 ---
 

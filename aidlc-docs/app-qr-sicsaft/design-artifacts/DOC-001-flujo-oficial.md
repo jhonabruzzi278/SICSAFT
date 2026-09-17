@@ -28,20 +28,26 @@ Cada inventario es una **sesión** (operador + organización + área + ubicació
 
 ## 2. Pantallas mínimas
 
+> **Actualizado**: la tabla de abajo era el baseline de Inception (pre TASK-004 a TASK-010), donde
+> casi nada existía todavía. Las 12 pantallas están **✅ Activo** hoy — TASK-004 a TASK-010 se
+> completaron (ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` y `README.md`, que ya listan las 10
+> etapas del flujo como implementadas). El detalle fila por fila queda como registro histórico de
+> qué se construyó en cada tarea, no como estado pendiente.
+
 | # | Pantalla | Estado en el código actual |
 |---|---|---|
-| 1 | Inicio de sesión | ❌ No existe — a crear |
-| 2 | Selección de organización | ❌ No existe — a crear |
-| 3 | Selección de área y ubicación | ❌ No existe — a crear |
-| 4 | Lista de inventarios | ⚠️ Existe una lista de sesiones pasadas (`src/pages/HistoryPage.tsx`) pero sin organización/área/ubicación ni estado de sincronización — a adaptar |
-| 5 | Creación o inicio de inventario | ⚠️ Existe `startScanning()` en `src/pages/ScanPage.tsx` pero sin los metadatos de sesión (operador/organización/área/ubicación) — a adaptar |
-| 6 | Escáner QR | ✅ Existe — `src/components/QrScanner.tsx` |
-| 7 | Resultado del escaneo | ⚠️ Existe una clasificación binaria found/not-found — a normalizar a las 8 categorías (sección 3) |
-| 8 | Ficha resumida del activo | ⚠️ Existe implícita en `resolveScannedProduct` (nombre del producto) pero no como pantalla propia — a crear |
-| 9 | Registro de incidencia | ❌ No existe — a crear |
-| 10 | Resumen del inventario | ⚠️ Existe una vista de reporte (`view === 'report'` en `ScanPage.tsx`: total/found/missing + export CSV) — a adaptar para incluir incidencias y activos externos |
-| 11 | Confirmación y envío | ❌ No existe (hoy termina en export CSV local, no hay envío a un backend) — a crear junto con el Conector QR (DOC-002) |
-| 12 | Estado de sincronización | ❌ No existe — a crear (depende de TASK-008, cola sin conexión) |
+| 1 | Inicio de sesión | ✅ Activo — `src/components/OperatorGate.tsx` + login OIDC/PKCE real (`src/lib/oidc/`) |
+| 2 | Selección de organización | ✅ Activo — `src/components/OrganizationPicker.tsx` |
+| 3 | Selección de área y ubicación | ✅ Activo — `src/components/AreaLocationPicker.tsx` |
+| 4 | Lista de inventarios | ✅ Activo — `src/pages/HistoryPage.tsx` |
+| 5 | Creación o inicio de inventario | ✅ Activo — `src/pages/ScanPage.tsx` con metadatos de sesión completos (operador/organización/área/ubicación) |
+| 6 | Escáner QR | ✅ Activo — `src/components/QrScanner.tsx` |
+| 7 | Resultado del escaneo | ✅ Activo — clasificación de 8 categorías (sección 3) vía `src/lib/scan-resolve.ts` |
+| 8 | Ficha resumida del activo | ✅ Activo — resuelta en el flujo de escaneo |
+| 9 | Registro de incidencia | ✅ Activo — `src/components/IncidentDialog.tsx` |
+| 10 | Resumen del inventario | ✅ Activo — vista de reporte con incidencias y activos externos incluidos |
+| 11 | Confirmación y envío | ✅ Activo — Conector QR real (`src/lib/qr-connector.ts`, DOC-002/DOC-006) contra CIS→CORE, no solo export CSV local |
+| 12 | Estado de sincronización | ✅ Activo — cola offline con reintento (`src/lib/sync-queue.ts`, TASK-008) |
 
 ## 3. Clasificación de resultados del escaneo
 
@@ -52,7 +58,7 @@ Cada lectura de QR debe resolverse en una de estas categorías. La app debe most
 | Activo correcto | El código pertenece a un activo esperado en esta organización/área/ubicación | Queda marcado como encontrado; continuar escaneando |
 | Activo de otra área | El activo existe pero está registrado en otra área de la misma organización | Ver a qué área pertenece; opción de reportarlo como "fuera de lugar" o continuar |
 | Activo de otra ubicación | El activo existe pero está registrado en otra ubicación | Igual que arriba, a nivel ubicación |
-| Activo no registrado | El código no corresponde a ningún activo conocido en la Base Patrimonial Central | Opción de registrar como hallazgo / activo externo, o descartar |
+| Activo no registrado | El código no corresponde a ningún activo conocido en la BPI — Base Patrimonial Inteligente | Opción de registrar como hallazgo / activo externo, o descartar |
 | Código QR inválido | El código leído no tiene el formato esperado (no es un QR de activo) | Mensaje de error claro; reintentar escaneo |
 | Activo duplicado | El mismo código físico aparece registrado más de una vez en la base | Alertar; requiere resolución manual fuera del flujo de escaneo (no la resuelve el operador en campo) |
 | Activo ya escaneado | El código ya fue leído en esta misma sesión de inventario | Aviso de "ya contado"; no se duplica en el conteo |

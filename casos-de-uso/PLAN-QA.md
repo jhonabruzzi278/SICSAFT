@@ -1,5 +1,16 @@
 # Plan de QA — Cliente SICSAFT Nivel 1 QR
 
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué valida este plan?**: El funcionamiento integral del sistema antes de entregarlo al cliente (`sicsaft-core.exe` en Windows + APP Móvil QR).
+> - **Entorno de Prueba**: Una PC con el instalador `.exe` + un teléfono móvil en la misma red Wi-Fi.
+> - **Flujo Principal en 5 Pasos**:
+>   1. Instalar y arrancar el `.exe` con el asistente inicial (QA-0).
+>   2. Cargar activos desde el Excel contable (QA-1) o alta manual en CCP.
+>   3. Imprimir etiquetas con código QR y de barras por dirección (QA-2).
+>   4. Realizar el relevamiento físico escaneando con el celular (QA-3).
+>   5. Ver el informe de control de área (Pantalla 8) y el resumen en el portal web (QA-4 y QA-5).
+> - **Criterio de Aprobación**: Cero errores de seguridad (QA-6) y 100% de integridad en la Base Patrimonial.
+
 Objetivo: **validar la aplicación antes de entregarla a un cliente real** (`sicsaft-core.exe`,
 Nivel 1: APP QR + **CCP completo** + Base Patrimonial + CIS + CORE; el Dashboard/CIP es Nivel 2).
 Deriva de los Casos de Uso
@@ -33,19 +44,15 @@ respetadas · BPI íntegra · eventos generados · auditoría presente · result
 > `CIS → CORE → BPI`, gate RBAC real). Se corre a mano o de noche en CI; no reemplaza la corrida
 > manual con el `.exe` y un teléfono (APP QR / inventario siguen siendo manuales).
 
-### NO entra / bloqueado (y por qué)
+### NO entra / pendiente de validación final
 
-| CU / tema | Motivo | Desbloquea |
+| CU / tema | Motivo | Estado / Desbloquea |
 |---|---|---|
-| **CU-INT-001** (carga de Excel supervisada) | **RF-B sin construir.** Hoy solo carga manual de CSV con IDs a mano. | Construir RF-B (ETL Python + staging + revisión) |
-| **CU-QR-001 masivo / etiquetas** | **RF-F sin construir** (módulo QR/Etiquetas, QR + Code128 por dirección). | Construir RF-F |
-| CU-PAT-001..004 desde la UI | RF-A los oculta en Nivel 1 (por diseño). El alta se cubre por RF-B. | — (intencional) |
-| CU-INV-001 "programar inventario" | Hoy la sesión la abre el operador en la APP, sin paso previo del Adm/Supervisor. | Decisión de diseño nueva |
-| CU-INC-002 (resolver incidencia) | Sin endpoint de cierre; el Resumen solo muestra. | Trabajo nuevo |
-| CU-CIP-002 (reporte parametrizado PDF/Excel) | Sin generador. | Trabajo nuevo |
-| CU-ADM-001/002 CRUD completo | `web_admin/` eliminado (2026-09) → el CRUD amplio es intervención directa del proveedor (BD / script). Para Nivel 1 alcanza el wizard + "designar AFT". | DOC-022 |
-| CU-RFID-* | Nivel 3, sin código. | — |
-| CU-DOC-* | Nivel 2 (cuelgan de la edición de activo, oculta en Nivel 1). | — |
+| **CU-INT-001** (carga de Excel supervisada) | Código completo (RF-B); falta verificación de round-trip con Excel del cliente. | Probar con archivo real en QA-1 |
+| **CU-INV-001** "programar inventario" | Hoy la sesión la abre el operador en la APP, sin paso previo del Adm/Supervisor. | Decisión de diseño nueva |
+| **CU-INC-002** (resolver incidencia) | Sin endpoint de cierre; el Resumen solo muestra. | Trabajo nuevo |
+| **CU-ADM-001/002** CRUD completo | `web_admin/` eliminado (2026-09) → el CRUD amplio es intervención directa del proveedor (BD / script). Para Nivel 1 alcanza el wizard + "designar AFT". | DOC-022 |
+| **CU-RFID-\*** | Nivel 3, sin código. | Fases futuras |
 
 ### Riesgo de RBAC (ver `MATRIZ-ACTOR-FUNCION.md`)
 
@@ -184,24 +191,17 @@ export de la tabla `auditoria` del período de QA, y este documento completado.
 
 ---
 
-## 5. Qué construir para desbloquear la QA completa (orden)
+## 5. Estado de construcción de frentes (DOC-029)
 
-Del `§Plan de fases` de [DOC-029](../aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md):
-
-1. **RF-G** ✅ hecho (crash + layout).
-2. **RF-A** ✅ hecho (Nivel 1, sin Contratos/Inventarios).
-3. **RF-B** — ETL Python + staging en CORE (✅ capa CORE) + revisión en el CCP → **desbloquea QA-1**
-   y da datos reales para QA-3..QA-5.
-4. **RF-F** — módulo QR/Etiquetas → **desbloquea QA-2**.
-5. **RF-I** — Pantalla 8 completa (agregación + presentación, ver [`CONTRATO-PANTALLA-8.md`](CONTRATO-PANTALLA-8.md))
-   → completa QA-3.10 y QA-4.2.
-6. **RF-D** — veredicto accionable + automatización D.3 → completa QA-5.5.
-7. **RF-E** — auditoría por área + "Revisar" → refuerza QA-4.6.
-8. **RF-H** — APK Android → reemplaza la PWA en QA-0.9 / QA-3.
-9. **RF-C** — 3 pestañas del Resumen (cuando llegue el spec de Guido).
-
-Mientras RF-B/RF-F no estén, **QA-3 a QA-6 se pueden correr hoy** con una carga manual acotada
-(fallback de QA-1) — sirve para validar la V1.0 del flujo de auditoría antes de invertir en RF-B.
+1. **RF-G** ✅ hecho (crash de login solucionado + layout a pantalla completa).
+2. **RF-A** ✅ hecho (Nivel 1 con CCP completo; retiro de Contratos e Inventarios).
+3. **RF-B** ✅ código completo (ETL Python + staging CORE + endpoints CIS + UI revisión CCP + watcher). Desbloquea QA-1.
+4. **RF-F** ✅ hecho (módulo QR/Etiquetas en CCP con QR + Code128). Desbloquea QA-2.
+5. **RF-I** ✅ hecho (Pantalla 8 en APP QR y CCP con fondos verde/amarillo/rojo). Completa QA-3.10 y QA-4.2.
+6. **RF-E** ✅ hecho (auditoría por área operativa real). Refuerza QA-4.6.
+7. **RF-H** 🟡 en progreso (proyecto `apk-aft` Kotlin creado, pendiente firma y serving directo en `:8765`).
+8. **RF-D** 🔲 pendiente (veredicto accionable automático).
+9. **RF-C** 🔒 bloqueado (3 pestañas del Resumen según spec de Guido).
 
 ---
 

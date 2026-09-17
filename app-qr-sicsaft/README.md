@@ -103,8 +103,11 @@ src/
                              DOC-002/DOC-006 contra CIS), oidc/ (login real Keycloak OIDC+PKCE),
                              sync-queue.ts (cola offline con backoff),
                              audit-log.ts + device-id.ts (auditoría/trazabilidad),
-                             scan-resolve.ts (clasificación, función pura), operator.ts,
+                             scan-resolve.ts (clasificación, función pura), verdict.ts,
                              organizations-data.ts, catalog-data.ts, labels.ts
+  mocks/                     Setup MSW (browser.ts, handlers.ts, fixtures.ts) — el e2e de este
+                             sistema corre contra estos mocks, no contra CIS real (ver
+                             `test:e2e` abajo); no valida integración real de punta a punta
   hooks/                     useInstallPrompt, useSyncQueue
 public/                     Íconos, fuentes, .well-known/assetlinks.json
 tests/                      Specs Playwright (data-testid) — helpers.js centraliza el setup

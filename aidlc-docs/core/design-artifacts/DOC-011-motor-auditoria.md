@@ -28,9 +28,12 @@ no se bloquea esta fase por un dato que ningún nivel superior está enviando to
 
 ## Qué NO resuelve este documento
 
-- Consulta/reporte de auditoría (`GET /auditoria`) — sin consumidor (CIP, Fase 6).
 - Retención/purga — Tomo III 4.10 dice que el historial nunca se borra; sin política de archivado
   todavía porque no hay volumen real que la justifique.
+
+> **Actualización**: `GET /auditoria` (consulta/reporte) ya está implementado
+> (`core/src/auditoria/auditoria.controller.ts`) y expuesto vía CIS con filtro `?area=` — dejó de
+> ser un pendiente de este documento.
 
 ## Documentos relacionados
 

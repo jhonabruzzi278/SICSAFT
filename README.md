@@ -26,35 +26,39 @@ Diagrama completo con los módulos internos de cada nivel:
 
 ## Sistemas
 
+Orden de prioridad de negocio (por qué mirar cada uno primero) y verificación contra código real:
+[`aidlc-docs/README.md` §1.1](aidlc-docs/README.md#11-orden-de-prioridad-qué-mirar-primero).
+Detalle completo por sistema, estado real y próximo paso: el `README.md` propio de cada carpeta.
+
 | Código | Carpeta | Sistema | Estado |
 |---|---|---|---|
-| SYS-01 | [`app-qr-sicsaft/`](app-qr-sicsaft) | APP QR SICSAFT (captura vía QR) | 🟢 En desarrollo activo — ver `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md` |
-| SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad | 🟢 Conector QR real, proxy delgado hacia CORE (DOC-002/DOC-006), auth real via Keycloak (ADR-004, reemplaza a ADR-002), circuit breaker + reintentos + rate limiting (WAF 4), `deviceId` enforced, CORS para APP QR/WEB, puente de escritura oficial para Administrador Patrimonial (DOC-012 5), CRUD completo contra Keycloak sin Console (editar organización, quitar rol, dar de baja usuario) + auditoría de identidad hacia CORE (DOC-024). **DOC-029 (mergeado):** puente de lote de ingesta contable, passthrough de `GET /inventarios/:id/control` (Pantalla 8) y de `?area=` en `GET /auditoria` |
-| SYS-03 | [`core/`](core) | SICSAFT CORE | 🟡 Orquestador + 4 motores (Patrimonial, Reglas, Eventos, Auditoría — Fase 2) + escritura oficial de Activo/Contrato/importación masiva (Fase 4, DOC-012) sobre Postgres real, CRUD completo de Organización/Sede/Contrato con `estado` bidireccional (nunca DELETE real, Tomo III 4.10) y auditoría de identidad (DOC-024) — resto de los 9 motores de `core/README.md` sin implementar. **DOC-029 (mergeado):** bandeja de staging de ingesta contable (resuelve-o-crea) + `GET /inventarios/:id/control` + `auditoria.area_operativa` + `inventarios.estado_declarado`/`baja_sugerida_motivo` |
-| SYS-04 | [`base-patrimonial/`](base-patrimonial) | BPI — Base Patrimonial Inteligente (ex "Base Patrimonial Central") | 🟡 Modelo de Organización/Contrato/Sede documentado e implementado en Postgres (DOC-004), con CRUD completo y `estado` bidireccional (DOC-024) — resto de los 11 dominios sin definir |
-| SYS-05 | [`ccp/`](ccp) | CCP — Centro de Control Patrimonial (Portal WEB del Profesional de AFT) | 🟢 Los 6 módulos del MVP implementados — login OIDC/PKCE real + Activos verificado de punta a punta contra Postgres real, Auditoría y Áreas/Ubicaciones/Responsables verificados con e2e de CORE/CIS. Contratos e Inventarios retirados del portal del AFT en cualquier nivel (DOC-029 RF-A — la vigencia del contrato no se gestiona desde el portal; el escaneo se hace en la APP QR y los resultados se ven en el Resumen). Exclusivo del rol `administrador-patrimonial` (DOC-022) — el Directivo tiene su propio portal, ver SYS-10. **DOC-029 (mergeado):** flag de nivel 1/2 — **el CCP va completo en todos los niveles**, Nivel 2 solo agrega el Dashboard/indicadores (CIP) (RF-A, corrección 2026-09-02); módulo QR/Etiquetas (RF-F), revisión de lotes de ingesta de Excel (RF-B), Pantalla 8 en el Resumen (RF-I), Auditoría por área operativa con columna "Revisar" (RF-E) |
-| SYS-06 | [`cip/`](cip) | Centro de Inteligencia Patrimonial | 🟢 Primer dashboard (Fase 6): worker de agregación (`pg-boss`, ADR-005) + 8 endpoints de lectura sobre base propia, verificado real de punta a punta — sin frontend todavía |
-| SYS-07 | [`rfid/`](rfid) | RFID SICSAFT | 🔲 No iniciado (fase tardía) |
-| SYS-08 | [`integraciones/`](integraciones) | Integraciones externas (ERP, RRHH, BI...) | 🔲 No iniciado (fase tardía) |
-| SYS-09 | — | web_admin — Portal WEB del Administrador del Sistema | ⚫ **Eliminado (2026-09).** El CRUD de Organización/Contrato/Sede/usuarios pasó a ser intervención directa del proveedor externo (BD / script con service-token) + el bootstrap del wizard; el diagnóstico de errores se hace por la consola de logs de `sicsaft-core`. `cis/src/administrador/` conserva solo las rutas `/admin/*` del CCP (activos, estructura, ingesta, auditoría). |
-| SYS-10 | [`core/frontend/`](core/frontend) | Portal WEB del Directivo | 🟢 Segundo deployable de `core/` (backend NestJS sin cambios) — dashboard ejecutivo (RF-09) + designar Profesional de AFT (`cis/src/directivo/`), le habla a CIS, nunca al backend de CORE directo (ADR-003). Autenticación OIDC vía Keycloak 26 |
-| SYS-11 | [`sicsaft-core/`](sicsaft-core) | SICSAFT CORE — app de escritorio nativa | 🟢 Nivel 1 y Nivel 2 (Electron) arrancando de verdad — Postgres/Keycloak/CIS/CORE/CIP embebidos con binarios reales vendorizados (sin Redis desde ADR-005), camino prioritario de instalación por cliente junto a `devops/onprem/` (coexisten). Wizard de primer arranque de 3 pasos cableado a IPC real (alta del Director y del Profesional de AFT, `crearUsuarioDirector`/`crearUsuarioProfesionalAft`, port de `KeycloakAdminService`) + login único embebido que detecta el rol y muestra `ccp` o `core/frontend` (CORE-RF-04). Empaquetado `electron-builder` real (`npm run dist:win`): instalador NSIS con los 6 servicios + los portales `ccp`/`core-frontend`/`app-qr-sicsaft` adentro; el `.exe` cubre Nivel 1 y Nivel 2 con el mismo binario (el vendedor elige en el wizard). Consola técnica en pantalla (0.1.1) para diagnosticar en la PC del cliente un arranque que falla, sin abrir una terminal. Bitácora de bugs reales de toda la línea: [`DOC-027`](aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md) — ver `aidlc-docs/sicsaft-core/`. **DOC-029 (mergeado):** fix del crash del login por timeout + layout del wizard a pantalla completa (RF-G), flag de nivel inyectado al servir `ccp`, selector de carpeta de ingesta de Excel por IPC (RF-B). **DOC-030 (mergeado):** selector de Nivel 1/2 en el wizard — el `.exe` cubre ambos niveles con el mismo binario (Nivel 2 = Nivel 1 + Dashboard/CIP; el CCP va completo desde Nivel 1, ver corrección de RF-A); el portal del Administrador del Sistema quedó eliminado (2026-09) — instalación autocontenida, sin conexión del proveedor al cliente |
-| SEC | [`seguridad/`](seguridad) | Identidad / RBAC (transversal) | 🟡 Mecanismo (Keycloak/OIDC, [ADR-004](adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)) y modelo de `Contrato` (DOC-004) resueltos e implementados en CIS/CORE |
-| OPS | [`devops/`](devops) | Infraestructura / Despliegue On-Premise / Empaquetado | 🟢 Despliegue on-premise por cliente (`devops/onprem/`) sobre Podman/Docker Compose y empaquetado en instalador `.exe` (`sicsaft-core/`). Stacks experimentales en VPS retirados. |
-| — | [`herramientas/etl-contable/`](herramientas/etl-contable) | ETL Python del Excel contable (herramienta, no desplegable) | 🟡 **DOC-029 (mergeado):** sidecar `pandas`+`xlrd` que normaliza el `.xls`/`.xlsx` del cliente al modelo SICSAFT y lo empuja a la bandeja de staging de CORE vía CIS. Lo invoca `sicsaft-core` (`execFile`); en el `.exe` va empaquetado con un Python embebido. `pytest` + `ruff`, sin workflow de CI propio (como `landing/`) |
-| — | [`landing/`](landing) | Landing comercial (cara al cliente) | 🟢 Construida — `npm install && npm run dev`. Sin datos internos de desarrollo. |
+| SYS-01 | [`app-qr-sicsaft/`](app-qr-sicsaft) | APP QR SICSAFT — captura vía QR (Nivel 1) | 🟢 Flujo oficial completo (DOC-001, 12 pantallas), auth Keycloak OIDC/PKCE, sync real con CORE, cola offline. Empaquetada en el `.exe` de `sicsaft-core`, además de imagen Docker + CI propios |
+| SYS-02 | [`cis/`](cis) | Centro de Interoperabilidad (API Gateway) | 🟢 Único punto de entrada real: auth Keycloak, proxy+circuit breaker hacia CORE/CIP, CRUD contra Keycloak sin Console, ingesta contable (DOC-029). Sin DOC-XXX propio todavía (gap, ver `aidlc-docs/README.md`) |
+| SYS-03 | [`core/`](core) | SICSAFT CORE (orquestador + motores) | 🟢 4 motores (Patrimonial, Reglas, Eventos, Auditoría) reales sobre Postgres, 100% cobertura, CRUD de Organización/Sede/Contrato con `estado` bidireccional (nunca `DELETE`, Tomo III 4.10) |
+| SYS-04 | [`base-patrimonial/`](base-patrimonial) | BPI — Base Patrimonial Inteligente | 🟢 Modelo (DOC-004/DOC-005) y API transaccional operativos de punta a punta contra Postgres real — resto de los 11 dominios documentados a nivel esquema, sin necesidad de módulos propios adicionales hoy |
+| SYS-05 | [`ccp/`](ccp) | CCP — Centro de Control Patrimonial (Profesional de AFT) | 🟢 Estructura, Importaciones, Auditoría y Resumen verificados de punta a punta. Activos/Controles de área se mudaron al CIP (`core/frontend/`) y QR/Etiquetas a `herramientas/generador-qr/` el 2026-09-13. Exclusivo del rol `administrador-patrimonial` (DOC-022) |
+| SYS-06 | [`cip/`](cip) | Centro de Inteligencia Patrimonial | 🟢 Backend real (worker `pg-boss`, ADR-005, + 10 endpoints incl. una escritura nueva sin DOC-XXX) — sin frontend propio, lo consume `core/frontend/`. DOC-026 (inteligencia decisional) sigue siendo solo diseño |
+| SYS-07 | [`rfid/`](rfid) | RFID SICSAFT | 🔲 No iniciado (fase tardía, deliberado — YAGNI) |
+| SYS-08 | [`integraciones/`](integraciones) | Integraciones externas (ERP, RRHH, BI...) | 🔲 No iniciado (fase tardía), salvo CON-CONTABILIDAD ya resuelto por otra vía (ver SYS-01/DOC-029 RF-B) |
+| SYS-09 | — | web_admin — Portal del Administrador del Sistema | ⚫ **Eliminado (2026-09).** CRUD de Organización/Contrato/Sede/usuarios: intervención directa del proveedor (BD/script) + bootstrap del wizard; diagnóstico por la consola de logs de `sicsaft-core` |
+| SYS-10 | [`core/frontend/`](core/frontend) | Portal WEB del Directivo (+ CIP) | 🟢 Segundo deployable de `core/` — dashboard ejecutivo, organigrama de controles de área con PDF (DOC-035), designar Profesional de AFT. Habla a CIS, nunca a CORE directo (ADR-003) |
+| SYS-11 | [`sicsaft-core/`](sicsaft-core) | SICSAFT CORE — app de escritorio (.exe) | 🟢 Instalador Electron real (Nivel 1 y 2, mismo binario): wizard de 3 pasos, 6 servicios embebidos, consola técnica de diagnóstico, empaquetado NSIS. Harness e2e propio (20 specs, 56 tests) contra el `.exe` real |
+| SYS-12 | [`ccp-desktop/`](ccp-desktop) | Launcher LAN del puesto del AFT | 🟢 Electron real en producción (DOC-028 Fase G): descubre `sicsaft-core.exe` por UDP en la LAN, TOFU por certificado, abre el CCP real |
+| — | [`apk-aft/`](apk-aft) | WebView Android nativa (DOC-029 RF-H) | 🟡 Scaffold Kotlin/Gradle real, sin `.apk` firmado ni prueba en dispositivo todavía |
+| SEC | [`seguridad/`](seguridad) | Identidad / RBAC (transversal) | 🟢 Keycloak 26/OIDC ([ADR-004](adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)) y modelo de `Contrato` (DOC-004) resueltos e implementados en CIS/CORE |
+| OPS | [`devops/`](devops) | Infraestructura / Despliegue On-Premise | 🟢 `devops/onprem/` (Podman/Docker Compose) como alternativa a `sicsaft-core/` para cliente con servidor dedicado. Stacks experimentales en VPS retirados |
+| — | [`herramientas/etl-contable/`](herramientas/etl-contable) | ETL Python del Excel contable | 🟢 Sidecar `pandas`+`xlrd` real (DOC-029 RF-B), invocado por `sicsaft-core`. `pytest`+`ruff`, sin workflow de CI propio (no es desplegable) |
+| — | [`landing/`](landing) | Landing comercial | 🟢 Construida (Vite+Tailwind), solo Vercel — único proyecto Vercel real del repo (`.vercel/repo.json`) |
 
 Cada carpeta tiene su propio `README.md` con objetivo, estado, dependencias y próximo paso.
 
 Arquitectura de referencia transversal (escalable, modular, resiliente, marco Well-Architected
 sin atarse a un proveedor de nube): [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md).
 
-Plan de fases pendientes: [ROADMAP.md](ROADMAP.md). Índice consolidado de requisitos funcionales y
-no funcionales de todos los sistemas (RF/RNF, con estado real y gaps conocidos):
-[REQUISITOS.md](REQUISITOS.md).
-
-Plan de fases para lo que falta construir en todo el ecosistema, ordenado por dependencia real
-(verificado contra el código, no solo contra los README): [ROADMAP.md](ROADMAP.md).
+Plan de fases para lo que falta construir en todo el ecosistema, ordenado por dependencia real y
+verificado contra el código (no solo contra los README): [ROADMAP.md](ROADMAP.md). Índice
+consolidado de requisitos funcionales y no funcionales de todos los sistemas (RF/RNF, con estado
+real y gaps conocidos): [REQUISITOS.md](REQUISITOS.md).
 
 Identidad visual / paleta de colores oficial (todo trabajo visual del ecosistema debe salir de
 acá, no reinventar colores por sistema): [BRAND.md](BRAND.md).
@@ -79,36 +83,20 @@ Desarrollo y del Plan Maestro de Pruebas.
 
 ## Dónde está el trabajo activo hoy
 
-**APP QR SICSAFT** (`app-qr-sicsaft/`) sigue siendo el sistema con más código y el único con
-usuarios reales en mente. Su identificador técnico interno (`package.json` → `name`) es
-`app-qr-sicsaft`; el nombre visible del producto sigue siendo "APP QR SICSAFT" (ver
-`aidlc-docs/app-qr-sicsaft/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md`).
-
-**CIS** (`cis/`) ya tiene código real también: esqueleto NestJS + el Conector QR
-(DOC-002) corriendo detrás de autenticación real vía Keycloak 26 (ADR-004) — lint, unit, e2e, build y
-`docker build`/`docker run` verificados. **CORE** (`core/`) tiene el mismo esqueleto base (`GET
-/`, `GET /health`) más `GET /entitlements`, que resuelve el modelo de `Contrato`
-([DOC-004](base-patrimonial/DOC-004-modelo-contrato.md)) sobre una base Postgres real dedicada
-(esquema versionado con migraciones reales en `core/migrations/`, ya no un seed en memoria ni un
-`.sql` aplicado a mano). **El círculo CIS↔CORE ya está cerrado y protegido**: `auth/session` llama a
-`GET /entitlements` de verdad (`cis/src/core-client/`) con un secreto compartido (`CORE_SERVICE_TOKEN`)
-que CORE valida en tiempo constante — sin ese header, 401.
+Todos los sistemas de la tabla de arriba tienen código real, salvo `rfid/` e `integraciones/`
+(deliberadamente no iniciados, fase tardía) y `apk-aft/` (scaffold sin `.apk` firmado todavía). El
+próximo incremento pendiente más relevante es **DOC-026** (inteligencia decisional de CIP, 8
+preguntas que hoy siguen sin código) — ver el orden de prioridad y el detalle fase por fase en
+[ROADMAP.md](ROADMAP.md), que es la fuente de verdad de qué falta y en qué orden (verificado
+contra el código, no solo contra los README).
 
 Backlog completo y contexto de negocio de APP QR: `app-qr-sicsaft/HANDOFF-APP-QR-SICSAFT.md`.
 
-## Orden de trabajo recomendado
+## Orden de prioridad
 
-1. **APP QR** completó su backlog local (TASK-004 a TASK-010) — las 12 pantallas del flujo oficial
-   están cubiertas, incluida TASK-007 (sincronización real con CORE) con autenticación OIDC vía Keycloak 26.
-2. Modelo de dominio compartido entre `core/` y `base-patrimonial/` — `Contrato` hecho, incluida la tabla real en Postgres
-   ([DOC-004](base-patrimonial/DOC-004-modelo-contrato.md)); Motor Patrimonial (catálogo, inventarios) también hecho sobre `sesiones_inventario` (Fase 2 de `ROADMAP.md`).
-3. `cis/` — proxy real hacia CORE, auth real contra Keycloak (ADR-004), circuit breaker + reintentos + rate limiting (WAF 4), `deviceId` enforced
-   (DOC-002 1) y CORS habilitado. CIS consume a CORE vía `CoreClientService` con auth interna.
-4. `seguridad/`: mecanismo de identidad (Keycloak 26 / OIDC), modelo de `Contrato` (DOC-004) y auth servicio-a-servicio CIS→CORE ya resueltos e implementados.
-5. `ccp/` — MVP completo (Profesional de AFT); `core/frontend/` (Directivo). El portal del Administrador del Sistema (`web_admin/`) se eliminó en 2026-09.
-6. `rfid/` e `integraciones/` quedan para fases posteriores.
-7. `devops/` se diseña recién cuando cada sistema tenga su ADR de stack — usa
-   [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md) como marco (Trello `OPS-DOC-001`, ya entregado).
+Ver [`aidlc-docs/README.md` §1.1](aidlc-docs/README.md#11-orden-de-prioridad-qué-mirar-primero) —
+mismo orden de dependencia real que sigue [ROADMAP.md](ROADMAP.md) "Principio de ordenamiento", no
+duplicado acá para no desalinearse con el tiempo.
 
 Tablero Trello: [SICSAFT](https://trello.com/b/nCi6W4oB/sicsaft) — las tarjetas de cada sistema
 llevan el prefijo del código (`CORE-`, `BASE-`, `CIS-`, `SEC-`/`DEC-`, `OPS-`) para diferenciarlas

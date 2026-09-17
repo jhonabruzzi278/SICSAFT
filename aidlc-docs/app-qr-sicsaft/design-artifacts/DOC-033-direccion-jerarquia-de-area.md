@@ -1,4 +1,10 @@
-# DOC-033 — Dirección como nivel de selección previo a Área en el escaneo
+# DOC-033-A: Selector de Dirección en la APP Móvil QR
+
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué es?**: Incorporación de un selector previo de "Dirección" antes de elegir el "Área" al iniciar un relevamiento en la APP Móvil QR.
+> - **Por qué se hizo**: Permite filtrar áreas de forma jerárquica (ej. *Dirección General → Oficina Director*) para facilitar el trabajo del operador sin tener una lista plana interminable.
+> - **Complemento Web**: Ver [DOC-033-B (Catálogo Enriquecido y ETL en CCP)](../../../ccp/design-artifacts/DOC-033-catalogo-enriquecido-direccion-y-etl.md).
+> - **Estado Real**: 🟢 **Implementado**: Agrupación por `areas.dependencia` activa en el flujo de escaneo de `app-qr-sicsaft`.
 
 > Diseño antes que código (`CLAUDE.md` Metodología AI-DLC). A diferencia de DOC-017, este ítem
 > **sí** toca el contrato CIS↔CORE (DOC-006) — agrega un campo de solo lectura al catálogo, no
