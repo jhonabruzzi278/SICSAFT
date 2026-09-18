@@ -67,8 +67,8 @@ export function AlertasTab() {
       setSesiones(sesionesRes.value);
 
       // Cuántos AFT extraviados dejó cada control con alarma. Se consulta solo por las sesiones
-      // que ya pasaron el filtro (último control del área + defectuoso), que son pocas — no por
-      // todo el registro.
+      // que ya pasaron el filtro (último control del área + defectuoso), que son pocas — no se
+      // consulta el registro completo.
       const candidatas = sesionesConAlarma(sesionesRes.value);
       const resumenes = await Promise.allSettled(
         candidatas.map((s) =>
