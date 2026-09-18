@@ -5,6 +5,16 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ## [Sin publicar]
 
+### Changed
+- **CIP — línea base congelada de sus 4 secciones ([DOC-037](aidlc-docs/cip/design-artifacts/DOC-037-linea-base-pestanas-cip.md))**. No se modifican sin un documento que lo formalice.
+  - **"Controles de Área y Contrastación BPI" → "Reportes"** en el sidebar y en el título, iniciando la línea de nomenclatura de reportes. La ruta `/dashboard/controles-area` se mantiene (enlaces ya compartidos).
+  - **Se retiran los indicadores de color del organigrama junto con "marcar como revisado"**: eran la misma funcionalidad — el badge rojo/amarillo solo se pintaba si la sesión no estaba revisada. Queda el total de reportes por Dirección, en azul.
+  - **Las alarmas pasan a ser AFT extraviados de controles defectuosos**: antes listaban "AFT fuera de lugar" (encontrados en otra área) con ambos veredictos. Ahora, una alarma por Área, solo veredicto `defectuoso`, y la regla de baja es **derivada, nunca persistida** — solo un control posterior con veredicto `exitoso` en la misma Dirección y Área la quita. Sin botón de descarte, a propósito: sin estado que escribir, nadie puede silenciar una alarma sin el control real en terreno.
+  - **"Portal del Directivo" → "Modelo Inteligente de Gestión Patrimonial"** en el header, el login y el teaser de Nivel 1. El sidebar nombra el nivel instalado (`Nivel 2. QR + Dashboard` / `Nivel 1. QR`) usando la validación que ya existía.
+
+### Removed
+- **CIP vuelve a ser 100% lectura — se retira DOC-036 (`PATCH /dashboard/sesiones/:id/revisar`)** en las tres capas: botón y modal en Pantalla 8, `marcarRevisado` del cliente, la ruta con `DirectivoGuard` en CIS y el endpoint + repositorio en CIP. **Las columnas `revisado`/`revisadoPor`/`revisadoEn` de `veredicto_sesion` y su migración no se tocan**: el retiro es reversible y no se pierde el registro histórico.
+
 ### Added
 - **CIP — alertas entrelazadas con reportes + historial nocturno ([DOC-034](aidlc-docs/cip/design-artifacts/DOC-034-alertas-entrelazadas-con-reportes.md))**: cada alerta de "AFT fuera de área" trae el veredicto de la sesión que la generó y un link directo al reporte completo; corte diario por veredicto vía `GET /dashboard/historico`.
 - **core/frontend — organigrama de Controles de área + informe PDF ([DOC-035](aidlc-docs/core/design-artifacts/DOC-035-organigrama-controles-de-area.md))**: vista jerárquica Organización→Dirección→Departamento→Área con contador de reportes, y exportación del informe de control ("Pantalla 8") a PDF (`lib/pdf-informe-control.ts`).
