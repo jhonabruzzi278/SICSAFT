@@ -1,12 +1,12 @@
 {
-  "generado": "2026-09-17T12:05:27.998Z",
-  "commit": "0a784f5",
-  "rama": "codex/fix-app-qr-ci",
+  "generado": "2026-09-18T02:30:58.874Z",
+  "commit": "26e8a0c",
+  "rama": "integracion/main-y-cip-avanzado",
   "totales": {
-    "loc": 51510,
-    "locTests": 34265,
-    "docs": 130,
-    "huerfanos": 11,
+    "loc": 52665,
+    "locTests": 34420,
+    "docs": 133,
+    "huerfanos": 13,
     "docsDesactualizados": 23,
     "todos": 5
   },
@@ -54,16 +54,29 @@
         "Normalización y Logging estructurado de peticiones y respuestas"
       ],
       "resumenTecnico": "Centro de Interoperabilidad: Punto de entrada único seguro, validación de JWT OIDC con Keycloak 26, proxy seguro a CORE/CIP y tolerancia a fallos.",
-      "archivosFuente": 65,
-      "archivosTest": 46,
+      "archivosFuente": 83,
+      "archivosTest": 50,
       "docs": 1,
-      "loc": 6214,
-      "locComentario": 649,
-      "locTests": 9192,
-      "pctComentario": 10.4,
-      "ratioTest": 1.48,
+      "loc": 7274,
+      "locComentario": 661,
+      "locTests": 9311,
+      "pctComentario": 9.1,
+      "ratioTest": 1.28,
       "todos": 0,
-      "huerfanos": [],
+      "huerfanos": [
+        {
+          "archivo": "cis/src/administrador/administrador-test-helpers.ts",
+          "linea": 8,
+          "cita": "administrador.controller.spec.ts",
+          "texto": "Fixtures/helpers compartidos entre los 5 spec de administrador-*.controller.spec.ts — antes vivian duplicados dentro del unico administrador.controller.spec.ts (715 lineas)."
+        },
+        {
+          "archivo": "cis/src/core-client/core-client.service.ts",
+          "linea": 65,
+          "cita": "administrador.controller.ts",
+          "texto": "Unico punto por el que CIS le habla a CORE. La fachada solo delega — el transporte HTTP (retries, circuit breaker, mapeo de errores) vive en CoreHttpExecutor, y cada dominio (Activos, Catálogo, Import"
+        }
+      ],
       "docsDesactualizados": []
     },
     {
@@ -160,14 +173,14 @@
         "Arranque Condicional Nivel 1 / Nivel 2 (CIP-05)"
       ],
       "resumenTecnico": "Centro de Inteligencia Patrimonial: Agregación asíncrona desacoplada de eventos de inventario, cálculo de veredictos y endpoints para dashboards directivos.",
-      "archivosFuente": 38,
+      "archivosFuente": 39,
       "archivosTest": 27,
       "docs": 1,
-      "loc": 2378,
-      "locComentario": 189,
+      "loc": 2403,
+      "locComentario": 196,
       "locTests": 2587,
-      "pctComentario": 7.9,
-      "ratioTest": 1.09,
+      "pctComentario": 8.2,
+      "ratioTest": 1.08,
       "todos": 0,
       "huerfanos": [
         {
@@ -219,13 +232,13 @@
         "Flujo de Autenticación Segura OIDC con PKCE (RFC 7636)"
       ],
       "resumenTecnico": "Centro de Control Patrimonial: Ficha de activos, estructura organizacional, ingesta supervisada de planillas Excel y generación de etiquetas QR/Código 128.",
-      "archivosFuente": 38,
+      "archivosFuente": 43,
       "archivosTest": 12,
       "docs": 1,
-      "loc": 7017,
-      "locComentario": 451,
+      "loc": 7007,
+      "locComentario": 457,
       "locTests": 1518,
-      "pctComentario": 6.4,
+      "pctComentario": 6.5,
       "ratioTest": 0.22,
       "todos": 0,
       "huerfanos": [
@@ -280,11 +293,11 @@
       "archivosFuente": 34,
       "archivosTest": 6,
       "docs": 1,
-      "loc": 5404,
-      "locComentario": 331,
+      "loc": 5513,
+      "locComentario": 340,
       "locTests": 689,
-      "pctComentario": 6.1,
-      "ratioTest": 0.13,
+      "pctComentario": 6.2,
+      "ratioTest": 0.12,
       "todos": 1,
       "huerfanos": [
         {
@@ -300,22 +313,22 @@
           "texto": "DOC-022 3 — sidebar del portal del Directivo. A diferencia de ccp/ no hay selector de organización (DirectivoGuard en CIS siempre deriva la organización del JWT) — sí hace falta preservar `organizacio"
         },
         {
+          "archivo": "core/frontend/src/components/PieChart.tsx",
+          "linea": 1,
+          "cita": "DonutChart.tsx",
+          "texto": "Gráfico de pastel simple — reemplaza al donut anterior (DonutChart.tsx, 2026-09-15): con pocas categorías (caso real más común, ver Pantalla 8) el anillo con hueco y el total en el centro quedaban rec"
+        },
+        {
           "archivo": "core/frontend/src/components/RequireNivel2.tsx",
           "linea": 6,
           "cita": "CipPage.tsx",
           "texto": "2026-09-14 — el CIP dejó de ser una única página con sub-pestañas (`CipPage.tsx`, eliminado) y pasó a ser 4 rutas directas navegables desde el sidebar (ver AppShell.tsx). Esta validación de Nivel 2 (R"
         },
         {
-          "archivo": "core/frontend/src/lib/colores.ts",
-          "linea": 1,
-          "cita": "PieChart.tsx",
-          "texto": "Paleta compartida por los gráficos de categorías del CIP (ResumenTab.tsx, PantallaControlArea.tsx vía PieChart.tsx) — en su propio archivo (no en PieChart.tsx) porque react-refresh/only-export-compone"
-        },
-        {
-          "archivo": "core/frontend/src/lib/colores.ts",
-          "linea": 1,
-          "cita": "PieChart.tsx",
-          "texto": "Paleta compartida por los gráficos de categorías del CIP (ResumenTab.tsx, PantallaControlArea.tsx vía PieChart.tsx) — en su propio archivo (no en PieChart.tsx) porque react-refresh/only-export-compone"
+          "archivo": "core/frontend/src/lib/cis-client.ts",
+          "linea": 45,
+          "cita": "administrador.controller.ts",
+          "texto": "DOC-035 — jerarquía Organización→Dirección→Departamento→Área para el organigrama de Controles de área. Copia adaptada de `ccp/src/lib/cis-client.ts` (ccp/ y core/frontend/ son SPAs independientes que "
         },
         {
           "archivo": "core/frontend/src/pages/cip/ReporteControlPage.tsx",
@@ -414,7 +427,7 @@
         "PostgreSQL Embebido",
         "Keycloak 26",
         "Playwright E2E",
-        "Inno Setup"
+        "NSIS / electron-builder"
       ],
       "funcionalidades": [
         "Orquestación y Supervisión de Ciclo de Vida de Subprocesos (Postgres, Keycloak, CIS, CORE, CIP)",
@@ -426,14 +439,14 @@
         "Firma Digital de Código con Authenticode SHA-256 (SmartScreen EXE-08)"
       ],
       "resumenTecnico": "Entregable cliente On-Premise: Binario nativo Windows que orquesta y aísla Postgres, Keycloak 26, CIS, CORE y CIP sin requerir Docker ni WSL2.",
-      "archivosFuente": 51,
-      "archivosTest": 54,
+      "archivosFuente": 61,
+      "archivosTest": 57,
       "docs": 4,
-      "loc": 7172,
-      "locComentario": 1442,
-      "locTests": 5641,
+      "loc": 7348,
+      "locComentario": 1476,
+      "locTests": 5677,
       "pctComentario": 20.1,
-      "ratioTest": 0.79,
+      "ratioTest": 0.77,
       "todos": 3,
       "huerfanos": [],
       "docsDesactualizados": []
@@ -448,14 +461,14 @@
       ],
       "entrega": true,
       "puerto": "CLI / Script Python",
-      "entrypoint": "herramientas/ingesta-contable/normalizar.py",
+      "entrypoint": "herramientas/etl-contable/etl_contable.py",
       "protocolos": [
         "File System",
         "CSV / XLSX",
         "HTTP Upload"
       ],
       "almacenamiento": "Archivos temporales staging .parquet / .csv",
-      "coberturaTests": "16 tests Pytest (Normalización contable)",
+      "coberturaTests": "29 tests Pytest (Normalización contable)",
       "modos": [
         "Nivel 1 (Base)",
         "Nivel 2 (Avanzado)"
@@ -477,8 +490,8 @@
       "resumenTecnico": "Sidecar de ingesta contable: Transforma formatos heterogéneos de planillas contables institucionales hacia el esquema canónico de importación de la BPI.",
       "archivosFuente": 22,
       "archivosTest": 4,
-      "docs": 3,
-      "loc": 2805,
+      "docs": 4,
+      "loc": 2806,
       "locComentario": 163,
       "locTests": 773,
       "pctComentario": 5.8,
@@ -506,14 +519,14 @@
       "capa": "tooling",
       "capaMaestra": "Herramientas & Despliegue",
       "rutas": [
-        "devops/"
+        "herramientas/devops/"
       ],
       "entrega": false,
       "puerto": "CI/CD & PowerShell",
       "entrypoint": "herramientas/devops/firmar-instalador.ps1",
       "protocolos": [
         "Authenticode SHA-256",
-        "Inno Setup 6.x",
+        "NSIS / electron-builder",
         "GitHub Actions"
       ],
       "almacenamiento": "Artefactos ZIP y ejecutables .exe firmados",
@@ -523,25 +536,25 @@
       ],
       "rol": "Infraestructura On-Premise & CI/CD",
       "tecnologias": [
-        "Inno Setup .iss",
+        "NSIS / electron-builder",
         "GitHub Actions",
         "PowerShell",
         "Authenticode"
       ],
       "funcionalidades": [
-        "Generación del Instalador Desatendido Windows (.exe) con Inno Setup",
+        "Generación del Instalador Desatendido Windows (.exe) con NSIS y electron-builder (bun run dist:win)",
         "Pipeline Automatizado de Release en GitHub Actions (.github/workflows/release-automation.yml)",
         "Firma Digital de Código con Authenticode SHA-256 (firmar-instalador.ps1)",
         "Empaquetado Completo en ZIP para Entrega a Clientes On-Premise con Documentación y Checksums"
       ],
       "resumenTecnico": "Instalador desatendido para Windows Server / Windows 10/11, scripts de provisioning y pipelines de CI/CD automatizados.",
-      "archivosFuente": 2,
+      "archivosFuente": 4,
       "archivosTest": 0,
-      "docs": 3,
-      "loc": 587,
-      "locComentario": 156,
+      "docs": 0,
+      "loc": 381,
+      "locComentario": 23,
       "locTests": 0,
-      "pctComentario": 26.6,
+      "pctComentario": 6,
       "ratioTest": 0,
       "todos": 0,
       "huerfanos": [],
@@ -677,7 +690,7 @@
       "resumenTecnico": "124 documentos normativos y de especificación arquitectónica del ecosistema (Tomos I a IV, ADRs 001-005, DOCs 001-032).",
       "archivosFuente": 1,
       "archivosTest": 0,
-      "docs": 96,
+      "docs": 101,
       "loc": 34,
       "locComentario": 1,
       "locTests": 0,
@@ -923,8 +936,8 @@
       "de": "devops",
       "a": "sicsaft-core",
       "tipo": "empaqueta",
-      "label": "Inno Setup & Authenticode",
-      "desc": "Compilación del instalador Windows desatendido y firma digital SHA-256."
+      "label": "NSIS / electron-builder & Authenticode",
+      "desc": "Compilación del instalador Windows desatendido con NSIS/electron-builder y firma digital SHA-256."
     }
   ]
 }

@@ -33,14 +33,6 @@ test-results/
 *.p12
 *.pfx
 *.cer
-# Binario compilado del instalador (iscc sicsaft-onprem.iss) — se genera localmente, no se
-# versiona (mismo criterio que cualquier artefacto de build).
-devops/onprem/installer/output/
-# Generado por Set-DominioTraefik (instalar-cliente.ps1) a partir de dynamic.yml.template con el
-# dominio real de CADA cliente — encontrado commiteado por error con el dominio de una instalación
-# de prueba anterior (ADR-004 Fase 3, 2026-08-26); nunca debió versionarse, mismo criterio que
-# .env (config real por instalación, no código fuente).
-devops/onprem/traefik/dynamic.yml
 id_rsa*
 *secret*
 *credential*
@@ -79,11 +71,14 @@ herramientas/generador-qr/release/
 
 # ccp-desktop (launcher Electron del puesto del AFT, DOC-028 Fase G): salida de electron-builder
 # -- "release" y variantes con sufijo de timestamp que genera --dir en pruebas locales
-# (release-sicsaft-core, release-sicsaft-core-<ts>), nunca se versionan.
+# (release-sicsaft-core, release-sicsaft-core-<ts>), nunca se versionan. Se ignora SOLO la salida
+# de build: las fuentes de ccp-desktop/src/ sí se versionan (es un sistema real, no un prototipo).
 ccp-desktop/release*/
 
 # Informes/entregables generados para el usuario — no son código ni documentación del repo
 /SICSAFT-informe-integral-proyecto*.docx
+core/frontend/informe-*.pdf
+*.pdf
 ~$*.docx
 ~$*.xlsx
 ~$*.xls
@@ -91,7 +86,8 @@ ccp-desktop/release*/
 dist-paquete/
 *.zip
 
-devops/onprem/.bootstrap/
+# Substack devops retirado (despliegue consolidado 100% en sicsaft-core .exe)
+devops/
 
 # SDK/binarios descargados localmente para apk-aft/ (Android SDK, ~cientos de MB) — nunca versionar
 .tools/

@@ -5,11 +5,9 @@
 Instalador `.exe` único que empaqueta Nivel 1 **y** Nivel 2 (Postgres, Keycloak, `cis/`, `core/`,
 `cip/` — sin Redis, ver ADR-005) como procesos nativos embebidos en una app Electron — sin Podman,
 sin Docker, sin WSL2, sin navegador visible para el cliente. El vendedor elige Nivel 1 o Nivel 2 en
-el wizard y el mismo binario sirve el nivel elegido (DOC-030). Es el camino **prioritario** de
-instalación por cliente; `devops/onprem/` (Podman) se mantiene como alternativa para un perfil de
-cliente con servidor dedicado — confirmado con el usuario 2026-08-27, ver
-[`aidlc-docs/sicsaft-core/requirements/INTENT.md`](../aidlc-docs/sicsaft-core/requirements/INTENT.md)
-CORE-Q-02.
+el wizard y el mismo binario sirve el nivel elegido (DOC-030). Es el instalador **único y oficial**
+de instalación por cliente (el stack experimental en contenedores `devops/onprem/` fue retirado
+definitivamente en 2026-09).
 
 Junto a esta app se instala una **APK de Android** para la APP QR — construida como WebView
 Kotlin propia en `apk-aft/` (DOC-029 RF-H, no un wrap Capacitor: un TWA con cert propio en IP de
@@ -241,8 +239,7 @@ de todo el trabajo de identidad de ADR-004 (Fases 1-3) — `KeycloakAdminService
 
 ## Bloquea
 
-Nada de forma dura — convive con `devops/onprem/` (Podman) de forma permanente (CORE-Q-02
-resuelta: no lo reemplaza).
+Nada — es la distribución única y oficial del producto.
 
 ## Documentos relacionados
 

@@ -58,7 +58,7 @@ import type {
 // DOC-019 2/3.1 — septimo módulo del hub de WEB (RF-09): mismo criterio de autorización que
 // Activos/Inventarios (KeycloakAuthGuard + RateLimitGuard, sin rol adicional) porque es información
 // agregada de organización completa, no PII ni una escritura — no el patrón de
-// AdministradorController (/admin/..., reservado para escritura oficial). Pipes por parámetro, no
+// los controllers de /admin/... (reservado para escritura oficial). Pipes por parámetro, no
 // @UsePipes de método (DOC-012 5 ya dejó ese hallazgo real). Única excepción: `revisarSesion`
 // (2026-09-16) sí escribe, así que suma `DirectivoGuard` en esa ruta puntual.
 @Controller('dashboard')

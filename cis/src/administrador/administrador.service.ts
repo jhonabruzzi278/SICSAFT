@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { CoreClientService } from '../core-client/core-client.service';
+import * as activos from './administrador.activos';
+import * as catalogo from './administrador.catalogo';
+import * as importaciones from './administrador.importaciones';
+import * as auditoria from './administrador.auditoria';
+import * as estructura from './administrador.estructura';
 import type {
   ActivoResult,
   AreaResult,
@@ -44,6 +49,12 @@ import type {
 // CLAUDE.md) — este servicio traduce el contexto ya autenticado por Keycloak (KeycloakAuthGuard)
 // al contrato de escritura oficial que CORE espera (DOC-012 3.3).
 // --
+// Fachada delgada: cada dominio (Activos, Catálogo, Importaciones, Auditoría, Estructura) vive en
+// su propio archivo administrador.<dominio>.ts como funciones puras que reciben
+// `coreClientService` — mismo patrón que CoreClientService/CoreHttpExecutor. Mismo constructor y
+// misma API pública de siempre para no romper a los 5 controllers que la inyectan ni el spec
+// existente.
+// --
 // 2026-09: las operaciones de Organizacion/Contrato/Sede/usuarios/indicadores se retiraron al
 // eliminar el portal del Administrador del Sistema — el proveedor externo interviene en el core de
 // la organizacion de forma directa (BD / script con service-token) + el bootstrap del wizard.
@@ -56,32 +67,25 @@ export class AdministradorService {
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ActivoResult> {
-    return this.coreClientService.postActivo(
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+    return activos.altaActivo(
+      this.coreClientService,
+      body,
+      auth,
       correlationId,
     );
   }
 
-  // DOC-021 3 (gap "estados") — baja/reincorporacion/responsable/descripcion de Activo.
   bajaActivo(
     activoId: string,
     body: EscrituraOficialActivoBody,
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ActivoResult> {
-    return this.coreClientService.postActivoBaja(
+    return activos.bajaActivo(
+      this.coreClientService,
       activoId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+      body,
+      auth,
       correlationId,
     );
   }
@@ -92,14 +96,11 @@ export class AdministradorService {
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ActivoResult> {
-    return this.coreClientService.postActivoReincorporacion(
+    return activos.reincorporarActivo(
+      this.coreClientService,
       activoId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+      body,
+      auth,
       correlationId,
     );
   }
@@ -110,40 +111,32 @@ export class AdministradorService {
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ActivoResult> {
-    return this.coreClientService.patchActivoResponsable(
+    return activos.cambiarResponsableActivo(
+      this.coreClientService,
       activoId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+      body,
+      auth,
       correlationId,
     );
   }
 
-  // DOC-021 3 (gap "descripciones").
   actualizarDescripcionActivo(
     activoId: string,
     body: ActualizarDescripcionActivoBody,
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ActivoResult> {
-    return this.coreClientService.patchActivoDescripcion(
+    return activos.actualizarDescripcionActivo(
+      this.coreClientService,
       activoId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+      body,
+      auth,
       correlationId,
     );
   }
 
-  // DOC-021 4 (gap "familias/categorías") — lectura abierta, mismo criterio que getAuditoria.
   getCatalogoTipos(correlationId: string): Promise<CatalogoTipoResult[]> {
-    return this.coreClientService.getCatalogoTipos(correlationId);
+    return catalogo.getCatalogoTipos(this.coreClientService, correlationId);
   }
 
   altaCatalogoTipo(
@@ -151,24 +144,21 @@ export class AdministradorService {
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<CatalogoTipoResult> {
-    return this.coreClientService.postCatalogoTipo(
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+    return catalogo.altaCatalogoTipo(
+      this.coreClientService,
+      body,
+      auth,
       correlationId,
     );
   }
 
-  // DOC-021 3 (gap "documentación y fotografías").
   getDocumentosActivo(
     activoId: string,
     organizacionId: string,
     correlationId: string,
   ): Promise<DocumentoActivoResult[]> {
-    return this.coreClientService.getDocumentosActivo(
+    return activos.getDocumentosActivo(
+      this.coreClientService,
       activoId,
       organizacionId,
       correlationId,
@@ -181,14 +171,11 @@ export class AdministradorService {
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<DocumentoActivoResult> {
-    return this.coreClientService.postDocumentoActivo(
+    return activos.altaDocumentoActivo(
+      this.coreClientService,
       activoId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+      body,
+      auth,
       correlationId,
     );
   }
@@ -200,50 +187,38 @@ export class AdministradorService {
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<void> {
-    return this.coreClientService.deleteDocumentoActivo(
+    return activos.eliminarDocumentoActivo(
+      this.coreClientService,
       activoId,
       documentoId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+      body,
+      auth,
       correlationId,
     );
   }
 
-  // DOC-012 6 (gap "importaciones controladas").
   importarContable(
     body: ImportacionContableBody,
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ImportacionContableResult> {
-    return this.coreClientService.postImportacionContable(
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+    return importaciones.importarContable(
+      this.coreClientService,
+      body,
+      auth,
       correlationId,
     );
   }
 
-  // DOC-029 RF-B — bandeja de staging de la ingesta de Excel supervisada. crear/aprobar/rechazar
-  // inyectan la identidad del JWT (CORE verifica el rol y audita); listar/obtener son passthrough.
   crearLoteImportacionContable(
     body: CrearLoteImportacionContableBody,
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<CrearLoteImportacionContableResult> {
-    return this.coreClientService.postLoteImportacionContable(
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+    return importaciones.crearLoteImportacionContable(
+      this.coreClientService,
+      body,
+      auth,
       correlationId,
     );
   }
@@ -253,7 +228,8 @@ export class AdministradorService {
     estado: string | undefined,
     correlationId: string,
   ): Promise<LoteImportacionContableResult[]> {
-    return this.coreClientService.getLotesImportacionContable(
+    return importaciones.listarLotesImportacionContable(
+      this.coreClientService,
       organizacionId,
       estado,
       correlationId,
@@ -264,7 +240,8 @@ export class AdministradorService {
     loteId: string,
     correlationId: string,
   ): Promise<LoteConFilasImportacionContableResult> {
-    return this.coreClientService.getLoteImportacionContable(
+    return importaciones.obtenerLoteImportacionContable(
+      this.coreClientService,
       loteId,
       correlationId,
     );
@@ -276,14 +253,11 @@ export class AdministradorService {
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ImportacionContableResult> {
-    return this.coreClientService.postAprobarLoteImportacionContable(
+    return importaciones.aprobarLoteImportacionContable(
+      this.coreClientService,
       loteId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+      body,
+      auth,
       correlationId,
     );
   }
@@ -294,34 +268,33 @@ export class AdministradorService {
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<RechazoLoteImportacionContableResult> {
-    return this.coreClientService.postRechazarLoteImportacionContable(
+    return importaciones.rechazarLoteImportacionContable(
+      this.coreClientService,
       loteId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+      body,
+      auth,
       correlationId,
     );
   }
 
-  // RF-06 (Fase 5) — lectura abierta.
   getAuditoria(
     filtro: AuditoriaFiltro,
     correlationId: string,
   ): Promise<AuditoriaPaginaResult> {
-    return this.coreClientService.getAuditoria(filtro, correlationId);
+    return auditoria.getAuditoria(
+      this.coreClientService,
+      filtro,
+      correlationId,
+    );
   }
 
-  // RF-05 (Fase 5) — lectura abierta, mismo criterio que getAuditoria. Paginado (RNF-01, cierra
-  // el gap).
   getAreas(
     organizacionId: string,
     paginacion: Paginacion,
     correlationId: string,
   ): Promise<AreasPaginaResult> {
-    return this.coreClientService.getAreas(
+    return estructura.getAreas(
+      this.coreClientService,
       organizacionId,
       paginacion,
       correlationId,
@@ -333,43 +306,36 @@ export class AdministradorService {
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<AreaResult> {
-    return this.coreClientService.postArea(
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+    return estructura.altaArea(
+      this.coreClientService,
+      body,
+      auth,
       correlationId,
     );
   }
 
-  // RF-05 (cierra el gap "ABM completo") — PATCH /admin/areas/:id.
   actualizarArea(
     areaId: string,
     body: ActualizarAreaBody,
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<AreaResult> {
-    return this.coreClientService.patchArea(
+    return estructura.actualizarArea(
+      this.coreClientService,
       areaId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+      body,
+      auth,
       correlationId,
     );
   }
 
-  // Paginado (RNF-01, cierra el gap).
   getUbicaciones(
     sedeId: string,
     paginacion: Paginacion,
     correlationId: string,
   ): Promise<UbicacionesPaginaResult> {
-    return this.coreClientService.getUbicaciones(
+    return estructura.getUbicaciones(
+      this.coreClientService,
       sedeId,
       paginacion,
       correlationId,
@@ -381,43 +347,36 @@ export class AdministradorService {
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<UbicacionResult> {
-    return this.coreClientService.postUbicacion(
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+    return estructura.altaUbicacion(
+      this.coreClientService,
+      body,
+      auth,
       correlationId,
     );
   }
 
-  // RF-05 (cierra el gap "ABM completo") — PATCH /admin/ubicaciones/:id.
   actualizarUbicacion(
     ubicacionId: string,
     body: ActualizarUbicacionBody,
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<UbicacionResult> {
-    return this.coreClientService.patchUbicacion(
+    return estructura.actualizarUbicacion(
+      this.coreClientService,
       ubicacionId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+      body,
+      auth,
       correlationId,
     );
   }
 
-  // Paginado (RNF-01, cierra el gap).
   getResponsables(
     areaId: string,
     paginacion: Paginacion,
     correlationId: string,
   ): Promise<ResponsablesPaginaResult> {
-    return this.coreClientService.getResponsables(
+    return estructura.getResponsables(
+      this.coreClientService,
       areaId,
       paginacion,
       correlationId,
@@ -429,13 +388,10 @@ export class AdministradorService {
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ResponsableResult> {
-    return this.coreClientService.postResponsable(
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+    return estructura.altaResponsable(
+      this.coreClientService,
+      body,
+      auth,
       correlationId,
     );
   }
@@ -446,14 +402,11 @@ export class AdministradorService {
     auth: KeycloakAuthContext,
     correlationId: string,
   ): Promise<ResponsableResult> {
-    return this.coreClientService.patchResponsableEstado(
+    return estructura.actualizarEstadoResponsable(
+      this.coreClientService,
       responsableId,
-      {
-        ...body,
-        correlationId,
-        operadorId: auth.operadorId,
-        rolesPorOrganizacion: auth.rolesPorOrganizacion,
-      },
+      body,
+      auth,
       correlationId,
     );
   }

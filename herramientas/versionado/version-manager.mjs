@@ -33,6 +33,7 @@ const PAQUETES = [
   { clave: 'directivo', nombre: 'Portal Directivo', archivo: 'core/frontend/package.json', tipo: 'json' },
   { clave: 'casos-uso', nombre: 'E2E Casos de Uso', archivo: 'casos-de-uso/e2e/package.json', tipo: 'json' },
   { clave: 'landing', nombre: 'Landing Page', archivo: 'landing/package.json', tipo: 'json' },
+  { clave: 'generador-qr', nombre: 'Generador QR (Etiquetas)', archivo: 'herramientas/generador-qr/package.json', tipo: 'json' },
 ];
 
 const SEMVER_REGEX = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;

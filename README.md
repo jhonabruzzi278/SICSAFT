@@ -46,7 +46,7 @@ Detalle completo por sistema, estado real y próximo paso: el `README.md` propio
 | SYS-12 | [`ccp-desktop/`](ccp-desktop) | Launcher LAN del puesto del AFT | 🟢 Electron real en producción (DOC-028 Fase G): descubre `sicsaft-core.exe` por UDP en la LAN, TOFU por certificado, abre el CCP real |
 | — | [`apk-aft/`](apk-aft) | WebView Android nativa (DOC-029 RF-H) | 🟡 Scaffold Kotlin/Gradle real, sin `.apk` firmado ni prueba en dispositivo todavía |
 | SEC | [`seguridad/`](seguridad) | Identidad / RBAC (transversal) | 🟢 Keycloak 26/OIDC ([ADR-004](adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md)) y modelo de `Contrato` (DOC-004) resueltos e implementados en CIS/CORE |
-| OPS | [`devops/`](devops) | Infraestructura / Despliegue On-Premise | 🟢 `devops/onprem/` (Podman/Docker Compose) como alternativa a `sicsaft-core/` para cliente con servidor dedicado. Stacks experimentales en VPS retirados |
+| OPS | — | Infraestructura / Despliegue On-Premise | ⚫ **Retirado (2026-09).** El stack de contenedores `devops/onprem/` (Podman/Docker Compose) fue retirado para consolidar el 100% de la distribución y el despliegue en la app de escritorio `sicsaft-core/` (.exe) |
 | — | [`herramientas/etl-contable/`](herramientas/etl-contable) | ETL Python del Excel contable | 🟢 Sidecar `pandas`+`xlrd` real (DOC-029 RF-B), invocado por `sicsaft-core`. `pytest`+`ruff`, sin workflow de CI propio (no es desplegable) |
 | — | [`landing/`](landing) | Landing comercial | 🟢 Construida (Vite+Tailwind), solo Vercel — único proyecto Vercel real del repo (`.vercel/repo.json`) |
 
@@ -68,8 +68,9 @@ Decisiones de arquitectura del ecosistema (stack, identidad/SSO, dominios, infra
 [ADR-004](adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md) (Keycloak 26 self-hosted, reemplaza a
 [ADR-002](adr/ADR-002-identidad-zitadel-multi-tenant.md) — modelo Organización→Contrato→Sede sin
 cambios, dominios bajo `sicsaft.cl`), [ADR-005](adr/ADR-005-postgres-pgboss-reemplaza-redis.md)
-(cola de eventos y rate-limiting sobre Postgres — `pg-boss`/memoria, reemplaza a Redis en los 3
-perfiles de `devops/`). Operación de infraestructura: [`devops/README.md`](devops/README.md).
+(cola de eventos y rate-limiting sobre Postgres — `pg-boss`/memoria, reemplaza a Redis). Operación
+e instalación por cliente: [`sicsaft-core/README.md`](sicsaft-core/README.md) y su
+[`RUNBOOK-INSTALACION.md`](sicsaft-core/RUNBOOK-INSTALACION.md).
 
 Documentación de metodología AI-DLC (requisitos, historias, diseño y estrategia de testing por
 fase, generada antes de escribir código): [`aidlc-docs/`](aidlc-docs), una subcarpeta por sistema

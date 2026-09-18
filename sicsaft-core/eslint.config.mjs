@@ -17,6 +17,11 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   eslintPluginPrettierRecommended,
   {
+    rules: {
+      "prettier/prettier": ["error", { endOfLine: "auto" }],
+    },
+  },
+  {
     files: [
       "src/main/**/*.ts",
       "src/preload/**/*.ts",

@@ -1,6 +1,6 @@
 {
   "name": "generador-qr",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "description": "Herramienta de escritorio interna de SICSAFT — genera e imprime las etiquetas QR/Code 128 de un cliente a partir de su Excel de activos, ANTES de que esos datos entren al sistema. La corre el equipo SICSAFT, no el cliente (Fase 5, reestructuración CCP/CIP). Ver README.md.",

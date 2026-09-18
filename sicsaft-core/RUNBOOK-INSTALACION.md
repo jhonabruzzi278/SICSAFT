@@ -1,9 +1,8 @@
 # Runbook — instalar y operar `sicsaft-core.exe` en un cliente (Nivel 2 / Modo Profesional)
 
 Ciclo de vida completo en la PC de un cliente: **instalar** (§1–§6), **actualizar** a una versión
-nueva (§9) y **respaldar / restaurar** los datos (§10). Camino `.exe` (Electron, sin
-Podman/Docker/WSL2). Para el camino Podman ver
-[`devops/onprem/README.md`](../devops/onprem/README.md).
+nueva (§9) y **respaldar / restaurar** los datos (§10). Camino `.exe` autocontenido (Electron, sin
+Podman/Docker/WSL2).
 
 Nomenclatura: [NOMENCLATURA.md](../NOMENCLATURA.md). Diseño del `.exe`:
 [DOC-028](../aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md) +
