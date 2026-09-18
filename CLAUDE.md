@@ -62,10 +62,8 @@ Fuentes de captura (APP SICSAFT/QR, CCP/WEB, RFID, ERP, ...)
   ni código entre sí.
 - **`base-patrimonial/`** — modelo de dominio de la BPI (Base Patrimonial Inteligente), documentado
   y versionado en `core/migrations/` (Postgres real).
-- **`devops/`** — infraestructura de despliegue on-premise por cliente ([`devops/onprem/`](devops/onprem/))
-  sobre **Podman** / Docker Compose (Keycloak 26 + Postgres + Traefik + backends y frontends),
-  empaquetada como instalador `.exe` con Inno Setup en `devops/onprem/installer/` y orquestada por
-  `sicsaft-core`. Los stacks multi-tenant en VPS (`local/` y `prod/`) fueron retirados a favor del `.exe`. Detalle en [devops/README.md](devops/README.md).
+- El substack `devops/onprem/` (Podman/Docker Compose) fue **retirado** (2026-09): la distribución
+  y el despliegue por cliente son 100% la app de escritorio `sicsaft-core/` (.exe, ver abajo).
 
 Estado real y detalle de cada sistema (qué está mockeado vs. real, endpoints, dependencias): tabla
 completa en [README.md](README.md) y el `README.md` propio de cada carpeta.
@@ -114,14 +112,16 @@ bun run test:e2e            # playwright test
 bun x playwright test archivo.spec.ts   # un solo archivo e2e
 ```
 
-**Despliegue On-Premise / .EXE** (Nivel 1/Nivel 2, Podman / Docker Compose con Keycloak 26):
-```powershell
-cd devops/onprem
-./instalar-cliente.ps1 -ClienteNombre "Nombre Cliente" -OrganizacionId "id-cliente" -Nivel 2
+**Instalador de escritorio / .EXE** (`sicsaft-core/`, Nivel 1 y Nivel 2 con el mismo binario):
+```bash
+cd sicsaft-core
+bun run dev            # Electron en modo dev, wizard de primera instalación
+bun run dist:win       # instalador NSIS real (prepack + electron-builder) — lento, usar solo cuando haga falta el .exe empaquetado
 ```
-Automatiza WSL2/Podman, genera `.env`, bootstrap de Keycloak (clientes OIDC provisionados automáticamente) y
-levanta el stack con smoke check al final. Empaquetado como instalador `.exe` (Inno Setup) en
-[`devops/onprem/installer/`](devops/onprem/installer). Ver [`devops/onprem/README.md`](devops/onprem/README.md).
+Sin Podman, sin Docker, sin WSL2: Postgres, Keycloak 26, `cis/`, `core/` y `cip/` corren como
+procesos nativos embebidos en la app Electron, orquestados por `service-orchestrator.ts`. Ver
+[`sicsaft-core/README.md`](sicsaft-core/README.md) y
+[`sicsaft-core/RUNBOOK-INSTALACION.md`](sicsaft-core/RUNBOOK-INSTALACION.md) para el paso a paso.
 
 **Herramienta ETL contable** (`herramientas/etl-contable/`, Python — DOC-029 RF-B):
 ```bash
@@ -251,8 +251,7 @@ aidlc-docs/
 
 ## Git / commits
 
-- `main` protegida — nunca push directo, siempre PR con CI en verde (ver
-  [`devops/README.md`](devops/README.md) Rama `main`).
+- `main` protegida — nunca push directo, siempre PR con CI en verde.
 - Nunca commitear directo a `main` — todo cambio, incluido este archivo, se hace en una rama
   propia y se mergea vía PR.
 - No borrar ramas, ni siquiera después de mergear el PR — ni localmente ni en el remoto.
