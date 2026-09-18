@@ -111,41 +111,6 @@ export class DashboardRepository {
     };
   }
 
-  // Marca una sesión como revisada por el Directivo — acción final desde la UI (Pantalla 8),
-  // sin endpoint de "des-revisar" (ver plan 2026-09-16). `revisadoPor` llega ya resuelto desde
-  // CIS (claim de Keycloak) — CIP no modela identidad, solo lo persiste como texto libre.
-  async marcarSesionRevisada(
-    sesionId: string,
-    revisadoPor: string,
-  ): Promise<VeredictoSesionResponse | null> {
-    const resultado = await this.pool.query<{
-      sesion_id: string;
-      area_id: string;
-      veredicto: string;
-      fecha_cierre: string;
-      revisado: boolean;
-      revisado_por: string | null;
-      revisado_en: string | null;
-    }>(
-      `UPDATE veredicto_sesion
-       SET revisado = true, revisado_por = $2, revisado_en = now()
-       WHERE sesion_id = $1
-       RETURNING sesion_id, area_id, veredicto, fecha_cierre, revisado, revisado_por, revisado_en`,
-      [sesionId, revisadoPor],
-    );
-    const fila = resultado.rows[0];
-    if (!fila) return null;
-    return {
-      sesionId: fila.sesion_id,
-      areaId: fila.area_id,
-      veredicto: fila.veredicto,
-      fechaCierre: fila.fecha_cierre,
-      revisado: fila.revisado,
-      revisadoPor: fila.revisado_por,
-      revisadoEn: fila.revisado_en,
-    };
-  }
-
   async listarFueraDeArea(
     organizacionId: string,
     areaId: string | undefined,

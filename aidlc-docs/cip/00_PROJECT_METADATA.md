@@ -7,9 +7,11 @@ y verificados con Postgres real — `cip/` es un backend NestJS real, no un mock
 `cip/README.md`). DOC-026 (inteligencia decisional, 8 preguntas) sigue siendo **solo diseño, sin
 código** — es el próximo incremento de Construction.
 
-**Primera escritura de CIP**: el endpoint `PATCH /dashboard/sesiones/:sesionId/revisar` (marca una
-sesión como revisada desde el organigrama del Directivo) ya está documentado en
-[`DOC-036-marcar-sesion-revisada-cip.md`](DOC-036-marcar-sesion-revisada-cip.md).
+**CIP volvió a ser 100% lectura**: el endpoint `PATCH /dashboard/sesiones/:sesionId/revisar`
+([`DOC-036`](design-artifacts/DOC-036-marcar-sesion-revisada-cip.md), única escritura que llegó a
+tener) fue **retirado** el 2026-09-17 junto con los indicadores de color del organigrama — eran la
+misma funcionalidad. Ver [`DOC-037`](design-artifacts/DOC-037-linea-base-pestanas-cip.md) §5. Las
+columnas de `veredicto_sesion` y su migración siguen en la base: el retiro es reversible.
 
 ## Quick links
 - Intent: [`requirements/INTENT.md`](requirements/INTENT.md)
@@ -21,7 +23,8 @@ sesión como revisada desde el organigrama del Directivo) ya está documentado e
 - Servicio NestJS, migraciones, worker y API: [`design-artifacts/DOC-018-cip-servicio-nestjs.md`](design-artifacts/DOC-018-cip-servicio-nestjs.md)
 - Inteligencia decisional (8 preguntas, solo diseño): [`design-artifacts/DOC-026-cip-inteligencia-decisional.md`](design-artifacts/DOC-026-cip-inteligencia-decisional.md)
 - Alertas entrelazadas + historial nocturno: [`design-artifacts/DOC-034-alertas-entrelazadas-reportes.md`](design-artifacts/DOC-034-alertas-entrelazadas-reportes.md)
-- Marcar sesión revisada (primera escritura de CIP): [`design-artifacts/DOC-036-marcar-sesion-revisada-cip.md`](design-artifacts/DOC-036-marcar-sesion-revisada-cip.md)
+- Marcar sesión revisada (**retirado**, ver DOC-037 §5): [`design-artifacts/DOC-036-marcar-sesion-revisada-cip.md`](design-artifacts/DOC-036-marcar-sesion-revisada-cip.md)
+- **Línea base congelada de las 4 secciones del CIP** (Resumen, Activos, Reportes, Alarmas) — *no se modifican sin un documento que lo formalice*: [`design-artifacts/DOC-037-linea-base-pestanas-cip.md`](design-artifacts/DOC-037-linea-base-pestanas-cip.md)
 - Estrategia de testing: [`testing/TEST_STRATEGY.md`](testing/TEST_STRATEGY.md)
 
 ## Checklist de Inception (incremento base, cerrado)

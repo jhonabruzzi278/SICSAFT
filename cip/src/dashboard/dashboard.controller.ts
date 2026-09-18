@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  NotFoundException,
-  Param,
-  Patch,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ServiceTokenGuard } from '../common/auth/service-token.guard';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { DashboardRepository } from './dashboard.repository';
@@ -20,7 +11,6 @@ import {
   historicoQuerySchema,
   incidenciasQuerySchema,
   noLocalizadosQuerySchema,
-  revisarSesionSchema,
   sesionesQuerySchema,
   veredictosQuerySchema,
   type AreasQuery,
@@ -31,7 +21,6 @@ import {
   type HistoricoQuery,
   type IncidenciasQuery,
   type NoLocalizadosQuery,
-  type RevisarSesionBody,
   type SesionesQuery,
   type VeredictosQuery,
 } from './dashboard.schemas';
@@ -99,26 +88,6 @@ export class DashboardController {
       this.repository.obtenerSyncInfo(),
     ]);
     return { ...pagina, ...sync };
-  }
-
-  // Notificaciones del organigrama (2026-09-16) — acción final desde Pantalla 8, sin
-  // "des-revisar". 404 si la sesión no existe en `veredicto_sesion` (aún no llegó el evento
-  // `sesion-cerrada` desde CORE, o el sesionId es incorrecto).
-  @Patch('sesiones/:sesionId/revisar')
-  async revisarSesion(
-    @Param('sesionId') sesionId: string,
-    @Body(new ZodValidationPipe(revisarSesionSchema)) body: RevisarSesionBody,
-  ): Promise<VeredictoSesionResponse> {
-    const actualizada = await this.repository.marcarSesionRevisada(
-      sesionId,
-      body.revisadoPor,
-    );
-    if (!actualizada) {
-      throw new NotFoundException(
-        `No existe la sesión ${sesionId} en veredicto_sesion`,
-      );
-    }
-    return actualizada;
   }
 
   @Get('fuera-de-area')

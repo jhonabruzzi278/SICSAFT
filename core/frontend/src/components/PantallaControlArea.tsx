@@ -4,7 +4,6 @@ import {
   type ActivoCatalogo,
   type ResumenControlArea,
 } from '@/lib/cis-client';
-import { dashboardClient } from '@/lib/dashboard-client';
 import {
   estiloVeredicto,
   etiquetaTipo,
@@ -15,7 +14,7 @@ import {
   generarPdfInformeControl,
   type InformeControlPdfFila,
 } from '@/lib/pdf-informe-control';
-import { Alert, Button, Modal } from '@/components/ui';
+import { Alert, Button } from '@/components/ui';
 import { KpiCard } from '@/components/KpiCard';
 import { PieChart } from '@/components/PieChart';
 import { IconDownload, IconMapPin } from '@/components/icons';
@@ -172,25 +171,11 @@ export function PantallaControlArea({
   const [catalogo, setCatalogo] = useState<ActivoCatalogo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [listaActiva, setListaActiva] = useState<ListaId>('escaneados');
-  // Notificaciones del organigrama (2026-09-16) — estado puramente local: no hay lectura previa
-  // de "¿ya estaba revisada?" (esa info vive en veredicto_sesion de CIP, no en este resumen de
-  // CORE); el botón siempre parte visible si el veredicto no es exitoso, y pasa a "Revisado el…"
-  // recién con la respuesta del PATCH. Acción final, sin des-revisar (confirmado por el usuario).
-  const [mostrarConfirmarRevisar, setMostrarConfirmarRevisar] = useState(false);
-  const [marcandoRevisado, setMarcandoRevisado] = useState(false);
-  const [errorRevisar, setErrorRevisar] = useState<string | null>(null);
-  const [revisado, setRevisado] = useState<{
-    por: string;
-    en: string;
-  } | null>(null);
-
   useEffect(() => {
     let ignorar = false;
     setResumen(null);
     setError(null);
     setListaActiva('escaneados');
-    setRevisado(null);
-    setErrorRevisar(null);
     void (async () => {
       try {
         const res = await cisClient.getInventarioResumenControl(sesionId);
@@ -280,25 +265,6 @@ export function PantallaControlArea({
     }
     return lista;
   }, [resumen]);
-
-  async function confirmarRevisar() {
-    setMarcandoRevisado(true);
-    setErrorRevisar(null);
-    try {
-      const actualizado = await dashboardClient.marcarRevisado(sesionId);
-      setRevisado({
-        por: actualizado.revisadoPor ?? '',
-        en: actualizado.revisadoEn ?? new Date().toISOString(),
-      });
-      setMostrarConfirmarRevisar(false);
-    } catch (err: unknown) {
-      setErrorRevisar(
-        err instanceof Error ? err.message : 'No se pudo marcar como revisado',
-      );
-    } finally {
-      setMarcandoRevisado(false);
-    }
-  }
 
   function descargarPdf() {
     if (!resumen) return;
@@ -445,20 +411,6 @@ export function PantallaControlArea({
               Proceso {veredicto.etiqueta}
             </p>
           </div>
-          {resumen.veredicto !== 'exitoso' &&
-            (revisado ? (
-              <span className="text-xs text-text-dim">
-                Revisado el {fecha(revisado.en)}
-              </span>
-            ) : (
-              <Button
-                variant="secondary"
-                className="px-3 py-2 text-xs"
-                onClick={() => setMostrarConfirmarRevisar(true)}
-              >
-                Marcar como revisado
-              </Button>
-            ))}
           <Button
             variant="secondary"
             className="gap-1.5 px-3 py-2 text-xs"
@@ -557,42 +509,6 @@ export function PantallaControlArea({
         Operador: {nombreOperador(resumen.operadorId)} · Datos vía CIS/CIP,
         actualizados al cierre de la sesión.
       </p>
-
-      <Modal
-        open={mostrarConfirmarRevisar}
-        onClose={() => setMostrarConfirmarRevisar(false)}
-        ancho="max-w-md"
-      >
-        <div className="space-y-4 p-6">
-          <h3 className="text-base font-bold text-text">
-            Marcar reporte como revisado
-          </h3>
-          <p className="text-sm text-text-dim">
-            Esta sesión va a dejar de contar como notificación pendiente en el
-            organigrama de Controles de área. Es una acción final — no se puede
-            deshacer.
-          </p>
-          {errorRevisar && <Alert variant="error">{errorRevisar}</Alert>}
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="secondary"
-              className="px-3 py-2 text-xs"
-              onClick={() => setMostrarConfirmarRevisar(false)}
-              disabled={marcandoRevisado}
-            >
-              Volver atrás
-            </Button>
-            <Button
-              variant="primary"
-              className="px-3 py-2 text-xs"
-              onClick={() => void confirmarRevisar()}
-              disabled={marcandoRevisado}
-            >
-              {marcandoRevisado ? 'Marcando…' : 'Aceptar'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

@@ -25,7 +25,7 @@ export function LoginPage() {
         </div>
         <div className="px-6 py-6 text-center">
           <h1 className="text-xl font-semibold text-accent-strong">
-            Portal del Directivo
+            Modelo Inteligente de Gestión Patrimonial
           </h1>
           <p className="mt-2 mb-6 text-sm text-text-dim">
             Iniciá sesión con tu cuenta de la organización para ver el dashboard

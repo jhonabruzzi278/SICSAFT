@@ -56,7 +56,9 @@ const NAV_ITEMS_CIP = [
   {
     path: '/dashboard/controles-area',
     matches: ['/dashboard/controles-area'],
-    nombre: 'Controles de área',
+    // DOC-037 — "Controles de área" pasó a llamarse "Reportes" (línea de nomenclatura de
+    // reportes). La ruta se mantiene: es parte de enlaces ya compartidos.
+    nombre: 'Reportes',
     icon: IconMapPin,
   },
   {
@@ -91,7 +93,9 @@ function Sidebar() {
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         <p className="px-3 pb-1.5 text-[0.7rem] font-semibold tracking-wide text-text-faint uppercase">
-          {nivel2 ? 'CIP — Nivel 2' : 'Directivo'}
+          {/* DOC-037 — el encabezado nombra el nivel instalado que ya resolvía `esNivel2()`
+              (lib/nivel.ts, alimentado por VITE_SICSAFT_NIVEL). Cambio visual: no gatea nada. */}
+          {nivel2 ? 'Nivel 2. QR + Dashboard' : 'Nivel 1. QR'}
         </p>
         {navItems.map(({ path, matches, nombre, icon: Icon }) => {
           // DOC-035 — "Controles de área" ganó sub-rutas (/reportes, /reporte/:sesionId): además
@@ -158,8 +162,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             SICSAFT
           </Link>
-          <span className="hidden text-sm font-medium text-text-dim lg:block">
-            Portal del Directivo
+          <span className="hidden text-sm font-semibold text-accent-strong lg:block">
+            Modelo Inteligente de Gestión Patrimonial
           </span>
           {authenticated && (
             <div className="flex items-center gap-3 text-sm">

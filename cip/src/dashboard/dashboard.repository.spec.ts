@@ -123,58 +123,6 @@ describe('DashboardRepository', () => {
     });
   });
 
-  describe('marcarSesionRevisada', () => {
-    it('actualiza y devuelve la fila revisada', async () => {
-      const queries: Array<{ sql: string; params: unknown[] }> = [];
-      const pool = buildPool((sql, params) => {
-        queries.push({ sql, params: params ?? [] });
-        return {
-          rows: [
-            {
-              sesion_id: 'ses-1',
-              area_id: 'area-1',
-              veredicto: 'defectuoso',
-              fecha_cierre: '2026-01-01T00:00:00.000Z',
-              revisado: true,
-              revisado_por: 'directivo@org.test',
-              revisado_en: '2026-01-02T00:00:00.000Z',
-            },
-          ],
-        };
-      });
-      const repository = new DashboardRepository(pool);
-
-      const fila = await repository.marcarSesionRevisada(
-        'ses-1',
-        'directivo@org.test',
-      );
-
-      expect(fila).toEqual({
-        sesionId: 'ses-1',
-        areaId: 'area-1',
-        veredicto: 'defectuoso',
-        fechaCierre: '2026-01-01T00:00:00.000Z',
-        revisado: true,
-        revisadoPor: 'directivo@org.test',
-        revisadoEn: '2026-01-02T00:00:00.000Z',
-      });
-      expect(queries[0].sql).toContain('UPDATE veredicto_sesion');
-      expect(queries[0].params).toEqual(['ses-1', 'directivo@org.test']);
-    });
-
-    it('devuelve null si la sesión no existe', async () => {
-      const pool = buildPool(() => ({ rows: [] }));
-      const repository = new DashboardRepository(pool);
-
-      await expect(
-        repository.marcarSesionRevisada(
-          'ses-inexistente',
-          'directivo@org.test',
-        ),
-      ).resolves.toBeNull();
-    });
-  });
-
   describe('listarFueraDeArea', () => {
     it('filtra por area_esperada_id cuando se pasa areaId', async () => {
       const queries: Array<{ sql: string; params: unknown[] }> = [];

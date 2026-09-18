@@ -38,6 +38,9 @@ no funde los conceptos: el CCP es el continente operativo, CIP la capa analític
 | **Base Patrimonial Central** | **BPI — Base Patrimonial Inteligente** | Depreciada formalmente (2026-09-02, Tomo IV). Los `aidlc-docs/**/DOC-XXX.md` y diagramas anteriores a esta fecha son *snapshots*: conservan su texto; el trabajo nuevo usa BPI. |
 | "la WEB" / "el Dashboard" como nombre del portal AFT | **CCP** | La WEB del Profesional de AFT **es** el CCP; "Dashboard" es solo uno de sus módulos. |
 | "web-aft liviano" (portal AFT de Nivel 1 nunca construido) · "CCP acotado en Nivel 1" | **CCP** (a secas — es el mismo en todos los niveles) | El CCP está **completo** en todos los niveles (2026-09-02). Lo único que Nivel 2 agrega es el **Dashboard/indicadores**, que es **CIP**. No es una app distinta. Flag `VITE_SICSAFT_NIVEL` (DOC-029 RF-A). |
+| **Portal del Directivo** (como texto en pantalla) | **Modelo Inteligente de Gestión Patrimonial** | Depreciado como rótulo visible (2026-09-17, [DOC-037](aidlc-docs/cip/design-artifacts/DOC-037-linea-base-pestanas-cip.md) §1). Sigue siendo válido como **nombre del sistema** `core/frontend/` en documentación y arquitectura. |
+| **Controles de Área y Contrastación BPI** (sección del CIP) | **Reportes** | Renombrada 2026-09-17 ([DOC-037](aidlc-docs/cip/design-artifacts/DOC-037-linea-base-pestanas-cip.md) §3), inicia la línea de nomenclatura de reportes del CIP. La ruta sigue siendo `/dashboard/controles-area` a propósito (enlaces ya compartidos). |
+| **AFT fuera de lugar** (como alarma del CIP) | **AFT Extraviado** | 2026-09-17 ([DOC-037](aidlc-docs/cip/design-artifacts/DOC-037-linea-base-pestanas-cip.md) §4). Las alarmas pasaron a ser los AFT que el control **no encontró** (`faltantes`), no los encontrados en otra área. "Extraviado" ya era el término del resto del sistema. |
 
 ## 3. Los tres conceptos patrimoniales — no confundir
 

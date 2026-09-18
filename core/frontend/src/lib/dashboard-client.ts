@@ -115,25 +115,6 @@ async function authorizedFetch(
   return res;
 }
 
-// Notificaciones del organigrama (2026-09-16) — única escritura de este cliente. Sin body: CIS
-// deriva revisadoPor del propio JWT (requireAuthContext), nunca lo manda el navegador.
-async function authorizedPatch(path: string): Promise<Response> {
-  const config = loadOidcConfig();
-  const accessToken = await oidcClient.getValidAccessToken();
-  const res = await fetch(`${config.cisUrl}${path}`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new CisApiError(
-      res.status,
-      body.message ?? `CIS devolvió ${res.status}`,
-    );
-  }
-  return res;
-}
-
 export const dashboardClient = {
   async getCobertura(organizacionId: string): Promise<Cobertura> {
     const res = await authorizedFetch('/dashboard/cobertura', {
@@ -186,13 +167,6 @@ export const dashboardClient = {
       if (pagina.items.length === 0 || sesiones.length >= pagina.total) break;
     }
     return sesiones;
-  },
-
-  async marcarRevisado(sesionId: string): Promise<VeredictoSesion> {
-    const res = await authorizedPatch(
-      `/dashboard/sesiones/${encodeURIComponent(sesionId)}/revisar`,
-    );
-    return (await res.json()) as VeredictoSesion;
   },
 
   async getFueraDeArea(
