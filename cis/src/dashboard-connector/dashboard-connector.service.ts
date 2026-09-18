@@ -6,8 +6,10 @@ import type {
   CoberturaResult,
   EstadoActivosResult,
   FueraDeAreaResult,
+  HistoricoResult,
   IncidenciasResult,
   NoLocalizadosResult,
+  RevisarSesionResult,
   SesionesResult,
   VeredictosResult,
 } from '../cip-client/cip-client.types';
@@ -43,6 +45,18 @@ export class DashboardConnectorService {
       organizacionId,
       areaId,
       { limit, offset },
+      correlationId,
+    );
+  }
+
+  revisarSesion(
+    sesionId: string,
+    revisadoPor: string,
+    correlationId: string,
+  ): Promise<RevisarSesionResult> {
+    return this.cipClientService.revisarSesion(
+      sesionId,
+      revisadoPor,
       correlationId,
     );
   }
@@ -115,6 +129,24 @@ export class DashboardConnectorService {
     return this.cipClientService.getCategorias(
       organizacionId,
       areaId,
+      correlationId,
+    );
+  }
+
+  // DOC-034 Parte B
+  getHistorico(
+    organizacionId: string,
+    desde: string | undefined,
+    hasta: string | undefined,
+    limit: number,
+    offset: number,
+    correlationId: string,
+  ): Promise<HistoricoResult> {
+    return this.cipClientService.getHistorico(
+      organizacionId,
+      desde,
+      hasta,
+      { limit, offset },
       correlationId,
     );
   }

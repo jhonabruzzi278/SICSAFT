@@ -5,10 +5,10 @@ describe('cip: calcularVeredicto (Contrato Canónico)', () => {
     expect(calcularVeredicto(0, 0)).toBe('exitoso');
   });
 
-  it('Caso 2: aceptable cuando falta algo pero nada aparece fuera de área (faltantes > 0, fueraDeArea = 0)', () => {
-    expect(calcularVeredicto(1, 0)).toBe('aceptable');
-    expect(calcularVeredicto(2, 0)).toBe('aceptable');
-    expect(calcularVeredicto(99, 0)).toBe('aceptable');
+  it('Caso 2: defectuoso cuando falta algo aunque nada aparezca fuera de área (faltantes > 0, fueraDeArea = 0)', () => {
+    expect(calcularVeredicto(1, 0)).toBe('defectuoso');
+    expect(calcularVeredicto(2, 0)).toBe('defectuoso');
+    expect(calcularVeredicto(99, 0)).toBe('defectuoso');
   });
 
   it('Caso 3: aceptable cuando aparece algo fuera de área pero no falta nada (faltantes = 0, fueraDeArea > 0)', () => {

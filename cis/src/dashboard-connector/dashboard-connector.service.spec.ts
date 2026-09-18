@@ -12,12 +12,14 @@ describe('DashboardConnectorService', () => {
       getCobertura: jest.fn(),
       getAreas: jest.fn(),
       getSesiones: jest.fn(),
+      revisarSesion: jest.fn(),
       getFueraDeArea: jest.fn(),
       getNoLocalizados: jest.fn(),
       getIncidencias: jest.fn(),
       getEstadoActivos: jest.fn(),
       getVeredictos: jest.fn(),
       getCategorias: jest.fn(),
+      getHistorico: jest.fn(),
     } as unknown as jest.Mocked<CipClientService>;
     service = new DashboardConnectorService(cipClientService);
   });
@@ -70,6 +72,28 @@ describe('DashboardConnectorService', () => {
       'duoc-uc',
       'area-1',
       { limit: 20, offset: 0 },
+      'correlation-test',
+    );
+  });
+
+  it('revisarSesion delega en CipClientService', async () => {
+    const expected = {
+      sesionId: 'ses-1',
+      areaId: 'area-1',
+      veredicto: 'defectuoso',
+      fechaCierre: '2026-01-01T00:00:00.000Z',
+      revisado: true,
+      revisadoPor: 'kc-sub-directivo',
+      revisadoEn: '2026-01-02T00:00:00.000Z',
+    };
+    cipClientService.revisarSesion.mockResolvedValue(expected);
+
+    await expect(
+      service.revisarSesion('ses-1', 'kc-sub-directivo', 'correlation-test'),
+    ).resolves.toBe(expected);
+    expect(cipClientService.revisarSesion).toHaveBeenCalledWith(
+      'ses-1',
+      'kc-sub-directivo',
       'correlation-test',
     );
   });
@@ -159,6 +183,29 @@ describe('DashboardConnectorService', () => {
     expect(cipClientService.getCategorias).toHaveBeenCalledWith(
       'duoc-uc',
       'area-1',
+      'correlation-test',
+    );
+  });
+
+  it('getHistorico delega en CipClientService (DOC-034 Parte B)', async () => {
+    const expected = { items: [], total: 0, actualizadoEn: null, alDia: true };
+    cipClientService.getHistorico.mockResolvedValue(expected);
+
+    await expect(
+      service.getHistorico(
+        'duoc-uc',
+        '2026-09-01',
+        '2026-09-14',
+        20,
+        0,
+        'correlation-test',
+      ),
+    ).resolves.toBe(expected);
+    expect(cipClientService.getHistorico).toHaveBeenCalledWith(
+      'duoc-uc',
+      '2026-09-01',
+      '2026-09-14',
+      { limit: 20, offset: 0 },
       'correlation-test',
     );
   });

@@ -481,8 +481,8 @@ veredicto de sesión (exitoso/aceptable/defectuoso) se recalcula del lado de CIP
 el contrato de escritura de CORE — ver DOC-014 5.
 
 **Construction, primer incremento (2026-08-18) — lado de CORE, ✅ completo**: migración
-`eventos_outbox` + trigger, `EventosOutboxDispatcher` (Redis/BullMQ), ver `core/README.md` 
-"Outbox transaccional hacia CIP".
+`eventos_outbox` + trigger, `EventosOutboxDispatcher` (Redis/BullMQ en este incremento, reemplazado
+por `pg-boss` poco después — ver ADR-005), ver `core/README.md` "Outbox transaccional hacia CIP".
 
 **Construction, segundo incremento (2026-08-18) — servicio `cip/`, ✅ completo**: esqueleto
 NestJS propio (`cip/src/`), base de datos `cip` separada de `core` con 8 tablas de agregados,
@@ -520,7 +520,7 @@ navegador contra MSW; pendiente verificación real de punta a punta contra CIS/C
   si aparece un consumidor real.
 - **Patrón a adoptar acá, no antes**: transactional outbox para la publicación de eventos hacia
   CIP/Alertas — el Motor de Eventos hoy (Fase 2) solo inserta en `eventos`, sin publicar a nadie;
-  el día que CIP consuma eventos en (casi) tiempo real vía la cola de Redis/BullMQ (ADR-001),
+  el día que CIP consuma eventos en (casi) tiempo real vía una cola (`pg-boss`, ADR-005),
   escribir en Postgres y publicar en la cola dejan de ser atómicos (riesgo de perder o duplicar
   eventos si el proceso muere entre medio). El patrón estándar: insertar el evento y un registro
   "pendiente de publicar" en la misma transacción; un worker aparte lo despacha con reintentos.
@@ -534,6 +534,14 @@ navegador contra MSW; pendiente verificación real de punta a punta contra CIS/C
 
 **Done**: CIP no toca la base transaccional en ninguna consulta (verificable en código);
 dashboard degrada a "últimos datos conocidos" si la fuente está caída (WAF 8); DOC-014.
+
+**Incrementos posteriores (2026-09), fuera de la numeración RF-01/RF-10 pero ya reales**: alertas
+entrelazadas con su reporte + historial nocturno
+([DOC-034](aidlc-docs/cip/design-artifacts/DOC-034-alertas-entrelazadas-con-reportes.md)),
+organigrama de Controles de área + PDF en `core/frontend/`
+([DOC-035](aidlc-docs/core/design-artifacts/DOC-035-organigrama-controles-de-area.md)), y la
+primera escritura de CIP para marcar una sesión revisada
+([DOC-036](aidlc-docs/cip/design-artifacts/DOC-036-marcar-sesion-revisada-cip.md)).
 
 ## Fase 7 — CON-CONTABILIDAD [diseño cerrado, DOC-016 — código pendiente]
 

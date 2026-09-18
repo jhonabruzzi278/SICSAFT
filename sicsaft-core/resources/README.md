@@ -70,7 +70,18 @@ descomprimido).
     `ingesta-watcher.ts` no puede correr el ETL y en el `.exe` solo queda la carga manual de CSV
     desde el CCP (`prepack.cjs` avisa y sigue). En **dev** no hace falta: `resolverRutasEtl()` usa
     el `python` del sistema + `herramientas/etl-contable/` directo (o `SICSAFT_ETL_PYTHON` para
-    apuntar a un venv concreto).
+   apuntar a un venv concreto).
+
+- **`generador-qr/`** (Fase 5 CCP/CIP) — copia del build `win-unpacked` de la herramienta Electron
+  interna `herramientas/generador-qr/`. `scripts/prepack.cjs` ejecuta su `bun run pack` y lo copia
+  automáticamente antes de `electron-builder`; el instalador principal crea accesos directos al
+  ejecutable `SICSAFT Generador QR.exe`. Es un segundo runtime Electron autocontenido dentro del
+  instalador, no una dependencia del portal ni un servicio del cliente.
+
+- **`ccp-desktop/`** (DOC-028 Fase G) — copia del build `win-unpacked` del launcher Electron para
+  el puesto remoto del Profesional de AFT. `scripts/prepack.cjs` ejecuta su `bun run pack` y el
+  instalador principal crea accesos directos a `SICSAFT CCP.exe`. El launcher no contiene backend:
+  descubre la PC madre por UDP, valida el fingerprint TLS y abre el CCP servido por `sicsaft-core`.
 
 Sin `redis/`: [ADR-005](../../adr/ADR-005-postgres-pgboss-reemplaza-redis.md) (2026-08-27) sacó a
 Redis del ecosistema completo — `cis/` mueve su rate-limiter/device-registry a memoria del propio

@@ -1,4 +1,10 @@
-# CU-INV — Inventarios
+# Inventarios y Control Físico (CU-INV) — Relevamiento con QR y Conciliación
+
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué es?**: Ejecución del relevamiento físico de bienes mediante escaneo de códigos QR desde el teléfono móvil, detección en tiempo real de faltantes o activos fuera de área, y emisión del informe oficial de control (Pantalla 8).
+> - **Veredicto Automático**: Cada sesión de relevamiento finaliza con un resultado inmutable: `exitoso` (verde, 100% verificado), `aceptable` (amarillo, observaciones menores) o `defectuoso` (rojo, discrepancias graves).
+> - **Actores**: Operador de Inventario (usa la APP Móvil QR) y Administrador/Supervisor (revisa en CCP).
+> - **Estado Real**: 🟢 **Relevamiento QR Implementado (`CU-INV-002`)**: Clasificación de escaneo en memoria y en backend. Cierre e informe de área Pantalla 8 (`CU-INV-004`) activos en APP y Web (RF-I).
 
 Dominio §12.14–§12.17. Reglas INV-001…INV-006 (tomo). Componentes: APP QR (`app-qr-sicsaft/`),
 `cis/`, `core/` (Motor de Reglas + Motor Patrimonial + Auditoría), `cip/` (veredicto + dashboard),

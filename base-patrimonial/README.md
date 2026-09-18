@@ -10,10 +10,11 @@ Administrar el ciclo de vida completo de cada Activo Fijo Tangible (AFT), garant
 
 ## Estado
 
-🟡 Modelo de datos implementado en PostgreSQL mediante migraciones versionadas (`core/migrations/`):
+🟢 Modelo de datos implementado en PostgreSQL mediante migraciones versionadas (`core/migrations/`)
+**y API transaccional operativa de punta a punta** (100% de cobertura, e2e contra Postgres real):
 - **Entitlements & Contratos** ([DOC-004](DOC-004-modelo-contrato.md)): Tablas `organizaciones`, `sedes`, `contratos` con máquina de estados y unicidad de contrato activo.
 - **Modelo Patrimonial Esencial** ([DOC-005](DOC-005-modelo-patrimonial.md)): Tablas `areas`, `ubicaciones`, `responsables`, `catalogo_activos`, `activos`, `sesiones_inventario`, `inventarios`, `eventos_patrimoniales`, `auditoria`.
-- **API Transaccional**: Servida por `core/` y expuesta a clientes mediante `cis/`.
+- **API Transaccional**: Servida por `core/` y expuesta a clientes mediante `cis/` — no es solo el modelo de datos, los 4 motores (Patrimonial, Reglas, Eventos, Auditoría) escriben y leen contra estas tablas en producción.
 
 ## Los 11 Dominios Patrimoniales
 

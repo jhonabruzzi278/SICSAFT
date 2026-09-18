@@ -11,6 +11,9 @@ export interface OrgLocation {
 export interface OrgArea {
   id: string;
   name: string;
+  // DOC-033 — "Dirección" (`areas.dependencia` en CORE): agrupa áreas para el selector de
+  // escaneo. `null`/`undefined` cuando el área no la tiene cargada (cliente simple).
+  direccion?: string | null;
   locations: OrgLocation[];
 }
 

@@ -9,7 +9,9 @@ function buildRepository(): jest.Mocked<DashboardRepository> {
     obtenerCobertura: jest.fn(),
     listarAreas: jest.fn().mockResolvedValue([]),
     listarSesiones: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+    marcarSesionRevisada: jest.fn(),
     listarFueraDeArea: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+    listarHistorico: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     listarNoLocalizados: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     listarIncidencias: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     listarEstadoActivos: jest.fn().mockResolvedValue([]),
@@ -91,6 +93,45 @@ describe('DashboardController', () => {
     expect(resultado).toEqual({ items: [], total: 0, ...SYNC });
   });
 
+  it('revisarSesion delega en el repositorio y devuelve la fila actualizada', async () => {
+    const repository = buildRepository();
+    const fila = {
+      sesionId: 'ses-1',
+      areaId: 'area-1',
+      veredicto: 'defectuoso',
+      fechaCierre: '2026-01-01T00:00:00.000Z',
+      revisado: true,
+      revisadoPor: 'directivo@org.test',
+      revisadoEn: '2026-01-02T00:00:00.000Z',
+    };
+    repository.marcarSesionRevisada.mockResolvedValue(fila);
+    const controller = new DashboardController(repository);
+
+    const resultado = await controller.revisarSesion('ses-1', {
+      revisadoPor: 'directivo@org.test',
+    });
+
+    expect(repository.marcarSesionRevisada).toHaveBeenCalledWith(
+      'ses-1',
+      'directivo@org.test',
+    );
+    expect(resultado).toEqual(fila);
+  });
+
+  it('revisarSesion tira NotFoundException si la sesión no existe', async () => {
+    const repository = buildRepository();
+    repository.marcarSesionRevisada.mockResolvedValue(null);
+    const controller = new DashboardController(repository);
+
+    await expect(
+      controller.revisarSesion('ses-inexistente', {
+        revisadoPor: 'directivo@org.test',
+      }),
+    ).rejects.toThrow(
+      'No existe la sesión ses-inexistente en veredicto_sesion',
+    );
+  });
+
   it('getFueraDeArea pasa areaId/limit/offset', async () => {
     const repository = buildRepository();
     const controller = new DashboardController(repository);
@@ -105,6 +146,27 @@ describe('DashboardController', () => {
     expect(repository.listarFueraDeArea).toHaveBeenCalledWith(
       'org-1',
       'area-1',
+      10,
+      0,
+    );
+  });
+
+  it('getHistorico pasa desde/hasta/limit/offset', async () => {
+    const repository = buildRepository();
+    const controller = new DashboardController(repository);
+
+    await controller.getHistorico({
+      organizacionId: 'org-1',
+      desde: '2026-09-01',
+      hasta: '2026-09-14',
+      limit: 10,
+      offset: 0,
+    });
+
+    expect(repository.listarHistorico).toHaveBeenCalledWith(
+      'org-1',
+      '2026-09-01',
+      '2026-09-14',
       10,
       0,
     );

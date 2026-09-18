@@ -4,6 +4,12 @@
 > **Alcance**: repo completo — 40.0k líneas de código fuente, 31.1k de test, 126 documentos.
 > **Instrumentación**: `herramientas/revision-codigo/inventario.mjs` ·
 > [grafo interactivo](../diagrams/grafo-revision-codigo.html)
+>
+> **Nota de frescura (2026-09-17)**: las cifras de este documento (LOC, `pctComentario`,
+> `ratioTest`, hallazgos H-XX) son del snapshot con el que se escribió. `herramientas/revision-codigo/inventario.json`
+> ya se regeneró desde entonces (LOC 48.244→51.510, `sicsaft-core` `pctComentario` 22,1%→20,1%,
+> `ratioTest` 0,87→0,79) — quien retome esta fase debe correr `inventario.mjs` de nuevo y refrescar
+> la tabla antes de fase 1, no asumir que los números de abajo siguen vigentes.
 
 ## Por qué acá y no bajo un sistema
 

@@ -40,18 +40,19 @@ en 2026-09 — su función pasó a intervención directa del proveedor.
 | Módulo | Acción | `administrador-patrimonial` | `directivo` | Guard / mecanismo |
 |---|---|:---:|:---:|---|
 | **Activos** | Consultar | ⚠️ | ⚠️ | Sin chequeo de rol, solo autenticación (`GET /admin/catalogo`) |
-| | Alta / Baja / Reincorporación | ✅ | ✅ | `verificarRolAdministradorPatrimonialODirectivo` en `OrquestadorService.ejecutarOperacionOficial` (Fase 3, 2026-09-13 — antes solo `administrador-patrimonial`; ver 4b) |
-| | Modificar responsable / descripción | ✅ | ✅ | ídem |
+| | Alta / Baja / Reincorporación | ✅ | ➖ | `verificarRolAdministradorPatrimonial` en `OrquestadorService.ejecutarOperacionOficial`; el CIP del Directivo es solo lectura |
+| | Modificar responsable / descripción | ✅ | ➖ | ídem |
 | **Catálogo Tipo Activo** | Consultar | ⚠️ | ⚠️ | Sin chequeo de rol |
-| | Crear | ✅ | ✅ | `verificarRolAdministradorPatrimonialODirectivo` (Fase 3) |
+| | Crear | ✅ | ➖ | `verificarRolAdministradorPatrimonial`; el CIP no crea tipos |
 | **Documentos de Activo** | Consultar | ⚠️ | ⚠️ | Sin chequeo de rol |
-| | Adjuntar / Eliminar | ✅ | ✅ | `verificarRolAdministradorPatrimonialODirectivo` (Fase 3) |
+| | Adjuntar / Eliminar | ✅ | ➖ | `verificarRolAdministradorPatrimonial`; el CIP solo consulta documentos |
 | **Importaciones contables** | Ejecutar (masiva) + bandeja de staging | ✅ | ➖ | `verificarRolAdministradorPatrimonial` |
 | **Áreas / Ubicaciones / Responsables** | Consultar | ⚠️ | ➖ | Sin chequeo de rol |
 | | Crear / Modificar | ✅ | ➖ | `verificarRolAdministradorPatrimonial` |
 | **Profesional de AFT** (Keycloak, org propia) | Consultar / Designar | ➖ | ✅ | `DirectivoGuard` — organización **derivada siempre del JWT**, nunca de la ruta/body |
 | **Auditoría** | Consultar | ⚠️ | ➖ | Sin chequeo de rol |
 | **Dashboard** (CIP, vía CIS) | Consultar | ⚠️ | ⚠️ | Sin chequeo de rol — accesible a cualquier operador autenticado |
+| | Marcar sesión revisada (`PATCH /dashboard/sesiones/:sesionId/revisar`) | ➖ | ✅ | `DirectivoGuard` — primera escritura del módulo, ver [DOC-036](../../cip/design-artifacts/DOC-036-marcar-sesion-revisada-cip.md) |
 | **Inventarios** (sesiones QR/RFID) | Crear / Consultar | ⚠️ | ⚠️ | Sin chequeo de rol — módulo de fuente de captura, no exclusivo de este portal. Consultar (lista/detalle/Pantalla 8) ahora también se muestra en el CIP como "Controles de área" (Fase 4, `ControlesAreaTab.tsx`) — solo lectura, sin cambio de guard |
 
 **Organización / Sede / Contrato (escritura) e Indicadores de plataforma** ya no aparecen en la
@@ -93,20 +94,13 @@ En la práctica esto no expone datos entre organizaciones (`administrador-patrim
 organización A no puede ver activos de la organización B — eso sí está enforced, cada request de
 lectura exige `organizacionId` y CORE no filtra por rol pero sí siempre por esa organización).
 
-## 4b. Fase 3 (reestructuración CCP/CIP, 2026-09-13) — Activos ahora también acepta `directivo`
+## 4b. Fase 3/6 (reestructuración CCP/CIP, 2026-09-13) — Activos en CIP solo lectura
 
-El catálogo de Activos (consultar, alta, baja, reincorporación, responsable/descripción,
-documentos, tipos de catálogo) se movió del CCP a una pestaña del CIP
-(`core/frontend/src/pages/cip/ActivosTab.tsx`). Antes de este incremento la lectura ya era
-alcanzable por un `directivo` sin guard de rol (fila 3/4 arriba), pero la **escritura** era
-exclusiva de `administrador-patrimonial` — un `directivo` recibía 403. Se agregó
-`verificarRolAdministradorPatrimonialODirectivo` (`core/src/common/auth/
-administrador-patrimonial.guard.ts`) que acepta cualquiera de los dos roles, siempre acotado a la
-`organizacionId` de la request (mismo criterio de fondo que el guard original — nunca "¿tiene el
-rol en algún lado?"). Se aplicó **únicamente** a los 8 métodos de Activo/Catálogo-tipo/Documento en
-`OrquestadorService` listados arriba — Área/Ubicación/Responsable/Contrato/Importación siguen
-exigiendo `administrador-patrimonial` exclusivamente, el CIP no los expone. Revisado por el agente
-`security-reviewer` antes de mergear (sin hallazgos).
+El catálogo de Activos (consulta, ficha, QR y documentos existentes) se movió del CCP a una
+pestaña del CIP (`core/frontend/src/pages/cip/ActivosTab.tsx`). El Directivo puede consultar la
+información de su organización, pero el CIP no ofrece alta, baja, reincorporación, edición,
+creación de tipos ni adjuntos. Las escrituras oficiales siguen siendo exclusivas de
+`administrador-patrimonial` y se verifican contra la organización de la operación.
 
 ## 5. Cómo queda reflejado en el sidebar de `ccp/` (DOC-022, rediseño de portales)
 
@@ -114,9 +108,8 @@ El sidebar de `ccp/` (`ccp/src/components/AppShell.tsx`) solo linkea a módulos 
 `administrador-patrimonial` tiene alguna acción real según esta matriz — Organización
 (áreas/departamentos/responsables), Importaciones (con la bandeja de staging), Auditoría,
 QR/Etiquetas y el Dashboard/Resumen. Activos y Controles de área ya no están acá (Fases 3/4: se
-mudaron al CIP, ver 4b) — para Activos el guard de escritura sigue aceptando
-`administrador-patrimonial`, solo cambió dónde vive la pantalla; Controles de área era de solo
-lectura y sigue siéndolo. **Nunca** Organizaciones/Contratos/Usuarios de plataforma/Indicadores (esos
+mudaron al CIP, ver 4b) — el CIP es solo lectura y la escritura oficial de Activos sigue siendo
+exclusiva de `administrador-patrimonial`. **Nunca** Organizaciones/Contratos/Usuarios de plataforma/Indicadores (esos
 módulos vivían en `web_admin/`, eliminado en 2026-09), ni la gestión del Profesional de AFT
 (exclusiva de `core/frontend/`) — la separación de portales de DOC-022 ya hace que cada sidebar
 sea, por construcción, un subconjunto de lo que el rol de ese portal puede hacer. Este documento es lo que

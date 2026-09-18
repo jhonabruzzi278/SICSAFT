@@ -1,6 +1,6 @@
 import { createSocket, type RemoteInfo, type Socket } from "node:dgram";
 import { registrar } from "./logger";
-import { obtenerIpLan, PUERTO_APP_QR } from "./lan-ip";
+import { obtenerIpLan, PUERTO_APP_QR, PUERTO_CCP_LAN } from "./lan-ip";
 import pkg from "../../../package.json";
 
 // Mejora 1 / RF-01 — Servicio de auto-descubrimiento en red local Wi-Fi / LAN vía broadcast UDP.
@@ -17,6 +17,8 @@ export interface InfoRespuestaDiscovery {
   ip: string;
   hostname: string;
   puerto: number;
+  puertoCcp: number;
+  fingerprint: string;
   nombre: string;
   version: string;
 }
@@ -31,6 +33,7 @@ export function armarRespuestaDiscovery(
   ipLan: string = obtenerIpLan(),
   puertoApp: number = PUERTO_APP_QR,
   nombreOrg: string = "SICSAFT Core",
+  fingerprint: string = "",
 ): InfoRespuestaDiscovery {
   return {
     app: "SICSAFT",
@@ -39,6 +42,8 @@ export function armarRespuestaDiscovery(
     ip: ipLan,
     hostname: "sicsaft.local",
     puerto: puertoApp,
+    puertoCcp: PUERTO_CCP_LAN,
+    fingerprint,
     nombre: nombreOrg,
     version: pkg.version,
   };
@@ -47,6 +52,7 @@ export function armarRespuestaDiscovery(
 export function iniciarDiscoveryService(
   puerto: number = PUERTO_DISCOVERY_UDP,
   nombreOrg: string = "SICSAFT Core",
+  fingerprint: string = "",
 ): Promise<ServicioDiscovery> {
   return new Promise((resolve) => {
     const socket = createSocket({ type: "udp4", reuseAddr: true });
@@ -65,7 +71,12 @@ export function iniciarDiscoveryService(
         );
 
         const respuesta = JSON.stringify(
-          armarRespuestaDiscovery(obtenerIpLan(), PUERTO_APP_QR, nombreOrg),
+          armarRespuestaDiscovery(
+            obtenerIpLan(),
+            PUERTO_APP_QR,
+            nombreOrg,
+            fingerprint,
+          ),
         );
         const buffer = Buffer.from(respuesta, "utf8");
 

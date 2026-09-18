@@ -1,13 +1,13 @@
 {
-  "generado": "2026-09-17T15:26:11.709Z",
-  "commit": "f39a541",
-  "rama": "main",
+  "generado": "2026-09-18T02:30:58.874Z",
+  "commit": "26e8a0c",
+  "rama": "integracion/main-y-cip-avanzado",
   "totales": {
-    "loc": 49908,
-    "locTests": 33649,
-    "docs": 124,
-    "huerfanos": 8,
-    "docsDesactualizados": 28,
+    "loc": 52665,
+    "locTests": 34420,
+    "docs": 133,
+    "huerfanos": 13,
+    "docsDesactualizados": 23,
     "todos": 5
   },
   "nodos": [
@@ -57,11 +57,11 @@
       "archivosFuente": 83,
       "archivosTest": 50,
       "docs": 1,
-      "loc": 7094,
-      "locComentario": 644,
-      "locTests": 9002,
+      "loc": 7274,
+      "locComentario": 661,
+      "locTests": 9311,
       "pctComentario": 9.1,
-      "ratioTest": 1.27,
+      "ratioTest": 1.28,
       "todos": 0,
       "huerfanos": [
         {
@@ -126,9 +126,9 @@
       "archivosFuente": 114,
       "archivosTest": 77,
       "docs": 1,
-      "loc": 8397,
-      "locComentario": 1031,
-      "locTests": 11667,
+      "loc": 8386,
+      "locComentario": 1028,
+      "locTests": 11669,
       "pctComentario": 12.3,
       "ratioTest": 1.39,
       "todos": 1,
@@ -173,16 +173,23 @@
         "Arranque Condicional Nivel 1 / Nivel 2 (CIP-05)"
       ],
       "resumenTecnico": "Centro de Inteligencia Patrimonial: Agregación asíncrona desacoplada de eventos de inventario, cálculo de veredictos y endpoints para dashboards directivos.",
-      "archivosFuente": 36,
-      "archivosTest": 26,
+      "archivosFuente": 39,
+      "archivosTest": 27,
       "docs": 1,
-      "loc": 1978,
-      "locComentario": 138,
-      "locTests": 2208,
-      "pctComentario": 7,
-      "ratioTest": 1.12,
+      "loc": 2403,
+      "locComentario": 196,
+      "locTests": 2587,
+      "pctComentario": 8.2,
+      "ratioTest": 1.08,
       "todos": 0,
-      "huerfanos": [],
+      "huerfanos": [
+        {
+          "archivo": "cip/migrations/1789442447077_alertas-entrelazadas-y-resumen-diario.ts",
+          "linea": 3,
+          "cita": "--agregacion.service.ts",
+          "texto": "DOC-034 (aidlc-docs/cip/design-artifacts/) — dos cambios de esquema pedidos juntos en la misma sesion: Parte A: `activo_fuera_de_area` no guardaba `sesion_id` (no habia forma de ir de una alerta al re"
+        }
+      ],
       "docsDesactualizados": []
     },
     {
@@ -234,7 +241,14 @@
       "pctComentario": 6.5,
       "ratioTest": 0.22,
       "todos": 0,
-      "huerfanos": [],
+      "huerfanos": [
+        {
+          "archivo": "ccp/src/lib/nivel.ts",
+          "linea": 19,
+          "cita": "core/frontend/src/pages/cip/ControlesAreaTab.tsx",
+          "texto": "Modulos retirados del CCP por completo, en cualquier nivel — \"no es necesario\" (usuario, 2026-08-31): Contratos (la vigencia/estado del contrato no se gestiona desde el portal del AFT). `cip` se suma "
+        }
+      ],
       "docsDesactualizados": []
     },
     {
@@ -276,39 +290,57 @@
         "Acceso Restringido por Rol Directivo con OIDC PKCE"
       ],
       "resumenTecnico": "Portal institucional para directores y autoridades: Indicadores de conciliación física, cobertura patrimonial y designación de profesionales AFT.",
-      "archivosFuente": 27,
-      "archivosTest": 5,
+      "archivosFuente": 34,
+      "archivosTest": 6,
       "docs": 1,
-      "loc": 4136,
-      "locComentario": 197,
-      "locTests": 636,
-      "pctComentario": 4.8,
-      "ratioTest": 0.15,
+      "loc": 5513,
+      "locComentario": 340,
+      "locTests": 689,
+      "pctComentario": 6.2,
+      "ratioTest": 0.12,
       "todos": 1,
       "huerfanos": [
         {
-          "archivo": "core/frontend/src/pages/cip/ActivosTab.tsx",
-          "linea": 79,
-          "cita": "ccp/src/pages/ActivosPage.tsx",
-          "texto": "Fase 3 (reestructuracion CCP/CIP, 2026-09) — portado de ccp/src/pages/ActivosPage.tsx: mismo componente, mismo contrato con CIS (GET /catalogo, /admin/activos*, /admin/catalogo-tipos), solo reconectad"
+          "archivo": "core/frontend/src/App.tsx",
+          "linea": 24,
+          "cita": "CipPage.tsx",
+          "texto": "2026-09-14 — el CIP dejó de ser una única ruta (`/dashboard`) con sub-pestañas internas (`CipPage.tsx`, eliminado) y pasó a ser 4 rutas directas, cada una navegable desde su propia entrada del sidebar"
         },
         {
-          "archivo": "core/frontend/src/pages/cip/CipPage.tsx",
+          "archivo": "core/frontend/src/components/AppShell.tsx",
+          "linea": 15,
+          "cita": "CipPage.tsx",
+          "texto": "DOC-022 3 — sidebar del portal del Directivo. A diferencia de ccp/ no hay selector de organización (DirectivoGuard en CIS siempre deriva la organización del JWT) — sí hace falta preservar `organizacio"
+        },
+        {
+          "archivo": "core/frontend/src/components/PieChart.tsx",
+          "linea": 1,
+          "cita": "DonutChart.tsx",
+          "texto": "Gráfico de pastel simple — reemplaza al donut anterior (DonutChart.tsx, 2026-09-15): con pocas categorías (caso real más común, ver Pantalla 8) el anillo con hueco y el total en el centro quedaban rec"
+        },
+        {
+          "archivo": "core/frontend/src/components/RequireNivel2.tsx",
           "linea": 6,
-          "cita": "ccp/src/pages/ActivosPage.tsx",
-          "texto": "Fase 2 (rediseño CIP) — el CIP deja de ser una página única y pasa a tener sub-pestañas. Fase 3/4: \"Activos\" y \"Controles de área\" ya viven acá (portados de ccp/src/pages/ActivosPage.tsx e Inventarios"
+          "cita": "CipPage.tsx",
+          "texto": "2026-09-14 — el CIP dejó de ser una única página con sub-pestañas (`CipPage.tsx`, eliminado) y pasó a ser 4 rutas directas navegables desde el sidebar (ver AppShell.tsx). Esta validación de Nivel 2 (R"
         },
         {
-          "archivo": "core/frontend/src/pages/cip/CipPage.tsx",
-          "linea": 6,
-          "cita": "InventariosPage.tsx",
-          "texto": "Fase 2 (rediseño CIP) — el CIP deja de ser una página única y pasa a tener sub-pestañas. Fase 3/4: \"Activos\" y \"Controles de área\" ya viven acá (portados de ccp/src/pages/ActivosPage.tsx e Inventarios"
+          "archivo": "core/frontend/src/lib/cis-client.ts",
+          "linea": 45,
+          "cita": "administrador.controller.ts",
+          "texto": "DOC-035 — jerarquía Organización→Dirección→Departamento→Área para el organigrama de Controles de área. Copia adaptada de `ccp/src/lib/cis-client.ts` (ccp/ y core/frontend/ son SPAs independientes que "
         },
         {
-          "archivo": "core/frontend/src/pages/cip/ControlesAreaTab.tsx",
-          "linea": 11,
-          "cita": "ccp/src/pages/InventariosPage.tsx",
-          "texto": "Fase 4 (reestructuracion CCP/CIP, 2026-09-13) — portado de ccp/src/pages/InventariosPage.tsx: mismo componente, mismo contrato con CIS (GET /inventarios*), solo reconectado al cis-client.ts de este po"
+          "archivo": "core/frontend/src/pages/cip/ReporteControlPage.tsx",
+          "linea": 8,
+          "cita": "ControlesAreaTab.tsx",
+          "texto": "DOC-035 — página de pantalla completa de un reporte puntual (reemplaza el pop-up de ControlesAreaTab.tsx). Resuelve el área/dirección/departamento de la sesión por su cuenta (vía GET /inventarios/:id,"
+        },
+        {
+          "archivo": "core/frontend/src/pages/cip/ReportesDeAreaPage.tsx",
+          "linea": 9,
+          "cita": "ControlesAreaTab.tsx",
+          "texto": "DOC-035 — pantalla intermedia entre el organigrama y un reporte puntual: lista de sesiones del alcance elegido (una Área, o todas las áreas de una Dirección/Departamento), con filtro por día y paginac"
         }
       ],
       "docsDesactualizados": []
@@ -357,10 +389,10 @@
       "archivosFuente": 82,
       "archivosTest": 15,
       "docs": 2,
-      "loc": 8332,
-      "locComentario": 501,
-      "locTests": 1202,
-      "pctComentario": 6,
+      "loc": 9014,
+      "locComentario": 529,
+      "locTests": 1221,
+      "pctComentario": 5.9,
       "ratioTest": 0.14,
       "todos": 0,
       "huerfanos": [],
@@ -410,10 +442,10 @@
       "archivosFuente": 61,
       "archivosTest": 57,
       "docs": 4,
-      "loc": 7314,
-      "locComentario": 1474,
-      "locTests": 5668,
-      "pctComentario": 20.2,
+      "loc": 7348,
+      "locComentario": 1476,
+      "locTests": 5677,
+      "pctComentario": 20.1,
       "ratioTest": 0.77,
       "todos": 3,
       "huerfanos": [],
@@ -458,9 +490,9 @@
       "resumenTecnico": "Sidecar de ingesta contable: Transforma formatos heterogéneos de planillas contables institucionales hacia el esquema canónico de importación de la BPI.",
       "archivosFuente": 22,
       "archivosTest": 4,
-      "docs": 3,
-      "loc": 2736,
-      "locComentario": 160,
+      "docs": 4,
+      "loc": 2806,
+      "locComentario": 163,
       "locTests": 773,
       "pctComentario": 5.8,
       "ratioTest": 0.28,
@@ -474,7 +506,7 @@
         },
         {
           "archivo": "herramientas/generador-qr/src/renderer/src/App.tsx",
-          "linea": 96,
+          "linea": 106,
           "cita": "ccp/src/pages/EtiquetasPage.tsx",
           "texto": "QR real (npm `qrcode`) por fila, igual que ccp/src/pages/EtiquetasPage.tsx — se renderiza como data URL una sola vez por generación, no por cada re-render de la hoja."
         }
@@ -658,7 +690,7 @@
       "resumenTecnico": "124 documentos normativos y de especificación arquitectónica del ecosistema (Tomos I a IV, ADRs 001-005, DOCs 001-032).",
       "archivosFuente": 1,
       "archivosTest": 0,
-      "docs": 93,
+      "docs": 101,
       "loc": 34,
       "locComentario": 1,
       "locTests": 0,
@@ -674,28 +706,10 @@
           "veces": 1
         },
         {
-          "archivo": "aidlc-docs/app-qr-sicsaft/design-artifacts/ADR/ADR-003-rename-app-qr-sicsaft.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
-        },
-        {
-          "archivo": "aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-001-flujo-oficial.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
-        },
-        {
           "archivo": "aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md",
           "termino": "Zitadel",
           "vigente": "Keycloak",
           "veces": 1
-        },
-        {
-          "archivo": "aidlc-docs/app-qr-sicsaft/design-artifacts/DOC-002-conector-qr.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 3
         },
         {
           "archivo": "aidlc-docs/ccp/00_PROJECT_METADATA.md",
@@ -746,16 +760,10 @@
           "veces": 9
         },
         {
-          "archivo": "aidlc-docs/ccp/design-artifacts/DOC-029-endurecimiento-ccp-cliente-real.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
-        },
-        {
           "archivo": "aidlc-docs/ccp/requirements/REQUIREMENTS.md",
           "termino": "Zitadel",
           "vigente": "Keycloak",
-          "veces": 7
+          "veces": 1
         },
         {
           "archivo": "aidlc-docs/ccp/story-artifacts/USER_STORIES.md",
@@ -810,12 +818,6 @@
           "termino": "Zitadel",
           "vigente": "Keycloak",
           "veces": 2
-        },
-        {
-          "archivo": "aidlc-docs/integraciones/design-artifacts/DOC-016-conector-con-contabilidad.md",
-          "termino": "Base Patrimonial Central",
-          "vigente": "BPI — Base Patrimonial Inteligente",
-          "veces": 1
         },
         {
           "archivo": "aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md",

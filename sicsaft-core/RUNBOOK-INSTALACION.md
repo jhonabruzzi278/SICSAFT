@@ -32,10 +32,11 @@ npm run dist:win
 ```
 
 - `dist:win` corre `prepack.cjs` (buildea `ccp`/`core-frontend`/`app-qr-sicsaft`/`cis`/`core`/`cip`
-  + `kc.bat build` de Keycloak si falta + copia el `.apk` y el ETL contable, ver abajo) y después
-  `electron-builder`. **Necesita `npm ci` en `ccp/`, `core/frontend/`, `app-qr-sicsaft/`, `cis/`,
-  `core/`, `cip/`** y los binarios vendorizados en `sicsaft-core/resources/` (ver
-  `resources/README.md`).
+  + `kc.bat build` de Keycloak si falta + copia el `.apk`, el ETL contable, CCP Desktop y el
+  Generador QR, ver abajo) y después `electron-builder`. **Necesita `npm ci` en `ccp/`,
+  `core/frontend/`, `app-qr-sicsaft/`, `cis/`, `core/`, `cip/`, `ccp-desktop/` y
+  `herramientas/generador-qr/`** y los binarios
+  vendorizados en `sicsaft-core/resources/` (ver `resources/README.md`).
 - Salida: `sicsaft-core/release/SICSAFT CORE Setup <version>.exe` (~450 MB).
 
 ### 1.1 Antes de `dist:win` — dos artefactos opcionales que el `.exe` incluye si están

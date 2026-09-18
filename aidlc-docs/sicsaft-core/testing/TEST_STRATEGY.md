@@ -37,16 +37,22 @@ sicsaft-core/e2e/
   fixtures/    electron.ts (el `.exe` vivo, worker-scoped) · portales.ts (sesiones por rol)
                capturas.ts (screenshots) · artefactos.ts (credenciales entre specs)
   scripts/     exe-path · exe-process (servicios listos, limpieza de árbol) · db (lee la BPI) · appdata
-  specs/       01..29
+  specs/       01..20
 ```
 
 ### Projects
 
+> **Corregido contra `playwright.config.ts` real (antes decía specs 01–29 y un tercer project
+> `captura` con specs 20–25 — ninguno de los dos existe en el config actual).**
+
 | Project | Specs | Instancia del `.exe` |
 |---|---|---|
-| `principal` | 01–11, 14–18 | Una sola, compartida (worker fixture). El wizard corre en la 02 y el resto depende de ese estado |
+| `principal` | 01–11, 14–18, 20 | Una sola, compartida (worker fixture). El wizard corre en la 02 y el resto depende de ese estado |
 | `ciclo-vida` | 12, 13, 19 | Cada spec lanza la suya. `dependencies: ['principal']` |
-| `captura` *(DOC-031 Fase 1)* | 20–25 | La APP QR servida por el `.exe` en `https://<ip-lan>:8765`. `dependencies: ['principal']` |
+
+La spec 20 (`20-puesto-aft-lan.spec.ts`) ya prueba la APP QR servida por el `.exe` en la LAN, dentro
+de `principal` — no hay un project `captura` separado. El resto de "Qué falta" (DOC-031) sigue
+pendiente: no hay sesión de inventario real end-to-end desde la PWA todavía.
 
 ### Qué cubre hoy (56 pruebas, verde)
 

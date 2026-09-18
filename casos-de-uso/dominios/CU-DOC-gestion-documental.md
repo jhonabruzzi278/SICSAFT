@@ -1,4 +1,9 @@
-# CU-DOC — Gestión Documental
+# Gestión Documental (CU-DOC) — Expediente Digital y Evidencias
+
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué es?**: Vinculación de fotografías, facturas, manuales y certificados técnicos al expediente digital de cada activo fijo tangible.
+> - **Operación**: Diseñada para operarse al editar un activo, adjuntando enlaces a documentación respaldatoria y consultando el expediente completo con un clic.
+> - **Estado Real (corregido 2026-09-17)**: 🟡 **Backend real, sin UI**: el panel de Activos donde vivía esto (`ccp/`) ya no existe (mudado y luego revertido, ver `CU-PAT-gestion-patrimonial.md`) — ver detalle en `CU-DOC-001` abajo.
 
 Dominio §12.23–§12.24. Reglas DOC-001…DOC-004 (tomo). Componentes: `ccp/`, `cis/`, `core/`, BPI
 (`documentos_activo`).
@@ -32,7 +37,7 @@ Dominio §12.23–§12.24. Reglas DOC-001…DOC-004 (tomo). Componentes: `ccp/`,
 | **Resultado esperado** | Expediente digital enriquecido y versionado. |
 | **Componentes** | CCP · CIS · CORE · BPI. |
 | **Prioridad** | Media. |
-| **Estado en el repo** | 🟢 **Implementado** (todos los niveles): `ActivosPage.tsx` panel "Editar" → "Documentación y fotografías" → `altaDocumentoActivo` / `eliminarDocumentoActivo` → `documentos_activo`. Hoy se guarda una `url`, no un archivo subido — verificar en la QA si el cliente necesita carga de archivo real. |
+| **Estado en el repo** | 🟡 **Backend real, sin UI**: `altaDocumentoActivo`/`eliminarDocumentoActivo` existen en `cis/src/administrador/administrador.controller.ts` → `documentos_activo`, pero el panel "Editar" → "Documentación y fotografías" que los exponía vivía en `ActivosPage.tsx` (`ccp/`), que ya no existe — ver nota del dominio y `CU-PAT-gestion-patrimonial.md`. Hoy se guardaría una `url`, no un archivo subido, si se restaura la UI. |
 
 ---
 
@@ -58,4 +63,4 @@ Dominio §12.23–§12.24. Reglas DOC-001…DOC-004 (tomo). Componentes: `ccp/`,
 | **Resultado esperado** | El usuario ve solo los documentos autorizados. |
 | **Componentes** | CCP · CIS · CORE · BPI. |
 | **Prioridad** | Media. |
-| **Estado en el repo** | 🟢 **Implementado** (todos los niveles): `getDocumentosActivo` lista los documentos con enlace. Registro de la consulta en `auditoria`: verificar en la QA. |
+| **Estado en el repo** | 🟡 **Backend real, sin UI**: `getDocumentosActivo` lista los documentos con enlace a nivel API, pero sin la pantalla de expediente que lo mostraba (vivía en `ActivosPage.tsx`, ver nota del dominio arriba). Registro de la consulta en `auditoria`: verificar en la QA. |

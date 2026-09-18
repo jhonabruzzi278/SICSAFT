@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'"
+    />
+    <title>SICSAFT CCP</title>
+    <link rel="stylesheet" href="./src/index.css" />
+  </head>
+  <body>
+    <main id="app">
+      <div class="brand-label">SICSAFT / CCP</div>
+      <h1>Conecta tu puesto de trabajo</h1>
+      <p id="mensaje" class="mensaje" role="status" aria-live="polite">
+        Buscando la PC madre en la red…
+      </p>
+      <div id="spinner" class="spinner" aria-hidden="true"></div>
+      <form id="form-manual" class="form-manual" hidden>
+        <label for="ip-manual">Dirección IP de la PC madre</label>
+        <input
+          id="ip-manual"
+          name="ip"
+          type="text"
+          placeholder="192.168.1.8"
+          autocomplete="off"
+          required
+        />
+        <button type="submit">Conectar</button>
+      </form>
+      <button id="reintentar" class="secundario" hidden>Buscar de nuevo</button>
+      <p class="connection-footnote">
+        La PC madre debe estar encendida y conectada a la misma red que este
+        equipo.
+      </p>
+    </main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

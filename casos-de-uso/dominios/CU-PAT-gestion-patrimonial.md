@@ -1,4 +1,10 @@
-# CU-PAT — Gestión Patrimonial
+# Gestión Patrimonial (CU-PAT) — Ciclo de Vida del Activo Fijo
+
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué es?**: Administración integral de los activos fijos: alta de nuevos bienes, modificación de fichas, asignación de responsables, reubicaciones y dar de baja sin borrado físico.
+> - **Regla Fundamental**: Los activos nunca se borran físicamente (`DELETE`) de la base de datos; la baja es lógica por cambio de `estado = 'dado_de_baja'` para preservar auditoría histórica permanente.
+> - **Actores**: Administrador Patrimonial (opera en el portal web `ccp/`).
+> - **Estado Real (corregido 2026-09-17)**: 🟡 **Backend completo, sin UI de escritura en ningún portal**. Alta (`CU-PAT-001`), edición (`CU-PAT-002`), cambio de responsable (`CU-PAT-003`) y baja (`CU-PAT-005`) existen como endpoints reales (`core/src/patrimonial/activo-escritura.controller.ts` vía `cis/src/administrador/`), pero `ccp/` ya no tiene el módulo Activos (se mudó al CIP el 2026-09-13) y el CIP en `core/frontend/` es **solo lectura** desde que se revirtió su escritura (commit `dd8b367`) — hoy no hay botón "Nuevo activo"/"Editar"/"Baja" en ningún portal. Traslado (`CU-PAT-004`) sigue igual de parcial que antes.
 
 Dominio §12.7–§12.11. Plantilla §12.5. Reglas CFPS citadas del tomo (capítulo previo, no en git).
 
@@ -31,7 +37,7 @@ Componentes del repo que participan en este dominio: `ccp/` (interfaz), `cis/` (
 | **Resultado esperado** | Activo oficialmente incorporado a la BPI. |
 | **Componentes** | CCP · CIS · CORE (MOP + Motor Patrimonial + Reglas) · BPI · CIP. |
 | **Prioridad** | Crítica. |
-| **Estado en el repo** | 🟢 **Implementado** (todos los niveles): `ccp/src/pages/ActivosPage.tsx` "Alta de activo" → `cisClient.altaActivo` → `POST /admin/activos` (CIS) → `POST /activos` (CORE, DOC-012 §6). El alta manual está disponible desde Nivel 1 (corrección RF-A 2026-09-02); la ingesta de Excel (**RF-B**) y la APP QR son caminos alternativos. |
+| **Estado en el repo** | 🟡 **Backend real, sin UI**: `POST /admin/activos` (CIS, `administrador.controller.ts`) → `POST /activos` (CORE, `activo-escritura.controller.ts`) funcionan, pero **ningún portal tiene el formulario de alta** — `ccp/src/pages/ActivosPage.tsx` ya no existe (mudado a CIP 2026-09-13, luego revertido a solo-lectura, commit `dd8b367`). Hoy el alta manual real solo se logra llamando la API directo. La ingesta de Excel (**RF-B**) y la APP QR siguen siendo los caminos que sí tienen UI. |
 
 ---
 
@@ -57,7 +63,7 @@ Componentes del repo que participan en este dominio: `ccp/` (interfaz), `cis/` (
 | **Resultado esperado** | Activo actualizado, historia intacta. |
 | **Componentes** | CCP · CIS · CORE · BPI. |
 | **Prioridad** | Alta. |
-| **Estado en el repo** | 🟢 **Implementado** (todos los niveles): `ActivosPage.tsx` panel "Editar" → `actualizarDescripcionActivo` / `altaDocumentoActivo`. |
+| **Estado en el repo** | 🟡 **Backend real, sin UI**: `PATCH /admin/activos/:id/descripcion` existe en CIS/CORE, pero no hay panel "Editar" en ningún portal — el `ActivosPage.tsx` que lo exponía ya no existe (ver nota del dominio arriba). |
 
 ---
 
@@ -83,7 +89,7 @@ Componentes del repo que participan en este dominio: `ccp/` (interfaz), `cis/` (
 | **Resultado esperado** | Responsabilidad transferida, con rastro del responsable previo. |
 | **Componentes** | CCP · CIS · CORE · BPI. |
 | **Prioridad** | Alta. |
-| **Estado en el repo** | 🟢 **Implementado** (todos los niveles): `cisClient.cambiarResponsableActivo`. |
+| **Estado en el repo** | 🟡 **Backend real, sin UI**: `PATCH /admin/activos/:id/responsable` existe en CIS/CORE, pero no hay pantalla en ningún portal que lo invoque (ver nota del dominio arriba). |
 
 ---
 
@@ -135,4 +141,4 @@ Componentes del repo que participan en este dominio: `ccp/` (interfaz), `cis/` (
 | **Resultado esperado** | Activo fuera de operación, historia preservada, auditable. |
 | **Componentes** | CCP · CIS · CORE · BPI. |
 | **Prioridad** | Crítica (por lo sensible). |
-| **Estado en el repo** | 🟢 **Implementado**: `cisClient.bajaActivo` → `POST /admin/activos/:id/baja` (soft-delete por `estado`, precedente real en el esquema). Disponible en **todos los niveles** (corrección RF-A 2026-09-02). **RF-D** (veredicto accionable → link a baja) sigue siendo una mejora aparte. |
+| **Estado en el repo** | 🟡 **Backend real, sin UI**: `POST /admin/activos/:id/baja` existe en CIS/CORE (soft-delete por `estado`), pero sin botón "Dar de baja" en ningún portal desde que se retiró el módulo Activos de `ccp/` (ver nota del dominio arriba). **RF-D** (veredicto accionable → link a baja) sigue siendo una mejora aparte, y tampoco tiene dónde aterrizar hoy. |

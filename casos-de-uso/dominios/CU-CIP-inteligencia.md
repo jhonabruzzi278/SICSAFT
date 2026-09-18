@@ -1,4 +1,10 @@
-# CU-CIP — Inteligencia Patrimonial
+# Inteligencia Patrimonial y Analítica (CU-CIP) — Dashboards y Reportes
+
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué es?**: Visualización analítica de activos, inventarios e incidencias mediante dashboards interactivos y generación de informes ejecutivos oficiales en PDF.
+> - **¿Quién lo usa?**: El **Directivo** (en `core/frontend/`) y el **Profesional de AFT** (en `ccp/`).
+> - **Características Clave**: No modifica datos (solo lectura), permite ver indicadores por área/dirección, veredictos de sesiones y descargar informes formales.
+> - **Estado Real**: 🟢 **CU-CIP-001 Implementado** (Dashboards y filtros activos) · 🟡 **CU-CIP-002 Parcial** (Generador de PDF de controles de área implementado con DOC-035; reportes generales adicionales en evaluación).
 
 Dominio §12.29–§12.30. Componentes: `cip/` (BI), `core/frontend/` (portal del Directivo), `ccp/`
 (Resumen del AFT). CIP consume eventos reales de CORE por la cola `pg-boss` (ADR-005); no expone
@@ -28,7 +34,7 @@ frontend propio.
 | **Resultado esperado** | El usuario analiza información sin alterar la BPI. |
 | **Componentes** | core/frontend / ccp · CIS · CIP. |
 | **Prioridad** | Alta. |
-| **Estado en el repo** | 🟢 **Implementado**: `ccp/src/pages/DashboardPage.tsx` (Resumen del AFT) y `core/frontend/` (Directivo) contra CIP real (`dashboard-connector` en CIS, DOC-019). **RF-C de DOC-029** agrega 3 pestañas nuevas al Resumen (spec pendiente de Guido). |
+| **Estado en el repo** | 🟢 **Implementado**: `ccp/src/pages/DashboardPage.tsx` (Resumen del AFT) y `core/frontend/` (Directivo) contra CIP real (`dashboard-connector` en CIS, DOC-019). Incluye filtros por dirección/área (DOC-033/035) y alertas vinculadas con historial (DOC-034). |
 
 ---
 
@@ -54,4 +60,4 @@ frontend propio.
 | **Resultado esperado** | Documento con fecha, parámetros y contexto, exportable. |
 | **Componentes** | core/frontend / ccp · CIS · CIP. |
 | **Prioridad** | Media. |
-| **Estado en el repo** | 🔲 **Pendiente**: hoy hay dashboards interactivos, **no** un generador de reporte parametrizado con export PDF/Excel y bloque de "fecha + parámetros + contexto". Trabajo nuevo, no cubierto por DOC-029 — anotarlo si el cliente Nivel 1 lo pide (el estilo de informe `.docx` ya está definido, ver memoria del proyecto). |
+| **Estado en el repo** | 🟡 **Parcial (DOC-035 Implementado)**: Existe generación oficial de reporte descargable en **PDF** (`core/frontend/src/lib/pdf-informe-control.ts`) para Controles de Área / Pantalla 8 con metadatos de contexto, fecha y desglose de veredicto. La generación de reportes libres multi-criterio adicionales o exports en Excel avanzado queda reservada para fases futuras. |

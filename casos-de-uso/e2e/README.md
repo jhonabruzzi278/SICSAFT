@@ -22,6 +22,14 @@ Agregar más: un archivo `cu-<dominio>-<nnn>-*.spec.ts` por CU, usando las fixtu
 `aft` de [`fixtures/auth.ts`](fixtures/auth.ts). Para CU de APP QR / inventario, descomentar el
 servicio `app-qr-sicsaft` en [`docker-compose.yml`](docker-compose.yml).
 
+> **Deuda detectada (2026-09-17, sin tocar el spec)**: `cu-pat-001-alta-activo.spec.ts` navega a
+> `${URLS.ccp}/activos?...` para verificar el alta "en el CCP (blando)" — esa ruta ya no existe
+> (`ccp/src/pages/ActivosPage.tsx` se mudó y se retiró, ver
+> [`../dominios/CU-PAT-gestion-patrimonial.md`](../dominios/CU-PAT-gestion-patrimonial.md)). La
+> parte de API/CORE/auditoría del test sigue siendo válida; la aserción de UI apunta a una página
+> eliminada y debería revisarse (¿quitarla, o repuntarla a donde corresponda hoy?) antes de confiar
+> ciegamente en el resultado del spec.
+
 ## Requisitos
 
 - **Docker Desktop corriendo** (Linux containers). El stack son ~8 servicios; reservá ~6 GB de RAM

@@ -2,7 +2,13 @@
 
 **Proyecto:** SICSAFT Monorepo (`cis`, `core`, `core/frontend`, `ccp`, `cip`, `app-qr-sicsaft`, `sicsaft-core`, `devops`)  
 **Fecha:** 2026-09-07  
-**Metodología:** OWASP Top 10, STRIDE Threat Modeling, SAST y estándares de las skills oficiales (`security-and-hardening`, `security-audit`, `security-best-practices`, `improve-codebase-architecture`).
+**Metodología:** OWASP Top 10, STRIDE Threat Modeling, SAST manual y estándares de las skills oficiales (`security-and-hardening`, `security-audit`, `security-best-practices`, `improve-codebase-architecture`). **No incluye** un escaneo automatizado de dependencias (SCA, ej. `bun audit`) — es threat modeling y revisión de código, no un scanner de vulnerabilidades de paquetes.
+
+> **Nota de frescura (2026-09-17)**: esta auditoría no se volvió a correr desde 2026-09-07 (mismo
+> día del cierre 1.0.1). Cambios posteriores relevantes para superficie de ataque, sin revisar
+> todavía: el proxy de mismo origen `/cis/*` y `/kc/token` de `sicsaft-core` (DOC-028 Fase G,
+> `static-portal-server.ts`) y los endpoints nuevos de escritura de CIP (DOC-034/DOC-036). SEC-01 a
+> SEC-04 siguen marcados RESUELTO sin re-verificar contra cambios recientes en `ccp/src/lib/oidc/`.
 
 ---
 

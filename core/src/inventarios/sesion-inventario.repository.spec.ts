@@ -386,6 +386,57 @@ describe('SesionInventarioRepository', () => {
       expect(query).toHaveBeenCalledTimes(1);
     });
 
+    it('cuenta "en servicio" un AFT correcto real sin estadoDeclarado explícito — la APP QR nunca manda "activo", solo lo omite (ver app-qr-sicsaft/src/lib/qr-connector.ts)', async () => {
+      const client = buildClient();
+      const pool = buildPool(client);
+      const query = jest
+        .fn()
+        .mockResolvedValueOnce({ rows: [SESION_CTRL] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              codigoQr: 'QR-010',
+              resultado: 'correcto',
+              estadoDeclarado: null,
+              bajaSugeridaMotivo: null,
+              tecnologia: 'qr',
+              tipo: 'Silla',
+              familia: 'Mobiliario',
+              subfamilia: null,
+              marca: null,
+              modelo: null,
+              areaRealNombre: 'Biblioteca',
+            },
+            {
+              codigoQr: 'QR-NOPE',
+              resultado: 'no_registrado',
+              estadoDeclarado: null,
+              bajaSugeridaMotivo: null,
+              tecnologia: null,
+              tipo: null,
+              familia: null,
+              subfamilia: null,
+              marca: null,
+              modelo: null,
+              areaRealNombre: null,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [{ n: 1 }] })
+        .mockResolvedValueOnce({ rows: [] });
+      pool.query = query as never;
+      const repository = new SesionInventarioRepository(pool);
+
+      const resumen = await repository.findResumenControl('sesion-1');
+
+      expect(resumen?.porEstadoDeclarado).toEqual({
+        enServicio: 1,
+        enMantenimiento: 0,
+        inactivo: 0,
+        baja: 0,
+      });
+    });
+
     it('cae a 0 activos del área si el count no devuelve fila', async () => {
       const client = buildClient();
       const pool = buildPool(client);

@@ -11,15 +11,9 @@ import {
 import { cisClient, type ActivoCatalogo } from '@/lib/cis-client';
 import { Alert, Button } from '@/components/ui';
 import { IconRefresh } from '@/components/icons';
-
-const PALETA_CATEGORIAS = [
-  '#2563EB', // Azul corporativo (Equipos)
-  '#16A34A', // Verde esmeralda (Mobiliario)
-  '#0284C7', // Azul cielo (Vehículos)
-  '#D97706', // Ámbar dorado (Herramientas)
-  '#7C3AED', // Púrpura (Tecnología / Redes)
-  '#64748B', // Pizarra / Otros
-];
+import { PieChart } from '@/components/PieChart';
+import { KpiCard } from '@/components/KpiCard';
+import { PALETA_CATEGORIAS } from '@/lib/colores';
 
 // El veredicto de sesión (core/inventarios) ya existe como 'exitoso'|'aceptable'|'defectuoso' —
 // acá solo se traduce a la etiqueta que pide este diseño ("Excelente"/"Aceptable"/"Deficiente"),
@@ -29,6 +23,14 @@ const ETIQUETA_VEREDICTO: Record<(typeof ORDEN_VEREDICTO)[number], string> = {
   exitoso: 'Excelente',
   aceptable: 'Aceptable',
   defectuoso: 'Deficiente',
+};
+// Mismo criterio semántico que el resto de la app (Hallazgos de Pantalla 8, Alertas de CIP):
+// aceptable siempre amarillo, defectuoso siempre rojo — acá antes las 3 filas eran texto neutro,
+// sin ninguna identificación de color (pedido explícito del usuario 2026-09-16).
+const COLOR_VEREDICTO: Record<(typeof ORDEN_VEREDICTO)[number], string> = {
+  exitoso: 'text-success',
+  aceptable: 'text-warning',
+  defectuoso: 'text-destructive',
 };
 
 const PERIODOS = [
@@ -55,27 +57,6 @@ const formatoClp = new Intl.NumberFormat('es-CL', {
   maximumFractionDigits: 0,
 });
 
-interface TarjetaKpiProps {
-  titulo: string;
-  valor: string;
-  dato: string;
-  colorValor?: string;
-}
-
-function TarjetaKpi({ titulo, valor, dato, colorValor }: TarjetaKpiProps) {
-  return (
-    <div className="dashboard-metrics rounded-2xl border border-border bg-bg-card p-5">
-      <p className="text-xs font-medium text-text-dim">{titulo}</p>
-      <p
-        className={`mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl ${colorValor ?? 'text-text'}`}
-      >
-        {valor}
-      </p>
-      <p className="mt-1 text-[0.75rem] text-text-faint">{dato}</p>
-    </div>
-  );
-}
-
 // "Total Acciones Control Día" y "Total Acciones Control Acumulada" comparten exactamente la
 // misma estructura a propósito (valor total + tabla Excelente/Aceptable/Deficiente) — el diseño
 // pide que sean comparables a simple vista.
@@ -93,6 +74,7 @@ function ModuloControl({
     return {
       veredicto,
       etiqueta: ETIQUETA_VEREDICTO[veredicto],
+      color: COLOR_VEREDICTO[veredicto],
       cantidad,
       porcentaje: ventana.total > 0 ? (cantidad / ventana.total) * 100 : 0,
     };
@@ -118,8 +100,17 @@ function ModuloControl({
           <tbody className="divide-y divide-border/60">
             {filas.map((fila) => (
               <tr key={fila.veredicto}>
-                <td className="py-1.5 pr-3 text-text">{fila.etiqueta}</td>
-                <td className="py-1.5 pr-3 font-medium text-text">
+                <td className="py-1.5 pr-3">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full bg-current ${fila.color}`}
+                    />
+                    <span className={`font-medium ${fila.color}`}>
+                      {fila.etiqueta}
+                    </span>
+                  </span>
+                </td>
+                <td className={`py-1.5 pr-3 font-medium ${fila.color}`}>
                   {fila.cantidad.toLocaleString('es-CL')}
                 </td>
                 <td className="py-1.5 text-text-dim">
@@ -211,32 +202,15 @@ export function ResumenTab() {
     [catalogo],
   );
 
-  const datosCategorias = useMemo(() => {
-    const suma = categorias.reduce((acc, c) => acc + c.cantidad, 0);
-    return categorias.map((c, i) => ({
-      nombre: c.familia || 'Sin categoría',
-      cantidad: c.cantidad,
-      porcentaje: suma > 0 ? ((c.cantidad / suma) * 100).toFixed(1) : '0',
-      color: PALETA_CATEGORIAS[i % PALETA_CATEGORIAS.length],
-    }));
-  }, [categorias]);
-
-  const totalDonut = datosCategorias.reduce((sum, c) => sum + c.cantidad, 0);
-  let acumAngulo = 0;
-  const segmentosDonut = datosCategorias.map((cat) => {
-    const fraccion = totalDonut > 0 ? cat.cantidad / totalDonut : 0;
-    const inicio = acumAngulo;
-    acumAngulo += fraccion * 360;
-    return { ...cat, inicio, fin: acumAngulo };
-  });
-
-  function calcularCoordenadas(
-    angulo: number,
-    radio: number,
-  ): [number, number] {
-    const rad = ((angulo - 90) * Math.PI) / 180;
-    return [100 + radio * Math.cos(rad), 100 + radio * Math.sin(rad)];
-  }
+  const segmentosCategorias = useMemo(
+    () =>
+      categorias.map((c, i) => ({
+        nombre: c.familia || 'Sin categoría',
+        cantidad: c.cantidad,
+        color: PALETA_CATEGORIAS[i % PALETA_CATEGORIAS.length],
+      })),
+    [categorias],
+  );
 
   return (
     <div className="space-y-6">
@@ -283,28 +257,28 @@ export function ResumenTab() {
 
       {/* 2. Fila principal de 5 KPI */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <TarjetaKpi
+        <KpiCard
           titulo="Total AFT"
           valor={totalActivos.toLocaleString('es-CL')}
           dato="Patrimonio activo registrado en BPI"
         />
-        <TarjetaKpi
+        <KpiCard
           titulo="AFT en Servicio"
           valor={activosServicio.toLocaleString('es-CL')}
           dato={`${porcentaje(activosServicio)} del total`}
         />
-        <TarjetaKpi
+        <KpiCard
           titulo="AFT en Mantenimiento"
           valor={activosMantenimiento.toLocaleString('es-CL')}
           dato={`${porcentaje(activosMantenimiento)} del total`}
-          colorValor="text-amber-400"
+          colorValor="text-warning"
         />
-        <TarjetaKpi
+        <KpiCard
           titulo="AFT Inactivos"
           valor={activosInactivos.toLocaleString('es-CL')}
           dato={`${porcentaje(activosInactivos)} del total`}
         />
-        <TarjetaKpi
+        <KpiCard
           titulo="Valor AFT CLP"
           valor={formatoClp.format(valorTotalClp)}
           dato="Valor económico total registrado"
@@ -328,85 +302,15 @@ export function ResumenTab() {
           <h3 className="text-sm font-bold text-text">
             Distribución por Categorías
           </h3>
-          <div className="mt-5 flex flex-col items-center gap-6 sm:flex-row sm:justify-around">
-            <div className="relative h-40 w-40 shrink-0">
-              <svg
-                viewBox="0 0 200 200"
-                className="h-full w-full -rotate-90 transform"
-              >
-                {segmentosDonut.map((seg) => {
-                  const radioExterior = 85;
-                  const radioInterior = 55;
-                  const [x1Ext, y1Ext] = calcularCoordenadas(
-                    seg.inicio,
-                    radioExterior,
-                  );
-                  const [x2Ext, y2Ext] = calcularCoordenadas(
-                    seg.fin,
-                    radioExterior,
-                  );
-                  const [x1Int, y1Int] = calcularCoordenadas(
-                    seg.inicio,
-                    radioInterior,
-                  );
-                  const [x2Int, y2Int] = calcularCoordenadas(
-                    seg.fin,
-                    radioInterior,
-                  );
-                  const granArco = seg.fin - seg.inicio > 180 ? 1 : 0;
-                  const d = [
-                    `M ${x1Ext} ${y1Ext}`,
-                    `A ${radioExterior} ${radioExterior} 0 ${granArco} 1 ${x2Ext} ${y2Ext}`,
-                    `L ${x2Int} ${y2Int}`,
-                    `A ${radioInterior} ${radioInterior} 0 ${granArco} 0 ${x1Int} ${y1Int}`,
-                    'Z',
-                  ].join(' ');
-                  return (
-                    <path key={seg.nombre} d={d} fill={seg.color}>
-                      <title>{`${seg.nombre}: ${seg.cantidad} (${seg.porcentaje}%)`}</title>
-                    </path>
-                  );
-                })}
-              </svg>
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-lg font-extrabold text-text">
-                  {totalActivos}
-                </span>
-                <span className="text-[0.6rem] font-medium tracking-wider text-text-dim uppercase">
-                  AFT
-                </span>
-              </div>
-            </div>
-
-            <div className="w-full space-y-2 sm:max-w-xs">
-              {datosCategorias.length === 0 && (
-                <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-text-dim">
-                  {cargando
-                    ? 'Cargando distribución…'
-                    : 'Sin activos proyectados todavía.'}
-                </p>
-              )}
-              {datosCategorias.map((cat) => (
-                <div
-                  key={cat.nombre}
-                  className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="h-3 w-3 rounded-sm"
-                      style={{ backgroundColor: cat.color }}
-                    />
-                    <span className="text-text">{cat.nombre}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-text">
-                      {cat.cantidad}
-                    </span>
-                    <span className="text-text-faint">({cat.porcentaje}%)</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="mt-5">
+            <PieChart
+              segmentos={segmentosCategorias}
+              vacioTexto={
+                cargando
+                  ? 'Cargando distribución…'
+                  : 'Sin activos proyectados todavía.'
+              }
+            />
           </div>
         </div>
       </div>

@@ -12,22 +12,26 @@ interface EstiloVeredicto {
   detalle: string;
 }
 
+// Regla corregida con el usuario 2026-09-14/15 (reemplaza la version anterior: antes "falta
+// solo" era ACEPTABLE, ahora es DEFECTUOSO) — mismo texto que verdict.ts/veredicto.ts.
 const ESTILOS: Record<VeredictoControl, EstiloVeredicto> = {
   exitoso: {
     fondo: 'bg-success/20 text-success ring-1 ring-success/40',
     etiqueta: 'EXITOSO',
-    detalle: 'Todos los AFT son del área y se escanearon todos.',
+    detalle:
+      'No falta ningún AFT esperado y no apareció ningún AFT de otra área/ubicación.',
   },
   aceptable: {
     fondo: 'bg-warning/20 text-warning ring-1 ring-warning/40',
     etiqueta: 'ACEPTABLE',
     detalle:
-      'Falta escanear algún AFT del área, o apareció alguno de otra área — no ambos.',
+      'No faltan AFT del área, pero aparecieron AFT de otras áreas en la acción de control.',
   },
   defectuoso: {
     fondo: 'bg-destructive/20 text-destructive ring-1 ring-destructive/40',
     etiqueta: 'DEFECTUOSO',
-    detalle: 'Faltan AFT del área y además aparecieron AFT de otras áreas.',
+    detalle:
+      'Faltan AFT del área — solos, o junto con AFT de otras áreas en la acción de control.',
   },
 };
 
@@ -49,4 +53,17 @@ export function etiquetaTipo(
   if (tipo === 'ordinario') return 'ORDINARIO';
   if (tipo === 'extraordinario') return 'EXTRAORDINARIO';
   return '—';
+}
+
+// Hallazgo real 2026-09-16: las cuentas creadas por crearUsuarioHuman (CIS/keycloak-admin.service.ts)
+// fuerzan firstName = lastName = email — workaround necesario de un bug distinto de Keycloak 26
+// ("Account is not fully set up" si cualquiera queda vacío). Keycloak arma el claim `name`
+// concatenando ambos, así que app-qr-sicsaft mandaba literalmente "email email" como operadorId.
+// Ya se corrigió en el origen (app-qr-sicsaft/src/lib/oidc/oidc-client.ts prioriza
+// preferred_username), pero las sesiones ya grabadas en la BPI mantienen el valor duplicado — este
+// helper lo limpia solo en pantalla, sin tocar el dato guardado.
+export function nombreOperador(operadorId: string): string {
+  const partes = operadorId.trim().split(/\s+/);
+  if (partes.length === 2 && partes[0] === partes[1]) return partes[0];
+  return operadorId;
 }

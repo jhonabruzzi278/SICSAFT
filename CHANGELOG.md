@@ -6,6 +6,14 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 ## [Sin publicar]
 
 ### Added
+- **CIP — alertas entrelazadas con reportes + historial nocturno ([DOC-034](aidlc-docs/cip/design-artifacts/DOC-034-alertas-entrelazadas-con-reportes.md))**: cada alerta de "AFT fuera de área" trae el veredicto de la sesión que la generó y un link directo al reporte completo; corte diario por veredicto vía `GET /dashboard/historico`.
+- **core/frontend — organigrama de Controles de área + informe PDF ([DOC-035](aidlc-docs/core/design-artifacts/DOC-035-organigrama-controles-de-area.md))**: vista jerárquica Organización→Dirección→Departamento→Área con contador de reportes, y exportación del informe de control ("Pantalla 8") a PDF (`lib/pdf-informe-control.ts`).
+- **CIP — marcar sesión revisada, primera escritura del módulo ([DOC-036](aidlc-docs/cip/design-artifacts/DOC-036-marcar-sesion-revisada-cip.md))**: el Directivo baja el contador de notificaciones de un Área al revisar una sesión desde el organigrama.
+
+### Fixed
+- **"En servicio" en 0 del informe de control de área** (commit `0a784f5`).
+
+### Added (Fase G)
 - **`sicsaft-core` — Fase G: puesto del Profesional de AFT en su propia PC ([DOC-028](aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md) Fase G, `CORE-RF-06`)**:
   - La PC del Director (la "PC madre", instalación única = BPI única) sirve el CCP también en `https://<ip-lan>:8767` por HTTPS con el certificado autofirmado de la APP QR. En la PC del AFT **no se instala nada**.
   - Proxy de mismo origen en `static-portal-server.ts` para `/cis/*` y el token endpoint del realm (`/kc/token`), porque una página HTTPS no puede hacer `fetch` a CIS/Keycloak por HTTP (contenido mixto) y CIS no tiene ese origen en su CORS. Rutas fijas, sin proxy abierto; verificación explícita del origen de destino (saneador S5144).
@@ -70,17 +78,17 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ### Changed
 - **Estandarización de Documentación**: Todos los `README.md` de subsistemas activos actualizados bajo el estándar de 8 secciones institucionales.
-- **Reemplazo de Autenticación ([ADR-004](adr/ADR-004-keycloak-26-reemplaza-autenticacion.md))**: Migración completa a Keycloak 26 OIDC/PKCE con roles por organización.
+- **Reemplazo de Autenticación ([ADR-004](adr/ADR-004-identidad-keycloak-reemplaza-zitadel.md))**: Migración completa a Keycloak 26 OIDC/PKCE con roles por organización.
 - **Reemplazo de Cola de Mensajería ([ADR-005](adr/ADR-005-postgres-pgboss-reemplaza-redis.md))**: Eliminación definitiva de Redis en favor de PostgreSQL con `pg-boss`.
 - **Nomenclatura Oficial**: Adopción de **BPI (Base Patrimonial Inteligente)** como término oficial en todo el código y documentación.
 
 ### Fixed
-- **Comentarios Huérfanos ([H-04](documentacion/auditoria/DOC-032-CONTRATO-INSPECCION-PROFUNDA.md))**: Eliminación y resolución de los 14 comentarios huérfanos en `cis/`, `core/`, `cip/` y `ccp/`.
+- **Comentarios Huérfanos (H-04, [DOC-032](aidlc-docs/revision-codigo/DOC-032-revision-de-codigo-y-documentacion.md))**: Eliminación y resolución de los 14 comentarios huérfanos en `cis/`, `core/`, `cip/` y `ccp/`.
 - **Timeout en Login Embebido**: Corrección de fallos en el handshake OIDC en arranques lentos de Keycloak ([DOC-027](aidlc-docs/sicsaft-core/design-artifacts/DOC-027-bitacora-bugs-reales.md)).
 - **Layout a Pantalla Completa**: Corrección del viewport y overflow en el wizard de instalación de `sicsaft-core`.
 
 ### Removed
-- Eliminado portal legacy `web_admin/` y dependencias de administración remota descartadas ([DOC-028 Fase F](aidlc-docs/sicsaft-core/design-artifacts/DOC-028-fases-sicsaft-core.md)).
+- Eliminado portal legacy `web_admin/` y dependencias de administración remota descartadas ([DOC-028 Fase F](aidlc-docs/sicsaft-core/design-artifacts/DOC-028-camino-a-cliente-final.md)).
 - Eliminado backend Redis de todos los perfiles de despliegue.
 
 ---

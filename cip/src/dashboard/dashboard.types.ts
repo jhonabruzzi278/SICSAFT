@@ -22,12 +22,19 @@ export interface VeredictoSesionResponse {
   areaId: string;
   veredicto: string;
   fechaCierre: string;
+  revisado: boolean;
+  revisadoPor: string | null;
+  revisadoEn: string | null;
 }
 
+// DOC-034 Parte A — sesionId/veredicto agregados para entrelazar la alerta con el reporte
+// (sesión de control) que la generó.
 export interface FueraDeAreaResponse {
   codigoQr: string;
+  sesionId: string;
   areaRealId: string;
   areaEsperadaId: string;
+  veredicto: string;
   detectadoEn: string;
 }
 
@@ -66,6 +73,16 @@ export interface VeredictoResumenResponse {
 export interface ResumenVeredictosResponse {
   dia: { total: number; porVeredicto: VeredictoResumenResponse[] };
   acumulado: { total: number; porVeredicto: VeredictoResumenResponse[] };
+}
+
+// DOC-034 Parte B — un corte diario del historial (resumen_diario), poblado por
+// ResumenDiarioScheduler.
+export interface ResumenDiarioResponse {
+  fecha: string;
+  totalSesiones: number;
+  exitoso: number;
+  aceptable: number;
+  defectuoso: number;
 }
 
 export interface Pagina<T> {

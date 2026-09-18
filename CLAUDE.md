@@ -5,11 +5,19 @@ raíz (`cis/`, `core/`, `ccp/`, `cip/`, ...) es su propio desplegable con su pro
 `package.json`, `Dockerfile` y pipeline de CI. Ver [README.md](README.md) para el mapa completo de
 sistemas y [ARQUITECTURA-WAF.md](ARQUITECTURA-WAF.md) para el marco de arquitectura.
 
-Excepciones que **no** son desplegables (sin `Dockerfile` ni workflow de CI): `landing/` (Vercel),
-`app-qr-sicsaft/` (Vercel — ver "CI / calidad") y `herramientas/` — carpeta de tooling que corre
-del lado del operador o empaquetada dentro de otro sistema, no en su propio contenedor. Hoy
+Excepciones que **no** son desplegables (sin `Dockerfile` ni workflow de CI): `landing/` (Vercel,
+proyecto `sicsaft` de `.vercel/repo.json`) y `herramientas/` — carpeta de tooling que corre del
+lado del operador o empaquetada dentro de otro sistema, no en su propio contenedor. Hoy
 `herramientas/etl-contable/` (ETL Python del Excel contable, invocado por `sicsaft-core`, DOC-029).
 `apk-aft/` (WebView Android de DOC-029 RF-H) seguirá el mismo criterio cuando exista.
+`app-qr-sicsaft/` **ya no es una excepción**: tiene `Dockerfile` propio y workflow de CI real
+(`.github/workflows/app-qr-ci.yml` — build + Playwright e2e con mocks MSW + `docker build`), como
+cualquier otro sistema desplegable — ver "CI / calidad" más abajo.
+
+`ccp-desktop/` es un launcher Electron real (DOC-028 Fase G) que descubre `sicsaft-core.exe` en la
+LAN y abre el CCP en ventana nativa — se distribuye empaquetado junto al instalador principal, no
+tiene todavía `Dockerfile`/CI propios (no aplica: no es un servidor) ni carpeta en `aidlc-docs/`
+— **deuda de documentación pendiente**, no código muerto.
 
 **Dos portales, dos roles, dos logins — nunca uno compartido** (DOC-022): `ccp/` (ex-`web/`) es
 exclusivo del Profesional de AFT y `core/frontend/` del Directivo. El portal del Administrador del
@@ -280,9 +288,11 @@ aidlc-docs/
   (ver `.sonarcloud.properties` y el historial de `fix: corregir NOSONAR mal ubicado...`).
 - Boilerplate generado por Nest CLI (specs de humo, configs de eslint) está excluido del análisis
   de duplicación a propósito — no es señal de deuda técnica real entre `cis/`, `core/` y `cip/`.
-- `app-qr-sicsaft/` es la excepción al pipeline de arriba: se despliega directo a **Vercel**
-  (`.vercel/repo.json`, proyecto `sicsaft`), por eso no tiene workflow en `.github/workflows/`
-  ni `docker build`.
+- `app-qr-sicsaft/` tiene su propio workflow (`app-qr-ci.yml`): `bun run build` (type-check +
+  build), Playwright e2e contra mocks MSW (`bun run test:e2e`, sin backend real — ver
+  `aidlc-docs/app-qr-sicsaft/testing/TEST_STRATEGY.md`) y `docker build`. Sin lint ni Vitest
+  configurados todavía (ver "Comandos por sistema" arriba). El único proyecto real de Vercel del
+  repo es `sicsaft` → `landing/` (`.vercel/repo.json`) — `app-qr-sicsaft/` no se despliega por ahí.
 - `herramientas/etl-contable/` tampoco tiene workflow propio (no es desplegable): su verificación
   es `pytest` + `ruff` (correr desde la carpeta) y se ejercita end-to-end dentro del e2e de `core/`
   (ciclo lote → aprobar/rechazar contra Postgres real). `apk-aft/` (DOC-029 RF-H) sí tendrá uno

@@ -47,6 +47,9 @@ Ver [ARQUITECTURA-WAF.md](../ARQUITECTURA-WAF.md) 4 (circuit breaker por integra
 una caída de ERP/BI nunca bloquea el flujo interno Captura → CIS → CORE → Base Patrimonial).
 
 ## Próximo paso sugerido
-Implementar `cis/src/importacion-contable-conector/` según DOC-016 2–7. El resto de
-conectores (CON-ERP, CON-RRHH, CON-EMAIL, CON-POWERBI, CON-RFID, CON-API) sigue sin arrancar —
-priorizar según qué integración pida primero el negocio.
+`DOC-016` quedó **histórico/superado**: `CON-CONTABILIDAD` no se implementó como conector NestJS
+en `cis/` sino como sidecar Python (`herramientas/etl-contable/`, DOC-029 RF-B) invocado por el
+`.exe` de `sicsaft-core`, que postea directo a CIS — arquitectura distinta a la que describía
+DOC-016 2–7. No hay nada que implementar en `cis/src/importacion-contable-conector/` (esa carpeta
+no existe ni va a crearse). El resto de conectores (CON-ERP, CON-RRHH, CON-EMAIL, CON-POWERBI,
+CON-RFID, CON-API) sigue sin arrancar — priorizar según qué integración pida primero el negocio.

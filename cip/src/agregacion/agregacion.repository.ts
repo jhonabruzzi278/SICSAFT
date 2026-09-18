@@ -106,24 +106,29 @@ export class AgregacionRepository {
   }
 
   async upsertFueraDeArea(input: {
+    sesionId: string;
     codigoQr: string;
     organizacionId: string;
     areaRealId: string;
     areaEsperadaId: string;
+    veredicto: Veredicto;
   }): Promise<void> {
     await this.pool.query(
-      `INSERT INTO activo_fuera_de_area (codigo_qr, organizacion_id, area_real_id, area_esperada_id, detectado_en)
-       VALUES ($1, $2, $3, $4, now())
-       ON CONFLICT (codigo_qr) DO UPDATE SET
+      `INSERT INTO activo_fuera_de_area (sesion_id, codigo_qr, organizacion_id, area_real_id, area_esperada_id, veredicto, detectado_en)
+       VALUES ($1, $2, $3, $4, $5, $6, now())
+       ON CONFLICT (sesion_id, codigo_qr) DO UPDATE SET
          organizacion_id = EXCLUDED.organizacion_id,
          area_real_id = EXCLUDED.area_real_id,
          area_esperada_id = EXCLUDED.area_esperada_id,
+         veredicto = EXCLUDED.veredicto,
          detectado_en = now()`,
       [
+        input.sesionId,
         input.codigoQr,
         input.organizacionId,
         input.areaRealId,
         input.areaEsperadaId,
+        input.veredicto,
       ],
     );
   }
@@ -252,6 +257,78 @@ export class AgregacionRepository {
   async marcarAtrasado(): Promise<void> {
     await this.pool.query(
       `UPDATE sync_estado SET al_dia = false WHERE singleton = 'global'`,
+    );
+  }
+
+  // DOC-034 Parte B — corte nocturno. `cobertura_organizacion` ya tiene una fila por
+  // organizacion con actividad (poblada en cada evento, ver recalcularCobertura); reusarla evita
+  // sumar una tabla de organizaciones nueva a CIP solo para este job.
+  async listarOrganizacionesConocidas(): Promise<string[]> {
+    const resultado = await this.pool.query<{ organizacion_id: string }>(
+      `SELECT organizacion_id FROM cobertura_organizacion`,
+    );
+    return resultado.rows.map((fila) => fila.organizacion_id);
+  }
+
+  // `fecha` en formato 'YYYY-MM-DD', ya resuelta al huso horario correcto por quien llama
+  // (ResumenDiarioWorker) — este metodo no conoce husos horarios, solo compara fechas.
+  async contarVeredictosPorDia(
+    organizacionId: string,
+    fecha: string,
+  ): Promise<{
+    totalSesiones: number;
+    exitoso: number;
+    aceptable: number;
+    defectuoso: number;
+  }> {
+    const resultado = await this.pool.query<{
+      veredicto: string;
+      cantidad: string;
+    }>(
+      `SELECT veredicto, COUNT(*) AS cantidad FROM veredicto_sesion
+       WHERE organizacion_id = $1 AND fecha_cierre::date = $2::date
+       GROUP BY veredicto`,
+      [organizacionId, fecha],
+    );
+    const porVeredicto = new Map(
+      resultado.rows.map((fila) => [fila.veredicto, Number(fila.cantidad)]),
+    );
+    const exitoso = porVeredicto.get('exitoso') ?? 0;
+    const aceptable = porVeredicto.get('aceptable') ?? 0;
+    const defectuoso = porVeredicto.get('defectuoso') ?? 0;
+    return {
+      totalSesiones: exitoso + aceptable + defectuoso,
+      exitoso,
+      aceptable,
+      defectuoso,
+    };
+  }
+
+  async upsertResumenDiario(input: {
+    organizacionId: string;
+    fecha: string;
+    totalSesiones: number;
+    exitoso: number;
+    aceptable: number;
+    defectuoso: number;
+  }): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO resumen_diario (organizacion_id, fecha, total_sesiones, exitoso, aceptable, defectuoso, generado_en)
+       VALUES ($1, $2, $3, $4, $5, $6, now())
+       ON CONFLICT (organizacion_id, fecha) DO UPDATE SET
+         total_sesiones = EXCLUDED.total_sesiones,
+         exitoso = EXCLUDED.exitoso,
+         aceptable = EXCLUDED.aceptable,
+         defectuoso = EXCLUDED.defectuoso,
+         generado_en = now()`,
+      [
+        input.organizacionId,
+        input.fecha,
+        input.totalSesiones,
+        input.exitoso,
+        input.aceptable,
+        input.defectuoso,
+      ],
     );
   }
 }

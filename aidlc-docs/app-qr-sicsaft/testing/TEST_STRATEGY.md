@@ -1,25 +1,40 @@
 # Test Strategy
 
+> Reescrito 2026-09-17 — la versión anterior describía specs (`scan.spec.js`,
+> `features.spec.js`, `inventory.spec.js`) de un prototipo de inventario de productos retail
+> (con IVA, variantes, stock) que ya no existe. Ver nota histórica en `../00_PROJECT_METADATA.md`.
+
 ## Framework
-Playwright, corriendo contra el build de producción real (`npm run build && npm run preview`, ver `playwright.config.js`) — no contra el dev server, para detectar problemas específicos de build (chunking, rutas, CSP) que no aparecen en modo desarrollo.
 
-## Cobertura Actual
-18 specs E2E en `tests/`, organizados por área:
-- `tests/scan.spec.js` — casos de aceptación del escáner (15/16/20 productos escaneados, split registrados/no registrados, no duplica reconteo).
-- `tests/features.spec.js` — entrada manual, resolución de códigos de variante (`BASE-VARIANTE`), toggle de tema, historial de sesiones, export CSV.
-- `tests/inventory.spec.js` — alta de producto (con/sin IVA, con/sin variantes), validación de código duplicado, insignia de stock bajo, búsqueda, baja de producto.
+Playwright, corriendo contra el build de producción real (`bun run build && bun run preview`, ver
+`playwright.config.js`) — no contra el dev server, para detectar problemas específicos de build
+(chunking, rutas, CSP) que no aparecen en modo desarrollo. El backend (CIS/CORE) se mockea con MSW
+(`src/mocks/`, `VITE_MOCK_API=true`) para que la suite corra rápido y aislada en CI — **no es
+evidencia de integración real**, esa evidencia vive en `casos-de-uso/e2e/` y `sicsaft-core/e2e/`
+(ver `aidlc-docs/sicsaft-core/testing/TEST_STRATEGY.md` §1).
 
-Los tests usan atributos `data-testid` (no IDs/clases CSS) para no ser frágiles ante cambios de estilo del lado de Tailwind/shadcn — ver `tests/helpers.js` (`resetApp`, `scanCode`) para los helpers compartidos.
+## Cobertura actual
+
+11 specs e2e en `tests/` (ver el detalle por archivo en
+[`TEST_COVERAGE_REPORT.md`](TEST_COVERAGE_REPORT.md)), cubriendo las 12 pantallas del flujo
+oficial (DOC-001): setup de sesión, escaneo y sus 8 categorías de clasificación, inventario,
+incidencias, auditoría, cola offline/sync, y las brechas de DOC-017 (Fase 3.1).
+
+Los tests usan atributos `data-testid` (no IDs/clases CSS) para no ser frágiles ante cambios de
+estilo del lado de Tailwind/shadcn — ver `tests/helpers.js` para los helpers compartidos de setup
+de sesión (operador/organización/área/ubicación).
+
+## CI (`.github/workflows/app-qr-ci.yml`)
+
+`bun install` → `bun run build` (type-check + build) → `playwright install --with-deps chromium`
+→ `bun run test:e2e` → `docker build` (con placeholders `VITE_*`, nunca hosts reales). Sin `lint`
+ni Vitest en el pipeline — ver "Gaps" en `TEST_COVERAGE_REPORT.md`.
 
 ## Notas de estabilidad
-- `workers: 4` y `timeout: 60_000` en `playwright.config.js`: con el default (workers = núcleos disponibles) la suite es flaky por contención de recursos en máquinas cargadas (varios Chromium reales en paralelo contra IndexedDB), no por fallos funcionales — se verificó corriendo los tests fallidos en aislamiento (`--workers=1`), donde siempre pasan.
-- El lector QR no tiene cámara real en CI/sandbox — los tests ejercitan el flujo de escaneo vía el input de entrada manual (`manual-code-input`), que comparte toda la lógica de resolución con la cámara (`resolveScannedProduct`).
+- El lector QR no tiene cámara real en CI/sandbox — los tests ejercitan el flujo de escaneo vía el
+  input de entrada manual, que comparte toda la lógica de resolución con la cámara
+  (`scan-resolve.ts`).
 
-## Gaps Identificados
-- Sin tests unitarios aislados para `src/lib/*.ts` (corren indirectamente vía los E2E, pero no hay Vitest configurado para testearlos en aislamiento).
-- Sin prueba en dispositivo Android físico (cámara real, instalación PWA real, offline real tras "Agregar a inicio").
-- Sin test de Lighthouse/CWV automatizado.
-
-## Recomendación (roadmap)
-1. Agregar Vitest para cubrir `src/lib/db.ts`, `labels.ts` y `scan-resolve.ts` en aislamiento (más rápido que E2E completo para la lógica pura).
-2. Prueba manual en un dispositivo Android real antes de considerar el flujo de instalación PWA cerrado.
+## Gaps identificados
+Ver [`TEST_COVERAGE_REPORT.md`](TEST_COVERAGE_REPORT.md) — sin Vitest conectado, sin prueba en
+dispositivo Android físico, sin Lighthouse/CWV automatizado.

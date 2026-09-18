@@ -35,6 +35,15 @@
       "package.json",
       "node_modules/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "../etl-contable",
+        "to": "etl-contable",
+        "filter": [
+          "etl_contable.py"
+        ]
+      }
+    ],
     "win": {
       "target": "nsis"
     },

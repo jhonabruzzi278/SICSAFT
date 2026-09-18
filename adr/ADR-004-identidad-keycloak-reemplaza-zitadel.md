@@ -2,8 +2,10 @@
 
 ## Status
 Aceptada — reemplaza a [ADR-002](ADR-002-identidad-zitadel-multi-tenant.md). Fase 1 (`cis/`) y
-Fase 2 (4 portales) implementadas. Fase 3 (`devops/`) implementada solo en `devops/onprem/`
-(`local/`/`prod/` siguen con Zitadel, pendientes) — ver "Consequences",
+Fase 2 (4 portales) implementadas. Fase 3 (`devops/`) implementada en `devops/onprem/` — los
+stacks experimentales `devops/local/`/`devops/prod/` **se retiraron por completo en 2026-09** (no
+"siguen con Zitadel pendientes": ya no existen, ver `devops/README.md`), así que `onprem/` es hoy
+el único perfil de despliegue on-premise real. Ver "Consequences",
 `aidlc-docs/devops/00_PROJECT_METADATA.md` y el README de cada sistema para el detalle vigente.
 
 ## Context

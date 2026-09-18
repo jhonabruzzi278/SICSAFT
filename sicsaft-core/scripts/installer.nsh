@@ -30,8 +30,19 @@
   ${EndIf}
   nsExec::ExecToLog 'netsh advfirewall firewall add rule name="${SICSAFT_FW_UDP}" dir=in action=allow protocol=UDP localport=58765 profile=private,domain'
   Pop $0
+  ; El Generador QR viaja dentro del mismo instalador, pero es una herramienta independiente
+  ; para el equipo SICSAFT. Se crea acceso directo sin abrirlo automáticamente al terminar.
+  CreateDirectory "$SMPROGRAMS\SICSAFT"
+  CreateShortCut "$DESKTOP\SICSAFT Generador QR.lnk" "$INSTDIR\resources\generador-qr\SICSAFT Generador QR.exe"
+  CreateShortCut "$SMPROGRAMS\SICSAFT\SICSAFT Generador QR.lnk" "$INSTDIR\resources\generador-qr\SICSAFT Generador QR.exe"
+  CreateShortCut "$DESKTOP\SICSAFT CCP.lnk" "$INSTDIR\resources\ccp-desktop\SICSAFT CCP.exe"
+  CreateShortCut "$SMPROGRAMS\SICSAFT\SICSAFT CCP.lnk" "$INSTDIR\resources\ccp-desktop\SICSAFT CCP.exe"
 !macroend
 
 !macro customUnInstall
   !insertmacro sicsaftQuitarReglasFirewall
+  Delete "$DESKTOP\SICSAFT Generador QR.lnk"
+  Delete "$SMPROGRAMS\SICSAFT\SICSAFT Generador QR.lnk"
+  Delete "$DESKTOP\SICSAFT CCP.lnk"
+  Delete "$SMPROGRAMS\SICSAFT\SICSAFT CCP.lnk"
 !macroend

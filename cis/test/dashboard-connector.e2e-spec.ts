@@ -3,9 +3,11 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { SignJWT, generateKeyPair, type JWTVerifyGetKey } from 'jose';
 import { crearAppE2e } from './support/e2e-app';
+import { firmarTokenKeycloak } from './support/jwt';
 
 const ISSUER = 'http://id.sicsaft.localhost/realms/sicsaft';
 const AUDIENCE = 'cis-api';
+const DUOC_ORG_ID = 'duoc-uc';
 
 const SYNC_INFO = { actualizadoEn: '2026-08-18T10:00:00.000Z', alDia: true };
 
@@ -19,10 +21,12 @@ const SYNC_INFO = { actualizadoEn: '2026-08-18T10:00:00.000Z', alDia: true };
 describe('Dashboard (e2e) — DOC-019, proxy CIS→CIP', () => {
   let app: INestApplication<App>;
   let bearerToken: string;
+  let tokenDirectivo: string;
   let cipClientService: {
     getCobertura: jest.Mock;
     getAreas: jest.Mock;
     getSesiones: jest.Mock;
+    revisarSesion: jest.Mock;
     getFueraDeArea: jest.Mock;
     getNoLocalizados: jest.Mock;
     getIncidencias: jest.Mock;
@@ -39,6 +43,15 @@ describe('Dashboard (e2e) — DOC-019, proxy CIS→CIP', () => {
       .setAudience(AUDIENCE)
       .setExpirationTime('15m')
       .sign(privateKey);
+    // Notificaciones del organigrama (2026-09-16) — PATCH /dashboard/sesiones/:id/revisar exige
+    // DirectivoGuard, a diferencia del resto de este controller (ver dashboard-connector.
+    // controller.ts). `bearerToken` de arriba sigue sirviendo para el caso 403 (sin claim
+    // `organization`, sin rol directivo en ninguna organización).
+    tokenDirectivo = await firmarTokenKeycloak(privateKey, [DUOC_ORG_ID], {
+      issuer: ISSUER,
+      audience: AUDIENCE,
+      subject: 'op-directivo-duoc',
+    });
 
     const localJwks: JWTVerifyGetKey = () => Promise.resolve(publicKey);
 
@@ -90,12 +103,38 @@ describe('Dashboard (e2e) — DOC-019, proxy CIS→CIP', () => {
         categorias: [{ areaId: 'area-1', familia: 'Informática', cantidad: 2 }],
         ...SYNC_INFO,
       }),
+      revisarSesion: jest.fn().mockResolvedValue({
+        sesionId: 'sesion-1',
+        areaId: 'area-1',
+        veredicto: 'defectuoso',
+        fechaCierre: '2026-08-18T09:00:00.000Z',
+        revisado: true,
+        revisadoPor: 'op-directivo-duoc',
+        revisadoEn: '2026-08-19T09:00:00.000Z',
+      }),
     };
 
     app = await crearAppE2e({
       jwks: localJwks,
       coreClientService: {},
       cipClientService,
+      // Solo lo necesita PATCH /dashboard/sesiones/:id/revisar (DirectivoGuard) — el resto de las
+      // rutas de este controller no exige rol, así que bearerToken (sin claim `organization`) las
+      // sigue ejercitando sin tocar este stub.
+      keycloakAdminService: {
+        resolverRolesPorOrganizacionDeUsuario: jest
+          .fn()
+          .mockImplementation((userId: string, organizaciones: string[]) => {
+            if (userId !== 'op-directivo-duoc') return Promise.resolve({});
+            const resultado: Record<string, string[]> = {};
+            for (const organizacionId of organizaciones) {
+              if (organizacionId === DUOC_ORG_ID) {
+                resultado[organizacionId] = ['directivo'];
+              }
+            }
+            return Promise.resolve(resultado);
+          }),
+      },
     });
   });
 
@@ -238,6 +277,46 @@ describe('Dashboard (e2e) — DOC-019, proxy CIS→CIP', () => {
       .set('Authorization', `Bearer ${bearerToken}`)
       .query({ organizacionId: 'duoc-uc' })
       .expect(502);
+  });
+
+  describe('PATCH /dashboard/sesiones/:sesionId/revisar (notificaciones del organigrama)', () => {
+    it('sin Authorization devuelve 401', async () => {
+      await request(app.getHttpServer())
+        .patch('/dashboard/sesiones/sesion-1/revisar')
+        .expect(401);
+    });
+
+    it('sin el rol directivo devuelve 403 y no llega a CIP', async () => {
+      await request(app.getHttpServer())
+        .patch('/dashboard/sesiones/sesion-1/revisar')
+        .set('Authorization', `Bearer ${bearerToken}`)
+        .expect(403);
+
+      expect(cipClientService.revisarSesion).not.toHaveBeenCalled();
+    });
+
+    it('con el rol directivo marca la sesión revisada con el operadorId del propio JWT', async () => {
+      const res = await request(app.getHttpServer())
+        .patch('/dashboard/sesiones/sesion-1/revisar')
+        .set('Authorization', `Bearer ${tokenDirectivo}`)
+        .expect(200);
+
+      expect(res.body).toEqual({
+        sesionId: 'sesion-1',
+        areaId: 'area-1',
+        veredicto: 'defectuoso',
+        fechaCierre: '2026-08-18T09:00:00.000Z',
+        revisado: true,
+        revisadoPor: 'op-directivo-duoc',
+        revisadoEn: '2026-08-19T09:00:00.000Z',
+      });
+      // El cliente nunca elige quién revisa — es siempre el `sub` del token ya validado.
+      expect(cipClientService.revisarSesion).toHaveBeenCalledWith(
+        'sesion-1',
+        'op-directivo-duoc',
+        expect.any(String),
+      );
+    });
   });
 
   it('devuelve 429 cuando el operador supera el límite de requests (RateLimitGuard, WAF 4)', async () => {

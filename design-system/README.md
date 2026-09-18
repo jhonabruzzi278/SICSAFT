@@ -13,12 +13,13 @@ siguiente sync.
   `ccp/`, `core/frontend/`, `app-qr-sicsaft/` y `sicsaft-core/` — no la paleta Tailwind
   slate/sky que quedó en `landing/` tras su rediseño (`49165e5`), que se desvió del documento y
   queda **fuera de este sistema de diseño** hasta que se decida reunificarla.
-- **Tipografía**: `Noto Sans` (texto) + `Playfair Display` (headings/display), el mismo par que ya
-  corre self-hosted en `app-qr-sicsaft` (`@fontsource-variable/noto-sans`,
-  `@fontsource-variable/playfair-display`) — se adopta como estándar para los 4 portales internos.
-  Los previews de acá cargan las mismas familias por CDN solo para visualización; el código
-  productivo sigue self-hosted (`app-qr-sicsaft` ya así, `ccp`/`core/frontend`/`sicsaft-core`
-  quedan pendientes de sumar el import cuando se implemente).
+- **Tipografía**: **desactualizado** — este README todavía dice `Noto Sans` (texto) +
+  `Playfair Display` (headings/display), pero `BRAND.md` (rediseño "Control sereno", 2026-09-12,
+  posterior a esta carpeta) reemplazó ese par por **`Manrope Variable`** como tipografía única, y
+  marca Noto Sans/Playfair como **depreciado, no reintroducir**. `ccp/src/design.css` ya usa
+  Manrope; `app-qr-sicsaft/src/index.css` sigue con el par viejo, sin migrar todavía. `tokens/
+  tipografia.html` de acá necesita actualizarse a Manrope en el próximo sync para dejar de
+  contradecir a `BRAND.md`, que es la fuente canónica (ver [CLAUDE.md](../CLAUDE.md)).
 
 ## Estructura y orden de envío a Claude Design
 

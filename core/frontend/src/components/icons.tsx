@@ -117,3 +117,57 @@ export function IconRefresh(props: IconProps) {
     </svg>
   );
 }
+
+export function IconBox(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M21 8v8a1 1 0 0 1-.5.87l-8 4.5a1 1 0 0 1-1 0l-8-4.5A1 1 0 0 1 3 16V8" />
+      <path d="M3 8a1 1 0 0 1 .5-.87l8-4.5a1 1 0 0 1 1 0l8 4.5A1 1 0 0 1 21 8l-9 5-9-5Z" />
+      <path d="M12 13v8.5" />
+    </svg>
+  );
+}
+
+export function IconMapPin(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 21s7-6.1 7-11.5a7 7 0 1 0-14 0C5 14.9 12 21 12 21Z" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </svg>
+  );
+}
+
+export function IconDownload(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3v12m0 0 4.5-4.5M12 15 7.5 10.5" />
+      <path d="M4 19.5h16" />
+    </svg>
+  );
+}
+
+export function IconChevronLeft(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="m15 6-6 6 6 6" />
+    </svg>
+  );
+}
+
+export function IconAlertTriangle(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+  );
+}
+
+export function IconBell(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 13 6 9Z" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}

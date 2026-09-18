@@ -10,6 +10,7 @@ import type {
   IncidenciaResponse,
   NoLocalizadoResponse,
   Pagina,
+  ResumenDiarioResponse,
   ResumenVeredictosResponse,
   SyncInfo,
   VeredictoResumenResponse,
@@ -86,8 +87,11 @@ export class DashboardRepository {
       area_id: string;
       veredicto: string;
       fecha_cierre: string;
+      revisado: boolean;
+      revisado_por: string | null;
+      revisado_en: string | null;
     }>(
-      `SELECT sesion_id, area_id, veredicto, fecha_cierre
+      `SELECT sesion_id, area_id, veredicto, fecha_cierre, revisado, revisado_por, revisado_en
        FROM veredicto_sesion WHERE ${where}
        ORDER BY fecha_cierre DESC LIMIT $${parametros.length + 1} OFFSET $${parametros.length + 2}`,
       [...parametros, limit, offset],
@@ -100,7 +104,45 @@ export class DashboardRepository {
         areaId: fila.area_id,
         veredicto: fila.veredicto,
         fechaCierre: fila.fecha_cierre,
+        revisado: fila.revisado,
+        revisadoPor: fila.revisado_por,
+        revisadoEn: fila.revisado_en,
       })),
+    };
+  }
+
+  // Marca una sesión como revisada por el Directivo — acción final desde la UI (Pantalla 8),
+  // sin endpoint de "des-revisar" (ver plan 2026-09-16). `revisadoPor` llega ya resuelto desde
+  // CIS (claim de Keycloak) — CIP no modela identidad, solo lo persiste como texto libre.
+  async marcarSesionRevisada(
+    sesionId: string,
+    revisadoPor: string,
+  ): Promise<VeredictoSesionResponse | null> {
+    const resultado = await this.pool.query<{
+      sesion_id: string;
+      area_id: string;
+      veredicto: string;
+      fecha_cierre: string;
+      revisado: boolean;
+      revisado_por: string | null;
+      revisado_en: string | null;
+    }>(
+      `UPDATE veredicto_sesion
+       SET revisado = true, revisado_por = $2, revisado_en = now()
+       WHERE sesion_id = $1
+       RETURNING sesion_id, area_id, veredicto, fecha_cierre, revisado, revisado_por, revisado_en`,
+      [sesionId, revisadoPor],
+    );
+    const fila = resultado.rows[0];
+    if (!fila) return null;
+    return {
+      sesionId: fila.sesion_id,
+      areaId: fila.area_id,
+      veredicto: fila.veredicto,
+      fechaCierre: fila.fecha_cierre,
+      revisado: fila.revisado,
+      revisadoPor: fila.revisado_por,
+      revisadoEn: fila.revisado_en,
     };
   }
 
@@ -124,11 +166,13 @@ export class DashboardRepository {
     );
     const filas = await this.pool.query<{
       codigo_qr: string;
+      sesion_id: string;
       area_real_id: string;
       area_esperada_id: string;
+      veredicto: string;
       detectado_en: string;
     }>(
-      `SELECT codigo_qr, area_real_id, area_esperada_id, detectado_en
+      `SELECT codigo_qr, sesion_id, area_real_id, area_esperada_id, veredicto, detectado_en
        FROM activo_fuera_de_area WHERE ${where}
        ORDER BY detectado_en DESC LIMIT $${parametros.length + 1} OFFSET $${parametros.length + 2}`,
       [...parametros, limit, offset],
@@ -138,8 +182,10 @@ export class DashboardRepository {
       total: Number(total.rows[0].count),
       items: filas.rows.map((fila) => ({
         codigoQr: fila.codigo_qr,
+        sesionId: fila.sesion_id,
         areaRealId: fila.area_real_id,
         areaEsperadaId: fila.area_esperada_id,
+        veredicto: fila.veredicto,
         detectadoEn: fila.detectado_en,
       })),
     };
@@ -301,6 +347,55 @@ export class DashboardRepository {
     return {
       actualizadoEn: fila?.ultimo_evento_procesado_en ?? null,
       alDia: fila?.al_dia ?? true,
+    };
+  }
+
+  // DOC-034 Parte B — serie histórica de cortes diarios (resumen_diario), más reciente primero.
+  async listarHistorico(
+    organizacionId: string,
+    desde: string | undefined,
+    hasta: string | undefined,
+    limit: number,
+    offset: number,
+  ): Promise<Pagina<ResumenDiarioResponse>> {
+    const condiciones = ['organizacion_id = $1'];
+    const parametros: unknown[] = [organizacionId];
+    if (desde) {
+      parametros.push(desde);
+      condiciones.push(`fecha >= $${parametros.length}`);
+    }
+    if (hasta) {
+      parametros.push(hasta);
+      condiciones.push(`fecha <= $${parametros.length}`);
+    }
+    const where = condiciones.join(' AND ');
+
+    const total = await this.pool.query<{ count: string }>(
+      `SELECT COUNT(*) FROM resumen_diario WHERE ${where}`,
+      parametros,
+    );
+    const filas = await this.pool.query<{
+      fecha: string;
+      total_sesiones: number;
+      exitoso: number;
+      aceptable: number;
+      defectuoso: number;
+    }>(
+      `SELECT fecha, total_sesiones, exitoso, aceptable, defectuoso
+       FROM resumen_diario WHERE ${where}
+       ORDER BY fecha DESC LIMIT $${parametros.length + 1} OFFSET $${parametros.length + 2}`,
+      [...parametros, limit, offset],
+    );
+
+    return {
+      total: Number(total.rows[0].count),
+      items: filas.rows.map((fila) => ({
+        fecha: fila.fecha,
+        totalSesiones: fila.total_sesiones,
+        exitoso: fila.exitoso,
+        aceptable: fila.aceptable,
+        defectuoso: fila.defectuoso,
+      })),
     };
   }
 }

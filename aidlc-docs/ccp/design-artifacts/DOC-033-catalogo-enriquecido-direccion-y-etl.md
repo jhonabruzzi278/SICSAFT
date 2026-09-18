@@ -1,4 +1,9 @@
-# DOC-033 — Catálogo de Activos enriquecido en CCP + Dirección + ETL ampliado
+# DOC-033-B: Catálogo Enriquecido en Portal Web CCP y Nuevas Columnas ETL
+
+> 📌 **Resumen Rápido (Lectura en 30s)**:
+> - **¿Qué es?**: Ampliación de la tabla de Activos en el portal CCP para mostrar columnas de negocio completas (Dirección, Marca, Modelo, Serie, Fecha de Compra, Valor, Responsable) y soporte de estas columnas en el ETL contable.
+> - **Complemento Móvil**: Ver [DOC-033-A (Selector de Dirección en APP QR)](../../../app-qr-sicsaft/design-artifacts/DOC-033-direccion-jerarquia-de-area.md).
+> - **Estado Real**: 🟢 **Implementado**: Columnas visibles en `ccp/src/pages/ActivosPage.tsx` y procesadas por `herramientas/etl-contable`.
 
 > Diseño antes que código (`CLAUDE.md` Metodología AI-DLC). Toca CORE→CIS→CCP→APP QR→ETL — mismo
 > patrón multi-capa de DOC-021, documentado acá porque la decisión de diseño nace del catálogo de

@@ -50,7 +50,7 @@ Detalle por frente en la tabla 0 y estado por rama en Plan de fases.**
 | **RF-C** | 3 pestañas nuevas en el resumen (Dashboard) | CCP | 🔒 **Bloqueado — spec lo entrega Guido** |
 | **RF-D** | Veredicto de sesión accionable → Auditoría / baja / Inventario / Contrato | CCP + 1 automatización en CORE | Diseñado — pendiente |
 | **RF-E** | Auditoría por **área operativa real** del actor + columna "Revisar" | CORE + CIS + CCP | ✅ **Hecho**: CORE (`17d6291`) + CIS (`80a5ccf`) + CCP (`3d91204`). El área se puebla hoy desde `POST /inventarios`; las escrituras patrimoniales genéricas quedan en `null` hasta que CIS propague el claim (E.3) |
-| **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | ✅ **Hecho** (`feat/ccp-etiquetas-qr`, `20a82e5`) — verificado en modo mock |
+| **RF-F** | Módulo **"QR / Etiquetas"** en CCP — todos los códigos acuñados, por dirección, QR + código de barras, listos para imprimir | CCP + CORE (lectura) | ✅ **Hecho** (`feat/ccp-etiquetas-qr`, `20a82e5`), luego **retirado del portal el 2026-09-13** → extraído a `herramientas/generador-qr/` como herramienta de escritorio separada (ver tabla de módulos más abajo) |
 | **RF-G** | Fix: crash del login por timeout + layout del wizard roto a pantalla completa | `sicsaft-core` | ✅ **Hecho** (`fix/sicsaft-core-login-timeout-crash`, `db268a1`) |
 | **RF-H** | APK Android — WebView propia mínima, generada en build-time, servida por el `.exe` | `apk-aft/` (nuevo) + `sicsaft-core` | Diseñado — pendiente |
 | **RF-I** | **Pantalla 8** — informe de control de área: agregación (%, desglose por estado declarado, tipo ordinario/extraordinario, nombres) + presentación con fondos verde/amarillo/rojo, en la APP QR y en el Resumen del CCP | CORE (lectura) + CIS + APP QR + CCP | ✅ **Hecho**: CORE (`f64bda1`) + puente CIS (`3d9256d`) + CCP (`c932766`) + APP QR (`6d743ea`). Contrato: [`casos-de-uso/CONTRATO-PANTALLA-8.md`](../../../casos-de-uso/CONTRATO-PANTALLA-8.md) |
@@ -116,17 +116,23 @@ Lectura en CCP: helper `nivelActual(): 1 | 2` en `src/lib/nivel.ts` (mismo patr�
 `nivel` es el **techo**; `modulosContratados` (ya existente) sigue siendo el permiso fino por
 organización. Un módulo se muestra si el nivel lo permite **y** está en `modulosContratados`.
 
-**Tabla vigente (corrección 2026-09-02):**
+**Tabla vigente (corrección 2026-09-02, actualizada 2026-09-13):**
 
 | Módulo del hub | Nivel 1 | Nivel 2 | |
 |---|---|---|---|
-| Activos (con **alta manual**, baja, edición) | ✅ | ✅ | CCP — operación |
 | Estructura (ABM áreas/ubicaciones/responsables) | ✅ | ✅ | CCP — administración |
 | Importación / Ingesta (RF-B) | ✅ | ✅ | CCP — operación |
-| QR / Etiquetas (RF-F) | ✅ | ✅ | CCP — operación |
 | Auditoría | ✅ | ✅ | CCP — control |
-| **Dashboard** (indicadores, distribución, análisis) | ❌ | ✅ | **CIP** — inteligencia |
+| **Dashboard** (indicadores, distribución, análisis) | ❌ | ✅ | **CIP** (`core/frontend`) — inteligencia |
 | Contratos, Inventarios | ❌ retirados del portal en cualquier nivel | | decisión aparte 2026-08-31 |
+
+**Corrección 2026-09-13 (posterior a esta tabla, nunca reflejada acá hasta ahora)**: Activos y
+Controles de área **salieron de `ccp/`** y se mudaron al portal del Directivo como parte del CIP
+(`core/frontend/src/pages/cip/ActivosTab.tsx`, DOC-035) — dejaron de ser un módulo del hub del
+Profesional de AFT. QR/Etiquetas (RF-F) se retiró en la misma fecha y se extrajo a
+`herramientas/generador-qr/`, una herramienta de escritorio separada, ya no un módulo del CCP. El
+registro completo de ambos movimientos solo estaba en `ccp/README.md` y en comentarios de
+`ccp/src/lib/nivel.ts` — no en el DOC "maestro" de la fase que originó esta tabla.
 
 **Tabla previa (revertida, para historial):** Nivel 1 = solo `activos` (consulta), `importaciones`,
 `auditoria`, `etiquetas`, `dashboard`; `estructura` + alta manual de activos eran Nivel 2.
@@ -160,7 +166,7 @@ flowchart TD
     Staging --> Rev["Profesional de AFT en CCP\nmodulo 'Importacion' -> revisa filas,\nve dry-run (crear / actualizar / conflicto)"]
     Rev -->|Aprobar| Aplica["CORE aplica: resuelve-o-crea area/responsable/catalogo\npor nombre, inserta activos (idempotente por codigoPatrimonial)\n+ POST /auditoria"]
     Rev -->|Rechazar| Rechazado["lote 'rechazado'\nnada toca la base"]
-    Aplica --> BPI["Base Patrimonial Central"]
+    Aplica --> BPI["BPI (Base Patrimonial Inteligente)"]
 ```
 
 Respeta el invariante de CLAUDE.md: nada escribe directo a la BPI, todo pasa por CIS→CORE, y ahora
