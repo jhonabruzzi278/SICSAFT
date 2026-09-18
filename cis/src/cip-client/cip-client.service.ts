@@ -18,7 +18,6 @@ import {
   historicoResponseSchema,
   incidenciasResponseSchema,
   noLocalizadosResponseSchema,
-  revisarSesionResponseSchema,
   sesionesResponseSchema,
   veredictosResponseSchema,
   type AreasResult,
@@ -30,7 +29,6 @@ import {
   type IncidenciasResult,
   type NoLocalizadosResult,
   type Paginacion,
-  type RevisarSesionResult,
   type SesionesResult,
   type VeredictosResult,
 } from './cip-client.types';
@@ -205,27 +203,6 @@ export class CipClientService {
     return this.parse(categoriasResponseSchema, data, 'dashboard/categorias');
   }
 
-  // Notificaciones del organigrama (2026-09-16) — primer y único endpoint de escritura de CIP
-  // (ver comentario de callCip más abajo, que hasta ahora asumía "todo CIP es lectura pura").
-  // `revisadoPor` ya llega resuelto por el controller (claim de Keycloak, `requireAuthContext`)
-  // — nunca lo elige el cliente.
-  async revisarSesion(
-    sesionId: string,
-    revisadoPor: string,
-    correlationId: string,
-  ): Promise<RevisarSesionResult> {
-    const data = await this.patch(
-      `/dashboard/sesiones/${encodeURIComponent(sesionId)}/revisar`,
-      { revisadoPor },
-      correlationId,
-    );
-    return this.parse(
-      revisarSesionResponseSchema,
-      data,
-      'dashboard/sesiones/:id/revisar',
-    );
-  }
-
   // DOC-034 Parte B
   async getHistorico(
     organizacionId: string,
@@ -261,18 +238,6 @@ export class CipClientService {
     );
   }
 
-  private async patch(
-    path: string,
-    body: Record<string, unknown>,
-    correlationId: string,
-  ): Promise<unknown> {
-    return this.callCip(path, correlationId, () =>
-      this.httpService.axiosRef.patch(`${this.config.baseUrl}${path}`, body, {
-        headers: this.headers(correlationId),
-      }),
-    );
-  }
-
   private headers(correlationId: string): Record<string, string> {
     return {
       [SERVICE_TOKEN_HEADER]: this.config.serviceToken,
@@ -282,9 +247,8 @@ export class CipClientService {
 
   // Único punto por el que CIS le habla a CIP — mismo criterio de reintentos + circuit breaker
   // que CoreClientService.callCore (WAF 4). Casi todos los endpoints de CIP son lectura pura
-  // (RF-09 de ccp/); revisarSesion (2026-09-16) es la única excepción, pero sigue sin
-  // passthroughStatuses que distinguir: cualquier error de CIP se colapsa a 502, igual que
-  // CoreClientService hace por default para getEntitlements/getCatalogo.
+  // (RF-09 de ccp/) y no hay passthroughStatuses que distinguir: cualquier error de CIP se
+  // colapsa a 502, igual que CoreClientService hace por default para getEntitlements/getCatalogo.
   private async callCip(
     path: string,
     correlationId: string,

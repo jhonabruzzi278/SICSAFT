@@ -5,33 +5,12 @@ import { DashboardConnectorController } from './dashboard-connector.controller';
 import { DashboardConnectorService } from './dashboard-connector.service';
 import { KeycloakAuthGuard } from '../common/auth/keycloak-auth.guard';
 import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
-import {
-  DirectivoGuard,
-  type DirectivoRequest,
-} from '../directivo/directivo.guard';
 import type { RequestWithCorrelationId } from '../common/correlation-id/correlation-id.middleware';
 
 const CORRELATION_ID = 'correlation-test';
 
 function buildRequest(): RequestWithCorrelationId {
   return { correlationId: CORRELATION_ID } as RequestWithCorrelationId;
-}
-
-// revisarSesion lee request.auth directo (requireAuthContext) — los guards están sobreescritos a
-// canActivate:()=>true, así que igual que qr-connector.controller.spec.ts, `auth` se arma a mano.
-function buildDirectivoRequest(
-  operadorId: string,
-): DirectivoRequest & RequestWithCorrelationId {
-  return {
-    correlationId: CORRELATION_ID,
-    auth: {
-      operadorId,
-      accessToken: 'keycloak-token',
-      expiresAt: '2026-08-12T10:15:00.000Z',
-      rolesPorOrganizacion: { 'duoc-uc': ['directivo'] },
-    },
-    directivoOrganizacionId: 'duoc-uc',
-  } as DirectivoRequest & RequestWithCorrelationId;
 }
 
 describe('DashboardConnectorController', () => {
@@ -48,7 +27,6 @@ describe('DashboardConnectorController', () => {
             getCobertura: jest.fn(),
             getAreas: jest.fn(),
             getSesiones: jest.fn(),
-            revisarSesion: jest.fn(),
             getFueraDeArea: jest.fn(),
             getNoLocalizados: jest.fn(),
             getIncidencias: jest.fn(),
@@ -63,8 +41,6 @@ describe('DashboardConnectorController', () => {
       .overrideGuard(KeycloakAuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RateLimitGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(DirectivoGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
@@ -116,28 +92,6 @@ describe('DashboardConnectorController', () => {
       'area-1',
       20,
       0,
-      CORRELATION_ID,
-    );
-  });
-
-  it('revisarSesion delega en el service con sesionId y el operadorId del JWT', async () => {
-    const expected = {
-      sesionId: 'ses-1',
-      areaId: 'area-1',
-      veredicto: 'defectuoso',
-      fechaCierre: '2026-01-01T00:00:00.000Z',
-      revisado: true,
-      revisadoPor: 'op-1',
-      revisadoEn: '2026-01-02T00:00:00.000Z',
-    };
-    service.revisarSesion.mockResolvedValue(expected);
-
-    await expect(
-      controller.revisarSesion('ses-1', buildDirectivoRequest('op-1')),
-    ).resolves.toBe(expected);
-    expect(service.revisarSesion).toHaveBeenCalledWith(
-      'ses-1',
-      'op-1',
       CORRELATION_ID,
     );
   });

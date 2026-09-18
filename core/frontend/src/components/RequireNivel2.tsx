@@ -13,8 +13,8 @@ export function RequireNivel2({ children }: { children: ReactNode }) {
   return (
     <div className="space-y-6">
       <div className="border-b border-border pb-5">
-        <div className="flex items-center gap-2 text-xs font-bold text-text-dim uppercase tracking-wider">
-          <span>Portal del Directivo</span>
+        <div className="flex items-center gap-2 text-xs font-bold text-accent-strong uppercase tracking-wider">
+          <span>Modelo Inteligente de Gestión Patrimonial</span>
         </div>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-text">
           Resumen Institucional
